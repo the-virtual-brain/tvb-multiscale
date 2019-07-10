@@ -80,6 +80,14 @@ RUN git clone --depth 1 https://github.com/dionperd/tvb-multiscale.git; \
 # Test tvb-multiscale by running this:
 #RUN $VENV/bin/python -m tvb_nest.examples.red_ww_exc_io_inh_i.py
 
+# tvb42
+RUN $VENV/bin/pip install jupyter
+RUN $VENV/bin/jupyter notebook --generate-config
+RUN echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
+
 # Activate the rights python env
 WORKDIR /home/docker/
 RUN echo "source $VENV/bin/activate" >> .bashrc
+CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+
+#docker run -d -p 8888:8888 thevirtualbrain/tvb-nest
