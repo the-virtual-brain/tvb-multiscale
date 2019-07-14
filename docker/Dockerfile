@@ -79,8 +79,11 @@ RUN git clone --depth 1 https://github.com/dionperd/tvb-multiscale.git; \
     cd tvb-multiscale; \
     git pull;\
     $VENV/bin/python setup.py develop
-# Test tvb-multiscale by running this:
-#RUN $VENV/bin/python -m tvb_nest.examples.red_ww_exc_io_inh_i.py
+
+
+USER root
+RUN apt-get update; apt-get install -y python-pyqt5; apt-get clean
+USER docker
 
 # tvb42
 RUN $VENV/bin/pip install jupyterlab
@@ -89,12 +92,18 @@ RUN echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a
 
 # Activate the rights python env
 WORKDIR /home/docker/
+COPY install_test.py /home/docker/
+
+ENV PYTHONPATH $VENV
+ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
 RUN mkdir /home/docker/.tvb-temp; chmod 777 /home/docker/; chmod 777 /home/docker/.tvb-temp
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+
+#CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/python install_test.py
 
 #srun -C mc --time 23:59:00 --partition=normal
 #       shifter run --mount=type=bind,source=$HOME,destination=$HOME
-#       thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python -m console_run.py
+#       thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python install_test.py
 
-#docker run -d -p 8888:8888 thevirtualbrain/tvb-nest
+#docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
