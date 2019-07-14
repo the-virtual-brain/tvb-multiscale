@@ -14,7 +14,7 @@ ENV LANG=C.UTF-8
 RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-bin libopenmpi-dev git vim  \
                        wget python libpython-dev libncurses5-dev libreadline-dev libgsl0-dev cython \
                        python-all-dev python-pip python-numpy python-scipy python-matplotlib python-nose \
-                       python-virtualenv ipython libgsl-dev libncurses-dev subversion python-mpi4py cmake; \
+                       python-virtualenv python-pyqt5 libgsl-dev libncurses-dev subversion python-mpi4py cmake; \
                     apt-get clean
 
 RUN useradd -ms /bin/bash docker
@@ -24,31 +24,31 @@ RUN mkdir $HOME/env; mkdir $HOME/packages
 
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
-RUN virtualenv --system-site-packages $VENV
-RUN $VENV/bin/pip install --upgrade pip; \
+RUN virtualenv --system-site-packages $VENV; \
+    $VENV/bin/pip install --upgrade pip; \
     $VENV/bin/pip install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
-    $VENV/bin/pip install --upgrade nose ipython
+    $VENV/bin/pip install --upgrade nose
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
-RUN git clone --depth 1 https://github.com/INCF/libneurosim.git
-RUN cd libneurosim; ./autogen.sh
-RUN mkdir $VENV/build
+RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
+    cd libneurosim; ./autogen.sh; \
+    mkdir $VENV/build
 WORKDIR $VENV/build
 RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$VENV/bin/python $HOME/packages/libneurosim/configure --prefix=$VENV; \
-    make; make install; ls $VENV/lib $VENV/include
-RUN ln -s /usr/lib/python2.7/config-x86_64-linux-gnu/libpython2.7.so $VENV/lib/
+    make; make install; ls $VENV/lib $VENV/include; \
+    ln -s /usr/lib/python2.7/config-x86_64-linux-gnu/libpython2.7.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
 ENV NEST_VER=2.18.0
 ENV NEST=nest-simulator-$NEST_VER
 
 WORKDIR $HOME/packages
-RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz
-RUN tar xzf $NEST.tar.gz; rm $NEST.tar.gz
-RUN cd $NEST; \
+RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz; \
+    tar xzf $NEST.tar.gz; rm $NEST.tar.gz; \
+    cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=$VENV \
           -Dwith-mpi=ON  \
           ###-Dwith-music=ON \
@@ -63,7 +63,7 @@ RUN cd $NEST; \
 WORKDIR $HOME/packages
 
 RUN $VENV/bin/pip install --upgrade pip; \
-    $VENV/bin/pip install tvb-library
+    $VENV/bin/pip install tvb-library jupyterlab
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     $VENV/bin/pip uninstall -y tvb-data; \
@@ -72,28 +72,23 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
 
 RUN git clone --depth 1 https://github.com/dionperd/tvb-scripts.git; \
     cd tvb-scripts; \
-    git pull;\
+    #git pull;\
     $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 https://github.com/dionperd/tvb-multiscale.git; \
     cd tvb-multiscale; \
-    git pull;\
+    #git pull;\
     $VENV/bin/python setup.py develop
 
-
-USER root
-RUN apt-get update; apt-get install -y python-pyqt5; apt-get clean
-USER docker
-
+# Final configurations
 # tvb42
-RUN $VENV/bin/pip install jupyterlab
-RUN $VENV/bin/jupyter notebook --generate-config
-RUN echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
+RUN $VENV/bin/jupyter notebook --generate-config; \
+    echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
-# Activate the rights python env
 WORKDIR /home/docker/
 COPY install_test.py /home/docker/
 
+# Activate the rights python env
 ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
