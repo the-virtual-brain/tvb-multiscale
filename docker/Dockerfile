@@ -63,7 +63,8 @@ RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $H
 WORKDIR $HOME/packages
 
 RUN $VENV/bin/pip install --upgrade pip; \
-    $VENV/bin/pip install tvb-library jupyterlab
+    $VENV/bin/pip install tvb-library jupyterlab; \
+    $VENV/bin/pip install --ignore-installed entrypoints
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     $VENV/bin/pip uninstall -y tvb-data; \
