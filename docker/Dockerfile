@@ -64,10 +64,10 @@ WORKDIR $HOME/packages
 
 RUN $VENV/bin/pip install --upgrade pip; \
     $VENV/bin/pip install tvb-library jupyterlab; \
-    $VENV/bin/pip install --ignore-installed entrypoints
+    $VENV/bin/pip install --ignore-installed entrypoints; \
+    $VENV/bin/pip uninstall -y tvb-data
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
-    $VENV/bin/pip uninstall -y tvb-data; \
     cd tvb-data; \
     $VENV/bin/python setup.py develop
 
