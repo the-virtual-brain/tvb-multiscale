@@ -7,8 +7,8 @@ module load /apps/daint/system/modulefiles/shifter-ng/18.06.0
 
 start=$SECONDS
 
-#srun -C mc --time 00:30:00 --partition=normal shifter run --mpi --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python install_test.py
-shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python /home/docker/install_test.py
+#srun -C mc --time 00:30:00 --partition=normal shifter run --mpi --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
+shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python /home/docker/installation_test.py
 
 duration=$(( SECONDS - start ))
 echo "TVB-NEST test completed in $duration seconds"

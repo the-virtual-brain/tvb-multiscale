@@ -87,7 +87,7 @@ RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
-COPY install_test.py /home/docker/
+COPY installation_test.py /home/docker/
 
 # Activate the rights python env
 ENV PYTHONPATH $VENV
@@ -95,9 +95,9 @@ ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
 
 #CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-CMD $VENV/bin/python install_test.py
+CMD $VENV/bin/python installation_test.py
 
 #srun -C mc --time 01:00:00 --partition=normal
-#       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python install_test.py
+#       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
 
 #docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
