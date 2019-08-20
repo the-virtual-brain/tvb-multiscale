@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from tvb.basic.profile import TvbProfile
-
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
+import matplotlib as mpl
+mpl.use('Agg')
 
 import time
 import numpy as np
-import matplotlib as mpl
-
-mpl.use('Agg')
 from collections import OrderedDict
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw
@@ -21,14 +20,14 @@ from tvb_nest.nest_models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuil
 from tvb_nest.interface_builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 
 config = Config(output_base="output/")
-config.figures.SAVE_FLAG = False
+config.figures.SAVE_FLAG = True
 config.figures.SHOW_FLAG = False
 config.figures.MATPLOTLIB_BACKEND = "Agg"
 plotter = Plotter(config)
 
 connectivity = Connectivity.from_file(os.path.join(DEFAULT_SUBJECT_PATH, DEFAULT_CONNECTIVITY_ZIP))
 connectivity.configure()
-# plotter.plot_tvb_connectivity(connectivity)
+plotter.plot_tvb_connectivity(connectivity)
 
 # Create a TVB simulator and set all desired inputs
 # (connectivity, model, surface, stimuli etc)
@@ -125,4 +124,4 @@ source_ts = Timeseries(data=results[0][1], time=results[0][0],
                                           "Region": simulator.connectivity.region_labels.tolist()},
                        sample_period=simulator.integrator.dt, ts_type="Region")
 
-# plotter.plot_timeseries(source_ts)
+plotter.plot_timeseries(source_ts)
