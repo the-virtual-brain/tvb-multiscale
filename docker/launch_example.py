@@ -19,15 +19,15 @@ from tvb_nest.tvb_models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangEx
 from tvb_nest.nest_models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interface_builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 
-config = Config(output_base="output/")
-config.figures.SAVE_FLAG = True
+config = Config(output_base="outputs/")
+config.figures.SAVE_FLAG = False
 config.figures.SHOW_FLAG = False
 config.figures.MATPLOTLIB_BACKEND = "Agg"
 plotter = Plotter(config)
 
 connectivity = Connectivity.from_file(os.path.join(DEFAULT_SUBJECT_PATH, DEFAULT_CONNECTIVITY_ZIP))
 connectivity.configure()
-plotter.plot_tvb_connectivity(connectivity)
+#plotter.plot_tvb_connectivity(connectivity)
 
 # Create a TVB simulator and set all desired inputs
 # (connectivity, model, surface, stimuli etc)
@@ -124,4 +124,8 @@ source_ts = Timeseries(data=results[0][1], time=results[0][0],
                                           "Region": simulator.connectivity.region_labels.tolist()},
                        sample_period=simulator.integrator.dt, ts_type="Region")
 
-plotter.plot_timeseries(source_ts)
+# plotter.plot_timeseries(source_ts)
+
+np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), connectivity.weights)
+np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), connectivity.tract_lengths)
+np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
