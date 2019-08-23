@@ -17,7 +17,7 @@ import setuptools
 
 VERSION = "1.0.0"
 
-INSTALL_REQUIREMENTS = ["numpy", "matplotlib", "pyplot",  "tvb-library", "tvb-data"]
+INSTALL_REQUIREMENTS = ["pyplot",  "tvb-library"]
 
 setuptools.setup(name='tvb-nest',
                  version=VERSION,
