@@ -10,7 +10,6 @@ from tvb_scripts.config import Config as ConfigBase
 from tvb.datatypes import cortex, connectivity
 
 
-
 class NESTconfig(object):
     # NEST properties:
     NEST_MIN_DT = 0.001

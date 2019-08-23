@@ -43,15 +43,17 @@ import time
 import math
 import numpy
 
-from tvb_nest.config import NESTconfig, DEFAULT_SUBJECT
-from tvb_nest import tvb_models
+from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.interfaces.tvb_to_nest_parameter_interface import TVBNESTParameterInterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
 
+from tvb.simulator import models
+from tvb.simulator import monitors as monitors_m
 from tvb.basic.filters.chain import UIFilter, FilterChain
-from tvb.datatypes import cortex, connectivity
-from tvb.simulator import monitors , integrators
+from tvb.datatypes import cortex
+from tvb.datatypes import connectivity as connectivity_m
+from tvb.simulator import integrators
 from tvb.simulator.simulator import Simulator as SimulatorTVB
 
 
@@ -65,7 +67,7 @@ class Simulator(SimulatorTVB):
     boundary_fun = None
     simulate_nest = None
 
-    model = tvb_models.Model(
+    model = models.Model(
         label="Local dynamic model",
         default=ReducedWongWangExcIOInhI,
         required=True,
@@ -76,9 +78,9 @@ class Simulator(SimulatorTVB):
             monitor. By default the 'ReducedWongWang' model is used. Read the 
             Scientific documentation to learn more about this model.""")
 
-    monitors = monitors.Monitor(
+    monitors = monitors_m.Monitor(
         label="Monitor(s)",
-        default=monitors.Raw,
+        default=monitors_m.Raw,
         required=True,
         order=8,
         select_multiple=True,
@@ -92,8 +94,8 @@ class Simulator(SimulatorTVB):
 
     integrator = integrators.Integrator(
         label="Integration scheme",
-        default=
-            integrators.HeunStochastic(dt=float(int(numpy.round(0.1/NESTconfig.NEST_MIN_DT))) * NESTconfig.NEST_MIN_DT),
+        default=integrators.HeunStochastic(
+            dt=float(int(numpy.round(0.1 / CONFIGURED.nest.NEST_MIN_DT))) * CONFIGURED.nest.NEST_MIN_DT),
         required=True,
         order=6,
         doc="""A tvb.simulator.Integrator object which is
@@ -102,9 +104,9 @@ class Simulator(SimulatorTVB):
                 methods. It is used to compute the time courses of the model state 
                 variables.""")
 
-    connectivity = connectivity.Connectivity(
+    connectivity = connectivity_m.Connectivity(
         label="Long-range connectivity",
-        default=DEFAULT_SUBJECT["connectivity"],
+        default=CONFIGURED.DEFAULT_SUBJECT["connectivity"],
         order=1,
         required=True,
         filters_ui=[UIFilter(linked_elem_name="region_mapping_data",
@@ -131,7 +133,7 @@ class Simulator(SimulatorTVB):
 
     surface = cortex.Cortex(
         label="Cortical surface",
-        default=None,  # DEFAULT_SUBJECT["cortex"],
+        default=None,  # CONFIGURED.DEFAULT_SUBJECT["cortex"],
         order=3,
         required=False,
         filters_backend=FilterChain(fields=[FilterChain.datatype + '._valid_for_simulations'],

@@ -1,32 +1,35 @@
 # -*- coding: utf-8 -*-
 
 from tvb.basic.profile import TvbProfile
-
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
+import matplotlib as mpl
+mpl.use('Agg')
 
 import time
 import numpy as np
-import matplotlib as mpl
-
-mpl.use('Agg')
 from collections import OrderedDict
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw
-from tvb_timeseries.model.timeseries import Timeseries
-from tvb_nest.base.config import *
-from tvb_nest.plot.plotter import Plotter
-from tvb_nest.base.simulator import Simulator
-from tvb_nest.tvb_models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.nest_models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.interface_builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 
-config = Config(output_base="output/")
+from tvb_nest import config as config_m
+config_m.CONFIGURED = config_m.Config(output_base="outputs/")
+config = config_m.CONFIGURED
 config.figures.SAVE_FLAG = False
 config.figures.SHOW_FLAG = False
 config.figures.MATPLOTLIB_BACKEND = "Agg"
+
+from tvb_scripts.timeseries.model import Timeseries
+from tvb_nest.plot.plotter import Plotter
+from tvb_nest.simulator_tvb.simulator import Simulator
+from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+
+
 plotter = Plotter(config)
 
-connectivity = Connectivity.from_file(os.path.join(DEFAULT_SUBJECT_PATH, DEFAULT_CONNECTIVITY_ZIP))
+connectivity = Connectivity.from_file(config.DEFAULT_CONNECTIVITY_ZIP)
 connectivity.configure()
 # plotter.plot_tvb_connectivity(connectivity)
 

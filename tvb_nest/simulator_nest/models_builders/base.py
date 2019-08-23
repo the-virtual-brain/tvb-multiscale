@@ -7,16 +7,15 @@ from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list, flatten_tuple
 from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
 
-
 LOG = initialize_logger(__name__)
 
 
 class NESTModelBuilder(object):
-    config = Config()
-    default_model = Config.nest.DEFAULT_MODEL
-    default_synapse = Config.nest.DEFAULT_SYNAPSE
+    config = CONFIGURED
+    default_model = config.nest.DEFAULT_MODEL
+    default_synapse = config.nest.DEFAULT_SYNAPSE
     default_synaptic_weight_scaling = \
-        lambda self, weight, n_cons: Config.nest.DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
+        lambda self, weight, n_cons: self.config.nest.DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
     nest_instance = None
     nodes = []
     tvb_connectivity = None
@@ -52,9 +51,10 @@ class NESTModelBuilder(object):
 
     # Use these to observe NEST behavior without conversions to TVB state variables and monitors
     output_devices = [{"model": "spike_detector",
-                       "props": Config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
+                       "props": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
                        "nodes": None, "connections": {"n_spikes_E": "E"}}]
     stimulation_devices = []  # use these for possible external stimulation devices
+
     # Example:
     # stimulation_devices = [{"model": "poisson_generator",
     #                         "props": {"rate": 50.0,
@@ -66,7 +66,7 @@ class NESTModelBuilder(object):
     #                        "weight": 1.0,
     #                        "delay": 0.0}]  # use these for possible external stimulation devices
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=Config()):
+    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED):
         self.config = config
         if nest_instance is not None:
             self.nest_instance = nest_instance
@@ -99,7 +99,7 @@ class NESTModelBuilder(object):
             else:
                 LOG.warning("Within NEST node delay %f is not smaller "
                             "than half the TVB integration time step %f!"
-                                 % (delay, self.tvb_dt))
+                            % (delay, self.tvb_dt))
         return self.assert_delay(delay)
 
     @property
@@ -109,7 +109,7 @@ class NESTModelBuilder(object):
     def _update_nest_dt(self):
         self.nest_dt = \
             float(int(np.round(self.tvb_dt / self.tvb_to_nest_dt_ratio / self.config.nest.NEST_MIN_DT))) \
-                * self.config.nest.NEST_MIN_DT
+            * self.config.nest.NEST_MIN_DT
 
     def _configure_nest_kernel(self):
         self.nest_instance.ResetKernel()  # This will restart NEST!
@@ -146,7 +146,7 @@ class NESTModelBuilder(object):
                     val = np.tile(val, conn_shape)
                 else:
                     raise ValueError("%s shape %s does not propagate to the populations connectivty shape %s!"
-                                    % (attr, str(val.shape), str(conn_shape)))
+                                     % (attr, str(val.shape), str(conn_shape)))
             setattr(self, attr, val)
 
     def _configure_nodes_connectivity(self):
@@ -177,7 +177,7 @@ class NESTModelBuilder(object):
         syn_spec = {'model': self.population_connectivity_synapses_model[i_pop_src, i_pop_trg],
                     'weight': self.population_connectivity_synapses_weights[i_pop_src, i_pop_trg],
                     'delay': self.assert_within_node_delay(
-                                self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg])}
+                        self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg])}
         self._connect_two_populations(pop_src, pop_trg, conn_spec, syn_spec)
 
     def connect_population(self, population, i_pop):
@@ -185,7 +185,7 @@ class NESTModelBuilder(object):
 
     def connect_nest_node_populations(self, node):
         # For every possible pair of populations with a node...
-        for i_pop1 in range(self.number_of_populations-1):
+        for i_pop1 in range(self.number_of_populations - 1):
             for i_pop2 in range(i_pop1 + 1, self.number_of_populations):
                 # ...generate the required connections (with weight > 0)
                 if self.population_connectivity_synapses_weights[i_pop1, i_pop2]:
@@ -255,16 +255,13 @@ class NESTModelBuilder(object):
         # Build devices by the variable name they stimulate (IndexedOrderedDict),
         # target node (IndexedOrderedDict)
         # and population (IndexedOrderedDict) for faster reading
-        return build_and_connect_input_devices(self.nest_instance, self.stimulation_devices, self.nodes,
-                                               config=self.config)
-
+        return build_and_connect_input_devices(self.nest_instance, self.stimulation_devices, self.nodes)
 
     def build_and_connect_nest_output_devices(self):
         # Build devices by the variable name they measure (IndexedOrderedDict),
         # target node (IndexedOrderedDict)
         # and population (IndexedOrderedDict) for faster reading
-        return build_and_connect_output_devices(self.nest_instance, self.output_devices, self.nodes,
-                                                config=self.config)
+        return build_and_connect_output_devices(self.nest_instance, self.output_devices, self.nodes)
 
     def build_nest_network(self):
         self._configure_nest_kernel()

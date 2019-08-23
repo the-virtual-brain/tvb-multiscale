@@ -10,7 +10,7 @@ from logging.handlers import TimedRotatingFileHandler
 from tvb_scripts.config import CONFIGURED
 
 
-def initialize_logger(name, target_folder=CONFIGURED.FOLDER_LOGS):
+def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
     """
     create logger for a given module
     :param name: Logger Base Name

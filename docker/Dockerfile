@@ -17,6 +17,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-
                        python-virtualenv python-pyqt5 libgsl-dev libncurses-dev subversion python-mpi4py cmake; \
                     apt-get clean
 
+# Create user different than root
 RUN useradd -ms /bin/bash docker
 USER docker
 ARG HOME=/home/docker
@@ -71,14 +72,8 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     cd tvb-data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/dionperd/tvb-scripts.git; \
-    cd tvb-scripts; \
-    #git pull;\
-    $VENV/bin/python setup.py develop
-
-RUN git clone --depth 1 https://github.com/dionperd/tvb-multiscale.git; \
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
     cd tvb-multiscale; \
-    #git pull;\
     $VENV/bin/python setup.py develop
 
 # Final configurations

@@ -2,7 +2,7 @@
 
 from six import string_types
 import numpy as np
-from tvb_nest.config import NESTconfig
+from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
 from tvb_nest.simulator_nest.nest_factory import build_and_connect_output_devices, build_input_device
 from tvb_nest.simulator_nest.models.network import NESTNetwork
@@ -18,7 +18,6 @@ LOG = initialize_logger(__name__)
 
 
 class TVBNESTInterfaceBuilder(object):
-    config = NESTconfig()
     tvb_model = None
     integrator = None
     connectivity = None
@@ -58,7 +57,7 @@ class TVBNESTInterfaceBuilder(object):
     # #                            "connections": {"S_e": ["E", "I"]}}]
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids,
-                 nest_to_tvb_interfaces=None, tvb_to_nest_interfaces=None, config=NESTconfig()):
+                 nest_to_tvb_interfaces=None, tvb_to_nest_interfaces=None, config=CONFIGURED):
         self.config = config
         if isinstance(nest_network, NESTNetwork):
             self.nest_network = nest_network
@@ -111,7 +110,7 @@ class TVBNESTInterfaceBuilder(object):
         # from NEST to TVB
         devices = build_and_connect_output_devices(self.nest_instance,
                                                    self.nest_to_tvb_interfaces,
-                                                   self.nest_nodes, config=self.config)
+                                                   self.nest_nodes)
         interfaces = IndexedOrderedDict(OrderedDict({}))
         for name, device_set in devices.items():
             try:
