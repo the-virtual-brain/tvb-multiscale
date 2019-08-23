@@ -96,3 +96,5 @@ CMD $VENV/bin/python installation_test.py
 #       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
 
 #docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+
+#docker run ... -v /WORK/TVB/VBC/tvb-multiscale:/home/docker/packages/tvb-multiscale ....
