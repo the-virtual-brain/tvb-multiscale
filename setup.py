@@ -17,11 +17,13 @@ import setuptools
 
 VERSION = "1.0.0"
 
+INSTALL_REQUIREMENTS = ["numpy", "matplotlib", "pyplot",  "tvb-library", "tvb-data"]
 
 setuptools.setup(name='tvb-nest',
                  version=VERSION,
                  packages=setuptools.find_packages(),
                  include_package_data=True,
+                 install_requires=INSTALL_REQUIREMENTS,
                  description='A package for multiscale simulations with TVB and NEST.',
                  license="GPL v3",
                  author="Dionysios Perdikis, Lia Domide, TVB Team",
