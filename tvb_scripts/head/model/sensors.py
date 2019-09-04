@@ -10,8 +10,7 @@ from tvb.datatypes.sensors import SensorsEEG as TVBSensorsEEG
 from tvb.datatypes.sensors import SensorsMEG as TVBSensorsMEG
 from tvb.datatypes.sensors import SensorsInternal as TVBSensorsInternal
 from tvb.datatypes.sensors import EEG_POLYMORPHIC_IDENTITY, MEG_POLYMORPHIC_IDENTITY, INTERNAL_POLYMORPHIC_IDENTITY
-from tvb.datatypes.projections import ProjectionSurfaceEEG, ProjectionSurfaceMEG, ProjectionSurfaceSEEG, \
-    ProjectionMatrix
+from tvb.datatypes.projections import ProjectionSurfaceEEG, ProjectionSurfaceMEG, ProjectionSurfaceSEEG
 
 
 class SensorTypes(Enum):
@@ -32,48 +31,42 @@ SensorTypesToProjectionDict = {"EEG": ProjectionSurfaceEEG,
 class Sensors(object):
     name = ""
     file_path = ""
-    _tvb = TVBSensors()
+    _tvb = None
 
-    def __init__(self, tvb_sensors=TVBSensors(), remove_leading_zeros_from_labels=False, **kwargs):
+    def __init__(self, **kwargs):
         self.name = kwargs.pop("name", "")
         self.file_path = kwargs.pop("file_path", "")
-        self._tvb = tvb_sensors
-        for attr, value in kwargs.items():
-            try:
-                if value.any():
-                    setattr(self._tvb, attr, value)
-            except:
-                warning("Failed to set attribute %s to TVB sensors!" % attr)
-        self._tvb.number_of_sensors = self.locations.shape[0]
-        if len(self.name) == 0:
-            self.name = self._tvb.sensors_type
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
+        tvb_sensors = kwargs.pop("tvb_sensors", TVBSensors())
+        if isinstance(tvb_sensors, TVBSensors):
+            for attr, value in kwargs.items():
+                try:
+                    if len(value):
+                        setattr(tvb_sensors, attr, value)
+                except:
+                    warning("Failed to set attribute %s to TVB sensors!" % attr)
+            self._tvb = tvb_sensors
+            self._tvb.number_of_sensors = self.locations.shape[0]
+            if len(self.name) == 0:
+                self.name = self._tvb.sensors_type
 
     def __getattr__(self, attr):
         return getattr(self._tvb, attr)
 
-    def from_tvb_instance(self, instance, remove_leading_zeros_from_labels=False):
+    def from_tvb_instance(self, instance):
         self._tvb = instance
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
         return self
 
-    def from_tvb_file(self, filepath, remove_leading_zeros_from_labels=False):
+    def from_tvb_file(self, filepath):
         self._tvb = TVBSensors.from_file(filepath, self._tvb)
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
         self.file_path = filepath
         return self
 
     def configure(self, remove_leading_zeros_from_labels=False):
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
-        self._tvb.configure()
+        if isinstance(self._tvb, Sensors):
+            if len(self._tvb.labels) > 0:
+                if remove_leading_zeros_from_labels:
+                    self.remove_leading_zeros_from_labels()
+            self._tvb.configure()
 
     def sensor_label_to_index(self, labels):
         indexes = []
@@ -112,49 +105,43 @@ class Sensors(object):
 
 
 class SensorsEEG(Sensors):
-    _tvb = TVBSensorsEEG()
+    _tvb = None
 
-    def __init__(self, tvb_sensors=TVBSensorsEEG(), remove_leading_zeros_from_labels=False, **kwargs):
-        super(SensorsEEG, self).__init__(tvb_sensors, remove_leading_zeros_from_labels)
+    def __init__(self, **kwargs):
+        tvb_sensors = kwargs.pop("tvb_sensors", TVBSensorsEEG())
+        super(SensorsEEG, self).__init__(tvb_sensors=tvb_sensors, **kwargs)
 
-    def from_tvb_file(self, filepath, remove_leading_zeros_from_labels=False):
+    def from_tvb_file(self, filepath):
         self._tvb = TVBSensorsEEG.from_file(filepath, self._tvb)
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
         return self
 
 
 class SensorsMEG(Sensors):
-    _tvb = TVBSensorsMEG()
+    _tvb = None
 
-    def __init__(self, tvb_sensors=TVBSensorsMEG(), remove_leading_zeros_from_labels=False, **kwargs):
-        super(SensorsMEG, self).__init__(tvb_sensors, remove_leading_zeros_from_labels)
+    def __init__(self, **kwargs):
+        tvb_sensors = kwargs.pop("tvb_sensors", TVBSensorsMEG())
+        super(SensorsMEG, self).__init__(tvb_sensors=tvb_sensors, **kwargs)
 
-    def from_tvb_file(self, filepath, remove_leading_zeros_from_labels=False):
+    def from_tvb_file(self, filepath):
         self._tvb = TVBSensorsMEG.from_file(filepath, self._tvb)
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
         self.file_path = filepath
         return self
 
 
 class SensorsInternal(Sensors):
-    _tvb = TVBSensorsInternal()
+    _tvb = None
     elec_labels = np.array([])
     elec_inds = np.array([])
 
-    def __init__(self, tvb_sensors=TVBSensorsInternal(), remove_leading_zeros_from_labels=True, **kwargs):
+    def __init__(self, **kwargs):
+        tvb_sensors = kwargs.pop("tvb_sensors", TVBSensorsInternal())
         self.elec_labels = kwargs.pop("elec_labels", np.array([]))
         self.elec_inds = kwargs.pop("elec_inds", np.array([]))
-        super(SensorsInternal, self).__init__(tvb_sensors, remove_leading_zeros_from_labels)
+        super(SensorsInternal, self).__init__(tvb_sensors=tvb_sensors, **kwargs)
 
-    def from_tvb_file(self, filepath, remove_leading_zeros_from_labels=True):
+    def from_tvb_file(self, filepath):
         self._tvb = TVBSensorsInternal.from_file(filepath, self._tvb)
-        if len(self._tvb.labels) > 0:
-            if remove_leading_zeros_from_labels:
-                self.remove_leading_zeros_from_labels()
         self.file_path = filepath
         return self
 
@@ -172,11 +159,12 @@ class SensorsInternal(Sensors):
 
     def configure(self):
         super(SensorsInternal, self).configure()
-        if self._tvb.number_of_sensors > 0:
-            self.elec_labels, self.elec_inds = self.group_sensors_to_electrodes()
-        else:
-            self.elec_labels = np.array([])
-            self.elec_inds = np.array([])
+        if isinstance(self._tvb, Sensors):
+            if self._tvb.number_of_sensors > 0:
+                self.elec_labels, self.elec_inds = self.group_sensors_to_electrodes()
+            else:
+                self.elec_labels = np.array([])
+                self.elec_inds = np.array([])
 
     def get_elecs_inds_by_elecs_labels(self, lbls):
         return labels_to_inds(self.elec_labels, lbls)
@@ -220,8 +208,9 @@ class SensorsSEEG(SensorsInternal):
     sensors_type = SensorTypes.TYPE_SEEG.value
     _ui_name = sensors_type + " Sensors"
 
-    def __init__(self, tvb_sensors=TVBSensorsInternal(), remove_leading_zeros_from_labels=True, **kwargs):
-        super(SensorsInternal, self).__init__(tvb_sensors, remove_leading_zeros_from_labels)
+    def __init__(self, **kwargs):
+        tvb_sensors = kwargs.pop("tvb_sensors", TVBSensorsInternal())
+        super(SensorsInternal, self).__init__(tvb_sensors=tvb_sensors, **kwargs)
         self.sensors_type = SensorTypes.TYPE_SEEG.value
         self._ui_name = self.sensors_type + " Sensors"
 
