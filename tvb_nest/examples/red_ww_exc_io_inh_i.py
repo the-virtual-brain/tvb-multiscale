@@ -203,6 +203,6 @@ if __name__ == "__main__":
     # Plot timeseries
     # Add _tvb from the function names if source_ts is a TVB TimeSeriesRegion object
     plotter.plot_timeseries(source_ts)
-    plotter.plot_timeseries_raster(source_ts, title="Region Time Series Raster")
+    plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)

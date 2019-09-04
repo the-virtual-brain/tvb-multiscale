@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import matplotlib
 from matplotlib import pyplot, gridspec
 from matplotlib.colors import Normalize
 import numpy
 from tvb_scripts.utils.log_error_utils import warning, raise_value_error
-from tvb_scripts.utils.data_structures_utils import ensure_list, isequal_string, generate_region_labels, \
-    ensure_string
+from tvb_scripts.utils.data_structures_utils import ensure_list, isequal_string, generate_region_labels, ensure_string
 from tvb_scripts.utils.analyzers_utils import time_spectral_analysis
 from tvb_scripts.plot.base_plotter import BasePlotter
 from tvb.datatypes.time_series import TimeSeries
+from tvb_scripts.timeseries.model import Timeseries
 
 
 def assert_time(time, n_times, time_unit="ms", logger=None):
