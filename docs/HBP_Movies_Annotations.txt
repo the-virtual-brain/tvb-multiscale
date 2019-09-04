@@ -63,7 +63,7 @@ tvb-nest_usage_local.mov
 
 
 --------------------------------------------------
-tvb-nest_usage_on_collabhbp_and_cscs.mov
+tvb-nest_usage_on_collabhbp_and_cscs2.mov
 --------------------------------------------------
 00:00 -- 00:20
     This video-tutorial is demonstrating the usage of TVB and NEST simulators on HBP Collaboratory,
@@ -85,20 +85,20 @@ tvb-nest_usage_on_collabhbp_and_cscs.mov
 *   https://user.cscs.ch/tools/containers/
 *   https://user.cscs.ch/tools/containers/advanced_shifter/
 
-00:31 -- 00:45
+00:31 -- 01:00
     Shifter is an HPC correspondent to Docker client.
     We ensure that tvb-nest image is downloaded locally.
     If not found, we use shifter pull command to get it from Docker Hub.
 
 * srun -C mc shifter pull thevirtualbrain/tvb-nest
 
-00:46 -- 01:00
+01:01 -- 01:22
     Last step in preparing our CSCS home directory, is to have a shell file for launching tvb-nest simulations.
     One example for such a file can be found on tvb-nest Github page.
 
-* https://github.com/the-virtual-brain/tvb-multiscale/blob/master/docker/cosimulate_tvb_nest.sh
+* https://github.com/the-virtual-brain/tvb-multiscale/blob/master/docker/cosimulate_with_staging.sh
 
-01:00 -- 01:15
+01:23 -- 01:32
     Next, we move focus towards HBP Collaboratory GUI, which is used for actually launching simulation jobs,
     in the CSCS environment prepared above.
     We could also just continue to use SSH, but switching to Collab is recommended, for improving the user experience.
@@ -111,20 +111,33 @@ tvb-nest_usage_on_collabhbp_and_cscs.mov
 * https://services.humanbrainproject.eu/oidc/login
 * support@humanbrainproject.eu
 
-01:17 -- 01:33
+01:33 -- 01:46
     After login, we  navigate to tab COLLABS, and search for “TVB NEST” entity.
 
 * https://collab.humanbrainproject.eu/#/collab/58136/nav/396829
 
-01:34 -- 01:52
-    On the left-side, click on “Run a co-simulation TVB-NEST” and we will see a demo notebook for launching tvb-nest
+01:47 -- 02:07
+    On the left-side, click on “Run a custom co-simulation” and we will see a demo notebook for launching tvb-nest
     simulations on the CSCS servers, in the environment prepared above.
     Exactly this notebook will work for my user only. For another CSCS user, you should copy this notebook in your own
     collab space and change the username.
 
-01:53 -- 02:09
+02:08 -- 02:09
     On this notebook, or on a copy of it, we use menu entry Cell and then "Run all", to launch the simulation job.
+    While it is running, let us observe the configuration elements prepared bellow: CSCS URL, the  cosimulation shell
+    launch command to execute, which was prepared in our server home directory.
 
-02:10 -- end
-    We will inspect the cell bellow title “Result” and run that particular cell multiple times,
-    until we see that the simulation job was completed successfully.
+02:29 -- 02:58
+    This notebook can be configured into what simulation to execute and with what parameters, through a Python script
+    that will be downloaded at run-time. Here we have the script public on our Github.
+    In this script, relevant are the configuration of TVB and NEST simulators, plus saving the resuts as numpy files at
+    the end.
+
+* https://github.com/the-virtual-brain/tvb-multiscale/blob/master/docker/launch_example.py
+
+02:58 -- 03:35
+    Returning to our notebook, we see that our job is running, but the Output was not yet ready.
+    We re-run that cell until we see that the simulation is done.
+
+03:36 -- end
+    The rest of the cell, with go through the result files, and plot the most relevant.
