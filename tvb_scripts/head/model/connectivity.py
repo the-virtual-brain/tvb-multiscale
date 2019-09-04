@@ -8,20 +8,23 @@ from tvb.datatypes.connectivity import Connectivity as TVBConnectivity
 
 
 class Connectivity(object):
-    _tvb = TVBConnectivity()
+    _tvb = None
     file_path = ""
     normalized_weights = np.array([])
 
     def __init__(self, **kwargs):
         self.file_path = kwargs.pop("file_path", "")
-        self._tvb = kwargs.pop("tvb_connectivity", TVBConnectivity())
         self.normalized_weights = kwargs.pop("normalized_weights", np.array([]))
-        for attr, value in kwargs.items():
-            try:
-                if value.any():
-                    setattr(self._tvb, attr, value)
-            except:
-                warning("Failed to set attribute %s to TVB connectivity!" % attr)
+        # TODO: find why there is an error without the hack below...
+        tvb_conn = kwargs.pop("tvb_connectivity", TVBConnectivity())
+        if isinstance(tvb_conn, TVBConnectivity):
+            for attr, value in kwargs.items():
+                try:
+                    if len(value):
+                        setattr(tvb_conn, attr, value)
+                except:
+                    warning("Failed to set attribute %s to TVB connectivity!" % attr)
+            self._tvb = tvb_conn
 
     def __getattr__(self, attr):
         return getattr(self._tvb, attr)
@@ -41,7 +44,7 @@ class Connectivity(object):
 
     @property
     def number_of_regions(self):
-        return self._tvb.centres.shape[0]
+        return self._tvb.weights.shape[0]
 
     def configure(self):
         self._tvb.configure()

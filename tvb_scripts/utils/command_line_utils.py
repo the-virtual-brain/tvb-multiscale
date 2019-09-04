@@ -14,7 +14,7 @@ from tvb_scripts.utils.log_error_utils import initialize_logger
 logger = initialize_logger(__name__)
 
 
-def execute_command(command, cwd=os.getcwd(), shell=True):
+def execute_command(command, cwd=os.getcwd(), shell=True, fatal_error=False):
     logger.info("Running process in directory:\n" + cwd)
     logger.info("Command:\n" + command)
     tic = time.time()
@@ -27,9 +27,11 @@ def execute_command(command, cwd=os.getcwd(), shell=True):
         sys.stdout.write(nextline)
         sys.stdout.flush()
     output = process.communicate()[0]
+    logger.info("The process ran for " + str(time.time() - tic))
     exit_code = process.returncode
     if exit_code == 0:
-        return output, time.time() - tic
-    else:
-        logger.info("The process ran for " + str(time.time() - tic))
-        raise subprocess.CalledProcessError(exit_code, command)
+        if fatal_error:
+            raise subprocess.CalledProcessError(exit_code, command)
+        else:
+            logger.warning("exit code 0 (error) for process\n%s!" + command)
+    return output, time.time() - tic

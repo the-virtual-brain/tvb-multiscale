@@ -107,8 +107,8 @@ class TimeseriesService(object):
 
     def decimate(self, timeseries, decim_ratio, **kwargs):
         if decim_ratio > 1:
-            return timeseries.duplicate(timeseries.data[0:timeseries.time_length:decim_ratio],
-                                        sample_period=decim_ratio * timeseries.sample_period, **kwargs)
+            return timeseries.duplicate(data=timeseries.data[0:timeseries.time_length:decim_ratio],
+                                        sample_period=float(decim_ratio*timeseries.sample_period), **kwargs)
         else:
             return timeseries.duplicate()
 
@@ -116,7 +116,7 @@ class TimeseriesService(object):
         if decim_ratio > 1:
             decim_data, decim_time, decim_dt, decim_n_times = decimate_signals(timeseries.squeezed,
                                                                                timeseries.time, decim_ratio)
-            return timeseries.duplicate(decim_data, sample_period=decim_dt, **kwargs)
+            return timeseries.duplicate(data=decim_data, sample_period=float(decim_dt), **kwargs)
         else:
             return timeseries.duplicate(**kwargs)
 
@@ -126,13 +126,13 @@ class TimeseriesService(object):
             kernel = np.ones((n_kernel_points, 1, 1, 1)) / n_kernel_points
         else:
             kernel = kernel * np.ones((n_kernel_points, 1, 1, 1))
-        return timeseries.duplicate(convolve(timeseries.data, kernel, mode='same'), **kwargs)
+        return timeseries.duplicate(data=convolve(timeseries.data, kernel, mode='same'), **kwargs)
 
     def hilbert_envelope(self, timeseries, **kwargs):
-        return timeseries.duplicate(np.abs(hilbert(timeseries.data, axis=0)), **kwargs)
+        return timeseries.duplicate(data=np.abs(hilbert(timeseries.data, axis=0)), **kwargs)
 
     def spectrogram_envelope(self, timeseries, lpf=None, hpf=None, nperseg=None, **kwargs):
-        data, time = spectrogram_envelope(timeseries.squeezed, timeseries.sampling_frequency, lpf, hpf, nperseg)
+        data, time = spectrogram_envelope(timeseries.squeezed, timeseries.sample_rate, lpf, hpf, nperseg)
         if len(timeseries.sample_period_unit) > 0 and timeseries.sample_period_unit[0] == "m":
             time *= 1000
         return timeseries.duplicate(data=data, start_time=timeseries.start_time + time[0],
@@ -148,7 +148,7 @@ class TimeseriesService(object):
         return timeseries.duplicate(data=normalize_signals(timeseries.data, normalization, axis, percent), **kwargs)
 
     def filter(self, timeseries, lowcut=None, highcut=None, mode='bandpass', order=3, **kwargs):
-        return timeseries.duplicate(data=filter_data(timeseries.data, timeseries.sampling_frequency,
+        return timeseries.duplicate(data=filter_data(timeseries.data, timeseries.sample_rate,
                                                      lowcut, highcut, mode, order), **kwargs)
 
     def log(self, timeseries, **kwargs):
@@ -169,23 +169,64 @@ class TimeseriesService(object):
     def correlation(self, timeseries):
         return np.corrcoef(timeseries.squeezed.T)
 
-    def concatenate_in_time(self, timeseries_list, labels=None):
+    def _compile_select_fun(self, **kwargs):
+        select_fun = []
+        for dim, lbl in enumerate(["times", "variables", "labels",  "samples"]):
+            index = ensure_list(kwargs.pop(lbl, []))
+            if len(index) > 0:
+                select_fun.append(lambda ts: getattr(ts, "get_subset")(index, dim))
+        return select_fun
+
+    def select(self, timeseries, select_fun=None, **kwargs):
+        if select_fun is None:
+            select_fun = self._compile_select_fun(**kwargs)
+        for fun in select_fun:
+            timeseries = fun(timeseries)
+        return timeseries, select_fun
+
+    def concatenate(self, timeseries_list, dim, **kwargs):
         timeseries_list = ensure_list(timeseries_list)
-        out_timeseries = timeseries_list[0]
-        if labels is None:
-            labels = out_timeseries.space_labels
-        else:
-            out_timeseries = out_timeseries.get_subspace_by_labels(labels)
-        for id, timeseries in enumerate(timeseries_list[1:]):
-            if np.float32(out_timeseries.sample_period) == np.float32(timeseries.sample_period):
-                out_timeseries.data = np.concatenate([out_timeseries.data,
-                                                      timeseries.get_subspace_by_labels(labels).data], axis=0)
+        n_ts = len(timeseries_list)
+        if n_ts > 0:
+            out_timeseries, select_fun = self.select(timeseries_list[0], **kwargs)
+            if n_ts > 1:
+                for id, timeseries in enumerate(timeseries_list[1:]):
+                    if np.float32(out_timeseries.sample_period) != np.float32(timeseries.sample_period):
+                        raise_value_error("Timeseries concatenation failed!\n"
+                                          "Timeseries %d have a different time step (%s) \n "
+                                          "than the concatenated ones (%s)!" %
+                                          (id, str(np.float32(timeseries.sample_period)),
+                                           str(np.float32(out_timeseries.sample_period))))
+                    else:
+                        timeseries = self.select(timeseries, select_fun)[0]
+                        try:
+                            out_timeseries.set_data(np.concatenate([out_timeseries.data, timeseries.data], axis=dim))
+                            if len(out_timeseries.labels_dimensions[out_timeseries.labels_ordering[dim]]) > 0:
+                                dim_label = out_timeseries.labels_ordering[dim]
+                                out_timeseries.labels_dimensions[dim_label] = \
+                                    np.array(ensure_list(out_timeseries.labels_dimensions[dim_label]) +
+                                             ensure_list(timeseries.labels_dimensions[dim_label]))
+                        except:
+                            raise_value_error("Timeseries concatenation failed!\n"
+                                              "Timeseries %d have a shape (%s) and the concatenated ones (%s)!" %
+                                              (id, str(out_timeseries.shape), str(timeseries.shape)))
+                return out_timeseries
             else:
-                raise_value_error("Timeseries concatenation in time failed!\n"
-                                  "Timeseries %d have a different time step (%s) than the ones before(%s)!" \
-                                  % (id, str(np.float32(timeseries.sample_period)),
-                                     str(np.float32(out_timeseries.sample_period))))
-        return out_timeseries
+                return out_timeseries
+        else:
+            return Timeseries(**kwargs)
+
+    def concatenate_in_time(self, timeseries_list, **kwargs):
+        return self.concatenate(timeseries_list, 0, **kwargs)
+
+    def concatenate_variables(self, timeseries_list, **kwargs):
+        return self.concatenate(timeseries_list, 1, **kwargs)
+
+    def concatenate_in_space(self, timeseries_list, **kwargs):
+        return self.concatenate(timeseries_list, 2, **kwargs)
+
+    def concatenate_samples(self, timeseries_list, **kwargs):
+        return self.concatenate(timeseries_list, 3, **kwargs)
 
     def select_by_metric(self, timeseries, metric, metric_th=None, metric_percentile=None, nvals=None):
         selection = np.unique(select_greater_values_array_inds(metric, metric_th, metric_percentile, nvals))
@@ -211,12 +252,12 @@ class TimeseriesService(object):
         return self.select_by_hierarchical_group_metric_clustering(timeseries, 1 - correlation,
                                                                    disconnectivity, power, n_groups, members_per_group)
 
-    def select_by_gain_matrix_power(self, timeseries, gain_matrix=np.array([]),
-                                    disconnectivity=np.array([]), power=np.array([]),
-                                    n_groups=10, members_per_group=1):
+    def select_by_projection_power(self, timeseries, projection=np.array([]),
+                                   disconnectivity=np.array([]), power=np.array([]),
+                                   n_groups=10, members_per_group=1):
         if len(power) != timeseries.number_of_labels:
             power = self.power(timeseries)
-        return self.select_by_hierarchical_group_metric_clustering(timeseries, 1 - np.corrcoef(gain_matrix),
+        return self.select_by_hierarchical_group_metric_clustering(timeseries, 1 - np.corrcoef(projection),
                                                                    disconnectivity, power, n_groups, members_per_group)
 
     def select_by_rois_proximity(self, timeseries, proximity, proximity_th=None, percentile=None, n_signals=None):
@@ -235,11 +276,11 @@ class TimeseriesService(object):
                 rois[ir] = all_labels[roi]
         return timeseries.get_subspace_by_labels(rois), rois
 
-    def compute_seeg(self, source_timeseries, sensors, sum_mode="lin", **kwargs):
+    def compute_seeg(self, source_timeseries, sensors, projection=None, sum_mode="lin", **kwargs):
         if np.all(sum_mode == "exp"):
-            seeg_fun = lambda source, gain_matrix: compute_seeg_exp(source.squeezed, gain_matrix)
+            seeg_fun = lambda source, projection_data: self.compute_seeg_exp(source.squeezed, projection_data)
         else:
-            seeg_fun = lambda source, gain_matrix: compute_seeg_lin(source.squeezed, gain_matrix)
+            seeg_fun = lambda source, projection_data: self.compute_seeg_lin(source.squeezed, projection_data)
         labels_ordering = LABELS_ORDERING
         labels_ordering[1] = "SEEG"
         labels_ordering[2] = "SEEG Sensor"
@@ -249,21 +290,23 @@ class TimeseriesService(object):
                        "sample_period_unit": source_timeseries.sample_period_unit})
         if isinstance(sensors, dict):
             seeg = OrderedDict()
-            for sensor_name, sensor in sensors.items():
+            for sensor, projection in sensors.items():
                 kwargs.update({"labels_dimensions": {labels_ordering[2]: sensor.labels,
-                                                     labels_ordering[1]: [sensor.name]}})
-                seeg[sensor_name] = \
-                    source_timeseries.__class__(seeg_fun(source_timeseries, sensor.gain_matrix), **kwargs)
+                                                     labels_ordering[1]: [sensor.name]},
+                               "sensors": sensor})
+                seeg[sensor.name] = \
+                    source_timeseries.__class__(
+                        np.expand_dims(seeg_fun(source_timeseries, projection.projection_data), 1), **kwargs)
             return seeg
         else:
             kwargs.update({"labels_dimensions": {labels_ordering[2]: sensors.labels,
-                                                 labels_ordering[1]: [sensors.name]}})
-            return source_timeseries.__class__(seeg_fun(source_timeseries, sensors.gain_matrix), **kwargs)
+                                                 labels_ordering[1]: [sensors.name]},
+                           "sensors": sensors})
+            return source_timeseries.__class__(
+                np.expand_dims(seeg_fun(source_timeseries, projection.projection_data), 1), **kwargs)
 
+    def compute_seeg_lin(self, source_timeseries, projection_data):
+        return source_timeseries.dot(projection_data.T)
 
-def compute_seeg_lin(source_timeseries, gain_matrix):
-    return source_timeseries.dot(gain_matrix.T)
-
-
-def compute_seeg_exp(source_timeseries, gain_matrix):
-    return np.log(np.exp(source_timeseries).dot(gain_matrix.T))
+    def compute_seeg_exp(self, source_timeseries, projection_data):
+        return np.log(np.exp(source_timeseries).dot(projection_data.T))

@@ -39,14 +39,14 @@ class HeadPlotter(BasePlotter):
         return pyplot.gcf(), tuple(axes)
 
     def _plot_sensors(self, sensors, projection, region_labels, count=1):
-        figure, ax, cax = self._plot_gain_matrix(sensors, projection, region_labels,
-                                                 title="%d - %s - Projection" % (count, sensors.sensor_type))
+        figure, ax, cax = self._plot_projection(sensors, projection, region_labels,
+                                                title= "%d - %s - Projection" % (count, sensors.sensors_type))
         count += 1
         return count, figure, ax, cax
 
-    def _plot_gain_matrix(self, sensors, projection, region_labels, figure=None, title="Projection",
-                          show_x_labels=True, show_y_labels=True, x_ticks=numpy.array([]), y_ticks=numpy.array([]),
-                          figsize=None):
+    def _plot_projection(self, sensors, projection, region_labels, figure=None, title="Projection",
+                         show_x_labels=True, show_y_labels=True, x_ticks=numpy.array([]), y_ticks=numpy.array([]),
+                         figsize=None):
         if not isinstance(figsize, (list, tuple)):
             figsize = self.config.figures.VERY_LARGE_SIZE
         if not (isinstance(figure, pyplot.Figure)):

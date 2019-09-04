@@ -8,19 +8,21 @@ from tvb.datatypes.surfaces import CorticalSurface as TVBCorticalSurface
 
 class Surface(object):
     file_path = ""
-    _tvb = TVBCorticalSurface()
+    _tvb = None
     vox2ras = np.array([])
 
     def __init__(self, **kwargs):
         self.file_path = kwargs.pop("file_path", "")
-        self._tvb = kwargs.pop("tvb_surface", TVBCorticalSurface())
         self.vox2ras = kwargs.pop("vox2ras", np.array([]))
-        for attr, value in kwargs.items():
-            try:
-                if value.any():
-                    setattr(self._tvb, attr, value)
-            except:
-                warning("Failed to set attribute %s to TVB surface!" % attr)
+        tvb_surface = kwargs.pop("tvb_surface", TVBCorticalSurface())
+        if isinstance(tvb_surface, TVBCorticalSurface) > 0:
+            for attr, value in kwargs.items():
+                try:
+                    if value.any():
+                        setattr(tvb_surface, attr, value)
+                except:
+                    warning("Failed to set attribute %s to TVB surface!" % attr)
+            self._tvb = tvb_surface
 
     def __getattr__(self, attr):
         return getattr(self._tvb, attr)
@@ -37,7 +39,8 @@ class Surface(object):
         return self
 
     def configure(self):
-        self._tvb.configure()
+        if isinstance(self._tvb, TVBCorticalSurface):
+            self._tvb.configure()
 
     def get_vertex_normals(self):
         # If there is at least 3 vertices and 1 triangle...

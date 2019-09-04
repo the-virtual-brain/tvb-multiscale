@@ -239,7 +239,7 @@ class BasePlotter(object):
         if 10 > n_subplots > 0:
             subplot_ind0 = 100 + 10 * n_subplots
         else:
-            raise ValueError("\nSubplots' number " + str(n_subplots) + "is not between 1 and 9!")
+            raise ValueError("\nSubplots' number " + str(n_subplots) + " is not between 1 and 9!")
         n_regions = len(labels)
         subplot_ind = subplot_ind0
         ax = None

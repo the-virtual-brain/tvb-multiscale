@@ -70,9 +70,12 @@ def join_labels_indices_dict(d):
     return out_list
 
 
-def construct_import_path(path, package):
+def construct_import_path(path, package=None):
     path = path.split(".py")[0]
-    start = path.find(package)
+    if isinstance(package, string_types):
+        start = path.find(package)
+    else:
+        start = 0
     return path[start:].replace("/", ".")
 
 
@@ -390,13 +393,9 @@ def get_val_key_for_first_keymatch_in_dict(name, pkeys, **kwargs):
         return None, None
 
 
-def labels_to_inds(labels, lbls):
-    idx = []
-    lbls = ensure_list(lbls)
-    for i, label in enumerate(labels):
-        if label in lbls:
-            idx.append(i)
-    return np.unique(idx)
+def labels_to_inds(labels, target_labels):
+    return np.unique(np.where([lbl in target_labels
+                               for lbl in labels])[0])
 
 
 def generate_region_labels(n_regions, labels=[], str=". ", numbering=True, numbers=[]):

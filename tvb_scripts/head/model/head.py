@@ -5,8 +5,10 @@ from collections import OrderedDict
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error, warning
 from tvb_scripts.utils.data_structures_utils import isequal_string, is_integer
 from tvb_scripts.head.model.sensors import Sensors, SensorTypes, SensorTypesNames, SensorTypesToProjectionDict
-from tvb.datatypes.projections import ProjectionMatrix
+from tvb.datatypes.connectivity import Connectivity
 from tvb.datatypes.cortex import Cortex
+from tvb.datatypes.surfaces import Surface
+from tvb.datatypes.projections import ProjectionMatrix
 
 
 class Head(object):
@@ -47,17 +49,21 @@ class Head(object):
         return cortex
 
     def configure(self):
-        self.connectivity.configure()
-        self.cortical_surface.configure()
-        self.subcortical_surface.configure()
+        if isinstance(self.connectivity, Connectivity):
+            self.connectivity.configure()
+        if isinstance(self.cortical_surface, Surface):
+            self.cortical_surface.configure()
+        if isinstance(self.cortical_surface, Surface):
+            self.subcortical_surface.configure()
         for s_type, sensors_set in self.sensors.items():
             for sensor, projection in sensors_set.items():
-                sensor.configure()
+                if isinstance(sensor, Sensors):
+                    sensor.configure()
 
     def filter_regions(self, filter_arr):
         return self.connectivity.region_labels[filter_arr]
 
-    def get_sensors(self, s_type=SensorTypes.TYPE_EEG, name_or_index=None):
+    def get_sensors(self, s_type=SensorTypes.TYPE_EEG.value, name_or_index=None):
         sensors_set = OrderedDict()
         if s_type not in SensorTypesNames:
             raise_value_error("Invalid input sensor type!: %s" % str(s_type))
@@ -78,7 +84,7 @@ class Head(object):
                 return sensors_set
         return out_sensor, out_projection
 
-    def set_sensors(self, input_sensors, s_type=SensorTypes.TYPE_EEG, reset=False):
+    def set_sensors(self, input_sensors, s_type=SensorTypes.TYPE_EEG.value, reset=False):
         if not isinstance(input_sensors, (Sensors, dict, list, tuple)):
             return raise_value_error("Invalid input sensors instance''!: %s" % str(input_sensors))
         if s_type not in SensorTypesNames:
