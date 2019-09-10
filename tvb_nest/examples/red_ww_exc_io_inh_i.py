@@ -16,6 +16,7 @@ from tvb_scripts.timeseries.model import Timeseries
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
+
 if __name__ == "__main__":
 
     config = CONFIGURED
@@ -32,16 +33,9 @@ if __name__ == "__main__":
     # We choose all defaults in this example
     simulator = Simulator()
     simulator.model = ReducedWongWangExcIOInhI()
-
-
-    def boundary_fun(state):
-        state[state < 0] = 0.0
-        state[state > 1] = 1.0
-        return state
-
+    simulator.model.state_variable_constraint = {"S_e": np.array([0.0, 1.0]), "S_i": np.array([0.0, 1.0])}
 
     # Synaptic gating state variables S_e, S_i need to be in the interval [0, 1]
-    simulator.boundary_fun = boundary_fun
     simulator.connectivity = connectivity
     # TODO: Try to make this part of the __init__ of the Simulator!
     simulator.integrator.dt = \
