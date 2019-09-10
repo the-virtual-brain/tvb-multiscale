@@ -93,6 +93,16 @@ class FiguresConfig(object):
     MATPLOTLIB_BACKEND = "Agg"  # "Qt4Agg"
     FONTSIZE = 10
 
+    def largest_size(self):
+        import sys
+        if 'IPython' not in sys.modules:
+            return self.LARGE_SIZE
+        from IPython import get_ipython
+        if getattr(get_ipython(), 'kernel', None) is not None:
+            return self.NOTEBOOK_SIZE
+        else:
+            return self.LARGE_SIZE
+
 
 class CalculusConfig(object):
     # Normalization configuration

@@ -54,7 +54,7 @@ class Config(ConfigBase):
     WORKING_DIRECTORY = os.path.join(os.path.abspath(__file__).split("tvb_nest")[0], "tvb_nest/examples/outputs")
 
     # DATA:
-    TVB_DATA_PATH = inspect.getabsfile(tvb_data).split("/__init__.py")[0]
+    TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
     DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
     DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
     DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
