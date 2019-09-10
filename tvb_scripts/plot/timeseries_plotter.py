@@ -354,7 +354,7 @@ class TimeseriesPlotter(BasePlotter):
                             figure_name=figure_name, figsize=figsize)
 
     def plot_tvb_timeseries(self, timeseries, mode="ts", subplots=None, special_idx=[], subtitles=[],
-                            offset=0.5, title=None, figure_name=None, figsize=None):
+                            offset=0.5, title="Time Series", figure_name=None, figsize=None):
         if not isinstance(figsize, (list, tuple)):
             figsize = self.config.figures.LARGE_SIZE
         if title is None:
@@ -368,6 +368,8 @@ class TimeseriesPlotter(BasePlotter):
     def plot_timeseries(self, timeseries, mode="ts", subplots=None, special_idx=[], subtitles=[],
                         offset=0.5, title=None, figure_name=None, figsize=None, **kwargs):
         if isinstance(timeseries, Timeseries):
+            if title is None:
+                title = timeseries.title
             return self.plot_ts(numpy.swapaxes(timeseries.data, 1, 2),
                                 timeseries.time, timeseries.variables_labels,
                                 mode, subplots, special_idx, subtitles, timeseries.space_labels,
