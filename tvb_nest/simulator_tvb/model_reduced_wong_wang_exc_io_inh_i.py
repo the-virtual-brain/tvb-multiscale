@@ -32,7 +32,9 @@ Models based on Wong-Wang's work.
 """
 
 from numba import guvectorize, float64
-from tvb.simulator.models.base import numpy, basic, arrays, ModelNumbaDfun, LOG
+from tvb.simulator.models.base import numpy, ModelNumbaDfun, LOG
+from tvb.basic.neotraits import api
+
 
 
 @guvectorize([(float64[:],)*23], '(n),(m)' + ',()'*20 + '->(n)', nopython=True)
@@ -107,154 +109,154 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
                                   'I_o', 'G', 'lamda']
 
     # Define traited attributes for this model, these represent possible kwargs.
-    r_e = arrays.FloatArray(
+    r_e = numpy.float64(
         label=":math:`r_e`",
         default=numpy.array([-1., ]),
-        range=basic.Range(lo=-1., hi=10000., step=1.),
+        range=api.Range(lo=-1., hi=10000., step=1.),
         doc="[Hz]. Excitatory population firing rate.",
         order=1)
 
-    a_e = arrays.FloatArray(
+    a_e = numpy.float64(
         label=":math:`a_e`",
         default=numpy.array([310., ]),
-        range=basic.Range(lo=0., hi=500., step=1.),
+        range=api.Range(lo=0., hi=500., step=1.),
         doc="[n/C]. Excitatory population input gain parameter, chosen to fit numerical solutions.",
         order=1)
 
-    b_e = arrays.FloatArray(
+    b_e = numpy.float64(
         label=":math:`b_e`",
         default=numpy.array([125., ]),
-        range=basic.Range(lo=0., hi=200., step=1.),
+        range=api.Range(lo=0., hi=200., step=1.),
         doc="[Hz]. Excitatory population input shift parameter chosen to fit numerical solutions.",
         order=2)
 
-    d_e = arrays.FloatArray(
+    d_e = numpy.float64(
         label=":math:`d_e`",
         default=numpy.array([0.160, ]),
-        range=basic.Range(lo=0.0, hi=0.2, step=0.001),
+        range=api.Range(lo=0.0, hi=0.2, step=0.001),
         doc="""[s]. Excitatory population input scaling parameter chosen to fit numerical solutions.""",
         order=3)
 
-    gamma_e = arrays.FloatArray(
+    gamma_e = numpy.float64(
         label=r":math:`\gamma_e`",
         default=numpy.array([0.641/1000, ]),
-        range=basic.Range(lo=0.0, hi=1.0/1000, step=0.01/1000),
+        range=api.Range(lo=0.0, hi=1.0/1000, step=0.01/1000),
         doc="""Excitatory population kinetic parameter""",
         order=4)
 
-    tau_e = arrays.FloatArray(
+    tau_e = numpy.float64(
         label=r":math:`\tau_e`",
         default=numpy.array([100., ]),
-        range=basic.Range(lo=50., hi=150., step=1.),
+        range=api.Range(lo=50., hi=150., step=1.),
         doc="""[ms]. Excitatory population NMDA decay time constant.""",
         order=5)
 
-    w_p = arrays.FloatArray(
+    w_p = numpy.float64(
         label=r":math:`w_p`",
         default=numpy.array([1.4, ]),
-        range=basic.Range(lo=0.0, hi=2.0, step=0.01),
+        range=api.Range(lo=0.0, hi=2.0, step=0.01),
         doc="""Excitatory population recurrence weight""",
         order=6)
 
-    J_N = arrays.FloatArray(
+    J_N = numpy.float64(
         label=r":math:`J_{N}`",
         default=numpy.array([0.15, ]),
-        range=basic.Range(lo=0.001, hi=0.5, step=0.001),
+        range=api.Range(lo=0.001, hi=0.5, step=0.001),
         doc="""[nA] NMDA current""",
         order=7)
 
-    W_e = arrays.FloatArray(
+    W_e = numpy.float64(
         label=r":math:`W_e`",
         default=numpy.array([1.0, ]),
-        range=basic.Range(lo=0.0, hi=2.0, step=0.01),
+        range=api.Range(lo=0.0, hi=2.0, step=0.01),
         doc="""Excitatory population external input scaling weight""",
         order=8)
 
-    r_i = arrays.FloatArray(
+    r_i = numpy.float64(
         label=":math:`r_i`",
         default=numpy.array([-1., ]),
-        range=basic.Range(lo=-1., hi=10000., step=1.),
+        range=api.Range(lo=-1., hi=10000., step=1.),
         doc="[Hz]. Inhibitory population firing rate.",
         order=1)
 
-    a_i = arrays.FloatArray(
+    a_i = numpy.float64(
         label=":math:`a_i`",
         default=numpy.array([615., ]),
-        range=basic.Range(lo=0., hi=1000., step=1.),
+        range=api.Range(lo=0., hi=1000., step=1.),
         doc="[n/C]. Inhibitory population input gain parameter, chosen to fit numerical solutions.",
         order=9)
 
-    b_i = arrays.FloatArray(
+    b_i = numpy.float64(
         label=":math:`b_i`",
         default=numpy.array([177.0, ]),
-        range=basic.Range(lo=0.0, hi=200.0, step=1.0),
+        range=api.Range(lo=0.0, hi=200.0, step=1.0),
         doc="[Hz]. Inhibitory population input shift parameter chosen to fit numerical solutions.",
         order=10)
 
-    d_i = arrays.FloatArray(
+    d_i = numpy.float64(
         label=":math:`d_i`",
         default=numpy.array([0.087, ]),
-        range=basic.Range(lo=0.0, hi=0.2, step=0.001),
+        range=api.Range(lo=0.0, hi=0.2, step=0.001),
         doc="""[s]. Inhibitory population input scaling parameter chosen to fit numerical solutions.""",
         order=11)
 
-    gamma_i = arrays.FloatArray(
+    gamma_i = numpy.float64(
         label=r":math:`\gamma_i`",
         default=numpy.array([1.0/1000, ]),
-        range=basic.Range(lo=0.0, hi=2.0/1000, step=0.01/1000),
+        range=api.Range(lo=0.0, hi=2.0/1000, step=0.01/1000),
         doc="""Inhibitory population kinetic parameter""",
         order=12)
 
-    tau_i = arrays.FloatArray(
+    tau_i = numpy.float64(
         label=r":math:`\tau_i`",
         default=numpy.array([10., ]),
-        range=basic.Range(lo=50., hi=150., step=1.0),
+        range=api.Range(lo=50., hi=150., step=1.0),
         doc="""[ms]. Inhibitory population NMDA decay time constant.""",
         order=13)
 
-    J_i = arrays.FloatArray(
+    J_i = numpy.float64(
         label=r":math:`J_{i}`",
         default=numpy.array([1.0, ]),
-        range=basic.Range(lo=0.001, hi=2.0, step=0.001),
+        range=api.Range(lo=0.001, hi=2.0, step=0.001),
         doc="""[nA] Local inhibitory current""",
         order=14)
 
-    W_i = arrays.FloatArray(
+    W_i = numpy.float64(
         label=r":math:`W_i`",
         default=numpy.array([0.7, ]),
-        range=basic.Range(lo=0.0, hi=1.0, step=0.01),
+        range=api.Range(lo=0.0, hi=1.0, step=0.01),
         doc="""Inhibitory population external input scaling weight""",
         order=15)
 
-    I_o = arrays.FloatArray(
+    I_o = numpy.float64(
         label=":math:`I_{o}`",
         default=numpy.array([0.382, ]),
-        range=basic.Range(lo=0.0, hi=1.0, step=0.001),
+        range=api.Range(lo=0.0, hi=1.0, step=0.001),
         doc="""[nA]. Effective external input""",
         order=16)
 
-    G = arrays.FloatArray(
+    G = numpy.float64(
         label=":math:`G`",
         default=numpy.array([2.0, ]),
-        range=basic.Range(lo=0.0, hi=10.0, step=0.01),
+        range=api.Range(lo=0.0, hi=10.0, step=0.01),
         doc="""Global coupling scaling""",
         order=17)
 
-    lamda = arrays.FloatArray(
+    lamda = numpy.float64(
         label=":math:`\lambda`",
         default=numpy.array([0.0, ]),
-        range=basic.Range(lo=0.0, hi=1.0, step=0.01),
+        range=api.Range(lo=0.0, hi=1.0, step=0.01),
         doc="""Inhibitory global coupling scaling""",
         order=18)
 
-    state_variable_range = basic.Dict(
+    state_variable_range = dict(
         label="State variable ranges [lo, hi]",
         default={"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
         doc="Population firing rate",
         order=22
     )
 
-    variables_of_interest = basic.Enumerate(
+    variables_of_interest = numpy.ndarray(
         label="Variables watched by Monitors",
         options=['S_e', 'S_i'],
         default=['S_e', 'S_i'],
