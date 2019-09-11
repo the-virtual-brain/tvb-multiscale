@@ -66,7 +66,6 @@ class Simulator(SimulatorTVB):
 
     tvb_nest_interface = None
     # TODO: find a better solution for boundary problems
-    # boundary_fun = None
     simulate_nest = None
 
     model = models.Model(
@@ -268,7 +267,6 @@ class Simulator(SimulatorTVB):
                     history[:ic_shape[0], :, :, :] = initial_conditions
                     history = numpy.roll(history, shift, axis=0)
                 self.current_step += ic_shape[0] - 1
-        # TODO: confirm that this is doing what I think it is doing and that this is where this line should be placed!
         self.integrator.constrain_state(numpy.swapaxes(history, 0, 1))
         LOG.info('Final initial history shape is %r', history.shape)
         # create initial state from history
