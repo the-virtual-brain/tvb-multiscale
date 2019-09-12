@@ -254,13 +254,21 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         order=22
     )
 
+    # Used for phase-plane axis ranges and to bound random initial() conditions.
+    state_variable_constraint = basic.Dict(
+        label="State Variable constraints [lo, hi]",
+        default={"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
+        doc="""The values for each state-variable should be set to encompass
+            the boundaries of the dynamic range of that state-variable. Set None for one-sided boundaries""",
+        order=23)
+
     variables_of_interest = basic.Enumerate(
         label="Variables watched by Monitors",
         options=['S_e', 'S_i'],
         default=['S_e', 'S_i'],
         select_multiple=True,
         doc="""default state variables to be monitored""",
-        order=23)
+        order=24)
 
     state_variables = ['S_e', 'S_i']
     _nvar = 2
