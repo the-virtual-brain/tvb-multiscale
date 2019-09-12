@@ -33,7 +33,6 @@ if __name__ == "__main__":
     # We choose all defaults in this example
     simulator = Simulator()
     simulator.model = ReducedWongWangExcIOInhI()
-    simulator.model.state_variable_constraint = {"S_e": np.array([0.0, 1.0]), "S_i": np.array([0.0, 1.0])}
 
     # Synaptic gating state variables S_e, S_i need to be in the interval [0, 1]
     simulator.connectivity = connectivity

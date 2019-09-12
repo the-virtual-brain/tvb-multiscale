@@ -225,7 +225,8 @@ class Simulator(SimulatorTVB):
                     history[:ic_shape[0], :, :, :] = initial_conditions
                     history = numpy.roll(history, shift, axis=0)
                 self.current_step += ic_shape[0] - 1
-        self.integrator.constrain_state(numpy.swapaxes(history, 0, 1))
+        if self.integrator.constraint_state_variable_boundaries is not None:
+            self.integrator.constrain_state(numpy.swapaxes(history, 0, 1))
         LOG.info('Final initial history shape is %r', history.shape)
         # create initial state from history
         self.current_state = history[self.current_step % self.horizon].copy()
@@ -282,7 +283,7 @@ class Simulator(SimulatorTVB):
                     new_parameters = region_parameters[self.surface.region_mapping].reshape(spatial_reshape)
                     setattr(self.model, param, new_parameters)
             region_parameters = getattr(self.model, param)
-            if region_parameters.size == self.number_of_nodes:
+            if hasattr(region_parameters, "size") and region_parameters.size == self.number_of_nodes:
                 new_parameters = region_parameters.reshape(spatial_reshape)
                 setattr(self.model, param, new_parameters)
         # Configure spatial component of any stimuli
@@ -420,8 +421,10 @@ class Simulator(SimulatorTVB):
             # including any necessary conversions from NEST variables to TVB state,
             # in a model specific manner
             state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
-            # Use the integrator's constrain_state function again after updating from NEST
-            self.integrator.constrain_state(state)
+            # If there is a state constraint...
+            if self.integrator.constraint_state_variable_boundaries is not None:
+                # ...use the integrator's constrain_state function again after updating from NEST
+                self.integrator.constrain_state(state)
             self._loop_update_history(step, n_reg, state)
             output = self._loop_monitor_output(step, state)
             if output is not None:
