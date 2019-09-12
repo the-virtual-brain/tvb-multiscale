@@ -237,6 +237,12 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         label="State variable ranges [lo, hi]",
         doc="Population firing rate")
 
+    state_variable_constraint = Final(
+        {"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
+        label="State Variable constraints [lo, hi]",
+        doc="""The values for each state-variable should be set to encompass
+            the boundaries of the dynamic range of that state-variable. Set None for one-sided boundaries""")
+
     variables_of_interest = List(
         of=str,
         label="Variables watched by Monitors",
