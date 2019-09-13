@@ -42,17 +42,14 @@ import sys
 import time
 import math
 import numpy
-
+from tvb.basic.neotraits._attr import Attr, List
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.interfaces.tvb_to_nest_parameter_interface import TVBNESTParameterInterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
-
 from tvb.simulator import models
-from tvb.simulator import monitors as monitors_m
-from tvb.basic.filters.chain import UIFilter, FilterChain
-from tvb.datatypes import cortex
-from tvb.datatypes import connectivity as connectivity_m
+from tvb.simulator import monitors
+from tvb.datatypes import connectivity
 from tvb.simulator import integrators
 from tvb.simulator.simulator import Simulator as SimulatorTVB
 
@@ -67,23 +64,21 @@ class Simulator(SimulatorTVB):
     boundary_fun = None
     simulate_nest = None
 
-    model = models.Model(
+    model = Attr(
+        field_type=models.Model,
         label="Local dynamic model",
-        default=ReducedWongWangExcIOInhI,
+        default=ReducedWongWangExcIOInhI(),
         required=True,
-        order=5,
         doc="""A tvb.simulator.Model object which describes the local dynamic
             equations, their parameters, and, to some extent, where connectivity
             (local and long-range) enters and which state-variables the Monitors
             monitor. By default the 'ReducedWongWang' model is used. Read the 
             Scientific documentation to learn more about this model.""")
 
-    monitors = monitors_m.Monitor(
+    monitors = List(
+        of=monitors.Monitor,
         label="Monitor(s)",
-        default=monitors_m.Raw,
-        required=True,
-        order=8,
-        select_multiple=True,
+        default=(monitors.Raw(),),
         doc="""A tvb.simulator.Monitor or a list of tvb.simulator.Monitor
             objects that 'know' how to record relevant data from the simulation. Two
             main types exist: 1) simple, spatial and temporal, reductions (subsets
@@ -92,65 +87,29 @@ class Simulator(SimulatorTVB):
             temporally downsampled from the raw integration rate to a sample rate of
             1024Hz.""")
 
-    integrator = integrators.Integrator(
+    integrator = Attr(
+        field_type=integrators.Integrator,
         label="Integration scheme",
         default=integrators.HeunStochastic(
             dt=float(int(numpy.round(0.1 / CONFIGURED.nest.NEST_MIN_DT))) * CONFIGURED.nest.NEST_MIN_DT),
         required=True,
-        order=6,
         doc="""A tvb.simulator.Integrator object which is
                 an integration scheme with supporting attributes such as 
                 integration step size and noise specification for stochastic 
                 methods. It is used to compute the time courses of the model state 
                 variables.""")
 
-    connectivity = connectivity_m.Connectivity(
+    connectivity = Attr(
+        field_type=connectivity.Connectivity,
         label="Long-range connectivity",
         default=CONFIGURED.DEFAULT_SUBJECT["connectivity"],
-        order=1,
         required=True,
-        filters_ui=[UIFilter(linked_elem_name="region_mapping_data",
-                             linked_elem_field=FilterChain.datatype + "._connectivity",
-                             linked_elem_parent_name="surface",
-                             linked_elem_parent_option=None),
-                    UIFilter(linked_elem_name="region_mapping",
-                             linked_elem_field=FilterChain.datatype + "._connectivity",
-                             linked_elem_parent_name="monitors",
-                             linked_elem_parent_option="EEG"),
-                    UIFilter(linked_elem_name="region_mapping",
-                             linked_elem_field=FilterChain.datatype + "._connectivity",
-                             linked_elem_parent_name="monitors",
-                             linked_elem_parent_option="MEG"),
-                    UIFilter(linked_elem_name="region_mapping",
-                             linked_elem_field=FilterChain.datatype + "._connectivity",
-                             linked_elem_parent_name="monitors",
-                             linked_elem_parent_option="iEEG")],
         doc="""A tvb.datatypes.Connectivity object which contains the
         structural long-range connectivity data (i.e., white-matter tracts). In
         combination with the ``Long-range coupling function`` it defines the inter-regional
         connections. These couplings undergo a time delay via signal propagation
         with a propagation speed of ``Conduction Speed``""")
 
-    surface = cortex.Cortex(
-        label="Cortical surface",
-        default=None,  # CONFIGURED.DEFAULT_SUBJECT["cortex"],
-        order=3,
-        required=False,
-        filters_backend=FilterChain(fields=[FilterChain.datatype + '._valid_for_simulations'],
-                                    operations=["=="], values=[True]),
-        filters_ui=[UIFilter(linked_elem_name="projection_matrix_data",
-                             linked_elem_field=FilterChain.datatype + "._sources",
-                             linked_elem_parent_name="monitors",
-                             linked_elem_parent_option="EEG"),
-                    UIFilter(linked_elem_name="local_connectivity",
-                             linked_elem_field=FilterChain.datatype + "._surface",
-                             linked_elem_parent_name="surface",
-                             linked_elem_parent_option=None)],
-        doc="""By default, a Cortex object which represents the
-            cortical surface defined by points in the 3D physical space and their 
-            neighborhood relationship. In the current TVB version, when setting up a 
-            surface-based simulation, the option to configure the spatial spread of 
-            the ``Local Connectivity`` is available.""")
 
     def __init__(self):
         super(Simulator, self).__init__()
@@ -203,7 +162,7 @@ class Simulator(SimulatorTVB):
             # Make sure spatialised model parameters have the right shape (number_of_nodes, 1)
         excluded_params = ("state_variable_range", "variables_of_interest", "noise", "psi_table", "nerf_table")
         spatial_reshape = self.model.spatial_param_reshape
-        for param in self.model.trait.keys():
+        for param in type(self.model).declarative_attrs:
             if param in excluded_params:
                 continue
             # If it's a surface sim and model parameters were provided at the region level

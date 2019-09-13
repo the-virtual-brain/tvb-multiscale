@@ -110,7 +110,6 @@ class Timeseries(object):
                     "and labels_dimensions!: %s" % (self._tvb.labels_ordering, self._tvb.labels_dimensions.keys()))
 
         self._tvb.configure()
-        self.configure_time()
         self.configure_sampling_frequency()
         self.configure_sample_rate()
         if len(self.title) == 0:
@@ -417,7 +416,6 @@ class Timeseries(object):
 
     def configure(self):
         self._tvb.configure()
-        self.configure_time()
         self.configure_sampling_frequency()
         self.configure_sample_rate()
         return self
