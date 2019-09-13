@@ -42,37 +42,23 @@ def _numba_dfun(S, c, ae, be, de, ge, te, wp, we, jn, re, ai, bi, di, gi, ti, wi
 
     cc = g[0]*jn[0]*c[0]
 
-    if S[0] < 0.0:
-        S_e = 0.0
-    elif S[0] > 1.0:
-        S_e = 1.0
-    else:
-        S_e = S[0]
-
-    jnSe = jn[0] * S_e
-
-    if S[1] < 0.0:
-        S_i = 0.0
-    elif S[1] > 1.0:
-        S_i = 1.0
-    else:
-        S_i = S[1]
+    jnSe = jn[0] * S[0]
 
     if re[0] < 0.0:
-        x = wp[0]*jnSe - ji[0]*S_i + we[0]*io[0] + cc
+        x = wp[0]*jnSe - ji[0]*S[1] + we[0]*io[0] + cc
         x = ae[0]*x - be[0]
         h = x / (1 - numpy.exp(-de[0]*x))
     else:
         h = re[0]
-    dx[0] = - (S_e / te[0]) + (1.0 - S_e) * h * ge[0]
+    dx[0] = - (S[0] / te[0]) + (1.0 - S[0]) * h * ge[0]
 
     if ri[0] < 0.0:
-        x = jnSe - S_i + wi[0]*io[0] + l[0]*cc
+        x = jnSe - S[1] + wi[0]*io[0] + l[0]*cc
         x = ai[0]*x - bi[0]
         h = x / (1 - numpy.exp(-di[0]*x))
     else:
         h = ri[0]
-    dx[1] = - (S_i / ti[0]) + h * gi[0]
+    dx[1] = - (S[1] / ti[0]) + h * gi[0]
 
 
 class ReducedWongWangExcIOInhI(ModelNumbaDfun):
@@ -237,9 +223,10 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         label="State variable ranges [lo, hi]",
         doc="Population firing rate")
 
-    state_variable_constraint = Final(
-        {"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
-        label="State Variable constraints [lo, hi]",
+    # Used for phase-plane axis ranges and to bound random initial() conditions.
+    state_variable_boundaries = basic.Dict(
+        label="State Variable boundaries [lo, hi]",
+        default={"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
         doc="""The values for each state-variable should be set to encompass
             the boundaries of the dynamic range of that state-variable. Set None for one-sided boundaries""")
 
@@ -274,9 +261,6 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
         """
         S = state_variables[:, :]
-
-        S[S < 0] = 0.0
-        S[S > 1] = 1.0
 
         c_0 = coupling[0, :]
 

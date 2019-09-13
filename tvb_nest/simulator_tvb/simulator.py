@@ -124,18 +124,18 @@ class Simulator(SimulatorTVB):
         self.coupling.configure()
         self.model.configure()
         self.integrator.configure()
-        if isinstance(self.model.state_variable_constraint, dict):
+        if isinstance(self.model.state_variable_boundaries, dict):
             indices = []
             boundaries = []
-            for sv, sv_bounds in self.model.state_variable_constraint.items():
+            for sv, sv_bounds in self.model.state_variable_boundaries.items():
                 indices.append(self.model.state_variables.index(sv))
                 boundaries.append(sv_bounds)
             sort_inds = numpy.argsort(indices)
-            self.integrator.constraint_state_variable_indices = numpy.array(indices)[sort_inds]
-            self.integrator.constraint_state_variable_boundaries = numpy.array(boundaries)[sort_inds]
+            self.integrator.bounded_state_variable_indices = numpy.array(indices)[sort_inds]
+            self.integrator.state_variable_boundaries = numpy.array(boundaries)[sort_inds]
         else:
-            self.integrator.constraint_state_variable_indices = None
-            self.integrator.constraint_state_variable_boundaries = None
+            self.integrator.bounded_state_variable_indices = None
+            self.integrator.state_variable_boundaries = None
         # monitors needs to be a list or tuple, even if there is only one...
         if not isinstance(self.monitors, (list, tuple)):
             self.monitors = [self.monitors]
@@ -225,8 +225,8 @@ class Simulator(SimulatorTVB):
                     history[:ic_shape[0], :, :, :] = initial_conditions
                     history = numpy.roll(history, shift, axis=0)
                 self.current_step += ic_shape[0] - 1
-        if self.integrator.constraint_state_variable_boundaries is not None:
-            self.integrator.constrain_state(numpy.swapaxes(history, 0, 1))
+        if self.integrator.state_variable_boundaries is not None:
+            self.integrator.bound_state(numpy.swapaxes(history, 0, 1))
         LOG.info('Final initial history shape is %r', history.shape)
         # create initial state from history
         self.current_state = history[self.current_step % self.horizon].copy()
@@ -421,10 +421,10 @@ class Simulator(SimulatorTVB):
             # including any necessary conversions from NEST variables to TVB state,
             # in a model specific manner
             state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
-            # If there is a state constraint...
-            if self.integrator.constraint_state_variable_boundaries is not None:
-                # ...use the integrator's constrain_state function again after updating from NEST
-                self.integrator.constrain_state(state)
+            # If there is a state boundary...
+            if self.integrator.state_variable_boundaries is not None:
+                # ...use the integrator's bound_state function again after updating from NEST
+                self.integrator.bound_state(state)
             self._loop_update_history(step, n_reg, state)
             output = self._loop_monitor_output(step, state)
             if output is not None:
