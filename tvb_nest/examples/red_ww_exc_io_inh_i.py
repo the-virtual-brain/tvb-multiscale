@@ -26,7 +26,7 @@ if __name__ == "__main__":
     connectivity.configure()
     plotter.plot_tvb_connectivity(connectivity)
 
-    # ----------------------2. Define a TVB simulator (model, integrator, monitors...)-----------------------------------
+    # ----------------------2. Define a TVB simulator (model, integrator, monitors...)----------------------------------
 
     # Create a TVB simulator and set all desired inputs
     # (connectivity, model, surface, stimuli etc)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # mon_eeg = EEG(period=simulator.integrator.dt)
     simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
 
-    # ------3. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)--------
+    # ------3. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
     # Select the regions for the fine scale modeling with NEST spiking networks
     number_of_regions = simulator.connectivity.region_labels.shape[0]
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     nest_network = nest_model_builder.build_nest_network()
 
-    # -----------------------------------4. Build the TVB-NEST interface model ------------------------------------------
+    # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     tvb_nest_model = tvb_nest_builder.build_interface()
 
-    # -----------------------------------5. Simulate and gather results------- ------------------------------------------
+    # -----------------------------------5. Simulate and gather results------- -----------------------------------------
 
     # Configure the simulator with the TVB-NEST interface...
     simulator.configure(tvb_nest_interface=tvb_nest_model)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     time = results[0][0]
     source = results[0][1]
 
-    # -------------------------------------------6. Plot results---------------------------------------------------------
+    # -------------------------------------------6. Plot results--------------------------------------------------------
 
     # Plot spikes and mean field spike rates
     rates, max_rate, spike_detectors, time = \
