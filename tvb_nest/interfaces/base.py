@@ -161,7 +161,7 @@ class TVBNESTInterface(object):
             # Update TVB parameter
             param_values = getattr(model, interface.name)
             if interface.model == "spike_detector":
-                param_vals = \
+                param_values[self.nest_nodes_ids] = \
                     self.w_nest_spikes_to_tvb_sv[self.nest_nodes_ids] / \
                     np.array(interface.number_of_connections) * \
                     np.array(interface.number_of_spikes)
@@ -169,7 +169,7 @@ class TVBNESTInterface(object):
             # TODO: add any other possible NEST output devices to TVB parameters interfaces here!
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
-            setattr(model, "__" + interface.name, param_vals)
+            setattr(model, "__" + interface.name, param_values)
         return model
 
     def nest_state_to_tvb_state(self, state):
