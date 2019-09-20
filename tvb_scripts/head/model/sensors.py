@@ -100,7 +100,7 @@ class Sensors(object):
 
     def get_bipolar_sensors(self, sensors_inds=None):
         if sensors_inds is None:
-            sensors_inds = range(self._tvb.number_of_sensors)
+            sensors_inds = list(range(self._tvb.number_of_sensors))
         return monopolar_to_bipolar(self._tvb.labels, sensors_inds)
 
 

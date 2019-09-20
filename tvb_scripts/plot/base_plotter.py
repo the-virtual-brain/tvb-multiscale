@@ -63,7 +63,7 @@ class BasePlotter(object):
         ax = pyplot.subplot(subplot, sharey=sharey)
         pyplot.title(title)
         n_vector = labels.shape[0]
-        y_ticks = numpy.array(range(n_vector), dtype=numpy.int32)
+        y_ticks = numpy.array(list(range(n_vector)), dtype=numpy.int32)
         color = 'k'
         colors = numpy.repeat([color], n_vector)
         coldif = False
@@ -97,7 +97,7 @@ class BasePlotter(object):
         ax = pyplot.subplot(subplot, sharey=sharey)
         pyplot.title(title)
         n_violins = dataset.shape[1]
-        y_ticks = numpy.array(range(n_violins), dtype=numpy.int32)
+        y_ticks = numpy.array(list(range(n_violins)), dtype=numpy.int32)
         # the vector plot
         coldif = False
         if indices_red is None:
@@ -168,7 +168,7 @@ class BasePlotter(object):
         nticks = []
         for ii, (n, tick) in enumerate(zip([nx, ny], ticks)):
             if len(tick) == 0:
-                ticks[ii] = numpy.array(range(n), dtype=numpy.int32)
+                ticks[ii] = numpy.array(list(range(n)), dtype=numpy.int32)
             nticks.append(len(ticks[ii]))
         cmap = pyplot.set_cmap(cmap)
         img = pyplot.imshow(matrix[ticks[0]][:, ticks[1]].T, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
@@ -180,10 +180,10 @@ class BasePlotter(object):
                 labels[ii] = generate_region_labels(len(tick), numpy.array(lbls)[tick], ". ",
                                                     self.print_regions_indices, tick)
                 # labels[ii] = numpy.array(["%d. %s" % l for l in zip(tick, lbls[tick])])
-                getattr(pyplot, xy + "ticks")(numpy.array(range(ntick)), labels[ii], rotation=rot)
+                getattr(pyplot, xy + "ticks")(numpy.array(list(range(ntick))), labels[ii], rotation=rot)
             else:
                 labels[ii] = numpy.array(["%d." % l for l in tick])
-                getattr(pyplot, xy + "ticks")(numpy.array(range(ntick)), labels[ii])
+                getattr(pyplot, xy + "ticks")(numpy.array(list(range(ntick))), labels[ii])
             if ind_red is not None:
                 tck = tick.tolist()
                 ticklabels = getattr(ax, xy + "axis").get_ticklabels()
@@ -206,7 +206,7 @@ class BasePlotter(object):
                                  x_ticks, y_ticks, indices_red_x, indices_red_y, sharex, sharey, cmap, vmin, vmax)
 
     def _set_axis_labels(self, fig, sub, n_regions, region_labels, indices2emphasize, color='k', position='left'):
-        y_ticks = range(n_regions)
+        y_ticks = list(range(n_regions))
         # region_labels = numpy.array(["%d. %s" % l for l in zip(y_ticks, region_labels)])
         region_labels = generate_region_labels(len(y_ticks), region_labels, ". ", self.print_regions_indices, y_ticks)
         big_ax = fig.add_subplot(sub, frameon=False)
@@ -409,8 +409,8 @@ class BasePlotter(object):
                 ax = pyplot.gca()
         if isinstance(data, (list, tuple)):  # If, there are many groups, data is a list:
             # Fill in with nan in case that not all groups have the same number of elements
-            from itertools import izip_longest
-            data = numpy.array(list(izip_longest(*ensure_list(data), fillvalue=numpy.nan))).T
+            from itertools import zip_longest
+            data = numpy.array(list(zip_longest(*ensure_list(data), fillvalue=numpy.nan))).T
         elif data.ndim == 1:  # This is the case where there is only one group...
             data = numpy.expand_dims(data, axis=1).T
         n_groups, n_elements = data.shape

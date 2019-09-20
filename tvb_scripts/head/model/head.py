@@ -42,7 +42,7 @@ class Head(object):
         cortex = cortex.populate_cortex(self.cortical_surface._tvb, {})
         for s_type, sensors in self.sensors.items():
             if isinstance(sensors, OrderedDict) and len(sensors) > 0:
-                projection = sensors.values()[0]
+                projection = list(sensors.values())[0]
                 if projection is not None:
                     setattr(cortex, s_type.lower(), projection.projection_data)
         cortex.configure()
@@ -78,8 +78,8 @@ class Head(object):
                         out_sensor = sensor
                         out_projection = projection
             elif is_integer(name_or_index):
-                out_sensor = sensors_set.keys()[name_or_index]
-                out_projection = sensors_set.values()[name_or_index]
+                out_sensor = list(sensors_set.keys())[name_or_index]
+                out_projection = list(sensors_set.values())[name_or_index]
             else:
                 return sensors_set
         return out_sensor, out_projection

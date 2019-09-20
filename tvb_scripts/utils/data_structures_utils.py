@@ -15,8 +15,7 @@ logger = initialize_logger(__name__)
 def is_numeric(value):
     return isinstance(value, (float, np.float, np.float64, np.float32, np.float16, np.float128,
                               int, np.int, np.int0, np.int8, np.int16, np.int32, np.int64,
-                              complex, np.complex, np.complex64, np.complex128, np.complex256,
-                              long, np.long, np.number))
+                              complex, np.complex, np.complex64, np.complex128, np.complex256, np.long, np.number))
 
 
 def is_integer(value):
@@ -173,18 +172,18 @@ def reg_dict(x, lbl=None, sort=None):
                 ind = np.argsort(x)
                 ind = ind[::-1].tolist()
             else:
-                ind = range(x_no)
+                ind = list(range(x_no))
         else:
-            ind = range(total_no)
+            ind = list(range(total_no))
         d = OrderedDict()
         for i in ind:
             d[str(i) + '.' + str(lbl[i])] = x[i]
         if labels_no > total_no:
-            ind_lbl = np.delete(np.array(range(labels_no)), ind).tolist()
+            ind_lbl = np.delete(np.array(list(range(labels_no))), ind).tolist()
             for i in ind_lbl:
                 d[str(i) + '.' + str(lbl[i])] = None
         if x_no > total_no:
-            ind_x = np.delete(np.array(range(x_no)), ind).tolist()
+            ind_x = np.delete(np.array(list(range(x_no))), ind).tolist()
             for i in ind_x:
                 d[str(i) + '.'] = x[i]
         return d
@@ -223,7 +222,7 @@ def dict_to_list_or_tuple(dictionary, output_obj="list"):
 
 
 def list_of_dicts_to_dicts_of_ndarrays(lst, shape=None):
-    d = dict(zip(lst[0], zip(*list([d.values() for d in lst]))))
+    d = dict(list(zip(lst[0], list(zip(*list([d.values() for d in lst]))))))
     if isinstance(shape, tuple):
         for key, val in d.items():
             d[key] = np.reshape(np.stack(d[key]), shape)
@@ -247,7 +246,7 @@ def arrays_of_dicts_to_dicts_of_ndarrays(arr):
 
 
 def dicts_of_lists_to_lists_of_dicts(dictionary):
-    return [dict(zip(dictionary, t)) for t in zip(*dictionary.values())]
+    return [dict(list(zip(dictionary, t))) for t in zip(*dictionary.values())]
 
 
 def ensure_list(arg):
@@ -340,7 +339,7 @@ def rotate_n_list_elements(lst, n):
 def linear_index_to_coordinate_tuples(linear_index, shape):
     if len(linear_index) > 0:
         coordinates_tuple = np.unravel_index(linear_index, shape)
-        return zip(*[ca.flatten().tolist() for ca in coordinates_tuple])
+        return list(zip(*[ca.flatten().tolist() for ca in coordinates_tuple]))
     else:
         return []
 
@@ -388,7 +387,7 @@ def get_val_key_for_first_keymatch_in_dict(name, pkeys, **kwargs):
     pkeys += ["_".join([name, pkey]) for pkey in pkeys]
     temp = extract_dict_stringkeys(kwargs, pkeys, modefun="equal", break_after=1)
     if len(temp) > 0:
-        return temp.values()[0], temp.keys()[0].split("_")[-1]
+        return list(temp.values())[0], list(temp.keys())[0].split("_")[-1]
     else:
         return None, None
 
@@ -412,7 +411,7 @@ def generate_region_labels(n_regions, labels=[], str=". ", numbering=True, numbe
 
 def monopolar_to_bipolar(labels, indices=None, data=None):
     if indices is None:
-        indices = range(len(labels))
+        indices = list(range(len(labels)))
     bipolar_lbls = []
     bipolar_inds = [[], []]
     for ind in range(len(indices) - 1):
@@ -455,8 +454,8 @@ def assert_equal_objects(obj1, obj2, attributes_dict=None, logger=None):
                 attributes_dict.update({key: key})
     elif isinstance(obj1, (list, tuple)):
         get_field1 = lambda obj, key: get_list_or_tuple_item_safely(obj, key)
-        indices = range(len(obj1))
-        attributes_dict = dict(zip([str(ind) for ind in indices], indices))
+        indices = list(range(len(obj1)))
+        attributes_dict = dict(list(zip([str(ind) for ind in indices], indices)))
     else:
         get_field1 = lambda obj, attribute: getattr(obj, attribute)
         if not (isinstance(attributes_dict, dict)):
@@ -563,7 +562,7 @@ def assert_arrays(params, shape=None, transpose=False):
     else:
         size = shape_to_size(shape)
 
-    for ip in range(len(params)):
+    for ip in list(range(len(params))):
         # Convert all accepted types to np arrays:
         if isinstance(params[ip], np.ndarray):
             pass

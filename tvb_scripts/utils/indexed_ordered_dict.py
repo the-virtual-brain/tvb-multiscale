@@ -27,7 +27,7 @@ class IndexedOrderedDict(object):
         output = []
         if isinstance(keys, slice):
             try:
-                output = (np.array(self._dict.values())[keys]).tolist()
+                output = (np.array(list(self._dict.values()))[keys]).tolist()
             except:
                 LOG.warning("keys %s not found in IndexedOrderedDict %s!\n"
                             "Returning None!" % (str(keys), str(self._dict)))
@@ -36,7 +36,7 @@ class IndexedOrderedDict(object):
             for key in ensure_list(keys):
                 try:
                     if is_integer(key):
-                        output.append(self._dict.values()[key])
+                        output.append(list(self._dict.values())[key])
                     else:  # assuming key string
                         output.append(self._dict[key])
                 except:
@@ -52,11 +52,11 @@ class IndexedOrderedDict(object):
 
     def __setitem__(self, keys, values):
         if isinstance(keys, slice):
-            keys = (np.array(self._dict.keys())[keys]).tolist()
+            keys = (np.array(list(self._dict.keys()))[keys]).tolist()
         for key, val in zip(ensure_list(keys), ensure_list(values)):
             try:
                 if is_integer(key):
-                    self._dict.values()[key] = val
+                    list(self._dict.values())[key] = val
                 else:  # assuming key string
                     self._dict[key] = val
             except:

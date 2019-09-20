@@ -277,7 +277,7 @@ class NESTDeviceSet(IndexedOrderedDict):
 
     def update_model(self):
         if len(self._dict) > 0:
-            self.model = self._dict.values()[0].model
+            self.model = list(self._dict.values())[0].model
             if np.any([self.model != device.model
                        for device in self._dict.values()]):
                 raise ValueError("Not all devices of the device_set are of the same model!:\n %s"
