@@ -193,7 +193,7 @@ class Simulator(SimulatorTVB):
         dummy = numpy.ones((self.connectivity.number_of_regions, 1))
         # Confirm good shape for NEST to TVB model parameters
         for param in self.tvb_nest_interface.nest_to_tvb_params:
-            setattr(self.model, "__" + param,
+            setattr(self.model, param,
                     (dummy * numpy.array(getattr(self.model, param))).squeeze())
         nest_min_delay = self.tvb_nest_interface.nest_instance.GetKernelStatus("min_delay")
         if self.integrator.dt < nest_min_delay:
