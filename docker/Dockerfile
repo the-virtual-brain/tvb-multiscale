@@ -64,7 +64,7 @@ RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $H
 WORKDIR $HOME/packages
 
 RUN $VENV/bin/pip install --upgrade pip; \
-    $VENV/bin/pip install tvb-library jupyterlab; \
+    $VENV/bin/pip install tvb-library==2.0a0 jupyterlab; \
     $VENV/bin/pip install --ignore-installed entrypoints; \
     $VENV/bin/pip uninstall -y tvb-data
 
