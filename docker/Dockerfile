@@ -85,9 +85,17 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git;
 RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
-WORKDIR /home/docker/
-COPY installation_test.py /home/docker/
+COPY docker/installation_test.py /home/docker/
 
+RUN mkdir tvb-multiscale
+COPY . tvb-multiscale/
+RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
+
+ENV NEST_INSTALL_DIR=$VENV
+ENV NEW_MODEL_CODE=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/iaf_cond_deco2014_module
+RUN cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; make; make install
+
+WORKDIR /home/docker/
 # Activate the rights python env
 ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
@@ -95,7 +103,7 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 
 #CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 #CMD $VENV/bin/python installation_test.py
-CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 
 #For running tests
 #CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
