@@ -95,9 +95,10 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 
 #CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 #CMD $VENV/bin/python installation_test.py
+CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 
 #For running tests
-CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
+#CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
 
 #For running tests with coverage
 #CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
