@@ -85,7 +85,9 @@ RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
 ENV NEST_INSTALL_DIR=$VENV
 ENV NEW_MODEL_CODE=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/builds/iaf_cond_deco2014
-RUN cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; make; make install
+RUN mkdir iaf_cond_deco2014_module; cd iaf_cond_deco2014_module; \
+    iaf_cond_deco2014cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; \
+    make; make install
 RUN cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=$VENV \
           -Dwith-mpi=ON  \
