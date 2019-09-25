@@ -87,7 +87,7 @@ ENV NEST_INSTALL_DIR=$VENV
 ENV MYMODULE=iaf_cond_deco2014
 ENV NEW_MODEL_CODE=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/builds/$MYMODULE
 RUN mkdir ${MYMODULE}_module; cd ${MYMODULE}_module; \
-    iaf_cond_deco2014cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; \
+    cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; \
     make; make install
 RUN cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=$VENV \
