@@ -117,7 +117,7 @@ ENV PYTHONPATH=$PYTHONPATH:${NEST_INSTALL_DIR}/lib/python2.7/site-packages
 ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
 RUN echo "source ${NEST_INSTALL_DIR}/bin/activate" >> .bashrc
 
-#CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD cd $HOME/packages/tvb-multiscale/tvb_nest/examples/notebooks; $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 #CMD $VENV/bin/python installation_test.py
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 
