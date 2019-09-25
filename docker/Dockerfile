@@ -46,19 +46,21 @@ RUN mkdir libneurosim; \
 # Install NEST, latest stable version (July 2019)
 ENV NEST_VER=2.18.0
 ENV NEST=nest-simulator-$NEST_VER
+ENV NEST_SRC=$HOME/packages/$NEST
+ENV NEST_INSTALL_DIR=$VENV/nest_build
 
 WORKDIR $HOME/packages
 RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz; \
     tar xzf $NEST.tar.gz; rm $NEST.tar.gz; \
     cd $NEST; \
-    cmake -DCMAKE_INSTALL_PREFIX=$VENV \
+    cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           -Dwith-python=3 \
           ###-Dwith-music=ON \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
           -DPYTHON_INCLUDE_DIR=/usr/include/python3.7m \
-          $HOME/packages/$NEST; \
+          ${NEST_SRC}; \
     make; make install
 # RUN cd $NEST; make installcheck
 
@@ -91,28 +93,29 @@ RUN mkdir tvb-multiscale
 COPY . tvb-multiscale/
 RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
-ENV NEST_INSTALL_DIR=$VENV
-ENV MYMODULE=iaf_cond_deco2014
-ENV NEW_MODEL_CODE=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/modules/$MYMODULE
-RUN mkdir ${MYMODULE}_module; cd ${MYMODULE}_module; \
-    cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; \
+# Run the following lines in case you want to install your own NEST module with NEST models
+ENV MYMODULE_NAME=iaf_cond_deco2014
+ENV MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/modules/${MYMODULE_NAME}module
+ENV MYMODULE_BLD=${MYMODULE_NAME}module_bld
+RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
+    cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config ${MYMODULE_DIR}; \
     make; make install
-RUN cd $NEST; \
-    cmake -DCMAKE_INSTALL_PREFIX=$VENV \
+RUN cd $NEST; make -C nest clean; \
+    cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           ###-Dwith-music=ON \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=$VENV/lib/libpython2.7.so \
           -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 \
-          -Dexternal-modules=$MYMODULE \
-          $HOME/packages/$NEST; \
+          -Dexternal-modules=${MYMODULE_NAME} \
+          ${NEST_SRC}; \
     make; make install
 
 WORKDIR /home/docker/
 # Activate the rights python env
-ENV PYTHONPATH $VENV
-ENV SLI_PATH $VENV
-RUN echo "source $VENV/bin/activate" >> .bashrc
+ENV PYTHONPATH=$PYTHONPATH:${NEST_INSTALL_DIR}/lib/python2.7/site-packages
+ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
+RUN echo "source ${NEST_INSTALL_DIR}/bin/activate" >> .bashrc
 
 #CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 #CMD $VENV/bin/python installation_test.py
