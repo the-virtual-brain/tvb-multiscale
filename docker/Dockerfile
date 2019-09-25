@@ -84,8 +84,9 @@ COPY . tvb-multiscale/
 RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
 ENV NEST_INSTALL_DIR=$VENV
-ENV NEW_MODEL_CODE=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/builds/iaf_cond_deco2014
-RUN mkdir iaf_cond_deco2014_module; cd iaf_cond_deco2014_module; \
+ENV MYMODULE=iaf_cond_deco2014
+ENV NEW_MODEL_CODE=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/builds/$MYMODULE
+RUN mkdir ${MYMODULE}_module; cd ${MYMODULE}_module; \
     iaf_cond_deco2014cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config $NEW_MODEL_CODE; \
     make; make install
 RUN cd $NEST; \
@@ -95,7 +96,7 @@ RUN cd $NEST; \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=$VENV/lib/libpython2.7.so \
           -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 \
-          -Dexternal-modules=iaf_cond_deco2014 \
+          -Dexternal-modules=$MYMODULE \
           $HOME/packages/$NEST; \
     make; make install
 
