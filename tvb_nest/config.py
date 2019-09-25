@@ -14,7 +14,7 @@ class NESTconfig(object):
     # NEST properties:
     NEST_MIN_DT = 0.001
 
-    DEFAULT_MODEL = "gif_cond_exp"
+    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_deco2014"
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_SYNAPSE = {"model": "static_synapse", "weights": 1.0, "delays": 0.0,
