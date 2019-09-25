@@ -99,7 +99,7 @@ class HeadPlotter(BasePlotter):
             weights_figure = None
         else:
             # weights matrix
-            weights_figure = pyplot.figure(num="Connectivity weights", figsize=self.config.figures.LARGE_SIZE)
+            weights_figure = pyplot.figure(num="Connectivity weights", figsize=self.config.figures.largest_size())
             weights_axes = weights_figure.gca()
             wimg = weights_axes.matshow(connectivity.weights[order_rows, order_columns])
             weights_figure.colorbar(wimg)
@@ -117,7 +117,7 @@ class HeadPlotter(BasePlotter):
 
         if plot_tracts:
             # tract lengths matrix
-            tracts_figure = pyplot.figure(num="Tracts' lengths", figsize=self.config.figures.LARGE_SIZE)
+            tracts_figure = pyplot.figure(num="Tracts' lengths", figsize=self.config.figures.largest_size())
             tracts_axes = tracts_figure.gca()
             timg = tracts_axes.matshow(connectivity.tract_lengths[order_rows, order_columns])
             tracts_axes.set_title("Tracts' lengths")
