@@ -90,7 +90,7 @@ class FiguresConfig(object):
     SAVE_FLAG = True
     SHOW_FLAG = False
     MOUSE_HOOVER = False
-    MATPLOTLIB_BACKEND = "Agg"  # "Qt4Agg"
+    MATPLOTLIB_BACKEND = "nbAgg"  # "Qt4Agg"
     FONTSIZE = 10
 
     def largest_size(self):
