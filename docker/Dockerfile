@@ -44,10 +44,10 @@ RUN mkdir libneurosim; \
     ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
-ENV NEST_VER=2.18.0
-ENV NEST=nest-simulator-$NEST_VER
-ENV NEST_SRC=$HOME/packages/$NEST
-ENV NEST_INSTALL_DIR=$VENV/nest_build
+ARG NEST_VER=2.18.0
+ARG NEST=nest-simulator-$NEST_VER
+ARG NEST_SRC=$HOME/packages/$NEST
+ARG NEST_INSTALL_DIR=$VENV/nest_build
 
 WORKDIR $HOME/packages
 RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz; \
@@ -87,38 +87,28 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git;
 RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
-COPY docker/installation_test.py /home/docker/
-
 RUN mkdir tvb-multiscale
 COPY . tvb-multiscale/
 RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
 # Run the following lines in case you want to install your own NEST module with NEST models
-ENV MYMODULE_NAME=iaf_cond_deco2014
-ENV MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/modules/${MYMODULE_NAME}module
-ENV MYMODULE_BLD=${MYMODULE_NAME}module_bld
+ARG MYMODULE_NAME=iaf_cond_deco2014
+ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/simulator_nest/models/modules/${MYMODULE_NAME}module
+ARG MYMODULE_BLD=${MYMODULE_NAME}module_bld
 RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
     cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config ${MYMODULE_DIR}; \
-    make; make install
-RUN cd $NEST; make -C nest clean; \
-    cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
-          -Dwith-mpi=ON  \
-          ###-Dwith-music=ON \
-          -Dwith-libneurosim=$VENV \
-          -DPYTHON_LIBRARY=$VENV/lib/libpython2.7.so \
-          -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 \
-          -Dexternal-modules=${MYMODULE_NAME} \
-          ${NEST_SRC}; \
     make; make install
 
 WORKDIR /home/docker/
 # Activate the rights python env
-ENV PYTHONPATH=$PYTHONPATH:${NEST_INSTALL_DIR}/lib/python2.7/site-packages
-ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
-RUN echo "source ${NEST_INSTALL_DIR}/bin/activate" >> .bashrc
+ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_INSTALL_DIR}/lib/python2.7/site-packages
+ENV SLI_PATH ${NEST_INSTALL_DIR}/share/nest/sli
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${NEST_INSTALL_DIR}/lib/nest/
+RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-#CMD $VENV/bin/python installation_test.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 
 #For running tests
