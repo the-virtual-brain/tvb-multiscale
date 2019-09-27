@@ -93,21 +93,21 @@ RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
     make; make install
 
 ARG MYMODULE_NAME=iaf_cond_nmda_deco2014
-ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/models/modules/${MYMODULE_NAME}module
+ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules/${MYMODULE_NAME}module
 ARG MYMODULE_BLD=${MYMODULE_NAME}module_bld
 RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
     cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config ${MYMODULE_DIR}; \
     make; make install
 
 ARG MYMODULE_NAME=iaf_cond_ampa_gaba_deco2014
-ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/models/modules/${MYMODULE_NAME}module
+ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules/${MYMODULE_NAME}module
 ARG MYMODULE_BLD=${MYMODULE_NAME}module_bld
 RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
     cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config ${MYMODULE_DIR}; \
     make; make install
 
 ARG MYMODULE_NAME=scale_connection
-ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/models/modules/${MYMODULE_NAME}module
+ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules/${MYMODULE_NAME}module
 ARG MYMODULE_BLD=${MYMODULE_NAME}module_bld
 RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
     cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config ${MYMODULE_DIR}; \
