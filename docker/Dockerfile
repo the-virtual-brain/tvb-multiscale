@@ -86,7 +86,7 @@ RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 # Run the following lines in case you want to install your own NEST module with NEST models
 
 ARG MYMODULE_NAME=iaf_cond_deco2014
-ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/models/modules/${MYMODULE_NAME}module
+ARG MYMODULE_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules/${MYMODULE_NAME}module
 ARG MYMODULE_BLD=${MYMODULE_NAME}module_bld
 RUN mkdir ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
     cmake -Dwith-nest=${NEST_INSTALL_DIR}/bin/nest-config ${MYMODULE_DIR}; \
