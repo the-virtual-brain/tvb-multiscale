@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+/*
+Name: iaf_cond_nmda_deco2014 - Conductance based leaky integrate-and-fire neuron model
+                          with separate excitatory AMPA & NMDA, and inhibitory GABA synapses
+
+Description:
+iaf_cond_delta_deco2014 is an implementation of a spiking NMDA neuron using IAF dynamics with
+conductance-based synapses.
+
+Sends: SpikeEvent
+
+Receives: SpikeEvent, CurrentEvent, DataLoggingRequest
+
+References:
+
+[1] Ponce-Alvarez A., Mantini D., Deco G., Corbetta M., Hagmann P., & Romani G. L. (2014).
+How Local Excitation-Inhibition Ratio Impacts the Whole Brain Dynamics. Journal of Neuroscience.
+34(23), 7886-7898. https://doi.org/10.1523/jneurosci.5068-13.2014
+
+[2] Meffin, H., Burkitt, A. N., & Grayden, D. B. (2004). An analytical
+model for the large, fluctuating synaptic conductance state typical of
+neocortical neurons in vivo. J.  Comput. Neurosci., 16, 159-175.
+
+[3] Bernander, O., Douglas, R. J., Martin, K. A. C., & Koch, C. (1991).
+Synaptic background activity influences spatiotemporal integration in
+single pyramidal cells.  Proc. Natl. Acad. Sci. USA, 88(24),
+11569-11573.
+
+[4] Kuhn, Aertsen, Rotter (2004). Neuronal Integration of Synaptic Input in
+the Fluctuation- Driven Regime. Jneurosci 24(10) 2345-2356
+
+Author: Dionysios Perdikis
+
+SeeAlso: iaf_cond_beta
+*/
+neuron iaf_cond_nmda_deco2014:
+
+  state:
+    r integer # counts number of tick during the refractory period
+  end
+
+  initial_values:
+    s real = 0.0
+    function s_bound real = s < 0.0 ? 0.0 : (s > 1.0 ? 1.0 : s)
+    x_NMDA 1/ms = 0.0/ms
+    s_AMPA_ext nS = 0.0nS
+    s_AMPA_rec nS = 0.0nS
+    s_NMDA nS = 0.0nS
+    s_GABA nS = 0.0nS
+    V_m mV = E_L # membrane potential
+    function emmited_spike real = (V_m >= V_th) ? 1.0 : 0.0
+    function I_leak pA = g_m * (V_m - E_L)
+    function I_AMPA_ext pA = g_AMPA_ext/nS * (V_m - E_ex) * s_AMPA_ext
+    function I_AMPA_rec pA = g_AMPA_rec/nS * (V_m - E_ex) * s_AMPA_rec
+    function I_NMDA pA = g_NMDA/nS/(1 + lamda_NMDA * exp(-beta * (V_m/1.0mV))) * (V_m - E_ex) * s_NMDA
+    function I_GABA pA = g_GABA/nS * (V_m - E_in) * s_GABA
+  end
+
+  equations:
+      x_NMDA' = -x_NMDA / tau_NMDA_rise + emmited_spike/ms**2
+      s' = -s_bound / tau_NMDA_decay + alpha/kHz * x_NMDA * (1 - s_bound)
+
+      s_AMPA_ext' = -s_AMPA_ext / tau_AMPA
+      s_AMPA_rec' = -s_AMPA_rec / tau_AMPA
+      s_NMDA' = -s_NMDA / tau_NMDA_decay
+      s_GABA' = -s_GABA / tau_GABA
+
+      V_m' = (- I_leak - I_AMPA_ext - I_AMPA_rec - I_NMDA - I_GABA + I_e + currents) / C_m
+  end
+
+  parameters:
+    C_m pF = 500.0pF              # 200 for Inh, Capacity of the membrane
+    g_m nS = 25.0nS             # 20nS for Inh, Membrane leak conductance
+    E_L mV = -70.0mV            # Resting potential.
+    V_th mV = -50.0mV           # Threshold
+    V_reset mV = -55.0mV        # Reset value of the membrane potential
+    t_ref ms = 2.0ms            # 1ms for Inh, Refractory period.
+    g_AMPA_ext nS = 3.37nS      # 2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
+    g_AMPA_rec nS = 0.065nS     # 0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
+    g_NMDA nS = 0.20nS          # 0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
+    g_GABA nS = 10.94nS         # 8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
+    E_ex mV = 0.0mV             # Excitatory reversal potential
+    E_in mV = -70.0mV           # Inhibitory reversal potential
+    tau_AMPA ms = 2.0ms         # AMPA synapse decay time
+    tau_NMDA_rise ms = 2.0ms    # NMDA synapse rise time
+    tau_NMDA_decay ms = 100.0ms # NMDA synapse decay time
+    tau_GABA ms = 10.0ms        # GABA synapse decay time
+    alpha kHz = 0.5kHz          #
+    beta real = 0.062           #
+    lamda_NMDA real = 0.28      #
+    I_e pA = 0.0pA              # External current.
+  end
+
+  internals:
+    RefractoryCounts integer = steps(t_ref) # refractory time in steps
+  end
+
+  input:
+    spikesExc_AMPA_ext nS <- spike
+    spikesExc_AMPA_rec nS <- spike
+    spikesExc_NMDA nS <- spike
+    spikesInh_GABA nS <- spike
+    currents <- current
+  end
+
+  output: spike
+
+  update:
+    integrate_odes()
+    if r != 0: # neuron is absolute refractory
+      r =  r - 1
+      V_m = V_reset # clamp potential
+    elif V_m >= V_th:  # neuron is not absolute refractory
+      r = RefractoryCounts
+      V_m = V_reset # clamp potential
+      emit_spike() # TODO in C++ code: scale spike event weight with s_bound, i.e., SpikeEvent.set_weight(s_bound)
+    end
+    s = s_bound
+    s_AMPA_ext += spikesExc_AMPA_ext
+    s_AMPA_rec += spikesExc_AMPA_rec
+    s_NMDA += spikesExc_NMDA
+    s_GABA += spikesInh_GABA
+  end
+
+end
