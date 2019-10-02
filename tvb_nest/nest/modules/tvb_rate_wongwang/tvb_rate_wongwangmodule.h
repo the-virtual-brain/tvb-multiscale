@@ -1,5 +1,5 @@
 /*
- *  tvbnest1module.h
+ *  tvb_rate_wongwangmodule.h
  *
  *  This file is part of NEST.
  *
@@ -35,7 +35,7 @@ namespace tvbnest
  * Class defining your model.
  * @note For each model, you must define one such class, with a unique name.
  */
-class tvb_rate_redwongwangmodule : public SLIModule
+class tvb_rate_wongwangmodule : public SLIModule
 {
 public:
   // Interface functions ------------------------------------------
@@ -44,12 +44,12 @@ public:
    * @note The constructor registers the module with the dynamic loader.
    *       Initialization proper is performed by the init() method.
    */
-  tvb_rate_redwongwangmodule();
+  tvb_rate_wongwangmodule();
 
   /**
    * @note The destructor does not do much in modules.
    */
-  ~tvb_rate_redwongwangmodule();
+  ~tvb_rate_wongwangmodule();
 
   /**
    * Initialize module.
@@ -63,7 +63,7 @@ public:
   const std::string name( void ) const;
 
   /**
-   * Return the name of a sli file to execute when tvb_rate_redwongwangmodule is loaded.
+   * Return the name of a sli file to execute when tvb_rate_wongwangmodule is loaded.
    * This mechanism can be used to define SLI commands associated with your
    * module, in particular, set up type tries for functions you have defined.
    */
