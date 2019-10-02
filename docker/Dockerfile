@@ -95,11 +95,11 @@ RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 ARG MYMODULES_LIST="iaf_cond_deco2014 iaf_cond_nmda_deco2014 iaf_cond_ampa_gaba_deco2014 scale_connection tvb_rate_redwongwang"
 ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ARG MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
-ARG NEST_CONFIG_PATH=${NEST_INSTALL_DIR}/bin/nest-config
+ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
 RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
         export MYMODULE_BLD=${MYMODULES_BLD_DIR}/${MYMODULE_NAME}module_bld; \
         mkdir -p ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
-            cmake -Dwith-nest=$NEST_CONFIG_PATH ${MYMODULE_DIR}; \
+            cmake -Dwith-nest=$NEST_CONFIG ${MYMODULE_DIR}; \
             make; make install; \
     done
 
