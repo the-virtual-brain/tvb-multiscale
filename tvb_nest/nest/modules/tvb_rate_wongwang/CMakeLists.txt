@@ -21,7 +21,7 @@ cmake_minimum_required( VERSION 2.8.12 )
 
 # This CMakeLists.txt is configured to build your external module for NEST. For
 # illustrative reasons this module is called 'my' (change SHORT_NAME to your
-# preferred module name). NEST requires you to extend the 'SLIModule' (see
+# prefer module name). NEST requires you to extend the 'SLIModule' (see
 # mymodule.h and mymodule.cpp as an example) and provide a module header
 # (see MODULE_HEADER). The subsequent instructions
 #
@@ -32,14 +32,14 @@ cmake_minimum_required( VERSION 2.8.12 )
 #           https://nest.github.io/nest-simulator/extension_modules
 
 # 1) Name your module here, i.e. add later with -Dexternal-modules=my:
-set( SHORT_NAME tvb_rate_redwongwang )
+set( SHORT_NAME tvb_rate_wongwang )
 
 #    the complete module name is here:
 set( MODULE_NAME ${SHORT_NAME}module )
 
 # 2) Add all your sources here
 set( MODULE_SOURCES
-    tvb_rate_redwongwangmodule.h tvb_rate_redwongwangmodule.cpp
+    tvb_rate_wongwangmodule.h tvb_rate_wongwangmodule.cpp
     tvb_rate_redwongwang_exc.h tvb_rate_redwongwang_exc.cpp
     )
 

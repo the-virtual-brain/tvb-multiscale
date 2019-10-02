@@ -92,7 +92,7 @@ COPY . tvb-multiscale/
 RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
 # Run the following lines in case you want to install your own NEST module with NEST models
-ARG MYMODULES_LIST="iaf_cond_deco2014 iaf_cond_nmda_deco2014 iaf_cond_ampa_gaba_deco2014 scale_connection tvb_rate_redwongwang"
+ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014 iaf_cond_nmda_deco2014 iaf_cond_ampa_gaba_deco2014 scale_connection"
 ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ARG MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
