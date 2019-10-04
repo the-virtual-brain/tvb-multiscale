@@ -119,18 +119,6 @@ def prepare_launch_default_simulation():
     results = simulator.run(simulation_length=100.0)
     print("\nSimulated in %f secs!" % (time.time() - t))
 
-    source_ts = Timeseries(data=results[0][1], time=results[0][0],
-                           connectivity=simulator.connectivity,
-                           labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
-                           labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
-                                              "Region": simulator.connectivity.region_labels.tolist()},
-                           sample_period=simulator.integrator.dt, ts_type="Region")
-
-    # plotter.plot_timeseries(source_ts)
-
-    np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), connectivity.weights)
-    np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), connectivity.tract_lengths)
-    np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
     return (connectivity.weights, connectivity.tract_lengths, results[0][1])
 
 
@@ -146,4 +134,6 @@ def test_connectivity_tract_legths_shape():
 
 def test_results_shape():
     (weights, tract_lengths, results) = prepare_launch_default_simulation()
+    assert not np.isinf(results.ravel()).all()
+    assert not np.isnan(results.ravel()).all()
     assert results.shape == (1000, 2, 68, 1)
