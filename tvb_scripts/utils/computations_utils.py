@@ -53,7 +53,7 @@ def compute_gain_matrix(locations1, locations2, normalize=100.0, ceil=False):
     n2 = locations2.shape[0]
     projection = np.zeros((n1, n2))
     dist = np.zeros((n1, n2))
-    for i1, i2 in product(range(n1), range(n2)):
+    for i1, i2 in product(list(range(n1)), list(range(n2))):
         dist[i1, i2] = np.abs(np.sum((locations1[i1, :] - locations2[i2, :]) ** 2))
         projection[i1, i2] = 1 / dist[i1, i2]
     if normalize:
@@ -107,7 +107,7 @@ def select_by_hierarchical_group_metric_clustering(distance, disconnectivity=np.
             inds_select = np.argsort(metric[cluster_inds])[-n_select:]
         else:
             # ...otherwise, randomly
-            inds_select = range(n_select)
+            inds_select = list(range(n_select))
         selection.append(cluster_inds[inds_select])
     return np.unique(np.hstack(selection)).tolist()
 
@@ -131,7 +131,7 @@ def curve_elbow_point(vals, interactive=CONFIGURED.calcul.INTERACTIVE_ELBOW_POIN
         from matplotlib import pyplot
         pyplot.ion()
         fig, ax = pyplot.subplots()
-        xdata = range(len(vals))
+        xdata = list(range(len(vals)))
         lines = [ax.plot(xdata, cumsum_vals, 'g*', picker=None, label="values' cumulative sum")[0],
                  ax.plot(xdata, vals, 'bo', picker=None, label="values in descending order")[0],
                  ax.plot(elbow, vals[elbow], "rd",

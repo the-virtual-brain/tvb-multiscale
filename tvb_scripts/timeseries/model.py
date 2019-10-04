@@ -241,19 +241,19 @@ class Timeseries(object):
 
     @property
     def time_length(self):
-        return self._tvb.length_1d
+        return self._tvb.data.shape[0]
 
     @property
     def number_of_labels(self):
-        return self._tvb.length_2d
+        return self._tvb.data.shape[1]
 
     @property
     def number_of_variables(self):
-        return self._tvb.length_3d
+        return self._tvb.data.shape[2]
 
     @property
     def number_of_samples(self):
-        return self._tvb.length_4d
+        return self._tvb.data.shape[3]
 
     @property
     def start_time(self):

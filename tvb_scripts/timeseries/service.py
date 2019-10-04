@@ -2,7 +2,7 @@
 
 from six import string_types
 from collections import OrderedDict
-from itertools import izip, cycle
+from itertools import cycle
 
 import numpy as np
 from scipy.signal import decimate, convolve, detrend, hilbert
@@ -58,7 +58,7 @@ def normalize_signals(signals, normalization=None, axis=None, percent=None):
         ind[axis] = np.newaxis
         return x / y[ind]
 
-    for norm, ax, prcnd in izip(ensure_list(normalization), cycle(ensure_list(axis)), cycle(ensure_list(percent))):
+    for norm, ax, prcnd in zip(ensure_list(normalization), cycle(ensure_list(axis)), cycle(ensure_list(percent))):
         if isinstance(norm, string_types):
             if isequal_string(norm, "zscore"):
                 signals = zscore(signals, axis=ax)  # / 3.0
@@ -261,7 +261,7 @@ class TimeseriesService(object):
                                                                    disconnectivity, power, n_groups, members_per_group)
 
     def select_by_rois_proximity(self, timeseries, proximity, proximity_th=None, percentile=None, n_signals=None):
-        initial_selection = range(timeseries.number_of_labels)
+        initial_selection = list(range(timeseries.number_of_labels))
         selection = []
         for prox in proximity:
             selection += (

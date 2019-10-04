@@ -5,12 +5,12 @@ import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import is_integer
+from six import add_metaclass
 
 LOG = initialize_logger(__name__)
 
-
+@add_metaclass(ABCMeta)
 class TVBNESTInterface(object):
-    __metaclass__ = ABCMeta
 
     nest_instance = None
     tvb_model = None

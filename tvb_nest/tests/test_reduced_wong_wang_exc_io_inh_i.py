@@ -3,16 +3,15 @@
 import os
 from oct2py import octave
 import numpy as np
-
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.simulator.models.wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI as TVBReducedWongWangExcIOInhI
+from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh as TVBReducedWongWangExcIOInhI
 
 
 TESTS_PATH = os.path.dirname(os.path.realpath(__file__))
 octave.addpath(os.path.join(TESTS_PATH, "DMF2014"))
 
 
-def test_reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
+def reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
 
     exc = 1.1 - 1.2*np.random.uniform(size=(D, N))
     inh = 1.1 - 1.2*np.random.uniform(size=(D, N))
@@ -25,6 +24,7 @@ def test_reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
 
     numpy_dstate = tvb_model._numpy_dfun(state, coupling)
     max_difference = np.max(np.abs(numpy_dstate - matlab_dstate))
+    assert matlab_dstate.shape == (2, 100, 100)
     assert max_difference < abs_err
 
     for ii in range(N):
@@ -40,14 +40,13 @@ def test_reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
         assert max_difference < abs_err
 
 
-if __name__ == "__main__":
+def test_reduced_wong_wang_exc_io_inh_i_internal():
+    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, ReducedWongWangExcIOInhI())
 
-    test_reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, ReducedWongWangExcIOInhI())
-    test_reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, TVBReducedWongWangExcIOInhI())
+
+def test_reduced_wong_wang_exc_io_inh_i_external():
+    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, TVBReducedWongWangExcIOInhI())
     octave.exit()
-
-
-
 
 
 

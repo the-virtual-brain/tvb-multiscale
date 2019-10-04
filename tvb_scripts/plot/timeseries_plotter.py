@@ -112,7 +112,7 @@ class TimeseriesPlotter(BasePlotter):
                 pyplot.autoscale(enable=True, axis='y', tight=True)
 
         def axYticks(labels, nTS, offsets=offset):
-            pyplot.gca().set_yticks((offset * numpy.array([range(nTS)]).flatten()).tolist())
+            pyplot.gca().set_yticks((offset * numpy.array([list(range(nTS))]).flatten()).tolist())
             try:
                 pyplot.gca().set_yticklabels(labels.flatten().tolist())
             except:
@@ -137,7 +137,7 @@ class TimeseriesPlotter(BasePlotter):
         projection = None
         axlabels = lambda labels, vars, n_vars, n_rows, irow, iTS: axlabels_ts(labels, n_rows, irow, iTS)
         axlimits = lambda data_lims, time, n_vars, icol: axlimits_ts(data_lims, time, icol)
-        loopfun = lambda nTS, n_rows, icol: range(nTS)
+        loopfun = lambda nTS, n_rows, icol: list(range(nTS))
         return data_fun, time, plot_lines, projection, n_rows, n_vars, def_alpha, loopfun, \
                subtitle, subtitle_col, axlabels, axlimits, this_axYticks
 
@@ -217,7 +217,7 @@ class TimeseriesPlotter(BasePlotter):
             subtitle_col = lambda subtitles, icol: pyplot.gca().set_title(pyplot.gcf().title)
         axlabels = lambda labels, vars, n_vars, n_rows, irow, iTS: axlabels_traj(vars, n_vars)
         axlimits = lambda data_lims, time, n_vars, icol: axlimits_traj(data_lims, n_vars)
-        loopfun = lambda nTS, n_rows, icol: range(icol, nTS, n_rows)
+        loopfun = lambda nTS, n_rows, icol: list(range(icol, nTS, n_rows))
         return data_fun, plot_lines, projection, n_rows, n_cols, def_alpha, loopfun, \
                subtitle, subtitle_col, axlabels, axlimits
 
@@ -448,7 +448,7 @@ class TimeseriesPlotter(BasePlotter):
         else:
             n_times, nS = data.shape[:2]
         time = assert_time(time, n_times, time_unit, self.logger)
-        if not isinstance(time_unit, basestring):
+        if not isinstance(time_unit, str):
             time_unit = list(time_unit)[0]
         time_unit = ensure_string(time_unit)
         if time_unit in ("ms", "msec"):
