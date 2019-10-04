@@ -11,7 +11,7 @@ MAINTAINER lia.domide@codemart.ro
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
-RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-bin libopenmpi-dev git vim  \
+RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-bin libopenmpi-dev git vim octave \
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev subversion python3-mpi4py cmake; \
@@ -65,8 +65,7 @@ RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $H
 # Install TVB specific packages
 WORKDIR $HOME/packages
 
-RUN $VENV/bin/pip3 install --upgrade pip; \
-    $VENV/bin/pip3 install tvb-library==2.0a0 jupyterlab; \
+RUN $VENV/bin/pip3 install tvb-library==2.0a0 jupyterlab; \
     $VENV/bin/pip3 install --ignore-installed entrypoints; \
     $VENV/bin/pip3 uninstall -y tvb-data
 
@@ -77,6 +76,11 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
     cd tvb-multiscale; \
     $VENV/bin/python setup.py develop
+
+RUN $VENV/bin/pip3 install pytest; \
+    $VENV/bin/pip3 install pytest-cov; \
+    $VENV/bin/pip3 install pytest-benchmark; \
+    $VENV/bin/pip3 install oct2py;
 
 # Final configurations
 # tvb42
@@ -93,6 +97,12 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 #CMD $VENV/bin/python installation_test.py
+
+#For running tests
+#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
+
+#For running tests with coverage
+#CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
 
 #srun -C mc --time 01:00:00 --partition=normal
 #       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
