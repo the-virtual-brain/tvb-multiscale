@@ -17,11 +17,10 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     source /home/docker/env/neurosci/bin/activate
-                    pytest --cov-config .coveragerc --cov=tvb tvb_nest/tests --cov-branch --cov-report xml:tvb_nest_coverage.xml --junitxml=tvb_nest_test_results.xml
+                    pytest --junitxml=tvb_nest_test_results.xml
 
                 '''
                 junit 'tvb_nest_test_results.xml'
-                step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'tvb_nest_coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
             }
         }
     }
