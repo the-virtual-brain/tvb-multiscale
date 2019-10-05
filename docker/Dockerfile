@@ -65,7 +65,7 @@ RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $H
 # Install TVB specific packages
 WORKDIR $HOME/packages
 
-RUN $VENV/bin/pip3 install tvb-library==2.0a0 jupyterlab; \
+RUN $VENV/bin/pip3 install tvb-library==2.0a1 jupyterlab pytest pytest-cov pytest-benchmark oct2py; \
     $VENV/bin/pip3 install --ignore-installed entrypoints; \
     $VENV/bin/pip3 uninstall -y tvb-data
 
@@ -76,11 +76,6 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
     cd tvb-multiscale; \
     $VENV/bin/python setup.py develop
-
-RUN $VENV/bin/pip3 install pytest; \
-    $VENV/bin/pip3 install pytest-cov; \
-    $VENV/bin/pip3 install pytest-benchmark; \
-    $VENV/bin/pip3 install oct2py;
 
 # Final configurations
 # tvb42
