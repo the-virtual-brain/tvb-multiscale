@@ -78,7 +78,7 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
     cd tvb-multiscale; \
-    $VENV/bin/python setup.py develop
+    $VENV/bin/python setup.py develop --no-deps
 
 # Final configurations
 # tvb42
