@@ -65,9 +65,12 @@ RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $H
 # Install TVB specific packages
 WORKDIR $HOME/packages
 
-RUN $VENV/bin/pip3 install tvb-library==2.0a1 jupyterlab pytest pytest-cov pytest-benchmark oct2py; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints; \
-    $VENV/bin/pip3 uninstall -y tvb-data
+RUN $VENV/bin/pip3 install jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
+    cd tvb-library; git pull origin neotraits_py3; \
+    $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     cd tvb-data; \
@@ -90,11 +93,11 @@ ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
 
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+#CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 #CMD $VENV/bin/python installation_test.py
 
 #For running tests
-#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
+CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
 
 #For running tests with coverage
 #CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests

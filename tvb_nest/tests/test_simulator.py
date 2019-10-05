@@ -11,7 +11,6 @@ import numpy as np
 from collections import OrderedDict
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw
-from tvb_scripts.timeseries.model import Timeseries
 from tvb_nest.config import *
 from tvb_nest.plot.plotter import Plotter
 from tvb_nest.simulator_tvb.simulator import Simulator
@@ -19,6 +18,7 @@ from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedW
 from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 from tvb_nest.config import Config
+
 
 def prepare_launch_default_simulation():
     config = Config(output_base="outputs/")
@@ -29,7 +29,6 @@ def prepare_launch_default_simulation():
 
     connectivity = Connectivity.from_file(os.path.join(Config.DEFAULT_SUBJECT_PATH, Config.DEFAULT_CONNECTIVITY_ZIP))
     connectivity.configure()
-    #plotter.plot_tvb_connectivity(connectivity)
 
     # Create a TVB simulator and set all desired inputs
     # (connectivity, model, surface, stimuli etc)
@@ -67,8 +66,9 @@ def prepare_launch_default_simulation():
 
     # Within node connections' weights
     # TODO: take care of J_N units conversion from TVB to NEST!
-    nest_model_builder.population_connectivity_synapses_weights = np.array([[w_ee, w_ei],  # exc_i -> exc_i, inh_i -> exc_i
-                                                                            [w_ie, w_ii]])  # exc_i -> inh_i, inh_i -> inh_i
+    nest_model_builder.population_connectivity_synapses_weights = np.array(
+        [[w_ee, w_ei],  # exc_i -> exc_i, inh_i -> exc_i
+         [w_ie, w_ii]])  # exc_i -> inh_i, inh_i -> inh_i
     nest_model_builder.population_connectivity_synapses_delays = np.array(nest_model_builder.tvb_dt / 4)
 
     # Between node connections
@@ -117,9 +117,8 @@ def prepare_launch_default_simulation():
     # ...and simulate!
     t = time.time()
     results = simulator.run(simulation_length=100.0)
-    print("\nSimulated in %f secs!" % (time.time() - t))
 
-    return (connectivity.weights, connectivity.tract_lengths, results[0][1])
+    return connectivity.weights, connectivity.tract_lengths, results[0][1]
 
 
 def test_connectivity_weights_shape():
@@ -127,7 +126,7 @@ def test_connectivity_weights_shape():
     assert weights.shape == (68, 68)
 
 
-def test_connectivity_tract_legths_shape():
+def test_connectivity_tract_lengths_shape():
     (weights, tract_lengths, results) = prepare_launch_default_simulation()
     assert tract_lengths.shape == (68, 68)
 

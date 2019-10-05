@@ -17,7 +17,7 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     source /home/docker/env/neurosci/bin/activate
-                    pytest --junitxml=tvb_nest_test_results.xml
+                    pytest --junitxml=tvb_nest_test_results.xml tvb_nest/tests
 
                 '''
                 junit 'tvb_nest_test_results.xml'
