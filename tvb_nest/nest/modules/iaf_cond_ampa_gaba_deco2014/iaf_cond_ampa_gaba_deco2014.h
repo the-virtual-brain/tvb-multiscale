@@ -73,6 +73,24 @@ extern "C" inline int iaf_cond_ampa_gaba_deco2014_dynamics( double, const double
   iaf_cond_delta_deco2014 is an implementation of a AMPA or GABA spiking neuron using IAF dynamics with
   conductance-based synapses.
 
+    ds/dt = -(1/tau_syn) * s + SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by this neuron
+    where tau_syn = tau_AMPA/GABA for AMPA/GABA respectively, and s bounded in [0,1].
+
+    The spike is emitted when the membrane voltage V_m >= V_th, in which case it is reset to V_reset,
+    and kept there for refractory time t_ref.
+
+    The V_m dynamics is given by the following equations:
+
+    dV_m/dt = 1/C_m *( -g_m * (V_m - E_L)
+                       -g_AMPA_ext * (V_m - E_ex))*s_AMPA_ext  // input from external AMPA neurons
+                       -g_AMPA_rec * (V_m - E_ex))*s_AMPA_rec// input from recursive AMPA neurons
+                       -g_NMDA / (1 + lambda_NMDA * exp(-beta*V_m)) * (V_m - E_ex))*s_NMDA // input from recursive NMDA neurons
+                       -g_GABA * (V_m - E_in))*s_GABA // input from recursive GABA neurons
+
+    where
+    ds_(AMPA/GABA/NMDA)/dt = -(1/tau_(AMPA/GABA/NMDA)) * s_(AMPA/GABA/NMDA) + SUM_j{SUM_k{delta(t-t_j_k}},
+    where t_k_j is the time of a spike received by neuron j
+
   Sends: SpikeEvent
 
   Receives: SpikeEvent, CurrentEvent, DataLoggingRequest
@@ -123,11 +141,11 @@ extern "C" inline int iaf_cond_ampa_gaba_deco2014_dynamics( double, const double
   beta [real] 
   lamda_NMDA [real] 
   I_e [pA]  External current.
-  
+
 
   Dynamic state variables:
   r [integer]  counts number of tick during the refractory period
-  
+
 
   Initial values:
   V_m [mV]  membrane potential
@@ -245,8 +263,6 @@ private:
   *         assignment operator to copy those members.
   */
   struct Parameters_{
-        
-        
 
     //!  200 for Inh, Capacity of the membrane
     double C_m;

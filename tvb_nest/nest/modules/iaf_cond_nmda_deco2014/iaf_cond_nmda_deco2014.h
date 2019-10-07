@@ -73,6 +73,25 @@ extern "C" inline int iaf_cond_nmda_deco2014_dynamics( double, const double y[],
   iaf_cond_delta_deco2014 is an implementation of a spiking NMDA neuron using IAF dynamics with
   conductance-based synapses.
 
+    dx/dt = -(1/tau_NMDA_rise) * x + SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by neuron this neuron
+    ds/dt =  -(1/tau_NMDA_decay) * s + alpha * x * (1 - s)
+    where tau_syn = tau_AMPA/GABA for AMPA/GABA respectively, and s bounded in [0,1].
+
+    The spike is emitted when the membrane voltage V_m >= V_th, in which case it is reset to V_reset,
+    and kept there for refractory time t_ref.
+
+    The V_m dynamics is given by the following equations:
+
+    dV_m/dt = 1/C_m *( -g_m * (V_m - E_L)
+                       -g_AMPA_ext * (V_m - E_ex))*s_AMPA_ext  // input from external AMPA neurons
+                       -g_AMPA_rec * (V_m - E_ex))*s_AMPA_rec// input from recursive AMPA neurons
+                       -g_NMDA / (1 + lambda_NMDA * exp(-beta*V_m)) * (V_m - E_ex))*s_NMDA // input from recursive NMDA neurons
+                       -g_GABA * (V_m - E_in))*s_GABA // input from recursive GABA neurons
+
+    where
+    ds_(AMPA/GABA/NMDA)/dt = -(1/tau_(AMPA/GABA/NMDA)) * s_(AMPA/GABA/NMDA) + SUM_j{SUM_k{delta(t-t_j_k}},
+    where t_k_j is the time of a spike received by neuron j
+
   Sends: SpikeEvent
 
   Receives: SpikeEvent, CurrentEvent, DataLoggingRequest
