@@ -287,21 +287,22 @@ tvbnest::tvb_rate_redwongwang_exc::calibrate()
     .init(); // ensures initialization in case mm connected after Simulate
 
   const double h = Time::get_resolution().get_ms();
+  double h_tau = h / P_.tau_;
 
   if ( P_.consistent_integration_ )
   {
     // use stochastic exponential Euler method
-    V_.P1_ = std::exp( - h / P_.tau_ );
-    V_.P2_ = -1.0 * numerics::expm1( - h );
+    V_.P1_ = std::exp( - h_tau );
+    V_.P2_ = -1.0 * numerics::expm1( - h_tau );
     V_.input_noise_factor_ = std::sqrt(
-      -0.5 * numerics::expm1( -2. * h ) );
+      -0.5 * numerics::expm1( -2. * h_tau ) );
   }
   else
   {
     // use Euler-Maruyama method
     V_.P1_ = 1;
-    V_.P2_ = h ;
-    V_.input_noise_factor_ = std::sqrt( h );
+    V_.P2_ = h_tau ;
+    V_.input_noise_factor_ = std::sqrt( h_tau );
   }
 }
 
