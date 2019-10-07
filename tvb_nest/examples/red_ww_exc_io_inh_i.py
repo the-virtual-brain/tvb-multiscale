@@ -12,9 +12,10 @@ from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuild
 from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.plot.plotter import Plotter
-from tvb_scripts.timeseries.model import Timeseries
+from tvb_scripts.time_series.model import TimeSeriesRegion
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
+
 
 if __name__ == "__main__":
 
@@ -185,7 +186,7 @@ if __name__ == "__main__":
                         title='Population spikes and mean spike rate')
 
     #   Remove ts_type="Region" this argument too for TVB TimeSeriesRegion
-    source_ts = Timeseries(  # substitute with TimeSeriesRegion fot TVB like functionality
+    source_ts = TimeSeriesRegion(  # substitute with TimeSeriesRegion fot TVB like functionality
         data=source, time=time,
         connectivity=simulator.connectivity,
         # region_mapping=head.cortical_region_mapping,
@@ -193,15 +194,14 @@ if __name__ == "__main__":
         labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
         labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
                            "Region": simulator.connectivity.region_labels.tolist()},
-        sample_period=simulator.integrator.dt, ts_type="Region")
+        sample_period=simulator.integrator.dt)
 
     # Use this to skip completely the tvb-scripts plotter
-    # tvb_plotter = TimeSeriesInteractive(time_series=source_ts._tvb)
+    # tvb_plotter = TimeSeriesInteractive(time_series=source_ts)
     # tvb_plotter.configure()
     # tvb_plotter.show()
 
-    # Plot timeseries
-    # Add _tvb from the function names if source_ts is a TVB TimeSeriesRegion object
+    # Plot time_series
     plotter.plot_timeseries(source_ts)
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # ...interactively as well

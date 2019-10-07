@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
 import numpy as np
 from tvb_scripts.utils.log_error_utils import warning
 from tvb_scripts.utils.data_structures_utils import labels_to_inds
@@ -7,47 +8,66 @@ from tvb_scripts.utils.computations_utils import normalize_weights
 from tvb.datatypes.connectivity import Connectivity as TVBConnectivity
 
 
-class Connectivity(object):
-    _tvb = None
+class Connectivity(TVBConnectivity):
     file_path = ""
     normalized_weights = np.array([])
 
     def __init__(self, **kwargs):
+        super(Connectivity, self).__init__(**kwargs)
         self.file_path = kwargs.pop("file_path", "")
         self.normalized_weights = kwargs.pop("normalized_weights", np.array([]))
-        # TODO: find why there is an error without the hack below...
-        tvb_conn = kwargs.pop("tvb_connectivity", TVBConnectivity())
-        if isinstance(tvb_conn, TVBConnectivity):
-            for attr, value in kwargs.items():
+
+        for attr, value in kwargs.items():
+            try:
+                if len(value):
+                    setattr(self, attr, value)
+            except:
+                warning("Failed to set attribute %s to %s!" % (attr, self.__class__.__name__))
+
+        if len(self.normalized_weights) == 0:
+            self.normalized_weights = normalize_weights(self.weights, remove_diagonal=True, ceil=1.0)
+        self.configure()
+
+    @staticmethod
+    def from_instance(instance, **kwargs):
+        result = deepcopy(instance)
+        for attr, value in kwargs.items():
+            try:
+                if len(value):
+                    setattr(result, attr, value)
+            except:
+                warning("Failed to set attribute %s to %s!" % (attr, instance.__class__.__name__))
+        if len(result.normalized_weights) == 0:
+            result.normalized_weights = normalize_weights(result.weights, remove_diagonal=True, ceil=1.0)
+        result.configure()
+        return result
+
+    @staticmethod
+    def from_tvb_instance(instance, **kwargs):
+        result = Connectivity()
+        if isinstance(instance, TVBConnectivity):
+            for attr, value in instance.__dict__:
                 try:
                     if len(value):
-                        setattr(tvb_conn, attr, value)
+                        setattr(result, attr, value)
                 except:
-                    warning("Failed to set attribute %s to TVB connectivity!" % attr)
-            self._tvb = tvb_conn
+                    warning("Failed to set attribute %s of TVB %s!" % (attr, instance.__class__.__name__))
+        return Connectivity.from_instance(result, **kwargs)
 
-    def __getattr__(self, attr):
-        return getattr(self._tvb, attr)
-
-    def from_tvb_instance(self, instance):
-        self._tvb = instance
-        if len(self.normalized_weights) == 0:
-            self.normalized_weights = normalize_weights(self._tvb.weights, remove_diagonal=True, ceil=1.0)
-        return self
-
-    def from_tvb_file(self, filepath):
-        self._tvb = TVBConnectivity.from_file(filepath, self._tvb)
-        if len(self.normalized_weights) == 0:
-            self.normalized_weights = normalize_weights(self._tvb.weights, remove_diagonal=True, ceil=1.0)
-        self.file_path = filepath
-        return self
+    @staticmethod
+    def from_file(filepath, **kwargs):
+        result = TVBConnectivity.from_file(filepath)
+        if isinstance(result, TVBConnectivity):
+            return Connectivity.from_tvb_instance(result, **kwargs)
+        else:
+            return Connectivity.from_instance(result, **kwargs)
 
     @property
     def number_of_regions(self):
-        return self._tvb.weights.shape[0]
+        return self.weights.shape[0]
 
     def configure(self):
-        self._tvb.configure()
+        super(self).configure()
         if len(self.normalized_weights) == 0:
             self.normalized_weights = normalize_weights(self.weights, remove_diagonal=True, ceil=1.0)
 
@@ -65,4 +85,10 @@ class Connectivity(object):
 
     @property
     def centers(self):
-        return self._tvb.centres
+        return self.centres
+
+    def __setattr__(self, attr, value):
+        if attr == "centers":
+            setattr(self, "centres", value)
+        else:
+            setattr(self, attr, value)

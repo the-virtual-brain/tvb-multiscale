@@ -1,14 +1,37 @@
 # -*- coding: utf-8 -*-
 
+from enum import Enum
 from six import string_types
 from collections import OrderedDict
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error, warning
 from tvb_scripts.utils.data_structures_utils import isequal_string, is_integer
-from tvb_scripts.head.model.sensors import Sensors, SensorTypes, SensorTypesNames, SensorTypesToProjectionDict
 from tvb.datatypes.connectivity import Connectivity
+from tvb.datatypes.surfaces import CorticalSurface
 from tvb.datatypes.cortex import Cortex
-from tvb.datatypes.surfaces import Surface
-from tvb.datatypes.projections import ProjectionMatrix
+from tvb.datatypes.sensors import Sensors, SensorsEEG, SensorsMEG, SensorsInternal
+from tvb.datatypes.sensors import EEG_POLYMORPHIC_IDENTITY, MEG_POLYMORPHIC_IDENTITY, INTERNAL_POLYMORPHIC_IDENTITY
+from tvb.datatypes.projections import ProjectionSurfaceEEG, ProjectionSurfaceMEG, ProjectionSurfaceSEEG, ProjectionMatrix
+
+
+class SensorTypes(Enum):
+    TYPE_EEG = EEG_POLYMORPHIC_IDENTITY
+    TYPE_MEG = MEG_POLYMORPHIC_IDENTITY
+    TYPE_INTERNAL = INTERNAL_POLYMORPHIC_IDENTITY
+    TYPE_SEEG = "SEEG"
+
+
+SensorTypesToClassesDict = {"EEG": SensorsEEG,
+                            "MEG": SensorsMEG,
+                            "SEEG": SensorsInternal,
+                            "Internal": SensorsInternal}
+
+SensorTypesToProjectionDict = {"EEG": ProjectionSurfaceEEG,
+                               "MEG": ProjectionSurfaceMEG,
+                               "SEEG": ProjectionSurfaceSEEG,
+                               "Internal": ProjectionSurfaceSEEG}
+
+
+SensorTypesNames = [getattr(SensorTypes, stype).value for stype in SensorTypes.__members__]
 
 
 class Head(object):
@@ -39,21 +62,16 @@ class Head(object):
     def cortex(self):
         cortex = Cortex()
         cortex.region_mapping_data = self.cortical_region_mapping
-        cortex = cortex.populate_cortex(self.cortical_surface._tvb, {})
-        for s_type, sensors in self.sensors.items():
-            if isinstance(sensors, OrderedDict) and len(sensors) > 0:
-                projection = list(sensors.values())[0]
-                if projection is not None:
-                    setattr(cortex, s_type.lower(), projection.projection_data)
+        cortex.region_mapping_data.surface = self.cortical_surface
         cortex.configure()
         return cortex
 
     def configure(self):
         if isinstance(self.connectivity, Connectivity):
             self.connectivity.configure()
-        if isinstance(self.cortical_surface, Surface):
+        if isinstance(self.cortical_surface, CorticalSurface):
             self.cortical_surface.configure()
-        if isinstance(self.cortical_surface, Surface):
+        if isinstance(self.cortical_surface, CorticalSurface):
             self.subcortical_surface.configure()
         for s_type, sensors_set in self.sensors.items():
             for sensor, projection in sensors_set.items():

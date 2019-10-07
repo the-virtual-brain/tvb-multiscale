@@ -10,11 +10,12 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import ensure_list
-from tvb_scripts.head.model.surface import CorticalSurface, SubcorticalSurface
-from tvb_scripts.head.model.sensors import Sensors, SensorTypesToClassesDict, SensorTypes, SensorTypesToProjectionDict
+from tvb_scripts.head.model.head import SensorTypesToClassesDict, SensorTypes, SensorTypesToProjectionDict
 from tvb_scripts.head.model.connectivity import Connectivity
 from tvb_scripts.head.model.head import Head
 from tvb.datatypes import region_mapping, structural
+from tvb.datatypes.surfaces import CorticalSurface
+from tvb.datatypes.sensors import Sensors
 from tvb.datatypes.projections import ProjectionMatrix
 
 
@@ -23,7 +24,7 @@ class TVBReader(object):
 
     def read_connectivity(self, path):
         if os.path.isfile(path):
-            conn = Connectivity().from_tvb_file(path)
+            conn = Connectivity.from_file(path)
             conn.file_path = path
             conn.configure()
             return conn
@@ -32,12 +33,12 @@ class TVBReader(object):
 
     def read_cortical_surface(self, path, surface_class):
         if os.path.isfile(path):
-            surf = surface_class().from_tvb_file(path)
+            surf = surface_class.from_file(path)
             surf.configure()
             return surf
         else:
             self.logger.warning("\nNo %s Surface file found at path %s!" %
-                                (surface_class().surface_subtype, str(path)))
+                                (surface_class.surface_subtype, str(path)))
             return None
 
     def read_region_mapping(self, path):
@@ -85,7 +86,7 @@ class TVBReader(object):
         path = os.path.join(root_folder, filename[0])
         if os.path.isfile(path):
             sensors = \
-                SensorTypesToClassesDict.get(s_type, Sensors)().from_tvb_file(path)
+                SensorTypesToClassesDict.get(s_type, Sensors).from_file(path)
             sensors.configure()
             if len(filename) > 1:
                 projection = self.read_projection(os.path.join(root_folder, atlas, filename[1]), s_type)
@@ -128,7 +129,7 @@ class TVBReader(object):
             if cort_srf is not None:
                 cort_rm.surface = cort_srf._tvb
         subcort_srf = \
-            self.read_cortical_surface(os.path.join(root_folder, subcortical_surface_file), SubcorticalSurface)
+            self.read_cortical_surface(os.path.join(root_folder, subcortical_surface_file), CorticalSurface)
         subcort_rm = self.read_region_mapping(os.path.join(root_folder, atlas, subcortical_region_mapping_file))
         if subcort_rm is not None:
             subcort_rm.connectivity = conn._tvb

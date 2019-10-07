@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from six import string_types
 import matplotlib
 from matplotlib import pyplot, gridspec
 from matplotlib.colors import Normalize
@@ -8,8 +9,8 @@ from tvb_scripts.utils.log_error_utils import warning, raise_value_error
 from tvb_scripts.utils.data_structures_utils import ensure_list, isequal_string, generate_region_labels, ensure_string
 from tvb_scripts.utils.analyzers_utils import time_spectral_analysis
 from tvb_scripts.plot.base_plotter import BasePlotter
-from tvb.datatypes.time_series import TimeSeries
-from tvb_scripts.timeseries.model import Timeseries
+from tvb.datatypes.time_series import TimeSeries as TimeSeriesTVB
+from tvb_scripts.time_series.model import TimeSeries
 
 
 def assert_time(time, n_times, time_unit="ms", logger=None):
@@ -39,7 +40,7 @@ def assert_time(time, n_times, time_unit="ms", logger=None):
     return time
 
 
-class TimeseriesPlotter(BasePlotter):
+class TimeSeriesPlotter(BasePlotter):
     linestyle = "-"
     linewidth = 1
     marker = None
@@ -49,7 +50,7 @@ class TimeseriesPlotter(BasePlotter):
     print_ts_indices = True
 
     def __init__(self, config=None):
-        super(TimeseriesPlotter, self).__init__(config)
+        super(TimeSeriesPlotter, self).__init__(config)
         self.interactive_plotter = None
         self.print_ts_indices = self.print_regions_indices
         self.HighlightingDataCursor = lambda *args, **kwargs: None
@@ -353,88 +354,88 @@ class TimeseriesPlotter(BasePlotter):
         return self.plot_ts(data, [], var_labels, "traj", subtitles, special_idx, labels=labels, title=title,
                             figure_name=figure_name, figsize=figsize)
 
-    def plot_tvb_timeseries(self, timeseries, mode="ts", subplots=None, special_idx=[], subtitles=[],
-                            offset=0.5, title=None, figure_name=None, figsize=None):
+    def plot_tvb_time_series(self, time_series, mode="ts", subplots=None, special_idx=[], subtitles=[],
+                             offset=0.5, title=None, figure_name=None, figsize=None):
         if not isinstance(figsize, (list, tuple)):
             figsize = self.config.figures.LARGE_SIZE
         if title is None:
-            title = timeseries.title
-        variables_labels = timeseries.labels_dimensions.get(timeseries.labels_ordering[1], [])
-        space_labels = timeseries.labels_dimensions.get(timeseries.labels_ordering[2], [])
-        return self.plot_ts(numpy.swapaxes(timeseries.data, 1, 2), timeseries.time, variables_labels,
+            title = time_series.title
+        variables_labels = time_series.labels_dimensions.get(time_series.labels_ordering[1], [])
+        space_labels = time_series.labels_dimensions.get(time_series.labels_ordering[2], [])
+        return self.plot_ts(numpy.swapaxes(time_series.data, 1, 2), time_series.time, variables_labels,
                             mode, subplots, special_idx, subtitles, space_labels,
-                            offset, timeseries.time_unit, title, figure_name, figsize)
+                            offset, time_series.time_unit, title, figure_name, figsize)
 
-    def plot_timeseries(self, timeseries, mode="ts", subplots=None, special_idx=[], subtitles=[],
-                        offset=0.5, title=None, figure_name=None, figsize=None, **kwargs):
-        if isinstance(timeseries, Timeseries):
-            return self.plot_ts(numpy.swapaxes(timeseries.data, 1, 2),
-                                timeseries.time, timeseries.variables_labels,
-                                mode, subplots, special_idx, subtitles, timeseries.space_labels,
-                                offset, timeseries.time_unit, title, figure_name, figsize)
-        elif isinstance(timeseries, TimeSeries):
-            self.plot_tvb_timeseries(timeseries, mode, subplots, special_idx,
-                                     subtitles, offset, title, figure_name, figsize)
-        elif isinstance(timeseries, (numpy.ndarray, dict, list, tuple)):
+    def plot_time_series(self, time_series, mode="ts", subplots=None, special_idx=[], subtitles=[],
+                         offset=0.5, title=None, figure_name=None, figsize=None, **kwargs):
+        if isinstance(time_series, TimeSeries):
+            return self.plot_ts(numpy.swapaxes(time_series.data, 1, 2),
+                                time_series.time, time_series.variables_labels,
+                                mode, subplots, special_idx, subtitles, time_series.space_labels,
+                                offset, time_series.time_unit, title, figure_name, figsize)
+        elif isinstance(time_series, TimeSeriesTVB):
+            self.plot_tvb_time_series(time_series, mode, subplots, special_idx,
+                                      subtitles, offset, title, figure_name, figsize)
+        elif isinstance(time_series, (numpy.ndarray, dict, list, tuple)):
             time = kwargs.get("time", None)
             time_unit = kwargs.get("time_unit", "ms")
             labels = kwargs.get("labels", [])
             var_labels = kwargs.get("var_labels", [])
-            return self.plot_ts(timeseries, time=time, mode=mode, time_unit=time_unit,
+            return self.plot_ts(time_series, time=time, mode=mode, time_unit=time_unit,
                                 labels=labels, var_labels=var_labels, subplots=subplots, special_idx=special_idx,
                                 subtitles=subtitles, offset=offset, title=title, figure_name=figure_name,
                                 figsize=figsize)
         else:
-            raise_value_error("Input timeseries: %s \n" "is not on of one of the following types: "
-                              "[Timeseries (tvb-scripts), TimeSeries (TVB), numpy.ndarray, dict]" % str(timeseries))
+            raise_value_error("Input time_series: %s \n" "is not on of one of the following types: "
+                              "[TimeSeries (tvb-scripts), TimeSeries (TVB), numpy.ndarray, dict]" % str(time_series))
 
-    def plot_raster(self, timeseries, subplots=None, special_idx=[], subtitles=[],
+    def plot_raster(self, time_series, subplots=None, special_idx=[], subtitles=[],
                     offset=0.5, title=None, figure_name=None, figsize=None, **kwargs):
-        return self.plot_timeseries(timeseries, "raster", subplots, special_idx,
-                                    subtitles, offset, title, figure_name, figsize, **kwargs)
+        return self.plot_time_series(time_series, "raster", subplots, special_idx,
+                                     subtitles, offset, title, figure_name, figsize, **kwargs)
 
-    def plot_trajectories(self, timeseries, subplots=None, special_idx=[], subtitles=[],
+    def plot_trajectories(self, time_series, subplots=None, special_idx=[], subtitles=[],
                           offset=0.5, title=None, figure_name=None, figsize=None, **kwargs):
-        return self.plot_timeseries(timeseries, "traj", subplots, special_idx,
-                                    subtitles, offset, title, figure_name, figsize, **kwargs)
+        return self.plot_time_series(time_series, "traj", subplots, special_idx,
+                                     subtitles, offset, title, figure_name, figsize, **kwargs)
 
     @staticmethod
-    def plot_tvb_timeseries_interactive(timeseries, first_n=-1, **kwargs):
-        from tvb_scripts.plot.timeseries_interactive_plotter import TimeseriesInteractivePlotter
-        interactive_plotter = TimeseriesInteractivePlotter(time_series=timeseries, first_n=first_n)
+    def plot_tvb_time_series_interactive(time_series, first_n=-1, **kwargs):
+        from tvb_scripts.plot.time_series_interactive_plotter import TimeseriesInteractivePlotter
+        interactive_plotter = TimeseriesInteractivePlotter(time_series=time_series, first_n=first_n)
         interactive_plotter.configure()
         block = kwargs.pop("block", True)
         interactive_plotter.show(block=block, **kwargs)
 
-    def plot_timeseries_interactive(self, timeseries, first_n=-1, **kwargs):
-        if isinstance(timeseries, TimeSeries):
-            self.plot_tvb_timeseries_interactive(timeseries, first_n, **kwargs)
-        elif isinstance(timeseries, Timeseries):
-            self.plot_tvb_timeseries_interactive(timeseries._tvb, first_n, **kwargs)
-        elif isinstance(timeseries, numpy.ndarray):
-            self.plot_tvb_timeseries_interactive(Timeseries(data=timeseries), first_n, **kwargs)
-        elif isinstance(timeseries, (list, tuple)):
-            self.plot_tvb_timeseries_interactive(Timeseries(data=TimeSeries(data=numpy.stack(timeseries, axis=1))),
-                                                 first_n, **kwargs)
-        elif isinstance(timeseries, dict):
-            ts = numpy.stack(timeseries.values(), axis=1)
-            timeseries = TimeSeries(data=ts, labels_dimensions={"State Variable": timeseries.keys()})
-            self.plot_tvb_timeseries_interactive(timeseries, first_n, **kwargs)
+    def plot_time_series_interactive(self, time_series, first_n=-1, **kwargs):
+        if isinstance(time_series, TimeSeriesTVB):
+            self.plot_tvb_time_series_interactive(time_series, first_n, **kwargs)
+        elif isinstance(time_series, TimeSeries):
+            self.plot_tvb_time_series_interactive(time_series._tvb, first_n, **kwargs)
+        elif isinstance(time_series, numpy.ndarray):
+            self.plot_tvb_time_series_interactive(TimeSeries(data=time_series), first_n, **kwargs)
+        elif isinstance(time_series, (list, tuple)):
+            self.plot_tvb_time_series_interactive(TimeSeries(data=TimeSeriesTVB(data=numpy.stack(time_series, axis=1))),
+                                                  first_n, **kwargs)
+        elif isinstance(time_series, dict):
+            ts = numpy.stack(time_series.values(), axis=1)
+            time_series = TimeSeriesTVB(data=ts, labels_dimensions={"State Variable": time_series.keys()})
+            self.plot_tvb_time_series_interactive(time_series, first_n, **kwargs)
         else:
-            raise_value_error("Input timeseries: %s \n" "is not on of one of the following types: "
-                              "[Timeseries (tvb-scripts), TimeSeries (TVB), numpy.ndarray, dict, list, tuple]" %
-                              str(timeseries))
+            raise_value_error("Input time_series: %s \n" "is not on of one of the following types: "
+                              "[TimeSeries (tvb-scripts), TimeSeriesTVB (TVB), numpy.ndarray, dict, list, tuple]" %
+                              str(time_series))
 
     @staticmethod
-    def plot_tvb_power_spectra_interactive(timeseries, spectral_props, **kwargs):
+    def plot_tvb_power_spectra_interactive(time_series, spectral_props, **kwargs):
         from tvb.simulator.plot.power_spectra_interactive import PowerSpectraInteractive
-        interactive_plotters = PowerSpectraInteractive(time_series=timeseries, **spectral_props)
+        interactive_plotters = PowerSpectraInteractive(time_series=time_series, **spectral_props)
         interactive_plotters.configure()
         block = kwargs.pop("block", True)
         interactive_plotters.show(blocl=block, **kwargs)
 
-    def plot_power_spectra_interactive(self, timeseries, spectral_props, **kwargs):
-        self.plot_tvb_power_spectra_interactive(self, timeseries._tvb, spectral_props, **kwargs)
+    def plot_power_spectra_interactive(self, time_series, spectral_props, **kwargs):
+        self.plot_tvb_power_spectra_interactive(self, time_series._tvb, spectral_props, **kwargs)
 
     # TODO: refactor to not have the plot commands here
     def _plot_ts_spectral_analysis_raster(self, data, time=None, var_label="", time_unit="ms",
@@ -448,7 +449,7 @@ class TimeseriesPlotter(BasePlotter):
         else:
             n_times, nS = data.shape[:2]
         time = assert_time(time, n_times, time_unit, self.logger)
-        if not isinstance(time_unit, str):
+        if not isinstance(time_unit, string_types):
             time_unit = list(time_unit)[0]
         time_unit = ensure_string(time_unit)
         if time_unit in ("ms", "msec"):
@@ -557,24 +558,24 @@ class TimeseriesPlotter(BasePlotter):
             self._plot_ts_spectral_analysis_raster(d, time, var_label, time_unit, freq, spectral_options,
                                                    special_idx, labels, title, figure_name, figsize)
 
-    def plot_spectral_analysis_raster(self, timeseries, freq=None, spectral_options={},
+    def plot_spectral_analysis_raster(self, time_series, freq=None, spectral_options={},
                                       special_idx=[], labels=[], title='Spectral Analysis', figure_name=None,
                                       figsize=None, **kwargs):
-        if isinstance(timeseries, Timeseries):
-            return self.plot_ts_spectral_analysis_raster(numpy.swapaxes(timeseries._tvb.data, 1, 2).squeeze(),
-                                                         timeseries.time, timeseries.time_unit, freq, spectral_options,
+        if isinstance(time_series, TimeSeries):
+            return self.plot_ts_spectral_analysis_raster(numpy.swapaxes(time_series._tvb.data, 1, 2).squeeze(),
+                                                         time_series.time, time_series.time_unit, freq, spectral_options,
                                                          special_idx, labels, title, figure_name, figsize)
-        elif isinstance(timeseries, TimeSeries):
-            return self.plot_ts_spectral_analysis_raster(numpy.swapaxes(timeseries.data, 1, 2).squeeze(),
-                                                         timeseries.time, timeseries.time_unit, freq, spectral_options,
+        elif isinstance(time_series, TimeSeriesTVB):
+            return self.plot_ts_spectral_analysis_raster(numpy.swapaxes(time_series.data, 1, 2).squeeze(),
+                                                         time_series.time, time_series.time_unit, freq, spectral_options,
                                                          special_idx, labels, title, figure_name, figsize)
-        elif isinstance(timeseries, (numpy.ndarray, dict, list, tuple)):
+        elif isinstance(time_series, (numpy.ndarray, dict, list, tuple)):
             time = kwargs.get("time", None)
-            return self.plot_ts_spectral_analysis_raster(timeseries, time=time, freq=freq,
+            return self.plot_ts_spectral_analysis_raster(time_series, time=time, freq=freq,
                                                          spectral_options=spectral_options, special_idx=special_idx,
                                                          labels=labels, title=title, figure_name=figure_name,
                                                          figsize=figsize)
         else:
-            raise_value_error("Input timeseries: %s \n"
+            raise_value_error("Input time_series: %s \n"
                               "is not on of one of the following types: "
-                              "[Timeseries (tvb-scripts), TimeSeries (TVB), numpy.ndarray, dict]" % str(timeseries))
+                              "[TimeSeries (tvb-scripts), TimeSeries (TVB), numpy.ndarray, dict]" % str(time_series))
