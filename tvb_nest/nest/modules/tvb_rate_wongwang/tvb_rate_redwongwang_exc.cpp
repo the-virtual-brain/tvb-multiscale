@@ -72,14 +72,14 @@ RecordablesMap< tvbnest::tvb_rate_redwongwang_exc >::create()
  * ---------------------------------------------------------------- */
 
 tvbnest::tvb_rate_redwongwang_exc::Parameters_::Parameters_()
-  : tau_( 100.0 )   // ms
-  , g_( 0.000641 ) // s??
-  , I_e_( 0.382 ) // nA??
-  , I_( 0.15 ) // nA??
+  : g_( 0.000641 ) // s??
+  , tau_( 100.0 )   // ms
   , w_( 1.4 ) // unitless
   , a_( 310.0 ) // nC^-1??
   , b_( 125.0 ) // Hz??
   , d_( 0.16 ) // s??
+  , I_e_( 0.382 ) // nA??
+  , I_( 0.15 ) // nA??
   , sigma_( 0.01 )
   , rectify_output_( true )
   , consistent_integration_( true )
@@ -102,14 +102,14 @@ void
 tvbnest::tvb_rate_redwongwang_exc::Parameters_::get(
   DictionaryDatum& d ) const
 {
-  def< double >( d, names::tau, tau_ );
   def< double >( d, names::g, g_ );
-  def< double >( d, names::I_e, I_e_ );
-  def< double >( d, names::I, I_ );
+  def< double >( d, names::tau, tau_ );
   def< double >( d, names::w, w_ );
   def< double >( d, names::a, a_ );
   def< double >( d, names::b, b_ );
   def< double >( d, names::d, d_ );
+  def< double >( d, names::I_e, I_e_ );
+  def< double >( d, names::I, I_ );
   def< double >( d, names::sigma, sigma_ );
   def< bool >( d, names::rectify_output, rectify_output_ );
   def< bool >( d, names::consistent_integration, consistent_integration_ );
@@ -122,14 +122,14 @@ void
 tvbnest::tvb_rate_redwongwang_exc::Parameters_::set(
   const DictionaryDatum& d )
 {
-  updateValue< double >( d, names::tau, tau_ );
   updateValue< double >( d, names::g, g_ );
-  updateValue< double >( d, names::I_e, I_e_ );
-  updateValue< double >( d, names::I, I_ );
+  updateValue< double >( d, names::tau, tau_ );
   updateValue< double >( d, names::w, w_ );
   updateValue< double >( d, names::a, a_ );
   updateValue< double >( d, names::b, b_ );
   updateValue< double >( d, names::d, d_ );
+  updateValue< double >( d, names::I_e, I_e_ );
+  updateValue< double >( d, names::I, I_ );
   updateValue< double >( d, names::sigma, sigma_ );
   updateValue< bool >( d, names::rectify_output, rectify_output_ );
   updateValue< bool >( d, names::consistent_integration, consistent_integration_ );
@@ -144,21 +144,13 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::set(
   }
 
   // Check for invalid parameters
-  if ( tau_ <= 0 )
-  {
-    throw nest::BadProperty( "Time constant tau must be > 0." );
-  }
   if ( g_ <= 0 )
   {
     throw nest::BadProperty( "Kinetic parameter g must be > 0." );
   }
-  if ( I_e_ < 0 )
+  if ( tau_ <= 0 )
   {
-    throw nest::BadProperty( "Overall effective external input current I_e must be >= 0." );
-  }
-  if ( I_ < 0 )
-  {
-    throw nest::BadProperty( "Synaptic coupling current I must be >= 0." );
+    throw nest::BadProperty( "Time constant tau must be > 0." );
   }
   if ( w_ < 0 )
   {
@@ -175,6 +167,14 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::set(
   if ( d_ <= 0 )
   {
     throw nest::BadProperty( "Sigmoidal function parameter d must be > 0." );
+  }
+  if ( I_e_ < 0 )
+  {
+    throw nest::BadProperty( "Overall effective external input current I_e must be >= 0." );
+  }
+  if ( I_ < 0 )
+  {
+    throw nest::BadProperty( "Synaptic coupling current I must be >= 0." );
   }
   if ( sigma_ < 0 )
   {
@@ -287,7 +287,7 @@ tvbnest::tvb_rate_redwongwang_exc::calibrate()
     .init(); // ensures initialization in case mm connected after Simulate
 
   const double h = Time::get_resolution().get_ms();
-  double h_tau = h / P_.tau_;
+  const double h_tau = h / P_.tau_;
 
   if ( P_.consistent_integration_ )
   {

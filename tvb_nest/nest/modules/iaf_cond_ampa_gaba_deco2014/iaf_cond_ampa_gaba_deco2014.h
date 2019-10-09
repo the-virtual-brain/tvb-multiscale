@@ -118,21 +118,21 @@ extern "C" inline int iaf_cond_ampa_gaba_deco2014_dynamics( double, const double
   SeeAlso: iaf_cond_beta
 
 
-
   Parameters:
   The following parameters can be set in the status dictionary.
-  C_m [pF]  200 for Inh, Capacity of the membrane
-  g_m [nS]  20nS for Inh, Membrane leak conductance
-  E_L [mV]  Resting potential.
   V_th [mV]  Threshold
   V_reset [mV]  Reset value of the membrane potential
+  E_L [mV]  Resting potential.
+  E_ex [mV]  Excitatory reversal potential
+  E_in [mV]  Inhibitory reversal potential
   t_ref [ms]  1ms for Inh, Refractory period.
+  C_m [pF]  200 for Inh, Capacity of the membrane
+  g_m [nS]  20nS for Inh, Membrane leak conductance
   g_AMPA_ext [nS]  2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
   g_AMPA_rec [nS]  0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
   g_NMDA [nS]  0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
   g_GABA [nS]  8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
-  E_ex [mV]  Excitatory reversal potential
-  E_in [mV]  Inhibitory reversal potential
+  t_ref [ms]  1ms for Inh, Refractory period.
   tau_syn [ms]  2.0ms for AMPA and 10.0 ms for GABA synapse decay time
   tau_AMPA [ms]  AMPA synapse decay time
   tau_NMDA_rise [ms]  NMDA synapse rise time
@@ -263,42 +263,24 @@ private:
   *         assignment operator to copy those members.
   */
   struct Parameters_{
-
-    //!  200 for Inh, Capacity of the membrane
-    double C_m;
-
-    //!  20nS for Inh, Membrane leak conductance
-    double g_m;
-
-    //!  Resting potential.
-    double E_L;
-
     //!  Threshold
     double V_th;
 
     //!  Reset value of the membrane potential
     double V_reset;
 
-    //!  1ms for Inh, Refractory period.
-    double t_ref;
-
-    //!  2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
-    double g_AMPA_ext;
-
-    //!  0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
-    double g_AMPA_rec;
-
-    //!  0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
-    double g_NMDA;
-
-    //!  8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
-    double g_GABA;
+    //!  Resting potential.
+    double E_L;
 
     //!  Excitatory reversal potential
     double E_ex;
 
     //!  Inhibitory reversal potential
     double E_in;
+
+    //!  1ms for Inh, Refractory period.
+    double t_ref;
+
 
     //!  2.0ms for AMPA and 10.0 ms for GABA synapse decay time
     double tau_syn;
@@ -314,6 +296,25 @@ private:
 
     //!  GABA synapse decay time
     double tau_GABA;
+
+
+    //!  200 for Inh, Capacity of the membrane
+    double C_m;
+
+    //!  20nS for Inh, Membrane leak conductance
+    double g_m;
+
+    //!  2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
+    double g_AMPA_ext;
+
+    //!  0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
+    double g_AMPA_rec;
+
+    //!  0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
+    double g_NMDA;
+
+    //!  8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
+    double g_GABA;
 
     //! 
     double beta;
@@ -385,7 +386,8 @@ private:
     double I_NMDA;
 
     double I_GABA;    
-        State_();
+
+    State_();
   };
 
   /**
@@ -534,27 +536,6 @@ private:
     S_.ode_state[State_::V_m] = __v;
   }
 
-  inline double get_C_m() const {
-    return P_.C_m;
-  }
-  inline void set_C_m(const double __v) {
-    P_.C_m = __v;
-  }
-
-  inline double get_g_m() const {
-    return P_.g_m;
-  }
-  inline void set_g_m(const double __v) {
-    P_.g_m = __v;
-  }
-
-  inline double get_E_L() const {
-    return P_.E_L;
-  }
-  inline void set_E_L(const double __v) {
-    P_.E_L = __v;
-  }
-
   inline double get_V_th() const {
     return P_.V_th;
   }
@@ -569,39 +550,11 @@ private:
     P_.V_reset = __v;
   }
 
-  inline double get_t_ref() const {
-    return P_.t_ref;
+  inline double get_E_L() const {
+    return P_.E_L;
   }
-  inline void set_t_ref(const double __v) {
-    P_.t_ref = __v;
-  }
-
-  inline double get_g_AMPA_ext() const {
-    return P_.g_AMPA_ext;
-  }
-  inline void set_g_AMPA_ext(const double __v) {
-    P_.g_AMPA_ext = __v;
-  }
-
-  inline double get_g_AMPA_rec() const {
-    return P_.g_AMPA_rec;
-  }
-  inline void set_g_AMPA_rec(const double __v) {
-    P_.g_AMPA_rec = __v;
-  }
-
-  inline double get_g_NMDA() const {
-    return P_.g_NMDA;
-  }
-  inline void set_g_NMDA(const double __v) {
-    P_.g_NMDA = __v;
-  }
-
-  inline double get_g_GABA() const {
-    return P_.g_GABA;
-  }
-  inline void set_g_GABA(const double __v) {
-    P_.g_GABA = __v;
+  inline void set_E_L(const double __v) {
+    P_.E_L = __v;
   }
 
   inline double get_E_ex() const {
@@ -616,6 +569,13 @@ private:
   }
   inline void set_E_in(const double __v) {
     P_.E_in = __v;
+  }
+
+  inline double get_t_ref() const {
+    return P_.t_ref;
+  }
+  inline void set_t_ref(const double __v) {
+    P_.t_ref = __v;
   }
 
   inline double get_tau_syn() const {
@@ -651,6 +611,48 @@ private:
   }
   inline void set_tau_GABA(const double __v) {
     P_.tau_GABA = __v;
+  }
+
+  inline double get_C_m() const {
+    return P_.C_m;
+  }
+  inline void set_C_m(const double __v) {
+    P_.C_m = __v;
+  }
+
+  inline double get_g_m() const {
+    return P_.g_m;
+  }
+  inline void set_g_m(const double __v) {
+    P_.g_m = __v;
+  }
+
+  inline double get_g_AMPA_ext() const {
+    return P_.g_AMPA_ext;
+  }
+  inline void set_g_AMPA_ext(const double __v) {
+    P_.g_AMPA_ext = __v;
+  }
+
+  inline double get_g_AMPA_rec() const {
+    return P_.g_AMPA_rec;
+  }
+  inline void set_g_AMPA_rec(const double __v) {
+    P_.g_AMPA_rec = __v;
+  }
+
+  inline double get_g_NMDA() const {
+    return P_.g_NMDA;
+  }
+  inline void set_g_NMDA(const double __v) {
+    P_.g_NMDA = __v;
+  }
+
+  inline double get_g_GABA() const {
+    return P_.g_GABA;
+  }
+  inline void set_g_GABA(const double __v) {
+    P_.g_GABA = __v;
   }
 
   inline double get_beta() const {
@@ -770,17 +772,32 @@ inline nest::port iaf_cond_ampa_gaba_deco2014::handles_test_event(
 
 // TODO call get_status on used or internal components
 inline void iaf_cond_ampa_gaba_deco2014::get_status(DictionaryDatum &__d) const{  
-  def<double>(__d, "C_m", get_C_m());
-      
-  def<double>(__d, "g_m", get_g_m());
-      
-  def<double>(__d, "E_L", get_E_L());
-      
+
   def<double>(__d, "V_th", get_V_th());
-      
+
   def<double>(__d, "V_reset", get_V_reset());
       
+  def<double>(__d, "E_L", get_E_L());
+
+  def<double>(__d, "E_ex", get_E_ex());
+
+  def<double>(__d, "E_in", get_E_in());
+
   def<double>(__d, "t_ref", get_t_ref());
+
+  def<double>(__d, "tau_syn", get_tau_syn());
+
+  def<double>(__d, "tau_AMPA", get_tau_AMPA());
+
+  def<double>(__d, "tau_NMDA_rise", get_tau_NMDA_rise());
+
+  def<double>(__d, "tau_NMDA_decay", get_tau_NMDA_decay());
+
+  def<double>(__d, "tau_GABA", get_tau_GABA());
+
+  def<double>(__d, "C_m", get_C_m());
+
+  def<double>(__d, "g_m", get_g_m());
       
   def<double>(__d, "g_AMPA_ext", get_g_AMPA_ext());
       
@@ -789,21 +806,7 @@ inline void iaf_cond_ampa_gaba_deco2014::get_status(DictionaryDatum &__d) const{
   def<double>(__d, "g_NMDA", get_g_NMDA());
       
   def<double>(__d, "g_GABA", get_g_GABA());
-      
-  def<double>(__d, "E_ex", get_E_ex());
-      
-  def<double>(__d, "E_in", get_E_in());
-      
-  def<double>(__d, "tau_syn", get_tau_syn());
-      
-  def<double>(__d, "tau_AMPA", get_tau_AMPA());
-      
-  def<double>(__d, "tau_NMDA_rise", get_tau_NMDA_rise());
-      
-  def<double>(__d, "tau_NMDA_decay", get_tau_NMDA_decay());
-      
-  def<double>(__d, "tau_GABA", get_tau_GABA());
-      
+
   def<double>(__d, "beta", get_beta());
       
   def<double>(__d, "lamda_NMDA", get_lamda_NMDA());
@@ -858,18 +861,6 @@ inline void iaf_cond_ampa_gaba_deco2014::get_status(DictionaryDatum &__d) const{
 
 inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
 
-  double tmp_C_m = get_C_m();
-  updateValue<double>(__d, "C_m", tmp_C_m);
-
-
-  double tmp_g_m = get_g_m();
-  updateValue<double>(__d, "g_m", tmp_g_m);
-
-
-  double tmp_E_L = get_E_L();
-  updateValue<double>(__d, "E_L", tmp_E_L);
-
-
   double tmp_V_th = get_V_th();
   updateValue<double>(__d, "V_th", tmp_V_th);
 
@@ -878,24 +869,8 @@ inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
   updateValue<double>(__d, "V_reset", tmp_V_reset);
 
 
-  double tmp_t_ref = get_t_ref();
-  updateValue<double>(__d, "t_ref", tmp_t_ref);
-
-
-  double tmp_g_AMPA_ext = get_g_AMPA_ext();
-  updateValue<double>(__d, "g_AMPA_ext", tmp_g_AMPA_ext);
-
-
-  double tmp_g_AMPA_rec = get_g_AMPA_rec();
-  updateValue<double>(__d, "g_AMPA_rec", tmp_g_AMPA_rec);
-
-
-  double tmp_g_NMDA = get_g_NMDA();
-  updateValue<double>(__d, "g_NMDA", tmp_g_NMDA);
-
-
-  double tmp_g_GABA = get_g_GABA();
-  updateValue<double>(__d, "g_GABA", tmp_g_GABA);
+  double tmp_E_L = get_E_L();
+  updateValue<double>(__d, "E_L", tmp_E_L);
 
 
   double tmp_E_ex = get_E_ex();
@@ -904,6 +879,10 @@ inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
 
   double tmp_E_in = get_E_in();
   updateValue<double>(__d, "E_in", tmp_E_in);
+
+
+  double tmp_t_ref = get_t_ref();
+  updateValue<double>(__d, "t_ref", tmp_t_ref);
 
 
   double tmp_tau_syn = get_tau_syn();
@@ -924,6 +903,30 @@ inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
 
   double tmp_tau_GABA = get_tau_GABA();
   updateValue<double>(__d, "tau_GABA", tmp_tau_GABA);
+
+
+  double tmp_C_m = get_C_m();
+  updateValue<double>(__d, "C_m", tmp_C_m);
+
+
+  double tmp_g_m = get_g_m();
+  updateValue<double>(__d, "g_m", tmp_g_m);
+
+
+  double tmp_g_AMPA_ext = get_g_AMPA_ext();
+  updateValue<double>(__d, "g_AMPA_ext", tmp_g_AMPA_ext);
+
+
+  double tmp_g_AMPA_rec = get_g_AMPA_rec();
+  updateValue<double>(__d, "g_AMPA_rec", tmp_g_AMPA_rec);
+
+
+  double tmp_g_NMDA = get_g_NMDA();
+  updateValue<double>(__d, "g_NMDA", tmp_g_NMDA);
+
+
+  double tmp_g_GABA = get_g_GABA();
+  updateValue<double>(__d, "g_GABA", tmp_g_GABA);
 
 
   double tmp_beta = get_beta();
@@ -1001,18 +1004,6 @@ inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
   // if we get here, temporaries contain consistent set of properties
 
 
-  set_C_m(tmp_C_m);
-
-
-
-  set_g_m(tmp_g_m);
-
-
-
-  set_E_L(tmp_E_L);
-
-
-
   set_V_th(tmp_V_th);
 
 
@@ -1021,7 +1012,47 @@ inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
 
 
 
+  set_E_L(tmp_E_L);
+
+
+
+  set_E_ex(tmp_E_ex);
+
+
+
+  set_E_in(tmp_E_in);
+
+
+
   set_t_ref(tmp_t_ref);
+
+
+
+  set_tau_syn(tmp_tau_syn);
+
+
+
+  set_tau_AMPA(tmp_tau_AMPA);
+
+
+
+  set_tau_GABA(tmp_tau_GABA);
+
+
+
+  set_tau_NMDA_rise(tmp_tau_NMDA_rise);
+
+
+
+  set_tau_NMDA_decay(tmp_tau_NMDA_decay);
+
+
+
+  set_C_m(tmp_C_m);
+
+
+
+  set_g_m(tmp_g_m);
 
 
 
@@ -1038,34 +1069,6 @@ inline void iaf_cond_ampa_gaba_deco2014::set_status(const DictionaryDatum &__d){
 
 
   set_g_GABA(tmp_g_GABA);
-
-
-
-  set_E_ex(tmp_E_ex);
-
-
-
-  set_E_in(tmp_E_in);
-
-
-
-  set_tau_syn(tmp_tau_syn);
-
-
-
-  set_tau_AMPA(tmp_tau_AMPA);
-
-
-
-  set_tau_NMDA_rise(tmp_tau_NMDA_rise);
-
-
-
-  set_tau_NMDA_decay(tmp_tau_NMDA_decay);
-
-
-
-  set_tau_GABA(tmp_tau_GABA);
 
 
 

@@ -62,18 +62,19 @@ void
 RecordablesMap< tvbnest::tvb_rate_ampa_gaba_wongwang >::create()
 {
   insert_( names::S, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_S_ );
-  insert_( names::noise_S, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_noise_S_ );
+  insert_( "noise_S", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_noise_S_ );
   insert_( names::V_m, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_V_m_ );
-  insert_( names::noise_V_m, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_noise_V_m_ );
-  insert_( names::s_AMPA_ext, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_AMPA_ext );
-  insert_( names::s_AMPA_rec, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_AMPA_rec );
-  insert_( names::s_NMDA, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_NMDA );
-  insert_( names::s_GABA, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_GABA );
-  insert_( names::I_leak, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_leak);
-  insert_( names::I_AMPA_ext, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_AMPA_ext );
-  insert_( names::I_AMPA_rec, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_AMPA_rec );
-  insert_( names::I_NMDA, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_NMDA );
-  insert_( names::I_GABA, &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_GABA );
+  insert_( "noise_V_m", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_noise_V_m_ );
+  insert_( "s_AMPA_ext", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_AMPA_ext );
+  insert_( "s_AMPA_rec", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_AMPA_rec );
+  insert_( "s_NMDA", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_NMDA );
+  insert_( "s_GABA", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_s_GABA );
+  insert_( "I_leak", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_leak);
+  insert_( "I_AMPA_ext", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_AMPA_ext );
+  insert_( "I_AMPA_rec", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_AMPA_rec );
+  insert_( "I_NMDA", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_NMDA );
+  insert_( "I_GABA", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_I_GABA );
+  insert_( "spike", &tvbnest::tvb_rate_ampa_gaba_wongwang::get_spike_ );
 }
 } // namespace
 
@@ -82,22 +83,23 @@ RecordablesMap< tvbnest::tvb_rate_ampa_gaba_wongwang >::create()
  * ---------------------------------------------------------------- */
 
 tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::Parameters_()
-  : tau_syn_( 2.0 )   // ms, 10.0 ms for GABA
+  : V_th_( -50.0 ) // mV
+  , V_reset_( -55.0 ) // mV
+  , E_L_( -70.0 ) // mV
+  , E_ex_( 0.0 ) // mV
+  , E_in_( -70.0 ) // mV
   , t_ref_( 2.0 )   // ms
+  , tau_syn_( 2.0 )   // ms, 10.0 ms for GABA
   , C_m_( 500.0 ) // pF
   , g_m_( 25.0 ) // nS
   , g_AMPA_ext_( 3.37 ) // nS
   , g_AMPA_rec_( 0.065 ) // nS
   , g_NMDA_( 0.2 ) // nS
   , g_GABA_( 10.94 ) // nS
-  , E_L_( -70.0 ) // mV
-  , E_ex_( 0.0 ) // mV
-  , E_in_( -70.0 ) // mV
-  , V_th_( -50.0 ) // mV
-  , V_reset_( -55.0 ) // mV
-  , I_e_( 0.0 ) // pA
   , beta_( 0.062 ) // real unitless
-  , lambda_NMDA_( 0.28 ) // real unitless
+  , lamda_NMDA_( 0.28 ) // real unitless
+  , I_e_( 0.0 ) // pA
+  , spike_amplitude_( 2.0 ) // real unitless default set equal to tau_syn
   , sigma_( 0.01 )
   , sigma_S_( 1.0 )
   , sigma_V_m_( 1.0 )
@@ -109,15 +111,20 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::Parameters_()
 
 tvbnest::tvb_rate_ampa_gaba_wongwang::State_::State_()
   : S_( 0.0 )
+  , noise_S_( 0.0 )
   , V_m_( -70.0 )
-  , spike_( 0.0 )
-  , r_( 0 )
+  , noise_V_m_( 0.0 )
   , s_AMPA_ext_( 0.0 )
   , s_AMPA_rec_( 0.0 )
   , s_NMDA_( 0.0 )
   , s_GABA_( 0.0 )
-  , noise_S_( 0.0 )
-  , noise_V_m_( 0.0 )
+  , I_leak_( 0.0 )
+  , I_AMPA_ext_( 0.0 )
+  , I_AMPA_rec_( 0.0 )
+  , I_NMDA_( 0.0 )
+  , I_GABA_( 0.0 )
+  , spike_( 0.0 )
+  , r( 0 )
 {
 }
  
@@ -130,29 +137,26 @@ void
 tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::get(
   DictionaryDatum& d ) const
 {
-  def< double >( d, names::C_m, C_m_ );
   def< double >( d, names::V_th, V_th_ );
   def< double >( d, names::V_reset, V_reset_ );
   def< double >( d, names::E_L, E_L_ );
   def< double >( d, names::E_ex, E_ex_ );
   def< double >( d, names::E_in, E_in_ );
-  def< double >( d, names::tau_ref, tau_ref_ );
+  def< double >( d, names::t_ref, t_ref_ );
   def< double >( d, names::tau_syn, tau_syn_ );
-  def< double >( d, names::tau_AMPA, tau_AMPA_ );
-  def< double >( d, names::tau_NMDA_rise, tau_NMDA_rise_ );
-  def< double >( d, names::tau_NMDA_decay, tau_NMDA_decay_ );
-  def< double >( d, names::tau_GABA, tau_GABA_ );
-  def< double >( d, names::g_m, g_m_ );
-  def< double >( d, names::g_AMPA_ext, g_AMPA_ext_ );
-  def< double >( d, names::g_AMPA_rec, g_AMPA_rec_ );
-  def< double >( d, names::g_NMDA, g_NMDA_ );
-  def< double >( d, names::g_GABA, g_GABA_ );
+  def< double >( d, names::C_m, C_m_ );
+  def< double >( d, "g_m", g_m_ );
+  def< double >( d, "g_AMPA_ext", g_AMPA_ext_ );
+  def< double >( d, "g_AMPA_rec", g_AMPA_rec_ );
+  def< double >( d, "g_NMDA", g_NMDA_ );
+  def< double >( d, "g_GABA", g_GABA_ );
   def< double >( d, names::beta, beta_ );
-  def< double >( d, names::I_e, I_e_ );
-  def< double >( d, names::lamda_NMDA, lamda_NMDA_ );
+  def< double >( d, "lamda_NMDA", lamda_NMDA_ );
   def< double >( d, names::sigma, sigma_ );
-  def< double >( d, names::sigma_S, sigma_S_ );
-  def< double >( d, names::sigma_V_m, sigma_V_m_ );
+  def< double >( d, "sigma_S", sigma_S_ );
+  def< double >( d, "sigma_V_m", sigma_V_m_ );
+  def< double >( d, names::I_e, I_e_ );
+  def< double >( d, "spike_amplitude", spike_amplitude_ );
   def< bool >( d, names::rectify_output, rectify_output_ );
   def< bool >( d, names::consistent_integration, consistent_integration_ );
 
@@ -165,36 +169,33 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::get(
   ( *__receptor_type )[ "NMDA" ] = NMDA;
   ( *__receptor_type )[ "GABA" ] = GABA;
 
-  ( *__d )[ "receptor_types" ] = __receptor_type;
+  ( *d )[ "receptor_types" ] = __receptor_type;
 }
 
 void
 tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::set(
   const DictionaryDatum& d )
 {
-  updateValue< double >( d, names::C_m, C_m_ );
   updateValue< double >( d, names::V_th, V_th_ );
   updateValue< double >( d, names::V_reset, V_reset_ );
   updateValue< double >( d, names::E_L, E_L_ );
   updateValue< double >( d, names::E_ex, E_ex_ );
   updateValue< double >( d, names::E_in, E_in_ );
-  updateValue< double >( d, names::tau_ref, tau_ref_ );
+  updateValue< double >( d, names::t_ref, t_ref_ );
   updateValue< double >( d, names::tau_syn, tau_syn_ );
-  updateValue< double >( d, names::tau_AMPA, tau_AMPA_ );
-  updateValue< double >( d, names::tau_NMDA_rise, tau_NMDA_rise_ );
-  updateValue< double >( d, names::tau_NMDA_decay, tau_NMDA_decay_ );
-  updateValue< double >( d, names::tau_GABA, tau_GABA_ );
-  updateValue< double >( d, names::g_m, g_m_ );
-  updateValue< double >( d, names::g_AMPA_ext, g_AMPA_ext_ );
-  updateValue< double >( d, names::g_AMPA_rec, g_AMPA_rec_ );
-  updateValue< double >( d, names::g_NMDA, g_NMDA_ );
-  updateValue< double >( d, names::g_GABA, g_GABA_ );
+  updateValue< double >( d, names::C_m, C_m_ );
+  updateValue< double >( d, "g_m", g_m_ );
+  updateValue< double >( d, "g_AMPA_ext", g_AMPA_ext_ );
+  updateValue< double >( d, "g_AMPA_rec", g_AMPA_rec_ );
+  updateValue< double >( d, "g_NMDA", g_NMDA_ );
+  updateValue< double >( d, "g_GABA", g_GABA_ );
   updateValue< double >( d, names::beta, beta_ );
+  updateValue< double >( d, "lamda_NMDA", lamda_NMDA_ );
   updateValue< double >( d, names::I_e, I_e_ );
-  updateValue< double >( d, names::lamda_NMDA, lamda_NMDA_ );
+  updateValue< double >( d, "spike_amplitude", spike_amplitude_ );
   updateValue< double >( d, names::sigma, sigma_ );
-  updateValue< double >( d, names::sigma_S, sigma_S_ );
-  updateValue< double >( d, names::sigma_V_m, sigma_V_m_ );
+  updateValue< double >( d, "sigma_S", sigma_S_ );
+  updateValue< double >( d, "sigma_V_m", sigma_V_m_ );
   updateValue< bool >( d, names::rectify_output, rectify_output_ );
   updateValue< bool >( d, names::consistent_integration, consistent_integration_ );
 
@@ -208,31 +209,18 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::set(
   }
 
   // Check for invalid parameters
-  if ( tau_ref_ <= 0 )
+  if ( t_ref_ <= 0 )
   {
-    throw nest::BadProperty( "Time constant tau_ref must be > 0." );
+    throw nest::BadProperty( "Time constant t_ref must be > 0." );
   }
   if ( tau_syn_ <= 0 )
   {
     throw nest::BadProperty( "Time constant tau_syn must be > 0." );
   }
-  if ( tau_AMPA_ <= 0 )
+  if ( C_m_ < 0 )
   {
-    throw nest::BadProperty( "Time constant tau_AMPA must be > 0." );
+    throw nest::BadProperty( "Membrane capacitance C_m must be >= 0." );
   }
-  if ( tau_NMDA_rise_ <= 0 )
-  {
-    throw nest::BadProperty( "Time constant tau_NMDA_rise must be > 0." );
-  }
-  if ( tau_NMDA_decay_ <= 0 )
-  {
-    throw nest::BadProperty( "Time constant tau_NMDA_decay must be > 0." );
-  }
-  if ( tau_GABA_ <= 0 )
-  {
-    throw nest::BadProperty( "Time constant tau_GABA must be > 0." );
-  }
-
   if ( g_m_ <= 0 )
   {
     throw nest::BadProperty( "Conductance parameter g_m must be > 0." );
@@ -253,27 +241,22 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::Parameters_::set(
   {
     throw nest::BadProperty( "Conductance parameter g_GABA must be > 0." );
   }
-
-  if ( I_e_ < 0 )
-  {
-    throw nest::BadProperty( "Overall effective external input current I_e must be >= 0." );
-  }
-
-  if ( C_m_ < 0 )
-  {
-    throw nest::BadProperty( "Membrane capacitance C_m must be >= 0." );
-  }
-
   if ( beta_ < 0 )
   {
     throw nest::BadProperty( "beta must be >= 0." );
   }
-
   if ( lamda_NMDA_ <= 0 )
   {
     throw nest::BadProperty( "lamda_NMDA must be > 0." );
   }
-
+  if ( I_e_ < 0 )
+  {
+    throw nest::BadProperty( "Overall effective external input current I_e must be >= 0." );
+  }
+  if ( spike_amplitude_ < 0 )
+  {
+    throw nest::BadProperty( "Spike amplitude spike_amplitude_ must be >= 0." );
+  }
   if ( sigma_ < 0 )
   {
     throw nest::BadProperty( "Noise parameter sigma must be >= 0." );
@@ -295,15 +278,20 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::State_::get(
   DictionaryDatum& d ) const
 {
   def< double >( d, names::S, S_ );
+  def< double >( d, "noise_S", noise_S_ );
   def< double >( d, names::V_m, V_m_ );
-  def< double >( d, names::spike, spike_ );
-  def< long >( d, names::r, r_ );
-  def< double >( d, names::s_AMPA_ext, s_AMPA_ext_ );
-  def< double >( d, names::s_AMPA_rec, s_AMPA_rec_ ); /
-  def< double >( d, names::s_NMDA, s_NMDA_ );
-  def< double >( d, names::s_GABA, s_GABA_ );
-  def< double >( d, names::noise_S, noise_S_ );
-  def< double >( d, names::noise_V_m, noise_V_m_ );
+  def< double >( d, "noise_V_m", noise_V_m_ );
+  def< double >( d, "s_AMPA_ext", s_AMPA_ext_ );
+  def< double >( d, "s_AMPA_rec", s_AMPA_rec_ );
+  def< double >( d, "s_NMDA", s_NMDA_ );
+  def< double >( d, "s_GABA", s_GABA_ );
+  def< double >( d, "I_leak", I_leak_ );
+  def< double >( d, "I_AMPA_ext", I_AMPA_ext_ );
+  def< double >( d, "I_AMPA_rec", I_AMPA_rec_ );
+  def< double >( d, "I_NMDA", I_NMDA_ );
+  def< double >( d, "I_GABA", I_GABA_ );
+  def< double >( d, "spike", spike_ );
+  def< long >( d, "r", r );
 }
 
 void
@@ -311,28 +299,22 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::State_::set(
   const DictionaryDatum& d )
 {
   updateValue< double >( d, names::S, S_ );
+  updateValue< double >( d, "noise_S", noise_S_ );
   updateValue< double >( d, names::V_m, V_m_ );
-  updateValue< double >( d, names::spike, spike_ );
-  updateValue< long >( d, names::r, r_ );     /
-  updateValue< double >( d, names::s_AMPA_ext, s_AMPA_ext_ );
-  updateValue< double >( d, names::s_AMPA_rec, s_AMPA_rec_ );
-  updateValue< double >( d, names::s_NMDA, s_NMDA_ );
-  updateValue< double >( d, names::s_GABA, s_GABA_ );
-  updateValue< double >( d, names::noise_S, noise_S_ );
-  updateValue< double >( d, names::noise_V_m, noise_V_m_ );
+  updateValue< double >( d, "noise_V_m", noise_V_m_ );
+  updateValue< double >( d, "s_AMPA_ext", s_AMPA_ext_ );
+  updateValue< double >( d, "s_AMPA_rec", s_AMPA_rec_ );
+  updateValue< double >( d, "s_NMDA", s_NMDA_ );
+  updateValue< double >( d, "s_GABA", s_GABA_ );
+  updateValue< double >( d, "I_leak", I_leak_ );
+  updateValue< double >( d, "I_AMPA_ext", I_AMPA_ext_ );
+  updateValue< double >( d, "I_AMPA_rec", I_AMPA_rec_ );
+  updateValue< double >( d, "I_NMDA", I_NMDA_ );
+  updateValue< double >( d, "I_GABA", I_GABA_ );
+  updateValue< double >( d, "spike", spike_ );
+  updateValue< long >( d, "r", r );
 }
 
-tvbnest::tvb_rate_ampa_gaba_wongwang::Buffers_::Buffers_(
-  tvbnest::tvb_rate_ampa_gaba_wongwang& n )
-  : logger_( n )
-{
-}
-
-tvbnest::tvb_rate_ampa_gaba_wongwang::Buffers_::Buffers_( const Buffers_&,
-  tvbnest::tvb_rate_ampa_gaba_wongwang& n )
-  : logger_( n )
-{
-}
 
 /* ----------------------------------------------------------------
  * Default and copy constructor for node
@@ -358,6 +340,22 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::tvb_rate_ampa_gaba_wongwang(
   Node::set_node_uses_wfr( kernel().simulation_manager.use_wfr() );
 }
 
+tvbnest::tvb_rate_ampa_gaba_wongwang::Buffers_::Buffers_(
+  tvbnest::tvb_rate_ampa_gaba_wongwang& n )
+  : logger_( n ), delayed_S_inputs_( std::vector< nest::RingBuffer >( SUP_RECEPTOR - 1 ) ),
+   instant_S_inputs_( std::vector<std::vector< double >> ( SUP_RECEPTOR - 1 ) ){
+  // Initialization of the remaining members is deferred to
+  // init_buffers_().
+}
+
+tvbnest::tvb_rate_ampa_gaba_wongwang::Buffers_::Buffers_( const Buffers_&,
+  tvbnest::tvb_rate_ampa_gaba_wongwang& n )
+  : logger_( n ), delayed_S_inputs_( std::vector< nest::RingBuffer >( SUP_RECEPTOR - 1 ) ),
+   instant_S_inputs_( std::vector<std::vector< double >> ( SUP_RECEPTOR - 1 ) ) {
+  // Initialization of the remaining members is deferred to
+  // init_buffers_().
+}
+
 
 /* ----------------------------------------------------------------
  * Node initialization functions
@@ -368,19 +366,6 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::init_state_( const Node& proto )
 {
   const tvbnest::tvb_rate_ampa_gaba_wongwang& pr = downcast< tvbnest::tvb_rate_ampa_gaba_wongwang >( proto );
   S_ = pr.S_;
-  V_m_ = pr.V_m_;
-}
-
-tvbnest::tvb_rate_ampa_gaba_wongwang::Buffers_::Buffers_(
-  tvbnest::tvb_rate_ampa_gaba_wongwang& n )
-  : logger_( n )
-{
-}
-
-tvbnest::tvb_rate_ampa_gaba_wongwang::Buffers_::Buffers_( const Buffers_&,
-  tvbnest::tvb_rate_ampa_gaba_wongwang& n )
-  : logger_( n )
-{
 }
 
 void
@@ -402,6 +387,7 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::init_buffers_()
   B_.last_V_m_values.resize( buffer_size, 0.0 );
 
   for ( unsigned int j = 0; j < 2; j++ )
+  {
       B_.random_numbers[ j ].resize( buffer_size, numerics::nan );
       // initialize random numbers
       for ( unsigned int i = 0; i < buffer_size; i++ )
@@ -421,10 +407,10 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::calibrate()
     .init(); // ensures initialization in case mm connected after Simulate
 
   const double h = Time::get_resolution().get_ms();
-  double h_tau_syn = h / P_.tau_syn_;
-  double h_tau_V_m = h  / ( P_.C_m_/ P_.g_m_ );
-
+  const double h_tau_syn = h / P_.tau_syn_;
   // tau_V_m_ = P_.C_m_/ P_.g_m_;
+  const double h_tau_V_m = h  / ( P_.C_m_/ P_.g_m_ );
+
   V_.g_m_E_L_ = P_.g_m_ * P_.E_L_ ;
 
   if ( P_.consistent_integration_ )
@@ -434,7 +420,6 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::calibrate()
     V_.P1_[1] = std::exp( - h_tau_V_m );
     V_.P2_[0] = -1.0 * numerics::expm1( - h_tau_syn );
     V_.P2_[1] = -1.0 * numerics::expm1( - h_tau_V_m  );
-    V_.P2_spike_ = -1.0 * numerics::expm1( - h  );
     V_.input_noise_factor_[0] = std::sqrt(
       -0.5 * numerics::expm1( -2. * h_tau_syn ) ); //??
     V_.input_noise_factor_[1] = std::sqrt(
@@ -447,12 +432,11 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::calibrate()
     V_.P1_[1] = 1;
     V_.P2_[0]= h_tau_syn ;
     V_.P2_[1]= h_tau_V_m ;
-    V_.P2_spike_ = h;
     V_.input_noise_factor_[0] = std::sqrt( h_tau_syn );
     V_.input_noise_factor_[1] = std::sqrt( h_tau_V_m );
   }
   V_.sigma_[0] = P_.sigma_ * P_.sigma_S_;
-  V_.sigma_[1] = P_.sigma_ * P_.sigma_V_m;
+  V_.sigma_[1] = P_.sigma_ * P_.sigma_V_m_;
 
 }
 
@@ -479,6 +463,15 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::update_( Time const& origin,
   double V_m_curr = 0.0;
   double Vex = 0.0;
 
+  double delayed_S_AMPA_ext = 0;
+  double delayed_S_AMPA_rec = 0;
+  double delayed_S_NMDA = 0;
+  double delayed_S_GABA = 0;
+  double instant_S_AMPA_ext = 0;
+  double instant_S_AMPA_rec = 0;
+  double instant_S_NMDA = 0;
+  double instant_S_GABA = 0;
+
   for ( long lag = from; lag < to; ++lag )
   {
     // store current state
@@ -499,11 +492,11 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::update_( Time const& origin,
     if (S_.r != 0) {
         S_.r = S_.r - 1;
         S_.V_m_ = P_.V_reset_;
-    } else if (S_.V_m_ >= P_.V_th) {
+    } else if (S_.V_m_ >= P_.V_th_) {
         S_.r = V_.RefractoryCounts;
         S_.V_m_ = P_.V_reset_;
-        S_.spike_ = spike_amplitude_;  // TODO: determine whether tau_syn should apply to spike or not
-        S_.S_ += V_.P2_spike_ * S_.spike_;
+        S_.spike_ = 1.0;  // TODO: determine whether tau_syn should apply to spike or not
+        S_.S_ += V_.P2_[1] * P_.spike_amplitude_ * S_.spike_;
     } else {
         S_.V_m_ = V_.P1_[1] * V_m_curr
             + V_.input_noise_factor_[1] * S_.noise_V_m_;
@@ -522,10 +515,11 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::update_( Time const& origin,
         }
     }
 
-    double delayed_S_AMPA_ext = 0;
-    double delayed_S_AMPA_rec = 0;
-    double delayed_S_NMDA = 0;
-    double delayed_S_GABA = 0;
+    delayed_S_AMPA_ext = 0;
+    delayed_S_AMPA_rec = 0;
+    delayed_S_NMDA = 0;
+    delayed_S_GABA = 0;
+
     if ( called_from_wfr_update )
     {
       // use get_value_wfr_update to keep values in buffer
@@ -542,10 +536,10 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::update_( Time const& origin,
       delayed_S_NMDA = get_delayed_S_NMDA().get_value( lag );
       delayed_S_GABA = get_delayed_S_GABA().get_value( lag );
     }
-    double instant_S_AMPA_ext = get_instant_S_AMPA_ext()[ lag ];
-    double instant_S_AMPA_rec = get_instant_S_AMPA_rec()[ lag ];
-    double instant_S_NMDA = get_instant_S_NMDA()[ lag ];
-    double instant_S_GABA = get_instant_S_GABA()[ lag ];
+    instant_S_AMPA_ext = get_instant_S_AMPA_ext()[ lag ];
+    instant_S_AMPA_rec = get_instant_S_AMPA_rec()[ lag ];
+    instant_S_NMDA = get_instant_S_NMDA()[ lag ];
+    instant_S_GABA = get_instant_S_GABA()[ lag ];
 
     // total synaptic current
     S_.s_AMPA_ext_ = delayed_S_AMPA_ext + instant_S_AMPA_ext;
@@ -554,15 +548,15 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::update_( Time const& origin,
     S_.s_GABA_ = delayed_S_GABA + instant_S_GABA;
 
     Vex = V_m_curr - P_.E_ex_;
-    S_.I_leak = - P_.g_m_ * V_m_curr + V_.g_m_E_L_;
+    S_.I_leak_ = - P_.g_m_ * V_m_curr + V_.g_m_E_L_;
     S_.I_AMPA_ext_ =  -P_.g_AMPA_ext_ * Vex * S_.s_AMPA_ext_;
-    S_.I_AMPA_rec_ = -P_.g_AMPA_rec_ * Vex * s_AMPA_rec_;
-    S_.I_NMDA_ = - P_.g_NMDA_ * Vex * s_NMDA_ / (1 + numerics::exp( - P_.beta_ *  V_m_curr));
-    S_.I_GABA_ = -P_.g_GABA_ * (V_m_curr - P_.E_in_) * s_GABA_;
+    S_.I_AMPA_rec_ = -P_.g_AMPA_rec_ * Vex * S_.s_AMPA_rec_;
+    S_.I_NMDA_ = - P_.g_NMDA_ * Vex * S_.s_NMDA_ / (1 + std::exp( - P_.beta_ *  V_m_curr));
+    S_.I_GABA_ = -P_.g_GABA_ * (V_m_curr - P_.E_in_) * S_.s_GABA_;
 
     // Update with coupling
-    S_.V_m_ += + V_.P2_ * ( - V_m_curr + P_.E_L +
-         (S_.I_AMPA_ext_ + S_.I_AMPA_rec_ + S_.I_NMDA_ + S_.I_GABA_ + P_.I_e_ ) / P._g_m_ ) ;
+    S_.V_m_ += V_.P2_[1] * ( - V_m_curr + P_.E_L_ +
+         (S_.I_AMPA_ext_ + S_.I_AMPA_rec_ + S_.I_NMDA_ + S_.I_GABA_ + P_.I_e_ ) / P_.g_m_ ) ;
 
     if ( called_from_wfr_update )
     {
@@ -596,6 +590,7 @@ tvbnest::tvb_rate_ampa_gaba_wongwang::update_( Time const& origin,
 
     // create new random numbers
     for ( unsigned int j = 0; j < 2; j++ )
+    {
         B_.random_numbers[ j ].resize( buffer_size, numerics::nan );
         for ( unsigned int i = 0; i < buffer_size; i++ )
         {

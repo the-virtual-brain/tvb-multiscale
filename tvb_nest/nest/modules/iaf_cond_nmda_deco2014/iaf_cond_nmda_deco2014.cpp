@@ -117,20 +117,31 @@ iaf_cond_nmda_deco2014::iaf_cond_nmda_deco2014():Archiving_Node(), P_(), S_(), B
   recordablesMap_.create();
   // use a default `good` enough value for the absolute error.
   // it cab be adjusted via `SetStatus`
-  P_.__gsl_error_tol = 1e-3;
-  
-  P_.C_m = 500.0; // as pF
-  
-  P_.g_m = 25.0; // as nS
-  
-  P_.E_L = -70.0; // as mV
-  
+
   P_.V_th = -50.0; // as mV
-  
+
   P_.V_reset = -55.0; // as mV
   
+  P_.E_L = -70.0; // as mV
+
+  P_.E_ex = 0.0; // as mV
+
+  P_.E_in = -70.0; // as mV
+
   P_.t_ref = 2.0; // as ms
-  
+
+  P_.tau_AMPA = 2.0; // as ms
+
+  P_.tau_NMDA_rise = 2.0; // as ms
+
+  P_.tau_NMDA_decay = 100.0; // as ms
+
+  P_.tau_GABA = 10.0; // as ms
+
+  P_.C_m = 500.0; // as pF
+
+  P_.g_m = 25.0; // as nS
+
   P_.g_AMPA_ext = 3.37; // as nS
   
   P_.g_AMPA_rec = 0.065; // as nS
@@ -138,18 +149,6 @@ iaf_cond_nmda_deco2014::iaf_cond_nmda_deco2014():Archiving_Node(), P_(), S_(), B
   P_.g_NMDA = 0.2; // as nS
   
   P_.g_GABA = 10.94; // as nS
-  
-  P_.E_ex = 0.0; // as mV
-  
-  P_.E_in = -70.0; // as mV
-  
-  P_.tau_AMPA = 2.0; // as ms
-  
-  P_.tau_NMDA_rise = 2.0; // as ms
-  
-  P_.tau_NMDA_decay = 100.0; // as ms
-  
-  P_.tau_GABA = 10.0; // as ms
   
   P_.alpha = 0.5; // as kHz
   
@@ -188,26 +187,28 @@ iaf_cond_nmda_deco2014::iaf_cond_nmda_deco2014():Archiving_Node(), P_(), S_(), B
   S_.ode_state[State_::s_GABA] = 0.0; // as nS
   
   S_.ode_state[State_::V_m] = P_.E_L; // as mV
+
+  P_.__gsl_error_tol = 1e-3;
 }
 
 iaf_cond_nmda_deco2014::iaf_cond_nmda_deco2014(const iaf_cond_nmda_deco2014& __n):
   Archiving_Node(), P_(__n.P_), S_(__n.S_), B_(__n.B_, *this){
-  P_.C_m = __n.P_.C_m;
-  P_.g_m = __n.P_.g_m;
-  P_.E_L = __n.P_.E_L;
   P_.V_th = __n.P_.V_th;
   P_.V_reset = __n.P_.V_reset;
-  P_.t_ref = __n.P_.t_ref;
-  P_.g_AMPA_ext = __n.P_.g_AMPA_ext;
-  P_.g_AMPA_rec = __n.P_.g_AMPA_rec;
-  P_.g_NMDA = __n.P_.g_NMDA;
-  P_.g_GABA = __n.P_.g_GABA;
+  P_.E_L = __n.P_.E_L;
   P_.E_ex = __n.P_.E_ex;
   P_.E_in = __n.P_.E_in;
+  P_.t_ref = __n.P_.t_ref;
   P_.tau_AMPA = __n.P_.tau_AMPA;
   P_.tau_NMDA_rise = __n.P_.tau_NMDA_rise;
   P_.tau_NMDA_decay = __n.P_.tau_NMDA_decay;
   P_.tau_GABA = __n.P_.tau_GABA;
+  P_.C_m = __n.P_.C_m;
+  P_.g_m = __n.P_.g_m;
+  P_.g_AMPA_ext = __n.P_.g_AMPA_ext;
+  P_.g_AMPA_rec = __n.P_.g_AMPA_rec;
+  P_.g_NMDA = __n.P_.g_NMDA;
+  P_.g_GABA = __n.P_.g_GABA;
   P_.alpha = __n.P_.alpha;
   P_.beta = __n.P_.beta;
   P_.lamda_NMDA = __n.P_.lamda_NMDA;
