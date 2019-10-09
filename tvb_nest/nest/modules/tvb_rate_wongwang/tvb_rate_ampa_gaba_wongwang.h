@@ -49,7 +49,7 @@ Name: tvb_rate_ampa_gaba_wongwang - rate model implementing the TVB version of a
 Description:
 
 tvb_rate_ampa_gaba_wongwang is an implementation of a nonlinear rate model with equations:
-dS_i/dt = -(1/tau_syn) * S_i + SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by neuron i
+tau_syn * dS_i/dt = S_i + spike_amplitude*SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by neuron i
 
 The spike is emitted when the membrane voltage V_m >= V_th, in which case it is reset to V_reset,
 and kept there for refractory time t_ref.
@@ -59,7 +59,7 @@ The V_m dynamics is given by the following equations:
 dV_m_i/dt = 1/C_m *( -g_m * (V_m_i - E_L)
                      -g_AMPA_ext * (V_m_i - E_ex))*SUM_j_in_AMPA_ext{w_ij*S_j}  // input from external AMPA neurons
                      -g_AMPA_rec * (V_m_i - E_ex))*SUM_j_in_AMPA_rec{w_ij*S_j} // input from recursive AMPA neurons
-                     -g_NMDA / (1 + lambda_NMDA * exp(-beta*V_m_i)) * (V_m_i - E_ex))*SUM_j_in_NMDA{w_ij*S_j} // input from recursive NMDA neurons
+                     -g_NMDA / (1 + lamda_NMDA * exp(-beta*V_m_i)) * (V_m_i - E_ex))*SUM_j_in_NMDA{w_ij*S_j} // input from recursive NMDA neurons
                      -g_GABA * (V_m_i - E_in))*SUM_j_in_GAB{w_ij*S_j} // input from recursive GABA neurons
 
 The model supports connections to other identical models with either zero or
@@ -72,29 +72,26 @@ The following parameters can be set in the status dictionary.
 
 Default parameter values follow reference [3]
   The following parameters can be set in the status dictionary.
-  C_m [pF]  200 for Inh, Capacity of the membrane
-  g_m [nS]  20nS for Inh, Membrane leak conductance
-  E_L [mV]  Resting potential.
   V_th [mV]  Threshold
   V_reset [mV]  Reset value of the membrane potential
+  E_L [mV]  Resting potential.
+  E_ex [mV]  Excitatory reversal potential
+  E_in [mV]  Inhibitory reversal potential
   t_ref [ms]  1ms for Inh, Refractory period.
+  tau_syn [ms]  2.0ms for AMPA and 10.0 ms for GABA synapse decay time
+  C_m [pF]  200 for Inh, Capacity of the membrane
+  g_m [nS]  20nS for Inh, Membrane leak conductance
   g_AMPA_ext [nS]  2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
   g_AMPA_rec [nS]  0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
   g_NMDA [nS]  0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
   g_GABA [nS]  8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
-  E_ex [mV]  Excitatory reversal potential
-  E_in [mV]  Inhibitory reversal potential
-  tau_syn [ms]  2.0ms for AMPA and 10.0 ms for GABA synapse decay time
-  tau_AMPA [ms]  AMPA synapse decay time
-  tau_NMDA_rise [ms]  NMDA synapse rise time
-  tau_NMDA_decay [ms]  NMDA synapse decay time
-  tau_GABA [ms]  GABA synapse decay time
   beta [real]
   lamda_NMDA [real]
   I_e [pA]  External current.
+  spike_amplitude [real] Amplitude of spike. Default = tau_syn=2.0ms assuming AMPA
   rectify_output        bool - Flag to constrain synaptic gating variable (S) in the interval [0, 1].
-                             true (default): If the S < 0 it is set to S = 0.0 after each time step.
-                                             If the S > 1 it is set to S = 1.0 after each time step.
+                             true (default): If the S < 0 it is set to S = 0.0 at each time step.
+                                             If the S > 1 it is set to S = 1.0 at each time step.
                              false : No constraint.
     consistent_integration bool - Flag to select integrator.
                               true (default): Exponential Euler integrator.
@@ -226,9 +223,6 @@ private:
    */
   struct Parameters_
   {
-    //!  200 for Inh, Capacity of the membrane
-    double C_m_;
-
     //!  Threshold
     double V_th_;
 
@@ -250,17 +244,8 @@ private:
      //!  2.0ms for AMPA and 10.0 ms for GABA synapse decay time
     double tau_syn_;
 
-    //!  AMPA synapse decay time
-    double tau_AMPA_;
-
-    //!  NMDA synapse rise time
-    double tau_NMDA_rise_;
-
-    //!  NMDA synapse decay time
-    double tau_NMDA_decay_;
-
-    //!  GABA synapse decay time
-    double tau_GABA_;
+    //!  200 for Inh, Capacity of the membrane
+    double C_m_;
 
     //!  20nS for Inh, Membrane leak conductance
     double g_m_;
@@ -324,12 +309,8 @@ private:
     double S_;  //!< Synaptic gating variable restricted in [0, 1]
     double noise_S_;  //!< Noise for S
 
-    long r; // Refractory time steps' counter
-
     double V_m_; // Membrane voltage
     double noise_V_m_;  //!< Noise for V_m
-
-    double spike_; // Spike amplitude
 
     double s_AMPA_ext_; // Total external AMPA synaptic input
 
@@ -338,6 +319,20 @@ private:
     double s_NMDA_; // Total recursive NMDA synaptic input
 
     double s_GABA_; // Total recursive GABA synaptic input
+
+    double I_leak_; // Leak current
+
+    double I_AMPA_ext_; // Total current of external AMPA synaptic input
+
+    double I_AMPA_rec_; // Total current of external AMPA synaptic input
+
+    double I_NMDA_; // Total current of external NMDA synaptic input
+
+    double I_GABA_; // Total current of external GABA synaptic input
+
+    double spike_; // Spike amplitude
+
+    long r; // Refractory time steps' counter
 
     State_(); //!< Default initialization
 
@@ -355,32 +350,35 @@ private:
     Buffers_( tvb_rate_ampa_gaba_wongwang& );
     Buffers_( const Buffers_&, tvb_rate_ampa_gaba_wongwang& );
 
-    std::vector<long> receptor_types_;
+   nest::UniversalDataLogger< tvb_rate_ampa_gaba_wongwang >
+      logger_; //!< Logger for all analog data
 
-    std::vector< nest::RingBuffer delayed_S_inputs(SUP_RECEPTOR-1);
-    inline nest::RingBuffer& get_delayed_S_AMPA_ext() {  return delayed_S_inputs[AMPA_EXT - 1]; }
-    inline nest::RingBuffer& get_delayed_S_AMPA_rec() {  return delayed_S_inputs[AMPA_REC - 1]; }
-    inline nest::RingBuffer& get_delayed_S_NMDA() {  return delayed_S_inputs[NMDA - 1]; }
-    inline nest::RingBuffer& get_delayed_S_GABA() {  return delayed_S_inputs[GABA - 1]; }
+    std::vector< nest::RingBuffer >
+        delayed_S_inputs_;
+    inline nest::RingBuffer& get_delayed_S_AMPA_ext() {  return delayed_S_inputs_[AMPA_EXT - 1]; }
+    inline nest::RingBuffer& get_delayed_S_AMPA_rec() {  return delayed_S_inputs_[AMPA_REC - 1]; }
+    inline nest::RingBuffer& get_delayed_S_NMDA() {  return delayed_S_inputs_[NMDA - 1]; }
+    inline nest::RingBuffer& get_delayed_S_GABA() {  return delayed_S_inputs_[GABA - 1]; }
 
     std::vector<std::vector< double >>
-      instant_S_inputs_(SUP_RECEPTOR-1);
+      instant_S_inputs_;
     inline std::vector< double >& get_instant_S_AMPA_ext() {  return instant_S_inputs_[AMPA_EXT - 1]; }
     inline std::vector< double >& get_instant_S_AMPA_rec() {  return instant_S_inputs_[AMPA_REC - 1]; }
     inline std::vector< double >& get_instant_S_NMDA() {  return instant_S_inputs_[NMDA - 1]; }
     inline std::vector< double >& get_instant_S_GABA() {  return instant_S_inputs_[GABA - 1]; }
+
+    std::vector<long> receptor_types_;
 
     // by RateConnectionInstantaneous from inhibitory neurons
     std::vector< double >
       last_S_values; //!< remembers y_values from last wfr_update
      std::vector< double >
       last_V_m_values; //!< remembers y_values from last wfr_update
-    std::vector<std::vector< double >> random_numbers(2); //!< remembers the random_numbers in
+    std::vector<std::vector< double >> random_numbers; //!< remembers the random_numbers in
     // order to apply the same random
     // numbers in each iteration when wfr
     // is used
-    nest::UniversalDataLogger< tvb_rate_ampa_gaba_wongwang >
-      logger_; //!< Logger for all analog data
+
   };
 
   inline nest::RingBuffer& get_delayed_S_AMPA_ext() {return B_.get_delayed_S_AMPA_ext();};
@@ -388,10 +386,10 @@ private:
   inline nest::RingBuffer& get_delayed_S_NMDA() {return B_.get_delayed_S_NMDA();};
   inline nest::RingBuffer& get_delayed_S_GABA() {return B_.get_delayed_S_GABA();};
 
-  inline nest::RingBuffer& get_instant_S_AMPA_ext() {return B_.get_instant_S_AMPA_ext();};
-  inline nest::RingBuffer& get_instant_S_AMPA_rec() {return B_.get_instant_S_AMPA_rec();};
-  inline nest::RingBuffer& get_instant_S_NMDA() {return B_.get_instant_S_NMDA();};
-  inline nest::RingBuffer& get_instant_S_GABA() {return B_.get_instant_S_GABA();};
+  inline std::vector< double >& get_instant_S_AMPA_ext() {return B_.get_instant_S_AMPA_ext();};
+  inline std::vector< double >& get_instant_S_AMPA_rec() {return B_.get_instant_S_AMPA_rec();};
+  inline std::vector< double >& get_instant_S_NMDA() {return B_.get_instant_S_NMDA();};
+  inline std::vector< double >& get_instant_S_GABA() {return B_.get_instant_S_GABA();};
 
   // ----------------------------------------------------------------
 
@@ -402,13 +400,12 @@ private:
   {
 
     // propagators
-    std::vector<double> P1_(2);
-    std::vector<double> P2_(2);
-    double P2_spike_;
+    std::vector<double> P1_;
+    std::vector<double> P2_;
     double g_m_E_L_;
 
     // propagator for noise
-    std::vector<double> input_noise_factor_(2);
+    std::vector<double> input_noise_factor_;
 
     librandom::RngPtr rng_;
     librandom::PoissonRandomDev poisson_dev_; //!< random deviate generator
@@ -418,7 +415,7 @@ private:
     long RefractoryCounts;
 
     // Effective noise strength
-    std::vector<double> sigma_(2);
+    std::vector<double> sigma_;
 
   };
   //! Read out the synaptic gating variable
@@ -427,10 +424,109 @@ private:
     return S_.S_;
   }
 
+  inline void set_S_(const double __v) {
+    S_.S_ = __v;
+  }
+
   //! Read out the S noise
   inline double get_noise_S_() const
   {
     return S_.noise_S_;
+  }
+  inline void set_noise_S_(const double __v) {
+    S_.noise_S_ = __v;
+  }
+
+  inline double get_V_m_() const
+  {
+    return S_.V_m_;
+  }
+  inline void set_V_m_(const double __v) {
+    S_.V_m_ = __v;
+  }
+
+  //! Read out the V_m noise
+  inline double get_noise_V_m_() const
+  {
+    return S_.noise_V_m_;
+  }
+  inline void set_noise_V_m_(const double __v) {
+    S_.noise_V_m_ = __v;
+  }
+
+  inline double get_s_AMPA_ext() const
+  {
+    return S_.s_AMPA_ext_;
+  }
+  inline void set_s_AMPA_ext_(const double __v) {
+    S_.s_AMPA_ext_ = __v;
+  }
+
+  inline double get_s_AMPA_rec() const
+  {
+    return S_.s_AMPA_rec_;
+  }
+  inline void set_s_AMPA_rec_(const double __v) {
+    S_.s_AMPA_rec_ = __v;
+  }
+
+  inline double get_s_NMDA() const
+  {
+    return S_.s_NMDA_;
+  }
+  inline void set_s_NMDA_(const double __v) {
+    S_.s_NMDA_ = __v;
+  }
+
+  inline double get_s_GABA() const
+  {
+    return S_.s_GABA_;
+  }
+  inline void set_s_GABA_(const double __v) {
+    S_.s_GABA_ = __v;
+  }
+
+  inline double get_I_leak() const {
+    return S_.I_leak_;
+  }
+  inline void set_I_leak_(const double __v) {
+    S_.I_leak_ = __v;
+  }
+
+  inline double get_I_AMPA_ext() const {
+    return S_.I_AMPA_ext_;
+  }
+  inline void set_I_AMPA_ext_(const double __v) {
+    S_.s_AMPA_ext_ = __v;
+  }
+
+  inline double get_I_AMPA_rec() const {
+    return S_.I_AMPA_rec_;
+  }
+  inline void set_I_AMPA_rec_(const double __v) {
+    S_.I_AMPA_rec_ = __v;
+  }
+
+  inline double get_I_NMDA() const {
+    return S_.I_NMDA_;
+  }
+  inline void set_I_NMDA_(const double __v) {
+    S_.I_NMDA_ = __v;
+  }
+
+  inline double get_I_GABA() const {
+    return S_.I_GABA_;
+  }
+  inline void set_I_GABA_(const double __v) {
+    S_.I_GABA_ = __v;
+  }
+
+  inline double get_spike_() const
+  {
+    return S_.spike_;
+  }
+  inline void set_spike_(const double __v) {
+    S_.spike_ = __v;
   }
 
   inline long get_r() const {
@@ -440,66 +536,20 @@ private:
     S_.r = __v;
   }
 
-  inline double get_V_m_() const
-  {
-    return S_.V_m_;
-  }
-  //! Read out the V_m noise
-  inline double get_noise_V_m_() const
-  {
-    return S_.noise_V_m_;
-  }
-
-  inline double get_spike_() const
-  {
-    return S_.spike_;
-  }
-
-  inline double get_s_AMPA_ext() const
-  {
-    return S_.s_AMPA_ext;
-  }
-
-  inline double get_s_AMPA_rec() const
-  {
-    return S_.s_AMPA_rec;
-  }
-
-  inline double get_s_NMDA() const
-  {
-    return S_.s_NMDA;
-  }
-
-  inline double get_s_GABA() const
-  {
-    return S_.s_GABA;
-  }
-
-  inline double get_I_leak() const {
-    return P_.g_m * (S_.V_m_ - P_.E_L);
-  }
-
-  inline double get_I_AMPA_ext() const {
-    return P_.g_AMPA_ext * (S_.V_m_ - P_.E_ex) * S_.s_AMPA_ext];
-  }
-
-  inline double get_I_AMPA_rec() const {
-    return P_.g_AMPA_rec * (S_.V_m_ - P_.E_ex) * S_.s_AMPA_rec;
-  }
-
-  inline double get_I_NMDA() const {
-    return P_.g_NMDA * (S_.V_m_ - P_.E_ex)/(1 + P_.lambda_NMDA * exp(-P_.beta_ * S_.V_m_) * S_.s_NMDA;
-  }
-
-  inline double get_I_GABA() const {
-    return P_.g_GABA * (S_.V_m_ - P_.E_in) * S_.s_GABA;
-  }
-
   inline long get_RefractoryCounts() const {
     return V_.RefractoryCounts;
   }
+
   inline void set_RefractoryCounts(const long __v) {
     V_.RefractoryCounts = __v;
+  }
+
+  inline std::vector<double> get_sigma_() const {
+    return V_.sigma_;
+  }
+
+  inline void set_sigma_(const std::vector<double> __v) {
+    V_.sigma_ = __v;
   }
 
   // ----------------------------------------------------------------

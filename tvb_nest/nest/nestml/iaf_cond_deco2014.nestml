@@ -64,22 +64,22 @@ neuron iaf_cond_deco2014:
   end
 
   parameters:
-    C_m pF = 500.0pF              # 200 for Inh, Capacity of the membrane
-    g_m nS = 25.0nS             # 20nS for Inh, Membrane leak conductance
-    E_L mV = -70.0mV            # Resting potential.
     V_th mV = -50.0mV           # Threshold
     V_reset mV = -55.0mV        # Reset value of the membrane potential
-    t_ref ms = 2.0ms            # 1ms for Inh, Refractory period.
-    g_AMPA_ext nS = 3.37nS      # 2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
-    g_AMPA_rec nS = 0.065nS     # 0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
-    g_NMDA nS = 0.20nS          # 0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
-    g_GABA nS = 10.94nS         # 8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
+    E_L mV = -70.0mV            # Resting potential.
     E_ex mV = 0.0mV             # Excitatory reversal potential
     E_in mV = -70.0mV           # Inhibitory reversal potential
+    t_ref ms = 2.0ms            # 1ms for Inh, Refractory period.
     tau_AMPA ms = 2.0ms         # AMPA synapse decay time
     tau_NMDA_rise ms = 2.0ms    # NMDA synapse rise time
     tau_NMDA_decay ms = 100.0ms # NMDA synapse decay time
     tau_GABA ms = 10.0ms        # GABA synapse decay time
+    C_m pF = 500.0pF              # 200 for Inh, Capacity of the membrane
+    g_m nS = 25.0nS             # 20nS for Inh, Membrane leak conductance
+    g_AMPA_ext nS = 3.37nS      # 2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
+    g_AMPA_rec nS = 0.065nS     # 0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
+    g_NMDA nS = 0.20nS          # 0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
+    g_GABA nS = 10.94nS         # 8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
     alpha kHz = 0.5kHz          #
     beta real = 0.062           #
     lamda_NMDA real = 0.28      #

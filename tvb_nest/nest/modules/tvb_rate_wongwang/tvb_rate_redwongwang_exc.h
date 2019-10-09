@@ -70,18 +70,18 @@ Parameters:
 The following parameters can be set in the status dictionary.
 
 Default parameter values follow reference [3]
-tau                 double - Time constant of rate dynamics in ms (default: 100ms).
-sigma               double - Noise parameter in nA (??; default: 0.01).
 g                   double - kinetic parameter in s (??; default: 0.641/1000 s)
-I_e                 double - overall effective external input current in nA (default: 0.382 nA)
-I                   double - synaptic coupling current in nA (default: 0.15 nA)
+tau                 double - Time constant of rate dynamics in ms (default: 100ms).
 w                   double - local synaptic recurrence weight (unitless, default: 1.4)
 a                   double - sigmoidal function parameter in nC^-1 (default: 310nC^-1)
 b                   double - sigmoidal function parameter in Hz (default: 125 Hz)
 d                   double - sigmoidal function parameter in sec (??; default: 0.16 s)
+I_e                 double - overall effective external input current in nA (default: 0.382 nA)
+I                   double - synaptic coupling current in nA (default: 0.15 nA)
+sigma               double - Noise parameter in nA (??; default: 0.01).
 rectify_output        bool - Flag to constrain synaptic gating variable (S) in the interval [0, 1].
-                             true (default): If the S < 0 it is set to S = 0.0 after each time step.
-                                             If the S > 1 it is set to S = 1.0 after each time step.
+                             true (default): If the S < 0 it is set to S = 0.0 at each time step.
+                                             If the S > 1 it is set to S = 1.0 at each time step.
                              false : No constraint.
 consistent_integration bool - Flag to select integrator.
                               true (default): Exponential Euler integrator.
@@ -194,18 +194,11 @@ private:
    */
   struct Parameters_
   {
-
-    /** Time constant in ms. */
-    double tau_;
-
     /** Kinetic parameter in s (??). */
     double g_;
 
-    /** Overall effective external input current in nA. */
-    double I_e_;
-
-    /** Excitatory synaptic coupling current in nA. */
-    double I_;
+    /** Time constant in ms. */
+    double tau_;
 
     /** Local excitatory synaptic recurrence weight (unitless). */
     double w_;
@@ -218,6 +211,12 @@ private:
 
     /** Sigmoidal function parameter in s (??). */
     double d_;
+
+    /** Overall effective external input current in nA. */
+    double I_e_;
+
+    /** Excitatory synaptic coupling current in nA. */
+    double I_;
 
     /** Noise parameter. */
     double sigma_;
