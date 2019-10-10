@@ -49,14 +49,14 @@ Name: tvb_rate_ampa_gaba_wongwang - rate model implementing the TVB version of a
 Description:
 
 tvb_rate_ampa_gaba_wongwang is an implementation of a nonlinear rate model with equations:
-tau_syn * dS_i/dt = S_i + spike_amplitude*SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by neuron i
+tau_syn * dS_i/dt = - S_i + spike_amplitude*SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by neuron i
 
 The spike is emitted when the membrane voltage V_m >= V_th, in which case it is reset to V_reset,
 and kept there for refractory time t_ref.
 
 The V_m dynamics is given by the following equations:
 
-dV_m_i/dt = 1/C_m *( -g_m * (V_m_i - E_L)
+dV_m_i/dt = 1/C_m *( -g_L * (V_m_i - E_L)
                      -g_AMPA_ext * (V_m_i - E_ex))*SUM_j_in_AMPA_ext{w_ij*S_j}  // input from external AMPA neurons
                      -g_AMPA_rec * (V_m_i - E_ex))*SUM_j_in_AMPA_rec{w_ij*S_j} // input from recursive AMPA neurons
                      -g_NMDA / (1 + lamda_NMDA * exp(-beta*V_m_i)) * (V_m_i - E_ex))*SUM_j_in_NMDA{w_ij*S_j} // input from recursive NMDA neurons
@@ -80,13 +80,13 @@ Default parameter values follow reference [3]
   t_ref [ms]  1ms for Inh, Refractory period.
   tau_syn [ms]  2.0ms for AMPA and 10.0 ms for GABA synapse decay time
   C_m [pF]  200 for Inh, Capacity of the membrane
-  g_m [nS]  20nS for Inh, Membrane leak conductance
+  g_L [nS]  20nS for Inh, Membrane leak conductance
   g_AMPA_ext [nS]  2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
   g_AMPA_rec [nS]  0.051nS for Inh, Membrane conductance for AMPA recurrent excitatory currents
   g_NMDA [nS]  0.16nS for Inh, Membrane conductance for NMDA recurrent excitatory currents
   g_GABA [nS]  8.51nS for Inh, Membrane conductance for GABA recurrent inhibitory currents
-  beta [real]
-  lamda_NMDA [real]
+  beta [real]  0.062
+  lamda_NMDA [real]  0.28
   I_e [pA]  External current.
   spike_amplitude [real] Amplitude of spike. Default = tau_syn=2.0ms assuming AMPA
   rectify_output        bool - Flag to constrain synaptic gating variable (S) in the interval [0, 1].
@@ -248,7 +248,7 @@ private:
     double C_m_;
 
     //!  20nS for Inh, Membrane leak conductance
-    double g_m_;
+    double g_L_;
 
     //!  2.59nS for Inh, Membrane conductance for AMPA external excitatory currents
     double g_AMPA_ext_;
@@ -370,10 +370,8 @@ private:
     std::vector<long> receptor_types_;
 
     // by RateConnectionInstantaneous from inhibitory neurons
-    std::vector< double >
-      last_S_values; //!< remembers y_values from last wfr_update
-     std::vector< double >
-      last_V_m_values; //!< remembers y_values from last wfr_update
+    std::vector<std::vector< double >>
+      last_y_values; //!< remembers y values from last wfr_update
     std::vector<std::vector< double >> random_numbers; //!< remembers the random_numbers in
     // order to apply the same random
     // numbers in each iteration when wfr
@@ -402,7 +400,7 @@ private:
     // propagators
     std::vector<double> P1_;
     std::vector<double> P2_;
-    double g_m_E_L_;
+    double g_L_E_L_;  // g_L * E_L
 
     // propagator for noise
     std::vector<double> input_noise_factor_;
@@ -497,7 +495,7 @@ private:
     return S_.I_AMPA_ext_;
   }
   inline void set_I_AMPA_ext_(const double __v) {
-    S_.s_AMPA_ext_ = __v;
+    S_.I_AMPA_ext_ = __v;
   }
 
   inline double get_I_AMPA_rec() const {
@@ -534,6 +532,11 @@ private:
   }
   inline void set_r(const long __v) {
     S_.r = __v;
+  }
+
+  inline double get_I_syn_() const
+  {
+    return S_.I_leak_ + S_.I_AMPA_ext_ + S_.I_AMPA_rec_ + S_.I_NMDA_ + S_.I_GABA_;
   }
 
   inline long get_RefractoryCounts() const {
@@ -646,4 +649,4 @@ tvb_rate_ampa_gaba_wongwang::set_status( const DictionaryDatum& d )
 
 } // namespace
 
-#endif /* #ifndef tvb_rate_ampa_gaba_wongwang_H */
+#endif /* #ifndef TVB_RATE_AMPA_GABA_WONGWANG_H */

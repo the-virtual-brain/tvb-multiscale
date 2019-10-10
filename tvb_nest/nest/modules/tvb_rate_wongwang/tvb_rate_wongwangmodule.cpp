@@ -27,7 +27,9 @@
 
 // include headers with your own stuff
 #include "tvb_rate_redwongwang_exc.h"
+#include "tvb_rate_redwongwang_inh.h"
 #include "tvb_rate_ampa_gaba_wongwang.h"
+#include "tvb_rate_nmda_wongwang.h"
 
 // Includes from nestkernel:
 #include "connection_manager_impl.h"
@@ -112,7 +114,11 @@ tvbnest::tvb_rate_wongwangmodule::init( SLIInterpreter* i )
   */
   nest::kernel().model_manager.register_node_model< tvb_rate_redwongwang_exc >(
     "tvb_rate_redwongwang_exc" );
+  nest::kernel().model_manager.register_node_model< tvb_rate_redwongwang_inh >(
+    "tvb_rate_redwongwang_inh" );
   nest::kernel().model_manager.register_node_model< tvb_rate_ampa_gaba_wongwang >(
     "tvb_rate_ampa_gaba_wongwang" );
+  nest::kernel().model_manager.register_node_model< tvb_rate_nmda_wongwang >(
+    "tvb_rate_nmda_wongwang" );
 
 } // tvb_rate_wongwangmodule::init()
