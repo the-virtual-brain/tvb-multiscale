@@ -224,9 +224,9 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         doc="Population firing rate")
 
     # Used for phase-plane axis ranges and to bound random initial() conditions.
-    state_variable_boundaries = basic.Dict(
+    state_variable_boundaries = Final(
+        {"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
         label="State Variable boundaries [lo, hi]",
-        default={"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
         doc="""The values for each state-variable should be set to encompass
             the boundaries of the dynamic range of that state-variable. Set None for one-sided boundaries""")
 
