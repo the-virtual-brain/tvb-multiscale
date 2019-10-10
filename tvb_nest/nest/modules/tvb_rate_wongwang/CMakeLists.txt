@@ -41,7 +41,9 @@ set( MODULE_NAME ${SHORT_NAME}module )
 set( MODULE_SOURCES
     tvb_rate_wongwangmodule.h tvb_rate_wongwangmodule.cpp
     tvb_rate_redwongwang_exc.h tvb_rate_redwongwang_exc.cpp
+    tvb_rate_redwongwang_inh.h tvb_rate_redwongwang_inh.cpp
     tvb_rate_ampa_gaba_wongwang.h tvb_rate_ampa_gaba_wongwang.cpp
+    tvb_rate_nmda_wongwang.h tvb_rate_nmda_wongwang.cpp
     )
 
 # 3) We require a header name like this:

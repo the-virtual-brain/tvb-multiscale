@@ -58,7 +58,7 @@ and r_i = H(I_syn_i, a, b, d) is the firing rate,
 where H(I_syn_i, a, b, d) is a sigmoidal function of the input synaptic currents I_syn_i:
 H(I_syn, a, b, d) = (a*I_syn-b) / (1-exp(-d*(a*I_syn-b)))
 
-and  I_syn_i = I_e + w*I*S_i + CouplingInput
+and  I_syn_i = W_E*Io + w_rec*J_NMDA*S_i + CouplingInput
 (i.e., the input transformation is applied to individual inputs).
 
 The model supports connections to other identical models with either zero or
@@ -71,13 +71,15 @@ The following parameters can be set in the status dictionary.
 
 Default parameter values follow reference [3]
 g                   double - kinetic parameter in s (??; default: 0.641/1000 s)
-tau                 double - Time constant of rate dynamics in ms (default: 100ms).
-w                   double - local synaptic recurrence weight (unitless, default: 1.4)
+tau                 double - Time constant of rate dynamics in ms (default: 100ms (NMDA)).
+w_rec               double - local synaptic recurrence weight (unitless, default: 1.4)
+W_E               double - external synaptic  weight (unitless, default: 1.0)
 a                   double - sigmoidal function parameter in nC^-1 (default: 310nC^-1)
 b                   double - sigmoidal function parameter in Hz (default: 125 Hz)
 d                   double - sigmoidal function parameter in sec (??; default: 0.16 s)
-I_e                 double - overall effective external input current in nA (default: 0.382 nA)
-I                   double - synaptic coupling current in nA (default: 0.15 nA)
+J_NMDA              double - synaptic coupling current in nA (default: 0.15 nA)
+Io                  double - overall effective external input current in nA (default: 0.382 nA)
+I_e                 double - external current (e.g., from stimulation) (default: 0.0 nA)
 sigma               double - Noise parameter in nA (??; default: 0.01).
 rectify_output        bool - Flag to constrain synaptic gating variable (S) in the interval [0, 1].
                              true (default): If the S < 0 it is set to S = 0.0 at each time step.
@@ -201,7 +203,10 @@ private:
     double tau_;
 
     /** Local excitatory synaptic recurrence weight (unitless). */
-    double w_;
+    double w_rec_;
+
+    /** External synaptic weight (unitless). */
+    double W_E_;
 
     /** Sigmoidal function parameter in nC^-1. */
     double a_;
@@ -212,11 +217,14 @@ private:
     /** Sigmoidal function parameter in s (??). */
     double d_;
 
-    /** Overall effective external input current in nA. */
-    double I_e_;
-
     /** Excitatory synaptic coupling current in nA. */
-    double I_;
+    double J_NMDA_;
+
+    /** Overall effective external input current in nA. */
+    double Io_;
+
+    /** External (e.g., stimulus) input current in nA. */
+    double I_e_;
 
     /** Noise parameter. */
     double sigma_;
@@ -250,6 +258,8 @@ private:
   {
     double S_;  //!< Synaptic gating variable restricted in [0, 1]
     double noise_;  //!< Noise
+    double I_syn_;  // Total synaptic current
+    double r_;  // Rate
       
     State_(); //!< Default initialization
 
@@ -298,6 +308,8 @@ private:
     // propagators
     double P1_;
     double P2_;
+    double W_E_Io_I_e_;  // W_E * Io + I_e
+    double w_rec_J_NMDA_;  // w_rec * J_NMDA
 
     // propagator for noise
     double input_noise_factor_;
@@ -308,23 +320,47 @@ private:
   };
 
   //! Read out the synaptic gating variable
-  double
+  inline double
   get_S_() const
   {
     return S_.S_;
   }
+  inline void
+  set_S_(const double __v) {
+    S_.S_ = __v;
+  }
 
-  double
+  inline double
   get_currents_() const
   {
-    return S_.S_ * P_.I_;
+    return S_.S_ * P_.J_NMDA_;
   }
 
   //! Read out the noise
-  double
+  inline double
   get_noise_() const
   {
     return S_.noise_;
+  }
+
+  inline double
+  get_I_syn_() const
+  {
+    return S_.I_syn_;
+  }
+  inline void
+  set_I_syn_(const double __v) {
+    S_.I_syn_ = __v;
+  }
+
+  inline double
+  get_r_() const
+  {
+    return S_.r_;
+  }
+  inline void
+  set_r_(const double __v) {
+    S_.r_ = __v;
   }
 
   // ----------------------------------------------------------------
@@ -421,4 +457,4 @@ tvb_rate_redwongwang_exc::set_status( const DictionaryDatum& d )
 
 } // namespace
 
-#endif /* #ifndef tvb_rate_redwongwang_exc_H */
+#endif /* #ifndef TVB_RATE_REDWONGWANG_EXC_H */

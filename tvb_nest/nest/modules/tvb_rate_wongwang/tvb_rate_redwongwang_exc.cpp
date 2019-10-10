@@ -62,8 +62,10 @@ void
 RecordablesMap< tvbnest::tvb_rate_redwongwang_exc >::create()
 {
   insert_( names::S, &tvbnest::tvb_rate_redwongwang_exc::get_S_ );
-  insert_( names::currents, &tvbnest::tvb_rate_redwongwang_exc::get_currents_ );
   insert_( names::noise, &tvbnest::tvb_rate_redwongwang_exc::get_noise_ );
+  insert_( names::currents, &tvbnest::tvb_rate_redwongwang_exc::get_currents_ );
+  insert_( names::I_syn, &tvbnest::tvb_rate_redwongwang_exc::get_I_syn_ );
+  insert_( names::rate, &tvbnest::tvb_rate_redwongwang_exc::get_r_ );
 }
 } // namespace
 
@@ -72,14 +74,16 @@ RecordablesMap< tvbnest::tvb_rate_redwongwang_exc >::create()
  * ---------------------------------------------------------------- */
 
 tvbnest::tvb_rate_redwongwang_exc::Parameters_::Parameters_()
-  : g_( 0.000641 ) // s??
-  , tau_( 100.0 )   // ms
-  , w_( 1.4 ) // unitless
+  : g_( 0.000641 ) // s
+  , tau_( 100.0 )   // ms, NMDA
+  , w_rec_( 1.4 ) // unitless
+  , W_E_( 1.0 ) // unitless
   , a_( 310.0 ) // nC^-1??
   , b_( 125.0 ) // Hz??
-  , d_( 0.16 ) // s??
-  , I_e_( 0.382 ) // nA??
-  , I_( 0.15 ) // nA??
+  , d_( 0.16 ) // s
+  , J_NMDA_( 0.15 ) // nA
+  , Io_( 0.382 ) // nA
+  , I_e_( 0.0 ) // nA
   , sigma_( 0.01 )
   , rectify_output_( true )
   , consistent_integration_( true )
@@ -90,6 +94,8 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::Parameters_()
 tvbnest::tvb_rate_redwongwang_exc::State_::State_()
   : S_( 0.0 )
   , noise_( 0.0 )
+  , I_syn_( 0.0 )
+  , r_( 0.0 )
 {
 }
  
@@ -104,12 +110,14 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::get(
 {
   def< double >( d, names::g, g_ );
   def< double >( d, names::tau, tau_ );
-  def< double >( d, names::w, w_ );
+  def< double >( d, "w_rec", w_rec_ );
+  def< double >( d, "W_E", W_E_ );
   def< double >( d, names::a, a_ );
   def< double >( d, names::b, b_ );
   def< double >( d, names::d, d_ );
+  def< double >( d, "J_NMDA", J_NMDA_ );
+  def< double >( d, "Io", Io_ );
   def< double >( d, names::I_e, I_e_ );
-  def< double >( d, names::I, I_ );
   def< double >( d, names::sigma, sigma_ );
   def< bool >( d, names::rectify_output, rectify_output_ );
   def< bool >( d, names::consistent_integration, consistent_integration_ );
@@ -124,12 +132,14 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::set(
 {
   updateValue< double >( d, names::g, g_ );
   updateValue< double >( d, names::tau, tau_ );
-  updateValue< double >( d, names::w, w_ );
+  updateValue< double >( d, names::w, w_rec_ );
+  updateValue< double >( d, "W_E", W_E_ );
   updateValue< double >( d, names::a, a_ );
   updateValue< double >( d, names::b, b_ );
   updateValue< double >( d, names::d, d_ );
+  updateValue< double >( d, "J_NMDA", J_NMDA_ );
+  updateValue< double >( d, "Io", Io_ );
   updateValue< double >( d, names::I_e, I_e_ );
-  updateValue< double >( d, names::I, I_ );
   updateValue< double >( d, names::sigma, sigma_ );
   updateValue< bool >( d, names::rectify_output, rectify_output_ );
   updateValue< bool >( d, names::consistent_integration, consistent_integration_ );
@@ -152,9 +162,13 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::set(
   {
     throw nest::BadProperty( "Time constant tau must be > 0." );
   }
-  if ( w_ < 0 )
+  if ( w_rec_ < 0 )
   {
-    throw nest::BadProperty( "Local synaptic recurrence weight w must be >= 0." );
+    throw nest::BadProperty( "Local synaptic recurrence weight w_rec must be >= 0." );
+  }
+  if ( W_E_ < 0 )
+  {
+    throw nest::BadProperty( "External synaptic weight w_rec must be >= 0." );
   }
   if ( a_ <= 0 )
   {
@@ -168,13 +182,17 @@ tvbnest::tvb_rate_redwongwang_exc::Parameters_::set(
   {
     throw nest::BadProperty( "Sigmoidal function parameter d must be > 0." );
   }
+  if ( J_NMDA_ < 0 )
+  {
+    throw nest::BadProperty( "Synaptic coupling current J_NMDA must be >= 0." );
+  }
+  if ( Io_ < 0 )
+  {
+    throw nest::BadProperty( "Overall effective external input current Io must be >= 0." );
+  }
   if ( I_e_ < 0 )
   {
-    throw nest::BadProperty( "Overall effective external input current I_e must be >= 0." );
-  }
-  if ( I_ < 0 )
-  {
-    throw nest::BadProperty( "Synaptic coupling current I must be >= 0." );
+    throw nest::BadProperty( "External (stimulus) input current I_e must be >= 0." );
   }
   if ( sigma_ < 0 )
   {
@@ -188,6 +206,8 @@ tvbnest::tvb_rate_redwongwang_exc::State_::get(
 {
   def< double >( d, names::S, S_ );   // Synaptic gating
   def< double >( d, names::noise, noise_ ); // Noise
+  def< double >( d, names::I_syn, I_syn_ ); // I_syn
+  def< double >( d, names::rate, r_ ); // Rate
 }
 
 void
@@ -195,6 +215,9 @@ tvbnest::tvb_rate_redwongwang_exc::State_::set(
   const DictionaryDatum& d )
 {
   updateValue< double >( d, names::S, S_ ); // Synaptic gating
+  updateValue< double >( d, names::noise, noise_ ); // Noise
+  updateValue< double >( d, names::I_syn, I_syn_ ); // I_syn
+  updateValue< double >( d, names::rate, r_ ); // Rate
 }
 
 tvbnest::tvb_rate_redwongwang_exc::Buffers_::Buffers_(
@@ -288,6 +311,8 @@ tvbnest::tvb_rate_redwongwang_exc::calibrate()
 
   const double h = Time::get_resolution().get_ms();
   const double h_tau = h / P_.tau_;
+  V_.W_E_Io_I_e_ = P_.W_E_ * P_.Io_ + P_.I_e_;
+  V_.w_rec_J_NMDA_ = P_.w_rec_ * P_.J_NMDA_ ;
 
   if ( P_.consistent_integration_ )
   {
@@ -327,8 +352,6 @@ tvbnest::tvb_rate_redwongwang_exc::update_( Time const& origin,
   // allocate memory to store currents to be sent by rate events
   std::vector< double > new_S( buffer_size, 0.0 );
 
-  const double wI = P_.w_ * P_.I_ ;
-
   for ( long lag = from; lag < to; ++lag )
   {
     // store rate
@@ -356,21 +379,15 @@ tvbnest::tvb_rate_redwongwang_exc::update_( Time const& origin,
     double instant_currents_in = B_.instant_currents_in_[ lag ];
     double instant_currents_ex = B_.instant_currents_ex_[ lag ];
 
-    /*
     // total synaptic current
-    double I_syn = P_.I_e_ + wI * S_.S_ +
-        delayed_currents_ex + instant_currents_ex +
-        delayed_currents_in + instant_currents_in;
+    S_.I_syn_ = V_.W_E_Io_I_e_ + V_.w_rec_J_NMDA_ * S_.S_ +
+                delayed_currents_ex + instant_currents_ex +
+                delayed_currents_in + instant_currents_in;
     // rate
-    double r = sigmoid(I_syn);
+    S_.r_ = sigmoid(S_.I_syn_);
+
     // Update with coupling
-    S_.S_ += V_.P2_ * P_.g_ * r ;
-     */
-    // Update with coupling
-    S_.S_ += V_.P2_ * P_.g_ * sigmoid(
-        P_.I_e_ + wI * S_.S_ +
-        delayed_currents_ex + instant_currents_ex +
-        delayed_currents_in + instant_currents_in );
+    S_.S_ += V_.P2_ * (1 - S_.S_) * P_.g_ * S_.r_ ;
 
     if ( P_.rectify_output_ )
     {
@@ -404,7 +421,7 @@ tvbnest::tvb_rate_redwongwang_exc::update_( Time const& origin,
   // !!! transmits current (I * S), not synaptic gating (S) !!!
   for ( long temp = from; temp < to; ++temp )
   {
-    new_S[ temp ] *= P_.I_ ;
+    new_S[ temp ] *= P_.J_NMDA_ ;
   }
 
   if ( not called_from_wfr_update )
@@ -421,7 +438,7 @@ tvbnest::tvb_rate_redwongwang_exc::update_( Time const& origin,
     // modifiy new_S for rate-neuron-event as proxy for next min_delay
     for ( long temp = from; temp < to; ++temp )
     {
-      new_S[ temp ] = P_.I_ * S_.S_; // !!! transmits current (I * S), not synaptic gating (S) !!!
+      new_S[ temp ] = P_.J_NMDA_ * S_.S_; // !!! transmits current (I * S), not synaptic gating (S) !!!
     }
 
     // create new random numbers
