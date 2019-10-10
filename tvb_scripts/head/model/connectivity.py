@@ -62,10 +62,6 @@ class Connectivity(TVBConnectivity):
         else:
             return Connectivity.from_instance(result, **kwargs)
 
-    @property
-    def number_of_regions(self):
-        return self.weights.shape[0]
-
     def configure(self):
         super(self).configure()
         if len(self.normalized_weights) == 0:

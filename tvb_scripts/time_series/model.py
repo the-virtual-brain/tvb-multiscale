@@ -64,11 +64,8 @@ class TimeSeries(TimeSeriesTVB):
         self.data = prepare_4D(data, self.logger)
         self.time = kwargs.pop("time", None)
         if self.time is not None:
-            start_time = float(kwargs.pop("start_time",
-                                          kwargs.pop("start_time", self.time[0])))
-            sample_period = float(kwargs.pop("sample_period",
-                                             kwargs.pop("sample_period", numpy.mean(numpy.diff(self.time)))))
-            kwargs.update({"start_time": start_time, "sample_period": sample_period})
+            self.start_time = float(kwargs.pop("start_time", self.time[0]))
+            self.sample_period = float(kwargs.pop("sample_period", numpy.mean(numpy.diff(self.time))))
         self.configure()
 
     def duplicate(self, **kwargs):
@@ -196,14 +193,6 @@ class TimeSeries(TimeSeriesTVB):
         return self.data.shape[3]
 
     @property
-    def start_time(self):
-        return self.start_time
-
-    @property
-    def sample_period(self):
-        return self.sample_period
-
-    @property
     def end_time(self):
         return self.start_time + (self.time_length - 1) * self.sample_period
 
@@ -293,7 +282,7 @@ class TimeSeries(TimeSeriesTVB):
         return self.duplicate(data=subsample_data, **kwargs)
 
     def configure(self):
-        super(self).configure()
+        super(TimeSeries, self).configure()
         self.configure_time()
         return self
 
@@ -301,7 +290,7 @@ class TimeSeries(TimeSeriesTVB):
 class TimeSeriesBrain(TimeSeries):
 
     def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data, **kwargs)
+        super(TimeSeriesBrain, self).__init__(data, **kwargs)
 
     def get_source(self):
         if self.labels_ordering[1] not in self.labels_dimensions.keys():
@@ -318,7 +307,7 @@ class TimeSeriesBrain(TimeSeries):
 class TimeSeriesRegion(TimeSeriesBrain, TimeSeriesRegionTVB):
 
     def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data, **kwargs)
+        super(TimeSeriesRegion, self).__init__(data, **kwargs)
         if self.labels_ordering is None:
             self.labels_ordering = LABELS_ORDERING
             self.labels_ordering[1] = "Region"
@@ -332,7 +321,7 @@ class TimeSeriesRegion(TimeSeriesBrain, TimeSeriesRegionTVB):
 
 class TimeSeriesSurface(TimeSeriesBrain, TimeSeriesSurfaceTVB):
     def __init__(self, data, **kwargs):
-        super(TimeSeriesBrain, self).__init__(data, **kwargs)
+        super(TimeSeriesSurface, self).__init__(data, **kwargs)
         if self.labels_ordering is None:
             self.labels_ordering = LABELS_ORDERING
             self.labels_ordering[1] = "Vertex"
@@ -346,7 +335,7 @@ class TimeSeriesSurface(TimeSeriesBrain, TimeSeriesSurfaceTVB):
 
 class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
     def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data, **kwargs)
+        super(TimeSeriesVolume, self).__init__(data, **kwargs)
         if self.labels_ordering is None:
             self.labels_ordering = ["Time", "X", "Y", "Z"]
         if len(self.title) == 0:
@@ -360,7 +349,7 @@ class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
 class TimeSeriesSensors(TimeSeries):
 
     def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data,  **kwargs)
+        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
         self.sensors = kwargs.get("sensors", None)
         if isinstance(self.sensors, Sensors.__class__):
             if self.labels_ordering is None:
@@ -384,7 +373,7 @@ class TimeSeriesSensors(TimeSeries):
 class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
 
     def __init__(self, data, **kwargs):
-        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
+        super(TimeSeriesEEG, self).__init__(data,  **kwargs)
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsEEG):
             warning("Creating %s with sensors of type %s!" %
                     (self.__class__.__name__, self.sensors.__class__.__name__))
@@ -398,7 +387,7 @@ class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
 
 class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
     def __init__(self, data, **kwargs):
-        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
+        super(TimeSeriesMEG, self).__init__(data,  **kwargs)
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsMEG):
             warning("Creating %s with sensors of type %s!" %
                     (self.__class__.__name__, self.sensors.__class__.__name__))
@@ -412,7 +401,7 @@ class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
 
 class TimeSeriesSEEG(TimeSeriesSensors, TimeSeriesSEEGTVB):
     def __init__(self, data, **kwargs):
-        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
+        super(TimeSeriesSEEG, self).__init__(data,  **kwargs)
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsInternal):
             warning("Creating %s with sensors of type %s!" %
                     (self.__class__.__name__, self.sensors.__class__.__name__))

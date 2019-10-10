@@ -67,10 +67,7 @@ class Config(ConfigBase):
                        "cortex": cortex.Cortex.from_file(os.path.join(DEFAULT_SUBJECT_PATH,
                                                                       DEFAULT_CORT_SURFACE_ZIP),
                                                          region_mapping_file=os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                                          DEFAULT_CORT_REGION_MAPPING_TXT),
-                                                         eeg_projection_file=
-                                                         os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                      "QL_20120814_ProjectionMatrix.mat"))
+                                                                                          DEFAULT_CORT_REGION_MAPPING_TXT))
                        }
 
     def __init__(self, head_folder=WORKING_DIRECTORY, raw_data_folder=DEFAULT_SUBJECT_PATH,
