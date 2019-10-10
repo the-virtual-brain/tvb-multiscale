@@ -4,12 +4,10 @@ from six import string_types
 from enum import Enum
 from copy import deepcopy
 import numpy
-
-from tvb.basic.profile import TvbProfile
-TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
-
 from tvb_scripts.utils.log_error_utils import initialize_logger, warning
 from tvb_scripts.utils.data_structures_utils import monopolar_to_bipolar
+from tvb.basic.neotraits.api import List, Attr
+from tvb.basic.profile import TvbProfile
 from tvb.datatypes.time_series import TimeSeries as TimeSeriesTVB
 from tvb.datatypes.time_series import TimeSeriesRegion as TimeSeriesRegionTVB
 from tvb.datatypes.time_series import TimeSeriesEEG as TimeSeriesEEGTVB
@@ -19,18 +17,30 @@ from tvb.datatypes.time_series import TimeSeriesSurface as TimeSeriesSurfaceTVB
 from tvb.datatypes.time_series import TimeSeriesVolume as TimeSeriesVolumeTVB
 from tvb.datatypes.sensors import Sensors, SensorsEEG, SensorsMEG, SensorsInternal
 
+TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
 
 class TimeSeriesDimensions(Enum):
     TIME = "Time"
     VARIABLES = "State Variables"
+
     SPACE = "Space"
+    REGIONS = "Regions"
+    VERTEXES = "Vertexes"
+    SENSORS = "Sensors"
+
     SAMPLES = "Samples"
+    MODES = "Modes"
+
+    X = "x"
+    Y = "y"
+    Z = "z"
 
 
-LABELS_ORDERING = [TimeSeriesDimensions.TIME,
-                   TimeSeriesDimensions.VARIABLES,
-                   TimeSeriesDimensions.SPACE,
-                   TimeSeriesDimensions.SAMPLES]
+LABELS_ORDERING = [TimeSeriesDimensions.TIME.value,
+                   TimeSeriesDimensions.VARIABLES.value,
+                   TimeSeriesDimensions.SPACE.value,
+                   TimeSeriesDimensions.SAMPLES.value]
 
 
 class PossibleVariables(Enum):
@@ -42,7 +52,7 @@ class PossibleVariables(Enum):
     SEEG = "seeg"
 
 
-def prepare_4D(data, logger=initialize_logger(__name__)):
+def prepare_4d(data, logger):
     if data.ndim < 2:
         logger.error("The data array is expected to be at least 2D!")
         raise ValueError
@@ -54,28 +64,18 @@ def prepare_4D(data, logger=initialize_logger(__name__)):
 
 
 class TimeSeries(TimeSeriesTVB):
-
     logger = initialize_logger(__name__)
-
-    # labels_dimensions = {"space": numpy.array([]), "variables": numpy.array([])}
 
     def __init__(self, data, **kwargs):
         super(TimeSeries, self).__init__(**kwargs)
-        self.data = prepare_4D(data, self.logger)
-        self.time = kwargs.pop("time", None)
-        if self.time is not None:
-            start_time = float(kwargs.pop("start_time",
-                                          kwargs.pop("start_time", self.time[0])))
-            sample_period = float(kwargs.pop("sample_period",
-                                             kwargs.pop("sample_period", numpy.mean(numpy.diff(self.time)))))
-            kwargs.update({"start_time": start_time, "sample_period": sample_period})
-        self.configure()
+        self.data = prepare_4d(data, self.logger)
 
     def duplicate(self, **kwargs):
         duplicate = deepcopy(self)
         for attr, value in kwargs.items():
             setattr(duplicate, attr, value)
-        return duplicate.configure()
+        duplicate.configure()
+        return duplicate
 
     def _get_index_of_state_variable(self, sv_label):
         try:
@@ -127,20 +127,10 @@ class TimeSeries(TimeSeriesTVB):
         if self.labels_ordering[1] in self.labels_dimensions.keys():
             if attr_name in self.variables_labels:
                 return self.get_state_variable(attr_name)
-        if (self.labels_ordering[2] in self.labels_dimensions.keys()):
+        if self.labels_ordering[2] in self.labels_dimensions.keys():
             if attr_name in self.space_labels:
                 return self.get_subspace_by_labels([attr_name])
-        try:
-            return getattr(self, attr_name)
-        except:
-            # Hack to avoid stupid error messages when searching for __ attributes in numpy.array() call...
-            # TODO: something better? Maybe not needed if we never do something like numpy.array(time_series)
-            if attr_name.find("__") < 0:
-                self.logger.error(
-                    "Attribute %s is not defined for this instance! You can use the following labels: "
-                    "state_variables = %s and space = %s" %
-                    (attr_name, self.variables_labels, self.space_labels))
-            raise AttributeError
+        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
 
     def _get_index_for_slice_label(self, slice_label, slice_idx):
         if slice_idx == 1:
@@ -196,24 +186,12 @@ class TimeSeries(TimeSeriesTVB):
         return self.data.shape[3]
 
     @property
-    def start_time(self):
-        return self.start_time
-
-    @property
-    def sample_period(self):
-        return self.sample_period
-
-    @property
     def end_time(self):
         return self.start_time + (self.time_length - 1) * self.sample_period
 
     @property
     def duration(self):
         return self.end_time - self.start_time
-
-    def configure_time(self):
-        self.time = numpy.arange(self.start_time, self.end_time + self.sample_period, self.sample_period)
-        return self
 
     @property
     def time_unit(self):
@@ -222,8 +200,8 @@ class TimeSeries(TimeSeriesTVB):
     @property
     def sample_rate(self):
         if len(self.sample_period_unit) > 0 and self.sample_period_unit[0] == "m":
-            return 1000.0/self.sample_period
-        return 1.0/self.sample_period
+            return 1000.0 / self.sample_period
+        return 1.0 / self.sample_period
 
     @property
     def space_labels(self):
@@ -265,7 +243,7 @@ class TimeSeries(TimeSeriesTVB):
         subtime_data = self.data[index_start:index_end, :, :, :]
         if subtime_data.ndim == 3:
             subtime_data = numpy.expand_dims(subtime_data, 0)
-        return self.duplicate(data=subtime_data, start_time=self._get_time_unit_for_index(index_start),  **kwargs)
+        return self.duplicate(data=subtime_data, start_time=self._get_time_unit_for_index(index_start), **kwargs)
 
     def get_time_window_by_units(self, unit_start, unit_end, **kwargs):
         end_time = self.end_time
@@ -293,15 +271,13 @@ class TimeSeries(TimeSeriesTVB):
         return self.duplicate(data=subsample_data, **kwargs)
 
     def configure(self):
-        super(self).configure()
-        self.configure_time()
-        return self
+        super(TimeSeries, self).configure()
+        self.time = numpy.arange(self.start_time, self.end_time + self.sample_period, self.sample_period)
+        self.start_time = self.start_time or self.time[0]
+        self.sample_period = self.sample_period or numpy.mean(numpy.diff(self.time))
 
 
 class TimeSeriesBrain(TimeSeries):
-
-    def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data, **kwargs)
 
     def get_source(self):
         if self.labels_ordering[1] not in self.labels_dimensions.keys():
@@ -316,14 +292,10 @@ class TimeSeriesBrain(TimeSeries):
 
 
 class TimeSeriesRegion(TimeSeriesBrain, TimeSeriesRegionTVB):
+    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
+                                            TimeSeriesDimensions.REGIONS.value, TimeSeriesDimensions.SAMPLES.value))
 
-    def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data, **kwargs)
-        if self.labels_ordering is None:
-            self.labels_ordering = LABELS_ORDERING
-            self.labels_ordering[1] = "Region"
-        if len(self.title) == 0:
-            self.title = "Region Time Series"
+    title = Attr(str, default="Region Time Series")
 
     @property
     def region_labels(self):
@@ -331,13 +303,10 @@ class TimeSeriesRegion(TimeSeriesBrain, TimeSeriesRegionTVB):
 
 
 class TimeSeriesSurface(TimeSeriesBrain, TimeSeriesSurfaceTVB):
-    def __init__(self, data, **kwargs):
-        super(TimeSeriesBrain, self).__init__(data, **kwargs)
-        if self.labels_ordering is None:
-            self.labels_ordering = LABELS_ORDERING
-            self.labels_ordering[1] = "Vertex"
-        if len(self.title) == 0:
-            self.title = "Surface Time Series"
+    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
+                                            TimeSeriesDimensions.VERTEXES.value, TimeSeriesDimensions.SAMPLES.value))
+
+    title = Attr(str, default="Surface Time Series")
 
     @property
     def surface_labels(self):
@@ -345,12 +314,10 @@ class TimeSeriesSurface(TimeSeriesBrain, TimeSeriesSurfaceTVB):
 
 
 class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
-    def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data, **kwargs)
-        if self.labels_ordering is None:
-            self.labels_ordering = ["Time", "X", "Y", "Z"]
-        if len(self.title) == 0:
-            self.title = "Volume Time Series"
+    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.X.value,
+                                            TimeSeriesDimensions.Y.value, TimeSeriesDimensions.Z.value))
+
+    title = Attr(str, default="Volume Time Series")
 
     @property
     def volume_labels(self):
@@ -358,16 +325,10 @@ class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
 
 
 class TimeSeriesSensors(TimeSeries):
+    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
+                                            TimeSeriesDimensions.SENSORS.value, TimeSeriesDimensions.SAMPLES.value))
 
-    def __init__(self, data, **kwargs):
-        super(TimeSeries, self).__init__(data,  **kwargs)
-        self.sensors = kwargs.get("sensors", None)
-        if isinstance(self.sensors, Sensors.__class__):
-            if self.labels_ordering is None:
-                self.labels_ordering = LABELS_ORDERING
-                self.labels_ordering[1] = "%s sensor" % self.sensors.sensors_type
-        if len(self.title) == 0:
-            self.title = "Sensor Time Series"
+    title = Attr(str, default="Sensor Time Series")
 
     @property
     def sensor_labels(self):
@@ -382,14 +343,12 @@ class TimeSeriesSensors(TimeSeries):
 
 
 class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
+    title = Attr(str, default="EEG Time Series")
 
-    def __init__(self, data, **kwargs):
-        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
+    def configure(self):
+        super(TimeSeriesSensors, self).configure()
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsEEG):
-            warning("Creating %s with sensors of type %s!" %
-                    (self.__class__.__name__, self.sensors.__class__.__name__))
-        if len(self.title) == 0:
-            self.title = "EEG Time Series"
+            warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
 
     @property
     def EEGsensor_labels(self):
@@ -397,13 +356,12 @@ class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
 
 
 class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
-    def __init__(self, data, **kwargs):
-        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
+    title = Attr(str, default="MEG Time Series")
+
+    def configure(self):
+        super(TimeSeriesSensors, self).configure()
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsMEG):
-            warning("Creating %s with sensors of type %s!" %
-                    (self.__class__.__name__, self.sensors.__class__.__name__))
-        if len(self.title) == 0:
-            self.title = "MEG Time Series"
+            warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
 
     @property
     def MEGsensor_labels(self):
@@ -411,13 +369,12 @@ class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
 
 
 class TimeSeriesSEEG(TimeSeriesSensors, TimeSeriesSEEGTVB):
-    def __init__(self, data, **kwargs):
-        super(TimeSeriesSensors, self).__init__(data,  **kwargs)
+    title = Attr(str, default="SEEG Time Series")
+
+    def configure(self):
+        super(TimeSeriesSensors, self).configure()
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsInternal):
-            warning("Creating %s with sensors of type %s!" %
-                    (self.__class__.__name__, self.sensors.__class__.__name__))
-        if len(self.title) == 0:
-            self.title = "SEEG Time Series"
+            warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
 
     @property
     def SEEGsensor_labels(self):
@@ -425,7 +382,6 @@ class TimeSeriesSEEG(TimeSeriesSensors, TimeSeriesSEEGTVB):
 
 
 if __name__ == "__main__":
-
     kwargs = {"data": numpy.ones((4, 2, 10, 1)), "start_time": 0.0,
               "labels_dimensions": {LABELS_ORDERING[1]: ["x", "y"]}}
     ts = TimeSeriesRegion(**kwargs)
