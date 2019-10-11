@@ -105,3 +105,7 @@ venv.bak/
 
 # IDE
 .idea/
+
+#tvb-nest outputs
+outputs/figs
+outputs/logs
