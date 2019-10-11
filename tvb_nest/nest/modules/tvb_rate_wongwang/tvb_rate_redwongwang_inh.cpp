@@ -74,7 +74,7 @@ RecordablesMap< tvbnest::tvb_rate_redwongwang_inh >::create()
  * ---------------------------------------------------------------- */
 
 tvbnest::tvb_rate_redwongwang_inh::Parameters_::Parameters_()
-  : g_( 1.0 ) // s
+  : g_( 0.001 ) // s
   , tau_( 10.0 )   // ms, GABA
   , w_rec_( 1.0 ) // unitless
   , W_I_( 0.7 ) // unitless

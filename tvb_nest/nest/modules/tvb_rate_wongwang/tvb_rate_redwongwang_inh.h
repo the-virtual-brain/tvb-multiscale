@@ -70,7 +70,7 @@ Parameters:
 The following parameters can be set in the status dictionary.
 
 Default parameter values follow reference [3]
-g                   double - kinetic parameter in s (??; default: 1.0)
+g                   double - kinetic parameter in s (??; default: 1.0/1000)
 tau                 double - Time constant of rate dynamics in ms (default: 10ms (GABA)).
 w_rec               double - local synaptic recurrence weight (unitless, default: 1.0)
 W_I                 double - external synaptic  weight (unitless, default: 0.7)
