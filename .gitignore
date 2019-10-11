@@ -109,3 +109,4 @@ venv.bak/
 #tvb-nest outputs
 outputs/figs
 outputs/logs
+/tvb_nest/examples/outputs/

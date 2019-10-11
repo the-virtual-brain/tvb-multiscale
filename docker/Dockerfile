@@ -110,8 +110,8 @@ ENV SLI_PATH ${NEST_INSTALL_DIR}/share/nest/sli
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${NEST_INSTALL_DIR}/lib/nest/
 RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
-#CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 #CMD /bin/bash
