@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from tvb.basic.profile import TvbProfile
 
-TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 import os
 import inspect
 import tvb_data
 from tvb_scripts.config import Config as ConfigBase
 from tvb.datatypes import cortex, connectivity
+from tvb.basic.profile import TvbProfile
+
+TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 
 class NESTconfig(object):
@@ -49,7 +50,6 @@ class NESTconfig(object):
 
 
 class Config(ConfigBase):
-
     # WORKING DIRECTORY:
     WORKING_DIRECTORY = os.path.join(os.path.abspath(__file__).split("tvb_nest")[0], "tvb_nest/examples/outputs")
 
