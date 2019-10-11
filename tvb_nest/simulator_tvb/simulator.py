@@ -42,17 +42,18 @@ import sys
 import time
 import math
 import numpy
-from tvb.basic.neotraits._attr import Attr, List
+from tvb.basic.neotraits.api import Attr, List
+from tvb.datatypes import connectivity
+from tvb.simulator import models
+from tvb.simulator import monitors
+from tvb.simulator import integrators
+from tvb.simulator.common import numpy_add_at
+from tvb.simulator.history import SparseHistory
+from tvb.simulator.simulator import Simulator as SimulatorTVB
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.interfaces.tvb_to_nest_parameter_interface import TVBNESTParameterInterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb.simulator import models
-from tvb.simulator import monitors
-from tvb.datatypes import connectivity
-from tvb.simulator import integrators
-from tvb.simulator.history import SparseHistory
-from tvb.simulator.simulator import Simulator as SimulatorTVB
 
 
 LOG = initialize_logger(__name__)
@@ -61,7 +62,6 @@ LOG = initialize_logger(__name__)
 class Simulator(SimulatorTVB):
 
     tvb_nest_interface = None
-    # TODO: find a better solution for boundary problems
     simulate_nest = None
 
     model = Attr(
@@ -110,12 +110,8 @@ class Simulator(SimulatorTVB):
         connections. These couplings undergo a time delay via signal propagation
         with a propagation speed of ``Conduction Speed``""")
 
-
-    def __init__(self):
-        super(Simulator, self).__init__()
-
     def preconfigure(self):
-        "Configure just the basic fields, so that memory can be estimated."
+        """Configure just the basic fields, so that memory can be estimated."""
         self.connectivity.configure()
         if self.surface:
             self.surface.configure()
@@ -124,7 +120,7 @@ class Simulator(SimulatorTVB):
         self.coupling.configure()
         self.model.configure()
         self.integrator.configure()
-        if isinstance(self.model.state_variable_boundaries, dict):
+        if self.model.state_variable_boundaries is not None:
             indices = []
             boundaries = []
             for sv, sv_bounds in self.model.state_variable_boundaries.items():
@@ -271,7 +267,8 @@ class Simulator(SimulatorTVB):
             # When run from GUI, preconfigure is run separately, and we want to avoid running that part twice
             self.preconfigure()
             # Make sure spatialised model parameters have the right shape (number_of_nodes, 1)
-        excluded_params = ("state_variable_range", "variables_of_interest", "noise", "psi_table", "nerf_table", "gid")
+        excluded_params = ("state_variable_range", "state_variable_boundaries", "variables_of_interest",
+                          "noise", "psi_table", "nerf_table", "gid")
         spatial_reshape = self.model.spatial_param_reshape
         for param in type(self.model).declarative_attrs:
             if param in excluded_params:

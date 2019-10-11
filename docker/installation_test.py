@@ -19,7 +19,7 @@ config.figures.SAVE_FLAG = False
 config.figures.SHOW_FLAG = False
 config.figures.MATPLOTLIB_BACKEND = "Agg"
 
-from tvb_scripts.time_series.model import TimeSeries
+from tvb_scripts.time_series.model import TimeSeriesRegion
 from tvb_nest.plot.plotter import Plotter
 from tvb_nest.simulator_tvb.simulator import Simulator
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
@@ -121,11 +121,12 @@ t = time.time()
 results = simulator.run(simulation_length=100.0)
 print("\nSimulated in %f secs!" % (time.time() - t))
 
-source_ts = TimeSeries(data=results[0][1], time=results[0][0],
-                       connectivity=simulator.connectivity,
-                       labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
-                       labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
-                                          "Region": simulator.connectivity.region_labels.tolist()},
-                       sample_period=simulator.integrator.dt, ts_type="Region")
-
+source_ts = TimeSeriesRegion(data=results[0][1], time=results[0][0],
+                             connectivity=simulator.connectivity,
+                             labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
+                             labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
+                                                "Region": simulator.connectivity.region_labels.tolist()},
+                             sample_period=simulator.integrator.dt)
+source_ts.configure()
+print(source_ts)
 # plotter.plot_time_series(source_ts)

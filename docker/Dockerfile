@@ -70,12 +70,12 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
-    cd tvb-library; git pull origin neotraits_py3; \
-    $VENV/bin/python setup.py develop
-
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     cd tvb-data; \
+    $VENV/bin/python setup.py develop
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
+    cd tvb-library; git pull origin neotraits_py3; \
     $VENV/bin/python setup.py develop
 
 #RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
@@ -111,8 +111,8 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${NEST_INSTALL_DIR}/lib/nest/
 RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
 #CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
+CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 #CMD /bin/bash
 
