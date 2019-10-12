@@ -105,3 +105,4 @@ venv.bak/
 
 # IDE
 .idea/
+/tvb_nest/examples/outputs

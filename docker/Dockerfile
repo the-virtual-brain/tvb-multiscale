@@ -86,7 +86,7 @@ RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
-COPY installation_test.py /home/docker/
+COPY docker/installation_test.py /home/docker/
 
 # Activate the rights python env
 ENV PYTHONPATH $VENV
