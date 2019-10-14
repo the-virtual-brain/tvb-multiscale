@@ -110,17 +110,18 @@ ENV SLI_PATH ${NEST_INSTALL_DIR}/share/nest/sli
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${NEST_INSTALL_DIR}/lib/nest/
 RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
-#CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
-#CMD /bin/bash
-
 #For running tests
+CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
 
 #For running tests with coverage
 #CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
+
+CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
+
+#CMD /bin/bash
 
 #srun -C mc --time 01:00:00 --partition=normal
 #       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
