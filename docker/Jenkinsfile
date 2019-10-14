@@ -2,16 +2,24 @@ pipeline {
     agent any
 
     environment {
-        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest'
+        FULL_DOCKER_IMAGE_NAME = 'docker-repository.codemart.ro/tvb-nest'
         VERSION_TAG = 'py3'
     }
 
     stages {
+        stage('Build docker image'){
+            steps {
+                script {
+                    def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:${env.BUILD_ID}", 'tvb_nest/docker')
+                    dockerImage.push()
+                    dockerImage.push('${VERSION_TAG}')
+                }
+            }
+        }
         stage ('Run tests in Python 3') {
             agent {
                 docker {
                     image '${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}'
-                    alwaysPull true
                 }
             }
             steps {
