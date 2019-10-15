@@ -39,9 +39,9 @@ def reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
 
 
 def test_reduced_wong_wang_exc_io_inh_i_internal():
-    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, ReducedWongWangExcIOInhI())
+    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-1, ReducedWongWangExcIOInhI())
 
 
 def test_reduced_wong_wang_exc_io_inh_i_external():
-    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, TVBReducedWongWangExcIOInhI())
+    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-1, TVBReducedWongWangExcIOInhI())
     octave.exit()
