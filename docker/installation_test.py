@@ -58,7 +58,7 @@ for rid in range(number_of_regions):
 nest_model_builder = RedWWExcIOInhIBuilder(simulator, nest_nodes_ids)
 nest_model_builder.populations_names = ["E", "I"]
 nest_model_builder.populations_scales = [1.0, 0.7]
-nest_model_builder.default_synapse["params"]["rule"] = "fixed_indegree"
+nest_model_builder.default_connection["params"]["rule"] = "fixed_indegree"
 
 # Connection weights
 # Choosing the values resulting from J_N = 150 pA and J_i = 1000 pA
@@ -76,8 +76,8 @@ nest_model_builder.population_connectivity_synapses_delays = np.array(nest_model
 # Between node connections
 # Given that w_ee == w_ie = J_N, we need only one connection type
 nest_model_builder.node_connections = [{"src_population": "E", "trg_population": ["E", "I"],
-                                        "model": nest_model_builder.default_synapse["model"],
-                                        "params": nest_model_builder.default_synapse["params"],
+                                        "model": nest_model_builder.default_connection["model"],
+                                        "params": nest_model_builder.default_connection["params"],
                                         "weight": w_ee,  # weight scaling the TVB connectivity weight
                                         "delay": 0.0}]  # additional delay to the one of TVB connectivity
 
