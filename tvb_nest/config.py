@@ -51,7 +51,9 @@ class NESTconfig(object):
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:
-    WORKING_DIRECTORY = os.path.join(os.path.abspath(__file__).split("tvb_nest")[0], "tvb_nest/examples/outputs")
+    TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
+    MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
+    WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
 
     # DATA:
     TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
@@ -70,8 +72,8 @@ class Config(ConfigBase):
                                                                                           DEFAULT_CORT_REGION_MAPPING_TXT))
                        }
 
-    def __init__(self, head_folder=WORKING_DIRECTORY, raw_data_folder=DEFAULT_SUBJECT_PATH,
-                 output_base=WORKING_DIRECTORY, separate_by_run=False,
+    def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
+                 output_base=WORKING_DIR, separate_by_run=False,
                  nest_path=os.path.expanduser("~/Software/Science/NEST/bld_python27")):
         super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
         self.nest = NESTconfig(nest_path)
