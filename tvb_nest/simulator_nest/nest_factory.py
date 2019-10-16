@@ -34,7 +34,7 @@ def load_nest(config=CONFIGURED):
 def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
-    params = config.nest.DEFAULT_SYNAPSE["params"]
+    params = config.nest.DEFAULT_CONNECTION["params"]
     P_DEF = params["p"]
     params.update(kwargs)
     rule = params["rule"]

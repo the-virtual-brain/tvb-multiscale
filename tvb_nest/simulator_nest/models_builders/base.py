@@ -13,7 +13,7 @@ LOG = initialize_logger(__name__)
 class NESTModelBuilder(object):
     config = CONFIGURED
     default_model = config.nest.DEFAULT_MODEL
-    default_synapse = config.nest.DEFAULT_SYNAPSE
+    default_connection = config.nest.DEFAULT_CONNECTION
     default_synaptic_weight_scaling = \
         lambda self, weight, n_cons: self.config.nest.DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
     nest_instance = None
@@ -36,18 +36,20 @@ class NESTModelBuilder(object):
 
     # Within NEST node delays should be at least equal to NEST time resolution,
     # and certainly much smaller than the TVB time resolution.
-    population_connectivity_synapses_weights = default_synapse["weights"]
-    population_connectivity_synapses_delays = default_synapse["delays"]
-    population_connectivity_synapses_model = np.array([default_synapse["model"]])
-    population_connectivity_synapses_params = np.array([default_synapse["params"]])
+    population_connectivity_synapses_weights = default_connection["weights"]
+    population_connectivity_synapses_delays = default_connection["delays"]
+    population_connectivity_synapses_receptor_types = default_connection["receptor_types"]
+    population_connectivity_synapses_model = np.array([default_connection["model"]])
+    population_connectivity_synapses_params = np.array([default_connection["params"]])
 
     # Between NEST node delays should be at least equal to NEST time resolution
     # Therefore, 0 TVB delays will become nest_dt delays in NEST
     node_connections = [{"src_population": "E", "trg_population": "E",
-                         "model": default_synapse["model"],
-                         "params": default_synapse["params"],
+                         "model": default_connection["model"],
+                         "params": default_connection["params"],
                          "weight": 1.0,  # weight scaling the TVB connectivity weight
-                         "delay": 0.0}]  # additional delay to the one of TVB connectivity
+                         "delay": 0.0,
+                         "receptor_type": 0}]  # additional delay to the one of TVB connectivity
 
     # Use these to observe NEST behavior without conversions to TVB state variables and monitors
     output_devices = [{"model": "spike_detector",
@@ -138,7 +140,7 @@ class NESTModelBuilder(object):
         # Inputs of synaptic model, weights, delays and synaptic parameters,
         # must have a shape that can propagate to the populations' connectivity shape
         conn_shape = (self.number_of_populations, self.number_of_populations)
-        for key in ['model', 'delays', 'weights', 'params']:
+        for key in ['model', 'weights', 'delays', 'receptor_types', 'params']:
             attr = 'population_connectivity_synapses_' + key
             val = np.array(ensure_list(getattr(self, attr)))
             if val.shape != conn_shape:
@@ -172,12 +174,13 @@ class NESTModelBuilder(object):
         self.nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
 
     def _connect_two_populations_within_node(self, pop_src, pop_trg, i_pop_src, i_pop_trg):
-        conn_spec = self.default_synapse['params']
+        conn_spec = self.default_connection['params']
         conn_spec.update(self.population_connectivity_synapses_params[i_pop_src, i_pop_trg])
         syn_spec = {'model': self.population_connectivity_synapses_model[i_pop_src, i_pop_trg],
                     'weight': self.population_connectivity_synapses_weights[i_pop_src, i_pop_trg],
                     'delay': self.assert_within_node_delay(
-                        self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg])}
+                        self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg]),
+                    'receptor_type': self.population_connectivity_synapses_receptor_types[i_pop_src, i_pop_trg]}
         self._connect_two_populations(pop_src, pop_trg, conn_spec, syn_spec)
 
     def connect_population(self, population, i_pop):
@@ -214,21 +217,23 @@ class NESTModelBuilder(object):
             self.connect_nest_node_populations(self.nodes[node_label])  # ...and connect them
 
     def _connect_two_populations_between_nodes(self, pop_src, pop_trg, i_n_src, i_n_trg,
-                                               conn_spec, syn_model, weight, delay):
+                                               conn_spec, syn_model, weight, delay, receptor_type):
         syn_spec = {'model': syn_model,
                     'weight': self.tvb_weights[i_n_src, i_n_trg] * weight,
-                    'delay': self.assert_delay(self.tvb_delays[i_n_src, i_n_trg] + delay)}
+                    'delay': self.assert_delay(self.tvb_delays[i_n_src, i_n_trg] + delay),
+                    'receptor_type': receptor_type}
         self._connect_two_populations(pop_src, pop_trg, conn_spec, syn_spec)
 
     def connect_nest_nodes(self):
         n_nodes = len(self.nest_nodes_ids)
         # For every different type of connections between distinct NEST nodes' populations
         for i_conn, conn in enumerate(ensure_list(self.node_connections)):
-            conn_spec = self.default_synapse['params']
+            conn_spec = self.default_connection['params']
             conn_spec.update(conn['params'])
-            model = conn.get("model", self.default_synapse["model"])
+            model = conn.get("model", self.default_connection["model"])
             weight = conn.get("weight", 1.0)
             delay = conn.get("delay", 0.0)
+            receptor_type = conn.get("receptor_type", 0)
             # Define functions for the exact synthesis of source and target populations
             pop_src = lambda node: \
                 flatten_tuple([node[pop]
@@ -244,12 +249,12 @@ class NESTModelBuilder(object):
                         self._connect_two_populations_between_nodes(pop_src(self.nodes[i_n1]),
                                                                     pop_trg(self.nodes[i_n2]),
                                                                     i_n1, i_n2, conn_spec,
-                                                                    model, weight, delay)
+                                                                    model, weight, delay, receptor_type)
                     if self.tvb_weights[i_n2, i_n1] > 0:
                         self._connect_two_populations_between_nodes(pop_src(self.nodes[i_n2]),
                                                                     pop_trg(self.nodes[i_n1]),
                                                                     i_n2, i_n1, conn_spec,
-                                                                    model, weight, delay)
+                                                                    model, weight, delay, receptor_type)
 
     def build_and_connect_nest_stimulation_devices(self):
         # Build devices by the variable name they stimulate (IndexedOrderedDict),

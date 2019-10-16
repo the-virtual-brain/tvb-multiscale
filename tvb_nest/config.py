@@ -18,9 +18,9 @@ class NESTconfig(object):
     DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_deco2014"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_SYNAPSE = {"model": "static_synapse", "weights": 1.0, "delays": 0.0,
-                       "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
-                                  "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+    DEFAULT_CONNECTION = {"model": "static_synapse", "weights": 1.0, "delays": 0.0, 'receptor_types': 0,
+                          "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
+                                     "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
     # TODO: confirm if the following is correct:
     # We assume that all quantities of

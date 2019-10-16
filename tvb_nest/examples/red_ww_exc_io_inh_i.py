@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # # Spiking populations scalings for the number of neurons
     # nest_model_builder.populations_scales = [1.0, 0.7]
     # # Some properties for the default synapse to be used:
-    # nest_model_builder.default_synapse["params"]["rule"] = "fixed_indegree"
+    # nest_model_builder.default_connection["params"]["rule"] = "fixed_indegree"
     #
     # # Connection weights between the distinct populations:
     # # Choosing the values resulting from J_N = 150 pA and J_i = 1000 pA [1]
@@ -85,6 +85,7 @@ if __name__ == "__main__":
     #               [w_ie, w_ii]])  # exc_i -> inh_i, inh_i -> inh_i
     # nest_model_builder.population_connectivity_synapses_delays = \
     #     np.array(nest_model_builder.tvb_dt / 4)
+    # nest_model_builder.population_connectivity_synapses_receptor_types = np.array(0)
     #
     # # Among/Between region-node connections
     # # Given that w_ee == w_ie = J_N,
@@ -93,10 +94,11 @@ if __name__ == "__main__":
     # # we need only one connection type
     # nest_model_builder.node_connections = \
     #     [{"src_population": "E", "trg_population": ["E", "I"],
-    #       "model": nest_model_builder.default_synapse["model"],
-    #       "params": nest_model_builder.default_synapse["params"],
+    #       "model": nest_model_builder.default_connection["model"],
+    #       "params": nest_model_builder.default_connection["params"],
     #       "weight": w_ee,  # weight scaling the TVB connectivity weight
-    #       "delay": 0.0}]  # additional delay to the one of TVB connectivity
+    #       "delay": 0.0,   # additional delay to the one of TVB connectivity
+    #       "receptor_type": 0}]
     #
     # # Creating spike_detector devices to be able to observe NEST spiking activity:
     # connections = OrderedDict({})

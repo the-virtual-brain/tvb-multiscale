@@ -18,7 +18,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         # Spiking populations scalings for the number of neurons:
         self.populations_scales = [1.0, 0.7]
         # Some properties for the default synapse to be used:
-        self.default_synapse["params"]["rule"] = "fixed_indegree"
+        self.default_connection["params"]["rule"] = "fixed_indegree"
 
         # Connection weights between the distinct populations:
         # Choosing the values resulting from J_N = 150 pA and J_i = 1000 pA [1]
@@ -41,10 +41,11 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         # we need only one connection type
         self.node_connections = \
             [{"src_population": "E", "trg_population": ["E", "I"],
-              "model": self.default_synapse["model"],
-              "params": self.default_synapse["params"],
+              "model": self.default_connection["model"],
+              "params": self.default_connection["params"],
               "weight": w_ee,  # weight scaling the TVB connectivity weight
-              "delay": 0.0}]  # additional delay to the one of TVB connectivity
+              "delay": 0.0,
+              "receptor_type": 0}]  # additional delay to the one of TVB connectivity
 
         # Creating spike_detector devices to be able to observe NEST spiking activity:
         connections = OrderedDict({})
