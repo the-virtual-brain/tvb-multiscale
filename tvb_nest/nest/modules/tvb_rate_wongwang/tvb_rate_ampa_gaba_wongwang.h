@@ -93,7 +93,7 @@ Default parameter values follow reference [3]
                              true (default): If the S < 0 it is set to S = 0.0 at each time step.
                                              If the S > 1 it is set to S = 1.0 at each time step.
                              false : No constraint.
-   consistent_integration bool - Flag to select integrator.
+  consistent_integration bool - Flag to select integrator.
                               true (default): Exponential Euler integrator.
                               false: Euler - Maruyama integrator.
 
