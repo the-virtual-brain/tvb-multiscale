@@ -11,8 +11,8 @@ octave.addpath(os.path.join(TESTS_PATH, "DMF2014"))
 
 
 def reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
-    exc = 1.1 - 1.2 * np.random.uniform(size=(D, N))
-    inh = 1.1 - 1.2 * np.random.uniform(size=(D, N))
+    exc = 1.0 * np.random.uniform(size=(D, N))
+    inh = 1.0 * np.random.uniform(size=(D, N))
 
     state = np.array([exc, inh])
     coupling = exc[np.newaxis]
@@ -22,7 +22,7 @@ def reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
 
     numpy_dstate = tvb_model._numpy_dfun(state, coupling)
     max_difference = np.max(np.abs(numpy_dstate - matlab_dstate))
-    assert matlab_dstate.shape == (2, 100, 100)
+    assert matlab_dstate.shape == (2, D, N)
     assert max_difference < abs_err
 
     for ii in range(N):
@@ -39,9 +39,9 @@ def reduced_wong_wang_exc_io_inh_i(D, N, abs_err, tvb_model):
 
 
 def test_reduced_wong_wang_exc_io_inh_i_internal():
-    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-1, ReducedWongWangExcIOInhI())
+    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, ReducedWongWangExcIOInhI())
 
 
 def test_reduced_wong_wang_exc_io_inh_i_external():
-    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-1, TVBReducedWongWangExcIOInhI())
+    reduced_wong_wang_exc_io_inh_i(100, 100, 1e-12, TVBReducedWongWangExcIOInhI())
     octave.exit()

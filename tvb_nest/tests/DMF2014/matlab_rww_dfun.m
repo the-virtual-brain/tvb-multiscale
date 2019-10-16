@@ -12,11 +12,12 @@ function out = matlab_rww_dfun(sn, sg, coupling)
     C = 2.0;        % G
 
     % corresponding TVB variables:
-    sn(sn>1) = 1;   % S_e
-    sn(sn<0) = 0;   % S_i
-
-    sg(sg>1) = 1;   % S_i
-    sg(sg<0) = 0;
+    % Constraints in TVB are now external to the model and performed by the integrator
+%    sn(sn>1) = 1;   % S_e
+%    sn(sn<0) = 0;
+%
+%    sg(sg>1) = 1;   % S_i
+%    sg(sg<0) = 0;
 
     xn = I0*Jexte + w*JN*sn + JN*C*coupling - J*sg; % x_e
     xg = I0*Jexti + JN*sn - sg;  % x_i
