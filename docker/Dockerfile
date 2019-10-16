@@ -126,7 +126,7 @@ ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
-#For running tests
+# For running tests
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
 # Test NEST installation
 # RUN cd $NEST; make installcheck
@@ -140,7 +140,7 @@ RUN echo "source ${VENV}/bin/activate" >> .bashrc
 #For running tests with coverage
 #CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
 
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
 #CMD /bin/bash
