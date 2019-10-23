@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from tvb_scripts.utils.log_error_utils import initialize_logger
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import flatten_tuple, ensure_list
 from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
+
 
 LOG = initialize_logger(__name__)
 
 
 class NESTDevice(object):
+    __metaclass__ = ABCMeta
+
     nest_instance = None
     device = None
     number_of_connections = 0
+    model = "device"
 
-    def __init__(self, nest_instance, device, device_model):
+    def __init__(self, nest_instance, device):
         self.nest_instance = nest_instance
-        self.__model = device_model
+        self.model = "device"
         try:
             self.nest_instance.GetStatus(device, "element_type")
             self.device = device
@@ -24,31 +29,27 @@ class NESTDevice(object):
         self.update_number_of_connections()
 
     @property
-    def model(self):
-        return self.__model
+    def nest_model(self):
+        return self.nest_instance.GetStatus(self.device)[0]["model"].split("<SLILiteral: ")[1].split(">")[0]
 
-    @property
+    @abstractmethod
     def connections(self):
-        return self.nest_instance.GetConnections(source=self.device)
+        pass
 
-    @property
+    @abstractmethod
     def neurons(self):
-        return tuple([conn[0] for conn in self.connections])
+        pass
 
     @property
     def number_of_neurons(self):
         return self.number_of_connections
 
     def update_number_of_connections(self):
-        try:
-            # Confirm that connections are valid
-            neurons = self.neurons
-            assert np.all([self.nest_instance.GetStatus([neuron],
-                                                        "element_type")[0] == "neuron"
-                           for neuron in neurons])
-        except:
-            raise ValueError("Failed to GetStatus of devices' %s\n connections %s!"
-                             % (str(self.device), str(self.connections)))
+        neurons = self.neurons
+        for neuron in neurons:
+            element_type = self.nest_instance.GetStatus((neuron,))[0]["element_type"]
+            if element_type != "neuron":
+                raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
         self.number_of_connections = len(neurons)
 
     def SetStatus(self, values_dict):
@@ -56,7 +57,12 @@ class NESTDevice(object):
 
 
 class NESTInputDevice(NESTDevice):
+    model = "input_device"
 
+    def __init__(self, nest_instance, device):
+        super(NESTInputDevice, self).__init__(nest_instance, device)
+        self.model = "input_device"
+        
     def __getattr__(self, attr):
         try:
             self.nest_instance.GetStatus(self.device, attr)[0]
@@ -67,57 +73,113 @@ class NESTInputDevice(NESTDevice):
     def connections(self):
         return self.nest_instance.GetConnections(target=self.device)
 
+    @property
+    def neurons(self):
+        return tuple([conn[0] for conn in self.connections])
+
 
 class NESTPoissonGenerator(NESTInputDevice):
-    __model = "poisson_generator"
+    model = "poisson_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTPoissonGenerator, self).__init__(nest_instance, device)
+        self.model = "poisson_generator"
 
 
 class NESTSinusoidalPoissonGenerator(NESTInputDevice):
-    __model = "sinusoidal_poisson_generator"
+    model = "sinusoidal_poisson_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTSinusoidalPoissonGenerator, self).__init__(nest_instance, device)
+        self.model = "sinusoidal_poisson_generator"
 
 
 class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
-    __model = "inhomogeneous_poisson_generator"
+    model = "inhomogeneous_poisson_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTInhomogeneousPoissonGenerator, self).__init__(nest_instance, device)
+        self.model = "inhomogeneous_poisson_generator"
 
 
 class NESTMIPGenerator(NESTInputDevice):
-    __model = "mip_generator"
+    model = "mip_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTMIPGenerator, self).__init__(nest_instance, device)
+        self.model = "mip_generator"
 
 
 class NESTDGammaSupGenerator(NESTInputDevice):
-    __model = "gamma_sup_generator"
+    model = "gamma_sup_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTDGammaSupGenerator, self).__init__(nest_instance, device)
+        self.model = "gamma_sup_generator"
 
 
 class NESTDPPDSupGenerator(NESTInputDevice):
-    __model = "ppd_sup_generator"
+    model = "ppd_sup_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTDPPDSupGenerator, self).__init__(nest_instance, device)
+        self.model = "ppd_sup_generator"
 
 
 class NESTSpikeGenerator(NESTInputDevice):
-    __model = "spike_generator"
+    model = "spike_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTSpikeGenerator, self).__init__(nest_instance, device)
+        self.model = "spike_generator"
 
 
 class NESTPulsePacketGenerator(NESTInputDevice):
-    __model = "pulse_packet_generator"
+    model = "pulse_packet_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTPulsePacketGenerator, self).__init__(nest_instance, device)
+        self.model = "pulse_packet_generator"
 
 
 class NESTDCGenerator(NESTInputDevice):
-    __model = "dc_generator"
+    model = "dc_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTDCGenerator, self).__init__(nest_instance, device)
+        self.model = "dc_generator"
 
 
 class NESTStepCurrentGenerator(NESTInputDevice):
-    __model = "step_current_generator"
+    model = "step_current_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTStepCurrentGenerator, self).__init__(nest_instance, device)
+        self.model = "step_current_generator"
 
 
 class NESTACGenerator(NESTInputDevice):
-    __model = "ac_generator"
+    model = "ac_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTACGenerator, self).__init__(nest_instance, device)
+        self.model = "ac_generator"
 
 
 class NESTStepRateGenerator(NESTInputDevice):
-    __model = "step_rate_generator"
+    model = "step_rate_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTStepRateGenerator, self).__init__(nest_instance, device)
+        self.model = "step_rate_generator"
 
 
 class NESTNoiseGenerator(NESTInputDevice):
-    __model = "noise_generator"
+    model = "noise_generator"
+
+    def __init__(self, nest_instance, device):
+        super(NESTNoiseGenerator, self).__init__(nest_instance, device)
+        self.model = "noise_generator"
 
 
 NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
@@ -137,11 +199,21 @@ NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
 
 
 class NESTOutputDevice(NESTDevice):
+    model = "output_device"
+    
+    def __init__(self, nest_instance, device):
+        super(NESTOutputDevice, self).__init__(nest_instance, device)
+        self.model = "output_device"
 
-    def __init__(self, nest_instance, device, device_model):
-        super(NESTOutputDevice, self).__init__(nest_instance, device, device_model)
+    @property
+    def connections(self):
+        return self.nest_instance.GetConnections(source=self.device)
 
-    def get_times(self, neurons=[]):
+    @property
+    def neurons(self):
+        return tuple([conn[1] for conn in self.connections])
+
+    def get_times(self, neurons=None):
         times = self.nest_instance.GetStatus(self.device)[0]['events']['times'].tolist()
         if neurons is not None:
             neurons = flatten_tuple(neurons)
@@ -170,7 +242,7 @@ class NESTOutputDevice(NESTDevice):
         if neurons is None:
             return self.number_of_events
         else:
-            return len(self.get_senders(neurons))
+            return len(self.get_times(neurons))
 
     @property
     def senders(self):
@@ -195,16 +267,24 @@ class NESTOutputDevice(NESTDevice):
 
 
 class NESTSpikeDetector(NESTOutputDevice):
-    __model = "spike_detector"
+    model = "spike_detector"
+
+    def __init__(self, nest_instance, device):
+        super(NESTSpikeDetector, self).__init__(nest_instance, device)
+        self.model = "spike_detector"
 
     @property
     def connections(self):
         return self.nest_instance.GetConnections(target=self.device)
 
-    def get_spike_times(self, neurons=[]):
+    @property
+    def neurons(self):
+        return tuple([conn[0] for conn in self.connections])
+
+    def get_spike_times(self, neurons=None):
         return self.get_times(neurons)
 
-    def get_number_of_spikes(self, neurons=[]):
+    def get_number_of_spikes(self, neurons=None):
         return self.get_number_of_events(neurons)
 
     @property
@@ -241,23 +321,73 @@ class NESTSpikeDetector(NESTOutputDevice):
 
 
 class NESTMultimeter(NESTOutputDevice):
-    __model = "multimeter"
+    model = "multimeter"
+
+    def __init__(self, nest_instance, device):
+        super(NESTMultimeter, self).__init__(nest_instance, device)
+        self.model = "multimeter"
 
     @property
     def record_from(self):
         return self.nest_instance.GetStatus(self.device, "record_from")
 
 
-class NESTVoltmeter(NESTMultimeter):
-    __model = "voltmeter"
+class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
+    model = "spike_multimeter"
+    spike_var = "spikes"
 
-    def __init__(self, nest_instance, device, device_model, neurons=()):
-        super(NESTOutputDevice, self).__init__(nest_instance, device, device_model, neurons)
+    def __init__(self, nest_instance, device):
+        super(NESTSpikeMultimeter, self).__init__(nest_instance, device)
+        self.model = "spike_multimeter"
+
+    def get_spike_times_inds(self):
+        spikes = self.nest_instance.GetStatus(self.device)[0]['events'][self.spike_var]
+        return np.where(spikes != 0.0)[0]
+
+    def get_spike_times(self):
+        times = self.nest_instance.GetStatus(self.device)[0]['events']['times']
+        return (times[self.get_spike_times_inds()]).tolist()
+
+    def get_times(self, neurons=None):
+        times = self.nest_instance.GetStatus(self.device)[0]['events']['times']
+        spike_times_inds = self.get_spike_times_inds()
+        times = (times[spike_times_inds]).tolist()
+        if neurons is not None:
+            neurons = flatten_tuple(neurons)
+            senders = self.nest_instance.GetStatus(self.device)[0]['events']['senders'][spike_times_inds].tolist()
+            new_times = []
+            for time, sender in zip(times, senders):
+                if sender in neurons:
+                    new_times.append(time)
+            times = new_times
+        return times
+
+    def get_senders(self, neurons=None, sort=False):
+        senders = self.nest_instance.GetStatus(self.device)[0]['events']['senders'][self.get_spike_times_inds()]
+        if neurons is not None:
+            neurons = flatten_tuple(neurons)
+            new_senders = []
+            for sender in senders:
+                if sender in neurons:
+                    new_senders.append(sender)
+            senders = new_senders
+        if sort:
+            senders.sort()
+        return senders
+
+
+class NESTVoltmeter(NESTMultimeter):
+    model = "voltmeter"
+
+    def __init__(self, nest_instance, device):
+        super(NESTVoltmeter, self).__init__(nest_instance, device)
+        self.model = "voltmeter"
         assert ("V_m",) in self.record_from
 
 
 NESTOutputDeviceDict = {"spike_detector": NESTSpikeDetector,
                         "multimeter": NESTMultimeter,
+                        "spike_multimeter": NESTSpikeMultimeter,
                         "voltmeter": NESTVoltmeter}
 
 
