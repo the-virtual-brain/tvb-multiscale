@@ -130,19 +130,19 @@ if __name__ == "__main__":
     # either choose a NEST dc_generator device:
     # tvb_nest_builder.tvb_to_nest_interfaces = \
     #    [{"model": "dc_generator", "sign": 1,
-    # #                      TVB  <-  NEST
+    # #                      TVB  ->  NEST
     #      "connections": {"S_e": ["E", "I"]}}]
 
     # 1.2. or modify directly the external current stimulus parameter:
     tvb_nest_builder.tvb_to_nest_interfaces = \
         [{"model": "current", "parameter": "I_e", "sign": 1,
-          #                TVB  <-  NEST
+          #                TVB  ->  NEST
           "connections": {"S_e": ["E", "I"]}}]
 
     # 2.1. For spike transmission from TVB to NEST:
     # tvb_nest_builder.tvb_to_nest_interfaces = \
     #    [{"model": "poisson_generator", "sign": 1,
-    # #                      TVB  <-  NEST
+    # #                      TVB  ->  NEST
     #      "connections": {"S_e": ["E", "I"]}}]
 
     # NEST -> TVB:
@@ -164,10 +164,10 @@ if __name__ == "__main__":
     # Configure the simulator with the TVB-NEST interface...
     simulator.configure(tvb_nest_interface=tvb_nest_model)
     # ...and simulate!
-    t = time.time()
+    t_start = time.time()
     results = simulator.run(simulation_length=100.0)
-    print("\nSimulated in %f secs!" % (time.time() - t))
-    time = results[0][0]
+    print("\nSimulated in %f secs!" % (time.time() - t_start))
+    t = results[0][0]
     source = results[0][1]
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
