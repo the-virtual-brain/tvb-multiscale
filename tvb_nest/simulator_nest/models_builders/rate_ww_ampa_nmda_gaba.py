@@ -39,7 +39,7 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
         self.populations_order = 100
         # Spiking populations scalings for the number of neurons:
         rcptr_ampa_gaba = self.nest_instance.GetDefaults('tvb_rate_ampa_gaba_wongwang')['receptor_types']
-        rcptr_nmda = self.nest_instance.GetDefaults('tvb_rate_ampa_gaba_wongwang')['receptor_types']
+        rcptr_nmda = self.nest_instance.GetDefaults('tvb_rate_nmda_wongwang')['receptor_types']
         self.populations_scales = [1.0, 1.0, 0.7]
 
         # Connection weights between the distinct populations:
