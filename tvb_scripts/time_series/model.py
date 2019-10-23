@@ -36,15 +36,6 @@ LABELS_ORDERING = [TimeSeriesDimensions.TIME.value,
                    TimeSeriesDimensions.SAMPLES.value]
 
 
-class PossibleVariables(Enum):
-    LFP = "lfp"
-    SOURCE = "source"
-    SENSORS = "sensors"
-    EEG = "eeg"
-    MEEG = "meeg"
-    SEEG = "seeg"
-
-
 def prepare_4d(data, logger):
     if data.ndim < 2:
         logger.error("The data array is expected to be at least 2D!")
@@ -201,22 +192,6 @@ class TimeSeries(TimeSeriesTVB):
                 self.logger.error("Some of the given indices are out of space range: [0, %s]",
                                   self.data.shape[1])
                 raise IndexError
-
-    def _get_time_unit_for_index(self, time_index):
-        return self.start_time + time_index * self.sample_period
-
-    def _get_index_for_time_unit(self, time_unit):
-        return int((time_unit - self.start_time) / self.sample_period)
-
-    def get_time_window(self, index_start, index_end, **kwargs):
-        if index_start < 0 or index_end > self.data.shape[0]:
-            self.logger.error("The time indices are outside time series interval: [%s, %s]" %
-                              (0, self.data.shape[0]))
-            raise IndexError
-        subtime_data = self.data[index_start:index_end, :, :, :]
-        if subtime_data.ndim == 3:
-            subtime_data = numpy.expand_dims(subtime_data, 0)
-        return self.duplicate(data=subtime_data, start_time=self._get_time_unit_for_index(index_start), **kwargs)
 
     def configure(self):
         super(TimeSeries, self).configure()
