@@ -617,7 +617,7 @@ tvb_rate_nmda_wongwang::handles_test_event(
   nest::InstantaneousRateConnectionEvent&,
   nest::rport receptor_type )
 {
-  if ( receptor_type != 0 )
+  if ( ( receptor_type < 1 ) || ( receptor_type > 4 ) )
   {
     throw nest::UnknownReceptorType( receptor_type, get_name() );
   }
@@ -629,7 +629,7 @@ tvb_rate_nmda_wongwang::handles_test_event(
   nest::DelayedRateConnectionEvent&,
   nest::rport receptor_type )
 {
-  if ( receptor_type != 0 )
+  if ( ( receptor_type < 1 ) || ( receptor_type > 4 ) )
   {
     throw nest::UnknownReceptorType( receptor_type, get_name() );
   }
