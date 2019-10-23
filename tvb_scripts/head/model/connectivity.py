@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy as np
 from tvb_scripts.utils.log_error_utils import warning
 from tvb_scripts.utils.data_structures_utils import labels_to_inds
-from tvb_scripts.utils.computations_utils import normalize_weights
+from tvb.simulator.plot.utils.computations_utils import normalize_weights
 from tvb.datatypes.connectivity import Connectivity as TVBConnectivity
 
 

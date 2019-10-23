@@ -11,9 +11,9 @@ from pylab import demean
 
 from tvb_scripts.utils.log_error_utils import raise_value_error, initialize_logger
 from tvb_scripts.utils.data_structures_utils import isequal_string, ensure_list
-from tvb_scripts.utils.computations_utils import select_greater_values_array_inds, \
+from tvb.simulator.plot.utils.computations_utils import select_greater_values_array_inds, \
     select_by_hierarchical_group_metric_clustering
-from tvb_scripts.utils.analyzers_utils import abs_envelope, spectrogram_envelope, filter_data
+from tvb.simulator.plot.utils.analyzers_utils import abs_envelope, spectrogram_envelope, filter_data
 from tvb_scripts.time_series.model import TimeSeriesSEEG, LABELS_ORDERING
 
 

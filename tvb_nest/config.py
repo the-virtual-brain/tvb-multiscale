@@ -4,7 +4,7 @@
 import os
 import inspect
 import tvb_data
-from tvb_scripts.config import Config as ConfigBase
+from tvb.simulator.plot.config import Config as ConfigBase
 from tvb.datatypes import cortex, connectivity
 from tvb.basic.profile import TvbProfile
 

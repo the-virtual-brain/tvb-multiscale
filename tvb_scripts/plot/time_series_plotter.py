@@ -7,8 +7,8 @@ from matplotlib.colors import Normalize
 import numpy
 from tvb_scripts.utils.log_error_utils import warning, raise_value_error
 from tvb_scripts.utils.data_structures_utils import ensure_list, isequal_string, generate_region_labels, ensure_string
-from tvb_scripts.utils.analyzers_utils import time_spectral_analysis
-from tvb_scripts.plot.base_plotter import BasePlotter
+from tvb.simulator.plot.utils.analyzers_utils import time_spectral_analysis
+from tvb.simulator.plot.base_plotter import BasePlotter
 from tvb.datatypes.time_series import TimeSeries as TimeSeriesTVB
 from tvb_scripts.time_series.model import TimeSeries
 
@@ -401,8 +401,8 @@ class TimeSeriesPlotter(BasePlotter):
 
     @staticmethod
     def plot_tvb_time_series_interactive(time_series, first_n=-1, **kwargs):
-        from tvb_scripts.plot.time_series_interactive_plotter import TimeseriesInteractivePlotter
-        interactive_plotter = TimeseriesInteractivePlotter(time_series=time_series, first_n=first_n)
+        from tvb.simulator.plot.timeseries_interactive import TimeSeriesInteractive
+        interactive_plotter = TimeSeriesInteractive(time_series=time_series, first_n=first_n)
         interactive_plotter.configure()
         block = kwargs.pop("block", True)
         interactive_plotter.show(block=block, **kwargs)

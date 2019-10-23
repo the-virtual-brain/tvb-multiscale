@@ -89,4 +89,3 @@ def test_time_series_region_object():
 
     # Check for shape after slice
     assert tsr.S_e.shape == (1000, 1, 68, 1)
-    

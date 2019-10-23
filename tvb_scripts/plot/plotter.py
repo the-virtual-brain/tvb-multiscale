@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from tvb_scripts.plot.base_plotter import BasePlotter
-from tvb_scripts.plot.head_plotter import HeadPlotter
+from tvb.simulator.plot.base_plotter import BasePlotter
+from tvb.simulator.plot.head_plotter import HeadPlotter
 from tvb_scripts.plot.time_series_plotter import TimeSeriesPlotter
 
 

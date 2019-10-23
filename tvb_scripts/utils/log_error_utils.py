@@ -7,7 +7,7 @@ import os
 import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from tvb_scripts.config import CONFIGURED
+from tvb.simulator.plot.config import CONFIGURED
 
 
 def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):

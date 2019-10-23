@@ -7,7 +7,7 @@ import numpy as np
 from collections import OrderedDict
 from copy import deepcopy
 from tvb_scripts.utils.log_error_utils import warning, raise_value_error, raise_import_error, initialize_logger
-from tvb_scripts.config import CONFIGURED
+from tvb.simulator.plot.config import CONFIGURED
 
 logger = initialize_logger(__name__)
 

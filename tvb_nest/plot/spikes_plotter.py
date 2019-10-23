@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from tvb_scripts.plot.base_plotter import BasePlotter
+from tvb.simulator.plot.base_plotter import BasePlotter
 from matplotlib import pyplot
 
 
