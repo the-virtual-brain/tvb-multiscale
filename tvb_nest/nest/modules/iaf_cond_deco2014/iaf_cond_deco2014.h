@@ -86,7 +86,7 @@ extern "C" inline int iaf_cond_deco2014_dynamics( double, const double y[], doub
 
     where
     ds_(AMPA/GABA)/dt = -(1/tau_(AMPA/GABA)) * s_(AMPA/GABA) + SUM_j{SUM_k{delta(t-t_j_k}},
-    dx_NMDA/dt = -(1/tau_NMDA_rise) * x_NMDA + SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by neuron this neuron
+    dx_NMDA/dt = -(1/tau_NMDA_rise) * x_NMDA + SUM_k{delta(t-t_k}, where t_k is the time of a spike emitted by this neuron
     ds_NMDA/dt =  -(1/tau_NMDA_decay) * s_NMDA + alpha * x_NMDA * (1 - s_NMDA)
     where t_k_j is the time of a spike received by neuron j
 
