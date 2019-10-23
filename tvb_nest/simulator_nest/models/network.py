@@ -91,7 +91,10 @@ class NESTNetwork(object):
     def _prepare_to_compute_spike_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
                                         spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None):
 
-        spike_detectors = self.get_devices_by_model("spike_detector")
+        try:
+            spike_detectors = self.get_devices_by_model("spike_detector")
+        except:
+            spike_detectors = self.get_devices_by_model("spike_multimeter")
 
         first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
         last_spike_time = 0.0
@@ -157,3 +160,4 @@ class NESTNetwork(object):
         rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
                                               spike_rate_fun, "compute_mean_spike_rate")
         return rates, max_rate, spike_detectors, time
+
