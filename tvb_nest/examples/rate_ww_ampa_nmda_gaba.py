@@ -103,13 +103,13 @@ if __name__ == "__main__":
     # nest_model_builder.population_connectivity_synapses_weights = \
     #     np.array([[w_ee, w_ee, w_ei],  # AMPA->AMPA, NMDA->AMPA, GABA->AMPA
     #               [w_ee, w_ee, w_ei],  # AMPA->NMDA, NMDA->NMDA, GABA->NMDA
-    #               [w_ie, w_ie, w_ii]])  # AMPA->GABA, NMDA->GABA, GABA->GABA
+    #               [w_ie, w_ie, w_ii]]).T  # AMPA->GABA, NMDA->GABA, GABA->GABA
     # nest_model_builder.population_connectivity_synapses_delays = \
     #     np.array(nest_model_builder.tvb_dt / 4)
     # nest_model_builder.population_connectivity_synapses_receptor_types = \
     #     np.array([[rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]],
     #               [rcptr_nmda["AMPA_REC"], rcptr_nmda["NMDA"], rcptr_nmda["GABA"]],
-    #               [rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]]])
+    #               [rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]]]).T
     #
     # # Among/Between region-node connections
     # # Given that only the AMPA population of one region-node couples to

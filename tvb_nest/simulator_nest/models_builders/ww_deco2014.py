@@ -48,8 +48,8 @@ class WWDeco2014Builder(NESTModelBuilder):
 
         # Within region-node connections' weights
         self.population_connectivity_synapses_weights = \
-            np.array([[w_ee, w_ei],   # E -> E, I -> E
-                      [w_ie, w_ii]])  # E -> I, I -> I
+            np.array([[w_ee, w_ei],     # E -> E, I -> E
+                      [w_ie, w_ii]]).T  # E -> I, I -> I
         self.population_connectivity_synapses_delays = self.tvb_dt / 4
         self.population_connectivity_synapses_receptor_types = \
             np.array([[(rcptr["SPIKESEXC_AMPA_REC"], rcptr["SPIKESEXC_NMDA"]), rcptr["SPIKESINH_GABA"]],

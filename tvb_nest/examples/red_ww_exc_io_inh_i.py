@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # # Within region-node connections' weights
     # nest_model_builder.population_connectivity_synapses_weights = \
     #     np.array([[w_ee, w_ei],  # exc_i -> exc_i, inh_i -> exc_i
-    #               [w_ie, w_ii]])  # exc_i -> inh_i, inh_i -> inh_i
+    #               [w_ie, w_ii]]).T  # exc_i -> inh_i, inh_i -> inh_i
     # nest_model_builder.population_connectivity_synapses_delays = \
     #     np.array(nest_model_builder.tvb_dt / 4)
     # nest_model_builder.population_connectivity_synapses_receptor_types = np.array(0)

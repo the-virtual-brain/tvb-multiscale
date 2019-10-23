@@ -29,7 +29,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
 
         # Within region-node connections' weights
         self.population_connectivity_synapses_weights = \
-            np.array([[w_ee, w_ei],  # exc_i -> exc_i, inh_i -> exc_i
+            np.array([[w_ee, w_ei],     # exc_i -> exc_i, inh_i -> exc_i
                       [w_ie, w_ii]]).T  # exc_i -> inh_i, inh_i -> inh_i
         self.population_connectivity_synapses_delays = \
             np.array(self.tvb_dt / 4)

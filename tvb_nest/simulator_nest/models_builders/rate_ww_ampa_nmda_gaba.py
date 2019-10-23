@@ -54,9 +54,9 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
 
         # Within region-node connections' weights
         self.population_connectivity_synapses_weights = \
-            np.array([[w_ee, w_ee, w_ei],   # AMPA->AMPA, NMDA->AMPA, GABA->AMPA
-                      [w_ee, w_ee, w_ei],   # AMPA->NMDA, NMDA->NMDA, GABA->NMDA
-                      [w_ie, w_ie, w_ii]])  # AMPA->GABA, NMDA->GABA, GABA->GABA
+            np.array([[w_ee, w_ee, w_ei],     # AMPA->AMPA, NMDA->AMPA, GABA->AMPA
+                      [w_ee, w_ee, w_ei],     # AMPA->NMDA, NMDA->NMDA, GABA->NMDA
+                      [w_ie, w_ie, w_ii]]).T  # AMPA->GABA, NMDA->GABA, GABA->GABA
         self.population_connectivity_synapses_delays = self.tvb_dt / 4
         self.population_connectivity_synapses_receptor_types = \
             np.array([[rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]],
