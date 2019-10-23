@@ -5,7 +5,6 @@ from enum import Enum
 from copy import deepcopy
 import numpy
 from tvb_scripts.utils.log_error_utils import initialize_logger, warning
-from tvb_scripts.utils.data_structures_utils import monopolar_to_bipolar
 from tvb.basic.neotraits.api import List, Attr
 from tvb.basic.profile import TvbProfile
 from tvb.datatypes.time_series import TimeSeries as TimeSeriesTVB
@@ -178,22 +177,6 @@ class TimeSeries(TimeSeriesTVB):
         return self.data.shape[1]
 
     @property
-    def number_of_variables(self):
-        return self.data.shape[2]
-
-    @property
-    def number_of_samples(self):
-        return self.data.shape[3]
-
-    @property
-    def end_time(self):
-        return self.start_time + (self.time_length - 1) * self.sample_period
-
-    @property
-    def duration(self):
-        return self.end_time - self.start_time
-
-    @property
     def time_unit(self):
         return self.sample_period_unit
 
@@ -213,10 +196,6 @@ class TimeSeries(TimeSeriesTVB):
     @property
     def variables_labels(self):
         return numpy.array(self.labels_dimensions.get(self.labels_ordering[1], []))
-
-    @property
-    def number_of_dimensions(self):
-        return self.nr_dimensions
 
     @property
     def squeezed(self):
@@ -245,53 +224,15 @@ class TimeSeries(TimeSeriesTVB):
             subtime_data = numpy.expand_dims(subtime_data, 0)
         return self.duplicate(data=subtime_data, start_time=self._get_time_unit_for_index(index_start), **kwargs)
 
-    def get_time_window_by_units(self, unit_start, unit_end, **kwargs):
-        end_time = self.end_time
-        if unit_start < self.start_time or unit_end > end_time:
-            self.logger.error("The time units are outside time series interval: [%s, %s]" %
-                              (self.start_time, end_time))
-            raise ValueError
-        index_start = self._get_index_for_time_unit(unit_start)
-        index_end = self._get_index_for_time_unit(unit_end)
-        return self.get_time_window(index_start, index_end)
-
-    def decimate_time(self, new_sample_period, **kwargs):
-        if new_sample_period % self.sample_period != 0:
-            self.logger.error("Cannot decimate time if new time step is not a multiple of the old time step")
-            raise ValueError
-
-        index_step = int(new_sample_period / self.sample_period)
-        time_data = self.data[::index_step, :, :, :]
-        return self.duplicate(data=time_data, sample_period=new_sample_period, **kwargs)
-
-    def get_sample_window(self, index_start, index_end, **kwargs):
-        subsample_data = self.data[:, :, :, index_start:index_end]
-        if subsample_data.ndim == 3:
-            subsample_data = numpy.expand_dims(subsample_data, 3)
-        return self.duplicate(data=subsample_data, **kwargs)
-
     def configure(self):
         super(TimeSeries, self).configure()
-        self.time = numpy.arange(self.start_time, self.end_time + self.sample_period, self.sample_period)
+        end_time = self.start_time + (self.time_length - 1) * self.sample_period
+        self.time = numpy.arange(self.start_time, end_time + self.sample_period, self.sample_period)
         self.start_time = self.start_time or self.time[0]
         self.sample_period = self.sample_period or numpy.mean(numpy.diff(self.time))
 
 
-class TimeSeriesBrain(TimeSeries):
-
-    def get_source(self):
-        if self.labels_ordering[1] not in self.labels_dimensions.keys():
-            self.logger.error("No state variables are defined for this instance!")
-            raise ValueError
-        if PossibleVariables.SOURCE.value in self.variables_labels:
-            return self.get_state_variable(PossibleVariables.SOURCE.value)
-
-    @property
-    def brain_labels(self):
-        return self.space_labels
-
-
-class TimeSeriesRegion(TimeSeriesBrain, TimeSeriesRegionTVB):
+class TimeSeriesRegion(TimeSeries, TimeSeriesRegionTVB):
     labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
                                             TimeSeriesDimensions.REGIONS.value, TimeSeriesDimensions.SAMPLES.value))
 
@@ -302,15 +243,11 @@ class TimeSeriesRegion(TimeSeriesBrain, TimeSeriesRegionTVB):
         return self.space_labels
 
 
-class TimeSeriesSurface(TimeSeriesBrain, TimeSeriesSurfaceTVB):
+class TimeSeriesSurface(TimeSeries, TimeSeriesSurfaceTVB):
     labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
                                             TimeSeriesDimensions.VERTEXES.value, TimeSeriesDimensions.SAMPLES.value))
 
     title = Attr(str, default="Surface Time Series")
-
-    @property
-    def surface_labels(self):
-        return self.space_labels
 
 
 class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
@@ -319,27 +256,12 @@ class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
 
     title = Attr(str, default="Volume Time Series")
 
-    @property
-    def volume_labels(self):
-        return self.space_labels
-
 
 class TimeSeriesSensors(TimeSeries):
     labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
                                             TimeSeriesDimensions.SENSORS.value, TimeSeriesDimensions.SAMPLES.value))
 
     title = Attr(str, default="Sensor Time Series")
-
-    @property
-    def sensor_labels(self):
-        return self.space_labels
-
-    def get_bipolar(self, **kwargs):
-        bipolar_labels, bipolar_inds = monopolar_to_bipolar(self.space_labels)
-        data = self.data[:, :, bipolar_inds[0]] - self.data[:, :, bipolar_inds[1]]
-        bipolar_labels_dimensions = deepcopy(self.labels_dimensions)
-        bipolar_labels_dimensions[self.labels_ordering[2]] = list(bipolar_labels)
-        return self.duplicate(data=data, labels_dimensions=bipolar_labels_dimensions, **kwargs)
 
 
 class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
@@ -350,10 +272,6 @@ class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsEEG):
             warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
 
-    @property
-    def EEGsensor_labels(self):
-        return self.space_labels
-
 
 class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
     title = Attr(str, default="MEG Time Series")
@@ -363,10 +281,6 @@ class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsMEG):
             warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
 
-    @property
-    def MEGsensor_labels(self):
-        return self.space_labels
-
 
 class TimeSeriesSEEG(TimeSeriesSensors, TimeSeriesSEEGTVB):
     title = Attr(str, default="SEEG Time Series")
@@ -375,10 +289,6 @@ class TimeSeriesSEEG(TimeSeriesSensors, TimeSeriesSEEGTVB):
         super(TimeSeriesSensors, self).configure()
         if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsInternal):
             warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
-
-    @property
-    def SEEGsensor_labels(self):
-        return self.space_labels
 
 
 if __name__ == "__main__":
