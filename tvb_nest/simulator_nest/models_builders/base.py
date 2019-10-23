@@ -219,7 +219,10 @@ class NESTModelBuilder(object):
         syn_spec["model"] = self._assert_synapse_model(syn_spec["model"], syn_spec["delay"])
         if syn_spec["delay"] <= 0.0:
             del syn_spec["delay"]  # For instantaneous rate connections
-        self.nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
+        receptors = ensure_list(syn_spec["receptor_type"])
+        for receptor in receptors:
+            syn_spec["receptor_type"] = receptor
+            self.nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
 
     def _connect_two_populations_within_node(self, pop_src, pop_trg, i_pop_src, i_pop_trg):
         conn_spec = self.default_connection['params']
@@ -235,7 +238,7 @@ class NESTModelBuilder(object):
         self._connect_two_populations_within_node(population, population, i_pop, i_pop)
 
     def connect_nest_node_populations(self, node):
-        # For every possible pair of populations with a node...
+        # For every possible pair of populations within a node...
         for i_pop1 in range(self.number_of_populations - 1):
             for i_pop2 in range(i_pop1 + 1, self.number_of_populations):
                 # ...generate the required connections (with weight > 0)
