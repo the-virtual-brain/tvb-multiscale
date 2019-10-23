@@ -3,7 +3,7 @@
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.network import NESTNetwork
 from tvb_nest.simulator_nest.nest_factory import *
-from tvb_scripts.utils.log_error_utils import initialize_logger
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import ensure_list, flatten_tuple
 from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
 
@@ -38,12 +38,12 @@ class NESTModelBuilder(object):
     # and certainly much smaller than the TVB time resolution.
     population_connectivity_synapses_weights = default_connection["weights"]
     population_connectivity_synapses_delays = default_connection["delays"]
-    population_connectivity_synapses_receptor_types = default_connection["receptor_types"]
+    population_connectivity_synapses_receptor_types = default_connection["receptor_type"]
     population_connectivity_synapses_model = np.array([default_connection["model"]])
     population_connectivity_synapses_params = np.array([default_connection["params"]])
 
     # Between NEST node delays should be at least equal to NEST time resolution
-    # Therefore, 0 TVB delays will become nest_dt delays in NEST
+    # Therefore, zero TVB delays will become nest_dt delays in NEST
     node_connections = [{"src_population": "E", "trg_population": "E",
                          "model": default_connection["model"],
                          "params": default_connection["params"],
@@ -77,7 +77,23 @@ class NESTModelBuilder(object):
         self.tvb_connectivity = tvb_simulator.connectivity
         self.nest_nodes_ids = nest_nodes_ids
         self.tvb_dt = tvb_simulator.integrator.dt
+        self.populations_models = [self.default_model]
+        # Within NEST node delays should be at least equal to NEST time resolution,
+        # and certainly much smaller than the TVB time resolution.
+        self.population_connectivity_synapses_weights = self.default_connection["weights"]
+        self.population_connectivity_synapses_delays = self.default_connection["delays"]
+        self.population_connectivity_synapses_receptor_types = self.default_connection["receptor_type"]
+        self.population_connectivity_synapses_model = np.array([self.default_connection["model"]])
+        self.population_connectivity_synapses_params = np.array([self.default_connection["params"]])
 
+        # Between NEST node delays should be at least equal to NEST time resolution
+        # Therefore, zero TVB delays will become nest_dt delays in NEST
+        self.node_connections = [{"src_population": "E", "trg_population": "E",
+                                 "model": self.default_connection["model"],
+                                 "params": self.default_connection["params"],
+                                 "weight": 1.0,  # weight scaling the TVB connectivity weight
+                                 "delay": 0.0,  # additional delay to the one of TVB connectivity
+                                 "receptor_type": self.default_connection["receptor_type"]}]
     @property
     def number_of_populations(self):
         return len(self.populations_names)
@@ -89,10 +105,39 @@ class NESTModelBuilder(object):
         else:
             return self.tvb_connectivity.region_labels[self.nest_nodes_ids]
 
-    def assert_delay(self, delay):
-        return np.maximum(self.nest_dt, delay)
+    def _assert_synapse_model(self, synapse_model, delay):
+        if synapse_model.find("rate") > -1:
+            if synapse_model == "rate_connection_instantaneous" and delay != 0.0:
+                raise_value_error("Coupling neurons with rate_connection_instantaneous synapse "
+                                  "and delay = %f != 0.0 is not possible!" % delay)
+            elif delay == 0.0 and synapse_model == "rate_connection_delayed":
+                raise_value_error("Coupling neurons with rate_connection_delayed synapse "
+                                  "and delay = %f <= 0.0 is not possible!" % delay)
+            elif delay == 0.0:
+                return "rate_connection_instantaneous"
+            else:
+                return "rate_connection_delayed"
+        else:
+            return synapse_model
 
-    def assert_within_node_delay(self, delay):
+    def _assert_delay(self, delay, synapse_model="static_synapse"):
+        if synapse_model.find("rate") > -1:
+            if synapse_model == "rate_connection_instantaneous" and delay != 0.0:
+                raise_value_error("Coupling neurons with rate_connection_instantaneous synapse "
+                                  "and delay = %f != 0.0 is not possible!" % delay)
+            elif synapse_model == "rate_connection_delayed" and delay <= 0.0:
+                raise_value_error("Coupling neurons with rate_connection_delayed synapse "
+                                  "and delay = %f <= 0.0 is not possible!" % delay)
+            elif delay < 0.0:
+                raise_value_error("Coupling rate neurons with negative delay = %f < 0.0 is not possible!" % delay)
+        elif delay <= self.nest_dt:
+            LOG.warning("Coupling spiking neurons with delay = %f <= NEST integration step = %s is not possible!\n"
+                        "Setting delay equal to NEST integration step!" % (delay, self.nest_dt))
+            return self.nest_dt
+        else:
+            return delay
+
+    def _assert_within_node_delay(self, delay):
         if delay > self.tvb_dt / 2:
             if delay > self.tvb_dt:
                 raise ValueError("Within NEST node delay %f is not smaller "
@@ -102,7 +147,7 @@ class NESTModelBuilder(object):
                 LOG.warning("Within NEST node delay %f is not smaller "
                             "than half the TVB integration time step %f!"
                             % (delay, self.tvb_dt))
-        return self.assert_delay(delay)
+        return self._assert_delay(delay)
 
     @property
     def number_of_nest_nodes(self):
@@ -116,11 +161,11 @@ class NESTModelBuilder(object):
     def _configure_nest_kernel(self):
         self.nest_instance.ResetKernel()  # This will restart NEST!
         self._update_nest_dt()
-        self.nest_instance.set_verbosity(100)  # don't print all message from Nest
+        self.nest_instance.set_verbosity(100)  # don't print all messages from Nest
         self.nest_instance.SetKernelStatus({"resolution": self.nest_dt, "print_time": True})
 
     def _configure_populations(self):
-        # Every population must have his own model name,
+        # Every population must have his own model model,
         # scale of spiking neurons' number, and model specific parameters
         for key in ['models', 'scales', 'params']:
             attr = 'populations_' + key
@@ -171,6 +216,9 @@ class NESTModelBuilder(object):
                                                    src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
         # Scale the synaptic weight with respect to the total number of connections between the two populations:
         syn_spec["weight"] = self._synaptic_weight_scaling(syn_spec["weight"], n_cons)
+        syn_spec["model"] = self._assert_synapse_model(syn_spec["model"], syn_spec["delay"])
+        if syn_spec["delay"] <= 0.0:
+            del syn_spec["delay"]  # For instantaneous rate connections
         self.nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
 
     def _connect_two_populations_within_node(self, pop_src, pop_trg, i_pop_src, i_pop_trg):
@@ -178,8 +226,8 @@ class NESTModelBuilder(object):
         conn_spec.update(self.population_connectivity_synapses_params[i_pop_src, i_pop_trg])
         syn_spec = {'model': self.population_connectivity_synapses_model[i_pop_src, i_pop_trg],
                     'weight': self.population_connectivity_synapses_weights[i_pop_src, i_pop_trg],
-                    'delay': self.assert_within_node_delay(
-                        self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg]),
+                    'delay': self._assert_within_node_delay(
+            self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg]),
                     'receptor_type': self.population_connectivity_synapses_receptor_types[i_pop_src, i_pop_trg]}
         self._connect_two_populations(pop_src, pop_trg, conn_spec, syn_spec)
 
@@ -220,7 +268,7 @@ class NESTModelBuilder(object):
                                                conn_spec, syn_model, weight, delay, receptor_type):
         syn_spec = {'model': syn_model,
                     'weight': self.tvb_weights[i_n_src, i_n_trg] * weight,
-                    'delay': self.assert_delay(self.tvb_delays[i_n_src, i_n_trg] + delay),
+                    'delay': self._assert_delay(self.tvb_delays[i_n_src, i_n_trg] + delay),
                     'receptor_type': receptor_type}
         self._connect_two_populations(pop_src, pop_trg, conn_spec, syn_spec)
 
@@ -233,7 +281,7 @@ class NESTModelBuilder(object):
             model = conn.get("model", self.default_connection["model"])
             weight = conn.get("weight", 1.0)
             delay = conn.get("delay", 0.0)
-            receptor_type = conn.get("receptor_type", 0)
+            receptor_type = conn.get("receptor_type", self.default_connection["receptor_type"])
             # Define functions for the exact synthesis of source and target populations
             pop_src = lambda node: \
                 flatten_tuple([node[pop]
@@ -257,13 +305,13 @@ class NESTModelBuilder(object):
                                                                     model, weight, delay, receptor_type)
 
     def build_and_connect_nest_stimulation_devices(self):
-        # Build devices by the variable name they stimulate (IndexedOrderedDict),
+        # Build devices by the variable model they stimulate (IndexedOrderedDict),
         # target node (IndexedOrderedDict)
         # and population (IndexedOrderedDict) for faster reading
         return build_and_connect_input_devices(self.nest_instance, self.stimulation_devices, self.nodes)
 
     def build_and_connect_nest_output_devices(self):
-        # Build devices by the variable name they measure (IndexedOrderedDict),
+        # Build devices by the variable model they measure (IndexedOrderedDict),
         # target node (IndexedOrderedDict)
         # and population (IndexedOrderedDict) for faster reading
         return build_and_connect_output_devices(self.nest_instance, self.output_devices, self.nodes)
