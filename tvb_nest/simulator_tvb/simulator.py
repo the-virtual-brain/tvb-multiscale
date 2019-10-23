@@ -120,6 +120,7 @@ class Simulator(SimulatorTVB):
         self.coupling.configure()
         self.model.configure()
         self.integrator.configure()
+        self.integrator.dt = float(int(numpy.round(0.1 / CONFIGURED.nest.NEST_MIN_DT))) * CONFIGURED.nest.NEST_MIN_DT
         if self.model.state_variable_boundaries is not None:
             indices = []
             boundaries = []
