@@ -57,7 +57,7 @@ class TVBNESTInterfaceBuilder(object):
     # #                            "connections": {"S_e": ["E", "I"]}}]
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids,
-                 nest_to_tvb_interfaces=None, tvb_to_nest_interfaces=None, config=CONFIGURED):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, config=CONFIGURED):
         self.config = config
         if isinstance(nest_network, NESTNetwork):
             self.nest_network = nest_network
@@ -105,7 +105,7 @@ class TVBNESTInterfaceBuilder(object):
         return np.maximum(self.nest_min_delay, delay)
 
     def build_nest_to_tvb_interfaces(self):
-        # One NEST output device for every combination of NEST mode
+        # One NEST output device for every combination of NEST node
         # and TVB state variable/parameter to be transmitted
         # from NEST to TVB
         devices = build_and_connect_output_devices(self.nest_instance,
@@ -209,7 +209,7 @@ class TVBNESTInterfaceBuilder(object):
         tvb_nest_interface.nest_nodes_ids = self.nest_nodes_ids
         tvb_nest_interface.nest_network = self.nest_network
 
-        tvb_nest_interface.nest_to_tvb_interfaces = self.build_nest_to_tvb_interfaces()
         tvb_nest_interface.tvb_to_nest_interfaces = self._build_tvb_to_nest_interfaces()
+        tvb_nest_interface.nest_to_tvb_interfaces = self.build_nest_to_tvb_interfaces()
 
         return tvb_nest_interface
