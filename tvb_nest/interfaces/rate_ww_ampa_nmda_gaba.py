@@ -8,7 +8,7 @@ from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedW
 LOG = initialize_logger(__name__)
 
 
-class TVBRateWWAMPAGABANMDA(TVBNESTInterface):
+class RateWWAMPAGABANMDA(TVBNESTInterface):
     tvb_model = ReducedWongWangExcIOInhI()
 
     # TODO: confirm the following:
@@ -20,11 +20,11 @@ class TVBRateWWAMPAGABANMDA(TVBNESTInterface):
     w_tvb_sv_to_nest_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
 
     def __init__(self, config=CONFIGURED):
-        super(TVBRateWWAMPAGABANMDA, self).__init__(config)
+        super(RateWWAMPAGABANMDA, self).__init__(config)
         LOG.info("%s created!" % self.__class__)
 
     def configure(self, tvb_model):
-        super(TVBRateWWAMPAGABANMDA, self).configure(tvb_model)
+        super(RateWWAMPAGABANMDA, self).configure(tvb_model)
         # TODO: solve the following inconsistency in the case that J_N is different among regions:
         # The index of J_N refers to the source TVB region in case of dc_generator,
         # but to the target NEST node, in case of direct application to is I_e parameter
