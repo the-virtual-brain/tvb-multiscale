@@ -61,7 +61,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         self.population_connectivity_synapses_receptor_types = \
             np.array([[rcptr_ampa_gaba["SPIKESEXC_AMPA_REC"], rcptr_ampa_gaba["SPIKESEXC_NMDA"], rcptr_ampa_gaba["SPIKESINH_GABA"]],
                       [rcptr_nmda["SPIKESEXC_AMPA_REC"],      rcptr_nmda["SPIKESEXC_NMDA"],      rcptr_nmda["SPIKESINH_GABA"]],
-                      [rcptr_ampa_gaba["SPIKESEXC_AMPA_REC"], rcptr_ampa_gaba["SPIKESEXC_NMDA"], rcptr_ampa_gaba["SPIKESINH_GABA"]]])
+                      [rcptr_ampa_gaba["SPIKESEXC_AMPA_REC"], rcptr_ampa_gaba["SPIKESEXC_NMDA"], rcptr_ampa_gaba["SPIKESINH_GABA"]]]).T
 
         # Among/Between region-node connections
         # Given that only the AMPA population of one region-node couples to

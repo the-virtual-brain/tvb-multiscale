@@ -61,7 +61,7 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
         self.population_connectivity_synapses_receptor_types = \
             np.array([[rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]],
                       [rcptr_nmda["AMPA_REC"],      rcptr_nmda["NMDA"],      rcptr_nmda["GABA"]],
-                      [rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]]])
+                      [rcptr_ampa_gaba["AMPA_REC"], rcptr_ampa_gaba["NMDA"], rcptr_ampa_gaba["GABA"]]]).T
 
         # Among/Between region-node connections
         # Given that only the AMPA population of one region-node couples to
