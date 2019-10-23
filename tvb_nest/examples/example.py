@@ -20,7 +20,7 @@ from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
                  connectivity=None, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, simulation_length=100.0,
                  tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
-                 config=CONFIGURED):
+                 dt=0.1, config=CONFIGURED):
 
     plotter = Plotter(config)
 
@@ -37,6 +37,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # (connectivity, model, surface, stimuli etc)
     # We choose all defaults in this example
     simulator = Simulator()
+    simulator.integrator.dt = dt
     simulator.model = tvb_sim_model
 
     simulator.connectivity = connectivity
