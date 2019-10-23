@@ -68,18 +68,12 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
         # all populations of another region-node,
         # we need only one connection type
         self.node_connections = \
-            [{"src_population": "AMPA", "trg_population": ["AMPA", "GABA"],
+            [{"src_population": "AMPA", "trg_population": ["AMPA", "NMDA", "GABA"],
               "model": self.default_connection["model"],
               "params": self.default_connection["params"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight
               "delay": 0.0,  # additional delay to the one of TVB connectivity
               "receptor_type": rcptr_ampa_gaba["AMPA_EXT"]},
-             {"src_population": "AMPA", "trg_population": ["NMDA"],
-              "model": self.default_connection["model"],
-              "params": self.default_connection["params"],
-              "weight": 1.0,  # weight scaling the TVB connectivity weight
-              "delay": 0.0,  # additional delay to the one of TVB connectivity
-              "receptor_type": rcptr_nmda["AMPA_EXT"]}
              ]
 
         # Creating spike_detector devices to be able to observe NEST spiking activity:
@@ -88,9 +82,11 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
         connections["AMPA"] = "AMPA"
         connections["NMDA"] = "NMDA"
         connections["GABA"] = "GABA"
-        props = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
-        props['record_from'] = ["V_m", "S",
-                                "s_AMPA_ext", "s_AMPA_rec", "s_NMDA", "s_GABA",
-                                "I_AMPA_ext", "I_AMPA_rec", "I_NMDA", "I_GABA", "I_leak"]
+        props_multimeter = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
+        props_multimeter['record_from'] = ["V_m", "S",
+                                           "s_AMPA_ext", "s_AMPA_rec", "s_NMDA", "s_GABA",
+                                           "I_AMPA_ext", "I_AMPA_rec", "I_NMDA", "I_GABA", "I_leak"]
+        props_spike_multimeter = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_multimeter"]
         self.output_devices = \
-            [{"model": "multimeter", "props": props, "nodes": None, "connections": connections}]
+            [{"model": "multimeter", "props": props_multimeter, "nodes": None, "connections": connections},
+             {"model": "spike_multimeter", "props": props_spike_multimeter, "nodes": None, "connections": connections}]
