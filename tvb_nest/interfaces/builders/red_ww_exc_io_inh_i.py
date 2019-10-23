@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from tvb_nest.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_nest.interfaces.tvb_to_nest_red_ww_exc_io_inh_i import RedWWexcIOinhI
+from tvb_nest.interfaces.red_ww_exc_io_inh_i import RedWWexcIOinhI
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
@@ -19,19 +19,19 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
             # either choose a NEST dc_generator device:
             # tvb_to_nest_interfaces = \
             #    [{"model": "dc_generator", "sign": 1,
-            # #                      TVB  <-  NEST
+            # #                      TVB  ->  NEST
             #      "connections": {"S_e": ["E", "I"]}}]
 
             # 1.2. or modify directly the external current stimulus parameter:
             tvb_to_nest_interfaces = \
                 [{"model": "current", "parameter": "I_e", "sign": 1,
-                  #                TVB  <-  NEST
+                  #                TVB  ->  NEST
                   "connections": {"S_e": ["E", "I"]}}]
 
             # 2.1. For spike transmission from TVB to NEST:
             # tvb_to_nest_interfaces = \
             #    [{"model": "poisson_generator", "sign": 1,
-            # #                      TVB  <-  NEST
+            # #                      TVB  ->  NEST
             #      "connections": {"S_e": ["E", "I"]}}]
 
         connections = OrderedDict({})
