@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shutil
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.models.devices import NESTInputDeviceDict, NESTOutputDeviceDict, NESTDeviceSet
@@ -18,17 +19,30 @@ def load_nest(config=CONFIGURED):
     os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
     os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
     os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-    os.environ['NEST_PYTHON_PREFIX'] = os.path.join(nest_path, "lib/python3.6/site-packages")
-    os.environ['PYTHONPATH'] = os.environ['NEST_PYTHON_PREFIX'] + ":" + os.environ['PYTHONPATH']
     os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
+    LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
+    if len(LD_LIBRARY_PATH) > 0:
+        LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
+    os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
+    os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
 
-    sys.path.extend([os.environ['NEST_PYTHON_PREFIX']])
-
-    # NEST_LIB_PATH = os.path.join(nest_path, "lib/nest")
-    os.environ['SLI_PATH'] = nest_path + ":" + os.environ['SLI_PATH']
+    os.environ['NEST_PYTHON_PREFIX'] = config.nest.PYTHON
+    sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
 
     import nest
     return nest
+
+
+def compile_modules(modules, recompile=False, config=CONFIGURED):
+    # ...unless we need to first compile it:
+    from pynestml.frontend.pynestml_frontend import install_nest
+    if not os.path.exists(config.MODULES_BLDS_DIR):
+        os.makedirs(config.MODULES_BLDS_DIR)
+    for module in ensure_list(modules):
+        module_bld_dir = os.path.join(config.MODULES_BLDS_DIR, module)
+        if not os.path.exists(module_bld_dir) or recompile:
+            shutil.copytree(os.path.join(config.MODULES_DIR, module), module_bld_dir)
+        install_nest(module_bld_dir, config.nest.NEST_PATH)
 
 
 def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
@@ -101,47 +115,52 @@ def get_neurons_from_populations(population, index=None):
         return flatten_tuple(population)
 
 
+def device_to_dev_model(device):
+    if device == "spike_multimeter":
+        return "multimeter"
+    else:
+        return device
+
+
 def build_nest_output_device(nest_instance, device, config=CONFIGURED):
     from six import string_types
     if isinstance(device, string_types) or isinstance(device, dict):
         if isinstance(device, string_types):
             # If the input is only a string of the type of the device, use the default options
-            dev_model = device
+            dev_model = device_to_dev_model(device)
             try:
-                return NESTOutputDeviceDict[dev_model](
+                return NESTOutputDeviceDict[device](
                     nest_instance,
                     nest_instance.Create(dev_model,
-                                         params=config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(dev_model, {})),
-                    dev_model)
+                                         params=config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device, {})))
             except:
                 raise ValueError("Failed to set input device%s!" % str(device))
         else:
             # If there is a device dictionary...
             try:
                 # ...assert the type...
-                dev_model = device.get("model", None)
+                dev_name = device.get("model", None)
+                dev_model = device_to_dev_model(dev_name)
                 # ...assert and configure the target NEST nodes
-                params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(dev_model, {})
+                params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(dev_name, {})
                 params.update(device.get("params", {}))
-                return NESTOutputDeviceDict[dev_model](
+                return NESTOutputDeviceDict[dev_name](
                     nest_instance,
-                    nest_instance.Create(dev_model, params=params),
-                    dev_model)
+                    nest_instance.Create(dev_model, params=params))
             except:
                 raise ValueError("Failed to set output device%s!" % str(device))
+    else:
+        raise ValueError("Failed to set output device%s!\n "
+                         "Input device has to be a device model or dict!" % str(device))
 
 
 def build_and_connect_output_device(nest_instance, device, neurons):
     nest_out_device = build_nest_output_device(nest_instance, device)
-    try:
-        if nest_out_device.model == "spike_detector":
-            nest_instance.Connect(neurons, nest_out_device.device)
-        else:
-            nest_instance.Connect(nest_out_device.device, neurons)
-        nest_out_device.update_number_of_connections()
-    except:
-        raise ValueError("Failed to connect output device %s to populations %s!"
-                         % (str(device), str(neurons)))
+    if nest_out_device.model == "spike_detector":
+        nest_instance.Connect(neurons, nest_out_device.device)
+    else:
+        nest_instance.Connect(nest_out_device.device, neurons)
+    nest_out_device.update_number_of_connections()
     return nest_out_device
 
 
@@ -150,8 +169,7 @@ def build_input_device(nest_instance, device):
         dev_model = device["model"]
         return NESTInputDeviceDict[dev_model](
             nest_instance,
-            nest_instance.Create(dev_model, params=device.get("params", {})),
-            dev_model)
+            nest_instance.Create(dev_model, params=device.get("params", {})))
     except:
         raise ValueError("Failed to set input device %s!" % str(device))
 
@@ -196,7 +214,7 @@ def build_and_connect_devices(nest_instance, devices, nest_nodes):
         else:
             device_target_nodes = nest_nodes[device_target_nodes]
         # Determine the connections from variables to measure/stimulate to NEST node populations
-        connections = device["connections"]  # either a variable name or a dict
+        connections = device["connections"]  # either a variable model or a dict
         if isinstance(connections, string_types):
             connections = {connections: slice(None)}  # return all population types
         # For every distinct quantity to be measured from NEST or stimulated towards NEST nodes...
