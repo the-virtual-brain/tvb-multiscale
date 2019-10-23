@@ -9,12 +9,6 @@ from tvb.basic.neotraits.api import List, Attr
 from tvb.basic.profile import TvbProfile
 from tvb.datatypes.time_series import TimeSeries as TimeSeriesTVB
 from tvb.datatypes.time_series import TimeSeriesRegion as TimeSeriesRegionTVB
-from tvb.datatypes.time_series import TimeSeriesEEG as TimeSeriesEEGTVB
-from tvb.datatypes.time_series import TimeSeriesMEG as TimeSeriesMEGTVB
-from tvb.datatypes.time_series import TimeSeriesSEEG as TimeSeriesSEEGTVB
-from tvb.datatypes.time_series import TimeSeriesSurface as TimeSeriesSurfaceTVB
-from tvb.datatypes.time_series import TimeSeriesVolume as TimeSeriesVolumeTVB
-from tvb.datatypes.sensors import Sensors, SensorsEEG, SensorsMEG, SensorsInternal
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -241,54 +235,6 @@ class TimeSeriesRegion(TimeSeries, TimeSeriesRegionTVB):
     @property
     def region_labels(self):
         return self.space_labels
-
-
-class TimeSeriesSurface(TimeSeries, TimeSeriesSurfaceTVB):
-    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
-                                            TimeSeriesDimensions.VERTEXES.value, TimeSeriesDimensions.SAMPLES.value))
-
-    title = Attr(str, default="Surface Time Series")
-
-
-class TimeSeriesVolume(TimeSeries, TimeSeriesVolumeTVB):
-    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.X.value,
-                                            TimeSeriesDimensions.Y.value, TimeSeriesDimensions.Z.value))
-
-    title = Attr(str, default="Volume Time Series")
-
-
-class TimeSeriesSensors(TimeSeries):
-    labels_ordering = List(of=str, default=(TimeSeriesDimensions.TIME.value, TimeSeriesDimensions.VARIABLES.value,
-                                            TimeSeriesDimensions.SENSORS.value, TimeSeriesDimensions.SAMPLES.value))
-
-    title = Attr(str, default="Sensor Time Series")
-
-
-class TimeSeriesEEG(TimeSeriesSensors, TimeSeriesEEGTVB):
-    title = Attr(str, default="EEG Time Series")
-
-    def configure(self):
-        super(TimeSeriesSensors, self).configure()
-        if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsEEG):
-            warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
-
-
-class TimeSeriesMEG(TimeSeriesSensors, TimeSeriesMEGTVB):
-    title = Attr(str, default="MEG Time Series")
-
-    def configure(self):
-        super(TimeSeriesSensors, self).configure()
-        if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsMEG):
-            warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
-
-
-class TimeSeriesSEEG(TimeSeriesSensors, TimeSeriesSEEGTVB):
-    title = Attr(str, default="SEEG Time Series")
-
-    def configure(self):
-        super(TimeSeriesSensors, self).configure()
-        if isinstance(self.sensors, Sensors) and not isinstance(self.sensors, SensorsInternal):
-            warning("Creating %s with sensors of type %s!" % (self.__class__.__name__, self.sensors.__class__.__name__))
 
 
 if __name__ == "__main__":
