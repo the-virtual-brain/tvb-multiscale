@@ -14,6 +14,7 @@ from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
 from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
 
+
 LOG = initialize_logger(__name__)
 
 
