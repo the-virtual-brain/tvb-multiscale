@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tvb_scripts.plot.plotter import Plotter as BasePlotter
+from tvb.simulator.plot.plotter import Plotter as BasePlotter
 from tvb_nest.plot.spikes_plotter import SpikesPlotter
 
 

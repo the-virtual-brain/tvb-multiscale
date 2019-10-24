@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from enum import Enum
 
 from six import string_types
 from collections import OrderedDict
@@ -14,8 +15,29 @@ from tvb_scripts.utils.data_structures_utils import isequal_string, ensure_list
 from tvb.simulator.plot.utils.computations_utils import select_greater_values_array_inds, \
     select_by_hierarchical_group_metric_clustering
 from tvb.simulator.plot.utils.analyzers_utils import abs_envelope, spectrogram_envelope, filter_data
-from tvb_scripts.time_series.model import TimeSeriesSEEG, LABELS_ORDERING
+from datatypes.time_series import TimeSeriesSEEG
 
+class TimeSeriesDimensions(Enum):
+    TIME = "Time"
+    VARIABLES = "State Variables"
+
+    SPACE = "Space"
+    REGIONS = "Regions"
+    VERTEXES = "Vertexes"
+    SENSORS = "Sensors"
+
+    SAMPLES = "Samples"
+    MODES = "Modes"
+
+    X = "x"
+    Y = "y"
+    Z = "z"
+
+
+LABELS_ORDERING = [TimeSeriesDimensions.TIME.value,
+                   TimeSeriesDimensions.VARIABLES.value,
+                   TimeSeriesDimensions.SPACE.value,
+                   TimeSeriesDimensions.SAMPLES.value]
 
 def decimate_signals(signals, time, decim_ratio):
     if decim_ratio > 1:

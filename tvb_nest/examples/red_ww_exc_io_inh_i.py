@@ -12,7 +12,7 @@ from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuild
 from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.plot.plotter import Plotter
-from tvb_scripts.time_series.model import TimeSeriesRegion
+from tvb.datatypes.time_series import TimeSeriesRegion
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
