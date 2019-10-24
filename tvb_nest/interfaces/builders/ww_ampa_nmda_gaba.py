@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from tvb_nest.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_nest.interfaces.ww_ampa_nmda_gaba import WWAMPAGABANMDA
+from tvb_nest.interfaces.models.red_ww_exc_io_inh_i import RedWWexcIOinhI
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
@@ -52,6 +52,6 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
                                                         tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
 
     def build_interface(self, tvb_nest_interface=None):
-        if not isinstance(tvb_nest_interface, WWAMPAGABANMDA):
-            tvb_nest_interface = WWAMPAGABANMDA()
+        if not isinstance(tvb_nest_interface, RedWWexcIOinhI):
+            tvb_nest_interface = RedWWexcIOinhI()
         return super(WWAMPANMDAGABABuilder, self).build_interface(tvb_nest_interface)
