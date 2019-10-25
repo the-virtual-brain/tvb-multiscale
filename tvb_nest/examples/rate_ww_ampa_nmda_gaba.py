@@ -138,7 +138,7 @@ if __name__ == "__main__":
     # connections["GABA"] = "GABA"
     # nest_model_builder.output_devices = \
     #     [{"model": "multimeter",
-    #       "props": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multmeter"],
+    #       "params": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multmeter"],
     #       "nodes": None, "connections": connections}]
     #
     # # -----------------------------------------------------------------------------
@@ -170,12 +170,6 @@ if __name__ == "__main__":
           #                TVB  ->  NEST
           "connections": {"S_e": ["AMPA", "NMDA", "GABA"]}}]
 
-    # 2.1. For spike transmission from TVB to NEST:
-    # tvb_nest_builder.tvb_to_nest_interfaces = \
-    #    [{"model": "poisson_generator", "sign": 1,
-    # #                      TVB  ->  NEST
-    #      "connections": {"S_e": ["AMPA", "NMDA", "GABA"]}}]
-
     # NEST -> TVB:
     # Use S_e and S_i instead of r_e and r_i
     # for transmitting to the TVB state variables directly
@@ -184,7 +178,7 @@ if __name__ == "__main__":
     connections["r_e"] = ["AMPA", "NMDA"]
     connections["r_i"] = "GABA"
     tvb_nest_builder.nest_to_tvb_interfaces = \
-        [{"model": "spike_detector", "params": {}, "connections": connections}]
+        [{"model": "spike_multimeter", "connections": connections, "params": {}}]
 
     # -----------------------------------------------------------------------------
 
