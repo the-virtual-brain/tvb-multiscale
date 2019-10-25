@@ -78,8 +78,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     rates, max_rate, spike_detectors, t = \
         nest_network.compute_mean_spike_rates(spike_counts_kernel_width=simulator.integrator.dt,  # ms
                                               spike_counts_kernel_overlap=0.0, time=t)
-    plotter.plot_spikes(spike_detectors, t, rates=rates, max_rate=max_rate,
-                        title='Population spikes and mean spike rate')
+    if spike_detectors is not None:
+        plotter.plot_spikes(spike_detectors, t, rates=rates, max_rate=max_rate,
+                            title='Population spikes and mean spike rate')
 
     #   Remove ts_type="Region" this argument too for TVB TimeSeriesRegion
     source_ts = TimeSeriesRegion(  # substitute with TimeSeriesRegion fot TVB like functionality
