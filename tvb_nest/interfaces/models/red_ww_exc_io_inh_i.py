@@ -19,6 +19,7 @@ class RedWWexcIOinhI(TVBNESTInterface):
     w_nest_spikes_to_tvb_sv = 1.0  # (assuming spikes/ms in TVB)
     w_tvb_sv_to_nest_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
     w_tvb_sv_to_nest_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
+    w_nest_sv_to_tvb_sv = 1.0  # It is the unitless S in [0, 1] communicated
 
     def __init__(self, config=CONFIGURED):
         super(RedWWexcIOinhI, self).__init__(config)
