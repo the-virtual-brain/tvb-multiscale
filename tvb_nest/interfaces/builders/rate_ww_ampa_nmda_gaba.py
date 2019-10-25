@@ -29,14 +29,7 @@ class RateWWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
                   #                TVB  ->  NEST
                   "connections": {"S_e": ["AMPA", "NMDA", "GABA"]}}]
 
-            # 2.1. For spike transmission from TVB to NEST:
-            # tvb_to_nest_interfaces = \
-            #    [{"model": "poisson_generator", "sign": 1,
-            # #                      TVB  ->  NEST
-            #      "connections": {"S_e": ["AMPA", "NMDA", "GABA"]}}]
-
         if nest_to_tvb_interfaces is None:
-            connections = OrderedDict({})
             # NEST -> TVB:
             # Use S_e and S_i instead of r_e and r_i
             # for transmitting to the TVB state variables directly
@@ -44,9 +37,8 @@ class RateWWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
             #            TVB <- NEST
             connections["r_e"] = ["AMPA", "NMDA"]
             connections["r_i"] = "GABA"
-            nest_to_tvb_interfaces = [{"model": "spike_multimeter",
-                                       "params": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_multimeter"],
-                                       "connections": connections}]
+            nest_to_tvb_interfaces = \
+                [{"model": "spike_multimeter", "params": {}, "connections": connections}]
 
         super(RateWWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids,
                                                         tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
