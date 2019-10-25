@@ -53,16 +53,16 @@ class NESTModelBuilder(object):
 
     # Use these to observe NEST behavior without conversions to TVB state variables and monitors
     output_devices = [{"model": "spike_detector",
-                       "props": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
+                       "params": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
                        "nodes": None, "connections": {"n_spikes_E": "E"}}]
     stimulation_devices = []  # use these for possible external stimulation devices
 
     # Example:
     # stimulation_devices = [{"model": "poisson_generator",
-    #                         "props": {"rate": 50.0,
-    #                                   "origin": 10.0,
-    #                                   "start": 0.1,
-    #                                   "stop": 20.0},
+    #                         "params": {"rate": 50.0,
+    #                                    "origin": 10.0,
+    #                                    "start": 0.1,
+    #                                    "stop": 20.0},
     #                        "nodes": None,  # 1 device per node
     #                        "populations: "E",
     #                        "weight": 1.0,
@@ -89,11 +89,11 @@ class NESTModelBuilder(object):
         # Between NEST node delays should be at least equal to NEST time resolution
         # Therefore, zero TVB delays will become nest_dt delays in NEST
         self.node_connections = [{"src_population": "E", "trg_population": "E",
-                                 "model": self.default_connection["model"],
-                                 "params": self.default_connection["params"],
-                                 "weight": 1.0,  # weight scaling the TVB connectivity weight
-                                 "delay": 0.0,  # additional delay to the one of TVB connectivity
-                                 "receptor_type": self.default_connection["receptor_type"]}]
+                                  "model": self.default_connection["model"],
+                                  "params": self.default_connection["params"],
+                                  "weight": 1.0,  # weight scaling the TVB connectivity weight
+                                  "delay": 0.0,  # additional delay to the one of TVB connectivity
+                                  "receptor_type": self.default_connection["receptor_type"]}]
     @property
     def number_of_populations(self):
         return len(self.populations_names)
@@ -226,12 +226,12 @@ class NESTModelBuilder(object):
 
     def _connect_two_populations_within_node(self, pop_src, pop_trg, i_pop_src, i_pop_trg):
         conn_spec = self.default_connection['params']
-        conn_spec.update(self.population_connectivity_synapses_params[i_pop_src, i_pop_trg])
-        syn_spec = {'model': self.population_connectivity_synapses_model[i_pop_src, i_pop_trg],
-                    'weight': self.population_connectivity_synapses_weights[i_pop_src, i_pop_trg],
+        conn_spec.update(self.population_connectivity_synapses_params[i_pop_trg, i_pop_src])
+        syn_spec = {'model': self.population_connectivity_synapses_model[i_pop_trg, i_pop_src],
+                    'weight': self.population_connectivity_synapses_weights[i_pop_trg, i_pop_src],
                     'delay': self._assert_within_node_delay(
-            self.population_connectivity_synapses_delays[i_pop_src, i_pop_trg]),
-                    'receptor_type': self.population_connectivity_synapses_receptor_types[i_pop_src, i_pop_trg]}
+            self.population_connectivity_synapses_delays[i_pop_trg, i_pop_src]),
+                    'receptor_type': self.population_connectivity_synapses_receptor_types[i_pop_trg, i_pop_src]}
         self._connect_two_populations(pop_src, pop_trg, conn_spec, syn_spec)
 
     def connect_population(self, population, i_pop):
