@@ -275,7 +275,7 @@ def ensure_string(arg):
 
 def flatten_list(lin, sort=False):
     lout = []
-    for sublist in lin:
+    for sublist in ensure_list(lin):
         if isinstance(sublist, (list, tuple)):
             temp = flatten_list(list(sublist))
         else:
@@ -288,7 +288,7 @@ def flatten_list(lin, sort=False):
 
 
 def flatten_tuple(t, sort=False):
-    return tuple(flatten_list(list(t), sort))
+    return tuple(flatten_list(ensure_list(t), sort))
 
 
 def set_list_item_by_reference_safely(ind, item, lst):
@@ -689,3 +689,55 @@ def copy_object_attributes(obj1, obj2, attr1, attr2=None, deep_copy=False, check
         for a1, a2 in zip(attr1, attr2):
             fcopy(a1, a2)
     return obj2
+
+
+def sort_events_by_x_and_y(events, x="senders", y="times",
+                           filter_x=None, filter_y=None, exclude_x=[], exclude_y=[]):
+    xs = np.array(flatten_list(events[x]))
+    if filter_x is None:
+        xlabels = np.unique(xs).tolist()
+    else:
+        xlabels = np.unique(flatten_list(filter_x)).tolist()
+    for xlbl in exclude_x:
+        try:
+            xlabels.remove(xlbl)
+        except:
+            pass
+    ys = flatten_list(events[y])
+    if filter_y is not None:
+        ys = [yy for yy in ys if yy in flatten_list(filter_y)]
+    for yy in exclude_y:
+        try:
+            ys.remove(yy)
+        except:
+            pass
+    ys = np.array(ys)
+    sorted_events = OrderedDict()
+    for xlbl in xlabels:
+        sorted_events[xlbl] = np.sort(ys[xs == xlbl])
+    return sorted_events
+
+
+def data_frame_from_continuous_events(events, times, senders, variables=[],
+                                      filter_senders=None, exclude_senders=[]):
+    unique_times = np.unique(times).tolist()
+    n_times = len(unique_times)
+    if filter_senders is None:
+        filter_senders = np.unique(senders).tolist()
+    else:
+        filter_senders = np.unique(flatten_list(filter_senders)).tolist()
+    for sender in exclude_senders:
+        filter_senders.remove(sender)
+    n_senders = len(filter_senders)
+    data = dict(events)
+    if len(variables) is None:
+        variables = data.keys()
+    for key in variables:
+        data[key] = np.zeros((n_times, n_senders))
+    for id, (time, sender) in enumerate(zip(times, senders)):
+        if sender in filter_senders:
+            i_time = unique_times.index(time)
+            i_sender = filter_senders.index(sender)
+            for var in data.keys():
+                data[var][i_time, i_sender] = events[var][id]
+    return data, np.array(unique_times), np.array(filter_senders)
