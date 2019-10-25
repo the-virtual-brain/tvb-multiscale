@@ -34,7 +34,6 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
             # #                      TVB  ->  NEST
             #      "connections": {"S_e": ["E", "I"]}}]
 
-        connections = OrderedDict({})
         if nest_to_tvb_interfaces is None:
             # NEST -> TVB:
             # Use S_e and S_i instead of r_e and r_i
@@ -43,7 +42,8 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
             #            TVB <- NEST
             connections["r_e"] = "E"
             connections["r_i"] = "I"
-            nest_to_tvb_interfaces = [{"model": "spike_detector", "params": {}, "connections": connections}]
+            nest_to_tvb_interfaces = \
+                [{"model": "spike_detector", "params": {}, "connections": connections}]
 
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids,
                                                     tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
