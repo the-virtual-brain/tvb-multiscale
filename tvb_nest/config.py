@@ -44,8 +44,7 @@ class NESTconfig(object):
     NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"withtime": True, "withgid": True, 'record_from': ["V_m"]},
                                       "voltimeter": {"withtime": True, "withgid": True},
                                       "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True},
-                                      "spike_multimeter":
-                                          {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
+                                      "spike_multimeter": {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
 
     def __init__(self, nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
         self.NEST_PATH = nest_path
