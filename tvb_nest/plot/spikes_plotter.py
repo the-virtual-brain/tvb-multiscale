@@ -55,7 +55,7 @@ class SpikesPlotter(BasePlotter):
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.items()):
                 # Define spike senders and rates' axis
                 neurons = np.unique(region_spike_detector.neurons).tolist()
-                spike_senders_indices = [neurons.index(sender) for sender in region_spike_detector.spike_senders]
+                spike_senders_indices = [neurons.index(sender) for sender in region_spike_detector.spikes_senders]
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
 
@@ -69,7 +69,7 @@ class SpikesPlotter(BasePlotter):
                                                alpha=kwargs.get("rate_alpha", 0.5))
 
                 # Plot spikes
-                axes[i_pop][i_region].plot(region_spike_detector.spike_times, spike_senders_indices,
+                axes[i_pop][i_region].plot(region_spike_detector.spikes_times, spike_senders_indices,
                                            linestyle="None",
                                            marker=kwargs.get("spikes_marker", "o"),
                                            markerfacecolor=kwargs.get("spikes_color", "k"),
