@@ -107,7 +107,7 @@ if __name__ == "__main__":
     # connections["I"] = "I"
     # nest_model_builder.output_devices = \
     #     [{"model": "spike_detector",
-    #       "props": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
+    #       "params": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
     #       "nodes": None, "connections": connections}]
     #
     # # -----------------------------------------------------------------------------
@@ -173,15 +173,15 @@ if __name__ == "__main__":
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
     # Plot spikes and mean field spike rates
-    rates, max_rate, spike_detectors, time = \
+    rates, max_rate, spike_detectors, t = \
         nest_network.compute_mean_spike_rates(spike_counts_kernel_width=simulator.integrator.dt,  # ms
-                                              spike_counts_kernel_overlap=0.0, time=time)
-    plotter.plot_spikes(spike_detectors, time, rates=rates, max_rate=max_rate,
+                                              spike_counts_kernel_overlap=0.0, time=t)
+    plotter.plot_spikes(spike_detectors, t, rates=rates, max_rate=max_rate,
                         title='Population spikes and mean spike rate')
 
     #   Remove ts_type="Region" this argument too for TVB TimeSeriesRegion
     source_ts = TimeSeriesRegion(  # substitute with TimeSeriesRegion fot TVB like functionality
-        data=source, time=time,
+        data=source, time=t,
         connectivity=simulator.connectivity,
         # region_mapping=head.cortical_region_mapping,
         # region_mapping_volume=head.region_volume_mapping,
