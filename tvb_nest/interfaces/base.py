@@ -29,6 +29,8 @@ class TVBNESTInterface(object):
 
     w_nest_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
     w_nest_spikes_to_tvb_sv = 1.0
+    w_nest_sv_to_tvb_sv = 1.0
+    w_nest_V_m_to_tvb_sv = 1.0
     w_tvb_sv_to_nest_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
     w_tvb_sv_to_nest_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
     w_tvb_sv_to_nest_potential = 1.0  # assuming mV in both NEST and TVB
@@ -73,7 +75,9 @@ class TVBNESTInterface(object):
                      "w_tvb_sv_to_nest_potential",
                      "w_tvb_sv_to_nest_spike_rate",
                      "w_nest_spikes_to_tvb_rate",
-                     "w_nest_spikes_to_tvb_sv"]:
+                     "w_nest_spikes_to_tvb_sv",
+                     "w_nest_sv_to_tvb_sv",
+                     "w_nest_V_m_to_tvb_sv"]:
             setattr(self, prop, (dummy * np.array(getattr(self, prop))).squeeze())
 
     def configure(self, tvb_model):
@@ -146,7 +150,7 @@ class TVBNESTInterface(object):
                     # ...and transmit it to the corresponding NEST device,
                     # ...which represents that TVB node
                     # TODO: solve the problem of the spike times distribution to the whole tvb_dt interval...
-                    interface.SetStatus({'spike_times': np.ones(len(nest_rate)) *
+                    interface.SetStatus({'spikes_times': np.ones(len(nest_rate)) *
                                                         self.nest_instance.GetKernelStatus("min_delay"),
                                          'origin': self.nest_instance.GetKernelStatus("time"),
                                          'spike_weights': nest_rate})
@@ -160,12 +164,20 @@ class TVBNESTInterface(object):
             interface = self.nest_to_tvb_interfaces[interface_id]
             # Update TVB parameter
             param_values = getattr(model, interface.name)
-            if interface.model == "spike_detector":
+            if interface.model in ["spike_detector", "spike_multimeter"]:
                 param_values[self.nest_nodes_ids] = \
                     self.w_nest_spikes_to_tvb_sv[self.nest_nodes_ids] / \
                     np.array(interface.number_of_connections) * \
                     np.array(interface.number_of_spikes)
                 interface.reset
+            elif interface.model == "multimeter":
+                param_values[self.nest_nodes_ids] = \
+                    self.w_nest_sv_to_tvb_sv[self.nest_nodes_ids] * \
+                    interface.current_population_mean_values
+            elif interface.model == "voltmeter":
+                param_values[self.nest_nodes_ids] = \
+                    self.w_nest_V_m_to_tvb_sv[self.nest_nodes_ids] * \
+                    interface.current_population_mean_values
             # TODO: add any other possible NEST output devices to TVB parameters interfaces here!
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
@@ -177,7 +189,7 @@ class TVBNESTInterface(object):
         for interface_id in self.nest_to_tvb_sv_interfaces_ids:
             interface = self.nest_to_tvb_interfaces[interface_id]
             # Update TVB state
-            if interface.model == "spike_detector":
+            if interface.model in ["spike_detector", "spike_multimeter"]:
                 # The number of spikes has to be converted to a spike rate via division:
                 #  by the total number of neurons to convert it to a mean field quantity,
                 #  and by the time step dt, which is already included in the w_nest_spikes_to_tvb_sv scaling.
@@ -187,6 +199,16 @@ class TVBNESTInterface(object):
                     np.array(interface.number_of_connections) * \
                     np.array(interface.number_of_spikes)
                 interface.reset
+            elif interface.model == "multimeter":
+                # Instantaneous transmission. TVB history is used to buffer delayed communication.
+                state[interface.tvb_sv_id, self.nest_nodes_ids, 0] = \
+                    self.w_nest_sv_to_tvb_sv[self.nest_nodes_ids] * \
+                    interface.current_population_mean_values
+            elif interface.model == "voltmeter":
+                # Instantaneous transmission. TVB history is used to buffer delayed communication.
+                state[interface.tvb_sv_id, self.nest_nodes_ids, 0] = \
+                    self.w_nest_V_m_to_tvb_sv[self.nest_nodes_ids] * \
+                    interface.current_population_mean_values
             # TODO: add any other possible NEST output devices to TVB parameters interfaces here!
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
