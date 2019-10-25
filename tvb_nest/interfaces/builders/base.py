@@ -34,7 +34,7 @@ class TVBNESTInterfaceBuilder(object):
     # connections["S_e"] = "E"
     # connections["S_i"] = "I"
     # nest_to_tvb_interfaces = [{"model": "spike_detector",
-    #                           "properties": NEST_OUTPUT_DEVICES_PROPS_DEF["device_type"],
+    #                           "params": NEST_OUTPUT_DEVICES_PROPS_DEF["device_type"],
     #                           "connections": {"S_e": "E",
     #                                           "S_i": "I"}}]
     # # For transmitting NEST rates to TVB parameters:
@@ -42,7 +42,7 @@ class TVBNESTInterfaceBuilder(object):
     # connections["r_e"] = "E"
     # connections["r_i"] = "I"
     # nest_to_tvb_interfaces = [{"model": "spike_detector",
-    #                           "properties": NEST_OUTPUT_DEVICES_PROPS_DEF["device_type"],
+    #                           "params": NEST_OUTPUT_DEVICES_PROPS_DEF["device_type"],
     #                           "connections": {"r_e": "E",
     #                                           "r_i": "I"}}]
 
@@ -91,16 +91,16 @@ class TVBNESTInterfaceBuilder(object):
             self.tvb_to_nest_interfaces = ensure_list(tvb_to_nest_interfaces)
 
     @property
-    def nest_min_delay(self):
-        return self.nest_instance.GetKernelStatus("min_delay")
-
-    @property
     def nest_instance(self):
         return self.nest_network.nest_instance
 
     @property
     def nest_nodes(self):
         return self.nest_network.region_nodes
+
+    @property
+    def nest_min_delay(self):
+        return self.nest_instance.GetKernelStatus("min_delay")
 
     def assert_delay(self, delay):
         return np.maximum(self.nest_min_delay, delay)
