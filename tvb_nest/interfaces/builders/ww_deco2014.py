@@ -36,7 +36,6 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
             #      "connections": {"S_e": ["E", "I"]}}]
 
         if nest_to_tvb_interfaces is None:
-            connections = OrderedDict({})
             # NEST -> TVB:
             # Use S_e and S_i instead of r_e and r_i
             # for transmitting to the TVB state variables directly
@@ -44,9 +43,8 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
             #            TVB <- NEST
             connections["r_e"] = ["E"]
             connections["r_i"] = ["I"]
-            nest_to_tvb_interfaces = [{"model": "spike_detector",
-                                       "params": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
-                                       "connections": connections}]
+            nest_to_tvb_interfaces = \
+                [{"model": "spike_detector", "params": {}, "connections": connections}]
 
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
