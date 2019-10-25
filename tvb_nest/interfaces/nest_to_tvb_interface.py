@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+
+import numpy as np
+
 from tvb_nest.simulator_nest.models.devices import NESTDeviceSet
 from tvb_scripts.utils.log_error_utils import initialize_logger
 
@@ -20,3 +23,7 @@ class NESTtoTVBinterface(NESTDeviceSet):
                 setattr(self, attr, getattr(device_set, attr))
         self.tvb_sv_id = tvb_sv_id
         return self
+
+    @property
+    def current_population_mean_values(self):
+        return np.array(self.current_data_mean_values).flatten()
