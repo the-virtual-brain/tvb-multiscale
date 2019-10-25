@@ -4,9 +4,11 @@ import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.nest_factory import load_nest
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
-from tvb_nest.simulator_nest.models.devices import NESTDeviceSet, NESTOutputDeviceDict, NESTInputDeviceDict
+from tvb_nest.simulator_nest.models.devices \
+    import NESTDeviceSet, NESTOutputDeviceDict, NESTInputDeviceDict, NESTOutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict
+
 
 LOG = initialize_logger(__name__)
 
@@ -91,26 +93,29 @@ class NESTNetwork(object):
     def _prepare_to_compute_spike_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
                                         spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None):
 
-        try:
-            spike_detectors = self.get_devices_by_model("spike_detector")
-        except:
-            spike_detectors = self.get_devices_by_model("spike_multimeter")
+        for device_name in NESTOutputSpikeDeviceDict.keys():
+            spike_detectors = self.get_devices_by_model(device_name)
+            if len(spike_detectors.keys()) > 0:
+                break   # If this is not an empty dict of devices
+        if len(spike_detectors.keys()) == 0:
+            LOG.warning("No spike measuring device in this NEST network!")
+            return None, None, None
 
         first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
         last_spike_time = 0.0
         mean_spike_interval = self.config.calcul.MAX_SINGLE_VALUE
-        for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.items()):
+        for i_pop, (pop_label, pop_device) in enumerate(spike_detectors.items()):
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.items()):
-                n_spikes = len(region_spike_detector.spike_times)
+                n_spikes = len(region_spike_detector.spikes_times)
                 if n_spikes > 0:
-                    temp = np.min(region_spike_detector.spike_times)
+                    temp = np.min(region_spike_detector.spikes_times)
                     if temp < first_spike_time:
                         first_spike_time = temp
-                    temp = np.max(region_spike_detector.spike_times)
+                    temp = np.max(region_spike_detector.spikes_times)
                     if temp > last_spike_time:
                         last_spike_time = temp
                     if n_spikes > 1:
-                        temp = np.mean(np.diff(np.unique(region_spike_detector.spike_times)))
+                        temp = np.mean(np.diff(np.unique(region_spike_detector.spikes_times)))
                         if temp < mean_spike_interval:
                             mean_spike_interval = temp
 
@@ -147,9 +152,12 @@ class NESTNetwork(object):
         spike_detectors, time, spike_counts_kernel_width = \
             self._prepare_to_compute_spike_rates(spike_counts_kernel_width, spike_counts_kernel_n_intervals,
                                                  spike_counts_kernel_overlap, min_spike_interval, time)
-        rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
-                                              spike_rate_fun, "compute_spike_rate")
-        return rates, max_rate, spike_detectors, time
+        if spike_detectors is not None:
+            rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
+                                                  spike_rate_fun, "compute_spike_rate")
+            return rates, max_rate, spike_detectors, time
+        else:
+            return None, None, None, None
 
     def compute_mean_spike_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
                                  spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None,
@@ -157,7 +165,9 @@ class NESTNetwork(object):
         spike_detectors, time, spike_counts_kernel_width = \
             self._prepare_to_compute_spike_rates(spike_counts_kernel_width, spike_counts_kernel_n_intervals,
                                                  spike_counts_kernel_overlap, min_spike_interval, time)
-        rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
-                                              spike_rate_fun, "compute_mean_spike_rate")
-        return rates, max_rate, spike_detectors, time
-
+        if spike_detectors is not None:
+            rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
+                                                  spike_rate_fun, "compute_mean_spike_rate")
+            return rates, max_rate, spike_detectors, time
+        else:
+            return None, None, None, None
