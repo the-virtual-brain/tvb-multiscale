@@ -100,16 +100,19 @@ if __name__ == "__main__":
     #       "delay": 0.0,   # additional delay to the one of TVB connectivity
     #       "receptor_type": 0}]
     #
-    # # Creating spike_detector devices to be able to observe NEST spiking activity:
+    # # Creating devices to be able to observe NEST activity:
     # connections = OrderedDict({})
     # #          label <- target population
-    # connections["E"] = "E"
-    # connections["I"] = "I"
-    # nest_model_builder.output_devices = \
-    #     [{"model": "spike_detector",
-    #       "params": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
-    #       "nodes": None, "connections": connections}]
-    #
+    # connections["E spikes"] = "E"
+    # connections["I spikes"] = "I"
+    # output_devices.append({"model": "spike_detector", "params": {},
+    #                        "nodes": None, "connections": connections})
+    # connections = OrderedDict({})
+    # connections["E V_m"] = "E"
+    # connections["I V_m"] = "I"
+    # params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
+    # output_devices.append({"model": "multimeter", "params": params,
+    #                       "nodes": None, "connections": connections})
     # # -----------------------------------------------------------------------------
 
     nest_network = nest_model_builder.build_nest_network()
