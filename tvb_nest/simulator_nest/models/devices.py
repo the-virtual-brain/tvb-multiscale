@@ -36,6 +36,16 @@ class NESTDevice(object):
             raise ValueError("Failed to GetStatus of device %s!" % str(device))
         self.update_number_of_connections()
 
+    def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
+        temp_neurons = self.neurons
+        if neurons is not None:
+            temp_neurons = self.neurons
+        n_neurons = len(temp_neurons)
+        for neuron in exclude_neurons:
+            if neuron in temp_neurons:
+                n_neurons -= 1
+        return n_neurons
+
     @property
     def nest_model(self):
         return self.nest_instance.GetStatus(self.device)[0]["model"].split("<SLILiteral: ")[1].split(">")[0]
@@ -214,6 +224,9 @@ class NESTOutputDevice(NESTDevice):
         self.model = "output_device"
 
     def filter_events(self, vars=None, events=None, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        if vars is None:
+            vars = events.keys()
+        output_events = OrderedDict()
         if events is None:
             events = self.events
         spike_times = np.array(events["times"])
@@ -242,11 +255,11 @@ class NESTOutputDevice(NESTDevice):
                     inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
                                                  sender not in flatten_list(exclude_neurons)
                                                  for time, sender in zip(spike_times, senders)])
-        if vars is None:
-            vars = events.keys()
-        output_events = OrderedDict()
-        for var in ensure_list(vars):
-            output_events[var] = events[var][inds]
+            for var in ensure_list(vars):
+                output_events[var] = events[var][inds]
+        else:
+            for var in ensure_list(vars):
+                output_events[var] = np.array([])
         return output_events
 
     @property
@@ -309,6 +322,16 @@ class NESTSpikeDetector(NESTOutputDevice):
     def get_spike_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.filter_events("senders", None, neurons, times, exclude_neurons, exclude_times)
 
+    def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times))
+
+    def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / \
+               self.get_number_of_neurons(neurons, exclude_neurons)
+
+    def get_mean_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
+
     def get_spikes_times_by_neurons(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return sort_events_by_x_and_y(self.events, x="senders", y="times",
                                       filter_x=neurons, filter_y=times,
@@ -318,10 +341,6 @@ class NESTSpikeDetector(NESTOutputDevice):
         return sort_events_by_x_and_y(self.events, x="times", y="senders",
                                       filter_x=times, filter_y=neurons,
                                       exclude_x=exclude_times, exclude_y=exclude_neurons)
-
-    def get_mean_spikes_rate(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / \
-               self.get_number_of_neurons(neurons, exclude_neurons)
 
     @property
     def spikes_times(self):
@@ -334,6 +353,10 @@ class NESTSpikeDetector(NESTOutputDevice):
     @property
     def number_of_spikes(self):
         return self.number_of_events
+
+    @property
+    def mean_number_of_spikes(self):
+        return self.get_mean_number_of_spikes()
 
     @property
     def mean_spikes_rate(self):
@@ -502,12 +525,15 @@ class NESTSpikeMultimeter(NESTMultimeter):
     def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["times"]
 
-    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
+    def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times))
 
-    def get_mean_spikes_rate(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / \
+    def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / \
                self.get_number_of_neurons(neurons, exclude_neurons)
+
+    def get_mean_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
 
     def get_mean_spikes_activity(self, neurons=None, exclude_neurons=[]):
         return np.sum(self.get_spikes_weights(neurons, exclude_neurons)) / \
@@ -515,6 +541,9 @@ class NESTSpikeMultimeter(NESTMultimeter):
 
     def get_total_spikes_activity(self, neurons=None, exclude_neurons=[]):
         return np.sum(self.get_spikes_weights(neurons, exclude_neurons))
+
+    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
 
     @property
     def spikes(self):
@@ -535,6 +564,10 @@ class NESTSpikeMultimeter(NESTMultimeter):
     @property
     def number_of_spikes(self):
         return np.sum(self.spikes > 0)
+
+    @property
+    def mean_number_of_spikes(self):
+        return self.get_mean_number_of_spikes()
 
     @property
     def mean_spikes_rate(self):
