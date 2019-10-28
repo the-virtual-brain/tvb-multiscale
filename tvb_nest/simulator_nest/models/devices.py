@@ -50,7 +50,7 @@ class NESTDevice(object):
 
     @property
     def number_of_neurons(self):
-        return self.number_of_connections
+        return self.get_number_of_neurons()
 
     def update_number_of_connections(self):
         neurons = self.neurons
@@ -219,33 +219,35 @@ class NESTOutputDevice(NESTDevice):
         spike_times = np.array(events["times"])
         senders = np.array(events["senders"])
         inds = np.ones((self.n_events,))
-        if times is not None:
-            if senders is not None:
-                inds = np.logical_and(inds, [time in flatten_list(times) and
-                                             time not in flatten_list(exclude_times) and
-                                             sender in flatten_list(neurons) and
-                                             sender not in flatten_list(exclude_neurons)
-                                             for time, sender in zip(spike_times, senders)])
+        if len(inds) > 0:
+            if times is not None:
+                if senders is not None:
+                    inds = np.logical_and(inds, [time in flatten_list(times) and
+                                                 time not in flatten_list(exclude_times) and
+                                                 sender in flatten_list(neurons) and
+                                                 sender not in flatten_list(exclude_neurons)
+                                                 for time, sender in zip(spike_times, senders)])
+                else:
+                    inds = np.logical_and(inds, [time in flatten_list(times) and
+                                                 time not in flatten_list(exclude_times) and
+                                                 sender not in flatten_list(exclude_neurons)
+                                                 for time, sender in zip(spike_times, senders)])
             else:
-                inds = np.logical_and(inds, [time in flatten_list(times) and
-                                             time not in flatten_list(exclude_times) and
-                                             sender not in flatten_list(exclude_neurons)
-                                             for time, sender in zip(spike_times, senders)])
-        else:
-            if senders is not None:
-                inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
-                                             sender in flatten_list(neurons) and
-                                             sender not in flatten_list(exclude_neurons)
-                                             for time, sender in zip(spike_times, senders)])
-            else:
-                inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
-                                             sender not in flatten_list(exclude_neurons)
-                                             for time, sender in zip(spike_times, senders)])
+                if neurons is not None:
+                    inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
+                                                 sender in flatten_list(neurons) and
+                                                 sender not in flatten_list(exclude_neurons)
+                                                 for time, sender in zip(spike_times, senders)])
+                else:
+                    inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
+                                                 sender not in flatten_list(exclude_neurons)
+                                                 for time, sender in zip(spike_times, senders)])
         if vars is None:
             vars = events.keys()
-        for var in vars:
-            events[var] = events[var][inds]
-        return events
+        output_events = OrderedDict()
+        for var in ensure_list(vars):
+            output_events[var] = events[var][inds]
+        return output_events
 
     @property
     def connections(self):
@@ -318,13 +320,8 @@ class NESTSpikeDetector(NESTOutputDevice):
                                       exclude_x=exclude_times, exclude_y=exclude_neurons)
 
     def get_mean_spikes_rate(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        if neurons is None:
-            neurons = self.neurons
-        n_neurons = len(neurons)
-        for neuron in exclude_neurons:
-            if neuron in neurons:
-                n_neurons -= 1
-        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / n_neurons
+        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / \
+               self.get_number_of_neurons(neurons, exclude_neurons)
 
     @property
     def spikes_times(self):
@@ -507,15 +504,6 @@ class NESTSpikeMultimeter(NESTMultimeter):
 
     def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
-
-    def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
-        if neurons is None:
-            neurons = self.neurons
-        n_neurons = len(neurons)
-        for neuron in exclude_neurons:
-            if neuron in neurons:
-                n_neurons -= 1
-        return n_neurons
 
     def get_mean_spikes_rate(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / \

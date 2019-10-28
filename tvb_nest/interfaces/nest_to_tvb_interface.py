@@ -25,11 +25,11 @@ class NESTtoTVBinterface(NESTDeviceSet):
         return self
 
     @property
-    def mean_spikes_rate(self):
+    def spikes_rate(self):
         return np.array(self.mean_spikes_rate).flatten()
 
     @property
-    def mean_spikes_activity(self):
+    def spikes_activity(self):
         return np.array(self.mean_spikes_activity).flatten()
 
     @property

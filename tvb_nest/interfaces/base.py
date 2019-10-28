@@ -167,7 +167,7 @@ class TVBNESTInterface(object):
             if interface.model in ["spike_detector", "spike_multimeter"]:
                 param_values[self.nest_nodes_ids] = \
                     self.w_nest_spikes_to_tvb_sv[self.nest_nodes_ids] / \
-                    interface.mean_spikes_rate
+                    interface.spikes_rate
                 interface.reset
             elif interface.model == "multimeter":
                 param_values[self.nest_nodes_ids] = \
@@ -195,7 +195,7 @@ class TVBNESTInterface(object):
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
                 state[interface.tvb_sv_id, self.nest_nodes_ids, 0] = \
                     self.w_nest_spikes_to_tvb_sv[self.nest_nodes_ids] / \
-                    interface.mean_spikes_rate
+                    interface.spikes_rate
                 interface.reset
             elif interface.model == "multimeter":
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
