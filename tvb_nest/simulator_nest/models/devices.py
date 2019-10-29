@@ -223,9 +223,10 @@ class NESTOutputDevice(NESTDevice):
         super(NESTOutputDevice, self).__init__(nest_instance, device)
         self.model = "output_device"
 
-    def filter_events(self, vars=None, events=None, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        if vars is None:
-            vars = events.keys()
+    def filter_events(self, variables=None, events=None, neurons=None, times=None,
+                      exclude_neurons=[], exclude_times=[]):
+        if variables is None:
+            variables = events.keys()
         output_events = OrderedDict()
         if events is None:
             events = self.events
@@ -255,10 +256,10 @@ class NESTOutputDevice(NESTDevice):
                     inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
                                                  sender not in flatten_list(exclude_neurons)
                                                  for time, sender in zip(spike_times, senders)])
-            for var in ensure_list(vars):
+            for var in ensure_list(variables):
                 output_events[var] = events[var][inds]
         else:
-            for var in ensure_list(vars):
+            for var in ensure_list(variables):
                 output_events[var] = np.array([])
         return output_events
 
@@ -411,9 +412,8 @@ class NESTMultimeter(NESTOutputDevice):
 
     def get_mean_data(self, variables=[], neurons=None, exclude_neurons=[]):
         data, times, neurons = self.get_data(variables, neurons, exclude_neurons)
-        n_neurons = len(neurons)
         for var, values in data.items():
-            data[var] = values / n_neurons
+            data[var] = np.mean(values, axis=1)
         return data, times, neurons
 
     @property
@@ -674,12 +674,12 @@ class NESTDeviceSet(IndexedOrderedDict):
         else:
             return vals
 
-    def __getattr__(self, attr):
+    def do_for_all_devices(self, attr, *args, **kwargs):
         values = []
         for node in self._dict.values():
             val = getattr(node, attr)
             if hasattr(val, "__call__"):
-                values.append(val())
+                values.append(val(*args, **kwargs))
             else:
                 values.append(val)
         return values
