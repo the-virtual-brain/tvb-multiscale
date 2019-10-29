@@ -50,5 +50,5 @@ class TVBNESTParameterInterface(IndexedOrderedDict):
         if n_vals not in [1, n_nodes]:
             raise ValueError("Values' number %d is neither equal to 1 "
                              "nor equal to nodes' number %d!" % (n_vals, n_nodes))
-        for node, value in zip(ensure_list(nodes), cycle(ensure_list(values))):
+        for node, value in zip(ensure_list(nodes), cycle(values)):
             self.nest_instance.SetStatus(self._dict[node], {self.parameter: self.sign * value})
