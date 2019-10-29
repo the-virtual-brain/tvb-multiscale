@@ -7,21 +7,21 @@ from matplotlib import pyplot
 
 class SpikesPlotter(BasePlotter):
 
-    def plot_spikes(self, spike_detectors_dict, time, rates=None, max_rate=None,
+    def plot_spikes(self, spike_detectors, time, rates=None, max_rate=None,
                     title="Population spikes and spike rate",
                     figure_name=None, figsize=None, **kwargs):
 
         # Y axis
-        max_n_neurons = np.max([spike_detector.number_of_neurons
-                                for spike_detector in spike_detectors_dict.values()])
+        max_n_neurons = np.max([np.max(spike_detector.do_for_all_devices("number_of_neurons"))
+                                for spike_detector in spike_detectors])
         ylims = [0, max_n_neurons]
         neurons_step = np.int(np.ceil(np.maximum(1.0 * max_n_neurons / 10, 1.0)))
         yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
 
         if rates is not None:
             if max_rate is None:
-                max_rate = np.max([np.max([np.max(region_vals) for region_vals in pop_rate.values()])
-                                   for pop_rate in rates.values()])
+                max_rate = np.max([np.max([np.max(region_vals) for region_vals in pop_rate])
+                                   for pop_rate in rates])
             if max_rate == 0:
                 max_rate = 1.0
             rate_step = max_rate / len(yticks)
@@ -39,9 +39,8 @@ class SpikesPlotter(BasePlotter):
         xticklabels = ["%0.1f" % xtick for xtick in xticks]
 
         # Create figure
-        n_pops = len(spike_detectors_dict.keys())
-        n_regions = np.max([len(spike_detector.keys())
-                            for spike_detector in spike_detectors_dict.values()])
+        n_pops = len(spike_detectors)
+        n_regions = np.max([len(spike_detector) for spike_detector in spike_detectors])
         axes = []
         if figure_name is None:
             figure_name = title
@@ -50,9 +49,9 @@ class SpikesPlotter(BasePlotter):
         pyplot.figure(figure_name, figsize=figsize)
 
         # Plot
-        for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors_dict.items()):
+        for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
             axes.append([])
-            for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.items()):
+            for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
                 # Define spike senders and rates' axis
                 neurons = np.unique(region_spike_detector.neurons).tolist()
                 spike_senders_indices = [neurons.index(sender) for sender in region_spike_detector.spikes_senders]

@@ -1,27 +1,23 @@
 # -*- coding: utf-8 -*-
 
 from itertools import cycle
-import numpy as np
+from pandas import Series
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
-from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
+
 
 LOG = initialize_logger(__name__)
+
 
 # Possible NEST input parameters for the interface
 NEST_INPUT_PARAMETERS = {"current": "I_e", "potential": "V_m"}  #
 
 
-class TVBNESTParameterInterface(IndexedOrderedDict):
+class TVBNESTParameterInterface(Series):
 
-    def __init__(self, nest_instance, name, model, parameter="", neurons=OrderedDict({}), tvb_coupling_id=0, sign=1):
-        self.nest_instance = nest_instance
-        if not (isinstance(neurons, dict) and
-                np.all([isinstance(neuron, tuple())
-                        for neuron in neurons.values()])):
-            raise ValueError("Input neurons is not a IndexedOrderedDict of tuples!:\n" %
-                             str(neurons))
+    def __init__(self, nest_instance, name, model, parameter="", tvb_coupling_id=0, sign=1, neurons=Series()):
         super(TVBNESTParameterInterface, self).__init__(neurons)
+        self.nest_instance = nest_instance
         self.name = str(name)
         self.model = str(model)
         if self.model not in NEST_INPUT_PARAMETERS.keys():
@@ -40,10 +36,20 @@ class TVBNESTParameterInterface(IndexedOrderedDict):
             raise ValueError("Sign %s is neither 1 nor -1!" % str(self.sign))
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
+    def _input_nodes(self, nodes=None):
+        if nodes is None:
+            # no input
+            return list(self.index)
+        else:
+            if nodes in list(self.index) or nodes in list(range(len(self))):
+                # input is a single index or label
+                return [nodes]
+            else:
+                # input is a sequence of indices or labels
+                return list(nodes)
+
     def set_values(self, values, nodes=None):
-        if nodes is None or len(nodes) == 0:
-            nodes = self._dict.keys()
-        nodes = ensure_list(nodes)
+        nodes = self._input_nodes(nodes)
         values = ensure_list(values)
         n_vals = len(values)
         n_nodes = len(nodes)
@@ -51,4 +57,4 @@ class TVBNESTParameterInterface(IndexedOrderedDict):
             raise ValueError("Values' number %d is neither equal to 1 "
                              "nor equal to nodes' number %d!" % (n_vals, n_nodes))
         for node, value in zip(ensure_list(nodes), cycle(values)):
-            self.nest_instance.SetStatus(self._dict[node], {self.parameter: self.sign * value})
+            self.nest_instance.SetStatus(self[node], {self.parameter: self.sign * value})

@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 
+from collections import OrderedDict
+from pandas import Series
 import numpy as np
+
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, sort_events_by_x_and_y, data_frame_from_continuous_events
-from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
-
 
 LOG = initialize_logger(__name__)
 
@@ -70,6 +71,9 @@ class NESTDevice(object):
                 raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
         self.number_of_connections = len(neurons)
 
+    def GetStatus(self, attr):
+        return self.nest_instance.GetStatus(self.device, attr)[0]
+
     def SetStatus(self, values_dict):
         self.nest_instance.SetStatus(self.device, values_dict)
 
@@ -80,12 +84,6 @@ class NESTInputDevice(NESTDevice):
     def __init__(self, nest_instance, device):
         super(NESTInputDevice, self).__init__(nest_instance, device)
         self.model = "input_device"
-        
-    def __getattr__(self, attr):
-        try:
-            self.nest_instance.GetStatus(self.device, attr)[0]
-        except:
-            raise ValueError("Failed to get %s from device %s" % (str(attr), str(self.device)))
 
     @property
     def connections(self):
@@ -291,11 +289,11 @@ class NESTOutputDevice(NESTDevice):
     def n_events(self):
         return self.number_of_events
 
-    def __getattr__(self, attr):
-        try:
-            self.events[attr]
-        except:
-            raise ValueError("Failed to get %s from device %s" % (str(attr), str(self.device)))
+    # def __getattr__(self, attr):
+    #     try:
+    #         self.events[attr]
+    #     except:
+    #         pass
 
     @property
     def reset(self):
@@ -592,31 +590,58 @@ NESTOutputSpikeDeviceDict = {"spike_detector": NESTSpikeDetector,
                              "spike_multimeter": NESTSpikeMultimeter}
 
 
-class NESTDeviceSet(IndexedOrderedDict):
+class NESTDeviceSet(Series):
 
-    def __init__(self, name="", model="", device_set=OrderedDict({})):
+    def __init__(self, name="", model="", device_set=Series(), **kwargs):
+        super(NESTDeviceSet, self).__init__(device_set, **kwargs)
+        if np.any([not isinstance(device, NESTDevice) for device in self]):
+            raise ValueError("Input device_set is not a Series of NESTDevice objects!:\n%s" %
+                             str(device_set))
         self.name = str(name)
         self.model = str(model)
-        if not (isinstance(device_set, dict) and
-                np.all([isinstance(device, NESTDevice)
-                        for device in device_set.values()])):
-            raise ValueError("Input device_set is not a IndexedOrderedDict of NESTDevice objects!:\n%s" %
-                             str(device_set))
-        super(NESTDeviceSet, self).__init__(device_set)
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
+    def do_for_all_devices(self, attr, *args, **kwargs):
+        values = []
+        for node in self:
+            val = getattr(node, attr)
+            if hasattr(val, "__call__"):
+                values.append(val(*args, **kwargs))
+            else:
+                values.append(val)
+        return values
+
+    # def __getattr__(self, attr):
+    #     try:
+    #         return super(NESTDeviceSet, self).__getattr__(attr)
+    #     except:
+    #         try:
+    #             return self.do_for_all_devices(attr)
+    #         except:
+    #             pass
+
     def update_model(self):
-        if len(self._dict) > 0:
-            self.model = list(self._dict.values())[0].model
-            if np.any([self.model != device.model
-                       for device in self._dict.values()]):
-                raise ValueError("Not all devices of the device_set are of the same model!:\n %s"
-                                 % str([device.model for device in self._dict.values()]))
+        if len(self) > 0:
+            models = self.do_for_all_devices("model")
+            if np.any([model != self.model for model in models]):
+                raise ValueError("Not all devices of the NESTDeviceSet are of the same model!:\n %s" % str(models))
 
     def update(self, *args, **kwargs):
         super(NESTDeviceSet, self).update(*args, **kwargs)
         self.update_model()
+
+    def _input_nodes(self, nodes=None):
+        if nodes is None:
+            # no input
+            return list(self.index)
+        else:
+            if nodes in list(self.index) or nodes in list(range(len(self))):
+                # input is a single index or label
+                return [nodes]
+            else:
+                # input is a sequence of indices or labels
+                return list(nodes)
 
     def SetStatus(self, value_dict, nodes=None):
         # TODO: find a nice way to treat arrays or lists attributes.
@@ -640,30 +665,22 @@ class NESTDeviceSet(IndexedOrderedDict):
                     dout[key] = val
             return dout
 
-        if nodes is None or len(nodes) == 0:
-            nodes = self._dict.keys()
-        nodes = ensure_list(nodes)
-        for i_n, node in enumerate(nodes):
+        for i_n, node in enumerate(self._input_nodes(nodes)):
             try:
                 # Good for rate, spike times and weights of spike generator
                 value_dict_i_n = get_scalar_dict1(value_dict, i_n)
-                self._dict[node].SetStatus(value_dict_i_n)
+                self[node].SetStatus(value_dict_i_n)
             except:
                 # Good for amplitude of dc generator and poisson generator
-                try:
-                    value_dict_i_n = get_scalar_dict2(value_dict, i_n)
-                    self._dict[node].SetStatus(value_dict_i_n)
-                except:
-                    print("This is the problem I was talking about!")
+                value_dict_i_n = get_scalar_dict2(value_dict, i_n)
+                self[node].SetStatus(value_dict_i_n)
 
     def GetStatus(self, attrs, nodes=None, return_values=False):
-        if nodes is None or len(nodes) == 0:
-            nodes = self._dict.keys()
         vals = OrderedDict({})
         for attr in ensure_list(attrs):
             this_attr = []
-            for node in ensure_list(nodes):
-                this_attr.append(getattr(self._dict[node], attr))
+            for node in self._input_nodes(nodes):
+                this_attr.append(getattr(self[node], attr))
             vals.update({attr: this_attr})
         if return_values:
             vals = vals.values()
@@ -673,13 +690,3 @@ class NESTDeviceSet(IndexedOrderedDict):
                 return vals
         else:
             return vals
-
-    def do_for_all_devices(self, attr, *args, **kwargs):
-        values = []
-        for node in self._dict.values():
-            val = getattr(node, attr)
-            if hasattr(val, "__call__"):
-                values.append(val(*args, **kwargs))
-            else:
-                values.append(val)
-        return values

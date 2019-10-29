@@ -46,7 +46,7 @@ RUN mkdir libneurosim; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
+RUN $VENV/bin/pip3 install pandas jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \

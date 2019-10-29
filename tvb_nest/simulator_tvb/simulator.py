@@ -314,7 +314,7 @@ class Simulator(SimulatorTVB):
         # If we need to re-initialize a NEST device at each time step,
         # we need to use nest.Simulate()
         self.simulate_nest = self.tvb_nest_interface.nest_instance.Run
-        for tvb_to_nest_interface in self.tvb_nest_interface.tvb_to_nest_interfaces.values():
+        for tvb_to_nest_interface in self.tvb_nest_interface.tvb_to_nest_interfaces:
             if not isinstance(tvb_to_nest_interface, TVBNESTParameterInterface):
                 self.simulate_nest = self.tvb_nest_interface.nest_instance.Simulate
                 break

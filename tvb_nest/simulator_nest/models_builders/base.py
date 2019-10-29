@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-
+from pandas import Series
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.network import NESTNetwork
 from tvb_nest.simulator_nest.nest_factory import *
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import ensure_list, flatten_tuple
-from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
+
 
 LOG = initialize_logger(__name__)
 
@@ -249,22 +249,22 @@ class NESTModelBuilder(object):
 
     def build_nest_populations(self, label):
         # Generate a NEST spiking network population...
-        node = NESTRegionNode(self.nest_instance, OrderedDict({}), label)
+        node = NESTRegionNode(self.nest_instance, label)
         for iP, (name, model, sizes, params) in \
                 enumerate(zip(self.populations_names,
                               self.populations_models,
                               self.populations_sizes,
                               self.populations_params)):
-            node.update({name: self.nest_instance.Create(model, sizes, params=params)})
+            node[name] = self.nest_instance.Create(model, sizes, params=params)
             # ...and connect it to itself:
             self.connect_population(node[name], iP)
         return node
 
     def build_nest_nodes(self):
-        self.nodes = IndexedOrderedDict(OrderedDict({}))
+        self.nodes = Series()
         for node_label in self.nest_nodes_labels:  # For every NEST node
             # ...generate a network of spiking population
-            self.nodes.update({node_label: self.build_nest_populations(node_label)})
+            self.nodes[node_label] = self.build_nest_populations(node_label)
             self.connect_nest_node_populations(self.nodes[node_label])  # ...and connect them
 
     def _connect_two_populations_between_nodes(self, pop_src, pop_trg, i_n_src, i_n_trg,
@@ -308,15 +308,15 @@ class NESTModelBuilder(object):
                                                                     model, weight, delay, receptor_type)
 
     def build_and_connect_nest_stimulation_devices(self):
-        # Build devices by the variable model they stimulate (IndexedOrderedDict),
-        # target node (IndexedOrderedDict)
-        # and population (IndexedOrderedDict) for faster reading
+        # Build devices by the variable model they stimulate (Series),
+        # target node (Series)
+        # and population (Series) for faster reading
         return build_and_connect_input_devices(self.nest_instance, self.stimulation_devices, self.nodes)
 
     def build_and_connect_nest_output_devices(self):
-        # Build devices by the variable model they measure (IndexedOrderedDict),
-        # target node (IndexedOrderedDict)
-        # and population (IndexedOrderedDict) for faster reading
+        # Build devices by the variable model they measure (Series),
+        # target node (Series)
+        # and population (Series) for faster reading
         return build_and_connect_output_devices(self.nest_instance, self.output_devices, self.nodes)
 
     def build_nest_network(self):

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from six import string_types
+from collections import OrderedDict
+from pandas import Series
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
@@ -12,7 +14,6 @@ from tvb_nest.interfaces.tvb_to_nest_parameter_interface import TVBNESTParameter
 from tvb_nest.interfaces.nest_to_tvb_interface import NESTtoTVBinterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
-from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
 
 
 LOG = initialize_logger(__name__)
@@ -112,14 +113,13 @@ class TVBNESTInterfaceBuilder(object):
         devices = build_and_connect_output_devices(self.nest_instance,
                                                    self.nest_to_tvb_interfaces,
                                                    self.nest_nodes)
-        interfaces = IndexedOrderedDict(OrderedDict({}))
+        interfaces = Series()
         for name, device_set in devices.items():
             try:
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
                 tvb_sv_id = None  # it might be a TVB parameter, not a state variable
-            interfaces.update({name: NESTtoTVBinterface(name, device_set.model, OrderedDict({})). \
-                              from_device_set(device_set, tvb_sv_id)})
+            interfaces[name] = NESTtoTVBinterface().from_device_set(device_set, tvb_sv_id, name)
         return interfaces
 
     def _build_tvb_to_nest_parameter_input(self, interface):
@@ -129,7 +129,7 @@ class TVBNESTInterfaceBuilder(object):
         connections = interface["connections"]
         if isinstance(connections, string_types):
             connections = {connections: slice(None)}  # return all population types
-        interfaces = IndexedOrderedDict(OrderedDict({}))
+        interfaces = Series()
         default_parameter = NEST_INPUT_PARAMETERS[interface["model"]]
         for name, populations in connections.items():
             try:
@@ -137,16 +137,12 @@ class TVBNESTInterfaceBuilder(object):
                     self.tvb_model.state_variables.index(name))
             except:
                 raise ValueError("Failed to compute the coupling index of TVB state variable %s!" % name)
-            interfaces.update({name: TVBNESTParameterInterface(self.nest_instance,
-                                                               name,
-                                                               interface["model"],
-                                                               interface.get("parameter", default_parameter),
-                                                               OrderedDict({}),
-                                                               tvb_coupling_id,
-                                                               interface.get("sign", 1))})
-            for node in self.nest_nodes.values():
-                interfaces[name].update({node.label: node[populations]})
-        return interfaces
+            interfaces[name] = TVBNESTParameterInterface(self.nest_instance, name, interface["model"],
+                                                         interface.get("parameter", default_parameter),
+                                                         tvb_coupling_id, interface.get("sign", 1))
+            for node in self.nest_nodes:
+                interfaces[name][node.label] = node[populations]
+            return interfaces
 
     def _build_tvb_to_nest_input_devices(self, interface):
         # One NEST stimulation device for every combination of
@@ -156,13 +152,13 @@ class TVBNESTInterfaceBuilder(object):
         sign = interface.get("sign", 1)
         if isinstance(connections, string_types):
             connections = {connections: slice(None)}  # return all population types
-        interfaces = IndexedOrderedDict(OrderedDict({}))
+        interfaces = Series()
         for name, populations in connections.items():
             try:
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
                 raise ValueError("Failed to compute the index of TVB state variable %s!" % name)
-            interfaces.update({name: TVBtoNESTinterface(name, model, tvb_sv_id=tvb_sv_id)})
+            interfaces[name] = TVBtoNESTinterface(name, model, tvb_sv_id=tvb_sv_id)
             for tvb_id in self.tvb_nodes_ids:
                 # Generate a device for every TVB node to be represented in NEST network...
                 try:
@@ -170,7 +166,7 @@ class TVBNESTInterfaceBuilder(object):
                 except:
                     raise ValueError("Failed to create NEST device %s!" % model)
                 # ...and connect it to every NEST node
-                for i_node, node in enumerate(self.nest_nodes.values()):
+                for i_node, node in enumerate(self.nest_nodes):
                     # ...with the corresponding weight, sign, and delay
                     weight = sign * self.connectivity.weights[self.nest_nodes_ids[i_node], tvb_id]
                     delay = self.assert_delay(
@@ -179,20 +175,22 @@ class TVBNESTInterfaceBuilder(object):
                     self.nest_instance.Connect(input_device.device, node[populations],
                                                syn_spec={"weight": weight, "delay": delay})
                 input_device.update_number_of_connections()
-                interfaces[name].update({self.connectivity.region_labels[tvb_id]: input_device})
+                interfaces[name][self.connectivity.region_labels[tvb_id]] = input_device
         return interfaces
 
     def _build_tvb_to_nest_interfaces(self):
         # This method will create the necessary NEST input devices and connect them to their target NEST nodes.
         # If the nest proxy doesn't need to be a device, we just add it to the list
-        tvb_to_nest_interfaces = IndexedOrderedDict({})
+        tvb_to_nest_interfaces = Series({})
         # Create a list of input devices for every TVB node inside NEST and connect them to the target NEST nodes:
         for interface in self.tvb_to_nest_interfaces:
             model = interface.get("model", None)
             if model in NESTInputDeviceDict.keys():
-                tvb_to_nest_interfaces.update(self._build_tvb_to_nest_input_devices(interface))
+                tvb_to_nest_interfaces = \
+                    tvb_to_nest_interfaces.append(self._build_tvb_to_nest_input_devices(interface))
             else:
-                tvb_to_nest_interfaces.update(self._build_tvb_to_nest_parameter_input(interface))
+                tvb_to_nest_interfaces = \
+                    tvb_to_nest_interfaces.append(self._build_tvb_to_nest_parameter_input(interface))
         return tvb_to_nest_interfaces
 
     def build_interface(self, tvb_nest_interface):

@@ -3,11 +3,11 @@
 import os
 import sys
 import shutil
+from pandas import Series
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.models.devices import NESTInputDeviceDict, NESTOutputDeviceDict, NESTDeviceSet
 from tvb_scripts.utils.data_structures_utils import flatten_tuple, ensure_list
-from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDict
 
 
 # Helper functions with NEST
@@ -193,7 +193,7 @@ def build_and_connect_devices(nest_instance, devices, nest_nodes):
     # Build devices by their model (IndexedOrderedDict),
     # target nodes (IndexedOrderedDict),
     # and population (IndexedOrderedDict) for faster reading
-    nest_devices = IndexedOrderedDict(OrderedDict({}))  # TODO: find out why it copies nest_nodes if not {} in the input
+    nest_devices = Series()
     for device in ensure_list(devices):
         dev_model = device["model"]
         if dev_model in NESTInputDeviceDict.keys():
@@ -210,7 +210,7 @@ def build_and_connect_devices(nest_instance, devices, nest_nodes):
                              % (dev_model, NESTInputDeviceDict.keys(), NESTOutputDeviceDict.keys()))
         device_target_nodes = device.pop("nodes", None)
         if device_target_nodes is None:
-            device_target_nodes = nest_nodes.values()
+            device_target_nodes = nest_nodes
         else:
             device_target_nodes = nest_nodes[device_target_nodes]
         # Determine the connections from variables to measure/stimulate to NEST node populations
@@ -220,12 +220,12 @@ def build_and_connect_devices(nest_instance, devices, nest_nodes):
         # For every distinct quantity to be measured from NEST or stimulated towards NEST nodes...
         for name, populations in connections.items():
             # This set of devices will be for variable...
-            nest_devices.update({name: NESTDeviceSet(name, dev_model, OrderedDict({}))})
+            nest_devices[name] = NESTDeviceSet(name, dev_model)
             # and for every target region node...
             for node in device_target_nodes:
                 # and for every target node and population group...
                 # create a device
-                nest_devices[name].update({node.label: build_device(nest_instance, device, node[populations])})
+                nest_devices[name][node.label] = build_device(nest_instance, device, node[populations])
     return nest_devices
 
 

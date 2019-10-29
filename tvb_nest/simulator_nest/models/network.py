@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
+from pandas import Series, DataFrame
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.nest_factory import load_nest
@@ -8,7 +8,6 @@ from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.devices \
     import NESTDeviceSet, NESTOutputDeviceDict, NESTInputDeviceDict, NESTOutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict
 from tvb_scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 
@@ -17,14 +16,13 @@ LOG = initialize_logger(__name__)
 
 def compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
                         spike_rate_fun=None, mean_or_sum_fun="compute_spike_rate"):
-    rates = IndexedOrderedDict({})
+    rates = Series()
     max_rate = 0
-    for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.items()):
-        rates.update({pop_label: IndexedOrderedDict({})})
-        for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.items()):
-            rates[pop_label].update(
-                {reg_label: getattr(region_spike_detector, mean_or_sum_fun)(
-                    time, spike_counts_kernel_width, spike_rate_fun)})
+    for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
+        rates[pop_label] = Series()
+        for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
+            rates[pop_label][reg_label] = \
+                    getattr(region_spike_detector, mean_or_sum_fun)(time, spike_counts_kernel_width, spike_rate_fun)
             temp = np.max(rates[pop_label][reg_label])
             if temp > max_rate:
                 max_rate = temp
@@ -32,62 +30,59 @@ def compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
 
 
 class NESTNetwork(object):
-    # IndexedOrderedDict of NESTRegionNode objects: nodes['rh-insula']['E']
-    region_nodes = IndexedOrderedDict({})
+    # Series of NESTRegionNode objects: nodes['rh-insula']['E']
+    region_nodes = Series()
     # These devices are distinct from the ones for the TVB-NEST interface
-    output_devices = IndexedOrderedDict({})  # output_devices['Excitatory']['rh-insula']
+    output_devices = Series()  # output_devices['Excitatory']['rh-insula']
     #
-    stimulation_devices = IndexedOrderedDict({})  # input_devices['Inhibitory']['rh-insula']
+    stimulation_devices = Series()  # input_devices['Inhibitory']['rh-insula']
 
     def __init__(self, nest_instance=None,
-                 region_nodes=IndexedOrderedDict({}),
-                 output_devices=IndexedOrderedDict({}),
-                 stimulation_devices=IndexedOrderedDict({}), config=CONFIGURED):
+                 region_nodes=Series(),
+                 output_devices=Series(),
+                 stimulation_devices=Series(),
+                 config=CONFIGURED):
         self.config = config
         if nest_instance is None:
             nest_instance = load_nest()
         self.nest_instance = nest_instance
-        if isinstance(region_nodes, IndexedOrderedDict) and \
-                np.all([isinstance(node, NESTRegionNode)
-                        for node in region_nodes.values()]):
+        self.region_nodes = Series()
+        self.output_devices = Series()
+        self.stimulation_devices = Series()
+        if isinstance(region_nodes, Series):
+            if len(region_nodes) > 0 and \
+                    np.any([not isinstance(node, NESTRegionNode) for node in region_nodes]):
+                raise ValueError("Input region_nodes is neither a NESTRegionNode "
+                                 "nor a Series of NESTRegionNode objects!: \n %s" %
+                                 str(region_nodes))
             self.region_nodes = region_nodes
-        else:
-            raise ValueError("Input region_nodes is not a IndexedOrderedDict of NESTRegionNode objects!: \n %s" %
-                             str(region_nodes))
 
-        self.output_devices = output_devices
-        if isinstance(output_devices, IndexedOrderedDict) and \
-                np.all([isinstance(dev, NESTDeviceSet) and (dev.model in NESTOutputDeviceDict.keys() or
-                                                            len(dev.model) == 0)
-                        for dev in output_devices.values()]):
+        if isinstance(output_devices, Series):
+            if len(output_devices) > 0 \
+                    and np.any([not isinstance(dev, NESTDeviceSet) for dev in output_devices]):
+                raise ValueError("Input output_devices is not a Series of output NESTDeviceSet objects!:\n %s" %
+                                 str(output_devices))
             self.output_devices = output_devices
-        else:
-            raise ValueError("Input output_devices is not a IndexedOrderedDict of output NESTDeviceSet objects!:\n %s" %
-                             str(output_devices))
-
-        if isinstance(stimulation_devices, IndexedOrderedDict) and \
-                np.all([isinstance(dev, NESTDeviceSet) and (dev.model in NESTInputDeviceDict.keys() or
-                                                            len(dev.model) == 0)
-                        for dev in stimulation_devices.values()]):
+        if isinstance(stimulation_devices, Series):
+            if len(stimulation_devices) > 0 and \
+                    np.any([not isinstance(dev, NESTDeviceSet) for dev in stimulation_devices]):
+                raise ValueError("Input stimulation_devices is not a Series of input NESTDeviceSet objects!:\n %s" %
+                                 str(stimulation_devices))
             self.stimulation_devices = stimulation_devices
-        else:
-            raise ValueError(
-                "Input stimulation_devices is not a IndexedOrderedDict of input NESTDeviceSet objects!:\n %s" %
-                str(stimulation_devices))
 
         LOG.info("%s created!" % self.__class__)
 
     @property
     def nodes_labels(self):
-        return self.region_nodes.keys()
+        return list(self.region_nodes.index)
 
     @property
     def number_of_nodes(self):
         return len(self.region_nodes)
 
     def get_devices_by_model(self, model):
-        devices = IndexedOrderedDict({})
-        for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.items()):
+        devices = Series()
+        for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.iteritems()):
             if pop_device.model == model:
                 devices[pop_label] = pop_device
         return devices
@@ -106,8 +101,8 @@ class NESTNetwork(object):
         first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
         last_spike_time = 0.0
         mean_spike_interval = self.config.calcul.MAX_SINGLE_VALUE
-        for i_pop, (pop_label, pop_device) in enumerate(spike_detectors.items()):
-            for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.items()):
+        for i_pop, (pop_label, pop_device) in enumerate(spike_detectors.iteritems()):
+            for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.iteritems()):
                 n_spikes = len(region_spike_detector.spikes_times)
                 if n_spikes > 0:
                     temp = np.min(region_spike_detector.spikes_times)
@@ -175,14 +170,14 @@ class NESTNetwork(object):
             return None, None, None, None
 
     def get_mean_data_from_multimeter(self, *args, **kwargs):
-        mean_data = IndexedOrderedDict(OrderedDict({}))
+        mean_data = Series()
         multimeters = self.get_devices_by_model("multimeter")
-        for device_name, device_set in multimeters.items():
+        for device_name, device_set in multimeters.iteritems():
             outputs = device_set.do_for_all_devices("get_mean_data", *args, **kwargs)
             time = []
             data = []
             for output in outputs:
                 data.append(output[0])
                 time = output[1]
-            mean_data.update({device_name: list_of_dicts_to_dicts_of_ndarrays(data)})
-        return mean_data, time
+            mean_data[device_name] = Series(list_of_dicts_to_dicts_of_ndarrays(data))
+        return DataFrame(mean_data), time

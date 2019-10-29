@@ -91,7 +91,7 @@ class TVBNESTInterface(object):
         self.nest_to_tvb_params = []
         self.nest_to_tvb_params_interfaces_ids = []
         self.nest_to_tvb_sv_interfaces_ids = []
-        for interface_id, interface in enumerate(self.nest_to_tvb_interfaces.values()):
+        for interface_id, interface in enumerate(self.nest_to_tvb_interfaces):
             if is_integer(interface.tvb_sv_id) and interface.tvb_sv_id >= 0:
                 self.nest_to_tvb_sv_interfaces_ids.append(interface_id)
             else:
@@ -101,7 +101,7 @@ class TVBNESTInterface(object):
         self._configure_parameters_shapes()
 
     def tvb_state_to_nest(self, state, coupling, stimulus):
-        for interface in self.tvb_to_nest_interfaces.values():
+        for interface in self.tvb_to_nest_interfaces:
             if interface.model == "current":
                 # We assume that current is a mean field quantity
                 # applied equally and in parallel
@@ -217,7 +217,7 @@ class TVBNESTInterface(object):
         return state
 
     # def get_mean_data_from_NEST_multimeter_to_TVBTimeSeries(self, region_labels=[], **kwargs):
-    #     # mean_data is an IndexedOrderedDict
+    #     # mean_data is a DataFrame
     #     # the keys of which correspond to population level labels,
     #     # and the values to lists of data returned for each node region NEST network.
     #     # In the case of multimeter mean data, they also take the form of
