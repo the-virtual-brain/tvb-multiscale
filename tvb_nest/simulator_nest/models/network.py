@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.nest_factory import load_nest
@@ -8,6 +9,7 @@ from tvb_nest.simulator_nest.models.devices \
     import NESTDeviceSet, NESTOutputDeviceDict, NESTInputDeviceDict, NESTOutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict
+from tvb_scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 
 LOG = initialize_logger(__name__)
@@ -171,3 +173,16 @@ class NESTNetwork(object):
             return rates, max_rate, spike_detectors, time
         else:
             return None, None, None, None
+
+    def get_mean_data_from_multimeter(self, *args, **kwargs):
+        mean_data = IndexedOrderedDict(OrderedDict({}))
+        multimeters = self.get_devices_by_model("multimeter")
+        for device_name, device_set in multimeters.items():
+            outputs = device_set.do_for_all_devices("get_mean_data", *args, **kwargs)
+            time = []
+            data = []
+            for output in outputs:
+                data.append(output[0])
+                time = output[1]
+            mean_data.update({device_name: list_of_dicts_to_dicts_of_ndarrays(data)})
+        return mean_data, time
