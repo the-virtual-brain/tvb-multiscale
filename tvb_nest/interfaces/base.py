@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta
+from six import add_metaclass
+
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import is_integer
-from six import add_metaclass
+from tvb_scripts.time_series.model import TimeSeriesRegion
+
 
 LOG = initialize_logger(__name__)
+
 
 @add_metaclass(ABCMeta)
 class TVBNESTInterface(object):
@@ -167,7 +171,7 @@ class TVBNESTInterface(object):
             if interface.model in ["spike_detector", "spike_multimeter"]:
                 param_values[self.nest_nodes_ids] = \
                     self.w_nest_spikes_to_tvb_rate[self.nest_nodes_ids] * \
-                    interface.spikes_number
+                    interface.population_spikes_number
                 interface.reset
             elif interface.model == "multimeter":
                 param_values[self.nest_nodes_ids] = \
@@ -195,7 +199,7 @@ class TVBNESTInterface(object):
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
                 state[interface.tvb_sv_id, self.nest_nodes_ids, 0] = \
                     self.w_nest_spikes_to_tvb_sv[self.nest_nodes_ids] * \
-                    interface.spikes_number
+                    interface.population_spikes_number
                 interface.reset
             elif interface.model == "multimeter":
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
@@ -211,3 +215,20 @@ class TVBNESTInterface(object):
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
         return state
+
+    # def get_mean_data_from_NEST_multimeter_to_TVBTimeSeries(self, region_labels=[], **kwargs):
+    #     # mean_data is an IndexedOrderedDict
+    #     # the keys of which correspond to population level labels,
+    #     # and the values to lists of data returned for each node region NEST network.
+    #     # In the case of multimeter mean data, they also take the form of
+    #     # dictionaries of variables measured by multimeters
+    #     mean_data, time = self.nest_network.get_mean_data_from_multimeter(**kwargs)
+    #     populations = mean_data.keys()
+    #     n_populations = len(populations)
+    #     if n_populations > 0:
+    #         n_regions = len(mean_data.values()[0])
+    #         variables =
+    #         data = np.empty((len(time), len()))
+    #     else:
+    #         LOG.warning("Empty mean_data from NEST multimeters!")
+    #         return TimeSeriesRegion(np.array([]))
