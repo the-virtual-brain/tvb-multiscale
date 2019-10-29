@@ -7,10 +7,22 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
+from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_nest.models_builders.red_rate_ww_exc_io_inh_i import RedRateWWExcIOInhIBuilder
+from tvb_nest.simulator_nest.models_builders.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder
+from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.simulator_nest.models_builders.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder
+from tvb_nest.simulator_nest.models_builders.ww_deco2014 import WWDeco2014Builder
+from tvb_nest.interfaces.builders.red_rate_ww_exc_io_inh_i \
+    import RedRateWWexcIOinhIBuilder as InterfaceRedRateWWexcIOinhIBuilder
 from tvb_nest.interfaces.builders.rate_ww_ampa_nmda_gaba \
     import RateWWAMPANMDAGABABuilder as InterfaceRateWWAMPANMDAGABABuilder
-from tvb_nest.simulator_nest.models_builders.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i \
+    import RedWWexcIOinhI as InterfaceRedWWexcIOinhI
+from tvb_nest.interfaces.builders.ww_ampa_nmda_gaba import \
+    WWAMPANMDAGABABuilder as InterfaceWWAMPANMDAGABABuilder
+from tvb_nest.interfaces.builders.ww_deco2014 import \
+    WWDeco2014Builder as InterfaceWWDeco2014Builder
 from tvb_nest.plot.plotter import Plotter
 from tvb_scripts.time_series.model import TimeSeriesRegion
 from tvb.datatypes.connectivity import Connectivity
@@ -99,6 +111,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
 
+    nest_region_labels = simulator.connectivity.region_labels[tvb_nest_model.nest_nodes_ids]
+
 
 if __name__ == "__main__":
     # Select the regions for the fine scale modeling with NEST spiking networks
@@ -108,7 +122,7 @@ if __name__ == "__main__":
     for id in range(connectivity.region_labels.shape[0]):
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
-    main_example(ReducedWongWangExcIOInhI(), RateWWAMPANMDAGABABuilder, InterfaceRateWWAMPANMDAGABABuilder,
+    main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhI,
                  nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
                  tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
                  config=CONFIGURED)
