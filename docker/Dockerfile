@@ -93,20 +93,20 @@ ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
 
-#For running jupyter notebook example
-#CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-
 #For running instalation test
-#CMD $VENV/bin/python installation_test.py
-
-#For running example
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
+CMD $VENV/bin/python installation_test.py
 
 #For running tests
 CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
 
 #For running tests with coverage
 #CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
+
+#For running jupyter notebook example
+CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+
+#For running example
+#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 
 #srun -C mc --time 01:00:00 --partition=normal
 #       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
