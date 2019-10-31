@@ -1,32 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from pandas import Series, DataFrame
+from pandas import Series
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.nest_factory import load_nest
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.devices \
-    import NESTDeviceSet, NESTOutputDeviceDict, NESTInputDeviceDict, NESTOutputSpikeDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
+    import NESTDeviceSet, NESTOutputSpikeDeviceDict
+from tvb_scripts.utils.computations_utils import compute_spikes_rates
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+from tvb_scripts.utils.data_structures_utils import ensure_list, nested_to_multiindex_pandas_dataframe
 
 
 LOG = initialize_logger(__name__)
-
-
-def compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
-                        spike_rate_fun=None, mean_or_sum_fun="compute_spike_rate"):
-    rates = Series()
-    max_rate = 0
-    for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
-        rates[pop_label] = Series()
-        for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
-            rates[pop_label][reg_label] = \
-                    getattr(region_spike_detector, mean_or_sum_fun)(time, spike_counts_kernel_width, spike_rate_fun)
-            temp = np.max(rates[pop_label][reg_label])
-            if temp > max_rate:
-                max_rate = temp
-    return rates, max_rate
 
 
 class NESTNetwork(object):
@@ -80,21 +66,28 @@ class NESTNetwork(object):
     def number_of_nodes(self):
         return len(self.region_nodes)
 
-    def get_devices_by_model(self, model):
+    def get_devices_by_model(self, model, nodes=None):
         devices = Series()
+        if nodes is None:
+            get_device = lambda device, nodes: device
+        else:
+            nodes = ensure_list(nodes)
+            get_device = lambda device, nodes: device[nodes]
+
         for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.iteritems()):
             if pop_device.model == model:
-                devices[pop_label] = pop_device
+                devices[pop_label] = get_device(pop_device, nodes)
         return devices
 
     def _prepare_to_compute_spike_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
-                                        spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None):
+                                        spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                        regions=None):
 
         for device_name in NESTOutputSpikeDeviceDict.keys():
-            spike_detectors = self.get_devices_by_model(device_name)
-            if len(spike_detectors.keys()) > 0:
+            spike_detectors = self.get_devices_by_model(device_name, nodes=regions)
+            if len(spike_detectors) > 0:
                 break   # If this is not an empty dict of devices
-        if len(spike_detectors.keys()) == 0:
+        if len(spike_detectors) == 0:
             LOG.warning("No spike measuring device in this NEST network!")
             return None, None, None
 
@@ -144,40 +137,54 @@ class NESTNetwork(object):
 
         return spike_detectors, time, spike_counts_kernel_width
 
-    def compute_spike_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
-                            spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None, spike_rate_fun=None):
+    def compute_spikes_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
+                             spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None, spike_rate_fun=None):
         spike_detectors, time, spike_counts_kernel_width = \
             self._prepare_to_compute_spike_rates(spike_counts_kernel_width, spike_counts_kernel_n_intervals,
                                                  spike_counts_kernel_overlap, min_spike_interval, time)
         if spike_detectors is not None:
-            rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
-                                                  spike_rate_fun, "compute_spike_rate")
+            rates, max_rate = compute_spikes_rates(spike_detectors, time, spike_counts_kernel_width,
+                                                   spike_rate_fun, "compute_spike_rate")
             return rates, max_rate, spike_detectors, time
         else:
             return None, None, None, None
 
-    def compute_mean_spike_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
-                                 spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None,
-                                 spike_rate_fun=None):
+    def compute_mean_spikes_rates(self, spike_counts_kernel_width=None, spike_counts_kernel_n_intervals=10,
+                                  spike_counts_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                  spike_rate_fun=None, regions=None):
         spike_detectors, time, spike_counts_kernel_width = \
             self._prepare_to_compute_spike_rates(spike_counts_kernel_width, spike_counts_kernel_n_intervals,
-                                                 spike_counts_kernel_overlap, min_spike_interval, time)
+                                                 spike_counts_kernel_overlap, min_spike_interval, time, regions)
         if spike_detectors is not None:
-            rates, max_rate = compute_spike_rates(spike_detectors, time, spike_counts_kernel_width,
-                                                  spike_rate_fun, "compute_mean_spike_rate")
+            rates, max_rate = compute_spikes_rates(spike_detectors, time, spike_counts_kernel_width,
+                                                   spike_rate_fun, "compute_mean_spike_rate")
             return rates, max_rate, spike_detectors, time
         else:
             return None, None, None, None
 
-    def get_mean_data_from_multimeter(self, *args, **kwargs):
+    def get_mean_data_from_multimeter(self, population_devices=None, variables=None, regions=None, **kwargs):
         mean_data = Series()
-        multimeters = self.get_devices_by_model("multimeter")
-        for device_name, device_set in multimeters.iteritems():
-            outputs = device_set.do_for_all_devices("get_mean_data", *args, **kwargs)
-            time = []
-            data = []
-            for output in outputs:
-                data.append(output[0])
-                time = output[1]
-            mean_data[device_name] = Series(list_of_dicts_to_dicts_of_ndarrays(data))
-        return DataFrame(mean_data), time
+        multimeters = self.get_devices_by_model("multimeter", nodes=regions)
+        if len(multimeters) == 0:
+            LOG.warning("No multimeter device in this NEST network!")
+            return None, None
+        index = list(multimeters.index)
+        time = None
+        if population_devices is None:
+            population_devices = index
+        else:
+            population_devices = np.intersect1d(index, population_devices).tolist()
+        for i_dev, device_name in enumerate(population_devices):
+            mean_data[device_name] = \
+                Series(multimeters[device_name].do_for_all_devices("get_mean_data", return_type="Series",
+                                                                   variables=variables, **kwargs))
+            new_time = multimeters[0].time[0]
+            if time is None:
+                time = new_time
+            else:
+                if np.any(new_time != time):
+                    raise_value_error("Time vector of device %s is not identical to previous devices %s!"
+                                      % (device_name, str()))
+        mean_data = nested_to_multiindex_pandas_dataframe(mean_data, names=["Population", "Region", "Variable"])
+        mean_data = mean_data.reorder_levels([2, 1, 0]).transpose()
+        return mean_data, time
