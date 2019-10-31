@@ -393,43 +393,44 @@ class NESTMultimeter(NESTOutputDevice):
     def record_from(self):
         return self.nest_instance.GetStatus(self.device)[0]['record_from']
 
-    def get_data(self, variables=[], neurons=None, exclude_neurons=[]):
-        variables = ensure_list(variables)
-        if len(variables) == 0:
-            variables = self.record_from
-        else:
+    @property
+    def time(self):
+        return np.unique(self.times)
+
+    def _determine_variables(self, variables=None):
+        if variables is not None:
+            variables = ensure_list
             for variable in variables:
-                assert variable in self.record_from
+                    assert variable in self.record_from
+        else:
+            variables = self.record_from
+        return variables
+
+    def get_data(self, variables=None, neurons=None, exclude_neurons=[]):
         events = dict(self.events)
         times = events.pop("times")
         senders = events.pop("senders")
-        data, times, neurons = \
-            data_frame_from_continuous_events(events, times, senders, variables=variables,
-                                              filter_senders=neurons, exclude_senders=exclude_neurons)
-        return data, times, neurons
+        return data_frame_from_continuous_events(events, times, senders,
+                                                 variables=self._determine_variables(variables),
+                                                 filter_senders=neurons, exclude_senders=exclude_neurons)[0]
 
-    def get_mean_data(self, variables=[], neurons=None, exclude_neurons=[]):
-        data, times, neurons = self.get_data(variables, neurons, exclude_neurons)
-        for var, values in data.items():
+    def get_mean_data(self, variables=None, neurons=None, exclude_neurons=[]):
+        data = self.get_data(variables, neurons, exclude_neurons)
+        for var, values in data.iteritems():
             data[var] = np.mean(values, axis=1)
-        return data, times, neurons
+        return data
 
     @property
     def data(self):
-        return self.get_data()[0]
+        return self.get_data()
 
     @property
     def data_mean(self):
-        return self.get_mean_data()[0]
+        return self.get_mean_data()
 
-    def current_data(self, variables=[], neurons=None, exclude_neurons=[]):
+    def current_data(self, variables=None, neurons=None, exclude_neurons=[]):
         output = OrderedDict()
-        variables = ensure_list(variables)
-        if len(variables) == 0:
-            variables = self.record_from
-        else:
-            for variable in variables:
-                assert variable in self.record_from
+        variables = self._determine_variables(variables),
         events = self.events
         times = events["times"]
         if len(times) > 0:
@@ -459,13 +460,13 @@ class NESTMultimeter(NESTOutputDevice):
                 output[var] = np.zeros((len(neurons), ))
         return output
 
-    def current_data_mean(self, variables=[], neurons=None, exclude_neurons=[]):
+    def current_data_mean(self, variables=None, neurons=None, exclude_neurons=[]):
         output = self.current_data(variables, neurons, exclude_neurons)
         for var in output.keys():
             output[var] = np.mean(output[var])
         return output
 
-    def current_data_mean_values(self, variables=[], neurons=None, exclude_neurons=[]):
+    def current_data_mean_values(self, variables=None, neurons=None, exclude_neurons=[]):
         return list(self.current_data_mean(variables, neurons, exclude_neurons).values())
 
 
@@ -602,15 +603,47 @@ class NESTDeviceSet(Series):
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
-    def do_for_all_devices(self, attr, *args, **kwargs):
-        values = []
-        for node in self:
-            val = getattr(node, attr)
-            if hasattr(val, "__call__"):
-                values.append(val(*args, **kwargs))
+    def _input_nodes(self, nodes=None):
+        if nodes is None:
+            # no input
+            return list(self.index)
+        else:
+            if nodes in list(self.index) or nodes in list(range(len(self))):
+                # input is a single index or label
+                return [nodes]
             else:
-                values.append(val)
-        return values
+                # input is a sequence of indices or labels
+                return list(nodes)
+
+    def _return_by_type(self, values_dict, return_type="dict"):
+        if return_type == "values":
+            return list(values_dict.values())
+        elif return_type == "Series":
+            return Series(values_dict)
+        else:
+            return values_dict
+
+    def do_for_all_devices(self, attr, *args, nodes=None, return_type="values", **kwargs):
+        values_dict = OrderedDict()
+        for node in self._input_nodes(nodes):
+            val = getattr(self[node], attr)
+            if hasattr(val, "__call__"):
+                values_dict.update({node: val(*args, **kwargs)})
+            else:
+                values_dict.update({node: val})
+        return self._return_by_type(values_dict, return_type)
+
+    @property
+    def times(self):
+        return self.do_for_all_devices("times", return_type="values")
+
+    @property
+    def time(self):
+        return self.do_for_all_devices("time", return_type="values")
+
+    @property
+    def senders(self):
+        return self.do_for_all_devices("senders", return_type="values")
 
     # def __getattr__(self, attr):
     #     try:
@@ -631,17 +664,14 @@ class NESTDeviceSet(Series):
         super(NESTDeviceSet, self).update(*args, **kwargs)
         self.update_model()
 
-    def _input_nodes(self, nodes=None):
-        if nodes is None:
-            # no input
-            return list(self.index)
-        else:
-            if nodes in list(self.index) or nodes in list(range(len(self))):
-                # input is a single index or label
-                return [nodes]
-            else:
-                # input is a sequence of indices or labels
-                return list(nodes)
+    def GetStatus(self, attrs, nodes=None, return_type="dict"):
+        values_dict = OrderedDict({})
+        for attr in ensure_list(attrs):
+            this_attr = []
+            for node in self._input_nodes(nodes):
+                this_attr.append(self[node].GetStatus[attr])
+            values_dict.update({attr: this_attr})
+        return self._return_by_type(values_dict, return_type)
 
     def SetStatus(self, value_dict, nodes=None):
         # TODO: find a nice way to treat arrays or lists attributes.
@@ -674,19 +704,3 @@ class NESTDeviceSet(Series):
                 # Good for amplitude of dc generator and poisson generator
                 value_dict_i_n = get_scalar_dict2(value_dict, i_n)
                 self[node].SetStatus(value_dict_i_n)
-
-    def GetStatus(self, attrs, nodes=None, return_values=False):
-        vals = OrderedDict({})
-        for attr in ensure_list(attrs):
-            this_attr = []
-            for node in self._input_nodes(nodes):
-                this_attr.append(getattr(self[node], attr))
-            vals.update({attr: this_attr})
-        if return_values:
-            vals = vals.values()
-            if len(vals) == 1:
-                return vals[0]
-            else:
-                return vals
-        else:
-            return vals
