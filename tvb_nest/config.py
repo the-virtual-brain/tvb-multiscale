@@ -57,11 +57,10 @@ class NESTconfig(object):
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:
-    TVB_NEST_DIR = os.environ["NEST_INSTALL_DIR"]
-    MODULES_DIR = os.environ["MYMODULES_DIR"]
-    MODULES_BLDS_DIR = os.environ["MYMODULES_BLD_DIR"]
-    WORKING_DIR = os.path.join(os.path.abspath(__file__).split("tvb_nest")[0],
-                               "tvb_nest/examples/outputs")
+    TVB_NEST_DIR = os.path.dirname(os.path.abspath(__file__))
+    MODULES_DIR = os.path.join(TVB_NEST_DIR, "nest/modules")
+    MODULES_BLDS_DIR = os.path.join(os.path.abspath(__file__).split("tvb-multiscale")[0], "nest_modules_builds")
+    WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
 
     # DATA:
     TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
