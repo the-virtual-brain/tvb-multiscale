@@ -3,6 +3,7 @@
 from six import string_types
 from enum import Enum
 from copy import deepcopy
+from collections import OrderedDict
 import numpy
 from tvb_scripts.utils.log_error_utils import initialize_logger, warning
 from tvb_scripts.utils.data_structures_utils import monopolar_to_bipolar
@@ -66,14 +67,36 @@ def prepare_4d(data, logger):
 class TimeSeries(TimeSeriesTVB):
     logger = initialize_logger(__name__)
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data=None, **kwargs):
         super(TimeSeries, self).__init__(**kwargs)
-        self.data = prepare_4d(data, self.logger)
+        if data is not None:
+            self.data = prepare_4d(data, self.logger)
+            self.configure()
+
+    def from_pandas_DataFrame(self, df, time=None, **kwargs):
+        # TODO: test that it works correctly when all 3 levels of df have more than 1 label!!!
+        data = df.to_numpy()
+        n_times = data.shape[0]
+        if time is not None:
+            assert n_times == len(time)
+        n_labels = [n_times]
+        names = list(df.columns.names)
+        labels_dimensions = OrderedDict()
+        for name in names:
+            labels_dimensions[name] = numpy.unique(list(df.columns.get_level_values(name))).tolist()
+            n_labels.append(len(labels_dimensions[name]))
+        data = data.reshape(tuple(n_labels))
+        if data.ndim > 3:
+            data = data.swapaxes(2, 3)
+        return self.duplicate(data=data, time=time,
+                              labels_ordering=["Time"]+names,
+                              labels_dimensions=labels_dimensions, **kwargs)
 
     def duplicate(self, **kwargs):
         duplicate = deepcopy(self)
         for attr, value in kwargs.items():
             setattr(duplicate, attr, value)
+        duplicate.data = prepare_4d(duplicate.data, self.logger)
         duplicate.configure()
         return duplicate
 
