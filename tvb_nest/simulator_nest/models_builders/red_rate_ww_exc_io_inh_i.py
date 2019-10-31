@@ -32,6 +32,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
                     compile_modules("tvb_rate_wongwang", recompile=False, config=self.config)
                     # and now install it...
                     self.nest_instance.Install("tvb_rate_wongwangmodule")
+                nest_models = self.nest_instance.Models()
         # Spiking populations scalings for the number of neurons:
         self.populations_scales = [1.0, 0.7]
         # Some properties for the default synapse to be used:
@@ -68,8 +69,8 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         # Creating  devices to be able to observe NEST activity:
         connections = OrderedDict({})
         #          label <- target population
-        connections["E"] = "E"
-        connections["I"] = "I"
+        connections["Excitatory"] = "E"
+        connections["Inhibitory"] = "I"
         params_multimeter = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
         params_multimeter['record_from'] = ["S", "rate", "I_syn", "currents"]
         self.output_devices = \

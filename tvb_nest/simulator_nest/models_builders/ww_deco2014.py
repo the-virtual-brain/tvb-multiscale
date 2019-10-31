@@ -19,17 +19,17 @@ class WWDeco2014Builder(NESTModelBuilder):
         nest_models = self.nest_instance.Models()
         for model in self.populations_models:
             if model not in nest_models:
-                # If the model is not install into NEST already
+                # If the model is not installed into NEST already
                 module = model + "module"
                 try:
                     # Try to install it...
                     self.nest_instance.Install(module)
                 except:
                     # ...unless we need to first compile it:
-                    compile_modules(module, recompile=False, config=self.config)
+                    compile_modules(model, recompile=False, config=self.config)
                     # and now install it...
                     self.nest_instance.Install(module)
-
+                nest_models = self.nest_instance.Models()
         # Common order of neurons' number per population:
         self.populations_order = 100
         # Spiking populations scalings for the number of neurons:
@@ -72,8 +72,8 @@ class WWDeco2014Builder(NESTModelBuilder):
         self.output_devices = []
         connections = OrderedDict({})
         #          label <- target population
-        connections["E"] = "E"
-        connections["I"] = "I"
+        connections["Excitatory"] = "E"
+        connections["Inhibitory"] = "I"
         params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
         params['record_from'] = ["V_m",
                                  "s_AMPA_ext", "s_AMPA_rec", "x_NMDA", "s_NMDA", "s_GABA",
@@ -82,8 +82,8 @@ class WWDeco2014Builder(NESTModelBuilder):
                                     "nodes": None, "connections": connections}),
         connections = OrderedDict({})
         #          label <- target population
-        connections["E spikes"] = "E"
-        connections["I spikes"] = "I"
+        connections["E"] = "E"
+        connections["I"] = "I"
         params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"]
         self.output_devices.append({"model": "spike_detector", "params": params,
                                     "nodes": None, "connections": connections})

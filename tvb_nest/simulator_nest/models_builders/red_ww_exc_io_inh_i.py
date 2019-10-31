@@ -54,13 +54,13 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         self.output_devices = []
         connections = OrderedDict({})
         #          label <- target population
-        connections["E spikes"] = "E"
-        connections["I spikes"] = "I"
+        connections["E"] = "E"
+        connections["I"] = "I"
         self.output_devices.append({"model": "spike_detector", "params": {},
                                     "nodes": None, "connections": connections})
         connections = OrderedDict({})
-        connections["E V_m"] = "E"
-        connections["I V_m"] = "I"
+        connections["Excitatory"] = "E"
+        connections["Inhibitory"] = "I"
         params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "nodes": None, "connections": connections})

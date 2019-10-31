@@ -22,17 +22,17 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         nest_models = self.nest_instance.Models()
         for model in ["iaf_cond_ampa_gaba_deco2014", "iaf_cond_nmda_deco2014", "scale_connection"]:
             if model not in nest_models:
-                # If the model is not install into NEST already
+                # If the model is not installed into NEST already
                 module = model + "module"
                 try:
                     # Try to install it...
                     self.nest_instance.Install(module)
                 except:
                     # ...unless we need to first compile it:
-                    compile_modules(module, recompile=False, config=self.config)
+                    compile_modules(model, recompile=False, config=self.config)
                     # and now install it...
                     self.nest_instance.Install(module)
-
+                nest_models = self.nest_instance.Models()
         self.populations_params = [{}, {},  # AMPA and NMDA get the default parameters
                                    {"tau_syn": 10.0}]  # decay synaptic time for GABA has to change
         # Common order of neurons' number per population:
