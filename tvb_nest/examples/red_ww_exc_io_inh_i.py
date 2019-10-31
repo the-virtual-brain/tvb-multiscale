@@ -108,8 +108,8 @@ if __name__ == "__main__":
     # output_devices.append({"model": "spike_detector", "params": {},
     #                        "nodes": None, "connections": connections})
     # connections = OrderedDict({})
-    # connections["E V_m"] = "E"
-    # connections["I V_m"] = "I"
+    # connections["Excitatory"] = "E"
+    # connections["Inhibitory"] = "I"
     # params = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"]
     # output_devices.append({"model": "multimeter", "params": params,
     #                       "nodes": None, "connections": connections})
@@ -175,15 +175,7 @@ if __name__ == "__main__":
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    # Plot spikes and mean field spike rates
-    rates, max_rate, spike_detectors, t = \
-        nest_network.compute_mean_spike_rates(spike_counts_kernel_width=simulator.integrator.dt,  # ms
-                                              spike_counts_kernel_overlap=0.0, time=t)
-    plotter.plot_spikes(spike_detectors, t, rates=rates, max_rate=max_rate,
-                        title='Population spikes and mean spike rate')
-
-    #   Remove ts_type="Region" this argument too for TVB TimeSeriesRegion
-    source_ts = TimeSeriesRegion(  # substitute with TimeSeriesRegion fot TVB like functionality
+    source_ts = TimeSeriesRegion(
         data=source, time=t,
         connectivity=simulator.connectivity,
         # region_mapping=head.cortical_region_mapping,
@@ -203,3 +195,24 @@ if __name__ == "__main__":
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
+
+    # Plot NEST multimeter variables
+    multimeter_mean_data = tvb_nest_model.get_mean_data_from_NEST_multimeter_to_TVBTimeSeries()
+    if multimeter_mean_data is not None:
+        plotter.plot_multimeter_timeseries(multimeter_mean_data, plot_per_variable=True,
+                                           time_series_class=TimeSeriesRegion, time_series_args={},
+                                           var_pop_join_str=" - ", default_population_label="population",
+                                           title="NEST region time series")
+        plotter.plot_multimeter_raster(multimeter_mean_data, plot_per_variable=True,
+                                       time_series_class=TimeSeriesRegion, time_series_args={},
+                                       var_pop_join_str=" - ", default_population_label="population",
+                                       title="NEST region time series raster")
+
+    # Plot spikes and mean field spike rates
+    rates, max_rate, spike_detectors, spike_time = \
+        tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(
+            spike_counts_kernel_width=simulator.integrator.dt,  # ms
+            spike_counts_kernel_overlap=0.0, time=t)
+    if spike_detectors is not None:
+        plotter.plot_spikes(spike_detectors, spike_time, rates=rates, max_rate=max_rate,
+                            title='Population spikes and mean spike rate')
