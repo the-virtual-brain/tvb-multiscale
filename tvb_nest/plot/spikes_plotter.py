@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-
+from pandas import DataFrame
 from tvb_scripts.plot.base_plotter import BasePlotter
 from matplotlib import pyplot
 
@@ -19,9 +19,14 @@ class SpikesPlotter(BasePlotter):
         yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
 
         if rates is not None:
-            if max_rate is None:
-                max_rate = np.max([np.max([np.max(region_vals) for region_vals in pop_rate])
-                                   for pop_rate in rates])
+            if isinstance(rates, DataFrame):  # In case we call this within the NEST interface context using pandas
+                if max_rate is None:
+                    max_rate = rates.to_numpy().max()
+                get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[pop_lbl][reg_lbl]
+            else:  # Assuming TVB TimeSeries
+                if max_rate is None:
+                    max_rate = rates.data.max()
+                get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[:, i_pop, i_region]
             if max_rate == 0:
                 max_rate = 1.0
             rate_step = max_rate / len(yticks)
@@ -60,7 +65,7 @@ class SpikesPlotter(BasePlotter):
 
                 if plot_rates:
                     # Adjust rates values to neurons axis range
-                    rate_vals = rates[pop_label][reg_label] / max_rate * max_n_neurons
+                    rate_vals = get_rate_fun(reg_label, pop_label, i_region, i_pop) / max_rate * max_n_neurons
                     axes[i_pop][i_region].plot(time, rate_vals,
                                                linestyle=kwargs.get("rate_linestyle", "-"),
                                                color=kwargs.get("rate_color", "k"),
