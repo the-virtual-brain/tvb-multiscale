@@ -222,14 +222,14 @@ class TVBNESTInterface(object):
         # and the values to lists of data returned for each node region NEST network.
         # In the case of multimeter mean data, they also take the form of
         # dictionaries of variables measured by multimeters
-        mean_data, time = self.nest_network.get_mean_data_from_multimeter(**kwargs)
+        mean_data = self.nest_network.get_mean_data_from_multimeter(**kwargs)
         connectivity = kwargs.pop("connectivity", None)
         if connectivity is None:
             time_series = TimeSeries()
         else:
             time_series = TimeSeriesRegion(connectivity=connectivity)
         if mean_data is not None:
-            return time_series.from_pandas_DataFrame(mean_data, time)
+            return time_series.from_xarray_DataArray(mean_data)
         else:
             return None
 
@@ -237,14 +237,13 @@ class TVBNESTInterface(object):
         # rate is a DataFrame
         # the keys of which correspond to population level labels,
         # and the values to lists of data returned for each node region NEST network.
-        rates, max_rate, spike_detectors, time = self.nest_network.compute_mean_spikes_rates(**kwargs)
+        rates, spike_detectors = self.nest_network.compute_mean_spikes_rates(**kwargs)
         connectivity = kwargs.pop("connectivity", None)
         if connectivity is None:
             time_series = TimeSeries()
         else:
             time_series = TimeSeriesRegion(connectivity=connectivity)
         if rates is not None:
-            return time_series.from_pandas_DataFrame(rates, time), \
-                   max_rate, spike_detectors, time
+            return time_series.from_xarray_DataArray(rates), spike_detectors
         else:
-            return None, None, None, None
+            return None, None

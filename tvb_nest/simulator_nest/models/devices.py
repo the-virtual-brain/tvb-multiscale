@@ -2,12 +2,15 @@
 from abc import ABCMeta, abstractmethod
 
 from collections import OrderedDict
-from pandas import Series
+import pandas as pd
+import xarray as xr
 import numpy as np
 
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils \
-    import ensure_list, flatten_list, sort_events_by_x_and_y, data_frame_from_continuous_events
+    import ensure_list, flatten_list, sort_events_by_x_and_y, data_xarray_from_continuous_events
+from tvb_scripts.utils.computations_utils import spikes_rate_with_rectangular_kernel
+
 
 LOG = initialize_logger(__name__)
 
@@ -49,7 +52,7 @@ class NESTDevice(object):
 
     @property
     def nest_model(self):
-        return self.nest_instance.GetStatus(self.device)[0]["model"].split("<SLILiteral: ")[1].split(">")[0]
+        return str(self.nest_instance.GetStatus(self.device)[0]["model"])
 
     @abstractmethod
     def connections(self):
@@ -289,12 +292,6 @@ class NESTOutputDevice(NESTDevice):
     def n_events(self):
         return self.number_of_events
 
-    # def __getattr__(self, attr):
-    #     try:
-    #         self.events[attr]
-    #     except:
-    #         pass
-
     @property
     def reset(self):
         self.nest_instance.SetStatus(self.device, {'n_events': 0})
@@ -315,20 +312,22 @@ class NESTSpikeDetector(NESTOutputDevice):
     def neurons(self):
         return tuple([conn[0] for conn in self.connections])
 
-    def get_spike_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.filter_events("times", None, neurons, times, exclude_neurons, exclude_times)
+    # All the following properties are time summaries without taking into consideration spike timing:
 
-    def get_spike_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.filter_events("senders", None, neurons, times, exclude_neurons, exclude_times)
+    def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.filter_events("times", None, neurons, times, exclude_neurons, exclude_times)["times"]
+
+    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.filter_events("senders", None, neurons, times, exclude_neurons, exclude_times)["senders"]
 
     def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times))
+        return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times))
 
     def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / \
+        return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / \
                self.get_number_of_neurons(neurons, exclude_neurons)
 
-    def get_mean_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
 
     def get_spikes_times_by_neurons(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
@@ -358,28 +357,46 @@ class NESTSpikeDetector(NESTOutputDevice):
         return self.get_mean_number_of_spikes()
 
     @property
-    def mean_spikes_rate(self):
-        return self.get_mean_spikes_rate()
+    def spikes_rate(self):
+        return self.get_spikes_rate()
 
-    def compute_spike_rate(self, time, spike_counts_kernel_width, spike_rate_fun=None):
+    # The following properties are computed across time:
 
-        def spike_rate(spikes_times, time, spike_counts_kernel_width):
-            spikes_times = np.array(spikes_times)
-            spike_counts_kernel_width2 = spike_counts_kernel_width / 2
-            spike_counts = []
+    def compute_spikes_rate_across_time(self, time, spikes_kernel_width,
+                                        spikes_kernel=None, mode="summary",
+                                        name=None, **kwargs):
+
+        def spikes_rate_with_rectangular_kernel(spikes_times, time, spikes_counts_kernel_width2):
+            spikes_counts = []
             for t in time:
-                spike_counts.append(np.sum(np.logical_and(spikes_times >= (t - spike_counts_kernel_width2),
-                                                          spikes_times < (t + spike_counts_kernel_width2))))
-            return np.array(spike_counts) / spike_counts_kernel_width * 1000  # in spikes/sec
+                spikes_counts.append(np.sum(np.logical_and(spikes_times >= (t - spikes_counts_kernel_width2),
+                                                           spikes_times < (t + spikes_counts_kernel_width2))))
+            return np.array(spikes_counts) / (2*spikes_counts_kernel_width2)
 
-        if spike_rate_fun is None:
-            spike_rate_fun = spike_rate
+        if spikes_kernel is None:
+            spikes_kernel = spikes_rate_with_rectangular_kernel
 
+        if name is None:
+            name = self.model + " - Total spike rate accross time"
+        if mode == "per_neuron":
+            senders_neurons = []
+            rates = []
+            for neuron, spike_times in self.get_spikes_times_by_neurons(**kwargs).items():
+                senders_neurons.append(neuron)
+                rates.append(spikes_kernel(spike_times, time, spikes_kernel_width))
+            return xr.DataArray(rates, dims=["Neuron", "Time"], coords={"Neuron": senders_neurons,
+                                                                        "Time": time})
         # Compute rate
-        return spike_rate_fun(self.spikes_times, time, spike_counts_kernel_width)
+        return xr.DataArray(spikes_kernel(self.get_spikes_times(**kwargs), time, spikes_kernel_width),
+                            dims=["Time"], coords={"Time": time}, name=name)
 
-    def compute_mean_spike_rate(self, time, spike_counts_kernel_width, spike_rate_fun=None):
-        return self.compute_spike_rate(time, spike_counts_kernel_width, spike_rate_fun) / self.number_of_neurons
+    def compute_mean_spike_rate_across_time(self, time, spike_kernel_width, spikes_kernel=None, name=None,
+                                            **kwargs):
+        if name is None:
+            name = self.model + " - Mean spike rate accross time"
+        return self.compute_spikes_rate_across_time(time, spike_kernel_width, spikes_kernel,
+                                                          "summary", name, **kwargs) / \
+               self.get_number_of_neurons(**kwargs)
 
 
 class NESTMultimeter(NESTOutputDevice):
@@ -391,7 +408,7 @@ class NESTMultimeter(NESTOutputDevice):
 
     @property
     def record_from(self):
-        return self.nest_instance.GetStatus(self.device)[0]['record_from']
+        return [str(name) for name in self.nest_instance.GetStatus(self.device)[0]['record_from']]
 
     @property
     def time(self):
@@ -406,19 +423,21 @@ class NESTMultimeter(NESTOutputDevice):
             variables = self.record_from
         return variables
 
-    def get_data(self, variables=None, neurons=None, exclude_neurons=[]):
+    def get_data(self, variables=None, neurons=None, exclude_neurons=[],
+                 name=None, dims_names=["Variable", "Neuron", "Time"]):
+        if name is None:
+            name = self.model
         events = dict(self.events)
         times = events.pop("times")
         senders = events.pop("senders")
-        return data_frame_from_continuous_events(events, times, senders,
-                                                 variables=self._determine_variables(variables),
-                                                 filter_senders=neurons, exclude_senders=exclude_neurons)[0]
+        return data_xarray_from_continuous_events(events, times, senders,
+                                                  variables=self._determine_variables(variables),
+                                                  filter_senders=neurons, exclude_senders=exclude_neurons,
+                                                  name=name, dims_names=dims_names)
 
     def get_mean_data(self, variables=None, neurons=None, exclude_neurons=[]):
         data = self.get_data(variables, neurons, exclude_neurons)
-        for var, values in data.iteritems():
-            data[var] = np.mean(values, axis=1)
-        return data
+        return data.mean(dim="Neuron")
 
     @property
     def data(self):
@@ -428,11 +447,16 @@ class NESTMultimeter(NESTOutputDevice):
     def data_mean(self):
         return self.get_mean_data()
 
-    def current_data(self, variables=None, neurons=None, exclude_neurons=[]):
-        output = OrderedDict()
-        variables = self._determine_variables(variables),
+    def current_data(self, variables=None, neurons=None, exclude_neurons=[],
+                     name=None, dims_names=["Variable", "Neuron"]):
+        if name is None:
+            name = self.model
+        coords = OrderedDict()
+        variables = self._determine_variables(variables)
         events = self.events
         times = events["times"]
+        coords[dims_names[0]] = variables
+        data = np.array((len(variables), len(neurons)))
         if len(times) > 0:
             output_inds = events["times"] == events["times"][-1]
             senders = events["senders"]
@@ -442,9 +466,9 @@ class NESTMultimeter(NESTOutputDevice):
             if len(exclude_neurons) > 0:
                 output_inds = np.logical_and(output_inds,
                                              [sender not in flatten_list(exclude_neurons) for sender in senders])
-
-            for var in variables:
-                output[var] = events[var][output_inds]
+            coords[dims_names[1]] = neurons
+            for i_var, var in enumerate(variables):
+                data[i_var] = events[var][output_inds]
         else:
             # The multimeter is still empty, so return zeros
             if neurons is None:
@@ -456,18 +480,20 @@ class NESTMultimeter(NESTOutputDevice):
                     neurons.remove(neuron)
                 except:
                     pass
-            for var in variables:
-                output[var] = np.zeros((len(neurons), ))
-        return output
+            n_neurons = len(neurons)
+            coords[dims_names[1]] = neurons
+            for i_var in range(len(variables)):
+                data[i_var] = np.zeros((n_neurons, ))
+        return xr.DataArray(data, coords=coords, dims=list(coords.keys()), name=name)
 
-    def current_data_mean(self, variables=None, neurons=None, exclude_neurons=[]):
-        output = self.current_data(variables, neurons, exclude_neurons)
-        for var in output.keys():
-            output[var] = np.mean(output[var])
-        return output
+    def current_data_mean(self, variables=None, neurons=None, exclude_neurons=[],
+                          name=None, dims_names=["Variable", "Neuron"]):
+        output = self.current_data(variables, neurons, exclude_neurons, name, dims_names)
+        return output.mean(dim="Neuron")
 
-    def current_data_mean_values(self, variables=None, neurons=None, exclude_neurons=[]):
-        return list(self.current_data_mean(variables, neurons, exclude_neurons).values())
+    def current_data_mean_values(self, variables=None, neurons=None, exclude_neurons=[],
+                                 name=None, dims_names=["Variable", "Neuron"]):
+        return self.current_data_mean(variables, neurons, exclude_neurons, name, dims_names).values.tolist()
 
 
 class NESTVoltmeter(NESTMultimeter):
@@ -486,7 +512,7 @@ class NESTVoltmeter(NESTMultimeter):
         return self.get_V_m()
 
 
-class NESTSpikeMultimeter(NESTMultimeter):
+class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
     model = "spike_multimeter"
     spike_var = "spikes"
 
@@ -495,7 +521,7 @@ class NESTSpikeMultimeter(NESTMultimeter):
         self.model = "spike_multimeter"
 
     def get_spikes(self, neurons=None, exclude_neurons=[]):
-        return self.get_data(self.spike_var, neurons, exclude_neurons)[0][self.spike_var]
+        return self.get_data(self.spike_var, neurons, exclude_neurons)[self.spike_var]
 
     def get_spikes_inds(self, neurons=None, exclude_neurons=[]):
         spikes = self.events[self.spike_var]
@@ -524,15 +550,8 @@ class NESTSpikeMultimeter(NESTMultimeter):
     def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["times"]
 
-    def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times))
-
-    def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spike_times(neurons, times, exclude_neurons, exclude_times)) / \
-               self.get_number_of_neurons(neurons, exclude_neurons)
-
-    def get_mean_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
+    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
 
     def get_mean_spikes_activity(self, neurons=None, exclude_neurons=[]):
         return np.sum(self.get_spikes_weights(neurons, exclude_neurons)) / \
@@ -540,9 +559,6 @@ class NESTSpikeMultimeter(NESTMultimeter):
 
     def get_total_spikes_activity(self, neurons=None, exclude_neurons=[]):
         return np.sum(self.get_spikes_weights(neurons, exclude_neurons))
-
-    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
 
     @property
     def spikes(self):
@@ -569,8 +585,8 @@ class NESTSpikeMultimeter(NESTMultimeter):
         return self.get_mean_number_of_spikes()
 
     @property
-    def mean_spikes_rate(self):
-        return self.get_mean_spikes_rate()
+    def spikes_rate(self):
+        return self.get_spikes_rate()
 
     @property
     def mean_spikes_activity(self):
@@ -579,6 +595,34 @@ class NESTSpikeMultimeter(NESTMultimeter):
     @property
     def total_spikes_activity(self):
         return self.get_total_spikes_activity()
+
+    def compute_spikes_activity_across_time(self, time, spikes_kernel_width,
+                                            spikes_kernel=None, mode="summary",
+                                            name=None, **kwargs):
+        if name is None:
+            name = self.model + " - Total spike activity accross time"
+        if spikes_kernel is None:
+            spikes_kernel = np.ones((spikes_kernel_width, ))
+        spikes = self.get_spikes(**kwargs).values
+        if mode == "per_neuron":
+            activity = []
+            for spike in spikes:
+                activity.append(np.convolve(spike, spikes_kernel, mode="same"))
+            return xr.DataArray(np.array(activity), dims=["Neuron", "Time"],
+                                coords={"Neuron": np.array(spikes.coords[spikes.dims[0]].item()),
+                                        "Time": time})
+        else:
+            spikes = np.sum(spikes, axis=0).squeeze()
+            activity = np.convolve(spikes, spikes_kernel, mode="same")
+        return xr.DataArray(activity, dims=["Time"], coords={"Time": time}, name=name)
+
+    def compute_mean_spikes_activity_across_time(self, time, spike_kernel_width,
+                                                 spikes_kernel=None, name=None, **kwargs):
+        if name is None:
+            name = self.model + " - Mean spike activity accross time"
+        return self.compute_spikes_activity_across_time(time, spike_kernel_width, spikes_kernel,
+                                                        "summary", name, **kwargs) / \
+               self.get_number_of_neurons(**kwargs)
 
 
 NESTOutputDeviceDict = {"spike_detector": NESTSpikeDetector,
@@ -591,9 +635,9 @@ NESTOutputSpikeDeviceDict = {"spike_detector": NESTSpikeDetector,
                              "spike_multimeter": NESTSpikeMultimeter}
 
 
-class NESTDeviceSet(Series):
+class NESTDeviceSet(pd.Series):
 
-    def __init__(self, name="", model="", device_set=Series(), **kwargs):
+    def __init__(self, name="", model="", device_set=pd.Series(), **kwargs):
         super(NESTDeviceSet, self).__init__(device_set, **kwargs)
         if np.any([not isinstance(device, NESTDevice) for device in self]):
             raise ValueError("Input device_set is not a Series of NESTDevice objects!:\n%s" %
@@ -615,15 +659,29 @@ class NESTDeviceSet(Series):
                 # input is a sequence of indices or labels
                 return list(nodes)
 
-    def _return_by_type(self, values_dict, return_type="dict"):
+    def _return_by_type(self, values_dict, return_type="dict", concatenation_index_name="Region", name=None):
         if return_type == "values":
             return list(values_dict.values())
         elif return_type == "Series":
-            return Series(values_dict)
+            return pd.Series(values_dict, name=name)
+        elif return_type == "xarray":
+            if name is None:
+                name = self.name
+            for key, val in values_dict.items():
+                if isinstance(val, xr.DataArray):
+                    val.name = key
+                else:
+                    raise_value_error("DataArray concatenation not possible! "
+                                      "Not all outputs are DataArrays!:\n %s" % str(values_dict))
+            output = xr.concat(list(values_dict.values()), dim=pd.Index(list(values_dict.keys()),
+                                                                        name=concatenation_index_name))
+            output.name = name
+            return output
         else:
             return values_dict
 
-    def do_for_all_devices(self, attr, *args, nodes=None, return_type="values", **kwargs):
+    def do_for_all_devices(self, attr, *args, nodes=None, return_type="values",
+                           concatenation_index_name="Region", name=None, **kwargs):
         values_dict = OrderedDict()
         for node in self._input_nodes(nodes):
             val = getattr(self[node], attr)
@@ -631,7 +689,7 @@ class NESTDeviceSet(Series):
                 values_dict.update({node: val(*args, **kwargs)})
             else:
                 values_dict.update({node: val})
-        return self._return_by_type(values_dict, return_type)
+        return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
     @property
     def times(self):
@@ -645,15 +703,6 @@ class NESTDeviceSet(Series):
     def senders(self):
         return self.do_for_all_devices("senders", return_type="values")
 
-    # def __getattr__(self, attr):
-    #     try:
-    #         return super(NESTDeviceSet, self).__getattr__(attr)
-    #     except:
-    #         try:
-    #             return self.do_for_all_devices(attr)
-    #         except:
-    #             pass
-
     def update_model(self):
         if len(self) > 0:
             models = self.do_for_all_devices("model")
@@ -664,14 +713,14 @@ class NESTDeviceSet(Series):
         super(NESTDeviceSet, self).update(*args, **kwargs)
         self.update_model()
 
-    def GetStatus(self, attrs, nodes=None, return_type="dict"):
+    def GetStatus(self, attrs, nodes=None, return_type="dict", name=None):
         values_dict = OrderedDict({})
         for attr in ensure_list(attrs):
             this_attr = []
             for node in self._input_nodes(nodes):
                 this_attr.append(self[node].GetStatus[attr])
             values_dict.update({attr: this_attr})
-        return self._return_by_type(values_dict, return_type)
+        return self._return_by_type(values_dict, return_type, name)
 
     def SetStatus(self, value_dict, nodes=None):
         # TODO: find a nice way to treat arrays or lists attributes.
