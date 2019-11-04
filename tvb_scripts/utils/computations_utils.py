@@ -7,11 +7,10 @@
 import numpy as np
 from itertools import product
 
-import xarray as xr
 from sklearn.cluster import AgglomerativeClustering
 from tvb_scripts.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import is_integer, nested_to_multiindex_pandas_dataframe
+from tvb_scripts.utils.data_structures_utils import is_integer
 
 logger = initialize_logger(__name__)
 
