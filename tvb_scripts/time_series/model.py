@@ -5,7 +5,7 @@ from enum import Enum
 from copy import deepcopy
 from collections import OrderedDict
 import numpy
-from tvb_scripts.utils.log_error_utils import initialize_logger, warning
+from tvb_scripts.utils.log_error_utils import initialize_logger, warning, raise_value_error
 from tvb_scripts.utils.data_structures_utils import monopolar_to_bipolar
 from tvb.basic.neotraits.api import List, Attr
 from tvb.basic.profile import TvbProfile
@@ -73,23 +73,15 @@ class TimeSeries(TimeSeriesTVB):
             self.data = prepare_4d(data, self.logger)
             self.configure()
 
-    def from_pandas_DataFrame(self, df, time=None, **kwargs):
-        # TODO: test that it works correctly when all 3 levels of df have more than 1 label!!!
-        data = df.to_numpy()
-        n_times = data.shape[0]
-        if time is not None:
-            assert n_times == len(time)
-        n_labels = [n_times]
-        names = list(df.columns.names)
-        labels_dimensions = OrderedDict()
-        for name in names:
-            labels_dimensions[name] = numpy.unique(list(df.columns.get_level_values(name))).tolist()
-            n_labels.append(len(labels_dimensions[name]))
-        data = data.reshape(tuple(n_labels))
-        if data.ndim > 3:
-            data = data.swapaxes(2, 3)
-        return self.duplicate(data=data, time=time,
-                              labels_ordering=["Time"]+names,
+    def from_xarray_DataArray(self, xrdtarr, **kwargs):
+        # We assume that time is in the first dimension
+        labels_ordering = xrdtarr.coords.dims
+        labels_dimensions = {}
+        for dim in labels_ordering[1:]:
+            labels_dimensions[dim] = numpy.array(xrdtarr.coords[dim].values)
+        return self.duplicate(data=xrdtarr.values,
+                              time=numpy.array(xrdtarr.coords[labels_ordering[0]].values),
+                              labels_ordering=labels_ordering,
                               labels_dimensions=labels_dimensions, **kwargs)
 
     def duplicate(self, **kwargs):
@@ -295,9 +287,11 @@ class TimeSeries(TimeSeriesTVB):
 
     def configure(self):
         super(TimeSeries, self).configure()
-        self.time = numpy.arange(self.start_time, self.end_time + self.sample_period, self.sample_period)
-        self.start_time = self.start_time or self.time[0]
-        self.sample_period = self.sample_period or numpy.mean(numpy.diff(self.time))
+        if self.time is None:
+            self.time = numpy.arange(self.start_time, self.end_time + self.sample_period, self.sample_period)
+        else:
+            self.start_time = self.time[0]
+            self.sample_period = numpy.mean(numpy.diff(self.time))
 
 
 class TimeSeriesBrain(TimeSeries):
