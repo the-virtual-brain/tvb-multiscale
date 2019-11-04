@@ -7,7 +7,7 @@
 import numpy as np
 from itertools import product
 
-from pandas import Series
+import xarray as xr
 from sklearn.cluster import AgglomerativeClustering
 from tvb_scripts.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger
@@ -186,17 +186,11 @@ def curve_elbow_point(vals, interactive=CONFIGURED.calcul.INTERACTIVE_ELBOW_POIN
         return elbow
 
 
-def compute_spikes_rates(spike_detectors, time, spike_counts_kernel_width,
-                         spike_rate_fun=None, mean_or_sum_fun="compute_spike_rate"):
-    rates = Series()
-    max_rate = 0
-    for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
-        rates[pop_label] = Series()
-        for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
-            rates[pop_label][reg_label] = \
-                    getattr(region_spike_detector, mean_or_sum_fun)(time, spike_counts_kernel_width, spike_rate_fun)
-            temp = np.max(rates[pop_label][reg_label])
-            if temp > max_rate:
-                max_rate = temp
-    rates = nested_to_multiindex_pandas_dataframe(rates, names=["Population", "Region"]).transpose()  # levels: ["Population", "Region"]
-    return rates, max_rate
+def spikes_rate_with_rectangular_kernel(spikes_times, time, spikes_counts_kernel_width):
+    # Simple rectangular kernel
+    spikes_counts_kernel_width2 = spikes_counts_kernel_width / 2
+    spikes_counts = []
+    for t in time:
+        spikes_counts.append(np.sum(np.logical_and(spikes_times >= (t - spikes_counts_kernel_width2),
+                                                  spikes_times < (t + spikes_counts_kernel_width2))))
+    return np.array(spikes_counts) / spikes_counts_kernel_width
