@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from pandas import DataFrame
+from xarray import DataArray
 from tvb_scripts.plot.base_plotter import BasePlotter
 from matplotlib import pyplot
 
 
 class SpikesPlotter(BasePlotter):
 
-    def plot_spikes(self, spike_detectors, time, rates=None, max_rate=None,
+    def plot_spikes(self, spike_detectors, rates=None,
                     title="Population spikes and spike rate",
                     figure_name=None, figsize=None, **kwargs):
 
@@ -19,16 +19,16 @@ class SpikesPlotter(BasePlotter):
         yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
 
         if rates is not None:
-            if isinstance(rates, DataFrame):  # In case we call this within the NEST interface context using pandas
-                if max_rate is None:
-                    max_rate = rates.to_numpy().max()
-                get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[pop_lbl][reg_lbl]
+            if isinstance(rates, DataArray):  # In case we call this within the NEST interface context using pandas
+                max_rate = np.max(rates).item()
+                time = rates.get_index(rates.dims[0])
+                get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[:, i_pop, i_region].values
             else:  # Assuming TVB TimeSeries
-                if max_rate is None:
-                    max_rate = rates.data.max()
+                max_rate = rates.data.max()
+                time = rates.time
                 get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[:, i_pop, i_region]
             if max_rate == 0:
-                max_rate = 1.0
+                max_rate = 1.0  # if no spikes at all...
             rate_step = max_rate / len(yticks)
             yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
             yticklabels = ["%0.2f" % yticklabel for yticklabel in yticklabels]

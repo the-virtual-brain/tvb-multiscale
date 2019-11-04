@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
-from pandas import DataFrame
+from xarray import DataArray
 import numpy as np
 from tvb_scripts.time_series.model import TimeSeries
 from tvb_scripts.plot.time_series_plotter import TimeSeriesPlotter
@@ -8,10 +8,9 @@ from tvb_scripts.plot.time_series_plotter import TimeSeriesPlotter
 
 class MultimeterPlotter(TimeSeriesPlotter):
 
-    def _confirm_TimeSeries(self, input_time_series, time=None, time_series_class=TimeSeries,
-                                   time_series_args={}):
-        if isinstance(input_time_series, DataFrame):
-            return time_series_class().from_pandas_DataFrame(input_time_series, time, **time_series_args)
+    def _confirm_TimeSeries(self, input_time_series, time_series_class=TimeSeries, time_series_args={}):
+        if isinstance(input_time_series, DataArray):
+            return time_series_class().from_xarray_DataArray(input_time_series, **time_series_args)
         else:
             return input_time_series
 
@@ -63,22 +62,22 @@ class MultimeterPlotter(TimeSeriesPlotter):
                                     title=title, figure_name=figure_name, **kwargs))
         return plot_outputs
 
-    def plot_multimeter_timeseries(self, input_time_series, time=None, plot_per_variable=True,
+    def plot_multimeter_timeseries(self, input_time_series, plot_per_variable=True,
                                    time_series_class=TimeSeries,  time_series_args={},
                                    var_pop_join_str=" - ", default_population_label="population",
                                    **kwargs):
-        time_series = self._confirm_TimeSeries(input_time_series, time, time_series_class, time_series_args)
+        time_series = self._confirm_TimeSeries(input_time_series, time_series_class, time_series_args)
         if plot_per_variable:
             return self._plot_per_variable(self.plot_multimeter_timeseries, time_series, **kwargs)
         if time_series.shape[3] > 1:
             time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
         return self.plot_time_series(time_series, **kwargs)
 
-    def plot_multimeter_raster(self, input_time_series, time=None, plot_per_variable=True,
+    def plot_multimeter_raster(self, input_time_series, plot_per_variable=True,
                                time_series_class=TimeSeries,  time_series_args={},
                                var_pop_join_str=" - ", default_population_label="population",
                                **kwargs):
-        time_series = self._confirm_TimeSeries(input_time_series, time, time_series_class, time_series_args)
+        time_series = self._confirm_TimeSeries(input_time_series, time_series_class, time_series_args)
         if plot_per_variable:
             return self._plot_per_variable(self.plot_multimeter_raster, time_series, **kwargs)
         if time_series.shape[3] > 1:
