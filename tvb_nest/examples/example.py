@@ -103,6 +103,14 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
 
+    # Plot spikes and mean field spike rates
+    rates, spike_detectors = \
+        tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(
+            spikes_kernel_width=simulator.integrator.dt,  # ms
+            spikes_kernel_overlap=0.0, time=t)
+    if spike_detectors is not None:
+        plotter.plot_spikes(spike_detectors, rates=rates, title='Population spikes and mean spike rate')
+
     # Plot NEST multimeter variables
     multimeter_mean_data = tvb_nest_model.get_mean_data_from_NEST_multimeter_to_TVBTimeSeries()
     if multimeter_mean_data is not None:
@@ -110,20 +118,10 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
                                            time_series_class=TimeSeriesRegion, time_series_args={},
                                            var_pop_join_str=" - ", default_population_label="population",
                                            title="NEST region time series")
-        plotter.plot_multimeter_raster(multimeter_mean_data,
-                                       plot_per_variable=True,
+        plotter.plot_multimeter_raster(multimeter_mean_data, plot_per_variable=True,
                                        time_series_class=TimeSeriesRegion, time_series_args={},
                                        var_pop_join_str=" - ", default_population_label="population",
                                        title="NEST region time series raster")
-
-    # Plot spikes and mean field spike rates
-    rates, max_rate, spike_detectors, spike_time = \
-        tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(
-            spike_counts_kernel_width=simulator.integrator.dt,  # ms
-            spike_counts_kernel_overlap=0.0, time=t)
-    if spike_detectors is not None:
-        plotter.plot_spikes(spike_detectors, spike_time, rates=rates, max_rate=max_rate,
-                            title='Population spikes and mean spike rate')
 
 
 if __name__ == "__main__":
