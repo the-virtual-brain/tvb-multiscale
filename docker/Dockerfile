@@ -44,23 +44,6 @@ RUN mkdir libneurosim; \
     make; make install; ls $VENV/lib $VENV/include; \
     ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
 
-# Install TVB specific packages
-WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints
-
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
-    cd tvb-data; \
-    $VENV/bin/python setup.py develop
-
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
-    cd tvb-library; git pull origin neotraits_py3; \
-    $VENV/bin/python setup.py develop
-
-#RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
-#    cd tvb-multiscale; \
-#    $VENV/bin/python setup.py develop --no-deps
-
 # Install NEST, latest stable version (July 2019)
 ARG NEST_VER=2.18.0
 ARG NEST=nest-simulator-$NEST_VER
@@ -97,6 +80,23 @@ RUN $VENV/bin/pip3 install setuptools; \
 #    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
+
+# Install TVB specific packages
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
+    cd tvb-data; \
+    $VENV/bin/python setup.py develop
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
+    cd tvb-library; git pull origin neotraits_py3; \
+    $VENV/bin/python setup.py develop
+
+#RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
+#    cd tvb-multiscale; \
+#    $VENV/bin/python setup.py develop --no-deps
 
 WORKDIR /home/docker/
 # Activate the right python env.
