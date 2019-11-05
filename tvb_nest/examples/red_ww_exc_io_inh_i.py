@@ -175,23 +175,6 @@ if __name__ == "__main__":
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    multimeter_mean_data = nest_network.get_mean_data_from_multimeter()
-
-    from tvb_scripts.time_series.time_series_xarray import TimeSeries as TimeSeriesXarray
-    ts = TimeSeriesXarray(multimeter_mean_data)
-    # ts.plot(plotter=plotter, )
-    ts.plot_timeseries(plotter=plotter)
-    ts.plot_raster(plotter=plotter)
-    rates = \
-        nest_network.compute_spikes_rates(mode="per_neuron", population_devices=None, regions=None,
-                                          devices_dim_name="Population", name="Spikes rates from NEST network",
-                                          spikes_kernel_width=None, spikes_kernel_n_intervals=10,
-                                          spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
-                                          spikes_kernel=None)[0]
-
-    rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1], robust=True)
-    plotter.base._save_figure(figure_name="Spike rates per neuron")
-
     source_ts = TimeSeriesRegion(
         data=source, time=t,
         connectivity=simulator.connectivity,
@@ -235,3 +218,33 @@ if __name__ == "__main__":
                                        time_series_class=TimeSeriesRegion, time_series_args={},
                                        var_pop_join_str=" - ", default_population_label="population",
                                        title="NEST region time series raster")
+
+    # ------------------------------------Testing code for xarray TimeSeries--------------------------------------------
+
+    multimeter_mean_data = nest_network.get_mean_data_from_multimeter()
+
+    from tvb_scripts.time_series.time_series_xarray import TimeSeries as TimeSeriesXarray
+
+    ts = TimeSeriesXarray(multimeter_mean_data)
+    print(ts[0].shape)
+    print(ts[:, 0].shape)
+    print(ts[:, "V_m"].shape)
+    print(ts[:, :, 0].shape)
+    print(ts[:, ["V_m"], 1, :].shape)
+    ts[::, ["V_m"], 1, :] = TimeSeriesXarray(ts[:, ["V_m"], 1, :])
+    ts[::, ["V_m"], 1, :] = TimeSeriesXarray(ts[:, ["V_m"], 1, :].data, time=ts[:, ["V_m"], 1, :].time)
+    # ts.plot(plotter=plotter, )
+    ts.plot_timeseries(plotter=plotter)
+    ts.plot_raster(plotter=plotter)
+
+    # ------------------------------------Testing code for plotting xarray data-----------------------------------------
+
+    rates = \
+        nest_network.compute_spikes_rates(mode="per_neuron", population_devices=None, regions=None,
+                                          devices_dim_name="Population", name="Spikes rates from NEST network",
+                                          spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                          spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                          spikes_kernel=None)[0]
+
+    rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1], robust=True)
+    plotter.base._save_figure(figure_name="Spike rates per neuron")
