@@ -79,10 +79,13 @@ class TimeSeries(TimeSeriesTVB):
         labels_dimensions = {}
         for dim in labels_ordering[1:]:
             labels_dimensions[dim] = numpy.array(xrdtarr.coords[dim].values)
+        if xrdtarr.name is not None and len(xrdtarr.name) > 0:
+            kwargs.update({"title": xrdtarr.name})
         return self.duplicate(data=xrdtarr.values,
                               time=numpy.array(xrdtarr.coords[labels_ordering[0]].values),
                               labels_ordering=labels_ordering,
-                              labels_dimensions=labels_dimensions, **kwargs)
+                              labels_dimensions=labels_dimensions,
+                              **kwargs)
 
     def duplicate(self, **kwargs):
         duplicate = deepcopy(self)
