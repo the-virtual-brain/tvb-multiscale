@@ -65,6 +65,7 @@ class TimeSeries(HasTraits):
         label="Dimension Names",
         doc="""List of strings representing names of each data dimension""")
 
+    title = Attr(str)
 
     @property
     def data(self):
@@ -74,9 +75,6 @@ class TimeSeries(HasTraits):
     @property
     def name(self):
         return self._data.name
-
-    def set_title(self, title):
-        self._data.name = title
 
     @property
     def shape(self):
@@ -245,7 +243,8 @@ class TimeSeries(HasTraits):
             if labels_dimensions is None:
                 labels_dimensions = {}
             labels_dimensions[labels_ordering[0]] = time
-        self._data = xr.DataArray(data, dims=labels_ordering, coords=labels_dimensions, attrs=kwargs)
+        self._data = xr.DataArray(data, dims=labels_ordering, coords=labels_dimensions, attrs=kwargs,
+                                  name=self.__class__.__name__)
 
     def _configure_time(self):
         assert self.time[0] == self.start_time
@@ -266,6 +265,7 @@ class TimeSeries(HasTraits):
     def configure(self):
         # To be always used when a new object is created
         # to check that everything is set correctly
+        self.title = self.name
         super(TimeSeries, self).configure()
         try:
             time_length = self.time_length
