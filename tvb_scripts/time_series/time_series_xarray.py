@@ -72,7 +72,7 @@ class TimeSeries(HasTraits):
         return self._data.values
 
     @property
-    def title(self):
+    def name(self):
         return self._data.name
 
     def set_title(self, title):
@@ -298,6 +298,7 @@ class TimeSeries(HasTraits):
             self._configure_labels()
 
     def __init__(self, data=None, **kwargs):
+        super(TimeSeries, self).__init__(**kwargs)
         if isinstance(data, (list, tuple)):
             self.from_numpy(np.array(data), **kwargs)
         elif isinstance(data, np.ndarray):
@@ -311,8 +312,99 @@ class TimeSeries(HasTraits):
                 # ...or as args
                 # including a xr.DataArray or None
                 self._data = xr.DataArray(data)
-            super(TimeSeries, self).__init__(**kwargs)
             self.configure()
+
+    def _prepare_plot_args(self, **kwargs):
+        plotter = kwargs.pop("plotter", None)
+        label_ordering = self.label_ordering
+        time = label_ordering[0]
+        # Regions
+        if self.shape[2] > 1:
+            regions = label_ordering[2]
+        else:
+            regions = None
+        # Variables
+        if self.shape[1] > 1:
+            variables = label_ordering[1]
+        else:
+            variables = None
+        # Modes
+        if self.shape[3] > 1:
+            modes = label_ordering[3]
+        else:
+            modes = None
+        return time, variables, regions, modes, plotter, kwargs
+
+    # def plot(self, **kwargs):
+    #     time, variables, regions, modes, plotter, kwargs = \
+    #         self._prepare_plot_args(**kwargs)
+    #     robust = kwargs.pop("robust", True)
+    #     cmap = kwargs.pop("cmap", "jet")
+    #     figure_name = kwargs.pop("figname", "%s plot" % self.title)
+    #     output = self._data.plot(x=time,         # Time
+    #                              y=regions,      # Regions
+    #                              col=variables,  # Variables
+    #                              row=modes,      # Modes/Samples/Populations etc
+    #                              robust=robust, cmap=cmap, **kwargs)
+    #     # TODO: Something better than this temporary hack for base_plotter functionality
+    #     if plotter is not None:
+    #         plotter._save_figure(figure_name=figure_name)
+    #         plotter._check_show()
+    #     return output
+
+    def plot_timeseries(self, **kwargs):
+        time, variables, regions, modes, plotter, kwargs = \
+            self._prepare_plot_args(**kwargs)
+        if self.shape[3] == 1 or variables is None or regions is None or modes is None:
+            if variables is None:
+                data = self._data[:, 0]
+                data.name = self.label_dimensions[self.label_ordering[1]][0]
+            else:
+                data = self._data
+            col_wrap = kwargs.pop("col_wrap", self.shape[3])  # Row per variable
+            figure_name = kwargs.pop("figure_name", "%s time series plot" % self.title)
+            output = data.plot.line(x=time,       # Time
+                                    y=variables,  # Variables
+                                    hue=regions,  # Regions
+                                    col=modes,    # Modes/Samples/Populations etc
+                                    col_wrap=col_wrap, **kwargs)
+            # TODO: Something better than this temporary hack for base_plotter functionality
+            if plotter is not None:
+                plotter.base._save_figure(figure_name=figure_name)
+                plotter.base._check_show()
+            return output
+        else:
+            return self.plot_raster(**kwargs)
+
+    def plot_raster(self, **kwargs):
+        time, variables, regions, modes, plotter, kwargs = \
+            self._prepare_plot_args(**kwargs)
+        figure_name = kwargs.pop("figure_name", "%s raster plot" % self.title)
+        data = xr.DataArray(self._data)
+        for i_var, var in enumerate(self.label_dimensions[self.label_ordering[1]]):
+            # Remove mean
+            data[:, i_var] -= data[:, i_var].mean()
+            # Compute approximate range for this variable
+            amplitude = 0.9 * (data[:, i_var].max() - data[:, i_var].min())
+            # Add the step on y axis for this variable and for each Region's data
+            for i_region in range(self.shape[2]):
+                data[:, i_var, i_region] += amplitude * i_region
+        if self.shape[3] > 1 and regions is not None and modes is not None:
+            hue = "%s - %s" % (regions, modes)
+            data = data.stack({hue: (regions, modes)})
+        else:
+            hue = regions or modes
+        col_wrap = kwargs.pop("col_wrap", self.shape[1])  # All variables in columns
+        output = data.plot(x=time,         # Time
+                           hue=hue,        # Regions and/or Modes/Samples/Populations etc
+                           col=variables,  # Variables
+                           yincrease=False, col_wrap=col_wrap, **kwargs)
+        # TODO: Something better than this temporary hack for base_plotter functionality
+        if plotter is not None:
+            plotter.base._save_figure(figure_name=figure_name)
+            plotter.base._check_show()
+        return output
+
 
     def summary_info(self):
         """
@@ -398,42 +490,42 @@ class TimeSeries(HasTraits):
                 # Still, for a conflicting mixture that has to be resolved
                 self._data[self._resolve_mixted_slice(slice_tuple)] = values
 
-    def __getattr__(self, attr_name):
-        # We are here because attr_name is not an attribute of TimeSeries...
-        try:
-            # First try to see if this is a xarray.DataArray attribute
-            getattr(self._data, attr_name)
-        except:
-            # TODO: find out if this part works, given that it is not really necessary
-            # Now try to behave as if this was a getitem call:
-            slice_list = [slice(None)]  # for first dimension index, i.e., time
-            for i_dim in range(1, self.nr_dimensions):
-                if self.labels_ordering[i_dim] in self.labels_dimensions.keys() and \
-                        attr_name in self.labels_dimensions[self.labels_ordering[i_dim]]:
-                    slice_list.append(attr_name)
-                    return self._data.loc[tuple(slice_list)]
-                else:
-                    slice_list.append(slice(None))
-            raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
-
-    def __setattr__(self, attr_name, value):
-        # We are here because attr_name is not an attribute of TimeSeries...
-        try:
-            # First try to see if this is a xarray.DataArray attribute
-            getattr(self._data, attr_name, value)
-        except:
-            # TODO: find out if this part works, given that it is not really necessary
-            # Now try to behave as if this was a setitem call:
-            slice_list = [slice(None)]  # for first dimension index, i.e., time
-            for i_dim in range(1, self.nr_dimensions):
-                if self.labels_ordering[i_dim] in self.labels_dimensions.keys() and \
-                        attr_name in self.labels_dimensions[self.labels_ordering[i_dim]]:
-                    slice_list.append(attr_name)
-                    self._data.loc[tuple(slice_list)] = value
-                    return
-                else:
-                    slice_list.append(slice(None))
-            raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
+    # def __getattr__(self, attr_name):
+    #     # We are here because attr_name is not an attribute of TimeSeries...
+    #     try:
+    #         # First try to see if this is a xarray.DataArray attribute
+    #         getattr(self._data, attr_name)
+    #     except:
+    #         # TODO: find out if this part works, given that it is not really necessary
+    #         # Now try to behave as if this was a getitem call:
+    #         slice_list = [slice(None)]  # for first dimension index, i.e., time
+    #         for i_dim in range(1, self.nr_dimensions):
+    #             if self.labels_ordering[i_dim] in self.labels_dimensions.keys() and \
+    #                     attr_name in self.labels_dimensions[self.labels_ordering[i_dim]]:
+    #                 slice_list.append(attr_name)
+    #                 return self._data.loc[tuple(slice_list)]
+    #             else:
+    #                 slice_list.append(slice(None))
+    #         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
+    #
+    # def __setattr__(self, attr_name, value):
+    #     # We are here because attr_name is not an attribute of TimeSeries...
+    #     try:
+    #         # First try to see if this is a xarray.DataArray attribute
+    #         getattr(self._data, attr_name, value)
+    #     except:
+    #         # TODO: find out if this part works, given that it is not really necessary
+    #         # Now try to behave as if this was a setitem call:
+    #         slice_list = [slice(None)]  # for first dimension index, i.e., time
+    #         for i_dim in range(1, self.nr_dimensions):
+    #             if self.labels_ordering[i_dim] in self.labels_dimensions.keys() and \
+    #                     attr_name in self.labels_dimensions[self.labels_ordering[i_dim]]:
+    #                 slice_list.append(attr_name)
+    #                 self._data.loc[tuple(slice_list)] = value
+    #                 return
+    #             else:
+    #                 slice_list.append(slice(None))
+    #         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
 
 
 class SensorsTSBase(TimeSeries):
