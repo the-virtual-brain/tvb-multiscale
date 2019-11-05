@@ -2,7 +2,8 @@
 
 from abc import ABCMeta
 from six import add_metaclass
-from collections import OrderedDict
+from xarray import DataArray
+import pandas as pd
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger
@@ -217,33 +218,56 @@ class TVBNESTInterface(object):
         return state
 
     def get_mean_data_from_NEST_multimeter_to_TVBTimeSeries(self, **kwargs):
-        # mean_data is a DataFrame
         # the keys of which correspond to population level labels,
         # and the values to lists of data returned for each node region NEST network.
         # In the case of multimeter mean data, they also take the form of
         # dictionaries of variables measured by multimeters
         mean_data = self.nest_network.get_mean_data_from_multimeter(**kwargs)
+        if mean_data is None:
+            return None
         connectivity = kwargs.pop("connectivity", None)
         if connectivity is None:
             time_series = TimeSeries()
         else:
             time_series = TimeSeriesRegion(connectivity=connectivity)
-        if mean_data is not None:
+        if isinstance(mean_data, DataArray):
             return time_series.from_xarray_DataArray(mean_data)
-        else:
-            return None
+        else:  # Assuming a pd.Series or a dict of xarrays.DataArray
+            output_xarrays = []
+            pop_names = []
+            for d_name, d in mean_data.iteritems():
+                output_xarrays.append(time_series.from_xarray_DataArray(d))
+                pop_names.append(d_name)
+            if isinstance(mean_data, pd.Series):
+                name = mean_data.name
+            else:
+                name = kwargs.get("name", "Mean data from NEST multimeter")
+            return pd.Series(output_xarrays, index=pd.Index(pop_names, name="Population"), name=name)
 
     def get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(self, **kwargs):
         # rate is a DataFrame
         # the keys of which correspond to population level labels,
         # and the values to lists of data returned for each node region NEST network.
         rates, spike_detectors = self.nest_network.compute_mean_spikes_rates(**kwargs)
+        if rates is None:
+            return None, None
         connectivity = kwargs.pop("connectivity", None)
         if connectivity is None:
             time_series = TimeSeries()
         else:
             time_series = TimeSeriesRegion(connectivity=connectivity)
-        if rates is not None:
+        if isinstance(rates, DataArray):
             return time_series.from_xarray_DataArray(rates), spike_detectors
         else:
-            return None, None
+            # Assuming a pd.Series or a dict of xarrays.DataArray
+            output_xarrays = []
+            pop_names = []
+            for d_name, d in rates.iteritems():
+                output_xarrays.append(time_series.from_xarray_DataArray(d))
+                pop_names.append(d_name)
+            if isinstance(rates, pd.Series):
+                name = rates.name
+            else:
+                name = kwargs.get("name", "Mean rates from NEST spike detectors")
+            return pd.Series(output_xarrays, index=pd.Index(pop_names, name="Population"), name=name), \
+                   spike_detectors
