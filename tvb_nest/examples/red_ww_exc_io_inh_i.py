@@ -68,7 +68,7 @@ if __name__ == "__main__":
     # # Spiking populations labels:
     # nest_model_builder.populations_names = ["E", "I"]
     # # Spiking populations scalings for the number of neurons
-    # nest_model_builder.populations_scales = [1.0, 0.7]
+    nest_model_builder.populations_scales = [1.0, 1.0]
     # # Some properties for the default synapse to be used:
     # nest_model_builder.default_connection["params"]["rule"] = "fixed_indegree"
     #
@@ -175,6 +175,23 @@ if __name__ == "__main__":
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
+    multimeter_mean_data = nest_network.get_mean_data_from_multimeter()
+
+    from tvb_scripts.time_series.time_series_xarray import TimeSeries as TimeSeriesXarray
+    ts = TimeSeriesXarray(multimeter_mean_data)
+    # ts.plot(plotter=plotter, )
+    ts.plot_timeseries(plotter=plotter)
+    ts.plot_raster(plotter=plotter)
+    rates = \
+        nest_network.compute_spikes_rates(mode="per_neuron", population_devices=None, regions=None,
+                                          devices_dim_name="Population", name="Spikes rates from NEST network",
+                                          spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                          spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                          spikes_kernel=None)[0]
+
+    rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1], robust=True)
+    plotter.base._save_figure(figure_name="Spike rates per neuron")
+
     source_ts = TimeSeriesRegion(
         data=source, time=t,
         connectivity=simulator.connectivity,
@@ -195,6 +212,9 @@ if __name__ == "__main__":
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
+
+    # In all the following we assume that all populations are in the same (equal number) regions,
+    # whereas we average across individual neurons
 
     # Plot spikes and mean field spike rates
     rates, spike_detectors = \
