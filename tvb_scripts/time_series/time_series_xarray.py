@@ -40,12 +40,12 @@ import xarray as xr
 import numpy as np
 from tvb.datatypes import sensors, surfaces, volumes, region_mapping, connectivity
 from tvb.basic.neotraits.api import HasTraits, Attr, NArray, List, Float, narray_summary_info
+from tvb_scripts.utils.data_structures_utils import is_integer
 
 
-def prepare_4d(data, logger):
+def prepare_4d(data):
     if data.ndim < 2:
-        logger.error("The data array is expected to be at least 2D!")
-        raise ValueError
+        raise ValueError("The data array is expected to be at least 2D!")
     if data.ndim < 4:
         if data.ndim == 2:
             data = np.expand_dims(data, 2)
@@ -119,11 +119,11 @@ class TimeSeries(HasTraits):
             return None
 
     @property
-    def label_ordering(self):
+    def labels_ordering(self):
         return list(self._data.dims)
 
     @property
-    def label_dimensions(self):
+    def labels_dimensions(self):
         d = {}
         for key, val in zip(list(self._data.coords.keys()),
                             list([value.values for value in self._data.coords.values()])):
@@ -139,24 +139,16 @@ class TimeSeries(HasTraits):
     @property
     def start_time(self):
         try:
-            return self._data.attrs["start_time"]
+            return self.time[0]
         except:
-            try:
-                self._data.attrs["start_time"] = self.time[0]
-                return self.time[0]
-            except:
-                return None
+            return None
 
     @property
     def end_time(self):
         try:
-            return self._data.attrs["end_time"]
+            return self.time[-1]
         except:
-            try:
-                self._data.attrs["end_time"] = self.time[-1]
-                return self.time[-1]
-            except:
-                return None
+            return None
 
     @property
     def duration(self):
@@ -168,17 +160,9 @@ class TimeSeries(HasTraits):
     @property
     def sample_period(self):
         try:
-            return self._data.attrs["sample_period"]
+            return np.mean(np.diff(self.time))
         except:
-            try:
-                sample_period = np.mean(np.diff(self.time))
-                if sample_period > 0:
-                    self._data.attrs["sample_period"] = sample_period
-                    return sample_period
-                else:
-                    return None
-            except:
-                return None
+            return None
 
     @property
     def sample_rate(self):
@@ -197,6 +181,10 @@ class TimeSeries(HasTraits):
     @property
     def time_unit(self):
         return self.sample_period_unit
+
+    @property
+    def squeeze(self):
+        return self._data.squeeze()
 
     @property
     def squeezed(self):
@@ -256,18 +244,8 @@ class TimeSeries(HasTraits):
         if time is not None:
             if labels_dimensions is None:
                 labels_dimensions = {}
-            labels_dimensions[labels_dimensions[0]] = time
-        attrs = {}
-        attrs.update(kwargs)
-        if sample_period is not None:
-            attrs["sample_period"] = sample_period
-        if start_time is not None:
-            attrs["start_time"] = start_time
-        if end_time is not None:
-            attrs["end_time"] = end_time
-        self._data = xr.DataArray(data, dims=labels_ordering, coords=labels_dimensions, attrs=attrs)
-        super(TimeSeries, self).__init__(**kwargs)
-        self.configure()
+            labels_dimensions[labels_ordering[0]] = time
+        self._data = xr.DataArray(data, dims=labels_ordering, coords=labels_dimensions, attrs=kwargs)
 
     def _configure_time(self):
         assert self.time[0] == self.start_time
@@ -277,8 +255,8 @@ class TimeSeries(HasTraits):
 
     def _configure_labels(self):
         for i_dim in range(1, self.nr_dimensions):
-            dim_label = self.label_ordering[i_dim]
-            val = self.label_dimensions.get(dim_label, None)
+            dim_label = self.labels_ordering[i_dim]
+            val = self.labels_dimensions.get(dim_label, None)
             if val is not None:
                 assert len(val) == self.shape[i_dim]
             else:
@@ -298,11 +276,14 @@ class TimeSeries(HasTraits):
             self._configure_labels()
 
     def __init__(self, data=None, **kwargs):
-        super(TimeSeries, self).__init__(**kwargs)
+        super(TimeSeries, self).__init__()
         if isinstance(data, (list, tuple)):
             self.from_numpy(np.array(data), **kwargs)
         elif isinstance(data, np.ndarray):
             self.from_numpy(data, **kwargs)
+        elif isinstance(data, self.__class__):
+            for attr, val in data.__dict__.items():
+                setattr(self, attr, val)
         else:
             # Assuming data is an input xr.DataArray() can handle,
             if isinstance(data, dict):
@@ -312,99 +293,7 @@ class TimeSeries(HasTraits):
                 # ...or as args
                 # including a xr.DataArray or None
                 self._data = xr.DataArray(data)
-            self.configure()
-
-    def _prepare_plot_args(self, **kwargs):
-        plotter = kwargs.pop("plotter", None)
-        label_ordering = self.label_ordering
-        time = label_ordering[0]
-        # Regions
-        if self.shape[2] > 1:
-            regions = label_ordering[2]
-        else:
-            regions = None
-        # Variables
-        if self.shape[1] > 1:
-            variables = label_ordering[1]
-        else:
-            variables = None
-        # Modes
-        if self.shape[3] > 1:
-            modes = label_ordering[3]
-        else:
-            modes = None
-        return time, variables, regions, modes, plotter, kwargs
-
-    # def plot(self, **kwargs):
-    #     time, variables, regions, modes, plotter, kwargs = \
-    #         self._prepare_plot_args(**kwargs)
-    #     robust = kwargs.pop("robust", True)
-    #     cmap = kwargs.pop("cmap", "jet")
-    #     figure_name = kwargs.pop("figname", "%s plot" % self.title)
-    #     output = self._data.plot(x=time,         # Time
-    #                              y=regions,      # Regions
-    #                              col=variables,  # Variables
-    #                              row=modes,      # Modes/Samples/Populations etc
-    #                              robust=robust, cmap=cmap, **kwargs)
-    #     # TODO: Something better than this temporary hack for base_plotter functionality
-    #     if plotter is not None:
-    #         plotter._save_figure(figure_name=figure_name)
-    #         plotter._check_show()
-    #     return output
-
-    def plot_timeseries(self, **kwargs):
-        time, variables, regions, modes, plotter, kwargs = \
-            self._prepare_plot_args(**kwargs)
-        if self.shape[3] == 1 or variables is None or regions is None or modes is None:
-            if variables is None:
-                data = self._data[:, 0]
-                data.name = self.label_dimensions[self.label_ordering[1]][0]
-            else:
-                data = self._data
-            col_wrap = kwargs.pop("col_wrap", self.shape[3])  # Row per variable
-            figure_name = kwargs.pop("figure_name", "%s time series plot" % self.title)
-            output = data.plot.line(x=time,       # Time
-                                    y=variables,  # Variables
-                                    hue=regions,  # Regions
-                                    col=modes,    # Modes/Samples/Populations etc
-                                    col_wrap=col_wrap, **kwargs)
-            # TODO: Something better than this temporary hack for base_plotter functionality
-            if plotter is not None:
-                plotter.base._save_figure(figure_name=figure_name)
-                plotter.base._check_show()
-            return output
-        else:
-            return self.plot_raster(**kwargs)
-
-    def plot_raster(self, **kwargs):
-        time, variables, regions, modes, plotter, kwargs = \
-            self._prepare_plot_args(**kwargs)
-        figure_name = kwargs.pop("figure_name", "%s raster plot" % self.title)
-        data = xr.DataArray(self._data)
-        for i_var, var in enumerate(self.label_dimensions[self.label_ordering[1]]):
-            # Remove mean
-            data[:, i_var] -= data[:, i_var].mean()
-            # Compute approximate range for this variable
-            amplitude = 0.9 * (data[:, i_var].max() - data[:, i_var].min())
-            # Add the step on y axis for this variable and for each Region's data
-            for i_region in range(self.shape[2]):
-                data[:, i_var, i_region] += amplitude * i_region
-        if self.shape[3] > 1 and regions is not None and modes is not None:
-            hue = "%s - %s" % (regions, modes)
-            data = data.stack({hue: (regions, modes)})
-        else:
-            hue = regions or modes
-        col_wrap = kwargs.pop("col_wrap", self.shape[1])  # All variables in columns
-        output = data.plot(x=time,         # Time
-                           hue=hue,        # Regions and/or Modes/Samples/Populations etc
-                           col=variables,  # Variables
-                           yincrease=False, col_wrap=col_wrap, **kwargs)
-        # TODO: Something better than this temporary hack for base_plotter functionality
-        if plotter is not None:
-            plotter.base._save_figure(figure_name=figure_name)
-            plotter.base._check_show()
-        return output
-
+        self.configure()
 
     def summary_info(self):
         """
@@ -432,8 +321,20 @@ class TimeSeries(HasTraits):
         duplicate.configure()
         return duplicate
 
+    def _assert_array_indices(self, slice_tuple):
+        if is_integer(slice_tuple) or isinstance(slice_tuple, string_types):
+            return ([slice_tuple], )
+        else:
+            slice_list = []
+            for slc in slice_tuple:
+                if is_integer(slc) or isinstance(slc, string_types):
+                    slice_list.append([slc])
+                else:
+                    slice_list.append(slc)
+            return tuple(slice_list)
+
     def _get_index_for_slice_label(self, slice_label, slice_idx):
-        return np.where(self.label_dimensions[self.label_ordering[slice_idx]] == slice_label)[0][0]
+        return np.where(self.labels_dimensions[self.labels_ordering[slice_idx]] == slice_label)[0][0]
 
     def _check_for_string_slice_indices(self, current_slice, slice_idx):
         slice_label1 = current_slice.start
@@ -452,14 +353,18 @@ class TimeSeries(HasTraits):
             if isinstance(current_slice, slice):
                 slice_list.append(self._check_for_string_slice_indices(current_slice, idx))
             else:
-                if isinstance(current_slice, string_types):
-                    slice_list.append(self._get_string_slice_index(current_slice, idx))
-                else:
-                    slice_list.append(current_slice)
+                # If not a slice, it will be an iterable:
+                for i_slc, slc in enumerate(current_slice):
+                    if isinstance(slc, string_types):
+                        current_slice[i_slc] = self.labels_dimensions[self.labels_ordering[idx]].tolist().index(slc)
+                    else:
+                        current_slice[i_slc] = slc
+                slice_list.append(current_slice)
         return tuple(slice_list)
 
     # Return a TimeSeries object
     def __getitem__(self, slice_tuple):
+        slice_tuple = self._assert_array_indices(slice_tuple)
         try:
             # For integer indices
             return self.duplicate(_data=self._data[slice_tuple])
@@ -475,7 +380,10 @@ class TimeSeries(HasTraits):
                 return self.duplicate(_data=self._data[self._resolve_mixted_slice(slice_tuple)])
 
     def __setitem__(self, slice_tuple, values):
+        slice_tuple = self._assert_array_indices(slice_tuple)
         # Mind that xarray can handle setting values both from a numpy array and/or another xarray
+        if isinstance(values, self.__class__):
+            values = np.array(values.data)
         try:
             # For integer indices
             self._data[slice_tuple] = values
@@ -526,6 +434,97 @@ class TimeSeries(HasTraits):
     #             else:
     #                 slice_list.append(slice(None))
     #         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
+
+    def _prepare_plot_args(self, **kwargs):
+        plotter = kwargs.pop("plotter", None)
+        labels_ordering = self.labels_ordering
+        time = labels_ordering[0]
+        # Regions
+        if self.shape[2] > 1:
+            regions = labels_ordering[2]
+        else:
+            regions = None
+        # Variables
+        if self.shape[1] > 1:
+            variables = labels_ordering[1]
+        else:
+            variables = None
+        # Modes
+        if self.shape[3] > 1:
+            modes = labels_ordering[3]
+        else:
+            modes = None
+        return time, variables, regions, modes, plotter, kwargs
+
+    # def plot(self, **kwargs):
+    #     time, variables, regions, modes, plotter, kwargs = \
+    #         self._prepare_plot_args(**kwargs)
+    #     robust = kwargs.pop("robust", True)
+    #     cmap = kwargs.pop("cmap", "jet")
+    #     figure_name = kwargs.pop("figname", "%s plot" % self.title)
+    #     output = self._data.plot(x=time,         # Time
+    #                              y=regions,      # Regions
+    #                              col=variables,  # Variables
+    #                              row=modes,      # Modes/Samples/Populations etc
+    #                              robust=robust, cmap=cmap, **kwargs)
+    #     # TODO: Something better than this temporary hack for base_plotter functionality
+    #     if plotter is not None:
+    #         plotter._save_figure(figure_name=figure_name)
+    #         plotter._check_show()
+    #     return output
+
+    def plot_timeseries(self, **kwargs):
+        time, variables, regions, modes, plotter, kwargs = \
+            self._prepare_plot_args(**kwargs)
+        if self.shape[3] == 1 or variables is None or regions is None or modes is None:
+            if variables is None:
+                data = self._data[:, 0]
+                data.name = self.labels_dimensions[self.labels_ordering[1]][0]
+            else:
+                data = self._data
+            col_wrap = kwargs.pop("col_wrap", self.shape[3])  # Row per variable
+            figure_name = kwargs.pop("figure_name", "%s time series plot" % self.title)
+            output = data.plot.line(x=time,       # Time
+                                    y=variables,  # Variables
+                                    hue=regions,  # Regions
+                                    col=modes,    # Modes/Samples/Populations etc
+                                    col_wrap=col_wrap, **kwargs)
+            # TODO: Something better than this temporary hack for base_plotter functionality
+            if plotter is not None:
+                plotter.base._save_figure(figure_name=figure_name)
+                plotter.base._check_show()
+            return output
+        else:
+            return self.plot_raster(**kwargs)
+
+    def plot_raster(self, **kwargs):
+        time, variables, regions, modes, plotter, kwargs = \
+            self._prepare_plot_args(**kwargs)
+        figure_name = kwargs.pop("figure_name", "%s raster plot" % self.title)
+        data = xr.DataArray(self._data)
+        for i_var, var in enumerate(self.labels_dimensions[self.labels_ordering[1]]):
+            # Remove mean
+            data[:, i_var] -= data[:, i_var].mean()
+            # Compute approximate range for this variable
+            amplitude = 0.9 * (data[:, i_var].max() - data[:, i_var].min())
+            # Add the step on y axis for this variable and for each Region's data
+            for i_region in range(self.shape[2]):
+                data[:, i_var, i_region] += amplitude * i_region
+        if self.shape[3] > 1 and regions is not None and modes is not None:
+            hue = "%s - %s" % (regions, modes)
+            data = data.stack({hue: (regions, modes)})
+        else:
+            hue = regions or modes
+        col_wrap = kwargs.pop("col_wrap", self.shape[1])  # All variables in columns
+        output = data.plot(x=time,         # Time
+                           hue=hue,        # Regions and/or Modes/Samples/Populations etc
+                           col=variables,  # Variables
+                           yincrease=False, col_wrap=col_wrap, **kwargs)
+        # TODO: Something better than this temporary hack for base_plotter functionality
+        if plotter is not None:
+            plotter.base._save_figure(figure_name=figure_name)
+            plotter.base._check_show()
+        return output
 
 
 class SensorsTSBase(TimeSeries):
