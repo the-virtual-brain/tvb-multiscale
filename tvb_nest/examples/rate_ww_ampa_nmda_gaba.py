@@ -223,6 +223,9 @@ if __name__ == "__main__":
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
 
+    # In all the following we assume that all populations are in the same (equal number) regions,
+    # whereas we average across individual neurons
+
     # Plot spikes and mean field spike rates
     rates, spike_detectors = \
         tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(

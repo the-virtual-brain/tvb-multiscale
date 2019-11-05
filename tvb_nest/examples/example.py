@@ -103,6 +103,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
 
+    # In all the following we assume that all populations are in the same (equal number) regions,
+    # whereas we average across individual neurons
+
     # Plot spikes and mean field spike rates
     rates, spike_detectors = \
         tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(
