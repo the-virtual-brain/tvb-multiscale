@@ -40,15 +40,17 @@ class NESTDevice(object):
             raise ValueError("Failed to GetStatus of device %s!" % str(device))
         self.update_number_of_connections()
 
-    def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
+    def filter_neurons(self, neurons=None, exclude_neurons=[]):
         temp_neurons = self.neurons
         if neurons is not None:
-            temp_neurons = self.neurons
-        n_neurons = len(temp_neurons)
+            temp_neurons = list(self.neurons)
         for neuron in exclude_neurons:
             if neuron in temp_neurons:
-                n_neurons -= 1
-        return n_neurons
+                temp_neurons.remove(neuron)
+        return np.array(temp_neurons)
+
+    def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
+        return len(self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons))
 
     @property
     def nest_model(self):
@@ -330,10 +332,20 @@ class NESTSpikeDetector(NESTOutputDevice):
     def get_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
 
-    def get_spikes_times_by_neurons(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return sort_events_by_x_and_y(self.events, x="senders", y="times",
-                                      filter_x=neurons, filter_y=times,
-                                      exclude_x=exclude_neurons, exclude_y=exclude_times)
+    def get_spikes_times_by_neurons(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[],
+                                    full_senders=False):
+        sorted_events = sort_events_by_x_and_y(self.events, x="senders", y="times",
+                                               filter_x=neurons, filter_y=times,
+                                               exclude_x=exclude_neurons, exclude_y=exclude_times)
+        if full_senders:
+            sender_neurons = self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons)
+            output = OrderedDict()
+            for neuron in sender_neurons:
+                output[neuron] = np.array([])
+            output.update(sorted_events)
+            return output
+        else:
+            return sorted_events
 
     def get_spikes_neurons_by_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return sort_events_by_x_and_y(self.events, x="times", y="senders",
@@ -363,7 +375,7 @@ class NESTSpikeDetector(NESTOutputDevice):
     # The following properties are computed across time:
 
     def compute_spikes_rate_across_time(self, time, spikes_kernel_width,
-                                        spikes_kernel=None, mode="summary",
+                                        spikes_kernel=None, mode="per_neuron",
                                         name=None, **kwargs):
 
         def spikes_rate_with_rectangular_kernel(spikes_times, time, spikes_counts_kernel_width2):
@@ -371,21 +383,22 @@ class NESTSpikeDetector(NESTOutputDevice):
             for t in time:
                 spikes_counts.append(np.sum(np.logical_and(spikes_times >= (t - spikes_counts_kernel_width2),
                                                            spikes_times < (t + spikes_counts_kernel_width2))))
-            return np.array(spikes_counts) / (2*spikes_counts_kernel_width2)
+            return np.abs(spikes_counts) / (2*spikes_counts_kernel_width2)
 
         if spikes_kernel is None:
             spikes_kernel = spikes_rate_with_rectangular_kernel
 
         if name is None:
-            name = self.model + " - Total spike rate accross time"
+            name = self.model + " - Total spike rate across time"
         if mode == "per_neuron":
             senders_neurons = []
             rates = []
-            for neuron, spike_times in self.get_spikes_times_by_neurons(**kwargs).items():
+            for neuron, spike_times in self.get_spikes_times_by_neurons(full_senders=True, **kwargs).items():
                 senders_neurons.append(neuron)
                 rates.append(spikes_kernel(spike_times, time, spikes_kernel_width))
             return xr.DataArray(rates, dims=["Neuron", "Time"], coords={"Neuron": senders_neurons,
                                                                         "Time": time})
+
         # Compute rate
         return xr.DataArray(spikes_kernel(self.get_spikes_times(**kwargs), time, spikes_kernel_width),
                             dims=["Time"], coords={"Time": time}, name=name)
@@ -395,7 +408,7 @@ class NESTSpikeDetector(NESTOutputDevice):
         if name is None:
             name = self.model + " - Mean spike rate accross time"
         return self.compute_spikes_rate_across_time(time, spike_kernel_width, spikes_kernel,
-                                                          "summary", name, **kwargs) / \
+                                                    "total", name, **kwargs) / \
                self.get_number_of_neurons(**kwargs)
 
 
@@ -597,7 +610,7 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
         return self.get_total_spikes_activity()
 
     def compute_spikes_activity_across_time(self, time, spikes_kernel_width,
-                                            spikes_kernel=None, mode="summary",
+                                            spikes_kernel=None, mode="per_neuron",
                                             name=None, **kwargs):
         if name is None:
             name = self.model + " - Total spike activity accross time"
@@ -609,7 +622,7 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
             for spike in spikes:
                 activity.append(np.convolve(spike, spikes_kernel, mode="same"))
             return xr.DataArray(np.array(activity), dims=["Neuron", "Time"],
-                                coords={"Neuron": np.array(spikes.coords[spikes.dims[0]].item()),
+                                coords={"Neuron": spikes.coords[spikes.dims[0]].item(),
                                         "Time": time})
         else:
             spikes = np.sum(spikes, axis=0).squeeze()
@@ -621,7 +634,7 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
         if name is None:
             name = self.model + " - Mean spike activity accross time"
         return self.compute_spikes_activity_across_time(time, spike_kernel_width, spikes_kernel,
-                                                        "summary", name, **kwargs) / \
+                                                        "total", name, **kwargs) / \
                self.get_number_of_neurons(**kwargs)
 
 
