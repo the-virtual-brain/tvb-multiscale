@@ -79,17 +79,21 @@ class NESTNetwork(object):
                 devices[pop_label] = get_device(pop_device, nodes)
         return devices
 
-    def _prepare_to_compute_spike_rates(self, population_devices=None, regions=None,
+    def _prepare_to_compute_spike_rates(self, population_devices=None, regions=None, mode="rate",
                                         spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                         spikes_kernel_overlap=0.5, min_spike_interval=None, time=None):
 
-        for device_name in NESTOutputSpikeDeviceDict.keys():
-            spike_detectors = self.get_devices_by_model(device_name, nodes=regions)
-            if len(spike_detectors) > 0:
-                break   # If this is not an empty dict of devices
+        if mode.find("activity") > -1:
+            spike_detectors = self.get_devices_by_model("spike_multimeter", nodes=regions)
+        else:
+            for device_name in NESTOutputSpikeDeviceDict.keys():
+                spike_detectors = self.get_devices_by_model(device_name, nodes=regions)
+                if len(spike_detectors) > 0:
+                    break   # If this is not an empty dict of devices
         if len(spike_detectors) == 0:
             LOG.warning("No spike measuring device in this NEST network!")
             return None, None, None
+
         if population_devices is not None:
             population_devices = np.intersect1d(list(spike_detectors.index),
                                                 ensure_list(population_devices)).tolist()
@@ -97,8 +101,10 @@ class NESTNetwork(object):
                 LOG.warning("No spike measuring device left after user selection!")
                 return None, None, None
             spike_detectors = spike_detectors[population_devices]
+
         if regions is not None:
             regions = ensure_list(regions)
+
         first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
         last_spike_time = 0.0
         mean_spike_interval = self.config.calcul.MAX_SINGLE_VALUE
@@ -148,23 +154,28 @@ class NESTNetwork(object):
 
         return spike_detectors, time, int(np.maximum(1, np.ceil(spikes_kernel_width / time_step)))
 
-    def compute_spikes_rates(self, mode="total", population_devices=None, regions=None,
+    def compute_spikes_rates(self, mode="total_rate", population_devices=None, regions=None,
                              devices_dim_name="Population", name="Spikes rates from NEST network",
                              spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                              spikes_kernel=None):
         spike_detectors, time, spikes_kernel_width = \
-            self._prepare_to_compute_spike_rates(population_devices, regions,
+            self._prepare_to_compute_spike_rates(population_devices, regions, mode,
                                                  spikes_kernel_width, spikes_kernel_n_intervals,
                                                  spikes_kernel_overlap, min_spike_interval, time)
         if spike_detectors is not None:
             kwargs = {}
-            if mode == "mean":
-                fun = "compute_mean_spike_rate_across_time"
+            mode = mode.lower()
+            if mode.find("activity") > -1:
+                fun = "spikes_activity_across_time"
             else:
-                fun = "compute_spikes_rate_across_time"
-                if mode == "total":
-                    kwargs.update({"mode": mode})
+                fun = "spikes_rate_across_time"
+            if mode.find("mean") > -1:
+                fun = "compute_mean_" + fun
+            else:
+                fun = "compute_" + fun
+                if mode.find("total") > -1:
+                    kwargs.update({"mode": "total"})
             shape = spike_detectors[0].shape
             equal_shape_per_population = True
             rates = []
@@ -214,13 +225,35 @@ class NESTNetwork(object):
         else:
             return None, None
 
-    def compute_mean_spikes_rates(self, population_devices=None, regions=None,
-                                  devices_dim_name="Population", name="Spikes rates from NEST network",
+    def compute_spikes_activities(self, mode="total", population_devices=None, regions=None,
+                                 devices_dim_name="Population", name="Spikes activities from NEST network",
+                                 spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                 spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                 spikes_kernel=None):
+        return self.compute_spikes_rates(mode+"_activity", population_devices, regions,
+                                         devices_dim_name, name,
+                                         spikes_kernel_width, spikes_kernel_n_intervals,
+                                         spikes_kernel_overlap, min_spike_interval, time,
+                                         spikes_kernel)
+
+    def compute_mean_spikes_rates(self, population_devices=None, regions=None, mode="rate",
+                                  devices_dim_name="Population", name="Mean spikes rates from NEST network",
                                   spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                   spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                   spikes_kernel=None):
-        return self.compute_spikes_rates("mean", population_devices, regions,
-                                         devices_dim_name, "Mean spikes rates from NEST network",
+        return self.compute_spikes_rates(mode + "_mean", population_devices, regions,
+                                         devices_dim_name, name,
+                                         spikes_kernel_width, spikes_kernel_n_intervals,
+                                         spikes_kernel_overlap, min_spike_interval, time,
+                                         spikes_kernel)
+
+    def compute_mean_spikes_activities(self, population_devices=None, regions=None,
+                                       devices_dim_name="Population", name="Mean spikes activity from NEST network",
+                                       spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                       spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                       spikes_kernel=None):
+        return self.compute_spikes_rates("mean_activity", population_devices, regions,
+                                         devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
                                          spikes_kernel_overlap, min_spike_interval, time,
                                          spikes_kernel)
