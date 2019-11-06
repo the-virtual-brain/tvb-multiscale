@@ -185,11 +185,11 @@ def curve_elbow_point(vals, interactive=CONFIGURED.calcul.INTERACTIVE_ELBOW_POIN
         return elbow
 
 
-def spikes_rate_with_rectangular_kernel(spikes_times, time, spikes_counts_kernel_width):
-    # Simple rectangular kernel
-    spikes_counts_kernel_width2 = spikes_counts_kernel_width / 2
-    spikes_counts = []
-    for t in time:
-        spikes_counts.append(np.sum(np.logical_and(spikes_times >= (t - spikes_counts_kernel_width2),
-                                                  spikes_times < (t + spikes_counts_kernel_width2))))
-    return np.array(spikes_counts) / spikes_counts_kernel_width
+def spikes_rate_convolution(spike, spikes_kernel):
+    if (spike != 0).any():
+        if len(spikes_kernel) > 1:
+            return np.convolve(spike, spikes_kernel, mode="same")
+        else:
+            return spike * spikes_kernel
+    else:
+        return np.zeros(spike.shape)
