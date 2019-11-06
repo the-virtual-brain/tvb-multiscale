@@ -10,7 +10,6 @@ from tvb_nest.simulator_nest.models.devices \
     import NESTDeviceSet, NESTOutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
-from tvb_scripts.utils.computations_utils import spikes_rate_with_rectangular_kernel
 
 
 LOG = initialize_logger(__name__)
@@ -145,8 +144,9 @@ class NESTNetwork(object):
                 mean_spike_interval = np.minimum(np.maximum(min_spike_interval, mean_spike_interval),
                                                  time_duration / spikes_kernel_n_intervals ** 2)
                 spikes_kernel_width = spikes_kernel_n_intervals * mean_spike_interval
+            time_step = np.mean(np.diff(time))
 
-        return spike_detectors, time, spikes_kernel_width
+        return spike_detectors, time, int(np.maximum(1, np.ceil(spikes_kernel_width / time_step)))
 
     def compute_spikes_rates(self, mode="total", population_devices=None, regions=None,
                              devices_dim_name="Population", name="Spikes rates from NEST network",
@@ -218,7 +218,7 @@ class NESTNetwork(object):
                                   devices_dim_name="Population", name="Spikes rates from NEST network",
                                   spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                   spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
-                                  spikes_kernel=spikes_rate_with_rectangular_kernel):
+                                  spikes_kernel=None):
         return self.compute_spikes_rates("mean", population_devices, regions,
                                          devices_dim_name, "Mean spikes rates from NEST network",
                                          spikes_kernel_width, spikes_kernel_n_intervals,

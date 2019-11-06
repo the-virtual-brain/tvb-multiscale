@@ -9,7 +9,7 @@ import numpy as np
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, sort_events_by_x_and_y, data_xarray_from_continuous_events
-from tvb_scripts.utils.computations_utils import spikes_rate_with_rectangular_kernel
+from tvb_scripts.utils.computations_utils import spikes_rate_convolution
 
 
 LOG = initialize_logger(__name__)
@@ -378,30 +378,45 @@ class NESTSpikeDetector(NESTOutputDevice):
                                         spikes_kernel=None, mode="per_neuron",
                                         name=None, **kwargs):
 
-        def spikes_rate_with_rectangular_kernel(spikes_times, time, spikes_counts_kernel_width2):
-            spikes_counts = []
-            for t in time:
-                spikes_counts.append(np.sum(np.logical_and(spikes_times >= (t - spikes_counts_kernel_width2),
-                                                           spikes_times < (t + spikes_counts_kernel_width2))))
-            return np.abs(spikes_counts) / (2*spikes_counts_kernel_width2)
+        def compute_spikes_counts(spikes_times, time):
+
+            def spikes_events_to_time_index(spike_time, time):
+                if spike_time < time[0] or spike_time > time[-1]:
+                    raise_value_error("Spike time is outside the input time vector!")
+                return np.argmin(np.abs(time-spike_time))
+
+            spikes_counts = np.zeros(time.shape)
+            for spike_time in spikes_times:
+                spikes_counts[spikes_events_to_time_index(spike_time, time)] += 1
+
+            return spikes_counts
 
         if spikes_kernel is None:
-            spikes_kernel = spikes_rate_with_rectangular_kernel
+            spikes_kernel = np.ones((spikes_kernel_width, ))
 
         if name is None:
             name = self.model + " - Total spike rate across time"
+
         if mode == "per_neuron":
             senders_neurons = []
             rates = []
-            for neuron, spike_times in self.get_spikes_times_by_neurons(full_senders=True, **kwargs).items():
+            for neuron, spikes_times in self.get_spikes_times_by_neurons(full_senders=True, **kwargs).items():
                 senders_neurons.append(neuron)
-                rates.append(spikes_kernel(spike_times, time, spikes_kernel_width))
+                if len(spikes_times) > 0:
+                    spikes_counts = compute_spikes_counts(spikes_times, time)
+                    rates.append(spikes_rate_convolution(spikes_counts, spikes_kernel))
+                else:
+                    rates.append(np.zeros(time.shape))
             return xr.DataArray(rates, dims=["Neuron", "Time"], coords={"Neuron": senders_neurons,
                                                                         "Time": time})
-
-        # Compute rate
-        return xr.DataArray(spikes_kernel(self.get_spikes_times(**kwargs), time, spikes_kernel_width),
-                            dims=["Time"], coords={"Time": time}, name=name)
+        else:
+            spikes_times = self.get_spikes_times(**kwargs)
+            if len(spikes_times) > 0:
+                spikes_counts = compute_spikes_counts(spikes_times, time)
+                rates = spikes_rate_convolution(spikes_counts, spikes_kernel)
+            else:
+                rates = np.zeros(time.shape)
+            return xr.DataArray(rates, dims=["Time"], coords={"Time": time}, name=name)
 
     def compute_mean_spike_rate_across_time(self, time, spike_kernel_width, spikes_kernel=None, name=None,
                                             **kwargs):
@@ -611,23 +626,37 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
 
     def compute_spikes_activity_across_time(self, time, spikes_kernel_width,
                                             spikes_kernel=None, mode="per_neuron",
-                                            name=None, **kwargs):
+                                            name=None, rate_mode="activity",  **kwargs):
+
         if name is None:
             name = self.model + " - Total spike activity accross time"
+        spikes = self.get_spikes(**kwargs).values
+        if rate_mode == "rate":
+            for i_spike, spike in spikes:
+                spikes[i_spike] = np.heaviside(spike, 0.0)
+
         if spikes_kernel is None:
             spikes_kernel = np.ones((spikes_kernel_width, ))
-        spikes = self.get_spikes(**kwargs).values
+
         if mode == "per_neuron":
             activity = []
             for spike in spikes:
-                activity.append(np.convolve(spike, spikes_kernel, mode="same"))
+                activity.append(spikes_rate_convolution(spike, spikes_kernel))
             return xr.DataArray(np.array(activity), dims=["Neuron", "Time"],
                                 coords={"Neuron": spikes.coords[spikes.dims[0]].item(),
                                         "Time": time})
         else:
             spikes = np.sum(spikes, axis=0).squeeze()
-            activity = np.convolve(spikes, spikes_kernel, mode="same")
+            activity = spikes_rate_convolution(spikes, spikes_kernel)
+
         return xr.DataArray(activity, dims=["Time"], coords={"Time": time}, name=name)
+
+    def compute_spikes_rate_across_time(self, time, spikes_kernel_width,
+                                        spikes_kernel=None, mode="per_neuron",
+                                        name=None, **kwargs):
+        return self.compute_spikes_activity_across_time(time, spikes_kernel_width,
+                                                        spikes_kernel=spikes_kernel, mode=mode,
+                                                        name=name, rate_mode="rate",  **kwargs)
 
     def compute_mean_spikes_activity_across_time(self, time, spike_kernel_width,
                                                  spikes_kernel=None, name=None, **kwargs):
