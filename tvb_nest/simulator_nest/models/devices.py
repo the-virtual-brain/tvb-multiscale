@@ -233,7 +233,7 @@ class NESTOutputDevice(NESTDevice):
         output_events = OrderedDict()
         if events is None:
             events = self.events
-        spike_times = np.array(events["times"])
+        spikes_times = np.array(events["times"])
         senders = np.array(events["senders"])
         inds = np.ones((self.n_events,))
         if len(inds) > 0:
@@ -243,22 +243,22 @@ class NESTOutputDevice(NESTDevice):
                                                  time not in flatten_list(exclude_times) and
                                                  sender in flatten_list(neurons) and
                                                  sender not in flatten_list(exclude_neurons)
-                                                 for time, sender in zip(spike_times, senders)])
+                                                 for time, sender in zip(spikes_times, senders)])
                 else:
                     inds = np.logical_and(inds, [time in flatten_list(times) and
                                                  time not in flatten_list(exclude_times) and
                                                  sender not in flatten_list(exclude_neurons)
-                                                 for time, sender in zip(spike_times, senders)])
+                                                 for time, sender in zip(spikes_times, senders)])
             else:
                 if neurons is not None:
                     inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
                                                  sender in flatten_list(neurons) and
                                                  sender not in flatten_list(exclude_neurons)
-                                                 for time, sender in zip(spike_times, senders)])
+                                                 for time, sender in zip(spikes_times, senders)])
                 else:
                     inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
                                                  sender not in flatten_list(exclude_neurons)
-                                                 for time, sender in zip(spike_times, senders)])
+                                                 for time, sender in zip(spikes_times, senders)])
             for var in ensure_list(variables):
                 output_events[var] = events[var][inds]
         else:
@@ -418,8 +418,8 @@ class NESTSpikeDetector(NESTOutputDevice):
                 rates = np.zeros(time.shape)
             return xr.DataArray(rates, dims=["Time"], coords={"Time": time}, name=name)
 
-    def compute_mean_spike_rate_across_time(self, time, spike_kernel_width, spikes_kernel=None, name=None,
-                                            **kwargs):
+    def compute_mean_spikes_rate_across_time(self, time, spike_kernel_width, spikes_kernel=None, name=None,
+                                             **kwargs):
         if name is None:
             name = self.model + " - Mean spike rate accross time"
         return self.compute_spikes_rate_across_time(time, spike_kernel_width, spikes_kernel,
