@@ -3,6 +3,7 @@
 # Data structure manipulations and conversions
 from six import string_types
 import re
+from pandas import DataFrame, Series, MultiIndex
 import numpy as np
 from collections import OrderedDict
 from copy import deepcopy
@@ -729,7 +730,7 @@ def data_frame_from_continuous_events(events, times, senders, variables=[],
     for sender in exclude_senders:
         filter_senders.remove(sender)
     n_senders = len(filter_senders)
-    data = dict(events)
+    data = OrderedDict(events)
     if len(variables) is None:
         variables = data.keys()
     for key in variables:
@@ -740,4 +741,26 @@ def data_frame_from_continuous_events(events, times, senders, variables=[],
             i_sender = filter_senders.index(sender)
             for var in data.keys():
                 data[var][i_time, i_sender] = events[var][id]
-    return data, np.array(unique_times), np.array(filter_senders)
+    return Series(data), np.array(unique_times), np.array(filter_senders)
+
+
+def nested_to_multiindex_pandas_dataframe(series, names=None):
+
+    def construct_index_and_data_recursively(series, input_index=[]):
+        index = list(series.index)
+        indices = []
+        data = []
+        for ind in index:
+            this_ind = input_index + [ind]
+            if isinstance(series[ind], Series):
+                new_inds, d = construct_index_and_data_recursively(series[ind], this_ind)
+                indices += new_inds
+                data += d
+            else:
+                indices.append(tuple(this_ind))
+                data.append(series[ind])
+        return indices, data
+
+    index, data = construct_index_and_data_recursively(series)
+    index = MultiIndex.from_tuples(index, names=names)
+    return DataFrame(data, index=index)

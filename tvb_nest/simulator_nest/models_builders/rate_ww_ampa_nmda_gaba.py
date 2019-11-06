@@ -32,7 +32,7 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
                     compile_modules("tvb_rate_wongwang", recompile=False, config=self.config)
                     # and now install it...
                     self.nest_instance.Install("tvb_rate_wongwangmodule")
-
+                nest_models = self.nest_instance.Models()
         self.populations_params = [{}, {},  # AMPA and NMDA get the default parameters
                                    {"tau_syn": 10.0}]  # decay synaptic time for GABA has to change
         # Common order of neurons' number per population:
