@@ -4,7 +4,7 @@
 import os
 import inspect
 import tvb_data
-from tvb.simulator.plot.config import Config as ConfigBase
+from tvb.simulator.plot.config import FiguresConfig as ConfigBase
 from tvb.datatypes import cortex, connectivity
 from tvb.basic.profile import TvbProfile
 
@@ -73,7 +73,7 @@ class Config(ConfigBase):
     def __init__(self, head_folder=WORKING_DIRECTORY, raw_data_folder=DEFAULT_SUBJECT_PATH,
                  output_base=WORKING_DIRECTORY, separate_by_run=False,
                  nest_path=os.path.expanduser("~/Software/Science/NEST/bld_python27")):
-        super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
+        super(Config, self).__init__(output_base, separate_by_run)
         self.nest = NESTconfig(nest_path)
 
 

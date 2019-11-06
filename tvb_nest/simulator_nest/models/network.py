@@ -93,9 +93,9 @@ class NESTNetwork(object):
 
         spike_detectors = self.get_devices_by_model("spike_detector")
 
-        first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
+        first_spike_time = CONFIGURED.MAX_SINGLE_VALUE
         last_spike_time = 0.0
-        mean_spike_interval = self.config.calcul.MAX_SINGLE_VALUE
+        mean_spike_interval = CONFIGURED.MAX_SINGLE_VALUE
         for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.items()):
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.items()):
                 n_spikes = len(region_spike_detector.spike_times)

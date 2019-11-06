@@ -367,7 +367,7 @@ def find_labels_inds(labels, keys, modefun="find", two_way_search=False, break_a
 
 
 def extract_dict_stringkeys(d, keys, modefun="find", two_way_search=False,
-                            break_after=CONFIGURED.calcul.MAX_INT_VALUE, remove=False):
+                            break_after=CONFIGURED.MAX_INT_VALUE, remove=False):
     # TODO: test that it works after modifying with find_labels_inds
     if remove:
         out_dict = deepcopy(d)
