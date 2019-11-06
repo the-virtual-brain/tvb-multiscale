@@ -197,7 +197,7 @@ if __name__ == "__main__":
         nest_network.compute_spikes_rates(mode="per_neuron", population_devices=None, regions=None,
                                           devices_dim_name="Population", name="Spikes rates from NEST network",
                                           spikes_kernel_width=None, spikes_kernel_n_intervals=10,
-                                          spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                          spikes_kernel_overlap=0.5, min_spike_interval=None, time=t,
                                           spikes_kernel=None)[0]
 
     rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1], robust=True)
