@@ -7,8 +7,11 @@ import tvb_data
 from tvb_scripts.config import Config as ConfigBase
 from tvb.datatypes import cortex, connectivity
 from tvb.basic.profile import TvbProfile
+from tvb_scripts.utils.log_error_utils import initialize_logger
+
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+initialize_logger('matplotlib')
 
 
 class NESTconfig(object):
