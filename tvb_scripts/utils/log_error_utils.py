@@ -39,6 +39,9 @@ def initialize_logger(name, target_folder=CONFIGURED.FOLDER_LOGS):
     fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
 
+    file = open(os.path.join(target_folder, 'log_errors.log'), 'rb')
+    file.seek(0, 2)
+
     # Log errors separately, to have them easy to inspect
     fhe = TimedRotatingFileHandler(os.path.join(target_folder, 'log_errors.log'), when="d", interval=1, backupCount=2)
     fhe.setFormatter(formatter)
