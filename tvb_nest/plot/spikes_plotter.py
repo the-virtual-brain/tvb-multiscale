@@ -46,7 +46,7 @@ class SpikesPlotter(BasePlotter):
         if figure_name is None:
             figure_name = title
         if figsize is None:
-            figsize = self.config.figures.LARGE_SIZE
+            figsize = self.config.LARGE_SIZE
         pyplot.figure(figure_name, figsize=figsize)
 
         # Plot

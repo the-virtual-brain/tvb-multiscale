@@ -22,9 +22,9 @@ from tvb_nest.config import Config
 
 def prepare_launch_default_simulation():
     config = Config(output_base="outputs/")
-    config.figures.SAVE_FLAG = False
-    config.figures.SHOW_FLAG = False
-    config.figures.MATPLOTLIB_BACKEND = "Agg"
+    config.SAVE_FLAG = False
+    config.SHOW_FLAG = False
+    config.MATPLOTLIB_BACKEND = "Agg"
     plotter = Plotter(config)
 
     connectivity = Connectivity.from_file(os.path.join(Config.DEFAULT_SUBJECT_PATH, Config.DEFAULT_CONNECTIVITY_ZIP))

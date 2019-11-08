@@ -20,13 +20,20 @@ def initialize_logger(name, target_folder=CONFIGURED.FOLDER_LOGS):
         os.makedirs(target_folder)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+
+    if name == "matplotlib":
+        logger.setLevel(logging.WARNING)
+    else:
+        logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(formatter)
     ch.setLevel(logging.DEBUG)
+
+    file = open(os.path.join(target_folder, 'logs.log'), 'rb')
+    file.seek(0, 2)
 
     fh = TimedRotatingFileHandler(os.path.join(target_folder, 'logs.log'), when="d", interval=1, backupCount=2)
     fh.setFormatter(formatter)
