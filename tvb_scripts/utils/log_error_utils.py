@@ -32,6 +32,9 @@ def initialize_logger(name, target_folder=CONFIGURED.FOLDER_LOGS):
     ch.setFormatter(formatter)
     ch.setLevel(logging.DEBUG)
 
+    # We introduce a short delay by going to the end of the log file
+    # This allows running Dockerfile on Windows 10 when the user
+    # don't stop the container before running it again.
     file = open(os.path.join(target_folder, 'logs.log'), 'rb')
     file.seek(0, 2)
 
@@ -39,6 +42,9 @@ def initialize_logger(name, target_folder=CONFIGURED.FOLDER_LOGS):
     fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
 
+    # We introduce a short delay by going to the end of the log file
+    # This allows running Dockerfile on Windows 10 when the user
+    # don't stop the container before running it again.
     file = open(os.path.join(target_folder, 'log_errors.log'), 'rb')
     file.seek(0, 2)
 
