@@ -8,7 +8,7 @@ If text is too long, pls notify me, and I will try to shorten it.
 Otherwise, the time-windows could be slightly adjusted, most of them are not very strict.
 
 Movies can be found here:
-https://drive.google.com/drive/folders/1azLcqIS2PoJG6rc5Ryi46OJOT8dUATHQ?usp=sharing
+https://drive.google.com/drive/folders/1azLcqIS2PoJG6rc5Ryi46OJOT8dUATHQ
 
 
 -------------------------
@@ -22,35 +22,35 @@ tvb-nest_usage_local.mov
 00:11 -- 00:15
     You should clone locally this repository. This is what we already did for this video.
 
-00:15 -- 00:30
+00:15 -- 00:45
     With the local copy, make sure that in the Docker file, the command to launch Jupyter Notebook is uncommented,
-    and bind port 8888 from inside the container to a localhost port.
+    and bind port 8888 from inside the container to a localhost port. Make sure that the context folder is set to ".".
     Then launch docker, to run the container.
 
 * Alternatively use Docker Hub and this command:
 *  docker pull thevirtualbrain/tvb-nest
 *  docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser —allow-root
 
-00:32 -- 00:36
+00:46 -- 00:51
     You should be able to see in the container logs that Notebook is running.
 
-00:37 -- 00:40
+00:52 -- 00:59
     In a browser on your machine, access localhost with the port 8888
 
-00:41 -- 00:44
+01:00 -- 01:05
     Password is set to tvb42
 
 * Password is 'tvb42'
 
-00:45 -- 00:50
+01:06 -- 01:14
     Navigate to folder packages, then tvb-multiscale, tvb_nest, examples and notebooks.
 
-00:51 -- 00:55
+01:15 -- 01:19
     Open the available notebook and work with it, as you would with regular Jupyter Notebooks
 
 * This notebook will be opened: https://github.com/dionperd/tvb-multiscale/tree/master/tvb_nest/examples/notebooks
 
-00:56 -- end
+01:20 -- end
     The notebook demonstrates the usage of tvb-nest package, via a simulation in which Wong-Wang models, with an
     excitatory and an inhibitory population, are used for the TVB region nodes.
     Two region nodes are modelled in NEST as networks of spiking neural populations, an excitatory and inhibitory one,
