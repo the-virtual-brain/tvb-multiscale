@@ -122,7 +122,7 @@ RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
-#ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014 iaf_cond_nmda_deco2014 iaf_cond_ampa_gaba_deco2014 scale_connection"
+#ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014"
 #ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
 #RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
