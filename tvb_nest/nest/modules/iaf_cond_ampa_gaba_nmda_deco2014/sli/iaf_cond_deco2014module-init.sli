@@ -1,5 +1,5 @@
 /*
-*  iaf_cond_deco2014module-init.sli
+*  iaf_cond_ampa_gaba_nmda_deco2014module-init.sli
 *
 *  This file is part of NEST.
 *
@@ -25,4 +25,4 @@
 * Run automatically when iaf_cond_deco2014module is loaded.
 */
 
-M_DEBUG (iaf_cond_deco2014module.sli) (Initializing SLI support for iaf_cond_deco2014module.) message
+M_DEBUG (iaf_cond_ampa_gaba_nmda_deco2014module.sli) (Initializing SLI support for iaf_cond_ampa_gaba_nmda_deco2014module.) message
