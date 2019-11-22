@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 import time
 from collections import OrderedDict
-import numpy as np
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.interfaces.builders.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder as InterfaceRateWWAMPANMDAGABABuilder
-from tvb_nest.simulator_nest.models_builders.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder
-from tvb_nest.simulator_nest.nest_factory import compile_modules
+from tvb_nest.interfaces.builders.models.dev.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder as InterfaceRateWWAMPANMDAGABABuilder
+from tvb_nest.simulator_nest.builders.models.dev.rate_ww_ampa_nmda_gaba import RateWWAMPANMDAGABABuilder
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.plot.plotter import Plotter
 from tvb_scripts.time_series.model import TimeSeriesRegion
@@ -115,7 +113,7 @@ if __name__ == "__main__":
     # # Given that only the AMPA population of one region-node couples to
     # # all populations of another region-node,
     # # we need only one connection type
-    # nest_model_builder.node_connections = \
+    # nest_model_builder.nodes_connections = \
     #     [{"src_population": "AMPA", "trg_population": ["AMPA", "GABA"],
     #       "model": "rate_connection",
     #       "params": nest_model_builder.default_connection["params"],

@@ -13,15 +13,14 @@ class RedWWexcIOinhI(TVBNESTInterface):
     tvb_model = ReducedWongWangExcIOInhI()
 
     # TODO: confirm the following:
-    w_nest_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
+    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
     # Convert rate to a number in the [0,1] interval,
     # assuming a maximum rate of 1000.0 Hz, or 1 spike/sec
-    w_nest_spikes_to_tvb_sv = 1.0  # (assuming spikes/ms in TVB)
-    w_tvb_sv_to_nest_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
-    w_tvb_sv_to_nest_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
-    w_nest_sv_to_tvb_sv = 1.0  # It is the unitless S in [0, 1] communicated
-
-    def __init__(self, config=CONFIGURED):
+    w_spikes_to_tvb_sv = 1.0  # (assuming spikes/ms in TVB)
+    w_tvb_sv_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
+    w_tvb_sv_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
+    w_spike_sv_to_tvb_sv = 1.0  # It is the unitless S in [0, 1] communicated
+    def __init__(self, config=CONFIGURED.nest):
         super(RedWWexcIOinhI, self).__init__(config)
         LOG.info("%s created!" % self.__class__)
 
@@ -31,4 +30,4 @@ class RedWWexcIOinhI(TVBNESTInterface):
         # The index of J_N refers to the source TVB region in case of dc_generator,
         # but to the target NEST node, in case of direct application to its I_e parameter
         # Therefore, for the moment the direct application is more consistent.
-        self.w_tvb_sv_to_nest_current *= self.tvb_model.J_N
+        self.w_tvb_sv_to_current *= self.tvb_model.J_N

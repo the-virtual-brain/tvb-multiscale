@@ -8,8 +8,8 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
-from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.plot.plotter import Plotter
 from tvb_scripts.time_series.model import TimeSeriesRegion
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     # # and that only the excitatory population of one region-node couples to
     # # both excitatory and inhibitory populations of another region-node,
     # # we need only one connection type
-    # nest_model_builder.node_connections = \
+    # nest_model_builder.nodes_connections = \
     #     [{"src_population": "E", "trg_population": ["E", "I"],
     #       "model": nest_model_builder.default_connection["model"],
     #       "params": nest_model_builder.default_connection["params"],
