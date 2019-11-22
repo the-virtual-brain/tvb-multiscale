@@ -319,9 +319,11 @@ class Simulator(SimulatorTVB):
                 self.simulate_nest = self.tvb_nest_interface.nest_instance.Simulate
                 break
 
-        # Zero coupling weights among NEST nodes:
-        self.connectivity.weights[self.tvb_nest_interface.nest_nodes_ids] \
-            [:, self.tvb_nest_interface.nest_nodes_ids] = 0.0
+        # If NEST nodes are represented exclusively in NEST...
+        if self.tvb_nest_interface.exclusive_nodes:
+            # ...zero coupling interface_weights among NEST nodes:
+            self.connectivity.weights[self.tvb_nest_interface.nest_nodes_ids] \
+                [:, self.tvb_nest_interface.nest_nodes_ids] = 0.0
 
         # Setup history
         # TODO: Reflect upon the idea to allow NEST initialization and history setting via TVB
