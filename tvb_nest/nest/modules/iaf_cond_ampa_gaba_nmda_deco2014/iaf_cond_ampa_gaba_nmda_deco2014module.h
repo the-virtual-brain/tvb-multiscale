@@ -1,6 +1,6 @@
 
 /*
- *  iaf_cond_deco2014module.h
+ *  iaf_cond_ampa_gaba_nmda_deco2014module.h
  *
  *  This file is part of NEST.
  *
@@ -33,7 +33,7 @@
 * Class defining your model.
 * @note For each model, you must define one such class, with a unique name.
 */
-class iaf_cond_deco2014module : public SLIModule
+class iaf_cond_ampa_gaba_nmda_deco2014module : public SLIModule
 {
 public:
   // Interface functions ------------------------------------------
@@ -42,12 +42,12 @@ public:
    * @note The constructor registers the module with the dynamic loader.
    *       Initialization proper is performed by the init() method.
    */
-  iaf_cond_deco2014module();
+  iaf_cond_ampa_gaba_nmda_deco2014module();
 
   /**
    * @note The destructor does not do much in modules.
    */
-  ~iaf_cond_deco2014module();
+  ~iaf_cond_ampa_gaba_nmda_deco2014module();
 
   /**
    * Initialize module by registering models with the network.
@@ -61,7 +61,7 @@ public:
   const std::string name( void ) const;
 
   /**
-   * Return the name of a sli file to execute when iaf_cond_deco2014module is loaded.
+   * Return the name of a sli file to execute when iaf_cond_ampa_gaba_nmda_deco2014module is loaded.
    * This mechanism can be used to define SLI commands associated with your
    * module, in particular, set up type tries for functions you have defined.
    */

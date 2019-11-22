@@ -1,6 +1,6 @@
 
 /*
-*  iaf_cond_deco2014.h
+*  iaf_cond_ampa_gaba_nmda_deco2014.h
 *
 *  This file is part of NEST.
 *
@@ -45,7 +45,7 @@
  *       through a function pointer.
  * @param void* Pointer to model neuron instance.
  */
-extern "C" inline int iaf_cond_deco2014_dynamics( double, const double y[], double f[], void* pnode );
+extern "C" inline int iaf_cond_ampa_gaba_nmda_deco2014_dynamics( double, const double y[], double f[], void* pnode );
 
 
 // Includes from nestkernel:
@@ -61,12 +61,12 @@ extern "C" inline int iaf_cond_deco2014_dynamics( double, const double y[], doub
 #include "dictdatum.h"
 
 /* BeginDocumentation
-  Name: iaf_cond_deco2014.
+  Name: iaf_cond_ampa_gaba_nmda_deco2014.
 
   Description:  
      -*- coding: utf-8 -*-
 
-  Name: iaf_cond_deco2014 - Conductance based leaky integrate-and-fire neuron model
+  Name: iaf_cond_ampa_gaba_nmda_deco2014 - Conductance based leaky integrate-and-fire neuron model
                             with separate excitatory AMPA & NMDA, and inhibitory GABA synapses
 
   Description:
@@ -156,12 +156,12 @@ extern "C" inline int iaf_cond_deco2014_dynamics( double, const double y[], doub
 
   Receives: Spike, Current, DataLoggingRequest
 */
-class iaf_cond_deco2014 : public nest::Archiving_Node{
+class iaf_cond_ampa_gaba_nmda_deco2014 : public nest::Archiving_Node{
 public:
   /**
   * The constructor is only used to create the model prototype in the model manager.
   */
-  iaf_cond_deco2014();
+  iaf_cond_ampa_gaba_nmda_deco2014();
 
   /**
   * The copy constructor is used to create model copies and instances of the model.
@@ -169,12 +169,12 @@ public:
   *       Initialization of buffers and interal variables is deferred to
   *       @c init_buffers_() and @c calibrate().
   */
-  iaf_cond_deco2014(const iaf_cond_deco2014 &);
+  iaf_cond_ampa_gaba_nmda_deco2014(const iaf_cond_ampa_gaba_nmda_deco2014 &);
 
   /**
   * Releases resources.
   */
-  ~iaf_cond_deco2014();
+  ~iaf_cond_ampa_gaba_nmda_deco2014();
 
   /**
    * Import sets of overloaded virtual functions.
@@ -238,8 +238,8 @@ private:
   void update(nest::Time const &, const long, const long);
 
   // The next two classes need to be friends to access the State_ class/member
-  friend class nest::RecordablesMap<iaf_cond_deco2014>;
-  friend class nest::UniversalDataLogger<iaf_cond_deco2014>;
+  friend class nest::RecordablesMap<iaf_cond_ampa_gaba_nmda_deco2014>;
+  friend class nest::UniversalDataLogger<iaf_cond_ampa_gaba_nmda_deco2014>;
 
   /**
   * Free parameters of the neuron.
@@ -414,11 +414,11 @@ private:
     *       cannot destroy themselves, Buffers_ will need a destructor.
     */
   struct Buffers_ {
-    Buffers_(iaf_cond_deco2014 &);
-    Buffers_(const Buffers_ &, iaf_cond_deco2014 &);
+    Buffers_(iaf_cond_ampa_gaba_nmda_deco2014 &);
+    Buffers_(const Buffers_ &, iaf_cond_ampa_gaba_nmda_deco2014 &);
 
     /** Logger for all analog data */
-    nest::UniversalDataLogger<iaf_cond_deco2014> logger_;
+    nest::UniversalDataLogger<iaf_cond_ampa_gaba_nmda_deco2014> logger_;
     
     std::vector<long> receptor_types_;
     /** buffers and sums up incoming spikes/currents */
@@ -701,14 +701,14 @@ private:
   Buffers_    B_;  //!< Buffers.
 
   //! Mapping of recordables names to access functions
-  static nest::RecordablesMap<iaf_cond_deco2014> recordablesMap_;
+  static nest::RecordablesMap<iaf_cond_ampa_gaba_nmda_deco2014> recordablesMap_;
 
-  friend int iaf_cond_deco2014_dynamics( double, const double y[], double f[], void* pnode );
+  friend int iaf_cond_ampa_gaba_nmda_deco2014_dynamics( double, const double y[], double f[], void* pnode );
   
 /** @} */
-}; /* neuron iaf_cond_deco2014 */
+}; /* neuron iaf_cond_ampa_gaba_nmda_deco2014 */
 
-inline nest::port iaf_cond_deco2014::send_test_event(
+inline nest::port iaf_cond_ampa_gaba_nmda_deco2014::send_test_event(
     nest::Node& target, nest::rport receptor_type, nest::synindex, bool){
   // You should usually not change the code in this function.
   // It confirms that the target of connection @c c accepts @c nest::SpikeEvent on
@@ -718,7 +718,7 @@ inline nest::port iaf_cond_deco2014::send_test_event(
   return target.handles_test_event(e, receptor_type);
 }
 
-inline nest::port iaf_cond_deco2014::handles_test_event(nest::SpikeEvent&, nest::port receptor_type){
+inline nest::port iaf_cond_ampa_gaba_nmda_deco2014::handles_test_event(nest::SpikeEvent&, nest::port receptor_type){
   assert( B_.spike_inputs_.size() == 4 );
 
     if ( !( INF_SPIKE_RECEPTOR < receptor_type && receptor_type < SUP_SPIKE_RECEPTOR ) )
@@ -733,7 +733,7 @@ inline nest::port iaf_cond_deco2014::handles_test_event(nest::SpikeEvent&, nest:
 
 
 
-inline nest::port iaf_cond_deco2014::handles_test_event(
+inline nest::port iaf_cond_ampa_gaba_nmda_deco2014::handles_test_event(
     nest::CurrentEvent&, nest::port receptor_type){
   // You should usually not change the code in this function.
   // It confirms to the connection management system that we are able
@@ -744,7 +744,7 @@ inline nest::port iaf_cond_deco2014::handles_test_event(
   return 0;
 }
 
-inline nest::port iaf_cond_deco2014::handles_test_event(
+inline nest::port iaf_cond_ampa_gaba_nmda_deco2014::handles_test_event(
     nest::DataLoggingRequest& dlr, nest::port receptor_type){
   // You should usually not change the code in this function.
   // It confirms to the connection management system that we are able
@@ -758,7 +758,7 @@ inline nest::port iaf_cond_deco2014::handles_test_event(
 }
 
 // TODO call get_status on used or internal components
-inline void iaf_cond_deco2014::get_status(DictionaryDatum &__d) const{  
+inline void iaf_cond_ampa_gaba_nmda_deco2014::get_status(DictionaryDatum &__d) const{
 
   def<double>(__d, "V_th", get_V_th());
 
@@ -842,7 +842,7 @@ inline void iaf_cond_deco2014::get_status(DictionaryDatum &__d) const{
 
 }
 
-inline void iaf_cond_deco2014::set_status(const DictionaryDatum &__d){
+inline void iaf_cond_ampa_gaba_nmda_deco2014::set_status(const DictionaryDatum &__d){
 
   double tmp_V_th = get_V_th();
   updateValue<double>(__d, "V_th", tmp_V_th);

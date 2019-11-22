@@ -19,7 +19,7 @@
 
 cmake_minimum_required( VERSION 2.8.12 )
 
-# This CMakeLists.txt is configured to build your external module for NEST. For
+# This CMakeLists.txt is configured to build_interface your external module for NEST. For
 # illustrative reasons this module is called 'my' (change SHORT_NAME to your
 # prefer module name). NEST requires you to extend the 'SLIModule' (see
 # mymodule.h and mymodule.cpp as an example) and provide a module header
@@ -152,7 +152,7 @@ if ( NEST_INCLUDES )
   endforeach ()
 endif ()
 
-# Get, if NEST is build as a (mostly) static application. If yes, also only build
+# Get, if NEST is build_interface as a (mostly) static application. If yes, also only build_interface
 # static library.
 execute_process(
     COMMAND ${NEST_CONFIG} --static-libraries
@@ -228,7 +228,7 @@ set( CPACK_SOURCE_IGNORE_FILES
     "\\\\.travis\\\\.yml"
 
     # if we have in source builds
-    "/build/"
+    "/build_interface/"
     "/_CPack_Packages/"
     "CMakeFiles/"
     "cmake_install\\\\.cmake"
@@ -294,7 +294,7 @@ if ( ( NOT CMAKE_CROSSCOMPILING )
 
     # Extract help from all source files in the source code, put
     # them in doc/help and generate a local help index in the
-    # build directory containing links to the help files.
+    # build_interface directory containing links to the help files.
     install( CODE
       "execute_process(
          COMMAND ${PYTHON_EXECUTABLE} -B generate_help.py \"${PROJECT_SOURCE_DIR}\" \"${PROJECT_BINARY_DIR}\"
@@ -335,7 +335,7 @@ message( "NEST libraries flags : ${NEST_LIBS}" )
 message( "" )
 message( "-------------------------------------------------------" )
 message( "" )
-message( "You can now build and install '${MODULE_NAME}' using" )
+message( "You can now build_interface and install '${MODULE_NAME}' using" )
 message( "  make" )
 message( "  make install" )
 message( "" )

@@ -1,5 +1,5 @@
 /*
-*  iaf_cond_deco2014.cpp
+*  iaf_cond_ampa_gaba_nmda_deco2014.cpp
 *
 *  This file is part of NEST.
 *
@@ -39,65 +39,65 @@
 #include "integerdatum.h"
 #include "lockptrdatum.h"
 
-#include "iaf_cond_deco2014.h"
+#include "iaf_cond_ampa_gaba_nmda_deco2014.h"
 
 
 /* ----------------------------------------------------------------
 * Recordables map
 * ---------------------------------------------------------------- */
-nest::RecordablesMap<iaf_cond_deco2014> iaf_cond_deco2014::recordablesMap_;
+nest::RecordablesMap<iaf_cond_ampa_gaba_nmda_deco2014> iaf_cond_ampa_gaba_nmda_deco2014::recordablesMap_;
 
 namespace nest
 {
   // Override the create() method with one call to RecordablesMap::insert_()
   // for each quantity to be recorded.
-  template <> void RecordablesMap<iaf_cond_deco2014>::create(){
+  template <> void RecordablesMap<iaf_cond_ampa_gaba_nmda_deco2014>::create(){
   // use standard names whereever you can for consistency!  
 
-  insert_("I_leak", &iaf_cond_deco2014::get_I_leak);
+  insert_("I_leak", &iaf_cond_ampa_gaba_nmda_deco2014::get_I_leak);
 
-  insert_("I_AMPA_ext", &iaf_cond_deco2014::get_I_AMPA_ext);
+  insert_("I_AMPA_ext", &iaf_cond_ampa_gaba_nmda_deco2014::get_I_AMPA_ext);
 
-  insert_("I_AMPA_rec", &iaf_cond_deco2014::get_I_AMPA_rec);
+  insert_("I_AMPA_rec", &iaf_cond_ampa_gaba_nmda_deco2014::get_I_AMPA_rec);
 
-  insert_("I_NMDA", &iaf_cond_deco2014::get_I_NMDA);
+  insert_("I_NMDA", &iaf_cond_ampa_gaba_nmda_deco2014::get_I_NMDA);
 
-  insert_("I_GABA", &iaf_cond_deco2014::get_I_GABA);
+  insert_("I_GABA", &iaf_cond_ampa_gaba_nmda_deco2014::get_I_GABA);
 
-  insert_("s_AMPA_ext", &iaf_cond_deco2014::get_s_AMPA_ext);
+  insert_("s_AMPA_ext", &iaf_cond_ampa_gaba_nmda_deco2014::get_s_AMPA_ext);
 
-  insert_("s_AMPA_rec", &iaf_cond_deco2014::get_s_AMPA_rec);
+  insert_("s_AMPA_rec", &iaf_cond_ampa_gaba_nmda_deco2014::get_s_AMPA_rec);
 
-  insert_("x_NMDA", &iaf_cond_deco2014::get_x_NMDA);
+  insert_("x_NMDA", &iaf_cond_ampa_gaba_nmda_deco2014::get_x_NMDA);
 
-  insert_("s_NMDA", &iaf_cond_deco2014::get_s_NMDA);
+  insert_("s_NMDA", &iaf_cond_ampa_gaba_nmda_deco2014::get_s_NMDA);
 
-  insert_("s_GABA", &iaf_cond_deco2014::get_s_GABA);
+  insert_("s_GABA", &iaf_cond_ampa_gaba_nmda_deco2014::get_s_GABA);
 
-  insert_("V_m", &iaf_cond_deco2014::get_V_m);
+  insert_("V_m", &iaf_cond_ampa_gaba_nmda_deco2014::get_V_m);
   }
 }
 
 /* ----------------------------------------------------------------
  * Default constructors defining default parameters and state
  * Note: the implementation is empty. The initialization is of variables
- * is a part of the iaf_cond_deco2014's constructor.
+ * is a part of the iaf_cond_ampa_gaba_nmda_deco2014's constructor.
  * ---------------------------------------------------------------- */
-iaf_cond_deco2014::Parameters_::Parameters_(){}
+iaf_cond_ampa_gaba_nmda_deco2014::Parameters_::Parameters_(){}
 
-iaf_cond_deco2014::State_::State_(){}
+iaf_cond_ampa_gaba_nmda_deco2014::State_::State_(){}
 
 /* ----------------------------------------------------------------
 * Parameter and state extractions and manipulation functions
 * ---------------------------------------------------------------- */
 
-iaf_cond_deco2014::Buffers_::Buffers_(iaf_cond_deco2014 &n):
+iaf_cond_ampa_gaba_nmda_deco2014::Buffers_::Buffers_(iaf_cond_ampa_gaba_nmda_deco2014 &n):
   logger_(n), spike_inputs_( std::vector< nest::RingBuffer >( SUP_SPIKE_RECEPTOR - 1 ) ), __s( 0 ), __c( 0 ), __e( 0 ){
   // Initialization of the remaining members is deferred to
   // init_buffers_().
 }
 
-iaf_cond_deco2014::Buffers_::Buffers_(const Buffers_ &, iaf_cond_deco2014 &n):
+iaf_cond_ampa_gaba_nmda_deco2014::Buffers_::Buffers_(const Buffers_ &, iaf_cond_ampa_gaba_nmda_deco2014 &n):
   logger_(n), spike_inputs_( std::vector< nest::RingBuffer >( SUP_SPIKE_RECEPTOR - 1 ) ), __s( 0 ), __c( 0 ), __e( 0 ){
   // Initialization of the remaining members is deferred to
   // init_buffers_().
@@ -106,7 +106,7 @@ iaf_cond_deco2014::Buffers_::Buffers_(const Buffers_ &, iaf_cond_deco2014 &n):
 /* ----------------------------------------------------------------
  * Default and copy constructor for node, and destructor
  * ---------------------------------------------------------------- */
-iaf_cond_deco2014::iaf_cond_deco2014():Archiving_Node(), P_(), S_(), B_(*this)
+iaf_cond_ampa_gaba_nmda_deco2014::iaf_cond_ampa_gaba_nmda_deco2014():Archiving_Node(), P_(), S_(), B_(*this)
 {
   recordablesMap_.create();
   // use a default `good` enough value for the absolute error.
@@ -179,7 +179,7 @@ iaf_cond_deco2014::iaf_cond_deco2014():Archiving_Node(), P_(), S_(), B_(*this)
   P_.__gsl_error_tol = 1e-3;
 }
 
-iaf_cond_deco2014::iaf_cond_deco2014(const iaf_cond_deco2014& __n):
+iaf_cond_ampa_gaba_nmda_deco2014::iaf_cond_ampa_gaba_nmda_deco2014(const iaf_cond_ampa_gaba_nmda_deco2014& __n):
   Archiving_Node(), P_(__n.P_), S_(__n.S_), B_(__n.B_, *this){
 
   P_.V_th = __n.P_.V_th;
@@ -216,7 +216,7 @@ iaf_cond_deco2014::iaf_cond_deco2014(const iaf_cond_deco2014& __n):
   
 }
 
-iaf_cond_deco2014::~iaf_cond_deco2014(){ 
+iaf_cond_ampa_gaba_nmda_deco2014::~iaf_cond_ampa_gaba_nmda_deco2014(){
   // GSL structs may not have been allocated, so we need to protect destruction
   if (B_.__s)
     gsl_odeiv_step_free( B_.__s );
@@ -230,18 +230,18 @@ iaf_cond_deco2014::~iaf_cond_deco2014(){
 * Node initialization functions
 * ---------------------------------------------------------------- */
 
-void iaf_cond_deco2014::init_state_(const Node& proto){
-  const iaf_cond_deco2014& pr = downcast<iaf_cond_deco2014>(proto);
+void iaf_cond_ampa_gaba_nmda_deco2014::init_state_(const Node& proto){
+  const iaf_cond_ampa_gaba_nmda_deco2014& pr = downcast<iaf_cond_ampa_gaba_nmda_deco2014>(proto);
   S_ = pr.S_;
 }
 
 
 
-extern "C" inline int iaf_cond_deco2014_dynamics(double, const double ode_state[], double f[], void* pnode){
-  typedef iaf_cond_deco2014::State_ State_;
+extern "C" inline int iaf_cond_ampa_gaba_nmda_deco2014_dynamics(double, const double ode_state[], double f[], void* pnode){
+  typedef iaf_cond_ampa_gaba_nmda_deco2014::State_ State_;
   // get access to node so we can almost work as in a member function
   assert( pnode );
-  const iaf_cond_deco2014& node = *( reinterpret_cast< iaf_cond_deco2014* >( pnode ) );
+  const iaf_cond_ampa_gaba_nmda_deco2014& node = *( reinterpret_cast< iaf_cond_ampa_gaba_nmda_deco2014* >( pnode ) );
 
   // ode_state[] here is---and must be---the state vector supplied by the integrator,
   // not the state vector in the node, node.S_.ode_state[].
@@ -263,7 +263,7 @@ extern "C" inline int iaf_cond_deco2014_dynamics(double, const double ode_state[
 
 
 
-void iaf_cond_deco2014::init_buffers_(){
+void iaf_cond_ampa_gaba_nmda_deco2014::init_buffers_(){
   get_spikesExc_AMPA_ext().clear(); //includes resize
   get_spikesExc_AMPA_rec().clear(); //includes resize
   get_spikesExc_NMDA().clear(); //includes resize
@@ -291,7 +291,7 @@ void iaf_cond_deco2014::init_buffers_(){
     gsl_odeiv_evolve_reset( B_.__e );
   }
 
-  B_.__sys.function = iaf_cond_deco2014_dynamics;
+  B_.__sys.function = iaf_cond_ampa_gaba_nmda_deco2014_dynamics;
   B_.__sys.jacobian = NULL;
   B_.__sys.dimension = 6;
   B_.__sys.params = reinterpret_cast< void* >( this );
@@ -299,7 +299,7 @@ void iaf_cond_deco2014::init_buffers_(){
   B_.__integration_step = nest::Time::get_resolution().get_ms();
 }
 
-void iaf_cond_deco2014::calibrate(){
+void iaf_cond_ampa_gaba_nmda_deco2014::calibrate(){
   B_.logger_.init();
   
   
@@ -313,7 +313,7 @@ void iaf_cond_deco2014::calibrate(){
 /*
  *
  */
-void iaf_cond_deco2014::update(nest::Time const & origin,const long from, const long to){
+void iaf_cond_ampa_gaba_nmda_deco2014::update(nest::Time const & origin,const long from, const long to){
   double __t = 0;
 
   for ( long lag = from ; lag < to ; ++lag ) {
@@ -398,12 +398,12 @@ void iaf_cond_deco2014::update(nest::Time const & origin,const long from, const 
 
 // Do not move this function as inline to h-file. It depends on
 // universal_data_logger_impl.h being included here.
-void iaf_cond_deco2014::handle(nest::DataLoggingRequest& e){
+void iaf_cond_ampa_gaba_nmda_deco2014::handle(nest::DataLoggingRequest& e){
   B_.logger_.handle(e);
 }
 
 
-void iaf_cond_deco2014::handle(nest::SpikeEvent &e){
+void iaf_cond_ampa_gaba_nmda_deco2014::handle(nest::SpikeEvent &e){
   assert(e.get_delay_steps() > 0);
   assert( e.get_rport() < static_cast< int >( B_.spike_inputs_.size() ) );
 
@@ -418,7 +418,7 @@ void iaf_cond_deco2014::handle(nest::SpikeEvent &e){
   
 }
 
-void iaf_cond_deco2014::handle(nest::CurrentEvent& e){
+void iaf_cond_ampa_gaba_nmda_deco2014::handle(nest::CurrentEvent& e){
   assert(e.get_delay_steps() > 0);
 
   const double current=e.get_current();
