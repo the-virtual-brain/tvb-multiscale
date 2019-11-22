@@ -11,16 +11,31 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 
+TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
+WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
+MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
+MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
+
 class NESTconfig(object):
+
+    # WORKING DIRECTORY:
+    TVB_NEST_DIR = TVB_NEST_DIR
+    WORKING_DIR = WORKING_DIR
+    MODULES_DIR = MODULES_DIR
+    MODULES_BLDS_DIR = MODULES_BLDS_DIR
+
     # NEST properties:
     NEST_MIN_DT = 0.001
 
-    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_deco2014"
+    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_ampa_gaba_nmda_deco2014"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"model": "static_synapse", "weights": 1.0, "delays": 0.0, 'receptor_type': 0,
+    DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
                           "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
                                      "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+
+    DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
+    DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
 
     # TODO: confirm if the following is correct:
     # We assume that all quantities of
@@ -53,14 +68,12 @@ class NESTconfig(object):
         self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
         self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
         self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
-
+        self.TVB_NEST_DIR = TVB_NEST_DIR
+        self.WORKING_DIR = WORKING_DIR
+        self.MODULES_DIR = MODULES_DIR
+        self.MODULES_BLDS_DIR = MODULES_BLDS_DIR
 
 class Config(ConfigBase):
-    # WORKING DIRECTORY:
-    TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
-    MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
-    MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
-    WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
 
     # DATA:
     TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
