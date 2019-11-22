@@ -319,8 +319,8 @@ class Simulator(SimulatorTVB):
                 self.simulate_nest = self.tvb_nest_interface.nest_instance.Simulate
                 break
 
-        # If NEST nodes are represented exclusively in NEST...
-        if self.tvb_nest_interface.exclusive_nodes:
+        # If there are NEST nodes and are represented exclusively in NEST...
+        if self.tvb_nest_interface.exclusive_nodes and len(self.tvb_nest_interface.nest_nodes_ids) > 0:
             # ...zero coupling interface_weights among NEST nodes:
             self.connectivity.weights[self.tvb_nest_interface.nest_nodes_ids] \
                 [:, self.tvb_nest_interface.nest_nodes_ids] = 0.0

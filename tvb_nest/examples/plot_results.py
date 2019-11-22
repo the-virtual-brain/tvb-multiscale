@@ -36,7 +36,7 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
 
     # Plot NEST multimeter variables
     multimeter_mean_data = tvb_nest_model.get_mean_data_from_NEST_multimeter_to_TVBTimeSeries()
-    if multimeter_mean_data is not None:
+    if multimeter_mean_data is not None and multimeter_mean_data.size > 0:
         plotter.plot_multimeter_timeseries(multimeter_mean_data, plot_per_variable=True,
                                            time_series_class=TimeSeriesRegion, time_series_args={},
                                            var_pop_join_str=" - ", default_population_label="population",
@@ -51,26 +51,27 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
         tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(
             spikes_kernel_width=simulator.integrator.dt,  # ms
             spikes_kernel_overlap=0.0, time=t)
-    if spike_detectors is not None:
+    if spike_detectors is not None and rates.size > 0:
         plotter.plot_spikes(spike_detectors, rates=rates, title='Population spikes and mean spike rate')
 
     # ------------------------------------Testing code for xarray TimeSeries--------------------------------------------
 
     multimeter_mean_data = nest_network.get_mean_data_from_multimeter()
 
-    from tvb_scripts.time_series.time_series_xarray import TimeSeries as TimeSeriesXarray
+    if multimeter_mean_data.size > 0:
+        from tvb_scripts.time_series.time_series_xarray import TimeSeries as TimeSeriesXarray
 
-    ts = TimeSeriesXarray(multimeter_mean_data)
-    # ts.plot(plotter=plotter, )
-    ts.plot_timeseries(plotter=plotter)
-    ts.plot_raster(plotter=plotter, linestyle="--", alpha=0.5, linewidth=0.5)
-    # print(ts[0].shape)
-    # print(ts[:, 0].shape)
-    # print(ts[:, "V_m"].shape)
-    # print(ts[:, :, 0].shape)
-    # print(ts[:, ["V_m"], 1, :].shape)
-    # ts[::, ["V_m"], 1, :] = TimeSeriesXarray(ts[:, ["V_m"], 1, :])
-    # ts[::, ["V_m"], 1, :] = TimeSeriesXarray(ts[:, ["V_m"], 1, :].data, time=ts[:, ["V_m"], 1, :].time)
+        ts = TimeSeriesXarray(multimeter_mean_data)
+        # ts.plot(plotter=plotter, )
+        ts.plot_timeseries(plotter=plotter)
+        ts.plot_raster(plotter=plotter, linestyle="--", alpha=0.5, linewidth=0.5)
+        # print(ts[0].shape)
+        # print(ts[:, 0].shape)
+        # print(ts[:, "V_m"].shape)
+        # print(ts[:, :, 0].shape)
+        # print(ts[:, ["V_m"], 1, :].shape)
+        # ts[::, ["V_m"], 1, :] = TimeSeriesXarray(ts[:, ["V_m"], 1, :])
+        # ts[::, ["V_m"], 1, :] = TimeSeriesXarray(ts[:, ["V_m"], 1, :].data, time=ts[:, ["V_m"], 1, :].time)
 
     # ------------------------------------Testing code for plotting xarray data-----------------------------------------
 
@@ -80,6 +81,6 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
                                           spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                           spikes_kernel_overlap=0.5, min_spike_interval=None, time=t,
                                           spikes_kernel=None)[0]
-
-    rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1], robust=True)
-    plotter.base._save_figure(figure_name="Spike rates per neuron")
+    if rates.size > 0:
+        rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1], robust=True)
+        plotter.base._save_figure(figure_name="Spike rates per neuron")

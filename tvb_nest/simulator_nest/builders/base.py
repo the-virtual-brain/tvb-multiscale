@@ -132,7 +132,7 @@ class NESTModelBuilder(object):
         if len(self._nest_nodes_labels) == self.number_of_nest_nodes:
             return self._nest_nodes_labels
         else:
-            return self.tvb_connectivity.region_labels[self.nest_nodes_ids]
+            return self.tvb_connectivity.region_labels[self.nest_nodes_ids.tolist()]
 
     def _population_property_per_node(self, property):
         output = OrderedDict()
@@ -267,12 +267,12 @@ class NESTModelBuilder(object):
     @property
     def tvb_weights(self):
         # Relevant TVB connectivity weights
-        return self.tvb_connectivity.weights[self.nest_nodes_ids][:, self.nest_nodes_ids]
+        return self.tvb_connectivity.weights[self.nest_nodes_ids.tolist()][:, self.nest_nodes_ids.tolist()]
 
     @property
     def tvb_delays(self):
         # Relevant TVB connectivity delays
-        return self.tvb_connectivity.delays[self.nest_nodes_ids][:, self.nest_nodes_ids]
+        return self.tvb_connectivity.delays[self.nest_nodes_ids.tolist()][:, self.nest_nodes_ids.tolist()]
 
     def _assert_synapse_model(self, synapse_model, delay):
         if synapse_model.find("rate") > -1:

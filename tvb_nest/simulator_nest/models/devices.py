@@ -776,8 +776,11 @@ class NESTDeviceSet(pd.Series):
                 else:
                     raise_value_error("DataArray concatenation not possible! "
                                       "Not all outputs are DataArrays!:\n %s" % str(values_dict))
-            output = xr.concat(list(values_dict.values()), dim=pd.Index(list(values_dict.keys()),
-                                                                        name=concatenation_index_name))
+            dims = list(values_dict.keys())
+            values = list(values_dict.values())
+            if len(values) == 0:
+                return xr.DataArray([])
+            output = xr.concat(values, dim=pd.Index(dims, name=concatenation_index_name))
             output.name = name
             return output
         else:
@@ -793,6 +796,13 @@ class NESTDeviceSet(pd.Series):
             else:
                 values_dict.update({node: val})
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
+
+    @property
+    def number_of_neurons(self):
+        number_of_neurons = self.do_for_all_devices("number_of_neurons")
+        if len(number_of_neurons) == 0:
+            number_of_neurons = 0
+        return number_of_neurons
 
     @property
     def times(self):

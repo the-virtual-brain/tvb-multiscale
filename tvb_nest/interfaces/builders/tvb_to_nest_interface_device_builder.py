@@ -42,11 +42,13 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
         source_tvb_nodes = interface.pop("source_nodes", self.tvb_nodes_ids)
         if source_tvb_nodes is None:
             source_tvb_nodes = self.tvb_nodes_ids
+        source_tvb_nodes = list(source_tvb_nodes)
         target_nest_nodes = interface.pop("target_nodes", self.nest_nodes_ids)
         if target_nest_nodes is None:
             target_nest_nodes = self.nest_nodes_ids
+        target_nest_nodes = list(target_nest_nodes)
         interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))
-        interface_weights = np.ones((len(source_tvb_nodes), )).astype("f")
+        interface_weights = np.ones((len(source_tvb_nodes),)).astype("f")
         weight = property_to_fun(interface.pop("weights", 1.0))
         delay = property_to_fun(interface.pop("delays", 0.0))
         receptor_type = property_to_fun(interface.pop("receptor_types", 0))
@@ -78,9 +80,10 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
                                                             from_device_set(device,
                                                                             self.tvb_model.state_variables.index(name),
                                                                             name)
-            assert np.abs(np.max(tvb_to_nest_interface[name].weights - weights)) < 0.001
-            assert np.abs(np.max(tvb_to_nest_interface[name].delays - delays)) < 1.0  # ms
-            assert np.abs(np.max(tvb_to_nest_interface[name].receptors - receptor_types)) < 1  # integers
+            if len(source_tvb_nodes) * len(target_nest_nodes) > 0:
+                assert np.abs(np.max(tvb_to_nest_interface[name].weights - weights)) < 0.001
+                assert np.abs(np.max(tvb_to_nest_interface[name].delays - delays)) < 1.0  # ms
+                assert np.abs(np.max(tvb_to_nest_interface[name].receptors - receptor_types)) < 1  # integers
         return tvb_to_nest_interface
 
     def build(self):

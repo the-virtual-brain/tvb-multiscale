@@ -85,10 +85,10 @@ if __name__ == "__main__":
     nest_nodes_ids = []  # the indices of fine scale regions modeled with NEST
     # In this example, we model parahippocampal cortices (left and right) with NEST
     connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
-    for id in range(connectivity.region_labels.shape[0]):
-        if connectivity.region_labels[id].find("hippo") > 0:
-            nest_nodes_ids.append(id)
+    # for id in range(connectivity.region_labels.shape[0]):
+    #     if connectivity.region_labels[id].find("hippo") > 0:
+    #         nest_nodes_ids.append(id)
     main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
+                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=20.0,
                  tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
-                 exclusive_nodes=True, config=CONFIGURED)
+                 exclusive_nodes=False, config=CONFIGURED)

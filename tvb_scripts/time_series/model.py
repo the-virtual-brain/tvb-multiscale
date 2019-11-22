@@ -81,6 +81,12 @@ class TimeSeries(TimeSeriesTVB):
             labels_dimensions[dim] = numpy.array(xrdtarr.coords[dim].values)
         if xrdtarr.name is not None and len(xrdtarr.name) > 0:
             kwargs.update({"title": xrdtarr.name})
+        if xrdtarr.size == 0:
+            return self.duplicate(data=numpy.empty((0, 0, 0, 0)),
+                                  time=numpy.empty((0,)),
+                                  labels_ordering=labels_ordering,
+                                  labels_dimensions=labels_dimensions,
+                                  **kwargs)
         return self.duplicate(data=xrdtarr.values,
                               time=numpy.array(xrdtarr.coords[labels_ordering[0]].values),
                               labels_ordering=labels_ordering,
@@ -142,10 +148,10 @@ class TimeSeries(TimeSeriesTVB):
         return self.get_subspace_by_index(list_of_indices_for_labels)
 
     def __getattr__(self, attr_name):
-        if self.labels_ordering[1] in self.labels_dimensions.keys():
+        if len(self.labels_ordering) > 0 and self.labels_ordering[1] in self.labels_dimensions.keys():
             if attr_name in self.variables_labels:
                 return self.get_state_variable(attr_name)
-        if self.labels_ordering[2] in self.labels_dimensions.keys():
+        if len(self.labels_ordering) > 1 and self.labels_ordering[2] in self.labels_dimensions.keys():
             if attr_name in self.space_labels:
                 return self.get_subspace_by_labels([attr_name])
         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
@@ -182,6 +188,10 @@ class TimeSeries(TimeSeriesTVB):
                     slice_list.append(current_slice)
 
         return self.data[tuple(slice_list)]
+
+    @property
+    def size(self):
+        return self.data.size
 
     @property
     def shape(self):
@@ -293,8 +303,12 @@ class TimeSeries(TimeSeriesTVB):
         if self.time is None:
             self.time = numpy.arange(self.start_time, self.end_time + self.sample_period, self.sample_period)
         else:
-            self.start_time = self.time[0]
-            self.sample_period = numpy.mean(numpy.diff(self.time))
+            self.start_time = 0.0
+            self.sample_period = 0.0
+            if len(self.time) > 0:
+                self.start_time = self.time[0]
+            if len(self.time) > 1:
+                self.sample_period = numpy.mean(numpy.diff(self.time))
 
 
 class TimeSeriesBrain(TimeSeries):

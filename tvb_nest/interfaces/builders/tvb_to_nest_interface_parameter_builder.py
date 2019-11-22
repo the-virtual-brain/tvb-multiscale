@@ -37,6 +37,7 @@ class TVBtoNESTInterfaceParameterBuilder(object):
         nest_nodes_ids = interface.get("nodes", self.nest_nodes_ids)
         if nest_nodes_ids is None:
             nest_nodes_ids = self.nest_nodes_ids
+        nest_nodes_ids = list(nest_nodes_ids)
         interface_weights = 1.0 * np.ones((len(nest_nodes_ids),)).astype("f")
         interface_weight = property_to_fun(interface.get("interface_weights", 1.0))
         for i_w, nest_node_id in enumerate(nest_nodes_ids):

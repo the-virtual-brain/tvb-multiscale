@@ -199,6 +199,9 @@ class NESTNetwork(object):
                equal_shape_per_population = pop_spike_detector.shape == shape
             if equal_shape_per_population:
                 rates = xr.concat(rates, dim=pd.Index(list(spike_detectors.index), name=devices_dim_name))
+                if rates.size == 0:  # In case there is nothing to measure in NEST
+                    rates.name = name
+                    return rates, spike_detectors
                 if mode == 'per_neuron':
                     # Reorder dimensions
                     #           0           1       2       3
@@ -214,6 +217,8 @@ class NESTNetwork(object):
             else:
                 if mode == 'per_neuron':
                     for i_r, r in enumerate(rates):
+                        if len(r.dims < 3):  # In case there is nothing to measure in NEST
+                            break
                         # We cannot assume that all populations have the same number of neurons (and/or regions).
                         # Therefore, we need a Series data structure along populations
                         # Reorder dimensions
@@ -223,6 +228,8 @@ class NESTNetwork(object):
                         rates[i_r] = r.transpose(r.dims[-1], r.dims[1], r.dims[0])
                 else:
                     for i_r, r in enumerate(rates):
+                        if len(r.dims < 2):  # In case there is nothing to measure in NEST
+                            break
                         # We cannot assume that all populations have the same number of neurons (and/or regions).
                         # Therefore, we need a Series data structure along populations
                         # Reorder dimensions
@@ -297,6 +304,9 @@ class NESTNetwork(object):
             equal_shape_per_population = multimeters[device_name].shape == shape
         if equal_shape_per_population:
             data = xr.concat(data, dim=pd.Index(population_devices, name=devices_dim_name))
+            if data.size == 0:  # In case there is nothing to measure in NEST
+                data.name = name
+                return data
             if mode == 'per_neuron':
                 # Reorder dimensions
                 #           0           1         2       3       4
@@ -312,6 +322,8 @@ class NESTNetwork(object):
         else:
             if mode == 'per_neuron':
                 for i_d, d in enumerate(data):
+                    if len(d.dims < 4):   # In case there is nothing to measure in NEST
+                        break
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations
                     # Reorder dimensions
@@ -321,6 +333,8 @@ class NESTNetwork(object):
                     data[i_d] = d.transpose(d.dims[3], d.dims[1], d.dims[0], d.dims[2])
             else:
                 for i_d, d in enumerate(data):
+                    if len(d.dims < 3):   # In case there is nothing to measure in NEST
+                        break
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations
                     # Reorder dimensions

@@ -99,7 +99,7 @@ class TVBNESTInterfaceBuilder(object):
                                      % (str(self.nest_nodes_ids, self.connectivity.number_of_regions)))
             self.tvb_nodes_ids = np.array(self.tvb_nodes_ids)
             if tvb_simulator.stimulus is not None:
-                if np.sum(tvb_simulator.stimulus[:, self.nest_nodes_ids]):
+                if np.sum(tvb_simulator.stimulus[:, self.nest_nodes_ids.tolist()]):
                     raise ValueError("TVB-NEST interface does not implement TVB stimulus application to NEST nodes!\n"
                                      "The user has to configure such stimulus as part of the NEST model, "
                                      "via appropriate NEST input devices!")
