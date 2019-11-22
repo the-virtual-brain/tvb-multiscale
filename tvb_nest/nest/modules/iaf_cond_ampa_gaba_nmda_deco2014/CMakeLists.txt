@@ -1,5 +1,5 @@
 
-# iaf_cond_deco2014module/CMakeLists.txt
+# iaf_cond_ampa_gaba_nmda_deco2014module/CMakeLists.txt
 #
 # This file is part of NEST.
 #
@@ -20,7 +20,7 @@
 
 cmake_minimum_required( VERSION 2.8.12 )
 
-# This CMakeLists.txt is configured to build your external module for NEST. For
+# This CMakeLists.txt is configured to build_interface your external module for NEST. For
 # illustrative reasons this module is called 'my' (change SHORT_NAME to your
 # preferred module name). NEST requires you to extend the 'SLIModule' (see
 # mymodule.h and mymodule.cpp as an example) and provide a module header
@@ -40,9 +40,9 @@ set( MODULE_NAME ${SHORT_NAME} )
 
 # 2) Add all your sources here
 set( MODULE_SOURCES
-    iaf_cond_deco2014module.h iaf_cond_deco2014module.cpp
+    iaf_cond_ampa_gaba_nmda_deco2014module.h iaf_cond_ampa_gaba_nmda_deco2014module.cpp
     
-      iaf_cond_deco2014.cpp iaf_cond_deco2014.h
+      iaf_cond_ampa_gaba_nmda_deco2014.cpp iaf_cond_ampa_gaba_nmda_deco2014.h
     
     )
 
@@ -139,7 +139,7 @@ if ( NEST_INCLUDES )
   endforeach ()
 endif ()
 
-# Get, if NEST is build as a (mostly) static application. If yes, also only build
+# Get, if NEST is build_interface as a (mostly) static application. If yes, also only build_interface
 # static library.
 execute_process(
     COMMAND ${NEST_CONFIG} --static-libraries
@@ -212,7 +212,7 @@ set( CPACK_SOURCE_IGNORE_FILES
     "\\\\.travis\\\\.yml"
 
     # if we have in source builds
-    "/build/"
+    "/build_interface/"
     "/_CPack_Packages/"
     "CMakeFiles/"
     "cmake_install\\\\.cmake"
@@ -272,7 +272,7 @@ install( DIRECTORY sli DESTINATION ${CMAKE_INSTALL_DATADIR} )
 if ( NOT CMAKE_CROSSCOMPILING )
   add_custom_target( generate_help ALL )
   # Extract help from all source files in the source code, put them in
-  # doc/help and generate a local help index in the build directory containing
+  # doc/help and generate a local help index in the build_interface directory containing
   # links to the help files.
   add_custom_command( TARGET generate_help POST_BUILD
     COMMAND python -B generate_help.py "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}"
@@ -309,7 +309,7 @@ message( "NEST libraries flags : ${NEST_LIBS}" )
 message( "" )
 message( "-------------------------------------------------------" )
 message( "" )
-message( "You can now build and install '${MODULE_NAME}' using" )
+message( "You can now build_interface and install '${MODULE_NAME}' using" )
 message( "  make" )
 message( "  make install" )
 message( "" )
