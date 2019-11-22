@@ -4,7 +4,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 from tvb_nest.config import CONFIGURED
-from tvb_nest.simulator_nest.nest_factory import load_nest
+from tvb_nest.simulator_nest.nest_factory import load_spiking_simulator
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.devices \
     import NESTDeviceSet, NESTOutputSpikeDeviceDict
@@ -22,16 +22,22 @@ class NESTNetwork(object):
     output_devices = pd.Series()  # output_devices['Excitatory']['rh-insula']
     #
     stimulation_devices = pd.Series()  # input_devices['Inhibitory']['rh-insula']
+    nodes_min_delay = 0.0
 
     def __init__(self, nest_instance=None,
                  region_nodes=pd.Series(),
                  output_devices=pd.Series(),
                  stimulation_devices=pd.Series(),
+                 nodes_min_delay=0.0,
                  config=CONFIGURED):
         self.config = config
         if nest_instance is None:
-            nest_instance = load_nest()
+            nest_instance = load_spiking_simulator()
         self.nest_instance = nest_instance
+        if nodes_min_delay <= 0.0:
+            self.nodes_min_delay = self.nest_instance.GetKernelStatus("resolution")
+        else:
+            self.nodes_min_delay = nodes_min_delay
         self.region_nodes = pd.Series()
         self.output_devices = pd.Series()
         self.stimulation_devices = pd.Series()
@@ -57,6 +63,10 @@ class NESTNetwork(object):
             self.stimulation_devices = stimulation_devices
 
         LOG.info("%s created!" % self.__class__)
+
+    @property
+    def nestconfig(self):
+        return self.config.nest
 
     @property
     def nodes_labels(self):
@@ -112,16 +122,17 @@ class NESTNetwork(object):
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.iteritems()):
                 if regions is not None and reg_label not in regions:
                     break
-                n_spikes = len(region_spike_detector.spikes_times)
+                spike_times = np.array(region_spike_detector.spikes_times)
+                n_spikes = len(spike_times)
                 if n_spikes > 0:
-                    temp = np.min(region_spike_detector.spikes_times)
+                    temp = np.min(spike_times)
                     if temp < first_spike_time:
                         first_spike_time = temp
-                    temp = np.max(region_spike_detector.spikes_times)
+                    temp = np.max(spike_times)
                     if temp > last_spike_time:
                         last_spike_time = temp
                     if n_spikes > 1:
-                        temp = np.mean(np.diff(np.unique(region_spike_detector.spikes_times)))
+                        temp = np.mean(np.diff(np.unique(spike_times)))
                         if temp < mean_spike_interval:
                             mean_spike_interval = temp
 
@@ -283,7 +294,7 @@ class NESTNetwork(object):
             data.append(multimeters[device_name].do_for_all_devices(fun, return_type="xarray",
                                                                     variables=variables, **kwargs))
             data[-1].name = device_name
-            equal_shape_per_population = multimeters[device_name].shape ==shape
+            equal_shape_per_population = multimeters[device_name].shape == shape
         if equal_shape_per_population:
             data = xr.concat(data, dim=pd.Index(population_devices, name=devices_dim_name))
             if mode == 'per_neuron':
