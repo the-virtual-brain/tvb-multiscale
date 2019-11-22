@@ -42,7 +42,7 @@ class NESTRegionNode(Series):
         return self.nest_instance.GetStatus(self.neurons(indices_or_keys), params)
 
     def SetStatus(self, values_dict, indices_or_keys=None):
-        self.nest_instance.set_values(self.neurons(indices_or_keys), values_dict)
+        self.nest_instance.SetStatus(self.neurons(indices_or_keys), values_dict)
 
     @property
     def connections(self, indices_or_keys=None):
