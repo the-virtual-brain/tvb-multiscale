@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta  # , abstractmethod
 
 from collections import OrderedDict
 import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error, warning
 from tvb_scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, sort_events_by_x_and_y, data_xarray_from_continuous_events
 from tvb_scripts.utils.computations_utils import spikes_rate_convolution
@@ -52,17 +52,77 @@ class NESTDevice(object):
     def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
         return len(self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons))
 
+    def get_connections(self, neurons=None, exclude_neurons=[]):
+        if neurons is not None:
+            if len(exclude_neurons) > 0:
+                neurons = list(neurons)
+                for neuron in exclude_neurons:
+                    neurons.remove(neuron)
+            return self.nest_instance.GetConnections(source=self.device, target=tuple(neurons))
+        else:
+            neurons = self.neurons
+            if len(exclude_neurons) > 0:
+                neurons = list(neurons)
+                for neuron in exclude_neurons:
+                    neurons.remove(neuron)
+            return self.nest_instance.GetConnections(source=self.device, target=tuple(neurons))
+
+    def get_weights(self, neurons=None, exclude_neurons=[]):
+        return np.array([self.nest_instance.GetStatus((conn,), "weight")[0]
+                         for conn in self.get_connections(neurons, exclude_neurons)])
+
+    def get_delays(self, neurons=None, exclude_neurons=[]):
+        return np.array([self.nest_instance.GetStatus((conn,), "delay")[0]
+                         for conn in self.get_connections(neurons, exclude_neurons)])
+
+    def get_receptors(self, neurons=None, exclude_neurons=[]):
+        return np.array([self.nest_instance.GetStatus((conn,), "receptor")[0]
+                         for conn in self.get_connections(neurons, exclude_neurons)])
+
+    def get_node_weight(self, neurons=None, exclude_neurons=[]):
+        return np.mean(self.get_weights(neurons, exclude_neurons))
+
+    def get_node_delay(self, neurons=None, exclude_neurons=[]):
+        return np.mean(self.get_delays(neurons, exclude_neurons))
+
+    def get_node_receptors(self, neurons=None, exclude_neurons=[]):
+        return pd.unique(self.get_receptors(neurons, exclude_neurons))  # pd.unique is faster than np.unique
+
     @property
     def nest_model(self):
         return str(self.nest_instance.GetStatus(self.device)[0]["model"])
 
-    @abstractmethod
+    @property
     def connections(self):
-        pass
+        return self.nest_instance.GetConnections(source=self.device)
 
-    @abstractmethod
+    @property
     def neurons(self):
-        pass
+        return tuple([conn[1] for conn in self.connections])
+
+    @property
+    def weights(self):
+        return np.array([self.nest_instance.GetStatus((conn,), "weight")[0] for conn in self.connections])
+
+    @property
+    def delays(self):
+        return np.array([self.nest_instance.GetStatus((conn,), "delay")[0] for conn in self.connections])
+
+    @property
+    def receptors(self):
+        return np.array([self.nest_instance.GetStatus((conn,), "receptor")[0] for conn in self.connections])
+
+    @property
+    def node_weight(self):
+        return np.mean(self.weights)
+
+    @property
+    def node_delay(self):
+        return np.mean(self.delays)
+
+    @property
+    def node_receptors(self):
+        return np.unique(self.receptors)
 
     @property
     def number_of_neurons(self):
@@ -89,14 +149,6 @@ class NESTInputDevice(NESTDevice):
     def __init__(self, nest_instance, device):
         super(NESTInputDevice, self).__init__(nest_instance, device)
         self.model = "input_device"
-
-    @property
-    def connections(self):
-        return self.nest_instance.GetConnections(target=self.device)
-
-    @property
-    def neurons(self):
-        return tuple([conn[0] for conn in self.connections])
 
 
 class NESTPoissonGenerator(NESTInputDevice):
@@ -267,14 +319,6 @@ class NESTOutputDevice(NESTDevice):
         return output_events
 
     @property
-    def connections(self):
-        return self.nest_instance.GetConnections(source=self.device)
-
-    @property
-    def neurons(self):
-        return tuple([conn[1] for conn in self.connections])
-
-    @property
     def events(self):
         return self.nest_instance.GetStatus(self.device)[0]['events']
 
@@ -305,6 +349,21 @@ class NESTSpikeDetector(NESTOutputDevice):
     def __init__(self, nest_instance, device):
         super(NESTSpikeDetector, self).__init__(nest_instance, device)
         self.model = "spike_detector"
+
+    def get_connections(self, neurons=None, exclude_neurons=[]):
+        if neurons is not None:
+            if len(exclude_neurons) > 0:
+                neurons = list(neurons)
+                for neuron in exclude_neurons:
+                    neurons.remove(neuron)
+            return self.nest_instance.GetConnections(target=self.device, source=tuple(neurons))
+        else:
+            neurons = self.neurons
+            if len(exclude_neurons) > 0:
+                neurons = list(neurons)
+                for neuron in exclude_neurons:
+                    neurons.remove(neuron)
+            return self.nest_instance.GetConnections(target=self.device, source=tuple(neurons))
 
     @property
     def connections(self):
@@ -382,7 +441,7 @@ class NESTSpikeDetector(NESTOutputDevice):
 
             def spikes_events_to_time_index(spike_time, time):
                 if spike_time < time[0] or spike_time > time[-1]:
-                    raise_value_error("Spike time is outside the input time vector!")
+                    warning("Spike time is outside the input time vector!")
                 return np.argmin(np.abs(time-spike_time))
 
             spikes_counts = np.zeros(time.shape)
@@ -704,6 +763,8 @@ class NESTDeviceSet(pd.Series):
     def _return_by_type(self, values_dict, return_type="dict", concatenation_index_name="Region", name=None):
         if return_type == "values":
             return list(values_dict.values())
+        elif return_type == "dict":
+            return values_dict
         elif return_type == "Series":
             return pd.Series(values_dict, name=name)
         elif return_type == "xarray":
@@ -744,6 +805,37 @@ class NESTDeviceSet(pd.Series):
     @property
     def senders(self):
         return self.do_for_all_devices("senders", return_type="values")
+
+    @property
+    def weights(self):
+        return self.do_for_all_devices("node_weight", return_type="values")
+
+    @property
+    def delays(self):
+        return self.do_for_all_devices("node_delay", return_type="values")
+
+    @property
+    def receptors(self):
+        return self.do_for_all_devices("node_receptors", return_type="values")
+
+    def record_from_per_node(self, nodes=None, return_type="values"):
+        values_dict = self.do_for_all_devices("record_from", nodes=nodes, return_type="dict")
+        if return_type == "dict":
+            return values_dict
+        values = np.array(list(values_dict.values()))
+        unique_values, indices = np.unique(values, return_inverse=True)
+        if return_type == "values":
+            return unique_values.squeeze().tolist()
+        nodes = np.array(list(values_dict.keys()))
+        output = OrderedDict()
+        for i_output, val in enumerate(unique_values):
+            key = np.where(indices == i_output)[0]
+            output[tuple(nodes[key])] = val
+        return output
+
+    @property
+    def record_from(self):
+        return self.record_from_per_node()
 
     def update_model(self):
         if len(self) > 0:
