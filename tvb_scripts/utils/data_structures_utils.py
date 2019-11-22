@@ -3,7 +3,6 @@
 # Data structure manipulations and conversions
 from six import string_types
 import re
-from pandas import DataFrame, Series, MultiIndex
 from xarray import DataArray
 import numpy as np
 from collections import OrderedDict
@@ -745,3 +744,9 @@ def data_xarray_from_continuous_events(events, times, senders, variables=[],
                 data[i_var, i_sender, i_time] = events[var][id]
     return DataArray(data, dims=list(coords.keys()), coords=coords, name=name)
 
+
+def property_to_fun(property):
+    if hasattr(property, "__call__"):
+        return property
+    else:
+        return lambda *args, **kwargs: property
