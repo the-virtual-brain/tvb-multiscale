@@ -85,7 +85,7 @@ def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED
             if p is not None:
                 # ...prune to end up to connection probability p if p is given
                 N = int(np.round(p * N))
-        conn_spec.update({'N': N})
+        conn_spec['N'] = N
         return conn_spec, N
     elif rule == 'fixed_indegree':
         if indegree is None:
@@ -93,7 +93,7 @@ def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED
             if p is None:
                 p = P_DEF
             indegree = int(np.round(p * n_src))
-        conn_spec.update({'indegree': indegree})
+        conn_spec['indegree'] = indegree
         return conn_spec, indegree * n_trg
     elif rule == 'fixed_outdegree':
         if outdegree is None:
@@ -101,7 +101,7 @@ def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED
             if p is None:
                 p = P_DEF
             outdegree = int(np.round(p * n_trg))
-        conn_spec.update({'outdegree': outdegree})
+        conn_spec['outdegree'] = outdegree
         return conn_spec, outdegree * n_src
     else:
         Nall = n_src * n_trg
@@ -110,7 +110,7 @@ def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED
         if rule == 'pairwise_bernoulli':
             if p is None:
                 p = P_DEF
-            conn_spec.update({'p': p})
+            conn_spec['p'] = p
             return conn_spec, int(np.round(p * Nall))
         else:  # assuming rule == 'all_to_all':
             return conn_spec, Nall
@@ -183,7 +183,7 @@ def connect_device(nest_instance, nest_device, neurons, weight=1.0, delay=0.0, r
     else:
         nest_instance.Connect(nest_device.device, neurons,
                               syn_spec={"weight": weight, "delay": delay, "receptor_type": receptor_type})
-    nest_device.update_number_of_connections()
+    # nest_device.update_number_of_connections()
     return nest_device
 
 

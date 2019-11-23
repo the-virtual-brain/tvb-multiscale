@@ -27,7 +27,6 @@ class NESTDevice(object):
 
     nest_instance = None
     device = None
-    number_of_connections = 0
     model = "device"
 
     def __init__(self, nest_instance, device):
@@ -38,7 +37,6 @@ class NESTDevice(object):
             self.device = device
         except:
             raise ValueError("Failed to GetStatus of device %s!" % str(device))
-        self.update_number_of_connections()
 
     def filter_neurons(self, neurons=None, exclude_neurons=[]):
         temp_neurons = self.neurons
@@ -128,13 +126,17 @@ class NESTDevice(object):
     def number_of_neurons(self):
         return self.get_number_of_neurons()
 
-    def update_number_of_connections(self):
-        neurons = self.neurons
-        for neuron in neurons:
-            element_type = self.nest_instance.GetStatus((neuron,))[0]["element_type"]
-            if element_type != "neuron":
-                raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
-        self.number_of_connections = len(neurons)
+    @property
+    def number_of_connections(self):
+        return self.get_number_of_neurons()
+
+    # def update_number_of_connections(self):
+    #     neurons = self.neurons
+    #     for neuron in neurons:
+    #         element_type = self.nest_instance.GetStatus((neuron,))[0]["element_type"]
+    #         if element_type != "neuron":
+    #             raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
+    #     self.number_of_connections = len(neurons)
 
     def GetStatus(self, attr):
         return self.nest_instance.GetStatus(self.device, attr)[0]
