@@ -238,11 +238,11 @@ def build_and_connect_devices_one_to_one(nest_instance, device, nest_nodes):
     # and target nodes (Series) for faster reading
     nest_devices = Series()
     if device["model"] in NESTInputDeviceDict.keys():
-        build_device = \
+        build_device_and_connect_device = \
             lambda nest_instance, device, populations, weight=1.0, delay=0.0, receptor_type=0: \
                 build_and_connect_input_device(nest_instance, device, populations, weight, delay, receptor_type)
     elif device["model"] in NESTOutputDeviceDict.keys():
-        build_device = \
+        build_device_and_connect_device = \
             lambda nest_instance, device, populations, weight=1.0, delay=0.0, receptor_type=0: \
                 build_and_connect_output_device(nest_instance, device, populations, weight, delay)
     else:
@@ -261,8 +261,9 @@ def build_and_connect_devices_one_to_one(nest_instance, device, nest_nodes):
         for i_node, node in enumerate(device_target_nodes):
             # and for every target node and population group...
             # create a device
-            nest_devices[pop_var][node.label] = build_device(nest_instance, device, node[populations],
-                                                             weights[i_node], delays[i_node], receptor_types[i_node])
+            nest_devices[pop_var][node.label] = \
+                build_device_and_connect_device(nest_instance, device, node[populations],
+                                                weights[i_node], delays[i_node], receptor_types[i_node])
     return nest_devices
 
 
