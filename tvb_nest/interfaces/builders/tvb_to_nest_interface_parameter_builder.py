@@ -20,14 +20,14 @@ class TVBtoNESTInterfaceParameterBuilder(object):
     exclusive_nodes = False
 
     def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
-                 tvb_nodes_ids, tvb_model, exclusive_nodes):
+                 tvb_nodes_ids, tvb_model, exclusive_nodes=False):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
         self.nest_nodes_ids = nest_nodes_ids
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
-        self.exclusive_nodes = tvb_model
+        self.exclusive_nodes = exclusive_nodes
 
     def build_interface(self, interface):
         # One interface for every combination NEST node

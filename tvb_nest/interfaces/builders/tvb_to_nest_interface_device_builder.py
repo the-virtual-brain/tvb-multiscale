@@ -23,7 +23,7 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
     exclusive_nodes = False
 
     def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
-                 tvb_nodes_ids, tvb_model, connectivity, tvb_dt, exclusive_nodes):
+                 tvb_nodes_ids, tvb_model, connectivity, tvb_dt, exclusive_nodes=False):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
@@ -50,7 +50,11 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
             target_nest_nodes = self.nest_nodes_ids
         target_nest_nodes = list(target_nest_nodes)
         if self.exclusive_nodes:
+            # TODO: decide about the following: can a TVB node be updated from a NEST node via a NEST -> TVB interface,
+            # get simulated in TVB and again update NEST via a TVB -> NEST interface?
+            # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
             assert np.all(node not in self.tvb_nodes_ids for node in target_nest_nodes)
+            assert np.all(node not in self.nest_nodes_ids for node in source_tvb_nodes)
         interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))
         interface_weights = np.ones((len(source_tvb_nodes),)).astype("f")
         weight = property_to_fun(interface.pop("weights", 1.0))

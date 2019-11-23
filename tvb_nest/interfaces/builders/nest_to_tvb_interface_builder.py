@@ -19,8 +19,10 @@ class NESTtoTVBInterfaceBuilder(object):
     tvb_nodes_ids = []
     tvb_model = None
     connectivity = None
+    exclusive_nodes = False
 
-    def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids, tvb_nodes_ids, tvb_model, connectivity):
+    def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
+                 tvb_nodes_ids, tvb_model, connectivity, exclusive_nodes=False):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
@@ -28,6 +30,7 @@ class NESTtoTVBInterfaceBuilder(object):
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
         self.connectivity = connectivity
+        self.exclusive_nodes = exclusive_nodes
 
     def build_interface(self, interface):
         # One NEST output device for every combination of NEST node
@@ -38,7 +41,11 @@ class NESTtoTVBInterfaceBuilder(object):
         if nest_nodes is None:
             nest_nodes = self.nest_nodes_ids
         nest_nodes = list(nest_nodes)
-        assert np.all(nest_node not in self.tvb_nodes_ids for nest_node in nest_nodes)
+        if self.exclusive_nodes:
+            # TODO: decide about the following: can a TVB node be updated from a NEST node via a NEST -> TVB interface,
+            # get simulated in TVB and again update NEST via a TVB -> NEST interface?
+            # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
+            assert np.all(nest_node not in self.tvb_nodes_ids for nest_node in nest_nodes)
         # We prefer to multiply interface_weights outside NEST:
         interface_weights = np.ones((len(nest_nodes),)).astype("f")
         interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))

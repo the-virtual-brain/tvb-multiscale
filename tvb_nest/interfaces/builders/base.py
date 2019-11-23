@@ -179,6 +179,7 @@ class TVBNESTInterfaceBuilder(object):
         tvb_nest_interface.nest_to_tvb_interfaces = \
             NESTtoTVBInterfaceBuilder(self.nest_to_tvb_interfaces,
                                       self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
-                                      self.tvb_nodes_ids, self.tvb_model, self.connectivity).build()
+                                      self.tvb_nodes_ids, self.tvb_model, self.connectivity, self.exclusive_nodes).\
+                                                                                                                build()
 
         return tvb_nest_interface
