@@ -45,6 +45,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # ------3. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
+    print("Building NEST network...")
+    tic = time.time()
+
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
     nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
@@ -52,13 +55,18 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder.populations_order = nest_populations_order
     nest_network = nest_model_builder.build_nest_network()
 
+    print("Done! in %f min" % ((time.time() - tic) / 60))
+
     # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 
+    print("Building TVB-NEST interface...")
+    tic = time.time()
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
     # Using all default parameters for this example
     tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes)
     tvb_nest_model = tvb_nest_builder.build_interface()
+    print("Done! in %f min" % ((time.time() - tic)/60))
 
     # -----------------------------------5. Simulate and gather results-------------------------------------------------
 
@@ -85,10 +93,10 @@ if __name__ == "__main__":
     nest_nodes_ids = []  # the indices of fine scale regions modeled with NEST
     # In this example, we model parahippocampal cortices (left and right) with NEST
     connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
-    # for id in range(connectivity.region_labels.shape[0]):
-    #     if connectivity.region_labels[id].find("hippo") > 0:
-    #         nest_nodes_ids.append(id)
+    for id in range(connectivity.region_labels.shape[0]):
+        if connectivity.region_labels[id].find("hippo") > 0:
+            nest_nodes_ids.append(id)
     main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=20.0,
+                 nest_nodes_ids, nest_populations_order=10, connectivity=connectivity, simulation_length=20.0,
                  tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
                  exclusive_nodes=False, config=CONFIGURED)
