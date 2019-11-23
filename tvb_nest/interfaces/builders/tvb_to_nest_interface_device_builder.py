@@ -20,9 +20,10 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
     tvb_model = None
     connectivity = None
     tvb_dt = 0.1
+    exclusive_nodes = False
 
     def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
-                 tvb_nodes_ids, tvb_model, connectivity, tvb_dt):
+                 tvb_nodes_ids, tvb_model, connectivity, tvb_dt, exclusive_nodes):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
@@ -31,6 +32,7 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
         self.tvb_model = tvb_model
         self.connectivity = connectivity
         self.tvb_dt = tvb_dt
+        self.exclusive_nodes = exclusive_nodes
 
     @property
     def node_labels(self):
@@ -47,6 +49,8 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
         if target_nest_nodes is None:
             target_nest_nodes = self.nest_nodes_ids
         target_nest_nodes = list(target_nest_nodes)
+        if self.exclusive_nodes:
+            assert np.all(node not in self.tvb_nodes_ids for node in target_nest_nodes)
         interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))
         interface_weights = np.ones((len(source_tvb_nodes),)).astype("f")
         weight = property_to_fun(interface.pop("weights", 1.0))

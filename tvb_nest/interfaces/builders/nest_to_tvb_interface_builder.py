@@ -38,6 +38,7 @@ class NESTtoTVBInterfaceBuilder(object):
         if nest_nodes is None:
             nest_nodes = self.nest_nodes_ids
         nest_nodes = list(nest_nodes)
+        assert np.all(nest_node not in self.tvb_nodes_ids for nest_node in nest_nodes)
         # We prefer to multiply interface_weights outside NEST:
         interface_weights = np.ones((len(nest_nodes),)).astype("f")
         interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))

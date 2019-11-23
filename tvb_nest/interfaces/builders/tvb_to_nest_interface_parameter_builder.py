@@ -17,14 +17,17 @@ class TVBtoNESTInterfaceParameterBuilder(object):
     tvb_nodes_ids = []
     nest_nodes_ids = []
     connectivity = None
+    exclusive_nodes = False
 
-    def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids, tvb_nodes_ids, tvb_model):
+    def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
+                 tvb_nodes_ids, tvb_model, exclusive_nodes):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
         self.nest_nodes_ids = nest_nodes_ids
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
+        self.exclusive_nodes = tvb_model
 
     def build_interface(self, interface):
         # One interface for every combination NEST node
@@ -38,6 +41,8 @@ class TVBtoNESTInterfaceParameterBuilder(object):
         if nest_nodes_ids is None:
             nest_nodes_ids = self.nest_nodes_ids
         nest_nodes_ids = list(nest_nodes_ids)
+        if self.exclusive_nodes:
+            assert np.all(nest_node not in self.tvb_nodes_ids for nest_node in nest_nodes_ids)
         interface_weights = 1.0 * np.ones((len(nest_nodes_ids),)).astype("f")
         interface_weight = property_to_fun(interface.get("interface_weights", 1.0))
         for i_w, nest_node_id in enumerate(nest_nodes_ids):
