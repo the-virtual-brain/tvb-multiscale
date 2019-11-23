@@ -164,14 +164,15 @@ class TVBNESTInterfaceBuilder(object):
                         TVBtoNESTInterfaceDeviceBuilder([],
                                                         self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
                                                         self.tvb_nodes_ids, self.tvb_model,
-                                                        self.connectivity, self.tvb_dt).build_interface(interface)
+                                                        self.connectivity, self.tvb_dt, self.exclusive_nodes).
+                                                                                        build_interface(interface)
                                                                     )
             else:
                 tvb_nest_interface.tvb_to_nest_interfaces = \
                     tvb_nest_interface.tvb_to_nest_interfaces.append(
                             TVBtoNESTInterfaceParameterBuilder([],
                                                                self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
-                                                               self.tvb_nodes_ids, self.tvb_model).
+                                                               self.tvb_nodes_ids, self.tvb_model, self.exclusive_nodes).
                                                                                         build_interface(interface)
                                                                     )
 
