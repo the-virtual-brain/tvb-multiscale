@@ -1,16 +1,25 @@
 # -*- coding: utf-8 -*-
 import time
 
+import numpy as np
+
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.examples.plot_results import plot_results
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan
+from tvb_nest.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator
+from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_nest.interfaces.builders.models.wilson_cowan import \
+    WilsonCowanBuilder as InterfaceWilsonCowanBuilder
+from tvb_nest.interfaces.builders.models.generic_2d_oscillator import \
+    Generic2DOscillatorBuilder as InterfaceGeneric2DOscillatorBuilder
 from tvb_nest.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
@@ -78,6 +87,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Integrate NEST one more NEST time step so that multimeters get the last time point
     # unless you plan to continue simulation later
     simulator.simulate_nest(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    # Clean-up NEST simulation
+    if simulator.simulate_nest == simulator.tvb_nest_interface.nest_instance.Run:
+        simulator.tvb_nest_interface.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
@@ -96,7 +108,14 @@ if __name__ == "__main__":
     for id in range(connectivity.region_labels.shape[0]):
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
-    main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                 nest_nodes_ids, nest_populations_order=10, connectivity=connectivity, simulation_length=20.0,
-                 tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
-                 exclusive_nodes=False, config=CONFIGURED)
+    model = Generic2dOscillator()
+    model.a = np.array([2.0])
+    model.b = np.array([-10.0])
+    model.c = np.array([0.0])
+    model.d = np.array([0.02])
+    model.I = np.array([0.0])
+    model.tau = np.array([10.0])
+    main_example(model, DefaultExcIOInhIBuilder, InterfaceGeneric2DOscillatorBuilder,
+                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=1000.0,
+                 tvb_state_variable_type_label="State Variables", tvb_state_variables_labels=["V", "W"],
+                 exclusive_nodes=True, config=CONFIGURED)
