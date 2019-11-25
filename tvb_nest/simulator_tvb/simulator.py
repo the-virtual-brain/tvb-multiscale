@@ -51,7 +51,7 @@ from tvb.simulator.common import numpy_add_at
 from tvb.simulator.history import SparseHistory
 from tvb.simulator.simulator import Simulator as SimulatorTVB
 from tvb_nest.config import CONFIGURED
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.interfaces.tvb_to_nest_parameter_interface import TVBNESTParameterInterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
 
@@ -300,6 +300,10 @@ class Simulator(SimulatorTVB):
         # TODO: find out why the model instance is different in simulator and interface...
         self.tvb_nest_interface.configure(self.model)
         dummy = numpy.ones((self.connectivity.number_of_regions, 1))
+        # Confirm good shape for TVB to NEST model parameters
+        for param in self.tvb_nest_interface.tvb_to_nest_params:
+            setattr(self.model, param,
+                    (dummy * numpy.array(getattr(self.model, param))).squeeze())
         # Confirm good shape for NEST to TVB model parameters
         for param in self.tvb_nest_interface.nest_to_tvb_params:
             setattr(self.model, param,
@@ -409,7 +413,7 @@ class Simulator(SimulatorTVB):
             # in a model specific manner
             # TODO: find what is the general treatment of local coupling, if any!
             #  Is this addition correct in all cases for all models?
-            self.tvb_nest_interface.tvb_state_to_nest(state, node_coupling + local_coupling, stimulus)
+            self.tvb_nest_interface.tvb_state_to_nest(state, node_coupling + local_coupling, stimulus, self.model)
             # Communicate the NEST state to some TVB model parameter,
             # including any necessary conversions in a model specific manner
             self.model = self.tvb_nest_interface.nest_state_to_tvb_parameter(self.model)
@@ -446,7 +450,3 @@ class Simulator(SimulatorTVB):
 
         self.current_state = state
         self.current_step = self.current_step + n_steps - 1  # -1 : don't repeat last point
-
-        # Clean-up NEST simulation
-        if self.simulate_nest == self.tvb_nest_interface.nest_instance.Run:
-            self.tvb_nest_interface.nest_instance.Cleanup()
