@@ -505,7 +505,7 @@ class NESTMultimeter(NESTOutputDevice):
 
     def _determine_variables(self, variables=None):
         if variables is not None:
-            variables = ensure_list
+            variables = ensure_list(variables)
             for variable in variables:
                     assert variable in self.record_from
         else:
@@ -545,17 +545,19 @@ class NESTMultimeter(NESTOutputDevice):
         events = self.events
         times = events["times"]
         coords[dims_names[0]] = variables
-        data = np.array((len(variables), len(neurons)))
         if len(times) > 0:
             output_inds = events["times"] == events["times"][-1]
             senders = events["senders"]
             if neurons is not None:
                 output_inds = np.logical_and(output_inds,
                                              [sender in flatten_list(neurons) for sender in senders])
+            else:
+                neurons = ensure_list(self.neurons)
             if len(exclude_neurons) > 0:
                 output_inds = np.logical_and(output_inds,
                                              [sender not in flatten_list(exclude_neurons) for sender in senders])
             coords[dims_names[1]] = neurons
+            data = np.empty((len(variables), len(neurons)))
             for i_var, var in enumerate(variables):
                 data[i_var] = events[var][output_inds]
         else:
@@ -571,6 +573,7 @@ class NESTMultimeter(NESTOutputDevice):
                     pass
             n_neurons = len(neurons)
             coords[dims_names[1]] = neurons
+            data = np.empty((len(variables), len(neurons)))
             for i_var in range(len(variables)):
                 data[i_var] = np.zeros((n_neurons, ))
         return xr.DataArray(data, coords=coords, dims=list(coords.keys()), name=name)
@@ -592,6 +595,37 @@ class NESTVoltmeter(NESTMultimeter):
         super(NESTVoltmeter, self).__init__(nest_instance, device)
         self.model = "voltmeter"
         assert "V_m" in self.record_from
+
+    def get_data(self, neurons=None, exclude_neurons=[],
+                 name=None, dims_names=["Variable", "Neuron", "Time"]):
+        return super(NESTVoltmeter, self).get_data("V_m", neurons, exclude_neurons,
+                                                   name, dims_names)
+
+    def get_mean_data(self, neurons=None, exclude_neurons=[]):
+        data = self.get_data(neurons, exclude_neurons)
+        return data.mean(dim="Neuron")
+
+    @property
+    def data(self):
+        return self.get_data()
+
+    @property
+    def data_mean(self):
+        return self.get_mean_data()
+
+    def current_data(self, neurons=None, exclude_neurons=[],
+                          name=None, dims_names=["Variable", "Neuron"]):
+        return super(NESTVoltmeter, self).current_data("V_m", neurons, exclude_neurons,
+                                                       name, dims_names)
+
+    def current_data_mean(self, neurons=None, exclude_neurons=[],
+                          name=None, dims_names=["Variable", "Neuron"]):
+        output = self.current_data(neurons, exclude_neurons, name, dims_names)
+        return output.mean(dim="Neuron")
+
+    def current_data_mean_values(self, neurons=None, exclude_neurons=[],
+                                 name=None, dims_names=["Variable", "Neuron"]):
+        return self.current_data_mean(neurons, exclude_neurons, name, dims_names).values.tolist()
 
     def get_V_m(self, neurons=None, exclude_neurons=[]):
         return self.get_data("V_m", neurons, exclude_neurons)[0]["V_m"]
@@ -892,10 +926,10 @@ class NESTDeviceSet(pd.Series):
 
         for i_n, node in enumerate(self._input_nodes(nodes)):
             try:
-                # Good for rate, spike times and weights of spike generator
+                # Good for spike times and weights of spike generator
                 value_dict_i_n = get_scalar_dict1(value_dict, i_n)
                 self[node].SetStatus(value_dict_i_n)
             except:
-                # Good for amplitude of dc generator and poisson generator
+                # Good for amplitude of dc generator and rate of poisson generator
                 value_dict_i_n = get_scalar_dict2(value_dict, i_n)
                 self[node].SetStatus(value_dict_i_n)
