@@ -3,7 +3,7 @@
 from pandas import Series
 import numpy as np
 from tvb_nest.simulator_nest.nest_factory import build_and_connect_output_devices
-from tvb_nest.interfaces.tvb_to_nest_interface import TVBtoNESTinterface
+from tvb_nest.interfaces.tvb_to_nest_device_interface import TVBtoNESTDeviceInterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import property_to_fun
 
@@ -11,7 +11,7 @@ from tvb_scripts.utils.data_structures_utils import property_to_fun
 LOG = initialize_logger(__name__)
 
 
-class TVBtoNESTInterfaceDeviceBuilder(object):
+class TVBtoNESTDeviceInterfaceBuilder(object):
     interfaces = []
     nest_instance = None
     nest_nodes = Series()
@@ -82,12 +82,16 @@ class TVBtoNESTInterfaceDeviceBuilder(object):
         devices = build_and_connect_output_devices(self.nest_instance, [interface], self.nest_nodes)
         tvb_to_nest_interface = Series()
         for name, device in devices.items():
+            try:
+                tvb_sv_id = self.tvb_model.state_variables.index(name)
+            except:
+                tvb_sv_id = None  # in case the TVB source is a parameter, not one of the state variables
             tvb_to_nest_interface[name] = \
-                TVBtoNESTinterface(self.nest_instance, nodes_ids=source_tvb_nodes, target_nodes=target_nest_nodes,
-                                   interface_weights=interface_weights, dt=self.tvb_dt). \
-                                                            from_device_set(device,
-                                                                            self.tvb_model.state_variables.index(name),
-                                                                            name)
+                TVBtoNESTDeviceInterface(self.nest_instance,
+                                         nodes_ids=source_tvb_nodes,
+                                         target_nodes=target_nest_nodes,
+                                         scale=interface_weights,
+                                         dt=self.tvb_dt).from_device_set(device, tvb_sv_id, name)
             if len(source_tvb_nodes) * len(target_nest_nodes) > 0:
                 assert np.abs(np.max(tvb_to_nest_interface[name].weights - weights)) < 0.001
                 assert np.abs(np.max(tvb_to_nest_interface[name].delays - delays)) < 1.0  # ms

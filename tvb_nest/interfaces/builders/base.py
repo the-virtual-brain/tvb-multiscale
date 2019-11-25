@@ -2,8 +2,8 @@
 
 from pandas import Series
 import numpy as np
-from tvb_nest.interfaces.builders.tvb_to_nest_interface_device_builder import TVBtoNESTInterfaceDeviceBuilder
-from tvb_nest.interfaces.builders.tvb_to_nest_interface_parameter_builder import TVBtoNESTInterfaceParameterBuilder
+from tvb_nest.interfaces.builders.tvb_to_nest_device_interface_builder import TVBtoNESTDeviceInterfaceBuilder
+from tvb_nest.interfaces.builders.tvb_to_nest_parameter_interface_builder import TVBtoNESTParameterInterfaceBuilder
 from tvb_nest.interfaces.builders.nest_to_tvb_interface_builder import NESTtoTVBInterfaceBuilder
 from tvb_nest.simulator_tvb.simulator import Simulator
 from tvb_nest.simulator_nest.models.network import NESTNetwork
@@ -161,7 +161,7 @@ class TVBNESTInterfaceBuilder(object):
             if model in NESTInputDeviceDict.keys():
                 tvb_nest_interface.tvb_to_nest_interfaces = \
                     tvb_nest_interface.tvb_to_nest_interfaces.append(
-                        TVBtoNESTInterfaceDeviceBuilder([],
+                        TVBtoNESTDeviceInterfaceBuilder([],
                                                         self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
                                                         self.tvb_nodes_ids, self.tvb_model,
                                                         self.connectivity, self.tvb_dt, self.exclusive_nodes).
@@ -170,7 +170,7 @@ class TVBNESTInterfaceBuilder(object):
             else:
                 tvb_nest_interface.tvb_to_nest_interfaces = \
                     tvb_nest_interface.tvb_to_nest_interfaces.append(
-                            TVBtoNESTInterfaceParameterBuilder([],
+                            TVBtoNESTParameterInterfaceBuilder([],
                                                                self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
                                                                self.tvb_nodes_ids, self.tvb_model, self.exclusive_nodes).
                                                                                         build_interface(interface)

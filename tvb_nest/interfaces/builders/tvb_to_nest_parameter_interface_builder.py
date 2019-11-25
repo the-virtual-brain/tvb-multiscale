@@ -10,7 +10,7 @@ from tvb_scripts.utils.data_structures_utils import property_to_fun
 LOG = initialize_logger(__name__)
 
 
-class TVBtoNESTInterfaceParameterBuilder(object):
+class TVBtoNESTParameterInterfaceBuilder(object):
     interface = []
     nest_instance = None
     nest_nodes = Series()

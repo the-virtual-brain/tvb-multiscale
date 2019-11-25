@@ -9,17 +9,17 @@ from tvb_nest.simulator_nest.models.devices import NESTDeviceSet
 LOG = initialize_logger(__name__)
 
 
-class TVBtoNESTinterface(NESTDeviceSet):
+class TVBtoNESTDeviceInterface(NESTDeviceSet):
 
-    def __init__(self, nest_instance, name="", model="", dt=0.1, tvb_sv_id=0,
-                 nodes_ids=[], target_nodes=[], interface_weights=np.array([1.0]), device_set=Series()):
-        super(TVBtoNESTinterface, self).__init__(name, model, device_set)
+    def __init__(self, nest_instance, name="", model="", dt=0.1, tvb_sv_id=None,
+                 nodes_ids=[], target_nodes=[], scale=np.array([1.0]), device_set=Series()):
+        super(TVBtoNESTDeviceInterface, self).__init__(name, model, device_set)
         self.nest_instance = nest_instance
         self.dt = dt
         self.tvb_sv_id = tvb_sv_id
         self.nodes_ids = nodes_ids
         self.target_nodes = target_nodes
-        self.interface_weights = interface_weights
+        self.scale = scale
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     @property
@@ -47,7 +47,7 @@ class TVBtoNESTinterface(NESTDeviceSet):
 
     def from_device_set(self, device_set, tvb_sv_id=0, name=None):
         if isinstance(device_set, NESTDeviceSet):
-            super(TVBtoNESTinterface, self).__init__(device_set.name, device_set.model, device_set)
+            super(TVBtoNESTDeviceInterface, self).__init__(device_set.name, device_set.model, device_set)
         else:
             raise_value_error("Input device_set is not a NESTDeviceSet!: %s" % str(device_set))
         self.tvb_sv_id = tvb_sv_id
@@ -56,27 +56,24 @@ class TVBtoNESTinterface(NESTDeviceSet):
         self.update_model()
         return self
 
-    def set(self, weights, state, nodes=None):
-        values = self.interface_weights * \
-                 weights[self.nodes_ids] * \
-                 state[self.tvb_sv_id, self.nodes_ids].squeeze()
+    def set(self, values):
         if self.model == "dc_generator":
             self.SetStatus({"amplitude": values,
                             "origin": self.nest_instance.GetKernelStatus("time"),
                             "start": self.nest_instance.GetKernelStatus("min_delay"),
-                            "stop": self.dt}, nodes=nodes)
+                            "stop": self.dt})
         elif self.model in ["poisson_generator"]:
             # ...and transmit it to the corresponding NEST device,
             # ...which represents that TVB node
             self.SetStatus({"rate": np.maximum(0, values),
                             "origin": self.nest_instance.GetKernelStatus("time"),
                             "start": self.nest_instance.GetKernelStatus("min_delay"),
-                            "stop": self.dt}, nodes=nodes)
+                            "stop": self.dt})
         elif self.model in ["spike_generator"]:
             # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
             self.SetStatus({"spikes_times": np.ones((len(values),)) *
                                            self.nest_instance.GetKernelStatus("min_delay"),
                             "origin": self.nest_instance.GetKernelStatus("time"),
-                            "spike_weights": values}, nodes=nodes)
+                            "spike_weights": values})
         else:
             raise ValueError("Interface model %s is not supported yet!" % self.model)

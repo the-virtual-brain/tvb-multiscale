@@ -65,9 +65,9 @@ class NESTtoTVBInterfaceBuilder(object):
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
                 tvb_sv_id = None  # it might be a TVB parameter, not a state variable
-            nest_to_tvb_interface[name] = NESTtoTVBinterface(nodes_ids=nest_nodes,
-                                                             interface_weights=interface_weights). \
-                                                                        from_device_set(device_set, tvb_sv_id, name)
+            nest_to_tvb_interface[name] = \
+                NESTtoTVBinterface(nodes_ids=nest_nodes,
+                                   scale=interface_weights).from_device_set(device_set, tvb_sv_id, name)
         return nest_to_tvb_interface
 
     def build(self):

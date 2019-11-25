@@ -17,7 +17,7 @@ NEST_INPUT_PARAMETERS = {"current": "I_e", "potential": "V_m"}  #
 class TVBNESTParameterInterface(Series):
 
     def __init__(self, nest_instance, name, model, parameter="", tvb_coupling_id=0, nodes_ids=[],
-                 interface_weights=array([1.0]), neurons=Series()):
+                 scale=array([1.0]), neurons=Series()):
         super(TVBNESTParameterInterface, self).__init__(neurons)
         self.nest_instance = nest_instance
         self.name = str(name)
@@ -34,30 +34,22 @@ class TVBNESTParameterInterface(Series):
                             % (self.parameter, NEST_INPUT_PARAMETERS[self.model], self.model))
         self.tvb_coupling_id = int(tvb_coupling_id)
         self.nodes_ids = nodes_ids
-        self.interface_weights = interface_weights
+        self.scale = scale
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
-    def _input_nodes(self, nodes=None):
-        if nodes is None:
-            # no input
-            return list(self.index)
-        else:
-            if nodes in list(self.index) or nodes in list(range(len(self))):
-                # input is a single index or label
-                return [nodes]
-            else:
-                # input is a sequence of indices or labels
-                return list(nodes)
+    @property
+    def nodes(self):
+        return list(self.index)
 
-    def set(self, weights, coupling, nodes=None):
-        nodes = self._input_nodes(nodes)
-        values = ensure_list(self.interface_weights *
-                             weights[self.nodes_ids] *
-                             coupling[self.tvb_coupling_id, self.nodes_ids].squeeze())
+    @property
+    def n_nodes(self):
+        return len(self.nodes)
+
+    def set(self, values):
+        values = ensure_list(values)
         n_vals = len(values)
-        n_nodes = len(nodes)
-        if n_vals not in [1, n_nodes]:
+        if n_vals not in [1, self.n_nodes]:
             raise ValueError("Values' number %d is neither equal to 1 "
-                             "nor equal to nodes' number %d!" % (n_vals, n_nodes))
-        for node, value in zip(ensure_list(nodes), cycle(values)):
+                             "nor equal to nodes' number %d!" % (n_vals, self.n_nodes))
+        for node, value in zip(self.nodes, cycle(values)):
             self.nest_instance.SetStatus(self[node], {self.parameter: value})
