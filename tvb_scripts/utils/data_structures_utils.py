@@ -735,13 +735,32 @@ def data_xarray_from_continuous_events(events, times, senders, variables=[],
     coords[dims_names[0]] = variables
     coords[dims_names[1]] = filter_senders
     coords[dims_names[2]] = unique_times
-    data = np.empty((len(variables), len(filter_senders), len(unique_times)))
+    n_senders = len(filter_senders)
+    n_times = len(unique_times)
+    data = np.empty((len(variables), n_senders, n_times))
+    last_time = times[0]
+    i_time = unique_times.index(last_time)
+    i_sender = -1
     for id, (time, sender) in enumerate(zip(times, senders)):
-        if sender in filter_senders:
-            i_time = unique_times.index(time)
-            i_sender = filter_senders.index(sender)
-            for i_var, var in enumerate(variables):
-                data[i_var, i_sender, i_time] = events[var][id]
+        # Try best guess of next sender:
+        i_sender += 1
+        if i_sender >= n_senders:
+            i_sender = 0
+        if filter_senders[i_sender] != sender:
+            try:
+                i_sender = filter_senders.index(sender)
+            except:
+                break  # This sender is not one of the chosen filter_senders
+        if time != last_time:
+            last_time = time
+            # Try best guess of next time index:
+            i_time += 1
+            if i_time >= n_times:
+                i_time = n_times - 1
+            if time != unique_times[i_time]:
+                i_time = unique_times.index(time)
+        for i_var, var in enumerate(variables):
+            data[i_var, i_sender, i_time] = events[var][id]
     return DataArray(data, dims=list(coords.keys()), coords=coords, name=name)
 
 
