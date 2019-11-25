@@ -4,7 +4,7 @@ from collections import OrderedDict
 from tvb_nest.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models.red_ww_exc_io_inh_i import RedWWexcIOinhI
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 class RedRateWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):

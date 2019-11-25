@@ -16,7 +16,7 @@ config.figures.SHOW_FLAG = False
 config.figures.MATPLOTLIB_BACKEND = "Agg"
 
 from tvb_nest.examples.example import main_example
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder

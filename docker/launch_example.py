@@ -6,17 +6,15 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 import matplotlib as mpl
 mpl.use('Agg')
 
-import os
 import time
 import numpy as np
-from collections import OrderedDict
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw
 from tvb_scripts.time_series.model import TimeSeriesRegion
 from tvb_nest.config import *
 from tvb_nest.plot.plotter import Plotter
 from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 

@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models.red_ww_exc_io_inh_i import RedWWexcIOinhI
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
@@ -43,8 +43,8 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
                                         "delays": nest_network.nodes_min_delay,
                                         "receptor_types": 0,
     # ----------------------------------------------------------------------------------------------------------------
-    #                                               TVB sv -> NEST population
-                                        "connections": {"S_e": ["E", "I"]},
+    #                                        TVB sv or param -> NEST population
+                                        "connections": {"r_o": ["E", "I"]},
                                         "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # The NEST nodes the activity of which is transformed to TVB state variables or parameters

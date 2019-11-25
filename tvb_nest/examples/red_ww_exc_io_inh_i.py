@@ -11,7 +11,7 @@ from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
@@ -170,14 +170,14 @@ if __name__ == "__main__":
     # # TVB -> NEST:
     # # ------------Modifications to the default options of the builder---------------
 
-    # # For directly setting an external current parameter in NEST neurons instantaneously:
-    # tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
-    # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-    #                                             "interface_weights": 1.0,
-    # # ----------------------------------------------------------------------------------------------------------------
-    # #                                                 TVB state var -> NEST population
-    #                                             "connections": {"S_e": ["E", "I"]},
-    #                                             "nodes": None}]  # None means all here
+    # For directly setting an external current parameter in NEST neurons instantaneously:
+    tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
+    # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
+                                                "interface_weights": 1.0,
+    # ----------------------------------------------------------------------------------------------------------------
+    #                                                 TVB state var -> NEST population
+                                                "connections": {"S_e": ["E", "I"]},
+                                                "nodes": None}]  # None means all here
 
     # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
     # tvb_nest_builder.tvb_to_nest_interfaces =
@@ -192,19 +192,19 @@ if __name__ == "__main__":
     #       "connections": {"S_e": ["E", "I"]},
     #       "source_nodes": None, "target_nodes": None}]  # None means all here
 
-     # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
-    tvb_nest_builder.tvb_to_nest_interfaces = \
-         [{"model": "poisson_generator", "params": {},
-    # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-           "interface_weights": 1.0,  # Applied outside NEST for each interface device
-           "weights": 1.0,  # To multiply TVB connectivity weight
-    #          To add to TVB connectivity delay:
-           "delays": nest_network.nodes_min_delay,
-           "receptor_types": 0,
-    # ----------------------------------------------------------------------------------------------------------------
-    #            TVB state var -> NEST population
-           "connections": {"S_e": ["E", "I"]},
-           "source_nodes": None, "target_nodes": None}]  # None means all here
+    #  # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
+    # tvb_nest_builder.tvb_to_nest_interfaces = \
+    #      [{"model": "poisson_generator", "params": {},
+    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    #        "interface_weights": 1.0,  # Applied outside NEST for each interface device
+    #        "weights": 1.0,  # To multiply TVB connectivity weight
+    # #          To add to TVB connectivity delay:
+    #        "delays": nest_network.nodes_min_delay,
+    #        "receptor_types": 0,
+    # # ----------------------------------------------------------------------------------------------------------------
+    # #    TVB state var or param -> NEST population
+    #        "connections": {"r_o": ["E", "I"]},
+    #        "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # NEST -> TVB:
     # Use S_e and S_i instead of r_e and r_i
@@ -233,6 +233,12 @@ if __name__ == "__main__":
     # ...and simulate!
     t_start = time.time()
     results = simulator.run(simulation_length=100.0)
+    # Integrate NEST one more NEST time step so that multimeters get the last time point
+    # unless you plan to continue simulation later
+    simulator.simulate_nest(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    # Clean-up NEST simulation
+    if simulator.simulate_nest == simulator.tvb_nest_interface.nest_instance.Run:
+        simulator.tvb_nest_interface.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
