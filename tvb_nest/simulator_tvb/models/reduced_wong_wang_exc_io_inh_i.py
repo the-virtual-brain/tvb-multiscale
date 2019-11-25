@@ -36,8 +36,8 @@ from tvb.simulator.models.base import numpy, ModelNumbaDfun
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 
-@guvectorize([(float64[:],)*23], '(n),(m)' + ',()'*20 + '->(n)', nopython=True)
-def _numba_dfun(S, c, ae, be, de, ge, te, wp, we, jn, re, ai, bi, di, gi, ti, wi, ji, ri, g, l, io, dx):
+@guvectorize([(float64[:],)*24], '(n),(m)' + ',()'*21 + '->(n)', nopython=True)
+def _numba_dfun(S, c, ae, be, de, ge, te, wp, we, jn, re, ai, bi, di, gi, ti, wi, ji, ri, ro, g, l, io, dx):
     "Gufunc for reduced Wong-Wang model equations."
 
     cc = g[0]*jn[0]*c[0]
@@ -48,6 +48,7 @@ def _numba_dfun(S, c, ae, be, de, ge, te, wp, we, jn, re, ai, bi, di, gi, ti, wi
         x = wp[0]*jnSe - ji[0]*S[1] + we[0]*io[0] + cc
         x = ae[0]*x - be[0]
         h = x / (1 - numpy.exp(-de[0]*x))
+        ro[0] = h
     else:
         h = re[0]
     dx[0] = - (S[0] / te[0]) + (1.0 - S[0]) * h * ge[0]
@@ -203,6 +204,12 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         domain=Range(lo=0.0, hi=1.0, step=0.001),
         doc="""[nA]. Effective external input""")
 
+    r_o = NArray(
+        label=":math:`r_i`",
+        default=numpy.array([0., ]),
+        domain=Range(lo=0., hi=10000., step=1.),
+        doc="[Hz]. Excitatory population output firing rate.")
+
     G = NArray(
         label=":math:`G`",
         default=numpy.array([2.0, ]),
@@ -215,20 +222,20 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         domain=Range(lo=0.0, hi=1.0, step=0.01),
         doc="""Inhibitory global coupling scaling""")
 
-    state_variable_range = Final(
-        {
-            "S_e": numpy.array([0.0, 1.0]),
-            "S_i": numpy.array([0.0, 1.0])
-        },
-        label="State variable ranges [lo, hi]",
-        doc="Population firing rate")
-
     # Used for phase-plane axis ranges and to bound random initial() conditions.
     state_variable_boundaries = Final(
-        {"S_e": numpy.array([0.0, 1.0]), "S_i": numpy.array([0.0, 1.0])},
+        default={"S_e": numpy.array([0.0, 1.0]),
+                 "S_i": numpy.array([0.0, 1.0])},
         label="State Variable boundaries [lo, hi]",
         doc="""The values for each state-variable should be set to encompass
-            the boundaries of the dynamic range of that state-variable. Set None for one-sided boundaries""")
+            the boundaries of the dynamic range of that state-variable. 
+            Set None for one-sided boundaries""")
+
+    state_variable_range = Final(
+        default={"S_e": numpy.array([0.0, 1.0]),
+                 "S_i": numpy.array([0.0, 1.0])},
+        label="State variable ranges [lo, hi]",
+        doc="Population firing rate")
 
     variables_of_interest = List(
         of=str,
@@ -271,11 +278,12 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
         J_N_S_e = self.J_N * S[0]
 
-        # TODO: Confirm that this combutation is correct for this model depending on the r_e and r_i values!
+        # TODO: Confirm that this computation is correct for this model depending on the r_e and r_i values!
         x_e = self.w_p * J_N_S_e - self.J_i * S[1] + self.W_e * self.I_o + coupling
 
         x_e = self.a_e * x_e - self.b_e
         H_e = numpy.where(self.r_e >= 0, self.r_e, x_e / (1 - numpy.exp(-self.d_e * x_e)))
+        self.r_o = numpy.where(self.r_e < 0, H_e, 0.0)
 
         dS_e = - (S[0] / self.tau_e) + (1 - S[0]) * H_e * self.gamma_e
 
@@ -298,6 +306,6 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
                             self.w_p, self.W_e, self.J_N, self.r_e,
                             self.a_i, self.b_i, self.d_i, self.gamma_i, self.tau_i,
                             self.W_i, self.J_i, self.r_i,
-                            self.G, self.lamda, self.I_o)
+                            self.r_o, self.G, self.lamda, self.I_o)
         return deriv.T[..., numpy.newaxis]
 
