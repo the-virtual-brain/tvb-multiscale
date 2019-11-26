@@ -28,7 +28,7 @@ from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
                  connectivity=None, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, simulation_length=100.0,
                  tvb_state_variable_type_label="Synaptic Gating Variable",
-                 dt=0.1, noise_strength=0.1, exclusive_nodes=False, config=CONFIGURED):
+                 dt=0.1, noise_strength=0.001, exclusive_nodes=False, config=CONFIGURED):
 
     plotter = Plotter(config)
 
@@ -109,19 +109,19 @@ if __name__ == "__main__":
     for id in range(connectivity.region_labels.shape[0]):
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
-    # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
-    model = Generic2dOscillator()
-    model.d = np.array([0.1])
-    model.e = np.array([0.0])
-    model.f = np.array([1.0])
-    model.g = np.array([1.0])
-    model.I = np.array([0.0])
-    model.tau = np.array([1.0])
-    model.alpha = np.array([1.0])
-    model.beta = np.array([0.0])
-    model.a = np.array([0.0])
-    model.b = np.array([-1.0])
-    model.c = np.array([0.0])
+    # # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
+    # model = Generic2dOscillator()
+    # model.d = np.array([0.1])
+    # model.e = np.array([0.0])
+    # model.f = np.array([1.0])
+    # model.g = np.array([1.0])
+    # model.I = np.array([0.0])
+    # model.tau = np.array([1.0])
+    # model.alpha = np.array([1.0])
+    # model.beta = np.array([0.0])
+    # model.a = np.array([0.0])
+    # model.b = np.array([-1.0])
+    # model.c = np.array([0.0])
     # model.variables_of_interest = ["V", "W"]
     # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
     # model = WilsonCowan()
@@ -137,7 +137,8 @@ if __name__ == "__main__":
     # model.b_i = np.array([3.7])
     # model.P = np.array([0.0])
     # model.variables_of_interest = ["E", "I"]
-    main_example(model, DefaultExcIOInhIBuilder, InterfaceGeneric2DOscillatorBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=1000.0,
+    model = ReducedWongWangExcIOInhI()
+    main_example(model, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
                  tvb_state_variable_type_label="State Variables",
-                 exclusive_nodes=True, noise_strength=0.000001, config=CONFIGURED)
+                 exclusive_nodes=True, noise_strength=0.001, config=CONFIGURED)
