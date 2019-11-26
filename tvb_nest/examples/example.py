@@ -116,6 +116,6 @@ if __name__ == "__main__":
     model.I = np.array([0.0])
     model.tau = np.array([10.0])
     main_example(model, DefaultExcIOInhIBuilder, InterfaceGeneric2DOscillatorBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=1000.0,
+                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=500.0,
                  tvb_state_variable_type_label="State Variables", tvb_state_variables_labels=["V", "W"],
                  exclusive_nodes=True, config=CONFIGURED)

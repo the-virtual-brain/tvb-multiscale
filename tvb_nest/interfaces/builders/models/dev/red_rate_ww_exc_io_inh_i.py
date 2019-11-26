@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from tvb_nest.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_nest.interfaces.models.red_ww_exc_io_inh_i import RedWWexcIOinhI
+from tvb_nest.interfaces.models import RedWWexcIOinhI
 from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
@@ -56,6 +56,7 @@ class RedRateWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
 
         super(RedRateWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                         tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
+        self.w_tvb_to_current *= self.tvb_model.J_N
 
     def build_interface(self, tvb_nest_interface=None):
         if not isinstance(tvb_nest_interface, RedWWexcIOinhI):

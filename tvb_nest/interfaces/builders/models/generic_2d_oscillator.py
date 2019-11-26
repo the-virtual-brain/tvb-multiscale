@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+import numpy as np
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_nest.interfaces.models.generic_2d_oscillator import Generic2dOscillator
+from tvb_nest.interfaces.models import Generic2dOscillator
 from tvb_nest.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator as TVBGeneric2dOscillator
 
 
@@ -10,16 +11,17 @@ class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
     tvb_model = TVBGeneric2dOscillator()
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None,
+                 E_L=-70.0, V_reset=-60.0, V_th=-55.0, g=16.667):
 
         if tvb_to_nest_interfaces is None:
     # For directly setting membrane potential V_m in NEST neurons instantaneously:
-            tvb_to_nest_interfaces = [{"model": "potential",  "parameter": "V_m",
+            tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
     # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
                                        "interface_weights": 1.0,
     # ----------------------------------------------------------------------------------------------------------------
     #                                               TVB sv -> NEST population
-                                       "connections": {"V": ["E"]},
+                                       "connections": {"V": ["E", "I"]},
                                        "nodes": None}]  # None means all here
 
     # The NEST nodes the activity of which is transformed to TVB state variables or parameters
@@ -39,6 +41,16 @@ class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
 
         super(Generic2DOscillatorBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                          tvb_to_nest_interfaces, nest_to_tvb_interfaces)
+        self.E_L = - np.abs(E_L)
+        self.V_reset = - np.abs(V_reset)
+        self.V_th = - np.abs(V_th)
+        self.g = np.abs(g)
+        self.w_tvb_to_nest = np.abs(self.V_reset - self.E_L)  # ~ -60 - (-70) = 10
+        self.w_nest_to_tvb = np.abs(self.V_th - self.V_reset)  # ~ -55 - (-60) = 5
+        # TODO: confirm the following:
+        #                            g * weight * abs(E_L-V_th) * Vtvb->nest
+        self.w_tvb_to_current = lambda coupling: self.g * self.w_tvb_to_nest * coupling
+        self.w_potential_to_tvb = lambda V_m: (V_m - self.V_reset) / self.w_nest_to_tvb
 
     def build_interface(self, tvb_nest_interface=None):
         if not isinstance(tvb_nest_interface, Generic2dOscillator):

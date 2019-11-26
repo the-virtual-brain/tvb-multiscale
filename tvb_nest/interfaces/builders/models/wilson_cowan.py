@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_nest.interfaces.models.wilson_cowan import WilsonCowan
+from tvb_nest.interfaces.models import WilsonCowan
 from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan as TVBWilsonCowan
 
 

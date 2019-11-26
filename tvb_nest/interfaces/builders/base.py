@@ -23,6 +23,21 @@ class TVBNESTInterfaceBuilder(object):
     exclusive_nodes = False
     nest_network = []
 
+    # TVB <-> NEST transformations' weights/funs
+    # If set as weights, they will become a transformation function of
+    # lambda state, regions_indices: w[regions_indices] * state[regions_indices]
+    # If set as a function of lambda state: fun(state), it will become a vector function of:
+    # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
+    # TVB -> NEST
+    w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
+    w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
+    w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
+    # TVB <- NEST
+    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
+    w_spikes_to_tvb = 1.0
+    w_spikes_var_to_tvb = 1.0
+    w_potential_to_tvb = 1.0
+
     # The NEST nodes where TVB input is directed
     tvb_to_nest_interfaces = []
 
@@ -106,6 +121,21 @@ class TVBNESTInterfaceBuilder(object):
         else:
             raise ValueError("Input simulator_tvb is not a Simulator object!\n%s" % str(tvb_simulator))
 
+        # TVB <-> NEST transformations' weights/funs
+        # If set as weights, they will become a transformation function of
+        # lambda state, regions_indices: w[regions_indices] * state[regions_indices]
+        # If set as a function of lambda state: fun(state), it will become a vector function of:
+        # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
+        # TVB -> NEST
+        self.w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
+        self.w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
+        self.w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
+        # TVB <- NEST
+        self.w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
+        self.w_spikes_to_tvb = 1.0
+        self.w_spikes_var_to_tvb = 1.0
+        self.w_potential_to_tvb = 1.0
+
         if nest_to_tvb_interfaces is not None:
             self.nest_to_tvb_interfaces = ensure_list(nest_to_tvb_interfaces)
         if tvb_to_nest_interfaces is not None:
@@ -135,8 +165,66 @@ class TVBNESTInterfaceBuilder(object):
     def tvb_dt(self):
         return self.integrator.dt
 
+    @property
+    def number_of_nodes(self):
+        return self.connectivity.number_of_regions
+
     def assert_delay(self, delay):
         return np.maximum(self.nest_min_delay, delay)
+
+    # TODO: find a possible way to differentiate scalings between
+    #  receiver (as in _tvb_state_to_nest_current),
+    #  and sender (as in all other cases below), node indexing
+
+    def _prepare_tvb_to_nest_transform_fun(self, prop, dummy):
+        transform_fun = prop.split("w_")[1]
+        if hasattr(getattr(self, prop), "__call__"):
+            # If the property is already set as a function:
+            return {transform_fun:
+                lambda state_variable, region_nodes_indices=None: \
+                    getattr(self, prop)(state_variable[region_nodes_indices])}
+        else:
+            # If the property is set just as a weight:
+            setattr(self, prop, dummy * getattr(self, prop))
+            return {transform_fun:
+                lambda state_variable, region_nodes_indices, weights=getattr(self, prop): \
+                    state_variable[region_nodes_indices] * weights[region_nodes_indices]}
+
+    def _prepare_nest_to_tvb_transform_fun(self, prop, dummy):
+        transform_fun = prop.split("w_")[1]
+        if hasattr(getattr(self, prop), "__call__"):
+            # If the property is already set as a function:
+            return {transform_fun:
+                lambda nest_variable, region_nodes_indices=None:
+                    getattr(self, prop)(nest_variable)}
+        else:
+            # If the property is set just as a weight:
+            setattr(self, prop, dummy * getattr(self, prop))
+            return {transform_fun:
+                lambda nest_variable, region_nodes_indices, weights=getattr(self, prop): \
+                    nest_variable * weights[region_nodes_indices]}
+
+    def generate_transforms(self):
+        self.w_spikes_to_tvb /= self.tvb_dt  # Used to convert number of spikes to a spike rate
+        self.w_spikes_to_tvb_rate /= self.tvb_dt  # Used to convert number of spikes to a spike rate
+        dummy = np.ones((self.number_of_nodes, ))
+        # Confirm good shape for TVB-NEST interface model parameters
+        # TODO: find a possible way to differentiate scalings between
+        #  receiver (as in _tvb_state_to_nest_current),
+        #  and sender (as in all other cases below), node indexing
+        #  Also, the size doesn't have to be in all cases equal to number_of_nodes,
+        #  but sometimes equal to number_of_nest_nodes or to number_of_tvb_nodes
+        transforms = {}
+        for prop in ["w_tvb_to_current",
+                     "w_tvb_to_potential",
+                     "w_tvb_to_spike_rate"]:
+            transforms.update(self._prepare_tvb_to_nest_transform_fun(prop, dummy))
+        for prop in ["w_spikes_to_tvb_rate",
+                     "w_spikes_to_tvb",
+                     "w_spikes_var_to_tvb",
+                     "w_potential_to_tvb"]:
+            transforms.update(self._prepare_nest_to_tvb_transform_fun(prop, dummy))
+        return transforms
 
     def build_interface(self, tvb_nest_interface):
         """
@@ -153,6 +241,8 @@ class TVBNESTInterfaceBuilder(object):
         tvb_nest_interface.nest_nodes_ids = self.nest_nodes_ids
         tvb_nest_interface.exclusive_nodes = self.exclusive_nodes
         tvb_nest_interface.nest_network = self.nest_network
+
+        tvb_nest_interface.transforms = self.generate_transforms()
 
         tvb_nest_interface.tvb_to_nest_interfaces = Series({})
         # Create a list of input devices for every TVB node inside NEST and connect them to the target NEST nodes:
