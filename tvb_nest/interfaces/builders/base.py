@@ -33,7 +33,7 @@ class TVBNESTInterfaceBuilder(object):
     w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
     w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
     # TVB <- NEST
-    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
+    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB) and given the division of spikes' number with dt in ms:
     w_spikes_to_tvb = 1.0
     w_spikes_var_to_tvb = 1.0
     w_potential_to_tvb = 1.0
