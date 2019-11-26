@@ -12,7 +12,7 @@ class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None,
-                 E_L=-70.0, V_reset=-60.0, V_th=-55.0, g=16.667):
+                 E_L=-70.0, V_reset=-60.0, V_th=-55.0, g=5.0, V_low=-5.0):
 
         if tvb_to_nest_interfaces is None:
     # For directly setting membrane potential V_m in NEST neurons instantaneously:
@@ -45,11 +45,12 @@ class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
         self.V_reset = - np.abs(V_reset)
         self.V_th = - np.abs(V_th)
         self.g = np.abs(g)
+        self.V_low = np.abs(V_low)
         self.w_tvb_to_nest = np.abs(self.V_reset - self.E_L)  # ~ -60 - (-70) = 10
         self.w_nest_to_tvb = np.abs(self.V_th - self.V_reset)  # ~ -55 - (-60) = 5
         # TODO: confirm the following:
         #                            g * weight * abs(E_L-V_th) * Vtvb->nest
-        self.w_tvb_to_current = lambda coupling: self.g * self.w_tvb_to_nest * coupling
+        self.w_tvb_to_current = lambda coupling: self.g * self.w_tvb_to_nest * np.maximum(-self.V_low, coupling)
         self.w_potential_to_tvb = lambda V_m: (V_m - self.V_reset) / self.w_nest_to_tvb
 
     def build_interface(self, tvb_nest_interface=None):
