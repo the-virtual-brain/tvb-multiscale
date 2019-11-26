@@ -27,7 +27,7 @@ from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
                  connectivity=None, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, simulation_length=100.0,
-                 tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
+                 tvb_state_variable_type_label="Synaptic Gating Variable",
                  dt=0.1, noise_strength=0.1, exclusive_nodes=False, config=CONFIGURED):
 
     plotter = Plotter(config)
@@ -95,8 +95,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_label, tvb_state_variables_labels,
-                 plotter)
+    plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_label,
+                 simulator.model.variables_of_interest, plotter)
 
     return connectivity, results
 
@@ -109,33 +109,35 @@ if __name__ == "__main__":
     for id in range(connectivity.region_labels.shape[0]):
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
-    # # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
-    # model = Generic2dOscillator()
-    # model.d = np.array([0.1])
-    # model.e = np.array([0.0])
-    # model.f = np.array([1.0])
-    # model.g = np.array([1.0])
-    # model.I = np.array([0.0])
-    # model.tau = np.array([1.0])
-    # model.alpha = np.array([1.0])
-    # model.beta = np.array([0.0])
-    # model.a = np.array([0.0])
-    # model.b = np.array([-1.0])
-    # model.c = np.array([0.0])
-    # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
-    model = WilsonCowan()
-    model.tau_e = np.array([8.0])
-    model.tau_i = np.array([8.0])
-    model.c_ee = np.array([16.0])
-    model.c_ei = np.array([12.0])
-    model.c_ie = np.array([15.0])
-    model.c_ii = np.array([3.0])
-    model.a_e = np.array([1.3])
-    model.a_i = np.array([2.0])
-    model.b_e = np.array([4.0])
-    model.b_i = np.array([3.7])
-    model.P = np.array([0.0])
-    main_example(model, DefaultExcIOInhIBuilder, InterfaceWilsonCowanBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=500.0,
-                 tvb_state_variable_type_label="State Variables", tvb_state_variables_labels=["E", "I"],
+    # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
+    model = Generic2dOscillator()
+    model.d = np.array([0.1])
+    model.e = np.array([0.0])
+    model.f = np.array([1.0])
+    model.g = np.array([1.0])
+    model.I = np.array([0.0])
+    model.tau = np.array([1.0])
+    model.alpha = np.array([1.0])
+    model.beta = np.array([0.0])
+    model.a = np.array([0.0])
+    model.b = np.array([-1.0])
+    model.c = np.array([0.0])
+    # model.variables_of_interest = ["V", "W"]
+    # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
+    # model = WilsonCowan()
+    # model.tau_e = np.array([8.0])
+    # model.tau_i = np.array([8.0])
+    # model.c_ee = np.array([16.0])
+    # model.c_ei = np.array([12.0])
+    # model.c_ie = np.array([15.0])
+    # model.c_ii = np.array([3.0])
+    # model.a_e = np.array([1.3])
+    # model.a_i = np.array([2.0])
+    # model.b_e = np.array([4.0])
+    # model.b_i = np.array([3.7])
+    # model.P = np.array([0.0])
+    # model.variables_of_interest = ["E", "I"]
+    main_example(model, DefaultExcIOInhIBuilder, InterfaceGeneric2DOscillatorBuilder,
+                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=1000.0,
+                 tvb_state_variable_type_label="State Variables",
                  exclusive_nodes=True, noise_strength=0.000001, config=CONFIGURED)
