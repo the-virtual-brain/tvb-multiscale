@@ -27,8 +27,8 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
     # Plot time_series
     plotter.plot_timeseries(source_ts)
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
-    # ...interactively as well
-    plotter.plot_timeseries_interactive(source_ts)
+    # # ...interactively as well
+    # plotter.plot_timeseries_interactive(source_ts)
 
     if tvb_nest_model is None:
        return
