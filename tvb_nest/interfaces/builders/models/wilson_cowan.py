@@ -18,7 +18,7 @@ class WilsonCowanBuilder(TVBNESTInterfaceBuilder):
             tvb_to_nest_interfaces = [{"model": "poisson_generator", "params": {},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": 1.0,  # Applied outside NEST for each interface device
-                                        "weights": 1.0,  # To multiply TVB connectivity weight
+                                        "weights": 0.1,  # To multiply TVB connectivity weight
     #                                 To add to TVB connectivity delay:
                                         "delays": nest_network.nodes_min_delay,
                                         "receptor_types": 0,
