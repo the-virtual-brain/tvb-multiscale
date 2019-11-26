@@ -25,7 +25,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
     # #         self.tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)-----------------------------
-    #                                           "interface_weights": 1.0, # Applied outside NEST for each interface device
+    #                                           "interface_weights": 100.0, # Applied outside NEST for each interface device
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     #                                           "weights": 1.0,  # To multiply TVB connectivity weight
     # #                                       To add to TVB connectivity delay:
@@ -38,7 +38,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
               self.tvb_to_nest_interfaces = [{"model": "poisson_generator", "params": {},
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)-----------------------------
-                                               "interface_weights": 1.0,
+                                               "interface_weights": 100.0,
     # Applied outside NEST for each interface device
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                               "weights": 1.0,  # To multiply TVB connectivity weight
@@ -49,6 +49,10 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     #                                                 TVB sv -> NEST population
                                                "connections": {"S_e": ["E", "I"]},
                                                "source_nodes": None, "target_nodes": None}]  # None means all here
+        self.w_tvb_to_current *= self.tvb_model.J_N
+        self.w_tvb_to_spike_rate = 1.0  # r parameter is in the order of 1000 Hz for WongWang model
+        # (assuming spikes/ms in TVB) and given the division of spikes' number with dt in ms:
+        self._spikes_to_tvb_rate = 1.0
 
     # The NEST nodes the activity of which is transformed to TVB state variables or parameters
         if nest_to_tvb_interfaces is None:
