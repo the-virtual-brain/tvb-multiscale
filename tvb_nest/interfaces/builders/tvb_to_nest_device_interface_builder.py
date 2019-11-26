@@ -61,7 +61,7 @@ class TVBtoNESTDeviceInterfaceBuilder(object):
         delay = property_to_fun(interface.pop("delays", 0.0))
         receptor_type = property_to_fun(interface.pop("receptor_types", 0))
         # TODO: Find a way to change self directed weights in cases of non exclusive TVB and NEST nodes!
-        weights = self.connectivity.weights[source_tvb_nodes][:, target_nest_nodes]
+        weights = self.connectivity.scaled_weights(mode='region')[source_tvb_nodes][:, target_nest_nodes]
         delays = self.connectivity.delays[source_tvb_nodes][:, target_nest_nodes]
         receptor_types = np.zeros(delays.shape).astype("i")
         target_nest_nodes_ids = [np.where(self.nest_nodes_ids == trg_node)[0][0] for trg_node in target_nest_nodes]

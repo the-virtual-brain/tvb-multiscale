@@ -267,7 +267,8 @@ class NESTModelBuilder(object):
     @property
     def tvb_weights(self):
         # Relevant TVB connectivity weights
-        return self.tvb_connectivity.weights[self.nest_nodes_ids.tolist()][:, self.nest_nodes_ids.tolist()]
+        return self.tvb_connectivity.scaled_weights(mode='region')[
+                   self.nest_nodes_ids.tolist()][:, self.nest_nodes_ids.tolist()]
 
     @property
     def tvb_delays(self):
