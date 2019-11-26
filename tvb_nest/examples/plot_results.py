@@ -10,7 +10,6 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
                  plotter=Plotter(CONFIGURED)):
     t = results[0][0]
     source = results[0][1]
-    nest_network = tvb_nest_model.nest_network
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
@@ -30,6 +29,9 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # ...interactively as well
     plotter.plot_timeseries_interactive(source_ts)
+
+    if tvb_nest_model is None:
+       return
 
     # In all the following we assume that all populations are in the same (equal number of) regions,
     # whereas we average across individual neurons
@@ -56,6 +58,7 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
 
     # ------------------------------------Testing code for xarray TimeSeries--------------------------------------------
 
+    nest_network = tvb_nest_model.nest_network
     multimeter_mean_data = nest_network.get_mean_data_from_multimeter()
 
     if multimeter_mean_data.size > 0:
