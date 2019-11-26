@@ -9,6 +9,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_nest.examples.plot_results import plot_results
 from tvb_nest.config import CONFIGURED
 from tvb.simulator.models.oscillator import Generic2dOscillator
+from tvb.simulator.models.wilson_cowan import WilsonCowan
 from tvb_nest.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.simulator import Simulator
@@ -61,21 +62,35 @@ def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY
 
 if __name__ == "__main__":
 
-    # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
-    model = Generic2dOscillator()
-    model.d = np.array([0.1])
-    model.e = np.array([0.0])
-    model.f = np.array([1.0])
-    model.g = np.array([1.0])
-    model.I = np.array([0.0])
-    model.tau = np.array([1.0])
-    model.alpha = np.array([1.0])
-    model.beta = np.array([0.0])
-    model.a = np.array([0.0])
-    model.b = np.array([-1.0])
-    model.c = np.array([0.0])
+    # # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
+    # model = Generic2dOscillator()
+    # model.d = np.array([0.1])
+    # model.e = np.array([0.0])
+    # model.f = np.array([1.0])
+    # model.g = np.array([1.0])
+    # model.I = np.array([0.0])
+    # model.tau = np.array([1.0])
+    # model.alpha = np.array([1.0])
+    # model.beta = np.array([0.0])
+    # model.a = np.array([0.0])
+    # model.b = np.array([-1.0])
+    # model.c = np.array([0.0])
+    # tvb_state_variables_labels=["V", "W"]
     # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
-
-    main_example(model, simulation_length=1000.0, dt=0.1,
-                 tvb_state_variable_type_label="State Variables", tvb_state_variables_labels=["V", "W"],
+    model = WilsonCowan()
+    model.tau_e = np.array([8.0])
+    model.tau_i = np.array([8.0])
+    model.c_ee = np.array([16.0])
+    model.c_ei = np.array([12.0])
+    model.c_ie = np.array([15.0])
+    model.c_ii = np.array([3.0])
+    model.a_e = np.array([1.3])
+    model.a_i = np.array([2.0])
+    model.b_e = np.array([4.0])
+    model.b_i = np.array([3.7])
+    model.P = np.array([0.0])
+    tvb_state_variables_labels = ["E", "I"]
+    main_example(model, simulation_length=300.0, dt=0.1,
+                 tvb_state_variable_type_label="State Variables",
+                 tvb_state_variables_labels=tvb_state_variables_labels,
                  config=CONFIGURED)
