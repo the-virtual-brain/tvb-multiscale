@@ -184,7 +184,7 @@ tvb_nest_builder = \
 #     [{"model": "dc_generator", "params": {},
 # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
 #       "interface_weights": 1.0,  # Applied outside NEST for each interface device
-#       "weights": 1.0,  # To multiply TVB connectivity weight
+#       "weights": simulator.model.G,  # To multiply TVB connectivity weight
 # #             To add to TVB connectivity delay:
 #       "delays": nest_network.nodes_min_delay,
 # # ----------------------------------------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ tvb_nest_builder = \
 #      [{"model": "poisson_generator", "params": {},
 # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
 #        "interface_weights": 1.0,  # Applied outside NEST for each interface device
-#        "weights": 1.0,  # To multiply TVB connectivity weight
+#        "weights": simulator.model.G,  # To multiply TVB connectivity weight
 # #          To add to TVB connectivity delay:
 #        "delays": nest_network.nodes_min_delay,
 #        "receptor_types": 0,
