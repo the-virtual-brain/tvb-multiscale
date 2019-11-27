@@ -8,43 +8,67 @@ from pandas import Series
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.models.devices import NESTInputDeviceDict, NESTOutputDeviceDict, NESTDeviceSet
-from tvb_scripts.utils.log_error_utils import raise_value_error
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import flatten_tuple, ensure_list
+
+
+LOG = initialize_logger(__name__)
 
 
 # Helper functions with NEST
 
+def log_path(name, logger=LOG):
+    logger.info("%s: %s" % (name, os.environ.get(name, "")))
 
-def load_spiking_simulator(config=CONFIGURED.nest):
+
+def load_spiking_simulator(config=CONFIGURED.nest, logger=LOG):
+
+    logger.info("Loading a NEST instance...")
     nest_path = config.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
+    log_path('NEST_INSTALL_DIR', logger)
     os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
+    log_path('NEST_DATA_DIR', logger)
     os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
+    log_path('NEST_DOC_DIR', logger)
     os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
+    log_path('NEST_MODULE_PATH', logger)
     os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
+    log_path('PATH', logger)
     LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
     if len(LD_LIBRARY_PATH) > 0:
         LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
     os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
+    log_path('LD_LIBRARY_PATH', logger)
     os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
+    log_path('SLI_PATH', logger)
 
     os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
+    log_path('NEST_PYTHON_PREFIX', logger)
     sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
+    logger.info("%s: %s" % ("system path", sys.path))
 
     import nest
     return nest
 
 
-def compile_modules(modules, recompile=False, config=CONFIGURED.nest):
+def compile_modules(modules, recompile=False, config=CONFIGURED.nest, logger=LOG):
     # ...unless we need to first compile it:
     from pynestml.frontend.pynestml_frontend import install_nest
     if not os.path.exists(config.MODULES_BLDS_DIR):
+        logger.info("Creating MODULES_BLDS_DIR: %s" % config.MODULES_BLDS_DIR)
         os.makedirs(config.MODULES_BLDS_DIR)
     for module in ensure_list(modules):
+        logger.info("Compiling %s..." % module)
         module_bld_dir = os.path.join(config.MODULES_BLDS_DIR, module)
+        logger.info("from in build directory %s..." % module_bld_dir)
         if not os.path.exists(module_bld_dir) or recompile:
-            shutil.copytree(os.path.join(config.MODULES_DIR, module), module_bld_dir)
+            source_path = os.path.join(config.MODULES_DIR, module)
+            logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
+            shutil.copytree(source_path, module_bld_dir)
+        logger.info("Running compilation...")
         install_nest(module_bld_dir, config.NEST_PATH)
+        logger.info("DONE compiling %s!" % module)
 
 
 def create_population(nest_instance, model, size, params={}):
