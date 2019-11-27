@@ -18,18 +18,16 @@ class NESTtoTVBInterfaceBuilder(object):
     nest_nodes_ids = []
     tvb_nodes_ids = []
     tvb_model = None
-    connectivity = None
     exclusive_nodes = False
 
     def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
-                 tvb_nodes_ids, tvb_model, connectivity, exclusive_nodes=False):
+                 tvb_nodes_ids, tvb_model, exclusive_nodes=False):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
         self.nest_nodes_ids = nest_nodes_ids
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
-        self.connectivity = connectivity
         self.exclusive_nodes = exclusive_nodes
 
     def build_interface(self, interface):

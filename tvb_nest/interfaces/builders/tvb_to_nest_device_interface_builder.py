@@ -18,25 +18,25 @@ class TVBtoNESTDeviceInterfaceBuilder(object):
     tvb_nodes_ids = []
     nest_nodes_ids = []
     tvb_model = None
-    connectivity = None
+    tvb_weights = None
+    tvb_delays = None
     tvb_dt = 0.1
     exclusive_nodes = False
+    node_labels = None
 
     def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,
-                 tvb_nodes_ids, tvb_model, connectivity, tvb_dt, exclusive_nodes=False):
+                 tvb_nodes_ids, tvb_model, tvb_weights, tvb_delays, node_labels, tvb_dt, exclusive_nodes=False):
         self.interfaces = interfaces
         self.nest_instance = nest_instance
         self.nest_nodes = nest_nodes
         self.nest_nodes_ids = nest_nodes_ids
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
-        self.connectivity = connectivity
+        self.tvb_weights = tvb_weights
+        self.tvb_delays = tvb_delays
+        self.node_labels = node_labels
         self.tvb_dt = tvb_dt
         self.exclusive_nodes = exclusive_nodes
-
-    @property
-    def node_labels(self):
-        return self.connectivity.region_labels
 
     def build_interface(self, interface):
         # One NEST stimulation device for every combination of
@@ -61,8 +61,8 @@ class TVBtoNESTDeviceInterfaceBuilder(object):
         delay = property_to_fun(interface.pop("delays", 0.0))
         receptor_type = property_to_fun(interface.pop("receptor_types", 0))
         # TODO: Find a way to change self directed weights in cases of non exclusive TVB and NEST nodes!
-        weights = self.connectivity.scaled_weights(mode='region')[source_tvb_nodes][:, target_nest_nodes]
-        delays = self.connectivity.delays[source_tvb_nodes][:, target_nest_nodes]
+        weights = self.tvb_weights[source_tvb_nodes][:, target_nest_nodes]
+        delays = self.tvb_delays[source_tvb_nodes][:, target_nest_nodes]
         receptor_types = np.zeros(delays.shape).astype("i")
         target_nest_nodes_ids = [np.where(self.nest_nodes_ids == trg_node)[0][0] for trg_node in target_nest_nodes]
         interface["nodes"] = target_nest_nodes_ids

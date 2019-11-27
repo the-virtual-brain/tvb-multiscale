@@ -16,7 +16,6 @@ class TVBtoNESTParameterInterfaceBuilder(object):
     nest_nodes = Series()
     tvb_nodes_ids = []
     nest_nodes_ids = []
-    connectivity = None
     exclusive_nodes = False
 
     def __init__(self, interfaces, nest_instance, nest_nodes, nest_nodes_ids,

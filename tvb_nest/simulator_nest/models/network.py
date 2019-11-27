@@ -32,7 +32,7 @@ class NESTNetwork(object):
                  config=CONFIGURED):
         self.config = config
         if nest_instance is None:
-            nest_instance = load_spiking_simulator()
+            nest_instance = load_spiking_simulator(self.config.nest, LOG)
         self.nest_instance = nest_instance
         if nodes_min_delay <= 0.0:
             self.nodes_min_delay = self.nest_instance.GetKernelStatus("resolution")

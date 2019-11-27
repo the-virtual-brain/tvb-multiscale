@@ -11,6 +11,7 @@ from tvb_nest.simulator_nest.models.devices import NESTInputDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
+
 LOG = initialize_logger(__name__)
 
 
@@ -99,11 +100,10 @@ class TVBNESTInterfaceBuilder(object):
             raise ValueError("Input nest_network is not a NESTNetwork object!\n%s" % str(nest_network))
         self.exclusive_nodes = exclusive_nodes
         if isinstance(tvb_simulator, Simulator):
-            self.connectivity = tvb_simulator.connectivity
-            self.integrator = tvb_simulator.integrator
-            self.tvb_model = tvb_simulator.model
+            self.tvb_simulator = tvb_simulator
+            self.tvb_weights = self.tvb_connectivity.scaled_weights(mode='region')
             self.nest_nodes_ids = np.array(ensure_list(nest_nodes_ids))
-            self.tvb_nodes_ids = list(range(self.connectivity.weights.shape[0]))
+            self.tvb_nodes_ids = list(range(self.tvb_connectivity.weights.shape[0]))
             if self.exclusive_nodes:
                 try:
                     for i_n in self.nest_nodes_ids:
@@ -111,10 +111,10 @@ class TVBNESTInterfaceBuilder(object):
                 except:
                     raise ValueError("Failed to compute tvb_nodes_ids from nest_nodes_ids %s "
                                      "and TVB connectivity of size %s!"
-                                     % (str(self.nest_nodes_ids, self.connectivity.number_of_regions)))
+                                     % (str(self.nest_nodes_ids), self.tvb_connectivity.number_of_regions))
             self.tvb_nodes_ids = np.array(self.tvb_nodes_ids)
-            if tvb_simulator.stimulus is not None:
-                if np.sum(tvb_simulator.stimulus[:, self.nest_nodes_ids.tolist()]):
+            if self.tvb_simulator.stimulus is not None:
+                if np.sum(self.tvb_simulator.stimulus[:, self.nest_nodes_ids.tolist()]):
                     raise ValueError("TVB-NEST interface does not implement TVB stimulus application to NEST nodes!\n"
                                      "The user has to configure such stimulus as part of the NEST model, "
                                      "via appropriate NEST input devices!")
@@ -150,6 +150,10 @@ class TVBNESTInterfaceBuilder(object):
         return self.nest_network.config.nest
 
     @property
+    def logger(self):
+        return self.nest_network.logger
+
+    @property
     def nest_nodes(self):
         return self.nest_network.region_nodes
 
@@ -162,12 +166,28 @@ class TVBNESTInterfaceBuilder(object):
         return self.nest_instance.GetKernelStatus("min_delay")
 
     @property
+    def tvb_delays(self):
+        return self.tvb_simulator.connectivity.delays
+
+    @property
+    def tvb_connectivity(self):
+        return self.tvb_simulator.connectivity
+
+    @property
+    def tvb_integrator(self):
+        return self.tvb_simulator.integrator
+
+    @property
+    def tvb_model(self):
+        return self.tvb_simulator.model
+
+    @property
     def tvb_dt(self):
-        return self.integrator.dt
+        return self.tvb_simulator.integrator.dt
 
     @property
     def number_of_nodes(self):
-        return self.connectivity.number_of_regions
+        return self.tvb_connectivity.number_of_regions
 
     def assert_delay(self, delay):
         return np.maximum(self.nest_min_delay, delay)
@@ -236,7 +256,7 @@ class TVBNESTInterfaceBuilder(object):
         tvb_nest_interface.nest_instance = self.nest_instance
         # TODO: find out why the model instance is different in simulator and interface...
         tvb_nest_interface.tvb_model = self.tvb_model
-        tvb_nest_interface.dt = self.integrator.dt
+        tvb_nest_interface.dt = self.tvb_dt
         tvb_nest_interface.tvb_nodes_ids = self.tvb_nodes_ids
         tvb_nest_interface.nest_nodes_ids = self.nest_nodes_ids
         tvb_nest_interface.exclusive_nodes = self.exclusive_nodes
@@ -254,22 +274,23 @@ class TVBNESTInterfaceBuilder(object):
                         TVBtoNESTDeviceInterfaceBuilder([],
                                                         self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
                                                         self.tvb_nodes_ids, self.tvb_model,
-                                                        self.connectivity, self.tvb_dt, self.exclusive_nodes).
-                                                                                        build_interface(interface)
+                                                        self.tvb_weights, self.tvb_delays,
+                                                        self.tvb_connectivity.region_labels, self.tvb_dt,
+                                                        self.exclusive_nodes).build_interface(interface)
                                                                     )
             else:
                 tvb_nest_interface.tvb_to_nest_interfaces = \
                     tvb_nest_interface.tvb_to_nest_interfaces.append(
                             TVBtoNESTParameterInterfaceBuilder([],
-                                                               self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
-                                                               self.tvb_nodes_ids, self.tvb_model, self.exclusive_nodes).
+                                                               self.nest_instance, self.nest_nodes,
+                                                               self.nest_nodes_ids, self.tvb_nodes_ids,
+                                                               self.tvb_model, self.exclusive_nodes).
                                                                                         build_interface(interface)
                                                                     )
 
         tvb_nest_interface.nest_to_tvb_interfaces = \
             NESTtoTVBInterfaceBuilder(self.nest_to_tvb_interfaces,
                                       self.nest_instance, self.nest_nodes, self.nest_nodes_ids,
-                                      self.tvb_nodes_ids, self.tvb_model, self.connectivity, self.exclusive_nodes).\
-                                                                                                                build()
+                                      self.tvb_nodes_ids, self.tvb_model, self.exclusive_nodes).build()
 
         return tvb_nest_interface
