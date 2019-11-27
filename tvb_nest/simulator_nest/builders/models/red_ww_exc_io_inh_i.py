@@ -9,6 +9,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
+        # config.nest.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(RedWWExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:

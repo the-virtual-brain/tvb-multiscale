@@ -4,7 +4,6 @@ from collections import OrderedDict
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
-from tvb_nest.simulator_nest.nest_factory import compile_modules
 
 
 class WWAMPANMDAGABABuilder(NESTModelBuilder):
@@ -12,7 +11,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
         # Some properties for the default synapse to be used:
-        config.default_connection["model"] = "scale_connection"
+        config.nest.DEFAULT_CONNECTION["model"] = "scale_connection"
         super(WWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:
@@ -21,22 +20,6 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         # (see Deco, Ponce-Alvarez et al, J. of Neuroscience, 2014)
         self.w_ee = w_ee
         self.J_i = J_i
-
-        # Compile if models are missing
-        nest_models = self.nest_instance.Models()
-        for model in ["iaf_cond_ampa_gaba_deco2014", "iaf_cond_nmda_deco2014", "scale_connection"]:
-            if model not in nest_models:
-                # If the model is not installed into NEST already
-                module = model + "module"
-                try:
-                    # Try to install it...
-                    self.nest_instance.Install(module)
-                except:
-                    # ...unless we need to first compile it:
-                    compile_modules(model, recompile=False, config=self.config)
-                    # and now install it...
-                    self.nest_instance.Install(module)
-                nest_models = self.nest_instance.Models()
 
         self.populations_params = [{}, {},  # AMPA and NMDA get the default parameters
                                    {"tau_syn": 10.0}]  # decay synaptic time for GABA has to change
@@ -113,7 +96,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         # all populations of another region-node,
         # we need only one connection type
         self.node_connections = \
-            [{"src_population": "AMPA", "trg_population": ["AMPA", "NMDA", "GABA"],
+            [{"source": "AMPA", "target": ["AMPA", "NMDA", "GABA"],
               "model": self.default_nodes_connection["model"],
               "params": self.default_nodes_connection["params"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight

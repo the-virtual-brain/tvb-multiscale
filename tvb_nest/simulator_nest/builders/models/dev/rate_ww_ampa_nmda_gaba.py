@@ -3,7 +3,6 @@
 from collections import OrderedDict
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
-from tvb_nest.simulator_nest.nest_factory import compile_modules
 
 
 class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
@@ -11,7 +10,7 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
         # Some properties for the default synapse to be used:
-        config.default_connection["model"] = "rate_connection"
+        config.nest.DEFAULT_CONNECTION["model"] = "rate_connection"
         super(RateWWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection interface_weights between the distinct populations:
@@ -22,20 +21,10 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
         self.J_i = J_i
 
         # Compile if models are missing
-        nest_models = self.nest_instance.Models()
-        for model in ["tvb_rate_ampa_gaba_wongwang",
-                      "tvb_rate_nmda_wongwang"]:
-            if model not in nest_models:
-                # If the model is not install into NEST already
-                try:
-                    # Try to install it...
-                    self.nest_instance.Install("tvb_rate_wongwangmodule")
-                except:
-                    # ...unless we need to first compile it:
-                    compile_modules("tvb_rate_wongwang", recompile=False, config=self.config)
-                    # and now install it...
-                    self.nest_instance.Install("tvb_rate_wongwangmodule")
-                nest_models = self.nest_instance.Models()
+        # Here there is one module for both models,
+        # so that the default naming pattern would work...:
+        self._confirm_compile_install_nest_models(["tvb_rate_ampa_gaba_wongwang",
+                                                   "tvb_rate_nmda_wongwang"], modules="tvb_rate_wongwangmodule")
 
         # Common order of neurons' number per population:
         self.populations_order = 100
@@ -109,13 +98,13 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
         # all populations of another region-node,
         # we need only one connection type
         self.node_connections = \
-            [{"src_population": "AMPA", "trg_population": ["AMPA", "GABA"],
+            [{"source": "AMPA", "target": ["AMPA", "GABA"],
               "model": self.default_nodes_connection["model"],
               "params": self.default_nodes_connection["params"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               "receptor_type": rcptr_ampa_gaba["AMPA_EXT"]},
-             {"src_population": "AMPA", "trg_population": ["NMDA"],
+             {"source": "AMPA", "target": ["NMDA"],
               "model": self.default_nodes_connection["model"],
               "params": self.default_nodes_connection["params"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight

@@ -4,14 +4,13 @@ from collections import OrderedDict
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
-from tvb_nest.simulator_nest.nest_factory import compile_modules
 
 
 class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  J_N=150, J_i=1000):
-        config.default_connection["model"] = "rate_connection"
+        config.nest.DEFAULT_CONNECTION["model"] = "rate_connection"
         super(RedRateWWExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:
@@ -22,19 +21,10 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         self.J_i = J_i
 
         # Compile if models are missing
-        nest_models = self.nest_instance.Models()
-        for model in ["tvb_rate_redwongwang_exc", "tvb_rate_redwongwang_inh"]:
-            if model not in nest_models:
-                # If the model is not install into NEST already
-                try:
-                    # Try to install it...
-                    self.nest_instance.Install("tvb_rate_wongwangmodule")
-                except:
-                    # ...unless we need to first compile it:
-                    compile_modules("tvb_rate_wongwang", recompile=False, config=self.config)
-                    # and now install it...
-                    self.nest_instance.Install("tvb_rate_wongwangmodule")
-                nest_models = self.nest_instance.Models()
+        # Here there is one module for both models,
+        # so that the default naming pattern would work...:
+        self._confirm_compile_install_nest_models(["tvb_rate_redwongwang_exc",
+                                                   "tvb_rate_redwongwang_inh"], modules="tvb_rate_wongwangmodule")
 
         # Common order of neurons' number per population:
         self.populations_order = 100
@@ -75,7 +65,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         # both excitatory and inhibitory populations of another region-node,
         # we need only one connection type
         self.node_connections = \
-            [{"src_population": "E", "trg_population": ["E", "I"],
+            [{"source": "E", "target": ["E", "I"],
               "model": self.default_nodes_connection["model"],
               "params": self.default_nodes_connection["params"],
               "weight": self.J_N,  # weight scaling the TVB connectivity weight
