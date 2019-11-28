@@ -129,7 +129,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
     tau_e = NArray(
         label=r":math:`\tau_e`",
         default=numpy.array([100., ]),
-        domain=Range(lo=50., hi=150., step=1.),
+        domain=Range(lo=10., hi=150., step=1.),
         doc="""[ms]. Excitatory population NMDA decay time constant.""")
 
     w_p = NArray(
@@ -183,7 +183,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
     tau_i = NArray(
         label=r":math:`\tau_i`",
         default=numpy.array([10., ]),
-        domain=Range(lo=50., hi=150., step=1.0),
+        domain=Range(lo=5., hi=100., step=1.0),
         doc="""[ms]. Inhibitory population NMDA decay time constant.""")
 
     J_i = NArray(
