@@ -10,15 +10,17 @@ from tvb_nest.examples.plot_results import plot_results
 from tvb_nest.config import CONFIGURED
 from tvb.simulator.models.oscillator import Generic2dOscillator
 from tvb.simulator.models.wilson_cowan import WilsonCowan
+from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh
 from tvb_nest.plot.plotter import Plotter
+from tvb_scripts.utils.data_structures_utils import ensure_list
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.simulator import Simulator
+from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 
-def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, dt=0.1,
-                 simulation_length=100.0, tvb_state_variable_type_label="Synaptic Gating Variable",
-                 tvb_state_variables_labels=["S_e", "S_i"],  config=CONFIGURED):
+def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, dt=0.1, noise_strength=0.001,
+                 simulation_length=100.0, config=CONFIGURED):
 
     plotter = Plotter(config)
 
@@ -34,10 +36,9 @@ def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY
     # (connectivity, model, surface, stimuli etc)
     # We choose all defaults in this example
     simulator = Simulator()
-    simulator.integrator.dt = dt
-    # simulator.integrator.noise.nsig = np.array([0.00001])
+    simulator.integrator = HeunStochastic(dt=dt)
+    simulator.integrator.noise.nsig = np.array(ensure_list(noise_strength))
     simulator.model = tvb_sim_model
-
     simulator.connectivity = connectivity
     mon_raw = Raw(period=simulator.integrator.dt)
     simulator.monitors = (mon_raw,)
@@ -54,8 +55,7 @@ def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    plot_results(results, simulator, None, tvb_state_variable_type_label, tvb_state_variables_labels,
-                 plotter)
+    plot_results(results, simulator, None, "State Variables", simulator.model.variables_of_interest, plotter)
 
     return connectivity, results
 
@@ -76,21 +76,19 @@ if __name__ == "__main__":
     # model.b = np.array([-1.0])
     # model.c = np.array([0.0])
     # tvb_state_variables_labels=["V", "W"]
-    # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
-    model = WilsonCowan()
-    model.tau_e = np.array([8.0])
-    model.tau_i = np.array([8.0])
-    model.c_ee = np.array([16.0])
-    model.c_ei = np.array([12.0])
-    model.c_ie = np.array([15.0])
-    model.c_ii = np.array([3.0])
-    model.a_e = np.array([1.3])
-    model.a_i = np.array([2.0])
-    model.b_e = np.array([4.0])
-    model.b_i = np.array([3.7])
-    model.P = np.array([0.0])
-    tvb_state_variables_labels = ["E", "I"]
-    main_example(model, simulation_length=300.0, dt=0.1,
-                 tvb_state_variable_type_label="State Variables",
-                 tvb_state_variables_labels=tvb_state_variables_labels,
-                 config=CONFIGURED)
+    # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
+    # model = WilsonCowan()
+    # model.tau_e = np.array([8.0])
+    # model.tau_i = np.array([8.0])
+    # model.c_ee = np.array([16.0])
+    # model.c_ei = np.array([12.0])
+    # model.c_ie = np.array([15.0])
+    # model.c_ii = np.array([3.0])
+    # model.a_e = np.array([1.3])
+    # model.a_i = np.array([2.0])
+    # model.b_e = np.array([4.0])
+    # model.b_i = np.array([3.7])
+    # model.P = np.array([0.0])
+    # tvb_state_variables_labels = ["E", "I"]
+
+    main_example(ReducedWongWangExcInh(), dt=0.1, noise_strength=0.001, simulation_length=100.0, config=CONFIGURED)
