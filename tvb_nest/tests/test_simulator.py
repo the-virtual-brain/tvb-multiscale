@@ -37,7 +37,7 @@ def prepare_launch_default_simulation():
     simulator.model = ReducedWongWangExcIOInhI()
     simulator.connectivity = connectivity
     simulator.integrator.dt = float(
-        int(np.round(simulator.integrator.dt / config.nest.NEST_MIN_DT))) * config.nest.NEST_MIN_DT
+        int(np.round(simulator.integrator.dt / config.NEST_MIN_DT))) * config.NEST_MIN_DT
     # Some extra monitors for neuroimaging measures:
     mon_raw = Raw(period=simulator.integrator.dt)
     simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
@@ -83,7 +83,7 @@ def prepare_launch_default_simulation():
     connections["E"] = "E"
     connections["I"] = "I"
     nest_model_builder.output_devices = [{"model": "spike_detector",
-                                          "props": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
+                                          "props": config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
                                           "nodes": None, "connections": connections}]
 
     nest_network = nest_model_builder.build_nest_network()

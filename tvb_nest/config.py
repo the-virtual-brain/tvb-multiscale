@@ -11,7 +11,8 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 
-class NESTconfig(object):
+class Config(ConfigBase):
+
     # NEST properties:
     NEST_MIN_DT = 0.001
 
@@ -46,17 +47,7 @@ class NESTconfig(object):
                                       "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True},
                                       "spike_multimeter": {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
 
-    def __init__(self, nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
-        self.NEST_PATH = nest_path
-        self.PYTHON = nest_python
-        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
-        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
-        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
-        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
-
-
-class Config(ConfigBase):
-    # WORKING DIRECTORY:
+    # WORKING DIRECTORY
     TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
     MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
     MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
@@ -80,10 +71,8 @@ class Config(ConfigBase):
                        }
 
     def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
-                 output_base=WORKING_DIR, separate_by_run=False,
-                 nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
+                 output_base=WORKING_DIR, separate_by_run=False):
         super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
-        self.nest = NESTconfig(nest_path, nest_python)
 
 
 CONFIGURED = Config()

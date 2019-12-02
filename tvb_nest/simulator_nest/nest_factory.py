@@ -16,15 +16,7 @@ from tvb_scripts.utils.data_structures_utils import flatten_tuple, ensure_list
 def load_nest(config=CONFIGURED):
     nest_path = config.nest.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
-    os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-    os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-    os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
     os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-    LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-    if len(LD_LIBRARY_PATH) > 0:
-        LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-    os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-    os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
 
     os.environ['NEST_PYTHON_PREFIX'] = config.nest.PYTHON
     sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
