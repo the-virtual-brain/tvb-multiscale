@@ -13,6 +13,7 @@ from tvb_scripts.utils.indexed_ordered_dict import IndexedOrderedDict, OrderedDi
 
 
 def load_nest(config=CONFIGURED):
+    # TODO review
     nest_path = config.nest.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
     os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
