@@ -28,9 +28,8 @@ ENV VENV=$HOME/env/neurosci
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
-    $VENV/bin/pip3 install --upgrade nose ipython;
+    $VENV/bin/pip3 install --upgrade nose ipython
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
-# setuptools is needed for pynestml
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
@@ -136,6 +135,17 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 # tvb42
 RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
+
+WORKDIR /home/docker/
+COPY docker/installation_test.py /home/docker/
+
+# Activate the rights python env
+ENV PYTHONPATH $VENV
+ENV SLI_PATH $VENV
+RUN echo "source $VENV/bin/activate" >> .bashrc
+
+#For running instalation test
+CMD $VENV/bin/python installation_test.py
 
 # For running tests
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
