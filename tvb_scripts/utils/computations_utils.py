@@ -6,6 +6,7 @@
 
 import numpy as np
 from itertools import product
+
 from sklearn.cluster import AgglomerativeClustering
 from tvb_scripts.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger
@@ -182,3 +183,13 @@ def curve_elbow_point(vals, interactive=CONFIGURED.calcul.INTERACTIVE_ELBOW_POIN
         return elbow
     else:
         return elbow
+
+
+def spikes_rate_convolution(spike, spikes_kernel):
+    if (spike != 0).any():
+        if len(spikes_kernel) > 1:
+            return np.convolve(spike, spikes_kernel, mode="same")
+        else:
+            return spike * spikes_kernel
+    else:
+        return np.zeros(spike.shape)

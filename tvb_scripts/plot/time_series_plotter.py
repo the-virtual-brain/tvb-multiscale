@@ -369,6 +369,8 @@ class TimeSeriesPlotter(BasePlotter):
     def plot_time_series(self, time_series, mode="ts", subplots=None, special_idx=[], subtitles=[],
                          offset=0.5, title=None, figure_name=None, figsize=None, **kwargs):
         if isinstance(time_series, TimeSeries):
+            if title is None:
+                title = time_series.title
             return self.plot_ts(numpy.swapaxes(time_series.data, 1, 2),
                                 time_series.time, time_series.variables_labels,
                                 mode, subplots, special_idx, subtitles, time_series.space_labels,
@@ -381,6 +383,8 @@ class TimeSeriesPlotter(BasePlotter):
             time_unit = kwargs.get("time_unit", "ms")
             labels = kwargs.get("labels", [])
             var_labels = kwargs.get("var_labels", [])
+            if title is None:
+                title = "Time Series"
             return self.plot_ts(time_series, time=time, mode=mode, time_unit=time_unit,
                                 labels=labels, var_labels=var_labels, subplots=subplots, special_idx=special_idx,
                                 subtitles=subtitles, offset=offset, title=title, figure_name=figure_name,

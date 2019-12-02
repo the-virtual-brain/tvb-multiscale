@@ -6,13 +6,13 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
+from tvb_nest.examples.plot_results import plot_results
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
-from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.plot.plotter import Plotter
-from tvb_scripts.time_series.model import TimeSeriesRegion
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     connectivity.configure()
     plotter.plot_tvb_connectivity(connectivity)
 
-    # ----------------------2. Define a TVB simulator (model, integrator, monitors...)-----------------------------------
+    # ----------------------2. Define a TVB simulator (model, integrator, monitors...)----------------------------------
 
     # Create a TVB simulator and set all desired inputs
     # (connectivity, model, surface, stimuli etc)
@@ -34,15 +34,7 @@ if __name__ == "__main__":
     simulator = Simulator()
     simulator.model = ReducedWongWangExcIOInhI()
 
-
-    def boundary_fun(state):
-        state[state < 0] = 0.0
-        state[state > 1] = 1.0
-        return state
-
-
     # Synaptic gating state variables S_e, S_i need to be in the interval [0, 1]
-    simulator.boundary_fun = boundary_fun
     simulator.connectivity = connectivity
     # TODO: Try to make this part of the __init__ of the Simulator!
     simulator.integrator.dt = \
@@ -53,7 +45,7 @@ if __name__ == "__main__":
     # mon_eeg = EEG(period=simulator.integrator.dt)
     simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
 
-    # ------3. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)--------
+    # ------3. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
     # Select the regions for the fine scale modeling with NEST spiking networks
     number_of_regions = simulator.connectivity.region_labels.shape[0]
@@ -63,146 +55,195 @@ if __name__ == "__main__":
         if simulator.connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
 
+
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
     nest_model_builder = \
         RedWWExcIOInhIBuilder(simulator, nest_nodes_ids, config=config)
     nest_model_builder.populations_order = 100
 
-    # # ----Uncomment below to modify the builder by changing the default options:---
+    # or...
+    #
+    # # ----------------------------------------------------------------------------------------------------
+    # # ----Uncomment below to modify the builder by changing the default options:--------------------------------------
+    # # ----------------------------------------------------------------------------------------------------------------
+    #
+    # # Connection weights between the distinct populations:
+    # # Inhibition to excitation feedback inhibition
+    # # that could result from Feedback Inhibition Control
+    # # (see Deco, Ponce-Alvarez et al, J. of Neuroscience, 2014)
+    # nest_model_builder.w_ee = 1.4
+    # nest_model_builder.J_i = 1.0
     #
     # # Common order of neurons' number per population:
     # nest_model_builder.populations_order = 100
-    # # Spiking populations labels:
-    # nest_model_builder.populations_names = ["E", "I"]
-    # # Spiking populations scalings for the number of neurons
-    # nest_model_builder.populations_scales = [1.0, 0.7]
-    # # Some properties for the default synapse to be used:
-    # nest_model_builder.default_synapse["params"]["rule"] = "fixed_indegree"
+    # # Populations' configurations
+    # nest_model_builder.populations = [
+    #     {"label": "E", "model": nest_model_builder.default_population["model"],
+    #      "params": {}, "scale": 1, "nodes": None},  # None means "all"
+    #     {"label": "I", "model": nest_model_builder.default_population["model"],
+    #      "params": {}, "scale": 0.7, "nodes": None}  # None means "all"
+    #                                  ]
     #
-    # # Connection weights between the distinct populations:
-    # # Choosing the values resulting from J_N = 150 pA and J_i = 1000 pA [1]
-    # w_ee = 150.0
-    # w_ei = -1000.0
-    # w_ie = 150.0
-    # w_ii = -1000.0
-    #
-    # # Within region-node connections' weights
-    # nest_model_builder.population_connectivity_synapses_weights = \
-    #     np.array([[w_ee, w_ei],  # exc_i -> exc_i, inh_i -> exc_i
-    #               [w_ie, w_ii]])  # exc_i -> inh_i, inh_i -> inh_i
-    # nest_model_builder.population_connectivity_synapses_delays = \
-    #     np.array(nest_model_builder.tvb_dt / 4)
+    # # Within region-node connections
+    # nest_model_builder.populations_connections = [
+    #     {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
+    #      "model": nest_model_builder.default_populations_connection["model"],
+    #      "params": nest_model_builder.default_populations_connection["params"],
+    #      "weight": nest_model_builder.w_ee,
+    #      "delay": nest_model_builder.default_populations_connection["delay"],
+    #      "receptor_type": 0, "nodes": None},  # None means "all"
+    #     {"source": "E", "target": "I",  # E -> I
+    #      "model": nest_model_builder.default_populations_connection["model"],
+    #      "params": nest_model_builder.default_populations_connection["params"],
+    #      "weight": 1.0,
+    #      "delay": nest_model_builder.default_populations_connection["delay"],
+    #      "receptor_type": 0, "nodes": None},  # None means "all"
+    #     {"source": "I", "target": "E",  # I -> E
+    #      "model": nest_model_builder.default_populations_connection["model"],
+    #      "params": nest_model_builder.default_populations_connection["params"],
+    #      "weight": -nest_model_builder.J_i,
+    #      "delay": nest_model_builder.default_populations_connection["delay"],
+    #      "receptor_type": 0, "nodes": None},  # None means "all"
+    #     {"source": "I", "target": "I",  # I -> I This is a nmbd-connection for population "I"
+    #      "model": nest_model_builder.default_populations_connection["model"],
+    #      "params": nest_model_builder.default_populations_connection["params"],
+    #      "weight": -1.0,
+    #      "delay": nest_model_builder.default_populations_connection["delay"],
+    #      "receptor_type": 0, "nodes": None},  # None means "all"
+    #                                             ]
     #
     # # Among/Between region-node connections
-    # # Given that w_ee == w_ie = J_N,
-    # # and that only the excitatory population of one region-node couples to
-    # # both excitatory and inhibitory populations of another region-node,
+    # # Given that only the AMPA population of one region-node couples to
+    # # all populations of another region-node,
     # # we need only one connection type
-    # nest_model_builder.node_connections = \
-    #     [{"src_population": "E", "trg_population": ["E", "I"],
-    #       "model": nest_model_builder.default_synapse["model"],
-    #       "params": nest_model_builder.default_synapse["params"],
-    #       "weight": w_ee,  # weight scaling the TVB connectivity weight
-    #       "delay": 0.0}]  # additional delay to the one of TVB connectivity
+    # nest_model_builder.nodes_connections = [
+    #     {"source": "E", "target": ["E", "I"],
+    #      "model": nest_model_builder.default_nodes_connection["model"],
+    #      "params": nest_model_builder.default_nodes_connection["params"],
+    #      "weight": 1.0,  # weight scaling the TVB connectivity weight
+    #      # additional delay to the one of TVB connectivity:
+    #      "delay": nest_model_builder.default_nodes_connection["delay"],
+    #      # Each region emits spikes in its own port:
+    #      "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
+    #                                         ]
     #
-    # # Creating spike_detector devices to be able to observe NEST spiking activity:
+    # # Creating  devices to be able to observe NEST activity:
+    # # Labels have to be different
+    # nest_model_builder.output_devices = []
     # connections = OrderedDict({})
     # #          label <- target population
     # connections["E"] = "E"
     # connections["I"] = "I"
-    # nest_model_builder.output_devices = \
-    #     [{"model": "spike_detector",
-    #       "props": config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
-    #       "nodes": None, "connections": connections}]
+    # nest_model_builder.output_devices.append(
+    #     {"model": "spike_detector", "params": {},
+    #      "connections": connections, "nodes": None})  # None means all here
+    # connections = OrderedDict({})
+    # connections["Excitatory"] = "E"
+    # connections["Inhibitory"] = "I"
+    # params = dict(nest_model_builder.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+    # params["interval"] = nest_model_builder.monitor_period
+    # nest_model_builder.output_devices.append(
+    #     {"model": "multimeter", "params": params,
+    #      "connections": connections, "nodes": None})  # None means all here
     #
-    # # -----------------------------------------------------------------------------
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # ----------------------------------------------------------------------------------------------------------------
 
     nest_network = nest_model_builder.build_nest_network()
 
-    # -----------------------------------4. Build the TVB-NEST interface model ------------------------------------------
+    # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
     # Using all default parameters for this example
     tvb_nest_builder = \
-        RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids, config=config)
+        RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids, exclusive_nodes=True)
 
-    # ------------Modifications to the default options of the builder---------------
+    # or...
 
-    # NEST -> TVB:
-    #
-    # 1.1. For current transmission from TVB to NEST,
-    # either choose a NEST dc_generator device:
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # ----Uncomment below to modify the builder by changing the default options:--------------------------------------
+    # # ----------------------------------------------------------------------------------------------------------------
+
+    # # TVB -> NEST:
+    # # ------------Modifications to the default options of the builder---------------
+
+    # # For directly setting an external current parameter in NEST neurons instantaneously:
+    # tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
+    # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
+    #                                             "interface_weights": 1.0,
+    # # ----------------------------------------------------------------------------------------------------------------
+    # #                                                 TVB state var -> NEST population
+    #                                             "connections": {"S_e": ["E", "I"]},
+    #                                             "nodes": None}]  # None means all here
+
+    # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
+    # tvb_nest_builder.tvb_to_nest_interfaces =
+    #     [{"model": "dc_generator", "params": {},
+    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    #       "interface_weights": 1.0,  # Applied outside NEST for each interface device
+    #       "weights": 1.0,  # To multiply TVB connectivity weight
+    # #             To add to TVB connectivity delay:
+    #       "delays": nest_network.nodes_min_delay,
+    # # ----------------------------------------------------------------------------------------------------------------
+    # #             TVB state var -> NEST population
+    #       "connections": {"S_e": ["E", "I"]},
+    #       "source_nodes": None, "target_nodes": None}]  # None means all here
+
+    #  # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
     # tvb_nest_builder.tvb_to_nest_interfaces = \
-    #    [{"model": "dc_generator", "sign": 1,
-    # #                      TVB  <-  NEST
-    #      "connections": {"S_e": ["E", "I"]}}]
-
-    # 1.2. or modify directly the external current stimulus parameter:
-    tvb_nest_builder.tvb_to_nest_interfaces = \
-        [{"model": "current", "parameter": "I_e", "sign": 1,
-          #                TVB  <-  NEST
-          "connections": {"S_e": ["E", "I"]}}]
-
-    # 2.1. For spike transmission from TVB to NEST:
-    # tvb_nest_builder.tvb_to_nest_interfaces = \
-    #    [{"model": "poisson_generator", "sign": 1,
-    # #                      TVB  <-  NEST
-    #      "connections": {"S_e": ["E", "I"]}}]
+    #      [{"model": "poisson_generator", "params": {},
+    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    #        "interface_weights": 100.0,  # Applied outside NEST for each interface device
+    #        "weights": 1.0,  # To multiply TVB connectivity weight
+    # #          To add to TVB connectivity delay:
+    #        "delays": nest_network.nodes_min_delay,
+    #        "receptor_types": 0,
+    # # ----------------------------------------------------------------------------------------------------------------
+    # #    TVB state var or param -> NEST population
+    #        "connections": {"r_o": ["E", "I"]},
+    #        "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # NEST -> TVB:
     # Use S_e and S_i instead of r_e and r_i
     # for transmitting to the TVB state variables directly
     connections = OrderedDict()
     #            TVB <- NEST
-    connections["r_e"] = "E"
-    connections["r_i"] = "I"
+    connections["r_e"] = ["E"]
+    connections["r_i"] = ["I"]
     tvb_nest_builder.nest_to_tvb_interfaces = \
-        [{"model": "spike_detector", "params": {}, "connections": connections}]
+        [{"model": "spike_detector", "params": {},
+    # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
+          "weights": 1.0, "delays": 0.0,
+    # ------------------------------------------------------------------------------------------------------------------
+          "connections": connections, "nodes": None}]  # None means all here
 
-    # -----------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------------------------------
 
     tvb_nest_model = tvb_nest_builder.build_interface()
 
-    # -----------------------------------5. Simulate and gather results------- ------------------------------------------
+    # -----------------------------------5. Simulate and gather results------- -----------------------------------------
 
     # Configure the simulator with the TVB-NEST interface...
     simulator.configure(tvb_nest_interface=tvb_nest_model)
     # ...and simulate!
-    t = time.time()
+    t_start = time.time()
     results = simulator.run(simulation_length=100.0)
-    print("\nSimulated in %f secs!" % (time.time() - t))
-    time = results[0][0]
-    source = results[0][1]
+    # Integrate NEST one more NEST time step so that multimeters get the last time point
+    # unless you plan to continue simulation later
+    simulator.simulate_nest(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    # Clean-up NEST simulation
+    if simulator.simulate_nest == simulator.tvb_nest_interface.nest_instance.Run:
+        simulator.tvb_nest_interface.nest_instance.Cleanup()
+    print("\nSimulated in %f secs!" % (time.time() - t_start))
 
-    # -------------------------------------------6. Plot results---------------------------------------------------------
+    # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    # Plot spikes and mean field spike rates
-    rates, max_rate, spike_detectors, time = \
-        nest_network.compute_mean_spike_rates(spike_counts_kernel_width=simulator.integrator.dt,  # ms
-                                              spike_counts_kernel_overlap=0.0, time=time)
-    plotter.plot_spikes(spike_detectors, time, rates=rates, max_rate=max_rate,
-                        title='Population spikes and mean spike rate')
-
-    #   Remove ts_type="Region" this argument too for TVB TimeSeriesRegion
-    source_ts = TimeSeriesRegion(  # substitute with TimeSeriesRegion fot TVB like functionality
-        data=source, time=time,
-        connectivity=simulator.connectivity,
-        # region_mapping=head.cortical_region_mapping,
-        # region_mapping_volume=head.region_volume_mapping,
-        labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
-        labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
-                           "Region": simulator.connectivity.region_labels.tolist()},
-        sample_period=simulator.integrator.dt)
-
-    # Use this to skip completely the tvb-scripts plotter
-    # tvb_plotter = TimeSeriesInteractive(time_series=source_ts)
-    # tvb_plotter.configure()
-    # tvb_plotter.show()
-
-    # Plot time_series
-    plotter.plot_timeseries(source_ts)
-    plotter.plot_raster(source_ts, title="Region Time Series Raster")
-    # ...interactively as well
-    plotter.plot_timeseries_interactive(source_ts)
+    plot_results(results, simulator, tvb_nest_model,
+                 tvb_state_variable_type_label="Synaptic Gating Variable",
+                 tvb_state_variables_labels=simulator.model.variables_of_interest,
+                 plotter=plotter)
