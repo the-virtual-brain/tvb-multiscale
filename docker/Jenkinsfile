@@ -2,25 +2,35 @@ pipeline {
     agent any
 
     environment {
-        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest'
+        FULL_DOCKER_IMAGE_NAME = 'docker-repository.codemart.ro/tvb-nest'
         VERSION_TAG = 'py3'
     }
 
     stages {
+        stage('Build docker image'){
+            steps {
+                script {
+                    def dockerfile = 'docker/Dockerfile'
+                    def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:${env.BUILD_ID}", "-f ${dockerfile} .")
+                    dockerImage.push()
+                    dockerImage.push('${VERSION_TAG}')
+                }
+            }
+        }
         stage ('Run tests in Python 3') {
             agent {
                 docker {
                     image '${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}'
-                    alwaysPull true
                 }
             }
             steps {
                 sh '''#!/bin/bash
                     source /home/docker/env/neurosci/bin/activate
-                    pytest --junitxml=tvb_nest_test_results.xml tvb_nest/tests
+                    pytest --cov-config .coveragerc --cov=tvb tvb_nest/tests --cov-branch --cov-report xml:tvb_nest_coverage.xml --junitxml=tvb_nest_test_results.xml
 
                 '''
                 junit 'tvb_nest_test_results.xml'
+                step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'tvb_nest_coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
             }
         }
     }
