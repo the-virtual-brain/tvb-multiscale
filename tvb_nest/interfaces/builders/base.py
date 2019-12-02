@@ -147,7 +147,7 @@ class TVBNESTInterfaceBuilder(object):
 
     @property
     def config(self):
-        return self.nest_network.config.nest
+        return self.nest_network.config
 
     @property
     def logger(self):

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import shutil
 from six import string_types
 from pandas import Series
@@ -21,23 +20,19 @@ def log_path(name, logger=LOG):
     logger.info("%s: %s" % (name, os.environ.get(name, "")))
 
 
-def load_spiking_simulator(config=CONFIGURED.nest, logger=LOG):
+def load_spiking_simulator(logger=LOG):
 
     logger.info("Loading a NEST instance...")
-    nest_path = config.NEST_PATH
-    os.environ['NEST_INSTALL_DIR'] = nest_path
-    os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-
-    os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
     log_path('NEST_PYTHON_PREFIX', logger)
-    sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-    logger.info("%s: %s" % ("system path", sys.path))
+    log_path('PYTHONPATH', logger)
+    log_path('PATH', logger)
+    log_path('NEST_INSTALL_DIR', logger)
 
     import nest
     return nest
 
 
-def compile_modules(modules, recompile=False, config=CONFIGURED.nest, logger=LOG):
+def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     # ...unless we need to first compile it:
     from pynestml.frontend.pynestml_frontend import install_nest
     if not os.path.exists(config.MODULES_BLDS_DIR):
@@ -64,7 +59,7 @@ def connect_two_populations(nest_instance, pop_src, pop_trg, conn_spec={}, syn_s
     return nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
 
 
-def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED.nest, **kwargs):
+def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
     params = dict(config.DEFAULT_CONNECTION["params"])
@@ -141,7 +136,7 @@ def device_to_dev_model(device):
         return device
 
 
-def build_output_device(nest_instance, device, config=CONFIGURED.nest):
+def build_output_device(nest_instance, device, config=CONFIGURED):
     from six import string_types
     if isinstance(device, string_types) or isinstance(device, dict):
         if isinstance(device, string_types):

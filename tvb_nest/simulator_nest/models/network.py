@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
+
 import pandas as pd
 import xarray as xr
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.nest_factory import load_spiking_simulator
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
-from tvb_nest.simulator_nest.models.devices \
-    import NESTDeviceSet, NESTOutputSpikeDeviceDict
+from tvb_nest.simulator_nest.models.devices import NESTDeviceSet, NESTOutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
-
 
 LOG = initialize_logger(__name__)
 
@@ -32,7 +30,7 @@ class NESTNetwork(object):
                  config=CONFIGURED):
         self.config = config
         if nest_instance is None:
-            nest_instance = load_spiking_simulator(self.config.nest, LOG)
+            nest_instance = load_spiking_simulator(LOG)
         self.nest_instance = nest_instance
         if nodes_min_delay <= 0.0:
             self.nodes_min_delay = self.nest_instance.GetKernelStatus("resolution")
@@ -66,7 +64,7 @@ class NESTNetwork(object):
 
     @property
     def nestconfig(self):
-        return self.config.nest
+        return self.config
 
     @property
     def nodes_labels(self):
@@ -99,7 +97,7 @@ class NESTNetwork(object):
             for device_name in NESTOutputSpikeDeviceDict.keys():
                 spike_detectors = self.get_devices_by_model(device_name, nodes=regions)
                 if len(spike_detectors) > 0:
-                    break   # If this is not an empty dict of devices
+                    break  # If this is not an empty dict of devices
         if len(spike_detectors) == 0:
             LOG.warning("No spike measuring device in this NEST network!")
             return None, None, None
@@ -192,11 +190,11 @@ class NESTNetwork(object):
             rates = []
             population_devices = []
             for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
-               rates.append(pop_spike_detector.do_for_all_devices(fun, time, spikes_kernel_width,
-                                                                  spikes_kernel=spikes_kernel,
-                                                                  return_type="xarray", **kwargs))
-               population_devices.append(pop_label)
-               equal_shape_per_population = pop_spike_detector.shape == shape
+                rates.append(pop_spike_detector.do_for_all_devices(fun, time, spikes_kernel_width,
+                                                                   spikes_kernel=spikes_kernel,
+                                                                   return_type="xarray", **kwargs))
+                population_devices.append(pop_label)
+                equal_shape_per_population = pop_spike_detector.shape == shape
             if equal_shape_per_population:
                 rates = xr.concat(rates, dim=pd.Index(list(spike_detectors.index), name=devices_dim_name))
                 if rates.size == 0:  # In case there is nothing to measure in NEST
@@ -244,11 +242,11 @@ class NESTNetwork(object):
             return None, None
 
     def compute_spikes_activities(self, mode="total", population_devices=None, regions=None,
-                                 devices_dim_name="Population", name="Spikes activities from NEST network",
-                                 spikes_kernel_width=None, spikes_kernel_n_intervals=10,
-                                 spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
-                                 spikes_kernel=None):
-        return self.compute_spikes_rates(mode+"_activity", population_devices, regions,
+                                  devices_dim_name="Population", name="Spikes activities from NEST network",
+                                  spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                  spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                  spikes_kernel=None):
+        return self.compute_spikes_rates(mode + "_activity", population_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
                                          spikes_kernel_overlap, min_spike_interval, time,
@@ -322,7 +320,7 @@ class NESTNetwork(object):
         else:
             if mode == 'per_neuron':
                 for i_d, d in enumerate(data):
-                    if len(d.dims < 4):   # In case there is nothing to measure in NEST
+                    if len(d.dims < 4):  # In case there is nothing to measure in NEST
                         break
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations
@@ -333,7 +331,7 @@ class NESTNetwork(object):
                     data[i_d] = d.transpose(d.dims[3], d.dims[1], d.dims[0], d.dims[2])
             else:
                 for i_d, d in enumerate(data):
-                    if len(d.dims < 3):   # In case there is nothing to measure in NEST
+                    if len(d.dims < 3):  # In case there is nothing to measure in NEST
                         break
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations

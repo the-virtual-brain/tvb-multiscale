@@ -38,7 +38,7 @@ class TVBNESTInterface(object):
     nest_to_tvb_sv_interfaces_ids = None
     nest_to_tvb_params = []
 
-    def __init__(self, config=CONFIGURED.nest):
+    def __init__(self, config=CONFIGURED):
         self.config = config
         LOG.info("%s created!" % self.__class__)
 

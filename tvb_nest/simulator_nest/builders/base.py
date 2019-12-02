@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-from six import string_types
+
 from collections import OrderedDict
 from itertools import cycle
-from pandas import Series
-import numpy as np
-from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.network import NESTNetwork
 from tvb_nest.simulator_nest.nest_factory import *
@@ -54,7 +51,7 @@ class NESTModelBuilder(object):
         if nest_instance is not None:
             self.nest_instance = nest_instance
         else:
-            self.nest_instance = load_spiking_simulator(self.config, self.logger)
+            self.nest_instance = load_spiking_simulator(self.logger)
 
         # Setting NEST defaults from config
         self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}

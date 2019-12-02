@@ -9,13 +9,11 @@ from tvb.datatypes import cortex, connectivity
 from tvb.basic.profile import TvbProfile
 from tvb_scripts.utils.log_error_utils import initialize_logger
 
-
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 initialize_logger('matplotlib')
 
 
 class Config(ConfigBase):
-
     # NEST properties:
     NEST_MIN_DT = 0.001
 
@@ -78,6 +76,7 @@ class Config(ConfigBase):
     def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
                  output_base=WORKING_DIR, separate_by_run=False):
         super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
+        self.NEST_PATH = os.environ.get("NEST_INSTALL_DIR")
 
 
 CONFIGURED = Config()
