@@ -39,6 +39,7 @@ if __name__ == "__main__":
     # TODO: Try to make this part of the __init__ of the Simulator!
     simulator.integrator.dt = \
         float(int(np.round(simulator.integrator.dt / config.nest.NEST_MIN_DT))) * config.nest.NEST_MIN_DT
+    simulator.integrator.noise.nsig = np.array([0.001])
     # Some extra monitors for neuroimaging measures:
     mon_raw = Raw(period=simulator.integrator.dt)
     # mon_bold = Bold(period=2000.)
@@ -206,19 +207,19 @@ if __name__ == "__main__":
     #        "connections": {"r_o": ["E", "I"]},
     #        "source_nodes": None, "target_nodes": None}]  # None means all here
 
-    # NEST -> TVB:
-    # Use S_e and S_i instead of r_e and r_i
-    # for transmitting to the TVB state variables directly
-    connections = OrderedDict()
-    #            TVB <- NEST
-    connections["r_e"] = ["E"]
-    connections["r_i"] = ["I"]
-    tvb_nest_builder.nest_to_tvb_interfaces = \
-        [{"model": "spike_detector", "params": {},
-    # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
-          "weights": 1.0, "delays": 0.0,
-    # ------------------------------------------------------------------------------------------------------------------
-          "connections": connections, "nodes": None}]  # None means all here
+    # # NEST -> TVB:
+    # # Use S_e and S_i instead of r_e and r_i
+    # # for transmitting to the TVB state variables directly
+    # connections = OrderedDict()
+    # #            TVB <- NEST
+    # connections["r_e"] = ["E"]
+    # connections["r_i"] = ["I"]
+    # tvb_nest_builder.nest_to_tvb_interfaces = \
+    #     [{"model": "spike_detector", "params": {},
+    # # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
+    #       "weights": 1.0, "delays": 0.0,
+    # # ------------------------------------------------------------------------------------------------------------------
+    #       "connections": connections, "nodes": None}]  # None means all here
 
     # ----------------------------------------------------------------------------------------------------------------
     # ----------------------------------------------------------------------------------------------------------------
