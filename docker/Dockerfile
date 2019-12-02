@@ -105,15 +105,11 @@ WORKDIR /home/docker/
 COPY docker/installation_test.py /home/docker/
 
 # For running tests
-# RUN cd $NEST; make installcheck
 # CMD cd /home/docker/packages/nestml; $VENV/bin/pytest setup.py test
 # CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 # CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
-# CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/rate_ww_ampa_nmda_gaba.py
 # CMD /bin/bash
 
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+ CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
