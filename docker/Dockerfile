@@ -24,7 +24,7 @@ ARG HOME=/home/docker
 
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
-RUN mkdir $HOME/env; mkdir $HOME/packages; mkdir $VENV/build
+RUN mkdir $HOME/env; mkdir $HOME/packages
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
@@ -37,6 +37,7 @@ RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
     cd libneurosim; ./autogen.sh
+RUN mkdir $VENV/build
 WORKDIR $VENV/build
 RUN mkdir libneurosim; \
     cd libneurosim; \
