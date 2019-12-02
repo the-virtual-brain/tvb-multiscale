@@ -252,9 +252,9 @@ class TimeSeries(TimeSeriesTVB):
 
     def _check_space_indices(self, list_of_index):
         for index in list_of_index:
-            if index < 0 or index > self.data.shape[1]:
+            if index < 0 or index > self.data.shape[2]:
                 self.logger.error("Some of the given indices are out of space range: [0, %s]",
-                                  self.data.shape[1])
+                                  self.data.shape[2])
                 raise IndexError
 
     def _get_time_unit_for_index(self, time_index):
