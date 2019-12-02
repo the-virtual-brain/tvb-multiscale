@@ -218,7 +218,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
     lamda = NArray(
         label=":math:`\lambda`",
-        default=numpy.array([0.0, ]),
+        default=numpy.array([1.0, ]),
         domain=Range(lo=0.0, hi=1.0, step=0.01),
         doc="""Inhibitory global coupling scaling""")
 
