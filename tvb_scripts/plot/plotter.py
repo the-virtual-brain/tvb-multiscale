@@ -10,6 +10,10 @@ class Plotter(object):
     def __init__(self, config=None):
         self.config = config
 
+    @property
+    def base(self):
+        return BasePlotter(self.config)
+
     def tvb_plot(self, plot_fun_name, *args, **kwargs):
         return BasePlotter(self.config).tvb_plot(plot_fun_name, *args, **kwargs)
 

@@ -11,16 +11,31 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 
+TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
+WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
+MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
+MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
+
 class NESTconfig(object):
+
+    # WORKING DIRECTORY:
+    TVB_NEST_DIR = TVB_NEST_DIR
+    WORKING_DIR = WORKING_DIR
+    MODULES_DIR = MODULES_DIR
+    MODULES_BLDS_DIR = MODULES_BLDS_DIR
+
     # NEST properties:
     NEST_MIN_DT = 0.001
 
-    DEFAULT_MODEL = "gif_cond_exp"
+    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_ampa_gaba_nmda_deco2014"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_SYNAPSE = {"model": "static_synapse", "weights": 1.0, "delays": 0.0,
-                       "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
-                                  "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+    DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
+                          "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
+                                     "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+
+    DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
+    DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
 
     # TODO: confirm if the following is correct:
     # We assume that all quantities of
@@ -43,15 +58,22 @@ class NESTconfig(object):
     # Available NEST output devices for the interface and their default properties
     NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"withtime": True, "withgid": True, 'record_from': ["V_m"]},
                                       "voltimeter": {"withtime": True, "withgid": True},
-                                      "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True}}
+                                      "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True},
+                                      "spike_multimeter": {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
 
-    def __init__(self, nest_path=None):
+    def __init__(self, nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
         self.NEST_PATH = nest_path
-
+        self.PYTHON = nest_python
+        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
+        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
+        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
+        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
+        self.TVB_NEST_DIR = TVB_NEST_DIR
+        self.WORKING_DIR = WORKING_DIR
+        self.MODULES_DIR = MODULES_DIR
+        self.MODULES_BLDS_DIR = MODULES_BLDS_DIR
 
 class Config(ConfigBase):
-    # WORKING DIRECTORY:
-    WORKING_DIRECTORY = os.path.join(os.path.abspath(__file__).split("tvb_nest")[0], "tvb_nest/examples/outputs")
 
     # DATA:
     TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
@@ -70,11 +92,11 @@ class Config(ConfigBase):
                                                                                           DEFAULT_CORT_REGION_MAPPING_TXT))
                        }
 
-    def __init__(self, head_folder=WORKING_DIRECTORY, raw_data_folder=DEFAULT_SUBJECT_PATH,
-                 output_base=WORKING_DIRECTORY, separate_by_run=False,
-                 nest_path=os.path.expanduser("~/Software/Science/NEST/bld_python27")):
+    def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
+                 output_base=WORKING_DIR, separate_by_run=False,
+                 nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
         super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
-        self.nest = NESTconfig(nest_path)
+        self.nest = NESTconfig(nest_path, nest_python)
 
 
 CONFIGURED = Config()
