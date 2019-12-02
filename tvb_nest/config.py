@@ -7,8 +7,11 @@ import tvb_data
 from tvb_scripts.config import Config as ConfigBase
 from tvb.datatypes import cortex, connectivity
 from tvb.basic.profile import TvbProfile
+from tvb_scripts.utils.log_error_utils import initialize_logger
+
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+initialize_logger('matplotlib')
 
 
 class Config(ConfigBase):
@@ -52,7 +55,6 @@ class Config(ConfigBase):
     MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
     MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
     WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
-
     # DATA:
     TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
     DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
