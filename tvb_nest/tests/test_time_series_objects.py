@@ -30,7 +30,7 @@ def create_time_series_region_object():
     simulator.connectivity = connectivity
     simulator.integrator.dt = \
         float(int(numpy.round(simulator.integrator.dt /
-                              config.nest.NEST_MIN_DT))) * config.nest.NEST_MIN_DT
+                              config.NEST_MIN_DT))) * config.NEST_MIN_DT
 
     mon_raw = Raw(period=simulator.integrator.dt)
     simulator.monitors = (mon_raw,)
@@ -47,8 +47,7 @@ def create_time_series_region_object():
 
     nest_network = nest_model_builder.build_nest_network()
 
-    tvb_nest_builder = \
-        RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids, config=config)
+    tvb_nest_builder = RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids)
 
     tvb_nest_builder.tvb_to_nest_interfaces = \
         [{"model": "current", "parameter": "I_e", "sign": 1,

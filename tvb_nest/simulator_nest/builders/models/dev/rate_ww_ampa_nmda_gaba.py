@@ -10,7 +10,7 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
         # Some properties for the default synapse to be used:
-        config.nest.DEFAULT_CONNECTION["model"] = "rate_connection"
+        config.DEFAULT_CONNECTION["model"] = "rate_connection"
         super(RateWWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection interface_weights between the distinct populations:

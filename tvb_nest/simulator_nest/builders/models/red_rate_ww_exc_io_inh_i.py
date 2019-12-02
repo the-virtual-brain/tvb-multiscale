@@ -10,7 +10,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  J_N=150, J_i=1000):
-        config.nest.DEFAULT_CONNECTION["model"] = "rate_connection"
+        config.DEFAULT_CONNECTION["model"] = "rate_connection"
         super(RedRateWWExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:

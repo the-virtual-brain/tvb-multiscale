@@ -16,7 +16,7 @@ LOG = initialize_logger(__name__)
 
 
 class NESTModelBuilder(object):
-    config = CONFIGURED.nest
+    config = CONFIGURED
     default_synaptic_weight_scaling = \
         lambda self, weight, n_cons: self.config.DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
     nest_instance = None
@@ -54,16 +54,16 @@ class NESTModelBuilder(object):
         if nest_instance is not None:
             self.nest_instance = nest_instance
         else:
-            self.nest_instance = load_spiking_simulator(self.config.nest, self.logger)
+            self.nest_instance = load_spiking_simulator(self.config, self.logger)
 
         # Setting NEST defaults from config
-        self.default_population = {"model": self.config.nest.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
-        self.default_populations_connection = dict(self.config.nest.DEFAULT_CONNECTION)
+        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
+        self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["nodes"] = None
-        self.default_nodes_connection = dict(self.config.nest.DEFAULT_CONNECTION)
+        self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
         self.default_synaptic_weight_scaling = \
-            lambda weight, n_cons: self.config.nest.DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
+            lambda weight, n_cons: self.config.DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
 
         self.nest_nodes_ids = np.unique(nest_nodes_ids)
         self.tvb_simulator = tvb_simulator
@@ -113,11 +113,11 @@ class NESTModelBuilder(object):
         # Use these to observe NEST network behavior
         # Labels have to be different
         self.output_devices = [{"model": "spike_detector",
-                                "params": self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
+                                "params": self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
                                 #           label <- target population
                                 "connections": {"E": "E"}, "nodes": None},  # None means "all"
                                {"model": "multimeter",
-                                "params": self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"],
+                                "params": self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"],
                                 #                     label <- target population
                                 "connections": {"Excitatory": "E"}, "nodes": None},  # None means "all"
                                ]
@@ -327,8 +327,8 @@ class NESTModelBuilder(object):
 
     def _update_nest_dt(self):
         self.nest_dt = \
-            float(int(np.round(self.tvb_dt / self.tvb_to_nest_dt_ratio / self.config.nest.NEST_MIN_DT))) \
-            * self.config.nest.NEST_MIN_DT
+            float(int(np.round(self.tvb_dt / self.tvb_to_nest_dt_ratio / self.config.NEST_MIN_DT))) \
+            * self.config.NEST_MIN_DT
 
     def _configure_nest_kernel(self):
         self.nest_instance.ResetKernel()  # This will restart NEST!
@@ -352,7 +352,7 @@ class NESTModelBuilder(object):
                 except:
                     self.logger.info("FAILED! We need to first compile it!")
                     # ...unless we need to first compile it:
-                    compile_modules(model, recompile=False, config=self.config.nest)
+                    compile_modules(model, recompile=False, config=self.config)
                     # and now install it...
                     self.logger.info("Installing now module %s..." % module)
                     self.nest_instance.Install(module)
@@ -437,7 +437,7 @@ class NESTModelBuilder(object):
 
     def _connect_two_populations(self, pop_src, pop_trg, conn_spec, syn_spec):
         conn_spec, n_cons = create_connection_dict(n_src=len(pop_src), n_trg=len(pop_trg),
-                                                   src_is_trg=(pop_src == pop_trg), config=self.config.nest,
+                                                   src_is_trg=(pop_src == pop_trg), config=self.config,
                                                    **conn_spec)
         # Scale the synaptic weight with respect to the total number of connections between the two populations:
         syn_spec["weight"] = self._synaptic_weight_scaling(syn_spec["weight"], n_cons)

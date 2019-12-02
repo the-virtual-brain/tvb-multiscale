@@ -9,7 +9,7 @@ class WWDeco2014Builder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
-        config.nest.DEFAULT_MODEL = "iaf_cond_deco2014"
+        config.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:
@@ -99,7 +99,7 @@ class WWDeco2014Builder(NESTModelBuilder):
         #               label    <- target population
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
-        params = dict(self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         params['record_from'] = ["V_m",
                                  "s_AMPA_ext", "s_AMPA_rec", "x_NMDA", "s_NMDA", "s_GABA",

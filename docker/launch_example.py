@@ -40,7 +40,7 @@ simulator.model = ReducedWongWangExcIOInhI()
 simulator.connectivity = connectivity
 # TODO: Try to make this part of the __init__ of the Simulator!
 simulator.integrator.dt = \
-    float(int(np.round(simulator.integrator.dt / config.nest.NEST_MIN_DT))) * config.nest.NEST_MIN_DT
+    float(int(np.round(simulator.integrator.dt / config.NEST_MIN_DT))) * config.NEST_MIN_DT
 # Some extra monitors for neuroimaging measures:
 mon_raw = Raw(period=simulator.integrator.dt)
 simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
@@ -140,7 +140,7 @@ nest_model_builder.populations_order = 100
 # connections = OrderedDict({})
 # connections["Excitatory"] = "E"
 # connections["Inhibitory"] = "I"
-# params = dict(nest_model_builder.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+# params = dict(nest_model_builder.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
 # params["interval"] = nest_model_builder.monitor_period
 # nest_model_builder.output_devices.append(
 #     {"model": "multimeter", "params": params,

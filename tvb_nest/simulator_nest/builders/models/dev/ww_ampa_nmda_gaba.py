@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
 
@@ -11,7 +10,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
         # Some properties for the default synapse to be used:
-        config.nest.DEFAULT_CONNECTION["model"] = "scale_connection"
+        config.DEFAULT_CONNECTION["model"] = "scale_connection"
         super(WWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:
@@ -89,7 +88,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
              "params": self.default_populations_connection["params"],
              "weight": -1.0, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESINH_GABA"], "nodes": None},  # None means "all"
-                            ]
+        ]
 
         # Among/Between region-node connections
         # Given that only the AMPA population of one region-node couples to
@@ -111,7 +110,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         connections["AMPA spikes"] = "AMPA"
         connections["NMDA spikes"] = "NMDA"
         connections["GABA spikes"] = "GABA"
-        arams = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
         self.output_devices.append({"model": "spike_detector", "params": params,
                                     "connections": connections, "nodes": None})  # None means "all"
         connections = OrderedDict({})
