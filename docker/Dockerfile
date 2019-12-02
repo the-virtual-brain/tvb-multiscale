@@ -13,7 +13,7 @@ ENV LANG=C.UTF-8
 RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-bin libopenmpi-dev git vim octave \
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
-                       python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev
+                       python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
                        subversion python3-mpi4py cmake; \
      apt-get clean
 
@@ -29,7 +29,7 @@ RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
     $VENV/bin/pip3 install pandas jupyterlab nodejs pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy xarray; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints
+    $VENV/bin/pip3 install --ignore-installed entrypoints; \
     $VENV/bin/pip3 install --upgrade nose
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
