@@ -13,7 +13,7 @@ ENV LANG=C.UTF-8
 RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-bin libopenmpi-dev git vim octave \
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
-                       python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev
+                       python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
                        subversion python3-mpi4py cmake; \
      apt-get clean
 
@@ -21,37 +21,23 @@ RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-
 RUN useradd -ms /bin/bash docker
 USER docker
 ARG HOME=/home/docker
-RUN mkdir $HOME/env; mkdir $HOME/packages; mkdir $VENV/build
 
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
+RUN mkdir $HOME/env; mkdir $HOME/packages
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
     $VENV/bin/pip3 install pandas jupyterlab nodejs pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy xarray; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints
-    $VENV/bin/pip3 install --upgrade nose;
+    $VENV/bin/pip3 install --ignore-installed entrypoints; \
+    $VENV/bin/pip3 install --upgrade nose
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
-
-# Install TVB specific packages
-WORKDIR $HOME/packages
-
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
-    cd tvb-data; \
-    $VENV/bin/python setup.py develop
-
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
-    cd tvb-library; \
-    $VENV/bin/python setup.py develop
-
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
-    cd tvb-multiscale; \
-    $VENV/bin/python setup.py develop --no-deps
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
     cd libneurosim; ./autogen.sh
+RUN mkdir $VENV/build
 WORKDIR $VENV/build
 RUN mkdir libneurosim; \
     cd libneurosim; \
@@ -87,13 +73,20 @@ RUN $VENV/bin/pip3 install setuptools; \
     cd nestml; \
     $VENV/bin/python setup.py install
 
-# Install pyNN
-# ARG PYNN_VER=0.9.4
-# RUN wget https://github.com/NeuralEnsemble/PyNN/archive/${PYNN_VER}.tar.gz -O $HOME/packages/PyNN-${PYNN_VER}.tar.gz; \
-#    cd $HOME/packages; \
-#    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
-#    cd PyNN-${PYNN_VER}; \
-#    $VENV/bin/python setup.py install
+# Install TVB specific packages
+WORKDIR $HOME/packages
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
+    cd tvb-data; \
+    $VENV/bin/python setup.py develop
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
+    cd tvb-library; \
+    $VENV/bin/python setup.py develop
+
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
+    cd tvb-multiscale; \
+    $VENV/bin/python setup.py develop --no-deps
 
 # Activate the right env:
 ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_PYTHON_PREFIX}
@@ -103,32 +96,10 @@ ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
 RUN echo "source ${VENV}/bin/activate" >> /home/docker/.bashrc
 
-# Install tvb-multiscale nest modules:
-WORKDIR $HOME/packages
-#RUN mkdir tvb-multiscale
-#COPY . tvb-multiscale/
-#RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
-
-## Run the following lines in case you want to install your own NEST module with NEST models
-ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
-ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
-RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
-#ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014 iaf_cond_nmda_deco2014 iaf_cond_ampa_gaba_deco2014 scale_connection"
-#ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
-#ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
-#RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
-#        export MYMODULE_BLD=${MYMODULES_BLD_DIR}/${MYMODULE_NAME}module_bld; \
-#        mkdir -p ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
-#            cmake -Dwith-nest=$NEST_CONFIG ${MYMODULE_DIR}; \
-#            make; make install; \
-#    done
-
 # Final configurations
 # tvb42
 RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
-# Activate the rights python env
-RUN echo "source $VENV/bin/activate" >> .bashrc
 
 WORKDIR /home/docker/
 COPY docker/installation_test.py /home/docker/

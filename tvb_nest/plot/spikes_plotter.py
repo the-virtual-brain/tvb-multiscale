@@ -1,48 +1,60 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from pandas import DataFrame
+from xarray import DataArray
 from tvb_scripts.plot.base_plotter import BasePlotter
 from matplotlib import pyplot
 
 
 class SpikesPlotter(BasePlotter):
 
-    def plot_spikes(self, spike_detectors, time, rates=None, max_rate=None,
+    def plot_spikes(self, spike_detectors, rates=None,
                     title="Population spikes and spike rate",
                     figure_name=None, figsize=None, **kwargs):
 
         # Y axis
-        max_n_neurons = np.max([np.max(spike_detector.do_for_all_devices("number_of_neurons"))
-                                for spike_detector in spike_detectors])
-        ylims = [0, max_n_neurons]
-        neurons_step = np.int(np.ceil(np.maximum(1.0 * max_n_neurons / 10, 1.0)))
-        yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
+        max_n_neurons = np.max([np.max(spike_detector.number_of_neurons) for spike_detector in spike_detectors])
+        if max_n_neurons == 0:
+            ylims = [0, 1]
+            yticks = np.arange(0, 1.1, 0.1)
+        else:
+            ylims = [0, max_n_neurons]
+            neurons_step = np.int(np.ceil(np.maximum(1.0 * max_n_neurons / 10, 1.0)))
+            yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
 
+        max_rate = 0.0
+        time_lims = None
+        xticks = None
+        xticklabels = None
         if rates is not None:
-            if isinstance(rates, DataFrame):  # In case we call this within the NEST interface context using pandas
-                if max_rate is None:
-                    max_rate = rates.to_numpy().max()
-                get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[pop_lbl][reg_lbl]
+            plot_rates = True
+            if isinstance(rates, DataArray):  # In case we call this within the NEST interface context using pandas
+                if rates.size > 0:
+                    max_rate = np.max(rates).item()
+                    time = rates.get_index(rates.dims[0])
+                    get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[:, i_pop, i_region].values
+                else:
+                    plot_rates = False
             else:  # Assuming TVB TimeSeries
-                if max_rate is None:
+                if rates.size > 0:
                     max_rate = rates.data.max()
-                get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[:, i_pop, i_region]
+                    time = rates.time
+                    get_rate_fun = lambda reg_lbl, pop_lbl, i_region, i_pop: rates[:, i_pop, i_region]
+                else:
+                    plot_rates = False
             if max_rate == 0:
-                max_rate = 1.0
+                max_rate = 1.0  # if no spikes at all...
             rate_step = max_rate / len(yticks)
             yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
             yticklabels = ["%0.2f" % yticklabel for yticklabel in yticklabels]
-            plot_rates = True
+            if plot_rates:
+                # Time axis
+                time_lims = [time[0], time[-1]]
+                time_step = np.int(np.ceil(np.maximum(1.0 * len(time) / 10, 1.0)))
+                xticks = time[0:-1:time_step]
+                xticklabels = ["%0.1f" % xtick for xtick in xticks]
         else:
             yticklabels = ["%d" % ytick for ytick in yticks]
             plot_rates = False
-
-        # Time axis
-        time_lims = [time[0], time[-1]]
-        time_step = np.int(np.ceil(np.maximum(1.0 * len(time) / 10, 1.0)))
-        xticks = time[0:-1:time_step]
-        xticklabels = ["%0.1f" % xtick for xtick in xticks]
-
         # Create figure
         n_pops = len(spike_detectors)
         n_regions = np.max([len(spike_detector) for spike_detector in spike_detectors])
@@ -83,8 +95,10 @@ class SpikesPlotter(BasePlotter):
 
                 axes[i_pop][i_region].set_ylim(ylims)
                 axes[i_pop][i_region].set_yticks(yticks)
-                axes[i_pop][i_region].set_xlim(time_lims)
-                axes[i_pop][i_region].set_xticks(xticks)
+                if time_lims is not None:
+                    axes[i_pop][i_region].set_xlim(time_lims)
+                if xticks is not None:
+                    axes[i_pop][i_region].set_xticks(xticks)
 
                 if i_pop == 0:
                     axes[i_pop][i_region].set_yticklabels(yticklabels)

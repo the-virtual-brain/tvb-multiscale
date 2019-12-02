@@ -3,7 +3,7 @@
 # Data structure manipulations and conversions
 from six import string_types
 import re
-from pandas import DataFrame, Series, MultiIndex
+from xarray import DataArray
 import numpy as np
 from collections import OrderedDict
 from copy import deepcopy
@@ -719,48 +719,53 @@ def sort_events_by_x_and_y(events, x="senders", y="times",
     return sorted_events
 
 
-def data_frame_from_continuous_events(events, times, senders, variables=[],
-                                      filter_senders=None, exclude_senders=[]):
+def data_xarray_from_continuous_events(events, times, senders, variables=[],
+                                       filter_senders=None, exclude_senders=[], name=None,
+                                       dims_names=["Variable", "Neuron", "Time"]):
     unique_times = np.unique(times).tolist()
-    n_times = len(unique_times)
     if filter_senders is None:
         filter_senders = np.unique(senders).tolist()
     else:
         filter_senders = np.unique(flatten_list(filter_senders)).tolist()
     for sender in exclude_senders:
         filter_senders.remove(sender)
-    n_senders = len(filter_senders)
-    data = OrderedDict(events)
     if len(variables) is None:
-        variables = data.keys()
-    for key in variables:
-        data[key] = np.zeros((n_times, n_senders))
+        variables = list(events.keys())
+    coords = OrderedDict()
+    coords[dims_names[0]] = variables
+    coords[dims_names[1]] = filter_senders
+    coords[dims_names[2]] = unique_times
+    n_senders = len(filter_senders)
+    n_times = len(unique_times)
+    data = np.empty((len(variables), n_senders, n_times))
+    last_time = times[0]
+    i_time = unique_times.index(last_time)
+    i_sender = -1
     for id, (time, sender) in enumerate(zip(times, senders)):
-        if sender in filter_senders:
-            i_time = unique_times.index(time)
-            i_sender = filter_senders.index(sender)
-            for var in data.keys():
-                data[var][i_time, i_sender] = events[var][id]
-    return Series(data), np.array(unique_times), np.array(filter_senders)
+        # Try best guess of next sender:
+        i_sender += 1
+        if i_sender >= n_senders:
+            i_sender = 0
+        if filter_senders[i_sender] != sender:
+            try:
+                i_sender = filter_senders.index(sender)
+            except:
+                break  # This sender is not one of the chosen filter_senders
+        if time != last_time:
+            last_time = time
+            # Try best guess of next time index:
+            i_time += 1
+            if i_time >= n_times:
+                i_time = n_times - 1
+            if time != unique_times[i_time]:
+                i_time = unique_times.index(time)
+        for i_var, var in enumerate(variables):
+            data[i_var, i_sender, i_time] = events[var][id]
+    return DataArray(data, dims=list(coords.keys()), coords=coords, name=name)
 
 
-def nested_to_multiindex_pandas_dataframe(series, names=None):
-
-    def construct_index_and_data_recursively(series, input_index=[]):
-        index = list(series.index)
-        indices = []
-        data = []
-        for ind in index:
-            this_ind = input_index + [ind]
-            if isinstance(series[ind], Series):
-                new_inds, d = construct_index_and_data_recursively(series[ind], this_ind)
-                indices += new_inds
-                data += d
-            else:
-                indices.append(tuple(this_ind))
-                data.append(series[ind])
-        return indices, data
-
-    index, data = construct_index_and_data_recursively(series)
-    index = MultiIndex.from_tuples(index, names=names)
-    return DataFrame(data, index=index)
+def property_to_fun(property):
+    if hasattr(property, "__call__"):
+        return property
+    else:
+        return lambda *args, **kwargs: property

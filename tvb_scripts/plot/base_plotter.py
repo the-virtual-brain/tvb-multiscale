@@ -41,7 +41,7 @@ class BasePlotter(object):
         figure_name = figure_name.replace(": ", "_").replace(" ", "_").replace("\t", "_").replace(",", "")
         return figure_name
 
-    def _save_figure(self, fig, figure_name=None):
+    def _save_figure(self, fig=pyplot.gcf(), figure_name=None):
         if self.config.figures.SAVE_FLAG:
             figure_name = self._figure_filename(fig, figure_name)
             figure_name = figure_name[:numpy.min([100, len(figure_name)])] + '.' + self.config.figures.FIG_FORMAT

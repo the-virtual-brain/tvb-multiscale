@@ -3,7 +3,7 @@
 import os
 from oct2py import octave
 import numpy as np
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh as TVBReducedWongWangExcIOInhI
 
 TESTS_PATH = os.path.dirname(os.path.realpath(__file__))

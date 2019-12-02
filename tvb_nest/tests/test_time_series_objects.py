@@ -2,9 +2,9 @@
 
 import numpy
 from collections import OrderedDict
-from tvb_nest.interfaces.builders.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
-from tvb_nest.simulator_nest.models_builders.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.simulator_tvb.model_reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_scripts.time_series.model import TimeSeriesRegion
 from tvb_nest.simulator_tvb.simulator import Simulator
 from tvb_nest.config import CONFIGURED
@@ -89,4 +89,3 @@ def test_time_series_region_object():
 
     # Check for shape after slice
     assert tsr.S_e.shape == (1000, 1, 68, 1)
-    

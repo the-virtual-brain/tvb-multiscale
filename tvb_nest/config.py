@@ -19,12 +19,15 @@ class Config(ConfigBase):
     # NEST properties:
     NEST_MIN_DT = 0.001
 
-    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_deco2014"
+    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_ampa_gaba_nmda_deco2014"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"model": "static_synapse", "weights": 1.0, "delays": 0.0, 'receptor_type': 0,
+    DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
                           "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
                                      "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+
+    DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
+    DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
 
     # TODO: confirm if the following is correct:
     # We assume that all quantities of
