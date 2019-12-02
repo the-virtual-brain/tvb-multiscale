@@ -7,22 +7,14 @@ import tvb_data
 from tvb_scripts.config import Config as ConfigBase
 from tvb.datatypes import cortex, connectivity
 from tvb.basic.profile import TvbProfile
+from tvb_scripts.utils.log_error_utils import initialize_logger
+
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+initialize_logger('matplotlib')
 
 
-TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
-WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
-MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
-MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
-
-class NESTconfig(object):
-
-    # WORKING DIRECTORY:
-    TVB_NEST_DIR = TVB_NEST_DIR
-    WORKING_DIR = WORKING_DIR
-    MODULES_DIR = MODULES_DIR
-    MODULES_BLDS_DIR = MODULES_BLDS_DIR
+class Config(ConfigBase):
 
     # NEST properties:
     NEST_MIN_DT = 0.001
@@ -61,20 +53,11 @@ class NESTconfig(object):
                                       "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True},
                                       "spike_multimeter": {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
 
-    def __init__(self, nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
-        self.NEST_PATH = nest_path
-        self.PYTHON = nest_python
-        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
-        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
-        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
-        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
-        self.TVB_NEST_DIR = TVB_NEST_DIR
-        self.WORKING_DIR = WORKING_DIR
-        self.MODULES_DIR = MODULES_DIR
-        self.MODULES_BLDS_DIR = MODULES_BLDS_DIR
-
-class Config(ConfigBase):
-
+    # WORKING DIRECTORY
+    TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
+    MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
+    MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
+    WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
     # DATA:
     TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
     DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
@@ -93,10 +76,8 @@ class Config(ConfigBase):
                        }
 
     def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
-                 output_base=WORKING_DIR, separate_by_run=False,
-                 nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
+                 output_base=WORKING_DIR, separate_by_run=False):
         super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
-        self.nest = NESTconfig(nest_path, nest_python)
 
 
 CONFIGURED = Config()

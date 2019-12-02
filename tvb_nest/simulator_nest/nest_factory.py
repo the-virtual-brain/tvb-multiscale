@@ -26,22 +26,7 @@ def load_spiking_simulator(config=CONFIGURED.nest, logger=LOG):
     logger.info("Loading a NEST instance...")
     nest_path = config.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
-    log_path('NEST_INSTALL_DIR', logger)
-    os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-    log_path('NEST_DATA_DIR', logger)
-    os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-    log_path('NEST_DOC_DIR', logger)
-    os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-    log_path('NEST_MODULE_PATH', logger)
     os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-    log_path('PATH', logger)
-    LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-    if len(LD_LIBRARY_PATH) > 0:
-        LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-    os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-    log_path('LD_LIBRARY_PATH', logger)
-    os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
-    log_path('SLI_PATH', logger)
 
     os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
     log_path('NEST_PYTHON_PREFIX', logger)
