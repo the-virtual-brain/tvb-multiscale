@@ -101,7 +101,7 @@ class TVBNESTInterface(object):
                     # For this output TVB state variable:
                     # ...transmit it to the corresponding NEST devices,
                     # ...which represent each TVB node
-                elif interface.model in ["poisson_generator", "spike_generator"]:
+                elif interface.model in ["poisson_generator", "spike_generator", "mip_generator"]:
                     # Rate is already a meanfield quantity.
                     # All neurons of the target NEST spiking populations
                     # will receive the same spike rate.

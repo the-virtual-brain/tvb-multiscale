@@ -75,5 +75,8 @@ class TVBtoNESTDeviceInterface(NESTDeviceSet):
                                            self.nest_instance.GetKernelStatus("min_delay"),
                             "origin": self.nest_instance.GetKernelStatus("time"),
                             "spike_weights": values})
+        elif self.model in ["mip_generator"]:
+            # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
+            self.SetStatus({"rate": np.maximum(0, values)})
         else:
             raise ValueError("Interface model %s is not supported yet!" % self.model)

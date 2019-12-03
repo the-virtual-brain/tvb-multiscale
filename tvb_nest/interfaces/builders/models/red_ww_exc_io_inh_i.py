@@ -41,6 +41,8 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
     #                                    "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
+    # For spike trains with correlation probability p_copy set:
+    # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
             tvb_to_nest_interfaces = [{"model": "poisson_generator", "params": {},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": 200.0,  # Applied outside NEST for each interface device
