@@ -3,8 +3,9 @@ from six import string_types
 
 from pandas import Series
 import numpy as np
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_nest.simulator_nest.models.devices import NESTDeviceSet
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+
 
 LOG = initialize_logger(__name__)
 
@@ -65,10 +66,19 @@ class TVBtoNESTDeviceInterface(NESTDeviceSet):
         elif self.model in ["poisson_generator"]:
             # ...and transmit it to the corresponding NEST device,
             # ...which represents that TVB node
-            self.SetStatus({"rate": np.maximum(0, values),
+            self.SetStatus({"rate": np.maximum([0], values),
                             "origin": self.nest_instance.GetKernelStatus("time"),
                             "start": self.nest_instance.GetKernelStatus("min_delay"),
                             "stop": self.dt})
+        elif self.model in ["inhomogeneous_poisson_generator"]:
+            # ...and transmit it to the corresponding NEST device,
+            # ...which represents that TVB node
+            values = np.maximum([0], values).tolist()
+            for i_val, val in enumerate(values):
+                values[i_val] = [val]
+            self.SetStatus({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
+                                            self.nest_instance.GetKernelStatus("resolution")]] * len(values),
+                            "rate_values": values})
         elif self.model in ["spike_generator"]:
             # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
             self.SetStatus({"spikes_times": np.ones((len(values),)) *
