@@ -43,7 +43,7 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
     # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
             tvb_to_nest_interfaces = [{"model": "poisson_generator", "params": {},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-                                        "interface_weights": 100.0,  # Applied outside NEST for each interface device
+                                        "interface_weights": 200.0,  # Applied outside NEST for each interface device
                                         "weights": interface_weight_fun(),  # To multiply TVB connectivity weight
     #                                 To add to TVB connectivity delay:
                                         "delays": nest_network.nodes_min_delay,
@@ -71,7 +71,7 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
 
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                     tvb_to_nest_interfaces, nest_to_tvb_interfaces)
-        self.w_tvb_to_current *= self.tvb_model.J_N
+        self.w_tvb_to_current = 1000 * self.tvb_model.J_N  # (nA of TVB -> pA of NEST)
         self.w_tvb_to_spike_rate = 1.0  # r parameter is in the order of 1000 Hz for WongWang model
         # (assuming spikes/ms in TVB) and given the division of spikes' number with dt in ms:
         self._spikes_to_tvb_rate = 1.0
