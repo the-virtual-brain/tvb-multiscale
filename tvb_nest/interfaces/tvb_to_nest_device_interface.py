@@ -57,36 +57,57 @@ class TVBtoNESTDeviceInterface(NESTDeviceSet):
         self.update_model()
         return self
 
+
+# Each interface has its own set(values) method, depending on the underlying device:
+
+
+class TVBtoNESTDCGeneratorInterface(TVBtoNESTDeviceInterface):
+
     def set(self, values):
-        if self.model == "dc_generator":
-            self.SetStatus({"amplitude": values,
-                            "origin": self.nest_instance.GetKernelStatus("time"),
-                            "start": self.nest_instance.GetKernelStatus("min_delay"),
-                            "stop": self.dt})
-        elif self.model in ["poisson_generator"]:
-            # ...and transmit it to the corresponding NEST device,
-            # ...which represents that TVB node
-            self.SetStatus({"rate": np.maximum([0], values),
-                            "origin": self.nest_instance.GetKernelStatus("time"),
-                            "start": self.nest_instance.GetKernelStatus("min_delay"),
-                            "stop": self.dt})
-        elif self.model in ["inhomogeneous_poisson_generator"]:
-            # ...and transmit it to the corresponding NEST device,
-            # ...which represents that TVB node
-            values = np.maximum([0], values).tolist()
-            for i_val, val in enumerate(values):
-                values[i_val] = [val]
-            self.SetStatus({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
-                                            self.nest_instance.GetKernelStatus("resolution")]] * len(values),
-                            "rate_values": values})
-        elif self.model in ["spike_generator"]:
-            # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
-            self.SetStatus({"spikes_times": np.ones((len(values),)) *
-                                           self.nest_instance.GetKernelStatus("min_delay"),
-                            "origin": self.nest_instance.GetKernelStatus("time"),
-                            "spike_weights": values})
-        elif self.model in ["mip_generator"]:
-            # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
-            self.SetStatus({"rate": np.maximum(0, values)})
-        else:
-            raise ValueError("Interface model %s is not supported yet!" % self.model)
+        self.SetStatus({"amplitude": values,
+                        "origin": self.nest_instance.GetKernelStatus("time"),
+                        "start": self.nest_instance.GetKernelStatus("min_delay"),
+                        "stop": self.dt})
+
+
+class TVBtoNESTPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
+
+    def set(self, values):
+        self.SetStatus({"rate": np.maximum([0], values),
+                        "origin": self.nest_instance.GetKernelStatus("time"),
+                        "start": self.nest_instance.GetKernelStatus("min_delay"),
+                        "stop": self.dt})
+
+
+class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
+
+    def set(self, values):
+        values = np.maximum([0], values).tolist()
+        for i_val, val in enumerate(values):
+            values[i_val] = [val]
+        self.SetStatus({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
+                                        self.nest_instance.GetKernelStatus("resolution")]] * len(values),
+                        "rate_values": values})
+
+
+class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
+
+    def set(self, values):
+        # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
+        self.SetStatus({"spikes_times": np.ones((len(values),)) *
+                                        self.nest_instance.GetKernelStatus("min_delay"),
+                        "origin": self.nest_instance.GetKernelStatus("time"),
+                        "spike_weights": values})
+
+
+class TVBtoNESTMIPGeneratorInterface(TVBtoNESTDeviceInterface):
+
+    def set(self, values):
+        self.SetStatus({"rate": np.maximum(0, values)})
+
+
+INPUT_INTERFACES_DICT = {"dc_generator": TVBtoNESTDCGeneratorInterface,
+                         "poisson_generator": TVBtoNESTPoissonGeneratorInterface,
+                         "inhomogeneous_poisson_generator": TVBtoNESTInhomogeneousPoissonGeneratorInterface,
+                         "spike_generator": TVBtoNESTSpikeGeneratorInterface,
+                         "mip_generator": TVBtoNESTMIPGeneratorInterface}
