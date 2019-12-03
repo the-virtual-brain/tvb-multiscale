@@ -82,16 +82,16 @@ def connect_two_populations(nest_instance, pop_src, pop_trg, conn_spec={}, syn_s
 def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED.nest, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
-    params = dict(config.DEFAULT_CONNECTION["params"])
-    P_DEF = params["p"]
-    params.update(kwargs)
-    rule = params["rule"]
-    p = params["p"]
-    N = params["N"]
-    autapses = params["autapses"]
-    multapses = params["multapses"]
-    indegree = params["indegree"]
-    outdegree = params["outdegree"]
+    conn_spec = dict(config.DEFAULT_CONNECTION["conn_spec"])
+    P_DEF = conn_spec["p"]
+    conn_spec.update(kwargs)
+    rule = conn_spec["rule"]
+    p = conn_spec["p"]
+    N = conn_spec["N"]
+    autapses = conn_spec["autapses"]
+    multapses = conn_spec["multapses"]
+    indegree = conn_spec["indegree"]
+    outdegree = conn_spec["outdegree"]
     conn_spec = {
         'rule': rule,
         'autapses': autapses,  # self-connections flag
