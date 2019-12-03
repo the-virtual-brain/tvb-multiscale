@@ -81,7 +81,7 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
     rates = \
         nest_network.compute_spikes_rates(mode="per_neuron", population_devices=None, regions=None,
                                           devices_dim_name="Population", name="Spikes rates from NEST network",
-                                          spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                          spikes_kernel_width=1.0, # spikes_kernel_n_intervals=10,
                                           spikes_kernel_overlap=0.5, min_spike_interval=None, time=t,
                                           spikes_kernel=None)[0]
     if rates.size > 0:
