@@ -117,54 +117,6 @@ class Simulator(SimulatorTVB):
         except:
             return CONFIGURED
 
-    def preconfigure(self):
-        """Configure just the basic fields, so that memory can be estimated."""
-        self.connectivity.configure()
-        if self.surface:
-            self.surface.configure()
-        if self.stimulus:
-            self.stimulus.configure()
-        self.coupling.configure()
-        self.model.configure()
-        self.integrator.configure()
-        self.integrator.dt = float(int(numpy.round(0.1 / CONFIGURED.nest.NEST_MIN_DT))) * CONFIGURED.nest.NEST_MIN_DT
-        if self.model.state_variable_boundaries is not None:
-            indices = []
-            boundaries = []
-            for sv, sv_bounds in self.model.state_variable_boundaries.items():
-                indices.append(self.model.state_variables.index(sv))
-                for i_bound, (sv_bound, inf, default) in enumerate(zip(sv_bounds,
-                                                              [-numpy.inf, numpy.inf],
-                                                              [self.config.calcul.MIN_SINGLE_VALUE,
-                                                               self.config.calcul.MAX_SINGLE_VALUE])):
-                    if sv_bound is None or sv_bound == inf:
-                        sv_bounds[i_bound] = default
-                boundaries.append(sv_bounds)
-            sort_inds = numpy.argsort(indices)
-            self.integrator.bounded_state_variable_indices = (numpy.array(indices)[sort_inds])
-            self.integrator.state_variable_boundaries = (numpy.array(boundaries)[sort_inds]).astype('float64')
-        else:
-            self.integrator.bounded_state_variable_indices = None
-            self.integrator.state_variable_boundaries = None
-        # monitors needs to be a list or tuple, even if there is only one...
-        if not isinstance(self.monitors, (list, tuple)):
-            self.monitors = [self.monitors]
-        # Configure monitors
-        for monitor in self.monitors:
-            monitor.configure()
-        # "Nodes" refers to either regions or vertices + non-cortical regions.
-        if self.surface is None:
-            self.number_of_nodes = self.connectivity.number_of_regions
-            LOG.info('Region simulation with %d ROI nodes', self.number_of_nodes)
-        else:
-            rm = self.surface.region_mapping
-            unmapped = self.connectivity.unmapped_indices(rm)
-            self._regmap = numpy.r_[rm, unmapped]
-            self.number_of_nodes = self._regmap.shape[0]
-            LOG.info('Surface simulation with %d vertices + %d non-cortical, %d total nodes',
-                     rm.size, unmapped.size, self.number_of_nodes)
-        self._guesstimate_memory_requirement()
-
     def _configure_integrator_noise(self):
         """
         This enables having noise to be state variable specific and/or to enter
@@ -281,6 +233,9 @@ class Simulator(SimulatorTVB):
             # When run from GUI, preconfigure is run separately, and we want to avoid running that part twice
             self.preconfigure()
             # Make sure spatialised model parameters have the right shape (number_of_nodes, 1)
+
+        self.integrator.dt = float(int(numpy.round(0.1 / CONFIGURED.nest.NEST_MIN_DT))) * CONFIGURED.nest.NEST_MIN_DT
+
         excluded_params = ("state_variable_range", "state_variable_boundaries", "variables_of_interest",
                           "noise", "psi_table", "nerf_table", "gid")
         spatial_reshape = self.model.spatial_param_reshape
