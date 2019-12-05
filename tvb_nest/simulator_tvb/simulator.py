@@ -53,7 +53,7 @@ from tvb.simulator.simulator import Simulator as SimulatorTVB
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_nest.interfaces.tvb_to_nest_parameter_interface import TVBNESTParameterInterface
-from tvb_scripts.utils.log_error_utils import initialize_logger
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 
 
 LOG = initialize_logger(__name__)
@@ -208,8 +208,8 @@ class Simulator(SimulatorTVB):
                 initial_conditions = initial_conditions[:, :, self._regmap]
                 return self._configure_history(initial_conditions)
             elif ic_shape[1:] != self.good_history_shape[1:]:
-                raise ValueError("Incorrect history sample shape %s, expected %s"
-                                 % ic_shape[1:], self.good_history_shape[1:])
+                raise_value_error("Incorrect history sample shape %s, expected %s"
+                                  % ic_shape[1:], self.good_history_shape[1:])
             else:
                 if ic_shape[0] >= self.horizon:
                     LOG.debug("Using last %d time-steps for history.", self.horizon)
@@ -310,9 +310,9 @@ class Simulator(SimulatorTVB):
                     (dummy * numpy.array(getattr(self.model, param))).squeeze())
         nest_min_delay = self.tvb_nest_interface.nest_instance.GetKernelStatus("min_delay")
         if self.integrator.dt < nest_min_delay:
-            raise ValueError("TVB integration time step dt=%f "
-                             "is not greater than NEST minimum delay min_delay=%f!" %
-                             (self.integrator.dt, nest_min_delay))
+            raise_value_error("TVB integration time step dt=%f "
+                              "is not greater than NEST minimum delay min_delay=%f!" %
+                              (self.integrator.dt, nest_min_delay))
 
         # TODO: Figure out a better solution of nest.Simulate() against nest.Run()!
         # If we need to re-initialize a NEST device at each time step,
@@ -335,8 +335,8 @@ class Simulator(SimulatorTVB):
 
         # TODO: Shall we implement a parallel implentation for multiple modes for NEST as well?!
         if self.current_state.shape[2] > 1:
-            raise ValueError("Multiple modes' simulation not supported for TVB-NEST interface!\n"
-                             "Current modes number is %d." % self.initial_conditions.shape[3])
+            raise_value_error("Multiple modes' simulation not supported for TVB-NEST interface!\n"
+                              "Current modes number is %d." % self.initial_conditions.shape[3])
 
         # Estimate of memory usage.
         self._census_memory_requirement()
