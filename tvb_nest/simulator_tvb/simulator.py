@@ -110,6 +110,13 @@ class Simulator(SimulatorTVB):
         connections. These couplings undergo a time delay via signal propagation
         with a propagation speed of ``Conduction Speed``""")
 
+    @property
+    def config(self):
+        try:
+            return self.tvb_nest_interface.config
+        except:
+            return CONFIGURED
+
     def preconfigure(self):
         """Configure just the basic fields, so that memory can be estimated."""
         self.connectivity.configure()
@@ -126,10 +133,16 @@ class Simulator(SimulatorTVB):
             boundaries = []
             for sv, sv_bounds in self.model.state_variable_boundaries.items():
                 indices.append(self.model.state_variables.index(sv))
+                for i_bound, (sv_bound, inf, default) in enumerate(zip(sv_bounds,
+                                                              [-numpy.inf, numpy.inf],
+                                                              [self.config.calcul.MIN_SINGLE_VALUE,
+                                                               self.config.calcul.MAX_SINGLE_VALUE])):
+                    if sv_bound is None or sv_bound == inf:
+                        sv_bounds[i_bound] = default
                 boundaries.append(sv_bounds)
             sort_inds = numpy.argsort(indices)
-            self.integrator.bounded_state_variable_indices = numpy.array(indices)[sort_inds]
-            self.integrator.state_variable_boundaries = numpy.array(boundaries)[sort_inds]
+            self.integrator.bounded_state_variable_indices = (numpy.array(indices)[sort_inds])
+            self.integrator.state_variable_boundaries = (numpy.array(boundaries)[sort_inds]).astype('float64')
         else:
             self.integrator.bounded_state_variable_indices = None
             self.integrator.state_variable_boundaries = None
@@ -299,15 +312,12 @@ class Simulator(SimulatorTVB):
         self.tvb_nest_interface = tvb_nest_interface
         # TODO: find out why the model instance is different in simulator and interface...
         self.tvb_nest_interface.configure(self.model)
-        dummy = numpy.ones((self.connectivity.number_of_regions, 1))
-        # Confirm good shape for TVB to NEST model parameters
-        for param in self.tvb_nest_interface.tvb_to_nest_params:
-            setattr(self.model, param,
-                    (dummy * numpy.array(getattr(self.model, param))).squeeze())
-        # Confirm good shape for NEST to TVB model parameters
+        dummy = -numpy.ones((self.connectivity.number_of_regions, ))
+        dummy[self.tvb_nest_interface.nest_nodes_ids] = 0.0
+        # Create TVB model parameter for NEST to target
         for param in self.tvb_nest_interface.nest_to_tvb_params:
-            setattr(self.model, param,
-                    (dummy * numpy.array(getattr(self.model, param))).squeeze())
+            setattr(self.model, param, dummy)
+
         nest_min_delay = self.tvb_nest_interface.nest_instance.GetKernelStatus("min_delay")
         if self.integrator.dt < nest_min_delay:
             raise_value_error("TVB integration time step dt=%f "
@@ -371,6 +381,17 @@ class Simulator(SimulatorTVB):
         """
         return super(Simulator, self).storage_requirement(simulation_length)
 
+    def update_state(self, state, node_coupling=0.0, local_coupling=0.0):
+        # If there are non-state variables, they need to be updated for the initial condition:
+        try:
+            self.model.dfun(state, node_coupling, local_coupling, update_non_state_variables=True)
+        except:
+            pass
+        # If there is a state boundary...
+        if self.integrator.state_variable_boundaries is not None:
+            # ...use the integrator's bound_state function again after updating from NEST
+            self.integrator.bound_state(state)
+
     def __call__(self, simulation_length=None, random_state=None):
         """
         Return an iterator which steps through simulation time, generating monitor outputs.
@@ -394,6 +415,10 @@ class Simulator(SimulatorTVB):
         local_coupling = self._prepare_local_coupling()
         stimulus = self._prepare_stimulus()
         state = self.current_state
+        # If there is a state boundary...
+        if self.integrator.state_variable_boundaries is not None:
+            # ...use the integrator's bound_state function again after updating from NEST
+            self.integrator.bound_state(state)
 
         # NEST simulation preparation:
         if self.simulate_nest == self.tvb_nest_interface.nest_instance.Run:
@@ -404,10 +429,14 @@ class Simulator(SimulatorTVB):
         tic = time.time()
         tic_ratio = 0.1
         tic_point = tic_ratio * n_steps
+
+        # Do for initial condition:
+        # needs implementing by history + coupling?
+        step = self.current_step + 1
+        node_coupling = self._loop_compute_node_coupling(step)
+        self._loop_update_stimulus(step, stimulus)
+        self.update_state(state, node_coupling, local_coupling)
         for step in range(self.current_step + 1,  self.current_step + n_steps + 1):
-            # needs implementing by history + coupling?
-            node_coupling = self._loop_compute_node_coupling(step)
-            self._loop_update_stimulus(step, stimulus)
             # Communicate TVB state to some NEST device (TVB proxy) or TVB coupling to NEST nodes,
             # including any necessary conversions from TVB state to NEST variables,
             # in a model specific manner
@@ -425,10 +454,7 @@ class Simulator(SimulatorTVB):
             # including any necessary conversions from NEST variables to TVB state,
             # in a model specific manner
             state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
-            # If there is a state boundary...
-            if self.integrator.state_variable_boundaries is not None:
-                # ...use the integrator's bound_state function again after updating from NEST
-                self.integrator.bound_state(state)
+            self.update_state(state, node_coupling, local_coupling)
             self._loop_update_history(step, n_reg, state)
             output = self._loop_monitor_output(step, state)
             if output is not None:

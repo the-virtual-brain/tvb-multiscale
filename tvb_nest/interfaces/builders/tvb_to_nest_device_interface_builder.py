@@ -85,7 +85,7 @@ class TVBtoNESTDeviceInterfaceBuilder(object):
             try:
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
-                tvb_sv_id = None  # in case the TVB source is a parameter, not one of the state variables
+                raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
             try:
                 interface_builder = INPUT_INTERFACES_DICT[device.model]
             except:

@@ -45,7 +45,7 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
     #                                          "receptor_types": lambda tvb_node_id, nest_node_id: tvb_node_id + 1,
     # --------------------------------------------------------------------------------------------------------------
     # #                                                       TVB sv -> NEST population
-    #                                         "connections": {"S_e": ["AMPA", "NMDA", "GABA"]},
+    #                                         "connections": {"R_e": ["AMPA", "NMDA", "GABA"]},
     #                                         "source_nodes": None, "target_nodes": None}]  # None means all here
         # The NEST nodes the activity of which is transformed to TVB state variables or parameters
         if nest_to_tvb_interfaces is None:
@@ -54,8 +54,8 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
             # for transmitting to the TVB state variables directly
             connections = OrderedDict()
             #            TVB <- NEST
-            connections["r_e"] = ["AMPA", "NMDA"]
-            connections["r_i"] = "GABA"
+            connections["R_e"] = ["AMPA", "NMDA"]
+            connections["R_i"] = "GABA"
             nest_to_tvb_interfaces = \
                 [{"model": "spike_detector", "params": {},
     # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------

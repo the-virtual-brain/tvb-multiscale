@@ -204,7 +204,7 @@ if __name__ == "__main__":
     #        "receptor_types": 0,
     # # ----------------------------------------------------------------------------------------------------------------
     # #    TVB state var or param -> NEST population
-    #        "connections": {"r_o": ["E", "I"]},
+    #        "connections": {"R_e": ["E", "I"]},
     #        "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # # NEST -> TVB:
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     # # for transmitting to the TVB state variables directly
     # connections = OrderedDict()
     # #            TVB <- NEST
-    # connections["r_e"] = ["E"]
-    # connections["r_i"] = ["I"]
+    # connections["R_e"] = ["E"]
+    # connections["R_i"] = ["I"]
     # tvb_nest_builder.nest_to_tvb_interfaces = \
     #     [{"model": "spike_detector", "params": {},
     # # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
