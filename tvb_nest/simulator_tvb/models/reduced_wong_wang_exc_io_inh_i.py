@@ -205,7 +205,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         doc="""[nA]. Effective external input""")
 
     r_o = NArray(
-        label=":math:`r_i`",
+        label=":math:`r_o`",
         default=numpy.array([0., ]),
         domain=Range(lo=0., hi=10000., step=1.),
         doc="[Hz]. Excitatory population output firing rate.")
@@ -283,7 +283,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
         x_e = self.a_e * x_e - self.b_e
         H_e = numpy.where(self.r_e >= 0, self.r_e, x_e / (1 - numpy.exp(-self.d_e * x_e)))
-        self.r_o = numpy.where(self.r_e < 0, H_e, 0.0)
+        self.r_o = numpy.where(self.r_e < 0, H_e, 0.0).squeeze()
 
         dS_e = - (S[0] / self.tau_e) + (1 - S[0]) * H_e * self.gamma_e
 
