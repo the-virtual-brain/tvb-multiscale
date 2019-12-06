@@ -140,22 +140,26 @@ class Simulator(SimulatorTVB):
 
         super(Simulator, self)._configure_integrator_noise()
 
-    def _update_and_bound_history(self, history):
+    def bound_and_clamp(self, state):
         # If there is a state boundary...
         if self.integrator.state_variable_boundaries is not None:
-            # ...use the integrator's bound_state to bound history
-            self.integrator.bound_state(history)
+            # ...use the integrator's bound_state
+            self.integrator.bound_state(state)
+        # If there is a state clamping...
+        if self.integrator.clamped_state_variable_values is not None:
+            # ...use the integrator's clamp_state
+            self.integrator.clamp_state(state)
+
+    def _update_and_bound_history(self, history):
+        self.bound_and_clamp(history)
         # If there are non-state variables, they need to be updated for history:
         try:
             # Assuming that node_coupling can have a maximum number of dimensions equal to the state variables,
             # in the extreme case where all state variables are cvars as well, we set:
             node_coupling = numpy.zeros((history.shape[0], 1, history.shape[2], 1))
             for i_time in range(history.shape[1]):
-                self.model.dfun(history[:, i_time], node_coupling[:, 0], 0.0, update_non_state_variables=True)
-            # If there is a state boundary...
-            if self.integrator.state_variable_boundaries is not None:
-                # ...use the integrator's bound_state function again after updating non-state variables
-                self.integrator.bound_state(history)
+                self.model.update_non_state_variables(history[:, i_time], node_coupling[:, 0], 0.0)
+            self.bound_and_clamp(history)
         except:
             pass
 
@@ -360,11 +364,8 @@ class Simulator(SimulatorTVB):
     def update_state(self, state, node_coupling, local_coupling=0.0):
         # If there are non-state variables, they need to be updated for the initial condition:
         try:
-            self.model.dfun(state, node_coupling, local_coupling, update_non_state_variables=True)
-            # If there is a state boundary...
-            if self.integrator.state_variable_boundaries is not None:
-                # ...use the integrator's bound_state function again after updating from NEST
-                self.integrator.bound_state(state)
+            self.model.update_non_state_variables(state, node_coupling, local_coupling)
+            self.bound_and_clamp(state)
         except:
             # If not, the kwarg will fail and nothing will happen
             pass
@@ -434,10 +435,7 @@ class Simulator(SimulatorTVB):
                 # including any necessary conversions from NEST variables to TVB state,
                 # in a model specific manner
                 state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
-                # If there is a state boundary, reapply it after updating state from NEST...
-                if self.integrator.state_variable_boundaries is not None:
-                    # ...use the integrator's bound_state function again after updating from NEST
-                    self.integrator.bound_state(state)
+                self.bound_and_clamp(state)
             # Prepare coupling and stimulus for next time step
             # and, therefore, for the new TVB state:
             node_coupling = self._loop_compute_node_coupling(step)
