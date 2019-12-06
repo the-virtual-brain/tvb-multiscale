@@ -386,7 +386,6 @@ class Simulator(SimulatorTVB):
         tic_point = tic_ratio * n_steps
 
         # Do for initial condition:
-        # needs implementing by history + coupling?
         step = self.current_step + 1
         node_coupling = self._loop_compute_node_coupling(step)
         self._loop_update_stimulus(step, stimulus)
@@ -398,14 +397,14 @@ class Simulator(SimulatorTVB):
             # TODO: find what is the general treatment of local coupling, if any!
             #  Is this addition correct in all cases for all models?
             self.tvb_nest_interface.tvb_state_to_nest(state, node_coupling + local_coupling, stimulus, self.model)
-            # Communicate the NEST state to some TVB model parameter,
+            # Couple the NEST state to some TVB model parameter,
             # including any necessary conversions in a model specific manner
             self.model = self.tvb_nest_interface.nest_state_to_tvb_parameter(self.model)
             # Integrate TVB
             state = self.integrator.scheme(state, self.model.dfun, node_coupling, local_coupling, stimulus)
             # Integrate NEST
             self.simulate_nest(self.integrator.dt)
-            # Communicate NEST state to TVB state variable,
+            # Update TVB state variable with NEST state,
             # including any necessary conversions from NEST variables to TVB state,
             # in a model specific manner
             state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
