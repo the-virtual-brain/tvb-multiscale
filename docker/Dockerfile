@@ -89,9 +89,9 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     cd tvb-data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
-    cd tvb-library; git pull origin neotraits_py3; \
-    $VENV/bin/python setup.py develop
+RUN git clone --depth 1 --branch correct_boundaries https://github.com/the-virtual-brain/tvb-root.git; \
+    cd tvb-root; git pull origin correct_boundaries --allow-unrelated-histories; \
+    cd scientific_library; $VENV/bin/python setup.py develop;
 
 #RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
 #    cd tvb-multiscale; \
