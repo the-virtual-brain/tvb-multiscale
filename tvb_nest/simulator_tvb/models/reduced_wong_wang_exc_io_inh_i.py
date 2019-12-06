@@ -261,7 +261,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         super(ReducedWongWangExcIOInhI, self).configure()
         self.update_derived_parameters()
 
-    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0, update_non_state_variables=False):
+    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0, update_non_state_variables=True):
         r"""
         Equations taken from [DPA_2013]_ , page 11242
 
@@ -327,7 +327,7 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
         return derivative
 
-    def dfun(self, x, c, local_coupling=0.0, update_non_state_variables=False):
+    def dfun(self, x, c, local_coupling=0.0, update_non_state_variables=True):
         x_ = x.reshape(x.shape[:-1]).T
         c_ = c.reshape(c.shape[:-1]).T + local_coupling * x[0]
         u = (update_non_state_variables * numpy.ones(self.R_e.shape)).astype('f')

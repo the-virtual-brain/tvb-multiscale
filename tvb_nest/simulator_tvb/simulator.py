@@ -136,9 +136,28 @@ class Simulator(SimulatorTVB):
         if self.integrator.noise.ntau > 0.0:
             LOG.warning("Colored noise is currently not supported for tvb-nest simulations!\n" +
                         "Setting integrator.noise.ntau = 0.0 and configuring white noise!")
-            self.integrator.noise.ntau = 0
+            self.integrator.noise.ntau = 0.0
 
         super(Simulator, self)._configure_integrator_noise()
+
+    def _update_and_bound_history(self, history):
+        # If there is a state boundary...
+        if self.integrator.state_variable_boundaries is not None:
+            # ...use the integrator's bound_state to bound history
+            self.integrator.bound_state(history)
+        # If there are non-state variables, they need to be updated for history:
+        try:
+            # Assuming that node_coupling can have a maximum number of dimensions equal to the state variables,
+            # in the extreme case where all state variables are cvars as well, we set:
+            node_coupling = numpy.zeros((history.shape[0], 1, history.shape[2], 1))
+            for i_time in range(history.shape[1]):
+                self.model.dfun(history[:, i_time], node_coupling[:, 0], 0.0, update_non_state_variables=True)
+            # If there is a state boundary...
+            if self.integrator.state_variable_boundaries is not None:
+                # ...use the integrator's bound_state function again after updating non-state variables
+                self.integrator.bound_state(history)
+        except:
+            pass
 
     def _configure_history(self, initial_conditions):
         """
@@ -187,8 +206,10 @@ class Simulator(SimulatorTVB):
                     history[:ic_shape[0], :, :, :] = initial_conditions
                     history = numpy.roll(history, shift, axis=0)
                 self.current_step += ic_shape[0] - 1
-        if self.integrator.state_variable_boundaries is not None:
-            self.integrator.bound_state(numpy.swapaxes(history, 0, 1))
+        # Make sure that history values are bounded,
+        # and any possible non-state variables are initialized
+        # based on state variable ones (but with no coupling yet...)
+        self._update_and_bound_history(numpy.swapaxes(history, 0, 1))
         LOG.info('Final initial history shape is %r', history.shape)
         # create initial state from history
         self.current_state = history[self.current_step % self.horizon].copy()
@@ -336,16 +357,17 @@ class Simulator(SimulatorTVB):
         """
         return super(Simulator, self).storage_requirement(simulation_length)
 
-    def update_state(self, state, node_coupling=0.0, local_coupling=0.0):
+    def update_state(self, state, node_coupling, local_coupling=0.0):
         # If there are non-state variables, they need to be updated for the initial condition:
         try:
             self.model.dfun(state, node_coupling, local_coupling, update_non_state_variables=True)
+            # If there is a state boundary...
+            if self.integrator.state_variable_boundaries is not None:
+                # ...use the integrator's bound_state function again after updating from NEST
+                self.integrator.bound_state(state)
         except:
+            # If not, the kwarg will fail and nothing will happen
             pass
-        # If there is a state boundary...
-        if self.integrator.state_variable_boundaries is not None:
-            # ...use the integrator's bound_state function again after updating from NEST
-            self.integrator.bound_state(state)
 
     def __call__(self, simulation_length=None, random_state=None):
         """
@@ -370,45 +392,59 @@ class Simulator(SimulatorTVB):
         local_coupling = self._prepare_local_coupling()
         stimulus = self._prepare_stimulus()
         state = self.current_state
-        # If there is a state boundary...
-        if self.integrator.state_variable_boundaries is not None:
-            # ...use the integrator's bound_state function again after updating from NEST
-            self.integrator.bound_state(state)
+        # Do for initial condition:
+        step = self.current_step + 1  # the first step in the loop
+        node_coupling = self._loop_compute_node_coupling(step)
+        self._loop_update_stimulus(step, stimulus)
+        # This is not necessary in most cases
+        # if update_non_state_variables=True in the model dfun by default
+        self.update_state(state, node_coupling, local_coupling)
 
         # NEST simulation preparation:
         if self.simulate_nest == self.tvb_nest_interface.nest_instance.Run:
             self.tvb_nest_interface.nest_instance.Prepare()
+
+        # A flag to skip unnecessary steps when NEST does NOT update TVB state
+        updateTVBstateFromNEST = len(self.tvb_nest_interface.nest_to_tvb_sv_interfaces_ids) > 0
 
         # integration loop
         n_steps = int(math.ceil(self.simulation_length / self.integrator.dt))
         tic = time.time()
         tic_ratio = 0.1
         tic_point = tic_ratio * n_steps
-
-        # Do for initial condition:
-        step = self.current_step + 1
-        node_coupling = self._loop_compute_node_coupling(step)
-        self._loop_update_stimulus(step, stimulus)
-        self.update_state(state, node_coupling, local_coupling)
         for step in range(self.current_step + 1,  self.current_step + n_steps + 1):
+            # TVB state -> NEST (state or parameter)
             # Communicate TVB state to some NEST device (TVB proxy) or TVB coupling to NEST nodes,
             # including any necessary conversions from TVB state to NEST variables,
             # in a model specific manner
             # TODO: find what is the general treatment of local coupling, if any!
             #  Is this addition correct in all cases for all models?
             self.tvb_nest_interface.tvb_state_to_nest(state, node_coupling + local_coupling, stimulus, self.model)
+            # NEST state -> TVB model parameter
             # Couple the NEST state to some TVB model parameter,
             # including any necessary conversions in a model specific manner
             self.model = self.tvb_nest_interface.nest_state_to_tvb_parameter(self.model)
-            # Integrate TVB
+            # Integrate TVB to get the new TVB state
             state = self.integrator.scheme(state, self.model.dfun, node_coupling, local_coupling, stimulus)
-            # Integrate NEST
+            # Integrate NEST to get the new NEST state
             self.simulate_nest(self.integrator.dt)
-            # Update TVB state variable with NEST state,
-            # including any necessary conversions from NEST variables to TVB state,
-            # in a model specific manner
-            state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
+            if updateTVBstateFromNEST:
+                # NEST state -> TVB state
+                # Update the new TVB state variable with the new NEST state,
+                # including any necessary conversions from NEST variables to TVB state,
+                # in a model specific manner
+                state = self.tvb_nest_interface.nest_state_to_tvb_state(state)
+                # If there is a state boundary, reapply it after updating state from NEST...
+                if self.integrator.state_variable_boundaries is not None:
+                    # ...use the integrator's bound_state function again after updating from NEST
+                    self.integrator.bound_state(state)
+            # Prepare coupling and stimulus for next time step
+            # and, therefore, for the new TVB state:
+            node_coupling = self._loop_compute_node_coupling(step)
+            self._loop_update_stimulus(step, stimulus)
+            # Update any non-state variables and apply any boundaries again to the new state:
             self.update_state(state, node_coupling, local_coupling)
+            # Now direct the new state to history buffer and monitors
             self._loop_update_history(step, n_reg, state)
             output = self._loop_monitor_output(step, state)
             if output is not None:
