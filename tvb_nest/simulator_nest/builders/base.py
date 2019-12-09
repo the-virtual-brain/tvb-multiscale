@@ -125,6 +125,10 @@ class NESTModelBuilder(object):
         self.stimulation_devices = []  # use these for possible external stimulation devices
 
     @property
+    def tvb_model(self):
+        return self.tvb_simulator.model
+
+    @property
     def tvb_connectivity(self):
         return self.tvb_simulator.connectivity
 
