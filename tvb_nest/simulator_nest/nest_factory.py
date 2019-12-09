@@ -68,7 +68,11 @@ def compile_modules(modules, recompile=False, config=CONFIGURED.nest, logger=LOG
             shutil.copytree(source_path, module_bld_dir)
         logger.info("Running compilation...")
         install_nest(module_bld_dir, config.NEST_PATH)
-        logger.info("DONE compiling %s!" % module)
+        if os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, module + "module.so")) and \
+            os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, "lib" + module + "module.so")):
+            logger.info("DONE compiling %s!" % module)
+        else:
+            logger.warn("Something seems to have gone wrong with compiling %s!" % module)
 
 
 def create_population(nest_instance, model, size, params={}):
