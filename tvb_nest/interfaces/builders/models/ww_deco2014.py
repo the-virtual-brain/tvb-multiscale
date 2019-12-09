@@ -27,7 +27,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)-----------------------------
     #                                           "interface_weights": 100.0, # Applied outside NEST for each interface device
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-    #                                           "weights": 1.0,  # To multiply TVB connectivity weight
+    #                                           "weights": tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
     # #                                       To add to TVB connectivity delay:
     #                                          "delays": nest_network.nodes_min_delay,
     # --------------------------------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
                                                "interface_weights": 100.0,
     # Applied outside NEST for each interface device
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-                                              "weights": 1.0,  # To multiply TVB connectivity weight
+                                              "weights": tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
     #                                     To add to TVB connectivity delay:
                                               "delays": nest_network.nodes_min_delay,
                                               "receptor_types": lambda tvb_node_id, nest_node_id: tvb_node_id + 1,
