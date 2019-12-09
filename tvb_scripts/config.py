@@ -85,7 +85,7 @@ class FiguresConfig(object):
     SUPER_LARGE_SIZE = (80, 40)
     LARGE_SIZE = (20, 15)
     SMALL_SIZE = (15, 10)
-    NOTEBOOK_SIZE = (10, 7)
+    NOTEBOOK_SIZE = (20, 10)
     FIG_FORMAT = 'png'
     SAVE_FLAG = True
     SHOW_FLAG = False

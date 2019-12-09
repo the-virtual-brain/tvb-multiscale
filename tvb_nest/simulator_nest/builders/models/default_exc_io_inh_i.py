@@ -30,22 +30,22 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.populations_connections = [
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee,  "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "E", "target": "I",  # E -> I
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
               "weight": self.w_ei, "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "I", "target": "E",  # I -> E
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
               "weight": self.w_ie, "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
               "weight": self.w_ii, "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              ]
@@ -57,7 +57,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.nodes_connections = [
             {"source": "E", "target": ["E", "I"],
               "model": self.default_nodes_connection["model"],
-              "params": self.default_nodes_connection["params"],
+              "conn_spec": self.default_nodes_connection["conn_spec"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               # Each region emits spikes in its own port:

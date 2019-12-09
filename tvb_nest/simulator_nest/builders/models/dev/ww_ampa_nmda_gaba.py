@@ -43,49 +43,49 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         self.populations_connections = [
             {"source": "AMPA", "target": "AMPA",  # AMPA -> AMPA This is a self-connection for population "AMPA"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESEXC_AMPA_REC"], "nodes": None},  # None means "all"
             {"source": "NMDA", "target": "AMPA",  # NMDA -> AMPA
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESEXC_NMDA"], "nodes": None},  # None means "all"
             {"source": "GABA", "target": "AMPA",  # GABA -> AMPA
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESINH_GABA"], "nodes": None},  # None means "all"
 
             {"source": "AMPA", "target": "NMDA",  # AMPA -> NMDA
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_nmda["SPIKESEXC_AMPA_REC"], "nodes": None},  # None means "all"
             {"source": "NMDA", "target": "NMDA",  # NMDA -> NMDA  This is a self-connection for population "NMDA"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_nmda["SPIKESEXC_NMDA"], "nodes": None},  # None means "all"
             {"source": "GABA", "target": "NMDA",  # GABA -> NMDA
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_nmda["SPIKESINH_GABA"], "nodes": None},  # None means "all"
 
             {"source": "AMPA", "target": "GABA",  # AMPA -> GABA
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": 1.0, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESEXC_AMPA_REC"], "nodes": None},  # None means "all"
             {"source": "NMDA", "target": "GABA",  # NMDA -> GABA
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": 1.0, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESEXC_NMDA"], "nodes": None},  # None means "all"
             {"source": "GABA", "target": "GABA",  # GABA -> GABA This is a self-connection for population "GABA"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -1.0, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESINH_GABA"], "nodes": None},  # None means "all"
         ]
@@ -97,7 +97,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
         self.node_connections = \
             [{"source": "AMPA", "target": ["AMPA", "NMDA", "GABA"],
               "model": self.default_nodes_connection["model"],
-              "params": self.default_nodes_connection["params"],
+              "conn_spec": self.default_nodes_connection["conn_spec"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               "receptor_type": rcptr_ampa_gaba["SPIKESEXC_AMPA_EXT"]},

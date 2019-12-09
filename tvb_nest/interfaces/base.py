@@ -4,7 +4,6 @@ from abc import ABCMeta
 from six import add_metaclass
 from xarray import DataArray
 import pandas as pd
-import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.models.devices import NESTInputDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
@@ -64,14 +63,6 @@ class TVBNESTInterface(object):
 
     def configure(self, tvb_model):
         """  """
-        self.tvb_to_nest_params = []
-        for interface_id, interface in enumerate(self.tvb_to_nest_interfaces):
-            try:
-                tvb_sv_or_coupling_id = getattr(interface, "tvb_sv_id")
-            except:
-                tvb_sv_or_coupling_id = getattr(interface, "tvb_coupling_id")
-            if not is_integer(tvb_sv_or_coupling_id) or not tvb_sv_or_coupling_id >= 0:
-                self.tvb_to_nest_params.append(interface.name)
         self.nest_to_tvb_params = []
         self.nest_to_tvb_params_interfaces_ids = []
         self.nest_to_tvb_sv_interfaces_ids = []
@@ -80,16 +71,15 @@ class TVBNESTInterface(object):
                 self.nest_to_tvb_sv_interfaces_ids.append(interface_id)
             else:
                 self.nest_to_tvb_params_interfaces_ids.append(interface_id)
-                self.nest_to_tvb_params.append(interface.name)
+            # Even if the NEST target in TVB is a state variable,
+            # we are going to create a TVB parameter with the same name
+            self.nest_to_tvb_params.append(interface.name)
         self.tvb_model = tvb_model
 
     def tvb_state_to_nest(self, state, coupling, stimulus, model):
         for interface in self.tvb_to_nest_interfaces:
             if interface.model in DEVICES:
-                if interface.tvb_sv_id is not None:
-                    values = state[interface.tvb_sv_id].squeeze()  # if we need the state variable
-                else:
-                    values = getattr(model, interface.name)  # if we need a parameter
+                values = state[interface.tvb_sv_id].squeeze()  # if we need the state variable
                 if interface.model == "dc_generator":
                     transform_fun = self.transforms["tvb_to_current"]
                     # We assume that current is a mean field quantity
@@ -101,7 +91,8 @@ class TVBNESTInterface(object):
                     # For this output TVB state variable:
                     # ...transmit it to the corresponding NEST devices,
                     # ...which represent each TVB node
-                elif interface.model in ["poisson_generator", "spike_generator"]:
+                elif interface.model in ["poisson_generator", "spike_generator",
+                                         "mip_generator", "inhomogeneous_poisson_generator"]:
                     # Rate is already a meanfield quantity.
                     # All neurons of the target NEST spiking populations
                     # will receive the same spike rate.

@@ -47,7 +47,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
                                               "receptor_types": lambda tvb_node_id, nest_node_id: tvb_node_id + 1,
     # --------------------------------------------------------------------------------------------------------------
     #                                                 TVB sv -> NEST population
-                                               "connections": {"S_e": ["E", "I"]},
+                                               "connections": {"R_e": ["E", "I"]},
                                                "source_nodes": None, "target_nodes": None}]  # None means all here
         self.w_tvb_to_current *= self.tvb_model.J_N
         self.w_tvb_to_spike_rate = 1.0  # r parameter is in the order of 1000 Hz for WongWang model
@@ -61,8 +61,8 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
             # for transmitting to the TVB state variables directly
             connections = OrderedDict()
             #            TVB <- NEST
-            connections["r_e"] = ["E"]
-            connections["r_i"] = ["I"]
+            connections["R_e"] = ["E"]
+            connections["R_i"] = ["I"]
             nest_to_tvb_interfaces = \
                 [{"model": "spike_detector", "params": {},
     # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------

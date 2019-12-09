@@ -42,8 +42,8 @@ class RateWWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
             # for transmitting to the TVB state variables directly
             connections = OrderedDict()
             #            TVB <- NEST
-            connections["r_e"] = ["AMPA", "NMDA"]
-            connections["r_i"] = "GABA"
+            connections["R_e"] = ["AMPA", "NMDA"]
+            connections["R_i"] = "GABA"
             nest_to_tvb_interfaces = [{"model": "spike_multimeter", "params": {},
                                        "connections": connections, "nodes": None}]  # None means all here
 

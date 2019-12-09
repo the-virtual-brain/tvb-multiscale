@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
 
@@ -29,26 +30,31 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
                             ]
 
         # Within region-node connections
+        pop_weight_fun = lambda weight: {"distribution": "normal", "mu": weight, "sigma": 0.1*np.abs(weight)}
         self.populations_connections = [
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
-             "weight": self.w_ee,  "delay": self.default_populations_connection["delay"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
+             "weight": pop_weight_fun(self.w_ee),
+             "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "E", "target": "I",  # E -> I
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
-              "weight": 1.0, "delay": self.default_populations_connection["delay"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
+              "weight": pop_weight_fun(1.0),
+              "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "I", "target": "E",  # I -> E
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
-              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
+              "weight": pop_weight_fun(-self.J_i),
+              "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
-              "weight": -1.0, "delay": self.default_populations_connection["delay"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
+              "weight": pop_weight_fun(-1.0),
+              "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              ]
 
@@ -56,11 +62,13 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         # Given that only the AMPA population of one region-node couples to
         # all populations of another region-node,
         # we need only one connection type
+        nodes_weight_fun = lambda source_nest_node_id=None, target_nest_node_id=None: \
+            np.maximum(1.0, self.tvb_simulator.model.G[0] * (1.0 + 0.1 * np.random.normal()))
         self.nodes_connections = [
             {"source": "E", "target": ["E", "I"],
               "model": self.default_nodes_connection["model"],
-              "params": self.default_nodes_connection["params"],
-              "weight": 1.0,  # weight scaling the TVB connectivity weight
+              "conn_spec": self.default_nodes_connection["conn_spec"],
+              "weight": nodes_weight_fun(),  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               # Each region emits spikes in its own port:
               "receptor_type": 0,  "source_nodes": None, "target_nodes": None}  # None means "all"

@@ -80,18 +80,18 @@ class NESTModelBuilder(object):
                              "scale": 1, "nodes": None}]  # None means "all"
 
         self.default_populations_connection["delay"] = self.nest_dt
-        # When any of the properties model, params, weight, delay, receptor_type below
+        # When any of the properties model, conn_spec, weight, delay, receptor_type below
         # set a handle to a function with
         # arguments (region_index=None) returning the corresponding property
         self.populations_connections = \
             [{"source": "E", "target": "E",  # E -> E This is a self-connection for population "E"
               "model": self.default_populations_connection["model"],
-              "params": self.default_populations_connection["params"],
+              "conn_spec": self.default_populations_connection["conn_spec"],
               "weight": 1.0,  "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None,  # None means "all"
               }]
 
-        # When any of the properties model, params, weight, delay, receptor_type below
+        # When any of the properties model, conn_spec, weight, delay, receptor_type below
         # depends on regions, set a handle to a function with
         # arguments (source_region_index=None, target_region_index=None)
 
@@ -101,7 +101,7 @@ class NESTModelBuilder(object):
         self.nodes_connections = \
             [{"source": "E", "target": "E",
               "model": self.default_nodes_connection["model"],
-              "params": self.default_nodes_connection["params"],
+              "conn_spec": self.default_nodes_connection["conn_spec"],
               "weight": 1.0,  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
@@ -228,8 +228,8 @@ class NESTModelBuilder(object):
         return self._population_connection_property_per_node("receptor_type")
 
     @property
-    def populations_connections_params(self):
-        return self._population_connection_property_per_node("param")
+    def populations_connections_conn_spec(self):
+        return self._population_connection_property_per_node("conn_spec")
 
     @property
     def populations_connections_nodes(self):
@@ -267,8 +267,8 @@ class NESTModelBuilder(object):
         return self._nodes_connection_property_per_node("receptor_type")
 
     @property
-    def nodes_connections_receptor_params(self):
-        return self._nodes_connection_property_per_node("param")
+    def nodes_connections_receptor_conn_spec(self):
+        return self._nodes_connection_property_per_node("conn_spec")
 
     @property
     def nodes_connections_source_nodes(self):
@@ -464,7 +464,7 @@ class NESTModelBuilder(object):
             weight = property_to_fun(conn["weight"])
             delay = property_to_fun(conn["delay"])
             receptor_type = property_to_fun(conn["receptor_type"])
-            conn_spec = property_to_fun(conn['params'])
+            conn_spec = property_to_fun(conn['conn_spec'])
             # ...and form the connection within each NEST node
             for node_index in conn["nodes"]:
                 i_node = np.where(self.nest_nodes_ids == node_index)[0][0]
@@ -496,7 +496,7 @@ class NESTModelBuilder(object):
             weight = property_to_fun(conn["weight"])
             delay = property_to_fun(conn["delay"])
             receptor_type = property_to_fun(conn["receptor_type"])
-            conn_spec = property_to_fun(conn['params'])
+            conn_spec = property_to_fun(conn['conn_spec'])
             # ...and form the connection for every distinct pair of NEST nodes
             for source_index in conn["source_nodes"]:
                 i_source_node = np.where(self.nest_nodes_ids == source_index)[0][0]
@@ -525,7 +525,7 @@ class NESTModelBuilder(object):
             n_target_nest_nodes = len(target_nest_nodes)
             if target_nest_nodes is None:
                 target_nest_nodes = self.nest_nodes_ids
-            param = property_to_fun(devices.pop("params", 1.0))
+            param = property_to_fun(devices.pop("params", {}))
             weight = property_to_fun(devices.pop("weights", 1.0))
             delay = property_to_fun(devices.pop("delays", 0.0))
             receptor_type = property_to_fun(devices.pop("receptor_types", 0))

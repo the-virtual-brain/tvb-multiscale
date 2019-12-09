@@ -21,8 +21,8 @@ class Config(ConfigBase):
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
-                          "params": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
-                                     "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+                          "conn_spec": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
+                                        "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
     DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
@@ -38,12 +38,14 @@ class Config(ConfigBase):
     # among TVB regions (1 to 1 coupling) and
     # between TVB and NEST regions (1 to all, and all to 1) coupling,
     # where average quantities will be computed in the respective interface functions
-    # However, wihtin and among NEST nodes' coupling
+    # However, within and among NEST nodes' coupling
     # will need such a weight scaling, so that a neuron receives spikes
     # weighted by the possible spikes it could have received,
     # according to its total number of connections (indegree)
     def DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(self, weight, number_of_connections=1):
-        return weight / number_of_connections
+        if isinstance(weight, dict):
+            return weight
+        return weight  # / number_of_connections
 
     # Available NEST output devices for the interface and their default properties
     NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"withtime": True, "withgid": True, 'record_from': ["V_m"]},
