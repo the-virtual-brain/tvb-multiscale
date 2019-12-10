@@ -335,14 +335,14 @@ private:
       // recursive AMPA synaptic gating variable
       S_AMPA,
 
-      // recursive GABA synaptic gating variable
-      S_GABA,
-
       // recursive NMDA linear synaptic gating variable
       X_NMDA,
 
       //  NMDA 2nd order synaptic gating variable
       S_NMDA,
+
+      // recursive GABA synaptic gating variable
+      S_GABA,
 
       // external AMPA synaptic gating variables
       S_AMPA_EXT,
@@ -351,6 +351,49 @@ private:
     };
 
     static const size_t NUMBER_OF_FIXED_STATES_ELEMENTS = 5; // V_M, S_AMPA, S_GABA, X_NMDA, S_NMDA
+
+    enum CurrentsElems
+    {
+      // leak synaptic current
+      I_L = 0,  // current_index = 0
+
+      // external (stimulation) currents
+      I_E, // current_index = 1
+
+      // recursive AMPA synaptic current
+      I_AMPA,  // current_index = 2
+
+      // recursive NMDA synaptic current
+      I_NMDA, // current_index = 3
+
+      // recursive GABA synaptic current
+      I_GABA, // current_index = 4
+
+      // external AMPA synaptic current
+      I_AMPA_EXT // current_index = 5 + receptor
+
+    };
+
+    static const size_t NUMBER_OF_FIXED_CURRENTS_ELEMENTS = 5;
+
+    enum SpikesElems
+    {
+      // recursive excitatory spikes
+      SPIKES_EXC = 0,  // spike_index = 0
+
+      // recursive inhibitory spikes
+      SPIKES_INH,  // spike_index = 1
+
+      // external spikes
+      SPIKES_EXC_EXT // spike_index = 2 + receptor
+
+    };
+
+    static const size_t NUMBER_OF_FIXED_SPIKES_ELEMENTS = 2;
+
+    static const size_t NUMBER_OF_TOTAL_FIXED_ELEMENTS = NUMBER_OF_FIXED_STATES_ELEMENTS +
+                                                         NUMBER_OF_FIXED_CURRENTS_ELEMENTS +
+                                                         NUMBER_OF_FIXED_SPIKES_ELEMENTS; // = 5 + 5 + 2 = 12
 
     std::vector< double > y_; //!< neuron state
     int r_;                   //!< number of refractory steps remaining
@@ -410,7 +453,14 @@ private:
      * It must be a part of Buffers_, since it is initialized once before
      * the first simulation, but not modified before later Simulate calls.
      */
-    double I_stim;
+
+    double I_e;
+
+    double spikes_exc;
+    double spikes_inh;
+
+    std::vector< double > spikes_exc_ext; //!< neuron spikes received
+
   };
 
   // ----------------------------------------------------------------
@@ -470,17 +520,141 @@ private:
   // Data Access Functor getter
   DataAccessFunctor< iaf_cond_deco2014 > get_data_access_functor(
     size_t elem );
-  inline double
-  get_state_element( size_t elem )
-  {
-    return S_.y_[ elem ];
-  };
 
   // Utility function that inserts the S_AMPA_ext to the
   // recordables map
 
-  Name get_g_receptor_name( size_t receptor );
-  void insert_conductance_recordables( size_t first = 0 );
+  Name get_s_receptor_name( size_t receptor );
+  Name get_I_receptor_name( size_t receptor );
+  Name get_spikes_receptor_name( size_t receptor );
+  void insert_external_recordables( size_t first = 0 );
+
+  inline size_t recordables_end() {
+    return State_::NUMBER_OF_TOTAL_FIXED_ELEMENTS + 3 * P_.n_receptors();
+  }
+
+  inline size_t currents_start() {
+    return State_::NUMBER_OF_FIXED_STATES_ELEMENTS + P_.n_receptors();
+  }
+
+  inline size_t elem_I_L() {
+    return currents_start() + State_::I_L;
+  }
+
+  inline size_t elem_I_E() {
+    return currents_start() + State_::I_E;
+  }
+
+  inline size_t elem_I_AMPA() {
+    return currents_start() + State_::I_AMPA;
+  }
+
+  inline size_t elem_I_NMDA() {
+    return currents_start() + State_::I_NMDA;
+  }
+
+  inline size_t elem_I_GABA() {
+    return currents_start() + State_::I_GABA;
+  }
+
+  inline size_t elem_I_AMPA_EXT(size_t receptor) {
+    return currents_start() + State_::I_AMPA_EXT + receptor ;
+  }
+
+  inline size_t spikes_start() {
+    return State_::NUMBER_OF_FIXED_STATES_ELEMENTS +
+           State_::NUMBER_OF_FIXED_CURRENTS_ELEMENTS + 2*P_.n_receptors();
+  }
+
+  inline size_t elem_SPIKES_EXC() {
+    return spikes_start() + State_::SPIKES_EXC;
+  }
+
+  inline size_t elem_SPIKES_INH() {
+    return spikes_start() + State_::SPIKES_INH;
+  }
+
+  inline size_t elem_SPIKES_EXC_EXT(size_t receptor) {
+    return spikes_start() + State_::SPIKES_EXC_EXT + receptor ;
+  }
+
+  inline double get_I_L() const {
+    return P_.g_L * S_.y_[ State_::V_M ] - V_.g_L_E_L;
+  }
+
+  inline double get_I_e() const {
+    return P_.I_e + B_.I_e;
+  }
+
+  inline double get_I_AMPA() const {
+    return V_.w_E_g_AMPA * (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_AMPA];
+  }
+
+  inline double get_I_NMDA() const {
+    return V_.w_E_g_NMDA /
+                ( 1 + P_.lambda_NMDA * std::exp(V_.minus_beta * S_.y_[ State_::V_M ] ) ) *
+                (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_NMDA];
+  }
+
+  inline double get_I_GABA() const {
+    return V_.w_I_g_GABA_A * (S_.y_[ State_::V_M ] - P_.E_in) * S_.y_[State_::S_GABA];
+  }
+
+  inline double get_I_AMPA_ext( size_t receptor ) const {
+    // TODO: perhaps add a check about the range of elem?
+    return V_.w_E_ext_g_AMPA_ext[ receptor ] * (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_AMPA_EXT + receptor];
+  }
+
+  inline double get_spikes_exc() const {
+    return B_.spikes_exc;
+  }
+
+  inline double get_spikes_inh() const {
+    return B_.spikes_inh;
+  }
+
+  inline double get_spikes_exc_ext( size_t receptor ) const {
+    return B_.spikes_exc_ext[ receptor ] ;
+  }
+
+  inline double
+  get_state_element( size_t elem )
+  {
+
+    if (elem < currents_start())
+    {
+        return S_.y_[ elem ];
+    }
+    else if (elem < spikes_start())
+    {
+        size_t current_index = elem - currents_start();
+        switch(current_index){
+            case State_::I_L: return get_I_L() ;
+            case State_::I_E: return get_I_e() ;
+            case State_::I_AMPA: return get_I_AMPA() ;
+            case State_::I_NMDA: return get_I_NMDA() ;
+            case State_::I_GABA: return get_I_GABA() ;
+                                           // receptor:
+            default: return get_I_AMPA_ext( current_index - State_::I_AMPA_EXT ) ;
+        }
+    }
+    else if (elem < recordables_end())
+    {
+        size_t spikes_index = elem - spikes_start();
+        switch(spikes_index){
+            case State_::SPIKES_EXC: return get_spikes_exc() ;
+            case State_::SPIKES_INH: return get_spikes_inh() ;
+                                           // receptor:
+            default: return get_spikes_exc_ext( spikes_index - State_::SPIKES_EXC_EXT ) ;
+        }
+    }
+    else
+    {
+        // TODO: Throw the correct exception here
+        throw nest::BadProperty("Too large element index!");
+    }
+  };
+
 };
 
 inline port

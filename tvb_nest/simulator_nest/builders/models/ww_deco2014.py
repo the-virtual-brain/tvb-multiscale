@@ -107,10 +107,13 @@ class WWDeco2014Builder(NESTModelBuilder):
         params["interval"] = self.monitor_period
         params['record_from'] = ["V_m",
                                  "s_AMPA", "x_NMDA", "s_NMDA", "s_GABA",
-                                 # "I_AMPA_ext", "I_AMPA_rec", "I_NMDA", "I_GABA", "I_L"
+                                 "I_AMPA", "I_NMDA", "I_GABA", "I_L", "I_e",
+                                 "spikes_exc", "spikes_inh"
                                  ]
         for i_node in range(self.number_of_nodes):
             params['record_from'].append("s_AMPA_ext_%d" % i_node)
+            params['record_from'].append("I_AMPA_ext_%d" % i_node)
+            params['record_from'].append("spikes_exc_ext_%d" % i_node)
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means "all"
 
