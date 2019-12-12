@@ -304,7 +304,7 @@ class TimeSeries(TimeSeriesTVB):
     def get_state_variables_by_slice(self, slice_arg, **kwargs):
         return self.slice_data_across_dimension_by_slice(slice_arg, 1, **kwargs)
 
-    def get_state_variable(self, sv_inputs, **kwargs):
+    def get_state_variables(self, sv_inputs, **kwargs):
         return getattr(self,
                        "slice_data_across_dimension_by_%s" %
                        self._index_or_label_or_slice(sv_inputs))(sv_inputs, 1, **kwargs)
