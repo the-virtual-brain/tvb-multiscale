@@ -343,7 +343,8 @@ class TimeSeries(HasTraits):
         if isinstance(slice_label1, string_types):
             slice_label1 = self._get_index_for_slice_label(slice_label1, slice_idx)
         if isinstance(slice_label2, string_types):
-            slice_label2 = self._get_index_for_slice_label(slice_label2, slice_idx)
+            # NOTE!: In case of a string slice, we consider stop included!
+            slice_label2 = self._get_index_for_slice_label(slice_label2, slice_idx) + 1
 
         return slice(slice_label1, slice_label2, current_slice.step)
 
