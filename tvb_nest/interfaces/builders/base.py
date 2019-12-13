@@ -30,11 +30,11 @@ class TVBNESTInterfaceBuilder(object):
     # If set as a function of lambda state: fun(state), it will become a vector function of:
     # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
     # TVB -> NEST
-    w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
+    w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, assuming TVB rate is spikes/ms)
     w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
     w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
     # TVB <- NEST
-    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB) and given the division of spikes' number with dt in ms:
+    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB and given the division of spikes' number with dt in ms)
     w_spikes_to_tvb = 1.0
     w_spikes_var_to_tvb = 1.0
     w_potential_to_tvb = 1.0
