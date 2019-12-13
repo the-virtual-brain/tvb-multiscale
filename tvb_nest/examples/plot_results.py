@@ -25,7 +25,7 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
         sample_period=simulator.integrator.dt)
 
     # Plot time_series
-    plotter.plot_timeseries(source_ts)
+    plotter.plot_timeseries(source_ts, title="Region Time Series")
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # # ...interactively as well
     # plotter.plot_timeseries_interactive(source_ts)
