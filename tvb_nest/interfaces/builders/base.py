@@ -34,8 +34,7 @@ class TVBNESTInterfaceBuilder(object):
     w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
     w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
     # TVB <- NEST
-    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB and given the division of spikes' number with dt in ms)
-    w_spikes_to_tvb = 1.0
+    w_spikes_to_tvb = 1.0  # (assuming spikes/ms in TVB and given the division of spikes' number with dt in ms)
     w_spikes_var_to_tvb = 1.0
     w_potential_to_tvb = 1.0
 
@@ -131,8 +130,7 @@ class TVBNESTInterfaceBuilder(object):
         self.w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
         self.w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
         # TVB <- NEST
-        self.w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
-        self.w_spikes_to_tvb = 1.0
+        self.w_spikes_to_tvb = 1.0  # (assuming spikes/ms in TVB)
         self.w_spikes_var_to_tvb = 1.0
         self.w_potential_to_tvb = 1.0
 
@@ -226,7 +224,6 @@ class TVBNESTInterfaceBuilder(object):
 
     def generate_transforms(self):
         self.w_spikes_to_tvb /= self.tvb_dt  # Used to convert number of spikes to a spike rate
-        self.w_spikes_to_tvb_rate /= self.tvb_dt  # Used to convert number of spikes to a spike rate
         dummy = np.ones((self.number_of_nodes, ))
         # Confirm good shape for TVB-NEST interface model parameters
         # TODO: find a possible way to differentiate scalings between
@@ -239,8 +236,7 @@ class TVBNESTInterfaceBuilder(object):
                      "w_tvb_to_potential",
                      "w_tvb_to_spike_rate"]:
             transforms.update(self._prepare_tvb_to_nest_transform_fun(prop, dummy))
-        for prop in ["w_spikes_to_tvb_rate",
-                     "w_spikes_to_tvb",
+        for prop in ["w_spikes_to_tvb",
                      "w_spikes_var_to_tvb",
                      "w_potential_to_tvb"]:
             transforms.update(self._prepare_nest_to_tvb_transform_fun(prop, dummy))
