@@ -130,7 +130,7 @@ class TVBNESTInterface(object):
             # Update TVB parameter
             param_values = getattr(model, interface.name)
             if interface.model in ["spike_detector", "spike_multimeter"]:
-                transform_fun = self.transforms["spikes_to_tvb_rate"]
+                transform_fun = self.transforms["spikes_to_tvb"]
                 values = interface.population_spikes_number
                 interface.reset  # We need to erase the spikes we have already read and communicated
             elif interface.model == "multimeter":
