@@ -27,7 +27,7 @@ class RateWWAMPANMDAGABABuilder(NESTModelBuilder):
                                                    "tvb_rate_nmda_wongwang"], modules="tvb_rate_wongwangmodule")
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
         # Populations' configurations
         self.populations = [{"label": "AMPA", "model": "tvb_rate_ampa_gaba_wongwang",
                              "scale": 1, "params": {}, "nodes": None},  # None means "all"

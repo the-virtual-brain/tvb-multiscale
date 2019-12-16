@@ -18,7 +18,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.w_ii = kwargs.get("w_ii", -1.0)
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
         # Populations' configurations
         self.populations = [{"label": "E", "model": self.default_population["model"],
                              "params": {}, "scale": self.scale_e,  "nodes": None},  # None means "all"

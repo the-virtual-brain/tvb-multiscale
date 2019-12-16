@@ -36,7 +36,7 @@ class RedWWExcIOInhIMultisynapseBuilder(NESTModelBuilder):
         super(RedWWExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
 
         # Populations' configurations
         # When any of the properties model, params and scale below depends on regions,

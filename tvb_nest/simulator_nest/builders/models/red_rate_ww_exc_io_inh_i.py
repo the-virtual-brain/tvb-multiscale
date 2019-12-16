@@ -27,7 +27,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
                                                    "tvb_rate_redwongwang_inh"], modules="tvb_rate_wongwangmodule")
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
         # Populations' configurations
         self.populations = [{"label": "E", "model": "tvb_rate_redwongwang_exc",
                              "scale": 1, "params": {}, "nodes": None},  # None means "all"
