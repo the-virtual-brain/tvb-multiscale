@@ -54,4 +54,4 @@ def test_results_shape():
     (weights, tract_lengths, results) = prepare_launch_default_simulation()
     assert not np.isinf(results.ravel()).all()
     assert not np.isnan(results.ravel()).all()
-    assert results.shape == (1000, 2, 68, 1)
+    assert results.shape == (1000, 4, 68, 1)

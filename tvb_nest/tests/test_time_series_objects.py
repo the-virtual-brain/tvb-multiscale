@@ -54,8 +54,8 @@ def create_time_series_region_object():
           "connections": {"S_e": ["E", "I"]}}]
 
     connections = OrderedDict()
-    connections["r_e"] = "E"
-    connections["r_i"] = "I"
+    connections["R_e"] = "E"
+    connections["R_i"] = "I"
     tvb_nest_builder.nest_to_tvb_interfaces = \
         [{"model": "spike_detector", "params": {}, "connections": connections}]
 
@@ -81,7 +81,7 @@ def test_time_series_region_object():
     tsr = create_time_series_region_object()
 
     # Check the correctness of time_series_region object
-    assert tsr.shape == (1000, 2, 68, 1)
+    assert tsr.shape == (1000, 4, 68, 1)
 
     # Check for existence of S_e attribute
     assert hasattr(tsr, 'S_e') is True

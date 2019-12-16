@@ -91,7 +91,7 @@ class Simulator(SimulatorTVB):
         field_type=integrators.Integrator,
         label="Integration scheme",
         default=integrators.HeunStochastic(
-            dt=float(int(numpy.round(0.1 / CONFIGURED.nest.NEST_MIN_DT))) * CONFIGURED.nest.NEST_MIN_DT),
+            dt=float(int(numpy.round(0.1 / CONFIGURED.NEST_MIN_DT))) * CONFIGURED.NEST_MIN_DT),
         required=True,
         doc="""A tvb.simulator.Integrator object which is
                 an integration scheme with supporting attributes such as 
