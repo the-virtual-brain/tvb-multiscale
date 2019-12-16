@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-
+from collections import OrderedDict
 import pandas as pd
 import xarray as xr
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.nest_factory import load_spiking_simulator
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
-from tvb_nest.simulator_nest.models.devices import NESTDeviceSet, NESTOutputSpikeDeviceDict
+from tvb_nest.simulator_nest.models.devices \
+    import NESTDeviceSet, NESTOutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
@@ -30,7 +31,7 @@ class NESTNetwork(object):
                  config=CONFIGURED):
         self.config = config
         if nest_instance is None:
-            nest_instance = load_spiking_simulator(LOG)
+            nest_instance = load_spiking_simulator(self.config.nest, LOG)
         self.nest_instance = nest_instance
         if nodes_min_delay <= 0.0:
             self.nodes_min_delay = self.nest_instance.GetKernelStatus("resolution")
@@ -64,7 +65,7 @@ class NESTNetwork(object):
 
     @property
     def nestconfig(self):
-        return self.config
+        return self.config.nest
 
     @property
     def nodes_labels(self):
@@ -113,29 +114,30 @@ class NESTNetwork(object):
         if regions is not None:
             regions = ensure_list(regions)
 
-        first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
-        last_spike_time = 0.0
-        mean_spike_interval = self.config.calcul.MAX_SINGLE_VALUE
-        for i_pop, (pop_label, pop_device) in enumerate(spike_detectors.iteritems()):
-            for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.iteritems()):
-                if regions is not None and reg_label not in regions:
-                    break
-                spike_times = np.array(region_spike_detector.spikes_times)
-                n_spikes = len(spike_times)
-                if n_spikes > 0:
-                    temp = np.min(spike_times)
-                    if temp < first_spike_time:
-                        first_spike_time = temp
-                    temp = np.max(spike_times)
-                    if temp > last_spike_time:
-                        last_spike_time = temp
-                    if n_spikes > 1:
-                        temp = np.mean(np.diff(np.unique(spike_times)))
-                        if temp < mean_spike_interval:
-                            mean_spike_interval = temp
+        if time is None or spikes_kernel_width is None:
+            first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
+            last_spike_time = 0.0
+            mean_spike_interval = self.config.calcul.MAX_SINGLE_VALUE
+            for i_pop, (pop_label, pop_device) in enumerate(spike_detectors.iteritems()):
+                for i_region, (reg_label, region_spike_detector) in enumerate(pop_device.iteritems()):
+                    if regions is not None and reg_label not in regions:
+                        break
+                    spike_times = np.array(region_spike_detector.spikes_times)
+                    n_spikes = len(spike_times)
+                    if n_spikes > 0:
+                        temp = np.min(spike_times)
+                        if temp < first_spike_time:
+                            first_spike_time = temp
+                        temp = np.max(spike_times)
+                        if temp > last_spike_time:
+                            last_spike_time = temp
+                        if n_spikes > 1:
+                            temp = np.mean(np.diff(np.unique(spike_times)))
+                            if temp < mean_spike_interval:
+                                mean_spike_interval = temp
 
-        if min_spike_interval is None:
-            min_spike_interval = self.nest_instance.GetKernelStatus("min_delay")
+            if min_spike_interval is None:
+                min_spike_interval = self.nest_instance.GetKernelStatus("min_delay")
 
         if time is None:
 
@@ -161,14 +163,16 @@ class NESTNetwork(object):
                 spikes_kernel_width = spikes_kernel_n_intervals * mean_spike_interval
             time_step = np.mean(np.diff(time))
 
-        return spike_detectors, time, int(np.maximum(1, np.ceil(spikes_kernel_width / time_step)))
+        spikes_kernel_width_in_points = int(np.maximum(1, np.ceil(spikes_kernel_width / time_step)))
+        spikes_kernel_width = spikes_kernel_width_in_points * time_step
+        return spike_detectors, time, spikes_kernel_width, spikes_kernel_width_in_points
 
     def compute_spikes_rates(self, mode="total_rate", population_devices=None, regions=None,
                              devices_dim_name="Population", name="Spikes rates from NEST network",
                              spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                              spikes_kernel=None):
-        spike_detectors, time, spikes_kernel_width = \
+        spike_detectors, time, spikes_kernel_width, spikes_kernel_width_in_points = \
             self._prepare_to_compute_spike_rates(population_devices, regions, mode,
                                                  spikes_kernel_width, spikes_kernel_n_intervals,
                                                  spikes_kernel_overlap, min_spike_interval, time)
@@ -190,11 +194,12 @@ class NESTNetwork(object):
             rates = []
             population_devices = []
             for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
-                rates.append(pop_spike_detector.do_for_all_devices(fun, time, spikes_kernel_width,
-                                                                   spikes_kernel=spikes_kernel,
-                                                                   return_type="xarray", **kwargs))
-                population_devices.append(pop_label)
-                equal_shape_per_population = pop_spike_detector.shape == shape
+               rates.append(pop_spike_detector.do_for_all_devices(fun, time,
+                                                                  spikes_kernel_width, spikes_kernel_width_in_points,
+                                                                  spikes_kernel=spikes_kernel,
+                                                                  return_type="xarray", **kwargs))
+               population_devices.append(pop_label)
+               equal_shape_per_population = pop_spike_detector.shape == shape
             if equal_shape_per_population:
                 rates = xr.concat(rates, dim=pd.Index(list(spike_detectors.index), name=devices_dim_name))
                 if rates.size == 0:  # In case there is nothing to measure in NEST

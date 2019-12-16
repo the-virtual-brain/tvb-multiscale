@@ -5,8 +5,8 @@ from enum import Enum
 from copy import deepcopy
 from collections import OrderedDict
 import numpy
-from tvb_scripts.utils.log_error_utils import initialize_logger, warning, raise_value_error
-from tvb_scripts.utils.data_structures_utils import monopolar_to_bipolar
+from tvb_scripts.utils.log_error_utils import initialize_logger, warning
+from tvb_scripts.utils.data_structures_utils import ensure_list, is_integer, monopolar_to_bipolar
 from tvb.basic.neotraits.api import List, Attr
 from tvb.basic.profile import TvbProfile
 from tvb.datatypes.time_series import TimeSeries as TimeSeriesTVB
@@ -101,66 +101,121 @@ class TimeSeries(TimeSeriesTVB):
         duplicate.configure()
         return duplicate
 
-    def _get_index_of_state_variable(self, sv_label):
+    def _assert_index(self, index):
+        assert (index >= 0 and index < self.number_of_dimensions)
+        return index
+
+    def get_dimension_index(self, dim_name_or_index):
+        if is_integer(dim_name_or_index):
+            return self._assert_index(dim_name_or_index)
+        elif isinstance(dim_name_or_index, string_types):
+            return self._assert_index(self.labels_ordering.index(dim_name_or_index))
+        else:
+            raise ValueError("dim_name_or_index is neither a string nor an integer!")
+
+    def get_dimension_name(self, dim_index):
         try:
-            sv_index = numpy.where(self.variables_labels == sv_label)[0][0]
-        except KeyError:
-            self.logger.error("There are no state variables defined for this instance. Its shape is: %s",
-                              self.data.shape)
-            raise
+            return self.labels_ordering[dim_index]
         except IndexError:
-            self.logger.error("Cannot access index of state variable label: %s. Existing state variables: %s" % (
-                sv_label, self.variables_labels))
+            self.logger.error("Cannot access index %d of labels ordering: %s!" %
+                              (int(dim_index), str(self.labels_ordering)))
+
+    def get_dimension_labels(self, dimension_label_or_index):
+        if not isinstance(dimension_label_or_index, string_types):
+            dimension_label_or_index = self.get_dimension_name(dimension_label_or_index)
+        try:
+            return self.labels_dimensions[dimension_label_or_index]
+        except KeyError:
+            self.logger.error("There are no %s labels defined for this instance. Its shape is: %s",
+                              (dimension_label_or_index, self.data.shape))
             raise
-        return sv_index
 
-    def get_state_variable(self, sv_label):
-        sv_data = self.data[:, self._get_index_of_state_variable(sv_label), :, :]
-        subspace_labels_dimensions = deepcopy(self.labels_dimensions)
-        subspace_labels_dimensions[self.labels_ordering[1]] = [sv_label]
-        if sv_data.ndim == 3:
-            sv_data = numpy.expand_dims(sv_data, 1)
-        return self.duplicate(data=sv_data, labels_dimensions=subspace_labels_dimensions)
-
-    def _get_indices_for_labels(self, list_of_labels):
-        list_of_indices_for_labels = []
-        for label in list_of_labels:
+    def update_dimension_names(self, dim_names, dim_indices=None):
+        dim_names = ensure_list(dim_names)
+        if dim_indices is None:
+            dim_indices = list(range(len(dim_names)))
+        else:
+            dim_indices = ensure_list(dim_indices)
+        labels_ordering = list(self.labels_ordering)
+        for dim_name, dim_index in zip(dim_names, dim_indices):
+            labels_ordering[dim_index] = dim_name
             try:
-                space_index = numpy.where(self.space_labels == label)[0][0]
-            except ValueError:
-                self.logger.error("Cannot access index of space label: %s. Existing space labels: %s" %
-                                  (label, self.space_labels))
+                old_dim_name = self.labels_ordering[dim_index]
+                dim_labels = list(self.labels_dimensions[old_dim_name])
+                del self.labels_dimensions[old_dim_name]
+                self.labels_dimensions[dim_name] = dim_labels
+            except:
+                pass
+        self.labels_ordering = labels_ordering
+
+    def _check_indices(self, indices, dimension):
+        dim_index = self.get_dimension_index(dimension)
+        for index in ensure_list(indices):
+            if index < 0 or index > self.data.shape[dim_index]:
+                self.logger.error("Some of the given indices are out of %s range: [0, %s]",
+                                  (self.get_dimension_name(dim_index), self.data.shape[dim_index]))
+                raise IndexError
+
+    def _check_space_indices(self, list_of_index):
+        self._check_indices(list_of_index, 2)
+
+    def _check_variables_indices(self, list_of_index):
+        self._check_indices(list_of_index, 1)
+
+    def _get_index_of_label(self, labels, dimension):
+        indices = []
+        data_labels = list(self.get_dimension_labels(dimension))
+        for label in ensure_list(labels):
+            try:
+                indices.append(data_labels.index(label))
+            except IndexError:
+                self.logger.error("Cannot access index of %s label: %s. Existing %s labels: %s" % (
+                    dimension, label, dimension, str(data_labels)))
                 raise
-            list_of_indices_for_labels.append(space_index)
-        return list_of_indices_for_labels
+        return indices
 
-    def get_subspace_by_index(self, list_of_index, **kwargs):
-        self._check_space_indices(list_of_index)
-        subspace_data = self.data[:, :, list_of_index, :]
-        subspace_labels_dimensions = deepcopy(self.labels_dimensions)
-        subspace_labels_dimensions[self.labels_ordering[2]] = self.space_labels[list_of_index].tolist()
-        if subspace_data.ndim == 3:
-            subspace_data = numpy.expand_dims(subspace_data, 2)
-        return self.duplicate(data=subspace_data, labels_dimensions=subspace_labels_dimensions, **kwargs)
+    def _process_slice(self, slice_arg, idx):
+        if isinstance(slice_arg, slice):
+            return self._check_for_string_slice_indices(slice_arg, idx)
+        else:
+            if isinstance(slice_arg, string_types):
+                return self._get_string_slice_index(slice_arg, idx)
+            else:
+                return slice_arg
 
-    def get_subspace_by_labels(self, list_of_labels):
-        list_of_indices_for_labels = self._get_indices_for_labels(list_of_labels)
-        return self.get_subspace_by_index(list_of_indices_for_labels)
+    def _process_slice_tuple(self, slice_tuple):
+        n_slices = len(slice_tuple)
+        assert (n_slices >= 0 and n_slices < self.number_of_dimensions)
+        slice_list = []
+        for idx, current_slice in enumerate(slice_tuple):
+            slice_list.append(self._process_slice(current_slice, idx))
+        return tuple(slice_list)
 
-    def __getattr__(self, attr_name):
-        if len(self.labels_ordering) > 0 and self.labels_ordering[1] in self.labels_dimensions.keys():
-            if attr_name in self.variables_labels:
-                return self.get_state_variable(attr_name)
-        if len(self.labels_ordering) > 1 and self.labels_ordering[2] in self.labels_dimensions.keys():
-            if attr_name in self.space_labels:
-                return self.get_subspace_by_labels([attr_name])
-        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
+    def _slice_to_indices(self, slices, dim_index):
+        indices = []
+        for slice in ensure_list(slices):
+            if slice.start is None:
+                start = 0
+            else:
+                start = slice.start
+            if slice.stop is None:
+                stop = self.data.shape[dim_index]
+            else:
+                stop = slice.stop
+            if slice.step is None:
+                step = 1
+            else:
+                step = slice.step
+
+                slice.step = 1
+            indices.append(list(range(start, stop, step)))
+        if len(indices) == 1:
+            return indices[0]
+        return tuple(indices)
 
     def _get_index_for_slice_label(self, slice_label, slice_idx):
-        if slice_idx == 1:
-            return self._get_indices_for_labels([slice_label])[0]
-        if slice_idx == 2:
-            return self._get_index_of_state_variable(slice_label)
+        return self._get_index_of_label(slice_label,
+                                        self.get_dimension_name(slice_idx))[0]
 
     def _check_for_string_slice_indices(self, current_slice, slice_idx):
         slice_label1 = current_slice.start
@@ -169,25 +224,120 @@ class TimeSeries(TimeSeriesTVB):
         if isinstance(slice_label1, string_types):
             slice_label1 = self._get_index_for_slice_label(slice_label1, slice_idx)
         if isinstance(slice_label2, string_types):
-            slice_label2 = self._get_index_for_slice_label(slice_label2, slice_idx)
+            # NOTE!: In case of a string slice, we consider stop included!
+            slice_label2 = self._get_index_for_slice_label(slice_label2, slice_idx) + 1
 
         return slice(slice_label1, slice_label2, current_slice.step)
 
     def _get_string_slice_index(self, current_slice_string, slice_idx):
         return self._get_index_for_slice_label(current_slice_string, slice_idx)
 
-    def __getitem__(self, slice_tuple):
-        slice_list = []
-        for idx, current_slice in enumerate(slice_tuple):
-            if isinstance(current_slice, slice):
-                slice_list.append(self._check_for_string_slice_indices(current_slice, idx))
-            else:
-                if isinstance(current_slice, string_types):
-                    slice_list.append(self._get_string_slice_index(current_slice, idx))
-                else:
-                    slice_list.append(current_slice)
+    def slice_data_across_dimension_by_index(self, indices, dimension, **kwargs):
+        dim_index = self.get_dimension_index(dimension)
+        indices = ensure_list(indices)
+        self._check_indices(indices, dim_index)
+        slices = [slice(None)] * 4
+        slices[dim_index] = indices
+        data = self.data[tuple(slices)]
+        labels_dimensions = deepcopy(self.labels_dimensions)
+        try:
+            labels_dimensions[self.get_dimension_name(dim_index)] = \
+                (numpy.array(labels_dimensions[self.get_dimension_name(dim_index)])[indices]).tolist()
+        except:
+            self.logger.warn("Failed to get labels subset for indices %s of dimension %d!"
+                             % (str(indices), dim_index))
+            labels_dimensions[self.get_dimension_name(dim_index)] = []
+        return self.duplicate(data=data, labels_dimensions=labels_dimensions, **kwargs)
 
-        return self.data[tuple(slice_list)]
+    def slice_data_across_dimension_by_label(self, labels, dimension, **kwargs):
+        dim_index = self.get_dimension_index(dimension)
+        return self.slice_data_across_dimension_by_index(
+                    self._get_index_of_label(labels,
+                                             self.get_dimension_name(dim_index)),
+                    dim_index, **kwargs)
+
+    def slice_data_across_dimension_by_slice(self, slice_arg, dimension, **kwargs):
+        dim_index = self.get_dimension_index(dimension)
+        return self.slice_data_across_dimension_by_index(
+                    self._slice_to_indices(
+                        self._process_slice(slice_arg, dim_index), dim_index),
+                    dim_index, **kwargs)
+
+    def _index_or_label_or_slice(self, inputs):
+        inputs = ensure_list(inputs)
+        if numpy.all([is_integer(inp) for inp in inputs]):
+            return "index"
+        elif numpy.all([isinstance(inp, string_types) for inp in inputs]):
+            return "label"
+        elif numpy.all([isinstance(inp, slice) for inp in inputs]):
+            return "slice"
+        else:
+            raise ValueError("input %s is not of type integer, string or slice!" % str(inputs))
+
+    def slice_data_across_dimension(self, inputs, dimension, **kwargs):
+        dim_index = self.get_dimension_index(dimension)
+        return getattr(self,
+                       "slice_data_across_dimension_by_%s" %
+                       self._index_or_label_or_slice(inputs))(inputs, dim_index, **kwargs)
+
+    def get_data_from_slice(self, slice_tuple, **kwargs):
+        output_data = self.slice_data_across_dimension_by_slice(slice_tuple[0], **kwargs)
+        for this_slice in enumerate(slice_tuple[1:]):
+            output_data = output_data.slice_data_across_dimension_by_slice(this_slice, **kwargs)
+        return output_data
+
+    def get_times_by_index(self, list_of_times_indices, **kwargs):
+        return self.slice_data_across_dimension_by_index(list_of_times_indices, 0, **kwargs)
+
+    def get_times(self, list_of_times, **kwargs):
+        return self.slice_data_across_dimension(list_of_times, 0, **kwargs)
+
+    def get_indices_for_state_variables(self, sv_labels):
+        return self._get_index_of_label(sv_labels, self.get_dimension_name(1))
+
+    def get_state_variables_by_index(self, sv_indices, **kwargs):
+        return self.slice_data_across_dimension_by_index(sv_indices, 1, **kwargs)
+
+    def get_state_variables_by_label(self, sv_labels, **kwargs):
+        return self.slice_data_across_dimension_by_label(sv_labels, 1, **kwargs)
+
+    def get_state_variables_by_slice(self, slice_arg, **kwargs):
+        return self.slice_data_across_dimension_by_slice(slice_arg, 1, **kwargs)
+
+    def get_state_variables(self, sv_inputs, **kwargs):
+        return getattr(self,
+                       "slice_data_across_dimension_by_%s" %
+                       self._index_or_label_or_slice(sv_inputs))(sv_inputs, 1, **kwargs)
+
+    def get_indices_for_labels(self, region_labels):
+        return self._get_index_of_label(region_labels, self.get_dimension_name(2))
+
+    def get_subspace_by_index(self, list_of_index, **kwargs):
+        return self.slice_data_across_dimension_by_index(list_of_index, 2, **kwargs)
+
+    def get_subspace_by_label(self, list_of_labels):
+        return self.slice_data_across_dimension_by_label(list_of_labels, 2, **kwargs)
+
+    def get_subspace_by_slice(self, slice_arg, **kwargs):
+        return self.slice_data_across_dimension_by_slice(slice_arg, 2, **kwargs)
+
+    def get_subspace(self, subspace_inputs, **kwargs):
+        return getattr(self,
+                       "slice_data_across_dimension_by_%s" %
+                       self._index_or_label_or_slice(subspace_inputs))(subspace_inputs, 2, **kwargs)
+
+    # TODO: find out if there is anyway this will not cause bugs, if it is worth the trouble...
+    # def __getattr__(self, attr_name):
+    #     for dim_index in range(4):
+    #         if len(self.labels_ordering) > dim_index and \
+    #         self.labels_ordering[dim_index] in self.labels_dimensions.keys() and \
+    #         attr_name in self.labels_dimensions[self.labels_ordering[dim_index]]:
+    #             return self.slice_data_across_dimension_by_label(attr_name, dim_index)
+    #     self.logger.warn("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
+    #     return None
+
+    def __getitem__(self, slice_tuple):
+        return self.data[self._process_slice_tuple(slice_tuple)]
 
     @property
     def size(self):
@@ -250,13 +400,6 @@ class TimeSeries(TimeSeriesTVB):
     def squeezed(self):
         return numpy.squeeze(self.data)
 
-    def _check_space_indices(self, list_of_index):
-        for index in list_of_index:
-            if index < 0 or index > self.data.shape[2]:
-                self.logger.error("Some of the given indices are out of space range: [0, %s]",
-                                  self.data.shape[2])
-                raise IndexError
-
     def _get_time_unit_for_index(self, time_index):
         return self.start_time + time_index * self.sample_period
 
@@ -318,7 +461,7 @@ class TimeSeriesBrain(TimeSeries):
             self.logger.error("No state variables are defined for this instance!")
             raise ValueError
         if PossibleVariables.SOURCE.value in self.variables_labels:
-            return self.get_state_variable(PossibleVariables.SOURCE.value)
+            return self.get_state_variables_by_label(PossibleVariables.SOURCE.value)
 
     @property
     def brain_labels(self):

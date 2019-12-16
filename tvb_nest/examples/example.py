@@ -14,8 +14,11 @@ from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan
 from tvb_nest.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator
 from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
+    import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder
 from tvb_nest.interfaces.builders.models.generic_2d_oscillator import \
@@ -141,4 +144,4 @@ if __name__ == "__main__":
     main_example(model, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
                  nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
                  tvb_state_variable_type_label="State Variables",
-                 exclusive_nodes=True, noise_strength=0.001, config=CONFIGURED)
+                 exclusive_nodes=True, noise_strength=0.000, config=CONFIGURED)

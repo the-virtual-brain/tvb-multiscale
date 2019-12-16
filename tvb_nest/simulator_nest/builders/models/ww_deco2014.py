@@ -26,17 +26,21 @@ class WWDeco2014Builder(NESTModelBuilder):
         # When any of the properties model, params and scale below depends on regions,
         # set a handle to a function with
         # arguments (region_index=None) returning the corresponding property
+        exc_pop_scale = 1
+        exc_pop_size = int(self.population_order * exc_pop_scale)
         self.populations = [{"label": "E", "model": self.default_population["model"],
                              "nodes": None,  # None means "all"
                              "params": lambda node_index:
-                                          {"w_E_ext": self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)],
-                                           "w_E": self.w_ee, "w_I": self.J_i},
-                             "scale": 1},
+                                          {"w_E_ext": self.tvb_model.G[0] *
+                                                      self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)],
+                                           "w_E": self.w_ee, "w_I": self.J_i, "N_E": exc_pop_size},
+                             "scale": exc_pop_scale},
                             {"label": "I", "model": self.default_population["model"],
                              "nodes": None,  # None means "all"
                              "params": lambda node_index:
-                                          {"w_E_ext": self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)],
-                                           "w_E": 1.0, "w_I": 1.0},
+                                          {"w_E_ext": self.tvb_model.G[0] *
+                                                      self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)],
+                                           "w_E": 1.0, "w_I": 1.0, "N_E": exc_pop_size},
                              "scale": 0.7}
                            ]
 
@@ -48,7 +52,7 @@ class WWDeco2014Builder(NESTModelBuilder):
             {"source": "E", "target": "E",  # E -> E This is a self-connection for population "E"
              "model": self.default_populations_connection["model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.w_ee,  "delay": self.default_populations_connection["delay"],
+             "weight": 1.0,  "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "E", "target": "I",  # E -> I
               "model": self.default_populations_connection["model"],
@@ -58,7 +62,7 @@ class WWDeco2014Builder(NESTModelBuilder):
              {"source": "I", "target": "E",  # I -> E
               "model": self.default_populations_connection["model"],
               "conn_spec": self.default_populations_connection["conn_spec"],
-              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
+              "weight": -1.0, "delay": self.default_populations_connection["delay"],
               "receptor_type": 0, "nodes": None},  # None means "all"
              {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
               "model": self.default_populations_connection["model"],
@@ -102,8 +106,14 @@ class WWDeco2014Builder(NESTModelBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         params['record_from'] = ["V_m",
-                                 "s_AMPA_ext", "s_AMPA_rec", "x_NMDA", "s_NMDA", "s_GABA",
-                                 "I_AMPA_ext", "I_AMPA_rec", "I_NMDA", "I_GABA", "I_L"]
+                                 "s_AMPA", "x_NMDA", "s_NMDA", "s_GABA",
+                                 "I_AMPA", "I_NMDA", "I_GABA", "I_L", "I_e",
+                                 "spikes_exc", "spikes_inh"
+                                 ]
+        for i_node in range(self.number_of_nodes):
+            params['record_from'].append("s_AMPA_ext_%d" % i_node)
+            params['record_from'].append("I_AMPA_ext_%d" % i_node)
+            params['record_from'].append("spikes_exc_ext_%d" % i_node)
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means "all"
 

@@ -25,13 +25,21 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
         sample_period=simulator.integrator.dt)
 
     # Plot time_series
-    plotter.plot_timeseries(source_ts)
+    plotter.plot_timeseries(source_ts, title="Region Time Series")
     plotter.plot_raster(source_ts, title="Region Time Series Raster")
     # # ...interactively as well
     # plotter.plot_timeseries_interactive(source_ts)
 
     if tvb_nest_model is None:
        return
+
+    # Focus on the nodes modelled in NEST:
+    try:
+        source_ts_nest = source_ts.get_subspace(tvb_nest_model.nest_nodes_ids)
+        plotter.plot_timeseries(source_ts_nest, title="NEST nodes Region Time Series")
+        plotter.plot_raster(source_ts_nest, title="NEST nodes Region Time Series Raster")
+    except:
+        pass
 
     # In all the following we assume that all populations are in the same (equal number of) regions,
     # whereas we average across individual neurons
@@ -51,8 +59,8 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
     # Plot spikes and mean field spike rates
     rates, spike_detectors = \
         tvb_nest_model.get_mean_spikes_rates_from_NEST_to_TVBTimeSeries(
-            spikes_kernel_width=simulator.integrator.dt,  # ms
-            spikes_kernel_overlap=0.0, time=t)
+            spikes_kernel_width=1.0,  # ms
+            spikes_kernel_overlap=0.5, time=t)
     if spike_detectors is not None and rates.size > 0:
         plotter.plot_spikes(spike_detectors, rates=rates, title='Population spikes and mean spike rate')
 
@@ -81,7 +89,7 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
     rates = \
         nest_network.compute_spikes_rates(mode="per_neuron", population_devices=None, regions=None,
                                           devices_dim_name="Population", name="Spikes rates from NEST network",
-                                          spikes_kernel_width=1.0, # spikes_kernel_n_intervals=10,
+                                          spikes_kernel_width=1.0,  # spikes_kernel_n_intervals=10,
                                           spikes_kernel_overlap=0.5, min_spike_interval=None, time=t,
                                           spikes_kernel=None)[0]
     if rates.size > 0:

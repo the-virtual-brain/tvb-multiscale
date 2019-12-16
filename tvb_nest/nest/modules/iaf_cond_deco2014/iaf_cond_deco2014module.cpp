@@ -106,6 +106,6 @@ void
 iaf_cond_deco2014module::init( SLIInterpreter* i )
 {
   
-    nest::kernel().model_manager.register_node_model<iaf_cond_deco2014>("iaf_cond_deco2014");
+    nest::kernel().model_manager.register_node_model<nest::iaf_cond_deco2014>("iaf_cond_deco2014");
   
 } // iaf_cond_deco2014module::init()

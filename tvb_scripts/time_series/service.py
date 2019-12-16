@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from copy import deepcopy
 from six import string_types
 from collections import OrderedDict
 from itertools import cycle
@@ -169,47 +169,74 @@ class TimeSeriesService(object):
     def correlation(self, time_series):
         return np.corrcoef(time_series.squeezed.T)
 
-    def _compile_select_fun(self, **kwargs):
-        select_fun = []
-        for dim, lbl in enumerate(["times", "variables", "labels",  "samples"]):
-            index = ensure_list(kwargs.pop(lbl, []))
-            if len(index) > 0:
-                select_fun.append(lambda ts: getattr(ts, "get_subset")(index, dim))
-        return select_fun
+    def mean_across_dimension(self, time_series, dimension_name_or_index, **kwargs):
+        labels_ordering = deepcopy(time_series.labels_ordering)
+        labels_dimensions = deepcopy(time_series.labels_dimensions)
+        if isinstance(dimension_name_or_index, string_types):
+            # dimension_name_or_index == dimension_name
+            dimension_name = dimension_name_or_index
+            dimension_index = labels_ordering.index(dimension_name)
+        else:
+            # dimension_name_or_index == dimension_index
+            dimension_index = dimension_name_or_index
+            dimension_name = time_series.get_dimension_name(dimension_name_or_index)
+        try:
+            del labels_dimensions[dimension_name]
+        except:
+            pass
+        labels_dimensions[dimension_name] = ["Mean"]
+        data = np.expand_dims(time_series.data.min(axis=dimension_index), dimension_index)
+        return time_series.duplicate(data=data,
+                                     labels_ordering=kwargs.pop("labels_ordering", labels_ordering),
+                                     labels_dimensions=kwargs.pop("labels_dimensions", labels_dimensions), **kwargs)
 
-    def select(self, time_series, select_fun=None, **kwargs):
-        if select_fun is None:
-            select_fun = self._compile_select_fun(**kwargs)
-        for fun in select_fun:
+    def _compile_select_funs(self, labels_ordering, **kwargs):
+        select_funs = []
+        for dim, lbl in enumerate(labels_ordering):
+            indices_labels_slices = ensure_list(kwargs.pop(lbl, []))
+            if len(indices_labels_slices) > 0:
+                select_funs.append(lambda ts: getattr(ts, "slice_data_across_dimension")(indices_labels_slices, dim))
+        return select_funs
+
+    def select(self, time_series, select_funs=None, **kwargs):
+        if select_funs is None:
+            select_funs = self._compile_select_funs(time_series.labels_ordering, **kwargs)
+        for fun in select_funs:
             time_series = fun(time_series)
-        return time_series, select_fun
+        return time_series, select_funs
 
     def concatenate(self, time_series_list, dim, **kwargs):
         time_series_list = ensure_list(time_series_list)
         n_ts = len(time_series_list)
         if n_ts > 0:
-            out_time_series, select_fun = self.select(time_series_list[0], **kwargs)
+            out_time_series, select_funs = self.select(time_series_list[0], **kwargs)
             if n_ts > 1:
                 for id, time_series in enumerate(time_series_list[1:]):
                     if np.float32(out_time_series.sample_period) != np.float32(time_series.sample_period):
                         raise_value_error("Timeseries concatenation failed!\n"
-                                          "Timeseries %d have a different time step (%s) \n "
-                                          "than the concatenated ones (%s)!" %
+                                          "Timeseries %d have a different time step %s \n "
+                                          "than the concatenated ones %s!" %
                                           (id, str(np.float32(time_series.sample_period)),
                                            str(np.float32(out_time_series.sample_period))))
                     else:
-                        time_series = self.select(time_series, select_fun)[0]
-                        try:
-                            out_time_series.set_data(np.concatenate([out_time_series.data, time_series.data], axis=dim))
-                            if len(out_time_series.labels_dimensions[out_time_series.labels_ordering[dim]]) > 0:
-                                dim_label = out_time_series.labels_ordering[dim]
+                        time_series = self.select(time_series, select_funs)[0]
+                        # try:
+                        out_time_series.data = np.concatenate([out_time_series.data, time_series.data], axis=dim)
+                        if len(out_time_series.get_dimension_labels(dim)) > 0:
+                            if len(time_series.get_dimension_labels(dim)) > 0:
+                                dim_label = out_time_series.get_dimension_name(dim)
                                 out_time_series.labels_dimensions[dim_label] = \
-                                    np.array(ensure_list(out_time_series.labels_dimensions[dim_label]) +
-                                             ensure_list(time_series.labels_dimensions[dim_label]))
-                        except:
-                            raise_value_error("Timeseries concatenation failed!\n"
-                                              "Timeseries %d have a shape (%s) and the concatenated ones (%s)!" %
-                                              (id, str(out_time_series.shape), str(time_series.shape)))
+                                    np.array(ensure_list(out_time_series.get_dimension_labels(dim)) +
+                                             ensure_list(time_series.get_dimension_labels(dim)))
+                            else:
+                                raise_value_error("TimeSeries to concatenate %s \n "
+                                                  "has no dimension labels across the concatenation axis,\n"
+                                                  "unlike the TimeSeries to be appended to: %s!"
+                                                  % (str(time_series), str(out_time_series)))
+                        # except:
+                        #     raise_value_error("Timeseries concatenation failed!\n"
+                        #                       "Timeseries %d have a shape %s and the concatenated ones %s!" %
+                        #                       (id, str(out_time_series.shape), str(time_series.shape)))
                 return out_time_series
             else:
                 return out_time_series
@@ -226,6 +253,9 @@ class TimeSeriesService(object):
         return self.concatenate(time_series_list, 2, **kwargs)
 
     def concatenate_samples(self, time_series_list, **kwargs):
+        return self.concatenate(time_series_list, 3, **kwargs)
+
+    def concatenate_modes(self, time_series_list, **kwargs):
         return self.concatenate(time_series_list, 3, **kwargs)
 
     def select_by_metric(self, time_series, metric, metric_th=None, metric_percentile=None, nvals=None):
@@ -274,7 +304,7 @@ class TimeSeriesService(object):
         for ir, roi in rois:
             if not (isinstance(roi, string_types)):
                 rois[ir] = all_labels[roi]
-        return time_series.get_subspace_by_labels(rois), rois
+        return time_series.get_subspace_by_label(rois), rois
 
     def compute_seeg(self, source_time_series, sensors, projection=None, sum_mode="lin", **kwargs):
         if np.all(sum_mode == "exp"):
