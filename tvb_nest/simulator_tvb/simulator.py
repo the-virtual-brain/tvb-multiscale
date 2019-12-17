@@ -62,7 +62,7 @@ LOG = initialize_logger(__name__)
 class Simulator(SimulatorTVB):
 
     tvb_nest_interface = None
-    simulate_nest = None
+    run_spiking_simulator = None
 
     model = Attr(
         field_type=models.Model,
@@ -307,11 +307,11 @@ class Simulator(SimulatorTVB):
         # TODO: Figure out a better solution of nest.Simulate() against nest.Run()!
         # If we need to re-initialize a NEST device at each time step,
         # we need to use nest.Simulate()
-        self.simulate_nest = self.tvb_nest_interface.nest_instance.Run
-        for tvb_to_nest_interface in self.tvb_nest_interface.tvb_to_nest_interfaces:
-            if not isinstance(tvb_to_nest_interface, TVBNESTParameterInterface):
-                self.simulate_nest = self.tvb_nest_interface.nest_instance.Simulate
-                break
+        self.run_spiking_simulator = self.tvb_nest_interface.nest_instance.Run
+        # for tvb_to_nest_interface in self.tvb_nest_interface.tvb_to_nest_interfaces:
+        #     if not isinstance(tvb_to_nest_interface, TVBNESTParameterInterface):
+        #         self.run_spiking_simulator = self.tvb_nest_interface.nest_instance.Simulate
+        #         break
 
         # If there are NEST nodes and are represented exclusively in NEST...
         if self.tvb_nest_interface.exclusive_nodes and len(self.tvb_nest_interface.nest_nodes_ids) > 0:
@@ -402,7 +402,7 @@ class Simulator(SimulatorTVB):
         self.update_state(state, node_coupling, local_coupling)
 
         # NEST simulation preparation:
-        if self.simulate_nest == self.tvb_nest_interface.nest_instance.Run:
+        if self.run_spiking_simulator == self.tvb_nest_interface.nest_instance.Run:
             self.tvb_nest_interface.nest_instance.Prepare()
 
         # A flag to skip unnecessary steps when NEST does NOT update TVB state
@@ -427,8 +427,10 @@ class Simulator(SimulatorTVB):
             self.model = self.tvb_nest_interface.nest_state_to_tvb_parameter(self.model)
             # Integrate TVB to get the new TVB state
             state = self.integrator.scheme(state, self.model.dfun, node_coupling, local_coupling, stimulus)
+            if numpy.any(numpy.isnan(state)) or numpy.any(numpy.isinf(state)):
+                raise ValueError("NaN or Inf values detected in simulator state!:\n%s" % str(state))
             # Integrate NEST to get the new NEST state
-            self.simulate_nest(self.integrator.dt)
+            self.run_spiking_simulator(self.integrator.dt)
             if updateTVBstateFromNEST:
                 # NEST state -> TVB state
                 # Update the new TVB state variable with the new NEST state,
