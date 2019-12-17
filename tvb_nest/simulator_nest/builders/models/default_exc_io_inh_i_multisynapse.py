@@ -1,30 +1,49 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
 
 
-class DefaultExcIOInhIBuilder(NESTModelBuilder):
+class DefaultExcIOInhIMultisynapseBuilder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  **kwargs):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+        config.nest.DEFAULT_MODEL = "aeif_cond_beta_multisynapse"
+        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
         self.scale_e = kwargs.get("scale_e", 1)
         self.scale_i = kwargs.get("scale_i", 1)
         self.w_ee = kwargs.get("w_ee", 1.0)
         self.w_ei = kwargs.get("w_ei", 1.0)
         self.w_ie = kwargs.get("w_ie", -1.0)
         self.w_ii = kwargs.get("w_ii", -1.0)
+        self.E_ex = kwargs.get("E_ex", 0.0)
+        self.E_in = kwargs.get("E_ex", -85.0)
+        self.tau_rise_ex = kwargs.get("tau_rise_ex", 0.2)
+        self.tau_rise_in = kwargs.get("tau_rise_in", 2.0)
+        self.tau_decay_ex = kwargs.get("tau_decay_ex", 0.2)
+        self.tau_decay_in = kwargs.get("tau_decay_in", 2.0)
+        self.tau_decay_ex_ext = kwargs.get("tau_decay_ex", 2.0)
 
         # Common order of neurons' number per population:
         self.population_order = 100
 
+        E_rev = np.array([self.E_ex] +  # exc local spikes
+                         [self.E_in] +  # inh local spikes
+                         self.number_of_nodes * [self.E_ex])  # ext, exc spikes
+        tau_rise = np.array([self.tau_rise_ex] +  # exc spikes (AMPA,rec, NMDA)
+                            [self.tau_rise_in] +  # inh spikes (GABA)
+                            self.number_of_nodes * [self.tau_rise_ex])  # ext, exc spikes (AMPA,ext)
+        tau_decay = np.array([self.tau_decay_ex] +  # exc spikes (AMPA,rec, NMDA)
+                             [self.tau_decay_in] +  # inh spikes (GABA)
+                             self.number_of_nodes * [self.tau_decay_ex_ext])  # ext, exc spikes (AMPA,ext)
+        params = {"E_rev": E_rev, "tau_rise": tau_rise, "tau_decay": tau_decay}
         # Populations' configurations
         self.populations = [{"label": "E", "model": self.default_population["model"],
-                             "params": {}, "scale": self.scale_e,  "nodes": None},  # None means "all"
+                             "params": params, "scale": self.scale_e,  "nodes": None},  # None means "all"
                             {"label": "I", "model": self.default_population["model"],
-                             "params": {}, "scale": self.scale_i, "nodes": None}  # None means "all"
+                             "params": params, "scale": self.scale_i, "nodes": None}  # None means "all"
                             ]
 
         # Within region-node connections
@@ -32,27 +51,27 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
              "model": self.default_populations_connection["model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.w_ee,
+             "weight": np.abs(self.w_ee),
              "delay": self.default_populations_connection["delay"],
-             "receptor_type": 0, "nodes": None},  # None means "all"
+             "receptor_type": 1, "nodes": None},  # None means "all"
              {"source": "E", "target": "I",  # E -> I
               "model": self.default_populations_connection["model"],
               "conn_spec": self.default_populations_connection["conn_spec"],
-              "weight": self.w_ei,
+              "weight": np.abs(self.w_ei),
               "delay": self.default_populations_connection["delay"],
-              "receptor_type": 0, "nodes": None},  # None means "all"
+              "receptor_type": 1, "nodes": None},  # None means "all"
              {"source": "I", "target": "E",  # I -> E
               "model": self.default_populations_connection["model"],
               "conn_spec": self.default_populations_connection["conn_spec"],
-              "weight": self.w_ie,
+              "weight": np.abs(self.w_ie),
               "delay": self.default_populations_connection["delay"],
-              "receptor_type": 0, "nodes": None},  # None means "all"
+              "receptor_type": 2, "nodes": None},  # None means "all"
              {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
               "model": self.default_populations_connection["model"],
               "conn_spec": self.default_populations_connection["conn_spec"],
-              "weight": self.w_ii,
+              "weight":np.abs(self.w_ii),
               "delay": self.default_populations_connection["delay"],
-              "receptor_type": 0, "nodes": None},  # None means "all"
+              "receptor_type": 2, "nodes": None},  # None means "all"
              ]
 
         # Among/Between region-node connections
@@ -66,7 +85,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
               "weight": 1.0,  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               # Each region emits spikes in its own port:
-              "receptor_type": 0,  "source_nodes": None, "target_nodes": None}  # None means "all"
+              "receptor_type": lambda source_region_index, target_region_index=None: int(source_region_index+3),
+             "source_nodes": None, "target_nodes": None}  # None means "all"
                                  ]
 
         # Creating  devices to be able to observe NEST activity:

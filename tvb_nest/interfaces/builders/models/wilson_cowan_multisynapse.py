@@ -6,7 +6,7 @@ from tvb_nest.interfaces.models import WilsonCowan
 from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan as TVBWilsonCowan
 
 
-class WilsonCowanBuilder(TVBNESTInterfaceBuilder):
+class WilsonCowanMultisynapseBuilder(TVBNESTInterfaceBuilder):
     tvb_model = TVBWilsonCowan()
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
@@ -18,10 +18,10 @@ class WilsonCowanBuilder(TVBNESTInterfaceBuilder):
             tvb_to_nest_interfaces = [{"model": "poisson_generator", "params": {},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": 1.0,  # Applied outside NEST for each interface device
-                                        "weights": 1000.0,  # To multiply TVB connectivity weight
+                                        "weights": 1.0,  # To multiply TVB connectivity weight
     #                                 To add to TVB connectivity delay:
                                         "delays": nest_network.nodes_min_delay,
-                                        "receptor_types": 0,
+                                        "receptor_types": lambda tvb_node_id, nest_node_id: int(tvb_node_id + 3),
     # ----------------------------------------------------------------------------------------------------------------
     #                                        TVB sv or param -> NEST population
                                         "connections": {"E": ["E", "I"]},
@@ -43,7 +43,7 @@ class WilsonCowanBuilder(TVBNESTInterfaceBuilder):
     # ------------------------------------------------------------------------------------------------------------------
                   "connections": connections, "nodes": None}]  # None means all here
 
-        super(WilsonCowanBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
+        super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                  tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         # WilsonCowan model state variables are bounded in [0, 1],
         # and have to be converted in Hz as poisson_generator assumes in NEST:
@@ -58,4 +58,4 @@ class WilsonCowanBuilder(TVBNESTInterfaceBuilder):
     def build_interface(self, tvb_nest_interface=None):
         if not isinstance(tvb_nest_interface, WilsonCowan):
             tvb_nest_interface = WilsonCowan()
-        return super(WilsonCowanBuilder, self).build_interface(tvb_nest_interface)
+        return super(WilsonCowanMultisynapseBuilder, self).build_interface(tvb_nest_interface)

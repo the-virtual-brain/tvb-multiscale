@@ -81,8 +81,16 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
         self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1.0
-        # given WongWang model parameter r is in Hz but dt is in ms:
-        self.w_spikes_to_tvb = 1000.0
+        # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+        # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
+        # as long as a neuron cannot fire twice during a TVB time step, i.e.,
+        # as long as the TVB time step (usually 0.001 to 0.1 ms)
+        # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
+        # For conversion to a rate, one has to do:
+        # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
+        # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
+        # given WongWang model parameter r is in Hz but tvb dt is in ms:
+        self.w_spikes_to_tvb = 1000.0 / self.tvb_dt
 
     def build_interface(self, tvb_nest_interface=None):
         if not isinstance(tvb_nest_interface, RedWWexcIOinhI):
