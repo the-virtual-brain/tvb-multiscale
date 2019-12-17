@@ -39,7 +39,7 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
     #                                    "connections": {"S_e": ["E", "I"]},
     #                                    "source_nodes": None, "target_nodes": None}]  # None means all here
 
-    # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
+    # For spike transmission from TVB to NEST devices as TVB proxy nodes with TVB delays:
     # Options:
     # "model": "poisson_generator", "params": {"allow_offgrid_times": False}
     # For spike trains with correlation probability p_copy set:
@@ -47,8 +47,9 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
     # An alternative option to poisson_generator is:
     # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
             interface_weight_fun = lambda tvb_node_id=None, nest_node_id=None: \
-                100 * np.maximum(1.0, tvb_simulator.model.G[0] * (1.0 + 0.3 * np.random.normal()))
-            tvb_to_nest_interfaces = [{"model": "poisson_generator", "params": {},
+                200 * np.maximum(1.0, tvb_simulator.model.G[0] * (1.0 + 0.3 * np.random.normal()))
+            tvb_to_nest_interfaces = [{"model": "inhomogeneous_poisson_generator",
+                                       "params": {"allow_offgrid_times": False},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": 1.0,  # Applied outside NEST for each interface device
                                         "weights": interface_weight_fun,  # To multiply TVB connectivity weight

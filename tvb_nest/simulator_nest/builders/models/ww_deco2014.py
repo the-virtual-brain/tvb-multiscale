@@ -127,7 +127,7 @@ class WWDeco2014Builder(NESTModelBuilder):
             {"source": "E", "target": ["E", "I"],
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": 100.0,  # weight scaling the TVB connectivity weight
+             "weight": 1000.0,  # weight scaling the TVB connectivity weight
              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
              # Each region emits spikes in its own port:
              "receptor_type": lambda source_region_index, target_region_index=None: int(source_region_index + 1),
