@@ -304,14 +304,7 @@ class Simulator(SimulatorTVB):
                               "is not greater than NEST minimum delay min_delay=%f!" %
                               (self.integrator.dt, nest_min_delay))
 
-        # TODO: Figure out a better solution of nest.Simulate() against nest.Run()!
-        # If we need to re-initialize a NEST device at each time step,
-        # we need to use nest.Simulate()
         self.run_spiking_simulator = self.tvb_nest_interface.nest_instance.Run
-        # for tvb_to_nest_interface in self.tvb_nest_interface.tvb_to_nest_interfaces:
-        #     if not isinstance(tvb_to_nest_interface, TVBNESTParameterInterface):
-        #         self.run_spiking_simulator = self.tvb_nest_interface.nest_instance.Simulate
-        #         break
 
         # If there are NEST nodes and are represented exclusively in NEST...
         if self.tvb_nest_interface.exclusive_nodes and len(self.tvb_nest_interface.nest_nodes_ids) > 0:
@@ -402,8 +395,7 @@ class Simulator(SimulatorTVB):
         self.update_state(state, node_coupling, local_coupling)
 
         # NEST simulation preparation:
-        if self.run_spiking_simulator == self.tvb_nest_interface.nest_instance.Run:
-            self.tvb_nest_interface.nest_instance.Prepare()
+        self.tvb_nest_interface.nest_instance.Prepare()
 
         # A flag to skip unnecessary steps when NEST does NOT update TVB state
         updateTVBstateFromNEST = len(self.tvb_nest_interface.nest_to_tvb_sv_interfaces_ids) > 0
