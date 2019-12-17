@@ -73,7 +73,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         self.populations_connections = [
             {"source": "E", "target": "E",  # E -> E This is a self-connection for population "E"
              "model": self.default_populations_connection["model"],
-             "conn_spec": self.default_populations_connection["delay"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.tvb_model.w_p[0],
              "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
