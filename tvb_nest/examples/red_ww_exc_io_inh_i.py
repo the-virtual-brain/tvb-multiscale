@@ -236,9 +236,9 @@ if __name__ == "__main__":
     results = simulator.run(simulation_length=100.0)
     # Integrate NEST one more NEST time step so that multimeters get the last time point
     # unless you plan to continue simulation later
-    simulator.simulate_nest(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    simulator.run_spiking_simulator(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
     # Clean-up NEST simulation
-    if simulator.simulate_nest == simulator.tvb_nest_interface.nest_instance.Run:
+    if simulator.run_spiking_simulator == simulator.tvb_nest_interface.nest_instance.Run:
         simulator.tvb_nest_interface.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
