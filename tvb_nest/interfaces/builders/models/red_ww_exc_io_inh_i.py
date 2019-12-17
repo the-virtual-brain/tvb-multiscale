@@ -15,23 +15,19 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
 
         if tvb_to_nest_interfaces is None:
     # # For directly setting an external current parameter in NEST neurons instantaneously:
-    #         interface_weight_fun = lambda nest_node_id=None: \
-    #                                       np.maximum(1.0, 1.0 + 0.3*np.random.normal())
     #         tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-    #                                    "interface_weights": interface_weight_fun(),
+    #                                    "interface_weights": 1.0,
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                               TVB sv -> NEST population
     #                                    "connections": {"S_e": ["E", "I"]},
     #                                    "nodes": None}]  # None means all here
 
     # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
-    #         interface_weight_fun = lambda tvb_node_id=None, nest_node_id=None: \
-    #             20 * np.maximum(1.0, tvb_simulator.model.G[0] * (1.0 + 0.3 * np.random.normal()))
     #         tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     #                                    "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    #                                    "weights": interface_weight_fun(),  # To multiply TVB connectivity weight
+    #                                    "weights": 20 * tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
     # #                                 To add to TVB connectivity delay:
     # #                                   "delays": nest_network.nodes_min_delay,
     # # ----------------------------------------------------------------------------------------------------------------
@@ -46,13 +42,11 @@ class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
     # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
     # An alternative option to poisson_generator is:
     # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
-            interface_weight_fun = lambda tvb_node_id=None, nest_node_id=None: \
-                200 * np.maximum(1.0, tvb_simulator.model.G[0] * (1.0 + 0.3 * np.random.normal()))
             tvb_to_nest_interfaces = [{"model": "inhomogeneous_poisson_generator",
                                        "params": {"allow_offgrid_times": False},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": 1.0,  # Applied outside NEST for each interface device
-                                        "weights": interface_weight_fun,  # To multiply TVB connectivity weight
+                                        "weights": 100 * tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
     #                                 To add to TVB connectivity delay:
                                         "delays": nest_network.nodes_min_delay,
                                         "receptor_types": 0,
