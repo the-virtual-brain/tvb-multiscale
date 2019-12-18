@@ -34,7 +34,7 @@ def prepare_launch_default_simulation():
     connectivity, results = \
         main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
                      nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
-                     tvb_state_variable_type_label="Synaptic Gating Variable", tvb_state_variables_labels=["S_e", "S_i"],
+                     tvb_state_variable_type_label="Synaptic Gating Variable", delays=True, dt=0.1,
                       exclusive_nodes=True, config=config)
 
     return connectivity.weights, connectivity.tract_lengths, results[0][1]
