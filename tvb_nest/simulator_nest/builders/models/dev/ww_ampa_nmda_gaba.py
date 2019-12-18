@@ -24,7 +24,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
                                    {"tau_syn": 10.0}]  # decay synaptic time for GABA has to change
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
         # Populations' configurations
         self.populations = [{"label": "AMPA", "model": "iaf_cond_ampa_gaba_deco2014",
                              "scale": 1, "params": {}, "nodes": None},  # None means "all"

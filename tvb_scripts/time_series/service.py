@@ -169,7 +169,7 @@ class TimeSeriesService(object):
     def correlation(self, time_series):
         return np.corrcoef(time_series.squeezed.T)
 
-    def mean_across_dimension(self, time_series, dimension_name_or_index, **kwargs):
+    def compute_across_dimension(self, time_series, dimension_name_or_index, fun, fun_name, **kwargs):
         labels_ordering = deepcopy(time_series.labels_ordering)
         labels_dimensions = deepcopy(time_series.labels_dimensions)
         if isinstance(dimension_name_or_index, string_types):
@@ -184,11 +184,23 @@ class TimeSeriesService(object):
             del labels_dimensions[dimension_name]
         except:
             pass
-        labels_dimensions[dimension_name] = ["Mean"]
-        data = np.expand_dims(time_series.data.min(axis=dimension_index), dimension_index)
+        labels_dimensions[dimension_name] = [fun_name]
+        data = np.expand_dims(fun(time_series.data, axis=dimension_index), dimension_index)
         return time_series.duplicate(data=data,
                                      labels_ordering=kwargs.pop("labels_ordering", labels_ordering),
                                      labels_dimensions=kwargs.pop("labels_dimensions", labels_dimensions), **kwargs)
+
+    def mean_across_dimension(self, time_series, dimension_name_or_index, **kwargs):
+        return self.compute_across_dimension(time_series, dimension_name_or_index, np.mean, "Mean", **kwargs)
+
+    def min_across_dimension(self, time_series, dimension_name_or_index, **kwargs):
+        return self.compute_across_dimension(time_series, dimension_name_or_index, np.min, "Minimum", **kwargs)
+
+    def max_across_dimension(self, time_series, dimension_name_or_index, **kwargs):
+        return self.compute_across_dimension(time_series, dimension_name_or_index, np.max, "Maximum", **kwargs)
+
+    def sum_across_dimension(self, time_series, dimension_name_or_index, **kwargs):
+        return self.compute_across_dimension(time_series, dimension_name_or_index, np.sum, "Sum", **kwargs)
 
     def _compile_select_funs(self, labels_ordering, **kwargs):
         select_funs = []

@@ -131,7 +131,7 @@ class TVBNESTInterface(object):
             param_values = getattr(model, interface.name)
             if interface.model in ["spike_detector", "spike_multimeter"]:
                 transform_fun = self.transforms["spikes_to_tvb"]
-                values = interface.population_spikes_number
+                values = interface.population_mean_spikes_number
                 interface.reset  # We need to erase the spikes we have already read and communicated
             elif interface.model == "multimeter":
                 transform_fun = self.transforms["spikes_sv_to_tvb"]
@@ -158,7 +158,7 @@ class TVBNESTInterface(object):
                 #  and by the time step dt, which is already included in the w_nest_spikes_to_tvb_sv scaling.
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
                 transform_fun = self.transforms["spikes_to_tvb"]
-                values = interface.population_spikes_number
+                values = interface.population_mean_spikes_number
                 interface.reset
             elif interface.model == "multimeter":
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.

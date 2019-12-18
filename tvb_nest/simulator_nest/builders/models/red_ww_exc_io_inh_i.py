@@ -34,7 +34,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         super(RedWWExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
 
         # Populations' configurations
         # When any of the properties model, params and scale below depends on regions,
@@ -100,13 +100,11 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         # Given that only the AMPA population of one region-node couples to
         # all populations of another region-node,
         # we need only one connection type
-        nodes_weight_fun = lambda source_nest_node_id=None, target_nest_node_id=None: \
-            100 * np.maximum(1.0, self.tvb_simulator.model.G[0] * (1.0 + 0.1 * np.random.normal()))
         self.nodes_connections = [
             {"source": "E", "target": ["E", "I"],
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": nodes_weight_fun,  # weight scaling the TVB connectivity weight
+             "weight": 100 * self.tvb_simulator.model.G[0],  # weight scaling the TVB connectivity weight
              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
              # Each region emits spikes in its own port:
              "receptor_type": 0,  "source_nodes": None, "target_nodes": None}  # None means "all"

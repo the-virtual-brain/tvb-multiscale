@@ -56,7 +56,7 @@ class RedRateWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
 
         super(RedRateWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                         tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
-        self.w_tvb_to_current *= self.tvb_model.J_N
+        self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
 
     def build_interface(self, tvb_nest_interface=None):
         if not isinstance(tvb_nest_interface, RedWWexcIOinhI):

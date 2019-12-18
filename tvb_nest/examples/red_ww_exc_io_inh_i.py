@@ -61,6 +61,7 @@ if __name__ == "__main__":
     # Using all default parameters for this example
     nest_model_builder = \
         RedWWExcIOInhIBuilder(simulator, nest_nodes_ids, config=config)
+    # Common order of neurons' number per population:
     nest_model_builder.populations_order = 100
 
     # or...
@@ -68,52 +69,88 @@ if __name__ == "__main__":
     # # ----------------------------------------------------------------------------------------------------
     # # ----Uncomment below to modify the builder by changing the default options:--------------------------------------
     # # ----------------------------------------------------------------------------------------------------------------
+    # V_th = -50.0,  # mV
+    # V_reset = -55.0,  # mV
+    # E_L = -70.0,  # mV
+    # # exc neurons (AMPA,rec/ext, NMDA)
+    # C_m_ex = 500.0,  # pF
+    # g_L_ex = 25.0,  # nS
+    # t_ref_ex = 2.0,  # ms
+    # # inh neurons (GABA):
+    # C_m_in = 200.0,  # pF
+    # g_L_in = 20.0,  # nS
+    # t_ref_in = 1.0,  # ms
+    # # exc spikes (AMPA,rec/ext, NMDA):
+    # E_ex = 0.0,  # mV
+    # tau_decay_ex = 100.0,  # maximum(AMPA,rec, NMDA) = maximum(2.0, 100.0) ms
+    # tau_rise_ex = 2.0,  # tau_rise_NMDA = 2.0 ms
+    # # ext, exc spikes(AMPA, ext):
+    # # inh spikes (GABA):
+    # E_in = -70.0,  # mV
+    # tau_decay_in = 10.0,  # tau_GABA = 10.0 ms
+    # tau_rise_in = 1.0  # assuming tau_rise_GABA = 1.0 ms
     #
-    # # Connection weights between the distinct populations:
-    # # Inhibition to excitation feedback inhibition
-    # # that could result from Feedback Inhibition Control
-    # # (see Deco, Ponce-Alvarez et al, J. of Neuroscience, 2014)
-    # nest_model_builder.w_ee = 1.4
-    # nest_model_builder.J_i = 1.0
-    #
-    # # Common order of neurons' number per population:
-    # nest_model_builder.populations_order = 100
     # # Populations' configurations
-    # nest_model_builder.populations = [
-    #     {"label": "E", "model": nest_model_builder.default_population["model"],
-    #      "params": {}, "scale": 1, "nodes": None},  # None means "all"
-    #     {"label": "I", "model": nest_model_builder.default_population["model"],
-    #      "params": {}, "scale": 0.7, "nodes": None}  # None means "all"
-    #                                  ]
+    # # When any of the properties model, params and scale below depends on regions,
+    # # set a handle to a function with
+    # # arguments (region_index=None) returning the corresponding property
+    #
+    # common_params = {
+    #     "V_th": V_th, "V_reset": V_reset, "E_L": E_L,
+    #     "E_ex": E_ex, "E_in": E_in,
+    #     "tau_rise_ex": tau_rise_ex, "tau_rise_in": tau_rise_in,
+    #     "tau_decay_ex": tau_decay_ex, "tau_decay_in": tau_decay_in,
+    # }
+    #
+    # nest_model_builder.params_ex = dict(common_params)
+    # nest_model_builder.params_ex.update({
+    #     "C_m": C_m_ex, "g_L": g_L_ex, "t_ref": t_ref_ex,
+    # })
+    # nest_model_builder.params_in = dict(common_params)
+    # nest_model_builder.params_in.update({
+    #     "C_m": C_m_in, "g_L": g_L_in, "t_ref": t_ref_in,
+    # })
+    # nest_model_builder.populations = \
+    #     [{"label": "E", "model": nest_model_builder.default_population["model"],
+    #       "nodes": None,  # None means "all"
+    #        "params": nest_model_builder.params_ex,
+    #        "scale": 1.0},
+    #       {"label": "I", "model": nest_model_builder.default_population["model"],
+    #        "nodes": None,  # None means "all"
+    #        "params": nest_model_builder.params_in,
+    #        "scale": 0.7}
+    #     ]
     #
     # # Within region-node connections
+    # # When any of the properties model, conn_spec, weight, delay, receptor_type below
+    # # set a handle to a function with
+    # # arguments (region_index=None) returning the corresponding property
     # nest_model_builder.populations_connections = [
-    #     {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
+    #     {"source": "E", "target": "E",  # E -> E This is a self-connection for population "E"
     #      "model": nest_model_builder.default_populations_connection["model"],
-    #      "params": nest_model_builder.default_populations_connection["params"],
-    #      "weight": nest_model_builder.w_ee,
+    #      "conn_spec": nest_model_builder.default_populations_connection["conn_spec"],
+    #      "weight": nest_model_builder.tvb_model.w_p[0],
     #      "delay": nest_model_builder.default_populations_connection["delay"],
     #      "receptor_type": 0, "nodes": None},  # None means "all"
     #     {"source": "E", "target": "I",  # E -> I
     #      "model": nest_model_builder.default_populations_connection["model"],
-    #      "params": nest_model_builder.default_populations_connection["params"],
+    #      "conn_spec": nest_model_builder.default_populations_connection["conn_spec"],
     #      "weight": 1.0,
     #      "delay": nest_model_builder.default_populations_connection["delay"],
     #      "receptor_type": 0, "nodes": None},  # None means "all"
     #     {"source": "I", "target": "E",  # I -> E
     #      "model": nest_model_builder.default_populations_connection["model"],
-    #      "params": nest_model_builder.default_populations_connection["params"],
-    #      "weight": -nest_model_builder.J_i,
+    #      "conn_spec": nest_model_builder.default_populations_connection["conn_spec"],
+    #      "weight": -nest_model_builder.tvb_model.J_i[0],
     #      "delay": nest_model_builder.default_populations_connection["delay"],
     #      "receptor_type": 0, "nodes": None},  # None means "all"
-    #     {"source": "I", "target": "I",  # I -> I This is a nmbd-connection for population "I"
+    #     {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
     #      "model": nest_model_builder.default_populations_connection["model"],
-    #      "params": nest_model_builder.default_populations_connection["params"],
+    #      "conn_spec": nest_model_builder.default_populations_connection["conn_spec"],
     #      "weight": -1.0,
     #      "delay": nest_model_builder.default_populations_connection["delay"],
-    #      "receptor_type": 0, "nodes": None},  # None means "all"
-    #                                             ]
-    #
+    #      "receptor_type": 0, "nodes": None}  # None means "all"
+    # ]
     # # Among/Between region-node connections
     # # Given that only the AMPA population of one region-node couples to
     # # all populations of another region-node,
@@ -121,13 +158,12 @@ if __name__ == "__main__":
     # nest_model_builder.nodes_connections = [
     #     {"source": "E", "target": ["E", "I"],
     #      "model": nest_model_builder.default_nodes_connection["model"],
-    #      "params": nest_model_builder.default_nodes_connection["params"],
-    #      "weight": 1.0,  # weight scaling the TVB connectivity weight
-    #      # additional delay to the one of TVB connectivity:
-    #      "delay": nest_model_builder.default_nodes_connection["delay"],
+    #      "conn_spec": nest_model_builder.default_nodes_connection["conn_spec"],
+    #      "weight": 100 * nest_model_builder.tvb_simulator.model.G[0],  # weight scaling the TVB connectivity weight
+    #      "delay": nest_model_builder.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
     #      # Each region emits spikes in its own port:
     #      "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
-    #                                         ]
+    # ]
     #
     # # Creating  devices to be able to observe NEST activity:
     # # Labels have to be different
@@ -136,17 +172,15 @@ if __name__ == "__main__":
     # #          label <- target population
     # connections["E"] = "E"
     # connections["I"] = "I"
-    # nest_model_builder.output_devices.append(
-    #     {"model": "spike_detector", "params": {},
-    #      "connections": connections, "nodes": None})  # None means all here
+    # nest_model_builder.output_devices.append({"model": "spike_detector", "params": {},
+    #                                           "connections": connections, "nodes": None})  # None means all here
     # connections = OrderedDict({})
     # connections["Excitatory"] = "E"
     # connections["Inhibitory"] = "I"
     # params = dict(nest_model_builder.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
     # params["interval"] = nest_model_builder.monitor_period
-    # nest_model_builder.output_devices.append(
-    #     {"model": "multimeter", "params": params,
-    #      "connections": connections, "nodes": None})  # None means all here
+    # nest_model_builder.output_devices.append({"model": "multimeter", "params": params,
+    #                                           "connections": connections, "nodes": None})  # None means all here
     #
     # # ----------------------------------------------------------------------------------------------------------------
     # # ----------------------------------------------------------------------------------------------------------------
@@ -168,62 +202,79 @@ if __name__ == "__main__":
     # # ----Uncomment below to modify the builder by changing the default options:--------------------------------------
     # # ----------------------------------------------------------------------------------------------------------------
 
-    # # TVB -> NEST:
-    # # ------------Modifications to the default options of the builder---------------
-
     # # For directly setting an external current parameter in NEST neurons instantaneously:
     # tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-    #                                             "interface_weights": 1.0,
+    #                                    "interface_weights": 1.0,
     # # ----------------------------------------------------------------------------------------------------------------
-    # #                                                 TVB state var -> NEST population
-    #                                             "connections": {"S_e": ["E", "I"]},
-    #                                             "nodes": None}]  # None means all here
-
+    # #                                               TVB sv -> NEST population
+    #                                    "connections": {"S_e": ["E", "I"]},
+    #                                    "nodes": None}]  # None means all here
+    #
     # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
+    # tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
+    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    #                                    "interface_weights": 1.0,  # Applied outside NEST for each interface device
+    #                                    "weights": 20 * tvb_nest_builder.tvb_model.G[0],  # To multiply TVB connectivity weight
+    # #                                 To add to TVB connectivity delay:
+    # #                                   "delays": nest_network.nodes_min_delay,
+    # # ----------------------------------------------------------------------------------------------------------------
+    # #                                                 TVB sv -> NEST population
+    #                                    "connections": {"S_e": ["E", "I"]},
+    #                                    "source_nodes": None, "target_nodes": None}]  # None means all here
+
+    # # For spike transmission from TVB to NEST devices acting as TVB proxy nodes with TVB delays:
+    # # Options:
+    # # "model": "poisson_generator", "params": {"allow_offgrid_times": False}
+    # # For spike trains with correlation probability p_copy set:
+    # # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
+    # # An alternative option to poisson_generator is:
+    # # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
     # tvb_nest_builder.tvb_to_nest_interfaces =
-    #     [{"model": "dc_generator", "params": {},
-    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-    #       "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    #       "weights": 1.0,  # To multiply TVB connectivity weight
-    # #             To add to TVB connectivity delay:
-    #       "delays": nest_network.nodes_min_delay,
+    #                           [{"model": "inhomogeneous_poisson_generator",
+    #                             "params": {"allow_offgrid_times": False},
+    #                            # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    #                            "interface_weights": 1.0,  # Applied outside NEST for each interface device
+    #                            "weights": 100 * tvb_nest_builder.tvb_model.G[0],  # To multiply TVB connectivity weight
+    #                            #                                 To add to TVB connectivity delay:
+    #                            "delays": nest_network.nodes_min_delay,
+    #                            "receptor_types": 0,
+    #                            # ----------------------------------------------------------------------------------------------------------------
+    #                            #                                        TVB sv or param -> NEST population
+    #                            "connections": {"R_e": ["E", "I"]},
+    #                            "source_nodes": None, "target_nodes": None}]  # None means all here
+    #
+    # # NEST -> TVB:
+    # # Use S_e and S_i instead of r_e and r_i
+    # # for transmitting to the TVB state variables directly
+    # connections = OrderedDict()
+    # #            TVB <- NEST
+    # connections["R_e"] = ["E"]
+    # connections["R_i"] = ["I"]
+    # nest_to_tvb_interfaces = \
+    #     [{"model": "spike_detector", "params": {},
+    #       # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
+    #       "weights": 1.0, "delays": 0.0,
+    #       # ------------------------------------------------------------------------------------------------------------------
+    #       "connections": connections, "nodes": None}]  # None means all here
+    #
+    # tvb_nest_builder.w_tvb_to_current = 1000 * tvb_nest_builder.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
+    # # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
+    # tvb_nest_builder.w_tvb_to_spike_rate = 1.0
+    # # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+    # # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
+    # # as long as a neuron cannot fire twice during a TVB time step, i.e.,
+    # # as long as the TVB time step (usually 0.001 to 0.1 ms)
+    # # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
+    # # For conversion to a rate, one has to do:
+    # # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
+    # # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
+    # # given WongWang model parameter r is in Hz but tvb dt is in ms:
+    # tvb_nest_builder.w_spikes_to_tvb = 1000.0 / tvb_nest_builder.tvb_dt
+    #
     # # ----------------------------------------------------------------------------------------------------------------
-    # #             TVB state var -> NEST population
-    #       "connections": {"S_e": ["E", "I"]},
-    #       "source_nodes": None, "target_nodes": None}]  # None means all here
-
-    #  # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
-    # tvb_nest_builder.tvb_to_nest_interfaces = \
-    #      [{"model": "poisson_generator", "params": {},
-    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-    #        "interface_weights": 100.0,  # Applied outside NEST for each interface device
-    #        "weights": 1.0,  # To multiply TVB connectivity weight
-    # #          To add to TVB connectivity delay:
-    #        "delays": nest_network.nodes_min_delay,
-    #        "receptor_types": 0,
     # # ----------------------------------------------------------------------------------------------------------------
-    # #    TVB state var or param -> NEST population
-    #        "connections": {"r_o": ["E", "I"]},
-    #        "source_nodes": None, "target_nodes": None}]  # None means all here
-
-    # NEST -> TVB:
-    # Use S_e and S_i instead of r_e and r_i
-    # for transmitting to the TVB state variables directly
-    connections = OrderedDict()
-    #            TVB <- NEST
-    connections["R_e"] = ["E"]
-    connections["R_i"] = ["I"]
-    tvb_nest_builder.nest_to_tvb_interfaces = \
-        [{"model": "spike_detector", "params": {},
-    # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
-          "weights": 1.0, "delays": 0.0,
-    # ------------------------------------------------------------------------------------------------------------------
-          "connections": connections, "nodes": None}]  # None means all here
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # ----------------------------------------------------------------------------------------------------------------
-    # ----------------------------------------------------------------------------------------------------------------
+    # # ----------------------------------------------------------------------------------------------------------------
 
     tvb_nest_model = tvb_nest_builder.build_interface()
 
@@ -236,9 +287,9 @@ if __name__ == "__main__":
     results = simulator.run(simulation_length=100.0)
     # Integrate NEST one more NEST time step so that multimeters get the last time point
     # unless you plan to continue simulation later
-    simulator.simulate_nest(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    simulator.run_spiking_simulator(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
     # Clean-up NEST simulation
-    if simulator.simulate_nest == simulator.tvb_nest_interface.nest_instance.Run:
+    if simulator.run_spiking_simulator == simulator.tvb_nest_interface.nest_instance.Run:
         simulator.tvb_nest_interface.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 

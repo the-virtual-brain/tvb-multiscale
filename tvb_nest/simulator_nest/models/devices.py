@@ -8,7 +8,8 @@ import numpy as np
 
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error, warning
 from tvb_scripts.utils.data_structures_utils \
-    import ensure_list, flatten_list, sort_events_by_x_and_y, data_xarray_from_continuous_events
+    import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
+    sort_events_by_x_and_y, data_xarray_from_continuous_events
 from tvb_scripts.utils.computations_utils import spikes_rate_convolution
 
 
@@ -138,8 +139,11 @@ class NESTDevice(object):
     #             raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
     #     self.number_of_connections = len(neurons)
 
-    def GetStatus(self, attr):
-        return self.nest_instance.GetStatus(self.device, attr)[0]
+    def GetStatus(self, attr=None):
+        if attr is None:
+            return self.nest_instance.GetStatus(self.device)[0]
+        else:
+            return self.nest_instance.GetStatus(self.device, attr)[0]
 
     def SetStatus(self, values_dict):
         self.nest_instance.SetStatus(self.device, values_dict)
@@ -898,13 +902,20 @@ class NESTDeviceSet(pd.Series):
         super(NESTDeviceSet, self).update(*args, **kwargs)
         self.update_model()
 
-    def GetStatus(self, attrs, nodes=None, return_type="dict", name=None):
-        values_dict = OrderedDict({})
-        for attr in ensure_list(attrs):
-            this_attr = []
+    def GetStatus(self, attrs=None, nodes=None, return_type="dict", name=None):
+        if attrs is None:
+            # Get dictionary of all attributes
+            values_dict = []
             for node in self._input_nodes(nodes):
-                this_attr.append(self[node].GetStatus[attr])
-            values_dict.update({attr: this_attr})
+                values_dict.append(self[node].GetStatus())
+            values_dict = list_of_dicts_to_dict_of_lists(values_dict)
+        else:
+            values_dict = OrderedDict({})
+            for attr in ensure_list(attrs):
+                this_attr = []
+                for node in self._input_nodes(nodes):
+                    this_attr.append(self[node].GetStatus(attr))
+                values_dict.update({attr: this_attr})
         return self._return_by_type(values_dict, return_type, name)
 
     def SetStatus(self, value_dict, nodes=None):
