@@ -808,7 +808,7 @@ iaf_cond_deco2014::update( Time const& origin,
       B_.spikes_exc_ext[ i ] = B_.spikesExc_ext[ i ].get_value( lag ) ;
 //      if (B_.spikes_exc_ext[ i ] > 0){
 //        std::cout << "\nspikes_exc_ext[" << i << "][" << lag << "]=" << B_.spikes_exc_ext[ i ] << "!";
-      }
+//      }
       S_.y_[ State_::S_AMPA_EXT + i ] += B_.spikes_exc_ext[ i ] ;
     }
     // set new input current
