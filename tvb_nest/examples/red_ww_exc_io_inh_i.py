@@ -187,7 +187,7 @@ if __name__ == "__main__":
     # # ----------------------------------------------------------------------------------------------------------------
 
     nest_network = nest_model_builder.build_nest_network()
-    N_e = int(nest_model_builder.populations[0]["scale"] * nest_model_builder.populations_order)
+    N_e = int(nest_model_builder.populations[0]["scale"] * nest_model_builder.population_order)
 
     # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 

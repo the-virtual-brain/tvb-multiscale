@@ -60,7 +60,7 @@ for id in range(number_of_regions):
 nest_model_builder = \
     RedWWExcIOInhIBuilder(simulator, nest_nodes_ids, config=config)
 # Common order of neurons' number per population:
-nest_model_builder.populations_order = 100
+nest_model_builder.population_order = 100
 
 # or...
 #
@@ -185,7 +185,7 @@ nest_model_builder.populations_order = 100
 # # ----------------------------------------------------------------------------------------------------------------
 
 nest_network = nest_model_builder.build_nest_network()
-N_e = int(nest_model_builder.populations[0]["scale"] * nest_model_builder.populations_order)
+N_e = int(nest_model_builder.populations[0]["scale"] * nest_model_builder.population_order)
 
 # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 

@@ -19,7 +19,7 @@ def weight_fun(tvb_node_id, nest_node_id, tvb_weights):
 class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     tvb_model = ReducedWongWangExcIOInhI()
 
-    def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, N_E, exclusive_nodes=False,
+    def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, N_E=100, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
 
         if tvb_to_nest_interfaces is None:
