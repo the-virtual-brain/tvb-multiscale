@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
+from tvb_nest.interfaces.builders.models.ww_deco2014 import weight_fun
 
 
 class WWDeco2014Builder(NESTModelBuilder):
@@ -74,7 +75,7 @@ class WWDeco2014Builder(NESTModelBuilder):
 
         def param_fun(node_index, params):
             out_params = dict(params)
-            out_params.update({"w_E_ext": 1000 * self.tvb_model.G[0] *
+            out_params.update({"w_E_ext": self.tvb_model.G[0] *
                                                      self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)]})
             return out_params
 
@@ -131,7 +132,8 @@ class WWDeco2014Builder(NESTModelBuilder):
             {"source": "E", "target": ["E", "I"],
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": 1.0,  # weight scaling the TVB connectivity weight
+             #  weight scaling the TVB connectivity weight
+             "weight": lambda tvb_node_id, nest_node_id: weight_fun(tvb_node_id, nest_node_id, self.tvb_weights),
              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
              # Each region emits spikes in its own port:
              "receptor_type": lambda source_region_index, target_region_index=None: int(source_region_index + 1),

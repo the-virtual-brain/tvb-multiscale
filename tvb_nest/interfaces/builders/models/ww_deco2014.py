@@ -7,60 +7,69 @@ from tvb_nest.interfaces.models import RedWWexcIOinhI
 from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
+# We need to "neutralize" TVB connectivity here, i.e., have all connections have a weight equal to 1.0.
+# Therefore:
+def weight_fun(tvb_node_id, nest_node_id, tvb_weights):
+    if tvb_weights[tvb_node_id, nest_node_id] > 0.0:
+        return 1 / tvb_weights[tvb_node_id, nest_node_id]
+    else:
+        return 0.0
+
+
 class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     tvb_model = ReducedWongWangExcIOInhI()
 
-    def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
+    def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, N_E, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
 
         if tvb_to_nest_interfaces is None:
     # # # For directly setting an external current parameter in NEST neurons instantaneously:
     #         self.tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-    #                                         "interface_weights": 1.0,
+    #                                         "interface_weights": 5.0,
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                         TVB sv -> NEST population
     #                                         "connections": {"S_e": ["E", "I"]},
     #                                         "nodes": None}]  # None means all here
 
-    # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
-            interface_weight_fun = lambda tvb_node_id=None, nest_node_id=None: \
-                20 * np.maximum(1.0, tvb_simulator.model.G[0] * (1.0 + 0.3 * np.random.normal()))
-            self.tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
-    # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-                                              "interface_weights": 1.0, # Applied outside NEST for each interface device
-    # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-    #                                           To multiply TVB connectivity weight:
-                                            "weights": 1.0,
-    #                                       To add to TVB connectivity delay:
-                                             "delays": nest_network.nodes_min_delay,
-    # ----------------------------------------------------------------------------------------------------------------
-    #                                                TVB sv -> NEST population
-                                             "connections": {"S_e": ["E", "I"]},
-                                             "source_nodes": None, "target_nodes": None}]  # None means all here
-    #
-    # # For spike transmission from TVB to NEST devices acting as TVB proxy nodes with TVB delays:
-    # # Options:
-    # # "model": "poisson_generator", "params": {"allow_offgrid_times": False}
-    # # For spike trains with correlation probability p_copy set:
-    # # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
-    # # An alternative option to poisson_generator is:
-    # # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
-    #           self.tvb_to_nest_interfaces = [{"model": "inhomogeneous_poisson_generator",
-    #                                           "params": {"allow_offgrid_times": False},
-    # # # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------------------
-    #                                            "interface_weights": 1.0,
-    # # Applied outside NEST for each interface device
+    # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
+    #         self.tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
+    # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
+    # #                               Applied outside NEST for each interface device
+    #                                           "interface_weights": 1.0,
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-      #                                             To multiply TVB connectivity weight:
-    #                                           "weights": 1000*tvb_simulator.model.G[0],
-    # #                                     To add to TVB connectivity delay:
-    #                                           "delays": nest_network.nodes_min_delay,
-    #                                           "receptor_types": lambda tvb_node_id, nest_node_id: int(tvb_node_id + 1),
-    # # --------------------------------------------------------------------------------------------------------------
-    # #                                                 TVB sv -> NEST population
-    #                                           "connections": {"R_e": ["E", "I"]},
-    #                                           "source_nodes": None, "target_nodes": None}]  # None means all here
+    # #                                           To multiply TVB connectivity weight:
+    #                                         "weights": 50 * tvb_simulator.model.G[0],
+    # #                                       To add to TVB connectivity delay:
+    #                                          "delays": nest_network.nodes_min_delay,
+    # # ----------------------------------------------------------------------------------------------------------------
+    # #                                                TVB sv -> NEST population
+    #                                          "connections": {"S_e": ["E", "I"]},
+    #                                          "source_nodes": None, "target_nodes": None}]  # None means all here
+    #
+            # For spike transmission from TVB to NEST devices acting as TVB proxy nodes with TVB delays:
+            # Options:
+            # "model": "poisson_generator", "params": {"allow_offgrid_times": False}
+            # For spike trains with correlation probability p_copy set:
+            # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
+            # An alternative option to poisson_generator is:
+            # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
+            tvb_weights = tvb_simulator.connectivity
+            self.tvb_to_nest_interfaces = [{"model": "inhomogeneous_poisson_generator",
+                                              "params": {"allow_offgrid_times": False},
+    # # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------------------
+                                               "interface_weights": 1.0 * N_E, # The number of excitatory neurons per region
+    # Applied outside NEST for each interface device
+    # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    #                                              To multiply TVB connectivity weight:
+                                              "weights": weight_fun,
+    #                                     To add to TVB connectivity delay:
+                                              "delays": nest_network.nodes_min_delay,
+                                              "receptor_types": lambda tvb_node_id, nest_node_id: int(tvb_node_id + 1),
+    # --------------------------------------------------------------------------------------------------------------
+    #                                                 TVB sv -> NEST population
+                                              "connections": {"R_e": ["E", "I"]},
+                                              "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # The NEST nodes the activity of which is transformed to TVB state variables or parameters
         if nest_to_tvb_interfaces is None:

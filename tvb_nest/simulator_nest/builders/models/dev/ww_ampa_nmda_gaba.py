@@ -99,7 +99,7 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
             [{"source": "AMPA", "target": ["AMPA", "NMDA", "GABA"],
               "model": self.default_nodes_connection["model"],
               "conn_spec": self.default_nodes_connection["conn_spec"],
-              "weight": 1.0,  # weight scaling the TVB connectivity weight
+              "weight": self.tvb_model.G[0],  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               "receptor_type": rcptr_ampa_gaba["SPIKESEXC_AMPA_EXT"]},
              ]
