@@ -185,7 +185,6 @@ nest_model_builder.population_order = 100
 # # ----------------------------------------------------------------------------------------------------------------
 
 nest_network = nest_model_builder.build_nest_network()
-N_e = int(nest_model_builder.populations[0]["scale"] * nest_model_builder.population_order)
 
 # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 
@@ -193,7 +192,7 @@ N_e = int(nest_model_builder.populations[0]["scale"] * nest_model_builder.popula
 # TVB and NEST modelled regions
 # Using all default parameters for this example
 tvb_nest_builder = \
-    RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids, N_e=N_e, exclusive_nodes=True)
+    RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids, N_e=nest_model_builder.population_order, exclusive_nodes=True)
 
 # or...
 
