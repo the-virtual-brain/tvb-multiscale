@@ -63,7 +63,7 @@ class TVBNESTInterfaceBuilder(object):
     # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
     # # tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
     #                              "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    # # --Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None, **kwargs)------
     #                              "weights": 1.0,  # To multiply TVB connectivity weight
     # #                            To add to TVB connectivity delay:
     #                              "delays": self.nodes_min_delay ,
@@ -74,7 +74,7 @@ class TVBNESTInterfaceBuilder(object):
     # #For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
     # tvb_to_nest_interfaces =  [{"model": "poisson_generator", "params": {},
     #                            "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
+    # # --Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None, **kwargs)------
     #                            "weights": 1.0,  # To multiply TVB connectivity weight
     # #                          To add to TVB connectivity delay:
     #                            "delays": self.nodes_min_delay,
