@@ -279,7 +279,15 @@ private:
     std::vector< double >  w_E_ext;
 
     //! Number of excitatory neurons in the population
+    //! Also acting as ceiling for s_AMPA and s_NMDA
     int N_E;
+
+    //! Number of inhibitory neurons in the population
+    //! Also acting as ceiling for s_GABA
+    int N_I;
+
+    //! Ceiling of s_AMPA_ext
+    std::vector< double > s_AMPA_ext_max;
 
     //!
     double alpha;
@@ -494,6 +502,9 @@ private:
     double w_I_g_GABA_A;  // w_I * g_GABA
 
     std::vector< double > w_E_ext_g_AMPA_ext;  // w_E_ext * g_AMPA_ext
+
+    double s_EXC_max;   // maximum boundary of s_AMPA and s_NMDA, to be set equal to N_E
+    double s_INH_max;   // maximum boundary of s_GABA, to be set equal to N_I
 
   };
 

@@ -36,6 +36,8 @@ class WWDeco2014Builder(NESTModelBuilder):
                  # inh spikes (GABA):
                  E_in=-70.0,  # mV
                  tau_decay_GABA=10.0,  # ms
+                 exc_pop_scale=1.0,
+                 inh_pop_scale=1.0,
                  ):
         config.nest.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
@@ -47,30 +49,32 @@ class WWDeco2014Builder(NESTModelBuilder):
         # When any of the properties model, params and scale below depends on regions,
         # set a handle to a function with
         # arguments (region_index=None) returning the corresponding property
-        exc_pop_scale = 1.0
         exc_pop_size = int(self.population_order * exc_pop_scale)
+        inh_pop_size = int(self.population_order * inh_pop_scale)
 
         common_params = {
             "V_th": V_th, "V_reset": V_reset, "E_L": E_L,  "E_ex": E_ex,  "E_in": E_in,
             "tau_decay_AMPA": tau_decay_AMPA, "tau_decay_GABA_A": tau_decay_GABA,
             "tau_decay_NMDA": tau_decay_NMDA, "tau_rise_NMDA": tau_rise_NMDA,
+            "N_E": exc_pop_size, "N_I": inh_pop_size,
+            "s_AMPA_ext_max": exc_pop_size*np.ones((self.number_of_nodes, )).astype("f")
         }
         self.params_ex = dict(common_params)
         self.params_ex.update({
             "C_m": C_m_ex, "g_L": g_L_ex, "t_ref": t_ref_ex,
             "g_AMPA_ext": g_AMPA_ext_ex, "g_AMPA": g_AMPA_rec_ex, "g_NMDA": g_NMDA_ex, "g_GABA_A": g_GABA_ex,
-            "w_E": self.tvb_model.w_p[0], "w_I": self.tvb_model.J_i[0], "N_E": exc_pop_size
+            "w_E": self.tvb_model.w_p[0], "w_I": self.tvb_model.J_i[0]
         })
         self.params_in = dict(common_params)
         self.params_in.update({
             "C_m": C_m_in, "g_L": g_L_in, "t_ref": t_ref_in,
             "g_AMPA_ext": g_AMPA_ext_in, "g_AMPA": g_AMPA_rec_in, "g_NMDA": g_NMDA_in, "g_GABA_A": g_GABA_in,
-            "w_E": 1.0, "w_I": 1.0, "N_E": exc_pop_size
+            "w_E": 1.0, "w_I": 1.0,
         })
 
         def param_fun(node_index, params):
             out_params = dict(params)
-            out_params.update({"w_E_ext": 100 * self.tvb_model.G[0] *
+            out_params.update({"w_E_ext": 1000 * self.tvb_model.G[0] *
                                                      self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)]})
             return out_params
 
@@ -127,7 +131,7 @@ class WWDeco2014Builder(NESTModelBuilder):
             {"source": "E", "target": ["E", "I"],
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": 1000.0,  # weight scaling the TVB connectivity weight
+             "weight": 1.0,  # weight scaling the TVB connectivity weight
              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
              # Each region emits spikes in its own port:
              "receptor_type": lambda source_region_index, target_region_index=None: int(source_region_index + 1),
