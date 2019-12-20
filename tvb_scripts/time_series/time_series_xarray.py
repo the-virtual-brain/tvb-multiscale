@@ -475,6 +475,13 @@ class TimeSeries(HasTraits):
     #     return output
 
     def plot_timeseries(self, **kwargs):
+        if kwargs.pop("per_variable", False):
+            outputs = []
+            figure_name = kwargs.pop("figure_name", "%s time series plot" % self.title)
+            for var in self.labels_dimensions[self.labels_ordering[1]]:
+                kwargs["figure_name"] = figure_name + " - %s" % var
+                outputs.append(self[:, var].plot_timeseries(**kwargs))
+            return outputs
         time, variables, regions, modes, plotter, kwargs = \
             self._prepare_plot_args(**kwargs)
         if self.shape[3] == 1 or variables is None or regions is None or modes is None:
@@ -496,9 +503,18 @@ class TimeSeries(HasTraits):
                 plotter.base._check_show()
             return output
         else:
+            if plotter is not None:
+                kwargs["plotter"] = plotter
             return self.plot_raster(**kwargs)
 
     def plot_raster(self, **kwargs):
+        if kwargs.pop("per_variable", False):
+            outputs = []
+            figure_name = kwargs.pop("figure_name", "%s raster plot" % self.title)
+            for var in self.labels_dimensions[self.labels_ordering[1]]:
+                kwargs["figure_name"] = figure_name + " - %s" % var
+                outputs.append(self[:, var].plot_raster(**kwargs))
+            return outputs
         time, variables, regions, modes, plotter, kwargs = \
             self._prepare_plot_args(**kwargs)
         figure_name = kwargs.pop("figure_name", "%s raster plot" % self.title)

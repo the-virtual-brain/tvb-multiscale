@@ -74,8 +74,8 @@ def plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_lab
 
         ts = TimeSeriesXarray(multimeter_mean_data)
         # ts.plot(plotter=plotter, )
-        ts.plot_timeseries(plotter=plotter)
-        ts.plot_raster(plotter=plotter, linestyle="--", alpha=0.5, linewidth=0.5)
+        ts.plot_timeseries(plotter=plotter, per_variable=True)
+        ts.plot_raster(plotter=plotter, per_variable=True, linestyle="--", alpha=0.5, linewidth=0.5)
         # print(ts[0].shape)
         # print(ts[:, 0].shape)
         # print(ts[:, "V_m"].shape)
