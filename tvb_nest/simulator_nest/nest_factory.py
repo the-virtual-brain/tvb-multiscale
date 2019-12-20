@@ -238,25 +238,23 @@ def _get_connections(device, nest_nodes):
 
 
 def _get_device_props_with_correct_shape(device, shape):
-    dummy = np.ones(shape).astype("i")
-    params = device.get("params", {})
-    if isinstance(params, dict):
-        params = np.tile(params, dummy.shape)
-    else:
-        params = np.array(params)
-        if params.shape != shape:
-            if params.size == 0:
-                params = np.tile(params, shape)
+
+    def _assert_conn_params_shape(p, p_name, shape):
+        if isinstance(p, dict):
+            return np.tile(p, shape)
+        elif not isinstance(p, np.ndarray):
+            p = np.array(p)
+        if np.any(p.shape != shape):
+            if p.size == 1:
+                return np.tile(p, shape)
             else:
-                raise_value_error("Device parameters are neither of shape (n_devices, n_nodes) = %s"
-                                  "nor of size 1:\n%s" % (str(shape), str(params)))
-    weights = device.get("weights", 1.0) * dummy
-    delays = device.get("delays", 0.0) * dummy
-    if device["model"] in NESTInputDeviceDict.keys():
-        receptor_types = device.get("receptor_types", 0) * dummy
-    else:
-        receptor_types = 0 * dummy
-    return params, weights, delays, receptor_types
+                raise_value_error("Device %s are neither of shape (n_devices, n_nodes) = %s"
+                                  "nor of size 1:\n%s" % (p_name, str(shape), str(p)))
+
+    return _assert_conn_params_shape(device.get("params", {}), "params", shape), \
+           _assert_conn_params_shape(device.get("weights", 1.0), "weights", shape), \
+           _assert_conn_params_shape(device.get("delays", 0.0), "delays", shape), \
+           _assert_conn_params_shape(device.get("receptor_types", 0), "receptor_types", shape)
 
 
 def build_and_connect_devices_one_to_one(nest_instance, device, nest_nodes):

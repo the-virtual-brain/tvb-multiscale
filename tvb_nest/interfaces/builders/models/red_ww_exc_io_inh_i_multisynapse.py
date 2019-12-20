@@ -28,8 +28,9 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     #                                    "interface_weights": 1.0,  # Applied outside NEST for each interface device
     #                                    "weights": 50 * tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
-    # #                                 To add to TVB connectivity delay:
-    # #                                   "delays": nest_network.nodes_min_delay,
+    # #                                 A function of TVB connectivity weight
+    # #                                   "delays": lambda tvb_node_id, nest_node_id, delays:
+    #                                                         delays[tvb_node_id, nest_node_id],
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                                 TVB sv -> NEST population
     #                                    "connections": {"S_e": ["E", "I"]},
@@ -46,9 +47,12 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
                                        "params": {"allow_offgrid_times": False},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": N_e*1.0,  # Applied outside NEST for each interface device
-                                        "weights": tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
-    #                                 To add to TVB connectivity delay:
-                                        "delays": nest_network.nodes_min_delay,
+    #                               A function of TVB connectivity weight
+                                        "weights": lambda tvb_node_id, nest_node_id, weights:
+                                                        tvb_simulator.model.G[0]*weights[tvb_node_id, nest_node_id],
+    #                                 A function of TVB connectivity delay:
+                                        "delays": lambda tvb_node_id, nest_node_id, delays:
+                                                        delays[tvb_node_id, nest_node_id],
                                         "receptor_types": lambda tvb_node_id, nest_node_id: int(tvb_node_id + 3),
     # ----------------------------------------------------------------------------------------------------------------
     #                                        TVB sv or param -> NEST population

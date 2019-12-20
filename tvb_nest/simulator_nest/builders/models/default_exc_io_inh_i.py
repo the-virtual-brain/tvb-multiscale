@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
+from tvb_nest.simulator_nest.builders.factory import tvb_weight, tvb_delay
 
 
 class DefaultExcIOInhIBuilder(NESTModelBuilder):
@@ -63,8 +64,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
             {"source": "E", "target": ["E", "I"],
               "model": self.default_nodes_connection["model"],
               "conn_spec": self.default_nodes_connection["conn_spec"],
-              "weight": 1.0,  # weight scaling the TVB connectivity weight
-              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
+              "weight": tvb_weight,
+              "delay": tvb_delay,
               # Each region emits spikes in its own port:
               "receptor_type": 0,  "source_nodes": None, "target_nodes": None}  # None means "all"
                                  ]

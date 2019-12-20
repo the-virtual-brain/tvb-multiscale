@@ -8,6 +8,7 @@ from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.models.region_node import NESTRegionNode
 from tvb_nest.simulator_nest.models.network import NESTNetwork
 from tvb_nest.simulator_nest.nest_factory import *
+from tvb_nest.simulator_nest.builders.factory import tvb_weight, tvb_delay
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
 
@@ -31,8 +32,11 @@ class NESTModelBuilder(object):
 
     population_order = 100
     populations = []
+    _populations = []
     populations_connections = []
+    _populations_connections = []
     nodes_connections = []
+    _nodes_connections = []
     # Use these to observe NEST behavior without conversions to TVB state variables and monitors
     output_devices = []
     stimulation_devices = []  # use these for possible external stimulation devices
@@ -95,7 +99,8 @@ class NESTModelBuilder(object):
               "model": self.default_populations_connection["model"],
               "conn_spec": self.default_populations_connection["conn_spec"],
               "weight": 1.0,  "delay": self.default_populations_connection["delay"],
-              "receptor_type": 0, "nodes": None,  # None means "all"
+              "receptor_type": 0,
+              "nodes": None,  # None means "all"
               }]
 
         # When any of the properties model, conn_spec, weight, delay, receptor_type below
@@ -109,9 +114,10 @@ class NESTModelBuilder(object):
             [{"source": "E", "target": "E",
               "model": self.default_nodes_connection["model"],
               "conn_spec": self.default_nodes_connection["conn_spec"],
-              "weight": 1.0,  # weight scaling the TVB connectivity weight
-              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
-              "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
+              "weight": tvb_weight,
+              "delay": tvb_delay,
+              "receptor_type": 0,
+              "source_nodes": None, "target_nodes": None}  # None means "all"
             ]
 
         # Use these to observe NEST network behavior
@@ -376,55 +382,52 @@ class NESTModelBuilder(object):
         # scale of spiking neurons' number, and model specific parameters
         models = []
         for i_pop, population in enumerate(self.populations):
-            temp_population = dict(self.default_population)
-            temp_population.update(population)
-            self.populations[i_pop] = temp_population
-            if len(self.populations[i_pop].get("label", "")) == 0:
-                self.populations[i_pop]["label"] = "Pop%d" % i_pop
-            if self.populations[i_pop]["nodes"] is None:
-                self.populations[i_pop]["nodes"] = self.nest_nodes_ids
-            if hasattr(self.populations[i_pop]["model"], "__call__"):
-                for node_id in self.populations[i_pop]["nodes"]:
-                    models.append(self.populations[i_pop]["model"](node_id))
-            else:
-                models.append(self.populations[i_pop]["model"])
-                self.populations[i_pop]["model"] = property_to_fun(self.populations[i_pop]["model"])
-            self.populations[i_pop]["scale"] = property_to_fun(self.populations[i_pop]["scale"])
-            self.populations[i_pop]["params"] = property_to_fun(self.populations[i_pop]["params"])
+            self._populations.append(dict(self.default_population))
+            self._populations[-1].update(population)
+            if len(self._populations[-1].get("label", "")) == 0:
+                self._populations[-1]["label"] = "Pop%d" % i_pop
+            if self._populations[-1]["nodes"] is None:
+                self._populations[-1]["nodes"] = self.nest_nodes_ids
+            models.append(self._populations[-1]["model"])
+            self._populations[-1]["scale"] = property_to_fun(self._populations[-1]["scale"])
+            self._populations[-1]["params"] = property_to_fun(self._populations[-1]["params"])
         models = np.unique(models)
         self._confirm_compile_install_nest_models(models)
 
     def _configure_connections(self, connections, default_connection):
-        for i_con, connection in enumerate(connections):
+        out_connections = list(connections)
+        for i_con, connection in enumerate(out_connections):
             for pop in ["source", "target"]:
                 if len(connection.get(pop, "")) == 0:
                     raise_value_error("No %s population in connection!:\n%s" % (pop, str(connection)))
             temp_conn = dict(default_connection)
             temp_conn.update(connection)
-            connections[i_con] = temp_conn
-        return connections
+            out_connections[i_con] = temp_conn
+            for prop in ["weight", "delay", "receptor_type"]:
+                out_connections[i_con][prop] = property_to_fun(connection[i_con][prop])
+        return out_connections
 
     def _configure_populations_connections(self):
-        self.populations_connections = self._configure_connections(self.populations_connections,
-                                                                   self.default_populations_connection)
+        self._populations_connections = self._configure_connections(self.populations_connections,
+                                                                    self.default_populations_connection)
         for i_conn, connections in enumerate(self.populations_connections):
             if connections["nodes"] is None:
-                self.populations_connections[i_conn]["nodes"] = self.nest_nodes_ids
+                self._populations_connections[i_conn]["nodes"] = self.nest_nodes_ids
 
     def _configure_nodes_connections(self):
-        self.nodes_connections = self._configure_connections(self.nodes_connections,
-                                                             self.default_nodes_connection)
+        self._nodes_connections = self._configure_connections(self.nodes_connections,
+                                                              self.default_nodes_connection)
         for i_conn, connections in enumerate(self.nodes_connections):
             for pop in ["source", "target"]:
                 this_pop = "%s_nodes" % pop
                 if connections[this_pop] is None:
-                    self.nodes_connections[i_conn][this_pop] = self.nest_nodes_ids
+                    self._nodes_connections[i_conn][this_pop] = self.nest_nodes_ids
         self.tvb_connectivity.configure()
 
     def configure(self):
-        self._configure_populations()
-        self._configure_populations_connections()
-        self._configure_nodes_connections()
+        self._populations = self._configure_populations()
+        self._populations_connections =self._configure_populations_connections()
+        self._nodes_connections = self._configure_nodes_connections()
 
     def _synaptic_weight_scaling(self, weights, number_of_connections):
         return self.default_synaptic_weight_scaling(weights, number_of_connections)
@@ -432,10 +435,10 @@ class NESTModelBuilder(object):
     def build_nest_populations(self, node_label, node_id=None):
         # Generate a NEST spiking network population...
         node = NESTRegionNode(self.nest_instance, node_label)
-        for iP, population in enumerate(self.populations):
+        for iP, population in enumerate(self._populations):
             if node_id in population["nodes"]:
                 node[population["label"]] = create_population(self.nest_instance,
-                                                              population["model"](node_id),
+                                                              population["model"],
                                                               population["scale"](node_id) * self.population_order,
                                                               params=population["params"](node_id))
         return node
@@ -474,20 +477,16 @@ class NESTModelBuilder(object):
 
     def connect_within_node_nest_populations(self):
         # For every different type of connections between distinct NEST nodes' populations
-        for i_conn, conn in enumerate(ensure_list(self.populations_connections)):
-            model = property_to_fun(conn["model"])
-            weight = property_to_fun(conn["weight"])
-            delay = property_to_fun(conn["delay"])
-            receptor_type = property_to_fun(conn["receptor_type"])
-            conn_spec = property_to_fun(conn['conn_spec'])
+        for i_conn, conn in enumerate(ensure_list(self._populations_connections)):
             # ...and form the connection within each NEST node
             for node_index in conn["nodes"]:
                 i_node = np.where(self.nest_nodes_ids == node_index)[0][0]
                 self._connect_two_populations_within_node(
                     self._get_node_populations_neurons(self.nodes[i_node], conn["source"]),
                     self._get_node_populations_neurons(self.nodes[i_node], conn["target"]),
-                    conn_spec(node_index), model(node_index),
-                    weight(node_index), delay(node_index), receptor_type(node_index))
+                    conn['conn_spec'], conn["model"],
+                    conn['weight'](node_index), conn['delay'](node_index),
+                    conn['receptor_type'](node_index))
 
     def _connect_two_populations_between_nodes(self, pop_src, pop_trg, i_n_src, i_n_trg,
                                                conn_spec, syn_model, weight, delay, receptor_type):
@@ -504,12 +503,7 @@ class NESTModelBuilder(object):
         population = lambda node, populations: \
             flatten_tuple([node[pop] for pop in ensure_list(populations)])
         # For every different type of connections between distinct NEST nodes' populations
-        for i_conn, conn in enumerate(ensure_list(self.nodes_connections)):
-            model = property_to_fun(conn["model"])
-            weight = property_to_fun(conn["weight"])
-            delay = property_to_fun(conn["delay"])
-            receptor_type = property_to_fun(conn["receptor_type"])
-            conn_spec = property_to_fun(conn['conn_spec'])
+        for i_conn, conn in enumerate(ensure_list(self._nodes_connections)):
             # ...and form the connection for every distinct pair of NEST nodes
             for source_index in conn["source_nodes"]:
                 i_source_node = np.where(self.nest_nodes_ids == source_index)[0][0]
@@ -522,11 +516,12 @@ class NESTModelBuilder(object):
                                                                         population(self.nodes[i_target_node],
                                                                                    conn["target"]),
                                                                         i_source_node, i_target_node,
-                                                                        conn_spec(source_index, target_index),
-                                                                        model(source_index, target_index),
-                                                                        weight(source_index, target_index),
-                                                                        delay(source_index, target_index),
-                                                                        receptor_type(source_index, target_index))
+                                                                        conn['conn_spec'],
+                                                                        conn["model"],
+                                                                        conn["weight"](source_index, target_index),
+                                                                        conn["delay"](source_index, target_index),
+                                                                        conn["receptor_type"](source_index,
+                                                                                              target_index))
 
     def build_and_connect_nest_stimulation_devices(self):
         # Build devices by the variable model they stimulate (Series),
@@ -538,14 +533,20 @@ class NESTModelBuilder(object):
             n_target_nest_nodes = len(target_nest_nodes)
             if target_nest_nodes is None:
                 target_nest_nodes = self.nest_nodes_ids
-            param = property_to_fun(devices.pop("params", {}))
+            # User inputs
+            param = devices.pop("params", {})
+            # ..converted to functions
             weight = property_to_fun(devices.pop("weights", 1.0))
             delay = property_to_fun(devices.pop("delays", 0.0))
             receptor_type = property_to_fun(devices.pop("receptor_types", 0))
-            receptor_types = np.zeros(n_target_nest_nodes, ).astype("i")
-            params = np.array([{}] * n_target_nest_nodes)
-            weights = 1.0 + receptor_types
-            delays = self.nest_instance.GetKernelStatus("resolution") + receptor_types
+            # Defaults in arrays:
+            shape = (n_target_nest_nodes, )
+            receptor_types = np.zeros(shape).astype("i")
+            params = np.tile({}, shape)
+            # weights and delays might be dictionaries for distributions:
+            weights = np.tile([1.0, shape]).astype("object")
+            delays = np.tile([0.0], shape).astype("object")
+            # delays = np.tile(self.nest_instance.GetKernelStatus("resolution"), shape)
             target_nest_nodes_ids = [np.where(self.nest_nodes_ids == trg_node)[0][0] for trg_node in target_nest_nodes]
             devices["nodes"] = target_nest_nodes_ids
             for trg_node, i_trg in zip(target_nest_nodes, target_nest_nodes_ids):

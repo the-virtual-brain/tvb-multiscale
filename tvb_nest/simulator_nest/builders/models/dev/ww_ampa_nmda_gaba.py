@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.simulator_nest.builders.base import NESTModelBuilder
+from tvb_nest.simulator_nest.builders.factory import scale_tvb_weight, tvb_delay
 
 
 class WWAMPANMDAGABABuilder(NESTModelBuilder):
@@ -99,8 +100,8 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
             [{"source": "AMPA", "target": ["AMPA", "NMDA", "GABA"],
               "model": self.default_nodes_connection["model"],
               "conn_spec": self.default_nodes_connection["conn_spec"],
-              "weight": self.tvb_model.G[0],  # weight scaling the TVB connectivity weight
-              "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
+              "weight": self.G_scale_tvb_weight,  # weight scaling the TVB connectivity weight
+              "delay": tvb_delay,  # additional delay to the one of TVB connectivity
               "receptor_type": rcptr_ampa_gaba["SPIKESEXC_AMPA_EXT"]},
              ]
 
@@ -126,3 +127,6 @@ class WWAMPANMDAGABABuilder(NESTModelBuilder):
                                  "I_AMPA_ext", "I_AMPA_rec", "I_NMDA", "I_GABA", "I_leak"]
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means "all"
+
+    def G_scale_tvb_weight(self, source_node, target_node):
+        return scale_tvb_weight(source_node, target_node, scale=self.tvb_model.G[0])
