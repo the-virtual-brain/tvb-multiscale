@@ -36,8 +36,8 @@ from tvb.simulator.models.base import numpy, ModelNumbaDfun
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 
-@guvectorize([(float64[:],)*24], '(n),(m)' + ',()'*21 + '->(n)', nopython=True)
-def _numba_dfun(S, c, ae, be, de, ge, te, wp, we, jn, re, ai, bi, di, gi, ti, wi, ji, ri, ro, g, l, io, dx):
+@guvectorize([(float64[:],)*19], '(n),(m)' + ',()'*16 + '->(n)', nopython=True)
+def _numba_update_non_state_variables(S, c, ae, be, de, wp, we, jn, re, ai, bi, di, wi, ji, ri, g, l, io, newS):
     "Gufunc for reduced Wong-Wang model equations."
 
     cc = g[0]*jn[0]*c[0]
@@ -48,18 +48,29 @@ def _numba_dfun(S, c, ae, be, de, ge, te, wp, we, jn, re, ai, bi, di, gi, ti, wi
         x = wp[0]*jnSe - ji[0]*S[1] + we[0]*io[0] + cc
         x = ae[0]*x - be[0]
         h = x / (1 - numpy.exp(-de[0]*x))
-        ro[0] = h
-    else:
-        h = re[0]
-    dx[0] = - (S[0] / te[0]) + (1.0 - S[0]) * h * ge[0]
+        S[2] = h
 
     if ri[0] < 0.0:
         x = jnSe - S[1] + wi[0]*io[0] + l[0]*cc
         x = ai[0]*x - bi[0]
         h = x / (1 - numpy.exp(-di[0]*x))
-    else:
-        h = ri[0]
-    dx[1] = - (S[1] / ti[0]) + h * gi[0]
+        S[3] = h
+
+    newS[0] = S[0]
+    newS[1] = S[1]
+    newS[3] = S[2]
+    newS[4] = S[4]
+
+
+@guvectorize([(float64[:],)*6], '(n)' + ',()'*4 + '->(n)', nopython=True)
+def _numba_dfun(S, ge, te, gi, ti, dx):
+    "Gufunc for reduced Wong-Wang model equations."
+
+    dx[0] = - (S[0] / te[0]) + (1.0 - S[0]) * S[2] * ge[0]
+    dx[2] = 0.0
+
+    dx[1] = - (S[1] / ti[0]) + S[3] * gi[0]
+    dx[3] = 0.0
 
 
 class ReducedWongWangExcIOInhI(ModelNumbaDfun):
@@ -90,14 +101,14 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
     """
     _ui_name = "Reduced Wong-Wang"
-    ui_configurable_parameters = ['a_e', 'b_e', 'd_e', 'gamma_e', 'tau_e', 'W_e', 'w_p', 'J_N',
-                                  'a_i', 'b_i', 'd_i', 'gamma_i', 'tau_i', 'W_i', 'J_i',
+    ui_configurable_parameters = ['a_e', 'b_e', 'd_e', 'gamma_e', 'tau_e', 'W_e', 'w_p', 'J_N', "R_e",
+                                  'a_i', 'b_i', 'd_i', 'gamma_i', 'tau_i', 'W_i', 'J_i', "R_i",
                                   'I_o', 'G', 'lamda']
 
     # Define traited attributes for this model, these represent possible kwargs.
 
-    r_e = NArray(
-        label=":math:`r_e`",
+    R_e = NArray(
+        label=":math:`R_e`",
         default=numpy.array([-1., ]),
         domain=Range(lo=-1., hi=10000., step=1.),
         doc="[Hz]. Excitatory population firing rate.")
@@ -150,8 +161,8 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         domain=Range(lo=0.0, hi=2.0, step=0.01),
         doc="""Excitatory population external input scaling weight""")
 
-    r_i = NArray(
-        label=":math:`r_i`",
+    R_i = NArray(
+        label=":math:`R_i`",
         default=numpy.array([-1., ]),
         domain=Range(lo=-1., hi=10000., step=1.),
         doc="[Hz]. Inhibitory population firing rate.")
@@ -204,11 +215,11 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         domain=Range(lo=0.0, hi=1.0, step=0.001),
         doc="""[nA]. Effective external input""")
 
-    r_o = NArray(
-        label=":math:`r_i`",
-        default=numpy.array([0., ]),
-        domain=Range(lo=0., hi=10000., step=1.),
-        doc="[Hz]. Excitatory population output firing rate.")
+    # r_o = NArray(
+    #     label=":math:`r_o`",
+    #     default=numpy.array([0., ]),
+    #     domain=Range(lo=0., hi=10000., step=1.),
+    #     doc="[Hz]. Excitatory population output firing rate.")
 
     G = NArray(
         label=":math:`G`",
@@ -225,7 +236,9 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
     # Used for phase-plane axis ranges and to bound random initial() conditions.
     state_variable_boundaries = Final(
         default={"S_e": numpy.array([0.0, 1.0]),
-                 "S_i": numpy.array([0.0, 1.0])},
+                 "S_i": numpy.array([0.0, 1.0]),
+                 "R_e": numpy.array([0.0, None]),
+                 "R_i": numpy.array([0.0, None])},
         label="State Variable boundaries [lo, hi]",
         doc="""The values for each state-variable should be set to encompass
             the boundaries of the dynamic range of that state-variable. 
@@ -233,19 +246,22 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
 
     state_variable_range = Final(
         default={"S_e": numpy.array([0.0, 1.0]),
-                 "S_i": numpy.array([0.0, 1.0])},
+                 "S_i": numpy.array([0.0, 1.0]),
+                 "R_e": numpy.array([0.0, 1000.0]),
+                 "R_i": numpy.array([0.0, 1000.0])
+                 },
         label="State variable ranges [lo, hi]",
         doc="Population firing rate")
 
     variables_of_interest = List(
         of=str,
         label="Variables watched by Monitors",
-        choices=('S_e', 'S_i'),
-        default=('S_e', 'S_i'),
+        choices=('S_e', 'S_i', 'R_e', 'R_i'),
+        default=('S_e', 'S_i', 'R_e', 'R_i'),
         doc="""default state variables to be monitored""")
 
-    state_variables = ['S_e', 'S_i']
-    _nvar = 2
+    state_variables = ['S_e', 'S_i', 'R_e', 'R_i']
+    _nvar = 4
     cvar = numpy.array([0], dtype=numpy.int32)
 
     def configure(self):
@@ -253,21 +269,26 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         super(ReducedWongWangExcIOInhI, self).configure()
         self.update_derived_parameters()
 
-    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0):
-        r"""
-        Equations taken from [DPA_2013]_ , page 11242
+    def update_non_state_variables(self, state_variables, coupling, local_coupling=0.0, use_numba=True):
+        if use_numba:
+            _numba_update_non_state_variables(state_variables.reshape(state_variables.shape[:-1]).T,
+                                              coupling.reshape(coupling.shape[:-1]).T+local_coupling*state_variables[0],
+                                              self.a_e, self.b_e, self.d_e,
+                                              self.w_p, self.W_e, self.J_N, self.R_e,
+                                              self.a_i, self.b_i, self.d_i,
+                                              self.W_i, self.J_i, self.R_i,
+                                              self.G, self.lamda, self.I_o)
+            return state_variables
 
-        .. math::
-                 x_{ek}       &=   w_p\,J_N \, S_{ek} - J_iS_{ik} + W_eI_o + GJ_N \mathbf\Gamma(S_{ek}, S_{ej}, u_{kj}),\\
-                 H(x_{ek})    &=  \dfrac{a_ex_{ek}- b_e}{1 - \exp(-d_e(a_ex_{ek} -b_e))},\\
-                 \dot{S}_{ek} &= -\dfrac{S_{ek}}{\tau_e} + (1 - S_{ek}) \, \gammaH(x_{ek}) \,
+        # In this case, rates (H_e, H_i) are non-state variables,
+        # i.e., they form part of state_variables but have no dynamics assigned on them
+        # Most of the computations of this dfun aim at computing rates, including coupling considerations.
+        # Therefore, we compute and update them only once a new state is computed,
+        # and we consider them constant for any subsequent possible call to this function,
+        # by any integration scheme
 
-                 x_{ik}       &=   J_N \, S_{ek} - S_{ik} + W_iI_o + \lambdaGJ_N \mathbf\Gamma(S_{ik}, S_{ej}, u_{kj}),\\
-                 H(x_{ik})    &=  \dfrac{a_ix_{ik} - b_i}{1 - \exp(-d_i(a_ix_{ik} -b_i))},\\
-                 \dot{S}_{ik} &= -\dfrac{S_{ik}}{\tau_i} + \gamma_iH(x_{ik}) \,
-
-        """
-        S = state_variables[:, :]
+        S = state_variables[:2, :]  # synaptic gating dynamics
+        R = state_variables[2:, :]  # rates
 
         c_0 = coupling[0, :]
 
@@ -282,30 +303,55 @@ class ReducedWongWangExcIOInhI(ModelNumbaDfun):
         x_e = self.w_p * J_N_S_e - self.J_i * S[1] + self.W_e * self.I_o + coupling
 
         x_e = self.a_e * x_e - self.b_e
-        H_e = numpy.where(self.r_e >= 0, self.r_e, x_e / (1 - numpy.exp(-self.d_e * x_e)))
-        self.r_o = numpy.where(self.r_e < 0, H_e, 0.0)
-
-        dS_e = - (S[0] / self.tau_e) + (1 - S[0]) * H_e * self.gamma_e
+        # Only rates with r_e < 0 will be updated by TVB.
+        H_e = numpy.where(self.R_e >= 0, R[0], x_e / (1 - numpy.exp(-self.d_e * x_e)))
 
         x_i = J_N_S_e - S[1] + self.W_i * self.I_o + self.lamda * coupling
 
         x_i = self.a_i * x_i - self.b_i
-        H_i = numpy.where(self.r_i >= 0, self.r_i, x_i / (1 - numpy.exp(-self.d_i * x_i)))
+        # Only rates with r_i < 0 will be updated by TVB.
+        H_i = numpy.where(self.R_i >= 0, R[1], x_i / (1 - numpy.exp(-self.d_i * x_i)))
 
-        dS_i = - (S[1] / self.tau_i) + H_i * self.gamma_i
+        # We now update the state_variable vector with the new rates:
+        state_variables[2, :] = H_e
+        state_variables[3, :] = H_i
 
-        derivative = numpy.array([dS_e, dS_i])
+        return state_variables
+
+    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0, update_non_state_variables=True):
+        r"""
+        Equations taken from [DPA_2013]_ , page 11242
+
+        .. math::
+                 x_{ek}       &=   w_p\,J_N \, S_{ek} - J_iS_{ik} + W_eI_o + GJ_N \mathbf\Gamma(S_{ek}, S_{ej}, u_{kj}),\\
+                 H(x_{ek})    &=  \dfrac{a_ex_{ek}- b_e}{1 - \exp(-d_e(a_ex_{ek} -b_e))},\\
+                 \dot{S}_{ek} &= -\dfrac{S_{ek}}{\tau_e} + (1 - S_{ek}) \, \gammaH(x_{ek}) \,
+
+                 x_{ik}       &=   J_N \, S_{ek} - S_{ik} + W_iI_o + \lambdaGJ_N \mathbf\Gamma(S_{ik}, S_{ej}, u_{kj}),\\
+                 H(x_{ik})    &=  \dfrac{a_ix_{ik} - b_i}{1 - \exp(-d_i(a_ix_{ik} -b_i))},\\
+                 \dot{S}_{ik} &= -\dfrac{S_{ik}}{\tau_i} + \gamma_iH(x_{ik}) \,
+
+        """
+
+        if update_non_state_variables:
+            state_variables = \
+                self.update_non_state_variables(state_variables, coupling, local_coupling, use_numba=False)
+
+        S = state_variables[:2, :]  # synaptic gating dynamics
+        R = state_variables[2:, :]  # rates
+
+        dS_e = - (S[0] / self.tau_e) + (1 - S[0]) * R[0] * self.gamma_e
+        dS_i = - (S[1] / self.tau_i) + R[1] * self.gamma_i
+
+        # Rates are non-state variables:
+        dummy = 0.0*dS_e
+        derivative = numpy.array([dS_e, dS_i, dummy, dummy])
 
         return derivative
 
-    def dfun(self, x, c, local_coupling=0.0, **kwargs):
-        x_ = x.reshape(x.shape[:-1]).T
-        c_ = c.reshape(c.shape[:-1]).T + local_coupling * x[0]
-        deriv = _numba_dfun(x_, c_,
-                            self.a_e, self.b_e, self.d_e, self.gamma_e, self.tau_e,
-                            self.w_p, self.W_e, self.J_N, self.r_e,
-                            self.a_i, self.b_i, self.d_i, self.gamma_i, self.tau_i,
-                            self.W_i, self.J_i, self.r_i,
-                            self.r_o, self.G, self.lamda, self.I_o)
+    def dfun(self, x, c, local_coupling=0.0, update_non_state_variables=True):
+        if update_non_state_variables:
+            self.update_non_state_variables(x, c, local_coupling, use_numba=True)
+        deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, self.gamma_e, self.tau_e, self.gamma_i, self.tau_i)
         return deriv.T[..., numpy.newaxis]
 

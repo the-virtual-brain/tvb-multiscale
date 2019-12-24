@@ -14,8 +14,8 @@ RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion python3-mpi4py cmake; \
-     apt-get clean
+                       subversion python3-mpi4py cmake zip unzip; \
+    apt-get clean
 
 # Create user different than root
 RUN useradd -ms /bin/bash docker
@@ -76,13 +76,14 @@ RUN $VENV/bin/pip3 install setuptools; \
 # Install TVB specific packages
 WORKDIR $HOME/packages
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
-    cd tvb-data; \
+RUN wget https://zenodo.org/record/3497545/files/tvb_data_2_0_1.zip?download=1 -O tvb_data.zip; \
+    unzip tvb_data.zip; rm tvb_data.zip; \
+    cd tvb_data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-library.git; \
-    cd tvb-library; \
-    $VENV/bin/python setup.py develop
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git; \
+    cd tvb-root/scientific_library; \
+    $VENV/bin/python setup.py develop;
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
     cd tvb-multiscale; \
@@ -96,6 +97,21 @@ ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
 RUN echo "source ${VENV}/bin/activate" >> /home/docker/.bashrc
 
+## Run the following lines in case you want to install your own NEST module with NEST models
+#ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
+#ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
+#RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
+#COPY . tvb-multiscale/
+#ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014"
+#ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
+#ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
+#RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
+#        export MYMODULE_BLD=${MYMODULES_BLD_DIR}/${MYMODULE_NAME}module_bld; \
+#        mkdir -p ${MYMODULE_BLD}; cd ${MYMODULE_BLD}; \
+#            cmake -Dwith-nest=$NEST_CONFIG ${MYMODULE_DIR}; \
+#            make; make install; \
+#    done
+
 # Final configurations
 # tvb42
 RUN $VENV/bin/jupyter notebook --generate-config; \
@@ -105,6 +121,8 @@ WORKDIR /home/docker/
 COPY docker/installation_test.py /home/docker/
 
 # For running tests
+#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
+
 # CMD cd /home/docker/packages/nestml; $VENV/bin/pytest setup.py test
 # CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
@@ -112,4 +130,4 @@ COPY docker/installation_test.py /home/docker/
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
 # CMD /bin/bash
 
- CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root

@@ -24,20 +24,21 @@ class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
                                        "connections": {"V": ["E", "I"]},
                                        "nodes": None}]  # None means all here
 
-    # The NEST nodes the activity of which is transformed to TVB state variables or parameters
-        if nest_to_tvb_interfaces is None:
-            # NEST -> TVB:
-            # Use S_e and S_i instead of r_e and r_i
-            # for transmitting to the TVB state variables directly
-            connections = OrderedDict()
-            #            TVB <- NEST
-            connections["V_m"] = ["E"]
-            nest_to_tvb_interfaces = \
-                [{"model": "voltmeter", "params": {},
-    # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
-                  "weights": 1.0, "delays": 0.0,
-    # ------------------------------------------------------------------------------------------------------------------
-                  "connections": connections, "nodes": None}]  # None means all here
+    # TODO: Find out why this leads to instability of integration!
+    # # The NEST nodes the activity of which is transformed to TVB state variables or parameters
+    #     if nest_to_tvb_interfaces is None:
+    #         # NEST -> TVB:
+    #         # Use S_e and S_i instead of r_e and r_i
+    #         # for transmitting to the TVB state variables directly
+    #         connections = OrderedDict()
+    #         #            TVB <- NEST
+    #         connections["V_m"] = ["E"]
+    #         nest_to_tvb_interfaces = \
+    #             [{"model": "voltmeter", "params": {},
+    # # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
+    #               "weights": 1.0, "delays": 0.0,
+    # # ------------------------------------------------------------------------------------------------------------------
+    #               "connections": connections, "nodes": None}]  # None means all here
 
         super(Generic2DOscillatorBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                          tvb_to_nest_interfaces, nest_to_tvb_interfaces)

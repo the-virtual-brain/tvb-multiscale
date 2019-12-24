@@ -3,8 +3,8 @@
 from pandas import Series
 import numpy as np
 from tvb_nest.simulator_nest.nest_factory import build_and_connect_output_devices
-from tvb_nest.interfaces.tvb_to_nest_device_interface import TVBtoNESTDeviceInterface
-from tvb_scripts.utils.log_error_utils import initialize_logger
+from tvb_nest.interfaces.tvb_to_nest_device_interface import INPUT_INTERFACES_DICT
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import property_to_fun
 
 
@@ -85,13 +85,17 @@ class TVBtoNESTDeviceInterfaceBuilder(object):
             try:
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
-                tvb_sv_id = None  # in case the TVB source is a parameter, not one of the state variables
+                raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
+            try:
+                interface_builder = INPUT_INTERFACES_DICT[device.model]
+            except:
+                raise_value_error("Interface model %s is not supported yet!" % device.model)
             tvb_to_nest_interface[name] = \
-                TVBtoNESTDeviceInterface(self.nest_instance,
-                                         nodes_ids=source_tvb_nodes,
-                                         target_nodes=target_nest_nodes,
-                                         scale=interface_weights,
-                                         dt=self.tvb_dt).from_device_set(device, tvb_sv_id, name)
+                interface_builder(self.nest_instance,
+                                  nodes_ids=source_tvb_nodes,
+                                  target_nodes=target_nest_nodes,
+                                  scale=interface_weights,
+                                  dt=self.tvb_dt).from_device_set(device, tvb_sv_id, name)
             if len(source_tvb_nodes) * len(target_nest_nodes) > 0:
                 assert np.abs(np.max(tvb_to_nest_interface[name].weights - weights)) < 0.001
                 assert np.abs(np.max(tvb_to_nest_interface[name].delays - delays)) < 1.0  # ms

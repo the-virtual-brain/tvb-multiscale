@@ -8,7 +8,8 @@ import numpy as np
 
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error, warning
 from tvb_scripts.utils.data_structures_utils \
-    import ensure_list, flatten_list, sort_events_by_x_and_y, data_xarray_from_continuous_events
+    import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
+    sort_events_by_x_and_y, data_xarray_from_continuous_events
 from tvb_scripts.utils.computations_utils import spikes_rate_convolution
 
 
@@ -138,8 +139,11 @@ class NESTDevice(object):
     #             raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
     #     self.number_of_connections = len(neurons)
 
-    def GetStatus(self, attr):
-        return self.nest_instance.GetStatus(self.device, attr)[0]
+    def GetStatus(self, attr=None):
+        if attr is None:
+            return self.nest_instance.GetStatus(self.device)[0]
+        else:
+            return self.nest_instance.GetStatus(self.device, attr)[0]
 
     def SetStatus(self, values_dict):
         self.nest_instance.SetStatus(self.device, values_dict)
@@ -435,7 +439,7 @@ class NESTSpikeDetector(NESTOutputDevice):
 
     # The following properties are computed across time:
 
-    def compute_spikes_rate_across_time(self, time, spikes_kernel_width,
+    def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                         spikes_kernel=None, mode="per_neuron",
                                         name=None, **kwargs):
 
@@ -453,7 +457,7 @@ class NESTSpikeDetector(NESTOutputDevice):
             return spikes_counts
 
         if spikes_kernel is None:
-            spikes_kernel = np.ones((spikes_kernel_width, ))
+            spikes_kernel = np.ones((spikes_kernel_width_in_points, )) / spikes_kernel_width
 
         if name is None:
             name = self.model + " - Total spike rate across time"
@@ -479,12 +483,13 @@ class NESTSpikeDetector(NESTOutputDevice):
                 rates = np.zeros(time.shape)
             return xr.DataArray(rates, dims=["Time"], coords={"Time": time}, name=name)
 
-    def compute_mean_spikes_rate_across_time(self, time, spike_kernel_width, spikes_kernel=None, name=None,
+    def compute_mean_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
+                                             spikes_kernel=None, name=None,
                                              **kwargs):
         if name is None:
             name = self.model + " - Mean spike rate accross time"
-        return self.compute_spikes_rate_across_time(time, spike_kernel_width, spikes_kernel,
-                                                    "total", name, **kwargs) / \
+        return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
+                                                    spikes_kernel, "total", name, **kwargs) / \
                self.get_number_of_neurons(**kwargs)
 
 
@@ -719,7 +724,7 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
     def total_spikes_activity(self):
         return self.get_total_spikes_activity()
 
-    def compute_spikes_activity_across_time(self, time, spikes_kernel_width,
+    def compute_spikes_activity_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                             spikes_kernel=None, mode="per_neuron",
                                             name=None, rate_mode="activity",  **kwargs):
 
@@ -731,7 +736,11 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
                 spikes[i_spike] = np.heaviside(spike, 0.0)
 
         if spikes_kernel is None:
-            spikes_kernel = np.ones((spikes_kernel_width, ))
+            spikes_kernel = np.ones((spikes_kernel_width_in_points, ))
+            if rate_mode.find("rate") > -1:
+                spikes_kernel /= spikes_kernel_width
+            else:
+                spikes_kernel /= spikes_kernel_width_in_points
 
         if mode == "per_neuron":
             activity = []
@@ -746,10 +755,10 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector):
 
         return xr.DataArray(activity, dims=["Time"], coords={"Time": time}, name=name)
 
-    def compute_spikes_rate_across_time(self, time, spikes_kernel_width,
+    def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                         spikes_kernel=None, mode="per_neuron",
                                         name=None, **kwargs):
-        return self.compute_spikes_activity_across_time(time, spikes_kernel_width,
+        return self.compute_spikes_activity_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
                                                         spikes_kernel=spikes_kernel, mode=mode,
                                                         name=name, rate_mode="rate",  **kwargs)
 
@@ -893,13 +902,20 @@ class NESTDeviceSet(pd.Series):
         super(NESTDeviceSet, self).update(*args, **kwargs)
         self.update_model()
 
-    def GetStatus(self, attrs, nodes=None, return_type="dict", name=None):
-        values_dict = OrderedDict({})
-        for attr in ensure_list(attrs):
-            this_attr = []
+    def GetStatus(self, attrs=None, nodes=None, return_type="dict", name=None):
+        if attrs is None:
+            # Get dictionary of all attributes
+            values_dict = []
             for node in self._input_nodes(nodes):
-                this_attr.append(self[node].GetStatus[attr])
-            values_dict.update({attr: this_attr})
+                values_dict.append(self[node].GetStatus())
+            values_dict = list_of_dicts_to_dict_of_lists(values_dict)
+        else:
+            values_dict = OrderedDict({})
+            for attr in ensure_list(attrs):
+                this_attr = []
+                for node in self._input_nodes(nodes):
+                    this_attr.append(self[node].GetStatus(attr))
+                values_dict.update({attr: this_attr})
         return self._return_by_type(values_dict, return_type, name)
 
     def SetStatus(self, value_dict, nodes=None):

@@ -27,7 +27,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
                                                    "tvb_rate_redwongwang_inh"], modules="tvb_rate_wongwangmodule")
 
         # Common order of neurons' number per population:
-        self.populations_order = 100
+        self.population_order = 100
         # Populations' configurations
         self.populations = [{"label": "E", "model": "tvb_rate_redwongwang_exc",
                              "scale": 1, "params": {}, "nodes": None},  # None means "all"
@@ -40,22 +40,22 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         self.populations_connections = [
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.J_N, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
             {"source": "E", "target": "I",  # E -> I
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.J_N, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
             {"source": "I", "target": "E",  # I -> E
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
             {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
              "model": self.default_populations_connection["model"],
-             "params": self.default_populations_connection["params"],
+             "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
         ]
@@ -67,7 +67,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         self.node_connections = \
             [{"source": "E", "target": ["E", "I"],
               "model": self.default_nodes_connection["model"],
-              "params": self.default_nodes_connection["params"],
+              "conn_spec": self.default_nodes_connection["conn_spec"],
               "weight": self.J_N,  # weight scaling the TVB connectivity weight
               "delay": self.default_nodes_connection["delay"],  # additional delay to the one of TVB connectivity
               "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"

@@ -222,8 +222,12 @@ def dict_to_list_or_tuple(dictionary, output_obj="list"):
     return output
 
 
-def list_of_dicts_to_dicts_of_ndarrays(lst, shape=None):
-    d = dict(list(zip(lst[0], list(zip(*list([d.values() for d in lst]))))))
+def list_of_dicts_to_dict_of_lists(lst):
+    return dict(list(zip(lst[0], list(zip(*list([d.values() for d in lst]))))))
+
+
+def list_of_dicts_to_dict_of_ndarrays(lst, shape=None):
+    d = list_of_dicts_to_dict_of_lists(lst)
     if isinstance(shape, tuple):
         for key, val in d.items():
             d[key] = np.reshape(np.stack(d[key]), shape)
@@ -238,9 +242,9 @@ def list_of_dicts_to_dicts_of_ndarrays(lst, shape=None):
     return d
 
 
-def arrays_of_dicts_to_dicts_of_ndarrays(arr):
+def arrays_of_dicts_to_dict_of_ndarrays(arr):
     lst = arr.flatten().tolist()
-    d = list_of_dicts_to_dicts_of_ndarrays(lst)
+    d = list_of_dicts_to_dict_of_ndarrays(lst)
     for key, val in d.items():
         d[key] = np.reshape(d[key], arr.shape)
     return d

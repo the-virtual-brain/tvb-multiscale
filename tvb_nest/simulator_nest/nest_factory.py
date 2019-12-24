@@ -48,7 +48,11 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             shutil.copytree(source_path, module_bld_dir)
         logger.info("Running compilation...")
         install_nest(module_bld_dir, config.NEST_PATH)
-        logger.info("DONE compiling %s!" % module)
+        if os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, module + "module.so")) and \
+            os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, "lib" + module + "module.so")):
+            logger.info("DONE compiling %s!" % module)
+        else:
+            logger.warn("Something seems to have gone wrong with compiling %s!" % module)
 
 
 def create_population(nest_instance, model, size, params={}):
@@ -62,16 +66,16 @@ def connect_two_populations(nest_instance, pop_src, pop_trg, conn_spec={}, syn_s
 def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
-    params = dict(config.DEFAULT_CONNECTION["params"])
-    P_DEF = params["p"]
-    params.update(kwargs)
-    rule = params["rule"]
-    p = params["p"]
-    N = params["N"]
-    autapses = params["autapses"]
-    multapses = params["multapses"]
-    indegree = params["indegree"]
-    outdegree = params["outdegree"]
+    conn_spec = dict(config.DEFAULT_CONNECTION["conn_spec"])
+    P_DEF = conn_spec["p"]
+    conn_spec.update(kwargs)
+    rule = conn_spec["rule"]
+    p = conn_spec["p"]
+    N = conn_spec["N"]
+    autapses = conn_spec["autapses"]
+    multapses = conn_spec["multapses"]
+    indegree = conn_spec["indegree"]
+    outdegree = conn_spec["outdegree"]
     conn_spec = {
         'rule': rule,
         'autapses': autapses,  # self-connections flag

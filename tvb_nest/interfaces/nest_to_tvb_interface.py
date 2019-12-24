@@ -31,11 +31,11 @@ class NESTtoTVBinterface(NESTDeviceSet):
         return self
 
     @property
-    def population_spikes_number(self):
+    def population_mean_spikes_number(self):
         return array(self.do_for_all_devices("mean_number_of_spikes")).flatten()
 
     @property
-    def population_spikes_activity(self):
+    def population_mean_spikes_activity(self):
         return array(self.do_for_all_devices("mean_spikes_activity")).flatten()
 
     @property

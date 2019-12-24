@@ -58,7 +58,7 @@ class MultimeterPlotter(TimeSeriesPlotter):
         for var in time_series.labels_dimensions[time_series.labels_ordering[1]]:
             title = base_title + ": %s" % var
             figure_name = base_figure_name + "_%s" % var
-            plot_outputs.append(fun(time_series.get_state_variable(var), None, False,
+            plot_outputs.append(fun(time_series.get_state_variables_by_label(var), None, False,
                                     title=title, figure_name=figure_name, **kwargs))
         return plot_outputs
 

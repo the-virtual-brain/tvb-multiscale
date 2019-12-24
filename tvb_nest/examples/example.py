@@ -13,11 +13,17 @@ from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import Reduced
 from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan
 from tvb_nest.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator
 from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
+from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i_multisynapse import DefaultExcIOInhIMultisynapseBuilder
 from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
+    import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder
+from tvb_nest.interfaces.builders.models.wilson_cowan_multisynapse import \
+    WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.generic_2d_oscillator import \
     Generic2DOscillatorBuilder as InterfaceGeneric2DOscillatorBuilder
 from tvb_nest.plot.plotter import Plotter
@@ -27,7 +33,7 @@ from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
                  connectivity=None, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, simulation_length=100.0,
-                 tvb_state_variable_type_label="Synaptic Gating Variable",
+                 tvb_state_variable_type_label="Synaptic Gating Variable", delays=True,
                  dt=0.1, noise_strength=0.001, exclusive_nodes=False, config=CONFIGURED):
 
     plotter = Plotter(config)
@@ -37,7 +43,12 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         connectivity = Connectivity.from_file(connectivity_zip)
     connectivity.configure()
     plotter.plot_tvb_connectivity(connectivity)
-
+    if not delays:
+        connectivity.tract_lengths /= 100000.0
+        connectivity.configure()
+    plotter.base.plot_regions2regions(connectivity.delays,
+                                      connectivity.region_labels, 111, "Delays")
+    plotter.base._save_figure(figure_name="Delays")
 
     # ----------------------2. Define a TVB simulator (model, integrator, monitors...)----------------------------------
 
@@ -87,9 +98,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     results = simulator.run(simulation_length=simulation_length)
     # Integrate NEST one more NEST time step so that multimeters get the last time point
     # unless you plan to continue simulation later
-    simulator.simulate_nest(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    simulator.run_spiking_simulator(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
     # Clean-up NEST simulation
-    if simulator.simulate_nest == simulator.tvb_nest_interface.nest_instance.Run:
+    if simulator.run_spiking_simulator == simulator.tvb_nest_interface.nest_instance.Run:
         simulator.tvb_nest_interface.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
@@ -138,7 +149,7 @@ if __name__ == "__main__":
     # model.P = np.array([0.0])
     # model.variables_of_interest = ["E", "I"]
     model = ReducedWongWangExcIOInhI()
-    main_example(model, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+    main_example(model, RedWWExcIOInhIMultisynapseBuilder, InterfaceRedWWexcIOinhIMultisynapseBuilder,
                  nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
-                 tvb_state_variable_type_label="State Variables",
-                 exclusive_nodes=True, noise_strength=0.001, config=CONFIGURED)
+                 tvb_state_variable_type_label="State Variables", dt=0.1, delays=True,
+                 exclusive_nodes=True, noise_strength=0.0001, config=CONFIGURED)

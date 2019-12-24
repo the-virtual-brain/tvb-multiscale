@@ -1,4 +1,4 @@
-function out = matlab_rww_dfun(sn, sg, coupling)
+function out = matlab_rww_dfun(sn, sg, coupling, lamda)
     % corresponding TVB parameters:
     taon = 100.0;   % tau_e
     taog = 10.0;    % tau_i
@@ -20,7 +20,7 @@ function out = matlab_rww_dfun(sn, sg, coupling)
 %    sg(sg<0) = 0;
 
     xn = I0*Jexte + w*JN*sn + JN*C*coupling - J*sg; % x_e
-    xg = I0*Jexti + JN*sn - sg;  % x_i
+    xg = I0*Jexti + JN*sn + lamda*JN*C*coupling- sg;  % x_i
 
     rn = phie(xn);  % H_e
     rg = phii(xg);  % H_i

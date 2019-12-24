@@ -30,13 +30,21 @@ class TVBNESTInterfaceBuilder(object):
     # If set as a function of lambda state: fun(state), it will become a vector function of:
     # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
     # TVB -> NEST
-    w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
+    w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, assuming TVB rate is spikes/ms)
     w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
     w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
     # TVB <- NEST
-    w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB) and given the division of spikes' number with dt in ms:
+    # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+    # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
+    # as long as a neuron cannot fire twice during a TVB time step, i.e.,
+    # as long as the TVB time step (usually 0.001 to 0.1 ms)
+    # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
+    # For conversion to a rate, one has to do:
+    # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
+    # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
     w_spikes_to_tvb = 1.0
     w_spikes_var_to_tvb = 1.0
+    # We return from a NEST multimeter or voltmeter the membrane potential in mV
     w_potential_to_tvb = 1.0
 
     # The NEST nodes where TVB input is directed
@@ -121,20 +129,28 @@ class TVBNESTInterfaceBuilder(object):
         else:
             raise ValueError("Input simulator_tvb is not a Simulator object!\n%s" % str(tvb_simulator))
 
-        # TVB <-> NEST transformations' weights/funs
-        # If set as weights, they will become a transformation function of
-        # lambda state, regions_indices: w[regions_indices] * state[regions_indices]
-        # If set as a function of lambda state: fun(state), it will become a vector function of:
-        # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
-        # TVB -> NEST
-        self.w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, whereas dt is in ms)
-        self.w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
-        self.w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
-        # TVB <- NEST
-        self.w_spikes_to_tvb_rate = 1.0  # (assuming spikes/ms in TVB)
-        self.w_spikes_to_tvb = 1.0
-        self.w_spikes_var_to_tvb = 1.0
-        self.w_potential_to_tvb = 1.0
+            # TVB <-> NEST transformations' weights/funs
+            # If set as weights, they will become a transformation function of
+            # lambda state, regions_indices: w[regions_indices] * state[regions_indices]
+            # If set as a function of lambda state: fun(state), it will become a vector function of:
+            # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
+            # TVB -> NEST
+            self.w_tvb_to_spike_rate = 1000.0  # (spike rate in NEST is in spikes/sec, assuming TVB rate is spikes/ms)
+            self.w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
+            self.w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
+            # TVB <- NEST
+            # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+            # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
+            # as long as a neuron cannot fire twice during a TVB time step, i.e.,
+            # as long as the TVB time step (usually 0.001 to 0.1 ms)
+            # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
+            # For conversion to a rate, one has to do:
+            # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
+            # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
+            self.w_spikes_to_tvb = 1.0
+            self.w_spikes_var_to_tvb = 1.0
+            # We return from a NEST multimeter or voltmeter the membrane potential in mV
+            self.w_potential_to_tvb = 1.0
 
         if nest_to_tvb_interfaces is not None:
             self.nest_to_tvb_interfaces = ensure_list(nest_to_tvb_interfaces)
@@ -225,8 +241,6 @@ class TVBNESTInterfaceBuilder(object):
                     nest_variable * weights[region_nodes_indices]}
 
     def generate_transforms(self):
-        self.w_spikes_to_tvb /= self.tvb_dt  # Used to convert number of spikes to a spike rate
-        self.w_spikes_to_tvb_rate /= self.tvb_dt  # Used to convert number of spikes to a spike rate
         dummy = np.ones((self.number_of_nodes, ))
         # Confirm good shape for TVB-NEST interface model parameters
         # TODO: find a possible way to differentiate scalings between
@@ -239,8 +253,7 @@ class TVBNESTInterfaceBuilder(object):
                      "w_tvb_to_potential",
                      "w_tvb_to_spike_rate"]:
             transforms.update(self._prepare_tvb_to_nest_transform_fun(prop, dummy))
-        for prop in ["w_spikes_to_tvb_rate",
-                     "w_spikes_to_tvb",
+        for prop in ["w_spikes_to_tvb",
                      "w_spikes_var_to_tvb",
                      "w_potential_to_tvb"]:
             transforms.update(self._prepare_nest_to_tvb_transform_fun(prop, dummy))
