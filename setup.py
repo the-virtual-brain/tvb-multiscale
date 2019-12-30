@@ -30,7 +30,7 @@ setuptools.setup(name='tvb-nest',
                  author_email='tvb.admin@thevirtualbrain.org',
                  url='http://www.thevirtualbrain.org',
                  download_url='https://github.com/the-virtual-brain/tvb-multiscale',
-                 keywords='tvb brain simulator nest neuroscience human animal neuronal dynamics models delay')
+                 keywords='tvb brain simulator nest neuroscience human animal neuronal dynamics builders delay')
 
 shutil.rmtree('tvb_nest.egg-info', True)
 shutil.rmtree('tvb_scripts.egg-info', True)

@@ -1,8 +1,8 @@
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.config import CONFIGURED
-from tvb_nest.plot.plotter import Plotter
+from tvb_multiscale.config import CONFIGURED
+from tvb_multiscale.plot.plotter import Plotter
 from tvb_scripts.time_series.model import TimeSeriesRegion
 
 

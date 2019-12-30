@@ -7,13 +7,11 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.examples.plot_results import plot_results
-from tvb_nest.config import CONFIGURED
-from tvb.simulator.models.oscillator import Generic2dOscillator
-from tvb.simulator.models.wilson_cowan import WilsonCowan
-from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh
-from tvb_nest.plot.plotter import Plotter
+from tvb_multiscale.config import CONFIGURED
+from tvb_multiscale.plot import Plotter
 from tvb_scripts.utils.data_structures_utils import ensure_list
 from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh
 from tvb.simulator.simulator import Simulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
@@ -46,7 +44,7 @@ def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY
     # -----------------------------------3. Simulate and gather results-------------------------------------------------
 
     # Configure the simulator with the TVB-NEST interface...
-    # simulator.configure(tvb_nest_interface=tvb_nest_model)
+    # simulator.configure(tvb_spikeNet_interface=tvb_nest_model)
     simulator.configure()
     # ...and simulate!
     t_start = time.time()

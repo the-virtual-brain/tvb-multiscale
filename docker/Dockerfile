@@ -117,7 +117,7 @@ RUN mkdir tvb-multiscale
 COPY . tvb-multiscale/
 RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
-## Run the following lines in case you want to install your own NEST module with NEST models
+## Run the following lines in case you want to install your own NEST module with NEST builders
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}

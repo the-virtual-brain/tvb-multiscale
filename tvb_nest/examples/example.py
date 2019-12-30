@@ -6,27 +6,14 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.examples.plot_results import plot_results
 from tvb_nest.config import CONFIGURED
-from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan
-from tvb_nest.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator
-from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
-from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i_multisynapse import DefaultExcIOInhIMultisynapseBuilder
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
-    import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
     import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.wilson_cowan import \
-    WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_nest.interfaces.builders.models.wilson_cowan_multisynapse import \
-    WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.generic_2d_oscillator import \
-    Generic2DOscillatorBuilder as InterfaceGeneric2DOscillatorBuilder
-from tvb_nest.plot.plotter import Plotter
+from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
+from tvb_nest.examples.plot_results import plot_results
+from tvb_multiscale.simulator_tvb.simulator import Simulator
+from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
@@ -74,7 +61,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
     # Common order of neurons' number per population:
     nest_model_builder.populations_order = nest_populations_order
-    nest_network = nest_model_builder.build_nest_network()
+    nest_network = nest_model_builder.build_spiking_network()
 
     print("Done! in %f min" % ((time.time() - tic) / 60))
 

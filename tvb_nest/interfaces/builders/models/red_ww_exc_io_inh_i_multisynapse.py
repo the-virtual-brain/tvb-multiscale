@@ -1,40 +1,44 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-import numpy as np
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIOinhI
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.spiking_models.builders.templates import scale_tvb_weight, tvb_delay, receptor_by_source_region
+from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
     tvb_model = ReducedWongWangExcIOInhI()
 
-    def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, N_e=100, exclusive_nodes=False,
+    def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, N_e=100, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
-
+        super(RedWWexcIOinhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids,
+                                                                exclusive_nodes,
+                                                                tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         if tvb_to_nest_interfaces is None:
     # # For directly setting an external current parameter in NEST neurons instantaneously:
-    #         tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
+    #         self.tvb_to_spikeNet_interfaces = [{
+    #                                           "model": "current",  "parameter": "I_e",
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-    #                                    "interface_weights": 5.0,
+    #                                           "interface_weights": 5.0,
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                               TVB sv -> NEST population
-    #                                    "connections": {"S_e": ["E", "I"]},
-    #                                    "nodes": None}]  # None means all here
+    #                                           "connections": {"S_e": ["E", "I"]},
+    #                                            "nodes": None}]  # None means all here
 
     # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
-    #         tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
+    #         self.tvb_to_spikeNet_interfaces = [{
+    #                                             "model": "dc_generator", "params": {},
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-    #                                    "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    #                                    "weights": 50 * tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
+    #                                             "interface_weights": N_e*1.0,  # Applied outside NEST for each interface device
     # #                                 A function of TVB connectivity weight
-    # #                                   "delays": lambda tvb_node_id, nest_node_id, delays:
-    #                                                         delays[tvb_node_id, nest_node_id],
+    #                                             "weights": self.G_scale_tvb_weight,
+    # #                                 A function of TVB connectivity delay
+    # #                                           "delays": self.tvb_delay,
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                                 TVB sv -> NEST population
-    #                                    "connections": {"S_e": ["E", "I"]},
-    #                                    "source_nodes": None, "target_nodes": None}]  # None means all here
+    #                                              "connections": {"S_e": ["E", "I"]},
+    #                                              "source_nodes": None, "target_nodes": None}]  # None means all here
 
     # For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
     # Options:
@@ -43,17 +47,16 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
     # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
     # An alternative option to poisson_generator is:
     # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
-            tvb_to_nest_interfaces = [{"model": "inhomogeneous_poisson_generator",
+            self.tvb_to_spikeNet_interfaces = [{
+                                       "model": "inhomogeneous_poisson_generator",
                                        "params": {"allow_offgrid_times": False},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                                         "interface_weights": N_e*1.0,  # Applied outside NEST for each interface device
     #                               A function of TVB connectivity weight
-                                        "weights": lambda tvb_node_id, nest_node_id, weights:
-                                                        tvb_simulator.model.G[0]*weights[tvb_node_id, nest_node_id],
+                                        "weights": self.G_scale_tvb_weight,
     #                                 A function of TVB connectivity delay:
-                                        "delays": lambda tvb_node_id, nest_node_id, delays:
-                                                        delays[tvb_node_id, nest_node_id],
-                                        "receptor_types": lambda tvb_node_id, nest_node_id: int(tvb_node_id + 3),
+                                        "delays": self.tvb_delay,
+                                        "receptor_types": self.receptor_by_source_region,
     # ----------------------------------------------------------------------------------------------------------------
     #                                        TVB sv or param -> NEST population
                                         "connections": {"R_e": ["E", "I"]},
@@ -68,15 +71,13 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
             #            TVB <- NEST
             connections["R_e"] = ["E"]
             connections["R_i"] = ["I"]
-            nest_to_tvb_interfaces = \
+            self.spikeNet_to_tvb_interfaces = \
                 [{"model": "spike_detector", "params": {},
     # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
                   "weights": 1.0, "delays": 0.0,
     # ------------------------------------------------------------------------------------------------------------------
                   "connections": connections, "nodes": None}]  # None means all here
 
-        super(RedWWexcIOinhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                                    tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1.0
@@ -90,6 +91,16 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
         # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
         # given WongWang model parameter r is in Hz but tvb dt is in ms:
         self.w_spikes_to_tvb = 1000.0 / self.tvb_dt
+
+    def G_scale_tvb_weight(self, source_node, target_node):
+        return scale_tvb_weight(source_node, target_node,
+                                tvb_weights=self.tvb_weights, scale=self.tvb_model.G[0])
+
+    def tvb_delay(self, source_node, target_node):
+        return tvb_delay(source_node, target_node, self.tvb_delays)
+
+    def receptor_by_source_region(self, source_node, target_node, start=3):
+        return receptor_by_source_region(source_node, target_node, start)
 
     def build_interface(self, tvb_nest_interface=None):
         if not isinstance(tvb_nest_interface, RedWWexcIOinhI):

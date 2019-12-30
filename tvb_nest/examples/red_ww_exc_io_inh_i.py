@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 import time
-from collections import OrderedDict
 import numpy as np
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.examples.plot_results import plot_results
-from tvb_nest.config import CONFIGURED
-from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_multiscale.config import CONFIGURED
+from tvb_multiscale.simulator_tvb.simulator import Simulator
+from tvb_multiscale.interfaces.builders import RedWWexcIOinhIBuilder
+from tvb_multiscale.models import RedWWExcIOInhIBuilder
 from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.plot.plotter import Plotter
+from tvb_multiscale.plot import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
@@ -186,7 +185,7 @@ if __name__ == "__main__":
     # # ----------------------------------------------------------------------------------------------------------------
     # # ----------------------------------------------------------------------------------------------------------------
 
-    nest_network = nest_model_builder.build_nest_network()
+    nest_network = nest_model_builder.build_spiking_network()
 
     # -----------------------------------4. Build the TVB-NEST interface model -----------------------------------------
 
@@ -204,7 +203,7 @@ if __name__ == "__main__":
     # # ----------------------------------------------------------------------------------------------------------------
 
     # # For directly setting an external current parameter in NEST neurons instantaneously:
-    # tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "current",  "parameter": "I_e",
+    # tvb_nest_builder.tvb_to_spikeNet_interfaces = [{"model": "current",  "parameter": "I_e",
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
     #                                    "interface_weights": 5.0,
     # # ----------------------------------------------------------------------------------------------------------------
@@ -213,12 +212,12 @@ if __name__ == "__main__":
     #                                    "nodes": None}]  # None means all here
     #
     # # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
-    # tvb_nest_builder.tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
+    # tvb_nest_builder.tvb_to_spikeNet_interfaces = [{"model": "dc_generator", "params": {},
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     #                                    "interface_weights": 1.0,  # Applied outside NEST for each interface device
     #                                    "weights": 50 * tvb_nest_builder.tvb_model.G[0],  # To multiply TVB connectivity weight
     # #                                 To add to TVB connectivity delay:
-    # #                                   "delays": nest_network.nodes_min_delay,
+    # #                                   "delays": spiking_network.nodes_min_delay,
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                                 TVB sv -> NEST population
     #                                    "connections": {"S_e": ["E", "I"]},
@@ -231,14 +230,14 @@ if __name__ == "__main__":
     # # "model": "mip_generator", "params": {"p_copy": 0.5, "mother_seed": 0}
     # # An alternative option to poisson_generator is:
     # # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
-    # tvb_nest_builder.tvb_to_nest_interfaces =
+    # tvb_nest_builder.tvb_to_spikeNet_interfaces =
     #                           [{"model": "inhomogeneous_poisson_generator",
     #                             "params": {"allow_offgrid_times": False},
     #                            # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     #                            "interface_weights": 1.0 * N_e,  # Applied outside NEST for each interface device
     #                            "weights": tvb_nest_builder.tvb_model.G[0],  # To multiply TVB connectivity weight
     #                            #                                 To add to TVB connectivity delay:
-    #                            "delays": nest_network.nodes_min_delay,
+    #                            "delays": spiking_network.nodes_min_delay,
     #                            "receptor_types": 0,
     #                            # ----------------------------------------------------------------------------------------------------------------
     #                            #                                        TVB sv or param -> NEST population
@@ -252,7 +251,7 @@ if __name__ == "__main__":
     # #            TVB <- NEST
     # connections["R_e"] = ["E"]
     # connections["R_i"] = ["I"]
-    # nest_to_tvb_interfaces = \
+    # spikeNet_to_tvb_interfaces = \
     #     [{"model": "spike_detector", "params": {},
     #       # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
     #       "weights": 1.0, "delays": 0.0,

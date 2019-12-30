@@ -8,7 +8,8 @@ mpl.use('Agg')
 
 from tvb.datatypes.connectivity import Connectivity
 
-from tvb_nest import config as config_m
+from tvb_multiscale import config as config_m
+
 config_m.CONFIGURED = config_m.Config(output_base="outputs/")
 config = config_m.CONFIGURED
 config.figures.SAVE_FLAG = False
@@ -17,8 +18,8 @@ config.figures.MATPLOTLIB_BACKEND = "Agg"
 
 from tvb_nest.examples.example import main_example
 from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
+from tvb_multiscale.models import RedWWExcIOInhIBuilder
+from tvb_multiscale.interfaces.builders \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
 
 
