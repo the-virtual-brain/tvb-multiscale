@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from tvb_nest.nest_models.devices import NESTInputDeviceDict
 from tvb_nest.interfaces.builders.tvb_to_nest_devices_interface_builder import TVBtoNESTDeviceInterfaceBuilder
 from tvb_nest.interfaces.builders.tvb_to_nest_parameter_interface_builder import TVBtoNESTParameterInterfaceBuilder
 from tvb_nest.interfaces.builders.nest_to_tvb_interface_builder import NESTtoTVBInterfaceBuilder
@@ -10,6 +11,7 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     _tvb_to_spikNet_device_interface_builder = TVBtoNESTDeviceInterfaceBuilder
     _tvb_to_spikeNet_parameter_interface_builder = TVBtoNESTParameterInterfaceBuilder
     _spikeNet_to_tvb_interface_builder = NESTtoTVBInterfaceBuilder
+    _input_device_dict = NESTInputDeviceDict
 
     # TVB <-> Spiking Network transformations' weights/funs
     # If set as weights, they will become a transformation function of
@@ -50,7 +52,7 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     # # --Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None, **kwargs)------
     #                              "weights": 1.0,  # To multiply TVB connectivity weight
     # #                            To add to TVB connectivity delay:
-    #                              "delays": self.nodes_min_delay ,
+    #                              "delays": self.spikeNet_min_delay ,
     # #                                       TVB sv -> NEST population
     #                              "connections": {"S_e": ["E", "I"]},
     #                              "source_nodes": None, "target_nodes": None}]  # None means all here
@@ -61,7 +63,7 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     # # --Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None, **kwargs)------
     #                            "weights": 1.0,  # To multiply TVB connectivity weight
     # #                          To add to TVB connectivity delay:
-    #                            "delays": self.nodes_min_delay,
+    #                            "delays": self.spikeNet_min_delay,
     #                            "receptor_types": 0,
     # ------------------------------------------------------------------------------------------------------------------
     # #                                       TVB sv -> NEST population
@@ -89,11 +91,15 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
 
     @property
     def config(self):
-        return self.spiking_network.config.nest
+        return self.spiking_network.config
+
+    @property
+    def spikeNet_min_delay(self):
+        return self.nest_instance.GetKernelStatus("min_delay")
 
     @property
     def nest_min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
 
     def assert_delay(self, delay):
-        return np.maximum(self.nest_min_delay, delay)
+        return np.maximum(self.spikeNet_min_delay, delay)

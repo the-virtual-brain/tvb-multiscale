@@ -259,11 +259,20 @@ class Simulator(SimulatorTVB):
             self.preconfigure()
             # Make sure spatialised model parameters have the right shape (number_of_nodes, 1)
 
-        self.integrator.dt = float(int(numpy.round(0.1 / self.tvb_spikeNet_interface.spikeNet_min_delay))) * \
-                             self.tvb_spikeNet_interface.spikeNet_min_delay
+        self.tvb_spikeNet_interface = tvb_spikeNet_interface
+
+        # TODO: decide if this is really necessary...
+        if self.integrator.dt >= 2 * self.tvb_spikeNet_interface.spikeNet_min_delay:
+            self.integrator.dt = int(numpy.round(self.integrator.dt /
+                                                 self.tvb_spikeNet_interface.spikeNet_min_delay)) * \
+                                 self.tvb_spikeNet_interface.spikeNet_min_delay
+        else:
+            raise_value_error("TVB integration time step dt=%f "
+                              "is not equal or greater than twice the Spiking Network minimum delay min_delay=%f!" %
+                              (self.integrator.dt, self.tvb_spikeNet_interface.spikeNet_min_delay))
 
         excluded_params = ("state_variable_range", "state_variable_boundaries", "variables_of_interest",
-                          "noise", "psi_table", "nerf_table", "gid")
+                           "noise", "psi_table", "nerf_table", "gid")
         spatial_reshape = self.model.spatial_param_reshape
         for param in type(self.model).declarative_attrs:
             if param in excluded_params:
@@ -290,19 +299,14 @@ class Simulator(SimulatorTVB):
         # Configure Monitors to work with selected Model, etc...
         self._configure_monitors()
 
-        self.tvb_spikeNet_interface = tvb_spikeNet_interface
         # TODO: find out why the model instance is different in simulator and interface...
         self.tvb_spikeNet_interface.configure(self.model)
+
         dummy = -numpy.ones((self.connectivity.number_of_regions, ))
         dummy[self.tvb_spikeNet_interface.spiking_nodes_ids] = 0.0
-        # Create TVB model parameter for NEST to target
+        # Create TVB model parameter for SpikeNet to target
         for param in self.tvb_spikeNet_interface.spikeNet_to_tvb_params:
             setattr(self.model, param, dummy)
-
-        if self.integrator.dt < self.spikeNet_min_delay:
-            raise_value_error("TVB integration time step dt=%f "
-                              "is not greater than the Spiking Network minimum delay min_delay=%f!" %
-                              (self.integrator.dt, self.spikeNet_min_delay))
 
         # Setup Spiking Simulator configure() and Run() method
         self.configure_spiking_simulator = self.tvb_spikeNet_interface.spiking_network.configure
@@ -310,7 +314,7 @@ class Simulator(SimulatorTVB):
 
         # If there are Spiking nodes and are represented exclusively in Spiking Network...
         if self.tvb_spikeNet_interface.exclusive_nodes and len(self.tvb_spikeNet_interface.spiking_nodes_ids) > 0:
-            # ...zero coupling interface_weights among NEST nodes:
+            # ...zero coupling interface_weights among Spiking nodes:
             self.connectivity.weights[self.tvb_spikeNet_interface.spiking_nodes_ids] \
                 [:, self.tvb_spikeNet_interface.spiking_nodes_ids] = 0.0
 
@@ -320,7 +324,7 @@ class Simulator(SimulatorTVB):
 
         # TODO: Shall we implement a parallel implentation for multiple modes for SpikeNet as well?!
         if self.current_state.shape[2] > 1:
-            raise_value_error("Multiple modes' simulation not supported for TVB-NEST interface!\n"
+            raise_value_error("Multiple modes' simulation not supported for TVB multiscale simulations!\n"
                               "Current modes number is %d." % self.initial_conditions.shape[3])
 
         # Estimate of memory usage.
@@ -332,6 +336,7 @@ class Simulator(SimulatorTVB):
 
     # used by simulator adaptor
     def memory_requirement(self):
+        # TODO: calculate SpikeNet memory requirement as well!
         """
         Return an estimated of the memory requirements (Bytes) for this
         simulator's current configuration.
@@ -340,6 +345,7 @@ class Simulator(SimulatorTVB):
 
     # appears to be unused
     def runtime(self, simulation_length):
+        # TODO: calculate SpikeNet runtime as well!
         """
         Return an estimated run time (seconds) for the simulator's current
         configuration and a specified simulation length.
@@ -349,6 +355,7 @@ class Simulator(SimulatorTVB):
 
     # used by simulator adaptor
     def storage_requirement(self, simulation_length):
+        # TODO: calculate SpikeNet storage requirement as well!
         """
         Return an estimated storage requirement (Bytes) for the simulator's
         current configuration and a specified simulation length.
@@ -396,7 +403,7 @@ class Simulator(SimulatorTVB):
         # if update_non_state_variables=True in the model dfun by default
         self.update_state(state, node_coupling, local_coupling)
 
-        # NEST simulation preparation:
+        # spikeNet simulation preparation:
         self.configure_spiking_simulator()
 
         # A flag to skip unnecessary steps when Spiking Simulator does NOT update TVB state
@@ -408,15 +415,15 @@ class Simulator(SimulatorTVB):
         tic_ratio = 0.1
         tic_point = tic_ratio * n_steps
         for step in range(self.current_step + 1,  self.current_step + n_steps + 1):
-            # TVB state -> NEST (state or parameter)
-            # Communicate TVB state to some NEST device (TVB proxy) or TVB coupling to NEST nodes,
-            # including any necessary conversions from TVB state to NEST variables,
+            # TVB state -> SpikeNet (state or parameter)
+            # Communicate TVB state to some SpikeNet device (TVB proxy) or TVB coupling to SpikeNet nodes,
+            # including any necessary conversions from TVB state to SpikeNet variables,
             # in a model specific manner
             # TODO: find what is the general treatment of local coupling, if any!
             #  Is this addition correct in all cases for all builders?
             self.tvb_spikeNet_interface.tvb_state_to_spikeNet(state, node_coupling+local_coupling, stimulus, self.model)
-            # NEST state -> TVB model parameter
-            # Couple the NEST state to some TVB model parameter,
+            # SpikeNet state -> TVB model parameter
+            # Couple the SpikeNet state to some TVB model parameter,
             # including any necessary conversions in a model specific manner
             self.model = self.tvb_spikeNet_interface.spikeNet_state_to_tvb_parameter(self.model)
             # Integrate TVB to get the new TVB state

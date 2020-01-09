@@ -35,6 +35,14 @@ class SpikingRegionNode(Series):
     def _get_connections(self, neuron):
         pass
 
+    @abstractmethod
+    def GetFromConnections(self, connections, attr=None):
+        pass
+
+    @abstractmethod
+    def SetToConnections(self, connections, values_dict):
+        pass
+
     @property
     def node(self):
         return self

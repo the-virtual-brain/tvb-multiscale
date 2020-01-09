@@ -3,15 +3,16 @@
 from collections import OrderedDict
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIOinhI
-from tvb_multiscale.spiking_models.builders.templates import tvb_delay, receptor_by_source_region
+from tvb_multiscale.spiking_models.builders.templates \
+    import random_normal_tvb_weight, tvb_delay, receptor_by_source_region
 from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     tvb_model = ReducedWongWangExcIOInhI()
 
-    def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, N_E=100, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
+    def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100):
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         if tvb_to_nest_interfaces is None:
@@ -20,7 +21,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
     #        self.tvb_to_spikeNet_interfaces = [{
     #                                    "model": "current",  "parameter": "I_e",
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-    #                                    "interface_weights": 2.0,
+    #                                    "interface_weights": 1.0 * N_E,
     # # ----------------------------------------------------------------------------------------------------------------
     # #                                   TVB sv -> NEST population
     #                                     "connections": {"S_e": ["E", "I"]},
@@ -101,10 +102,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
         self.w_spikes_to_tvb = 1000.0 / self.tvb_dt
 
     def random_normal_tvb_weight(self, tvb_node_id, nest_node_id, sigma=0.1):
-        if self.tvb_weights[tvb_node_id, nest_node_id] > 0.0:
-            return {"distribution": "normal", "mu": 1.0, "sigma": 0.1 }
-        else:
-            return 0.0
+        return random_normal_tvb_weight(tvb_node_id, nest_node_id, self.tvb_weights, sigma=sigma)
 
     def tvb_delay(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)

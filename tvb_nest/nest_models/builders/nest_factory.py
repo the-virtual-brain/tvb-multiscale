@@ -62,7 +62,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     for module in ensure_list(modules):
         logger.info("Compiling %s..." % module)
         module_bld_dir = os.path.join(config.nest.MODULES_BLDS_DIR, module)
-        logger.info("from in build directory %s..." % module_bld_dir)
+        logger.info("from in build_interfaces directory %s..." % module_bld_dir)
         if not os.path.exists(module_bld_dir) or recompile:
             source_path = os.path.join(config.nest.MODULES_DIR, module)
             logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
@@ -76,7 +76,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             logger.warn("Something seems to have gone wrong with compiling %s!" % module)
 
 
-def create_connection_dict(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
+def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
     conn_spec = dict(config.nest.DEFAULT_CONNECTION["conn_spec"])
@@ -155,7 +155,7 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
     else:
         # ...assert the type...
         device_model = device_to_dev_model(device_name)
-    if "device_model" in NESTInputDeviceDict.keys():
+    if device_model in NESTInputDeviceDict.keys():
         devices_dict = NESTInputDeviceDict
         default_params_dict = config.nest.NEST_INPUT_DEVICES_PARAMS_DEF
     elif device_model in NESTOutputDeviceDict.keys():
@@ -167,15 +167,13 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
                           (device_model, str(config.nest.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
     default_params = dict(default_params_dict.get(device_name, {}))
-    if isinstance(params, dict) and len(dict) > 0:
-        params.update(default_params)
-    else:
-        params = default_params
+    if isinstance(params, dict) and len(params) > 0:
+        default_params.update(params)
     if return_nest:
-        return devices_dict[device_name](nest_instance, nest_instance.Create(device_model, params=params)), \
+        return devices_dict[device_name](nest_instance.Create(device_model, params=default_params), nest_instance), \
                nest_instance
     else:
-        return devices_dict[device_name](nest_instance, nest_instance.Create(device_model, params=params))
+        return devices_dict[device_name](nest_instance.Create(device_model, params=default_params), nest_instance)
 
 
 def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0, config=CONFIGURED,

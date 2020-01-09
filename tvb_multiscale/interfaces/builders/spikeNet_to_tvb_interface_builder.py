@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 from pandas import Series
 import numpy as np
+from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.interfaces.spikeNet_to_tvb_interface import SpikeNetToTVBinterface
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import property_to_fun
@@ -20,9 +21,10 @@ class SpikeNetToTVBInterfaceBuilder(object):
     tvb_nodes_ids = []
     tvb_model = None
     exclusive_nodes = False
+    config = CONFIGURED
 
     def __init__(self, interfaces, spiking_network, spiking_nodes, spiking_nodes_ids,
-                 tvb_nodes_ids, tvb_model, exclusive_nodes=False):
+                 tvb_nodes_ids, tvb_model, exclusive_nodes=False, config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
         self.spiking_nodes = spiking_nodes
@@ -30,6 +32,7 @@ class SpikeNetToTVBInterfaceBuilder(object):
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
         self.exclusive_nodes = exclusive_nodes
+        self.config = config
 
     @abstractmethod
     def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
@@ -51,12 +54,12 @@ class SpikeNetToTVBInterfaceBuilder(object):
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_nodes)
         # We prefer to multiply interface_weights outside NEST:
         interface_weights = np.ones((len(spiking_nodes),)).astype("f")
-        interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))
+        interface_weight_fun = property_to_fun(interface.pop("interface_weights", 1.0))
         delays = np.ones((len(spiking_nodes),)).astype("f")
-        delay = property_to_fun(interface.pop("delays", 0.0))
+        delay_fun = property_to_fun(interface.pop("delays", 0.0))
         for i_w, spiking_node in enumerate(spiking_nodes):
-            interface_weights[i_w] = interface_weight(spiking_node)
-            delays[i_w] = delay(spiking_node)
+            interface_weights[i_w] = interface_weight_fun(spiking_node)
+            delays[i_w] = delay_fun(spiking_node)
         # Delays should be set to the device
         interface["delays"] = delays  # Per node
         # Convert TVB node index to interface NEST node index:
@@ -74,8 +77,9 @@ class SpikeNetToTVBInterfaceBuilder(object):
                                          scale=interface_weights).from_device_set(device_set, tvb_sv_id, name)
         return spikeNet_to_tvb_interface
 
-    def build(self):
+    def build_interfaces(self):
+        spikeNet_to_tvb_interfaces = Series()
         for interface in self.interfaces:
-            spiking_to_tvb_interfaces = \
-                spiking_to_tvb_interfaces.append(self.build_interface(interface))
-        return spiking_to_tvb_interfaces
+            spikeNet_to_tvb_interfaces = \
+                spikeNet_to_tvb_interfaces.append(self.build_interface(interface))
+        return spikeNet_to_tvb_interfaces

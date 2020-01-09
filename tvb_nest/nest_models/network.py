@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.spiking_models.network import SpikingNetwork
-from tvb_nest.spiking_models.builders.nest_factory import load_nest
-from tvb_nest.spiking_models.region_node import NESTRegionNode
-from tvb_nest.spiking_models.devices import NESTDeviceSet
+from tvb_nest.nest_models.builders.nest_factory import load_nest
+from tvb_nest.nest_models.region_node import NESTRegionNode
+from tvb_multiscale.spiking_models.devices import DeviceSet
 from tvb_scripts.utils.log_error_utils import initialize_logger
 
 
@@ -17,18 +17,12 @@ class NESTNetwork(SpikingNetwork):
     def __init__(self, nest_instance=None,
                  region_nodes=pd.Series(),
                  output_devices=pd.Series(),
-                 stimulation_devices=pd.Series(),
-                 nodes_min_delay=0.0,
+                 input_devices=pd.Series(),
                  config=CONFIGURED):
         if nest_instance is None:
             nest_instance = load_nest(self.config.nest, LOG)
         self.nest_instance = nest_instance
-        super(NESTNetwork, self).__init__(region_nodes, output_devices, stimulation_devices, nodes_min_delay, config)
-
-        if nodes_min_delay <= 0.0:
-            self.nodes_min_delay = self.nest_instance.GetKernelStatus("min_delay")
-        else:
-            self.nodes_min_delay = nodes_min_delay
+        super(NESTNetwork, self).__init__(region_nodes, output_devices, input_devices, config)
 
         if isinstance(self.region_nodes, pd.Series):
             if len(self.region_nodes) > 0 and \
@@ -39,15 +33,15 @@ class NESTNetwork(SpikingNetwork):
 
         if isinstance(self.output_devices, pd.Series):
             if len(self.output_devices) > 0 \
-                    and np.any([not isinstance(dev, NESTDeviceSet) for dev in self.output_devices]):
+                    and np.any([not isinstance(dev, DeviceSet) for dev in self.output_devices]):
                 raise ValueError("Input output_devices is not a pandas.Series of output DeviceSet objects!:\n %s" %
                                  str(self.output_devices))
 
-        if isinstance(self.stimulation_devices, pd.Series):
-            if len(self.stimulation_devices) > 0 and \
-                    np.any([not isinstance(dev, NESTDeviceSet) for dev in self.stimulation_devices]):
+        if isinstance(self.input_devices, pd.Series):
+            if len(self.input_devices) > 0 and \
+                    np.any([not isinstance(dev, DeviceSet) for dev in self.input_devices]):
                 raise ValueError("Input input_devices is not a pandas.Series of input DeviceSet objects!:\n %s" %
-                                 str(self.stimulation_devices))
+                                 str(self.input_devices))
 
         LOG.info("%s created!" % self.__class__)
 

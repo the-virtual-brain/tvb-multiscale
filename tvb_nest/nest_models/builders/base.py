@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from itertools import cycle
+from pandas import Series
 import numpy as np
 from tvb_nest.config import CONFIGURED
+from tvb_nest.nest_models.region_node import NESTRegionNode
+from tvb_nest.nest_models.network import NESTNetwork
 from tvb_nest.nest_models.builders.nest_factory import \
-    load_nest, compile_modules, create_connection_dict, create_device, connect_device
+    load_nest, compile_modules, create_conn_spec, create_device, connect_device
 from tvb_multiscale.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.spiking_models.builders.base import SpikingModelBuilder
 from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay
@@ -17,6 +20,8 @@ LOG = initialize_logger(__name__)
 class NESTModelBuilder(SpikingModelBuilder):
     config = CONFIGURED
     nest_instance = None
+    default_min_spiking_dt = CONFIGURED.nest.NEST_MIN_DT
+    default_min_delay = CONFIGURED.nest.NEST_MIN_DT
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
         super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
@@ -33,7 +38,7 @@ class NESTModelBuilder(SpikingModelBuilder):
             lambda weight, n_cons: self.config.DEFAULT_SPIKING_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
 
         self.default_populations_connection = dict(self.config.nest.DEFAULT_CONNECTION)
-        self.default_populations_connection["delay"] = self.spiking_min_delay
+        self.default_populations_connection["delay"] = self.default_min_delay
         self.default_populations_connection["nodes"] = None
 
         self.default_nodes_connection = dict(self.config.nest.DEFAULT_CONNECTION)
@@ -92,7 +97,7 @@ class NESTModelBuilder(SpikingModelBuilder):
     def _configure_nest_kernel(self):
         self.nest_instance.ResetKernel()  # This will restart NEST!
         self._update_spiking_dt()
-        self._update_spiking_min_delay()
+        self._update_default_min_delay()
         self.nest_instance.set_verbosity(100)  # don't print all messages from NEST
         self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt, "print_time": True})
 
@@ -112,7 +117,7 @@ class NESTModelBuilder(SpikingModelBuilder):
                 except:
                     self.logger.info("FAILED! We need to first compile it!")
                     # ...unless we need to first compile it:
-                    compile_modules(model, recompile=False, config=self.config.nest)
+                    compile_modules(model, recompile=False, config=self.config)
                     # and now install it...
                     self.logger.info("Installing now module %s..." % module)
                     self.nest_instance.Install(module)
@@ -127,16 +132,16 @@ class NESTModelBuilder(SpikingModelBuilder):
         self._configure_nest_kernel()
         super(NESTModelBuilder, self).configure()
 
-    def build_spiking_populations(self, model, size, params, *args, **kwargs):
-        return self.nest_instance.Create(model, int(np.round(size)), params=params)
-
     @property
-    def _spiking_min_delay(self):
-        return self.config.nest.NEST_MIN_DT
+    def min_delay(self):
+        try:
+            return self.nest_instance.GetKernelStatus("min_delay")
+        except:
+            return self.default_min_delay
 
     def _prepare_populations_connection_params(self, pop_src, pop_trg, conn_spec, syn_spec):
-        return create_connection_dict(n_src=len(pop_src), n_trg=len(pop_trg),
-                                      src_is_trg=(pop_src == pop_trg), config=self.config.nest, **conn_spec)
+        return create_conn_spec(n_src=len(pop_src), n_trg=len(pop_trg),
+                                src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
 
     def _assert_synapse_model(self, synapse_model, delay):
         if synapse_model.find("rate") > -1:
@@ -166,7 +171,7 @@ class NESTModelBuilder(SpikingModelBuilder):
         elif delay < self.spiking_dt:
             LOG.warning("Coupling spiking neurons with delay = %f < NEST integration step = %s is not possible!\n"
                         "Setting delay equal to NEST integration step!" % (delay, self.spiking_dt))
-            return self.spiking_min_delay
+            return self.default_min_delay
         else:
             return delay
 
@@ -178,7 +183,16 @@ class NESTModelBuilder(SpikingModelBuilder):
             syn_spec["delay"] = self._assert_delay(syn_spec["delay"])
         self.nest_instance.Connect(source, target, conn_spec, syn_spec)
 
+    def build_spiking_populations(self, model, size, params, *args, **kwargs):
+        return self.nest_instance.Create(model, int(np.round(size)), params=params)
+
+    def build_spiking_region_node(self, label="", input_node=Series(), *args, **kwargs):
+        return NESTRegionNode(self.nest_instance, label, input_node)
+
     def build_and_connect_devices(self, devices):
         return build_and_connect_devices(devices, create_device, connect_device,
                                          self.nodes, self.config, nest_instance=self.nest_instance)
 
+    def build(self):
+        return NESTNetwork(self.nest_instance, self.nodes,
+                           self._output_devices, self.input_devices, config=self.config)

@@ -39,6 +39,10 @@ class NESTconfig(object):
                                       "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True},
                                       "spike_multimeter": {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
 
+    NEST_INPUT_DEVICES_PARAMS_DEF = {"poisson_generator": {"allow_offgrid_times": False},
+                                     "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
+                                     "inhomogeneous_poisson_generator": {"allow_offgrid_times": False}}
+
     def __init__(self, nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
         self.NEST_PATH = nest_path
         self.PYTHON = nest_python

@@ -2,6 +2,7 @@
 from six import string_types
 from pandas import Series
 import numpy as np
+from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.interfaces.tvb_to_spikeNet_parameter_interface import TVBtoSpikeNetParameterInterface
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import property_to_fun
@@ -17,9 +18,10 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
     tvb_nodes_ids = []
     spiking_nodes_ids = []
     exclusive_nodes = False
+    config = CONFIGURED
 
     def __init__(self, interfaces, spiking_network, spiking_nodes, spiking_nodes_ids,
-                 tvb_nodes_ids, tvb_model, exclusive_nodes=False):
+                 tvb_nodes_ids, tvb_model, exclusive_nodes=False, config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
         self.spiking_nodes = spiking_nodes
@@ -27,6 +29,7 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
         self.exclusive_nodes = exclusive_nodes
+        self.config = CONFIGURED
 
     def build_interface(self, interface):
         # One interface for every combination of Spiking node
@@ -43,9 +46,9 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         if self.exclusive_nodes:
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_nodes_ids)
         interface_weights = 1.0 * np.ones((len(spiking_nodes_ids),)).astype("f")
-        interface_weight = property_to_fun(interface.get("interface_weights", 1.0))
+        interface_weight_fun = property_to_fun(interface.get("interface_weights", 1.0))
         for i_w, spiking_node_id in enumerate(spiking_nodes_ids):
-            interface_weights[i_w] = interface_weight(spiking_node_id)
+            interface_weights[i_w] = interface_weight_fun(spiking_node_id)
         tvb_to_spikeNet_interfaces = Series()
         for name, populations in connections.items():
             try:

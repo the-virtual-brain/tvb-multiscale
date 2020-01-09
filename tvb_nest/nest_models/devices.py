@@ -1,6 +1,6 @@
 
 from tvb_multiscale.spiking_models.devices import \
-    Device, InputDevice, OutputDevice, SpikeDetector, Multimeter, Voltmeter, SpikeMultimeter, DeviceSet
+    Device, InputDevice, OutputDevice, SpikeDetector, Multimeter, Voltmeter, SpikeMultimeter
 
 
 # These classes wrap around NEST commands.
@@ -9,13 +9,13 @@ from tvb_multiscale.spiking_models.devices import \
 class NESTDevice(Device):
 
     def __init__(self, device, nest_instance):
-        self.nest_instance = nest_instance
         super(NESTDevice, self).__init__(device)
+        self.nest_instance = nest_instance
         self.model = "device"
 
     def _assert_device(self):
         try:
-            self.nest_instance.Get(self.device)[0]["element_type"]
+            self.nest_instance.GetStatus(self.device)[0]["element_type"]
         except:
             raise ValueError("Failed to Get of device %s!" % str(self.device))
 
@@ -23,18 +23,29 @@ class NESTDevice(Device):
     def spiking_simulator_module(self):
         return self.nest_instance
 
-    def Get(self, attr=None):
+    def Get(self, attr=None, node_id=None):
+        if node_id is None:
+            node_id = self.device
         if attr is None:
-            return self.nest_instance.Get(self.device)[0]
+            return self.nest_instance.GetStatus(node_id)[0]
         else:
-            return self.nest_instance.Get(self.device, attr)[0]
+            return self.nest_instance.GetStatus(node_id, attr)[0]
 
     def Set(self, values_dict):
-        self.nest_instance.Set(self.device, values_dict)
+        self.nest_instance.SetStatus(self.device, values_dict)
+
+    def GetFromConnections(self, connections, attr=None):
+        if attr is None:
+            return self.nest_instance.GetStatus(connections)[0]
+        else:
+            return self.nest_instance.GetStatus(connections, attr)[0]
+
+    def SetToConnections(self, connections, values_dict):
+        self.nest_instance.SetStatus(connections, values_dict)
 
     @property
     def nest_model(self):
-        return str(self.nest_instance.Get(self.device)[0]["model"])
+        return str(self.nest_instance.GetStatus(self.device)[0]["model"])
 
     def _get_connections(self):
         return self.nest_instance.GetConnections
@@ -185,11 +196,11 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     @property
     def events(self):
-        return self.Get(self.device)[0]['events']
+        return self.nest_instance.GetStatus(self.device)[0]["events"]
 
     @property
     def number_of_events(self):
-        return self.Get(self.device, 'n_events')[0]
+        return self.nest_instance.GetStatus(self.device, "n_events")[0]
 
     @property
     def n_events(self):
@@ -197,21 +208,26 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     
     @property
     def reset(self):
-        self.spiking_module.Set(self.device, {'n_events': 0})
+        self.nest_instance.SetStatus(self.device, {'n_events': 0})
 
     def filter_events(self, events=None,  variables=None, neurons=None, times=None,
                       exclude_neurons=[], exclude_times=[]):
         if events is None:
             events = self.events
-        super(NESTOutputDevice, self).filter_events(events, variables, neurons, times, exclude_neurons, exclude_times)
+        return super(NESTOutputDevice, self).filter_events(events, variables, neurons,
+                                                           times, exclude_neurons, exclude_times)
 
 
 class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
     model = "spike_detector"
 
     def __init__(self, device, nest_instance):
-        super(SpikeDetector, self).__init__(device, nest_instance)
+        super(NESTSpikeDetector, self).__init__(device, nest_instance)
         self.model = "spike_detector"
+
+    @property
+    def connections(self):
+        return self.nest_instance.GetConnections(target=self.device)
 
     @property
     def neurons(self):
@@ -227,7 +243,7 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     @property
     def record_from(self):
-        return [str(name) for name in self.Get(self.device)[0]['record_from']]
+        return [str(name) for name in self.nest_instance.GetStatus(self.device)[0]['record_from']]
     
     
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
@@ -256,7 +272,7 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector, SpikeMultimeter):
     spike_var = "spikes"
 
     def __init__(self, device, nest_instance):
-        super(SpikeMultimeter, self).__init__(device, nest_instance)
+        super(NESTSpikeMultimeter, self).__init__(device, nest_instance)
         self.model = "spike_multimeter"
 
 

@@ -29,7 +29,7 @@ class RateWWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
     #                                  "interface_weights": 1.0, # Applied outside NEST for each interface device
     #                                    "weights": 1.0,  # To multiply TVB connectivity weight
     # #                                To add to TVB connectivity delay:
-    #                                  "delays": spiking_network.nodes_min_delay,            #
+    #                                  "delays": spiking_network.spikeNet_min_delay,            #
     #                                                 TVB  ->  NEST
     #                                 "connections": {"S_e": ["AMPA", "NMDA", "GABA"]},
     #                                 "source_nodes": None, "target_nodes": None}]  # None means all here

@@ -79,7 +79,7 @@ class WWDeco2014Builder(NESTModelBuilder):
         def param_fun(node_index, params):
             out_params = dict(params)
             out_params.update({"w_E_ext": self.tvb_model.G[0] *
-                                                     self.tvb_weights[:, list(self.nest_nodes_ids).index(node_index)]})
+                                            self.tvb_weights[:, list(self.spiking_nodes_ids).index(node_index)]})
             return out_params
 
         self.populations = [{"label": "E", "model": self.default_population["model"],

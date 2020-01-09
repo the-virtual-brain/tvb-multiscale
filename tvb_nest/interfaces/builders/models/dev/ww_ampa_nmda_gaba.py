@@ -29,7 +29,7 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
     #                                        "interface_weights": 1.0, # Applied outside NEST for each interface device
     #                                        "weights": 1.0,  # To multiply TVB connectivity weight
     # #                                      To add to TVB connectivity delay:
-    #                                        "delays": spiking_network.nodes_min_delay,
+    #                                        "delays": spiking_network.spikeNet_min_delay,
     # --------------------------------------------------------------------------------------------------------------
     # #                                                TVB sv -> NEST population
     #                                        "connections": {"S_e": ["AMPA", "NMDA", "GABA"]},
@@ -41,7 +41,7 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
     #                                           "interface_weights": 1.0*N_e,  # Applied outside NEST for each interface device
     #                                         "weights": tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
     # #                                   To add to TVB connectivity delay:
-    #                                           "delays": spiking_network.nodes_min_delay,
+    #                                           "delays": spiking_network.spikeNet_min_delay,
     #                                          "receptor_types": lambda tvb_node_id, nest_node_id: tvb_node_id + 1,
     # --------------------------------------------------------------------------------------------------------------
     # #                                                       TVB sv -> NEST population

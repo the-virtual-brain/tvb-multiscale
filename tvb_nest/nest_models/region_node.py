@@ -7,6 +7,8 @@ from tvb_multiscale.spiking_models.region_node import SpikingRegionNode
 
 class NESTRegionNode(SpikingRegionNode):
 
+    nest_instance = None
+
     def __init__(self, nest_instance, label="", input_node=Series()):
         self.nest_instance = nest_instance
         super(NESTRegionNode, self).__init__(label, input_node)
@@ -19,3 +21,12 @@ class NESTRegionNode(SpikingRegionNode):
 
     def _get_connections(self, neuron):
         return self.nest_instance.GetConnections(neuron)
+
+    def GetFromConnections(self, connections, attr=None):
+        if attr is None:
+            return self.nest_instance.GetStatus(connections)[0]
+        else:
+            return self.nest_instance.GetStatus(connections, attr)[0]
+
+    def SetToConnections(self, connections, values_dict):
+        self.nest_instance.SetStatus(connections, values_dict)

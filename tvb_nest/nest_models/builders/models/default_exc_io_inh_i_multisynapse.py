@@ -83,8 +83,8 @@ class DefaultExcIOInhIMultisynapseBuilder(NESTModelBuilder):
             {"source": "E", "target": ["E", "I"],
               "model": self.default_nodes_connection["model"],
               "conn_spec": self.default_nodes_connection["conn_spec"],
-              "weight": tvb_weight,
-              "delay": tvb_delay,
+              "weight": self.tvb_weight,
+              "delay": self.tvb_delay,
               # Each region emits spikes in its own port:
               "receptor_type": self.receptor_by_source_region,
              "source_nodes": None, "target_nodes": None}  # None means "all"

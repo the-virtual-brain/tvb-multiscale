@@ -22,25 +22,18 @@ class SpikingNetwork(object):
     # These devices are distinct from the ones for the TVB-Spiking Network interface
     output_devices = pd.Series()  # output_devices['Excitatory']['rh-insula']
     #
-    stimulation_devices = pd.Series()  # input_devices['Inhibitory']['rh-insula']
-    nodes_min_delay = 0.0
+    input_devices = pd.Series()  # input_devices['Inhibitory']['rh-insula']
 
     def __init__(self,
                  region_nodes=pd.Series(),
                  output_devices=pd.Series(),
-                 stimulation_devices=pd.Series(),
-                 nodes_min_delay=0.0,
+                 input_devices=pd.Series(),
                  config=CONFIGURED):
         self.config = config
 
-        if nodes_min_delay < 0.0:
-            self.nodes_min_delay = 0.0
-        else:
-            self.nodes_min_delay = nodes_min_delay
-
         self.region_nodes = pd.Series()
         self.output_devices = pd.Series()
-        self.stimulation_devices = pd.Series()
+        self.input_devices = pd.Series()
 
         if isinstance(region_nodes, pd.Series):
             if len(region_nodes) > 0 and \
@@ -56,12 +49,12 @@ class SpikingNetwork(object):
                 raise ValueError("Input output_devices is not a pandas.Series of output DeviceSet objects!:\n %s" %
                                  str(output_devices))
             self.output_devices = output_devices
-        if isinstance(stimulation_devices, pd.Series):
-            if len(stimulation_devices) > 0 and \
-                    np.any([not isinstance(dev, DeviceSet) for dev in stimulation_devices]):
+        if isinstance(input_devices, pd.Series):
+            if len(input_devices) > 0 and \
+                    np.any([not isinstance(dev, DeviceSet) for dev in input_devices]):
                 raise ValueError("Input input_devices is not a pandas.Series of input DeviceSet objects!:\n %s" %
-                                 str(stimulation_devices))
-            self.stimulation_devices = stimulation_devices
+                                 str(input_devices))
+            self.input_devices = input_devices
 
         LOG.info("%s created!" % self.__class__)
 
@@ -74,8 +67,9 @@ class SpikingNetwork(object):
         pass
 
     @property
+    @abstractmethod
     def min_delay(self):
-        return 0.0
+        pass
 
     @property
     def nodes_labels(self):
@@ -147,7 +141,7 @@ class SpikingNetwork(object):
                                 mean_spike_interval = temp
 
             if min_spike_interval is None:
-                min_spike_interval = self.min_delay()
+                min_spike_interval = self.min_delay
 
         if time is None:
 
@@ -360,8 +354,8 @@ class SpikingNetwork(object):
         return data
 
     def get_mean_data_from_multimeter(self, population_devices=None, variables=None, regions=None,
-                                      devices_dim_name="Population",
-                                      name="Mean data from Spiking Network multimeter", **kwargs):
+                                      devices_dim_name="Population", name="Mean data from Spiking Network multimeter",
+                                      **kwargs):
         data = self.get_data_from_multimeter("mean", population_devices, variables, regions,
                                              devices_dim_name, **kwargs)
         data.name = name

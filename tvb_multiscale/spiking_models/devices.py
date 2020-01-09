@@ -37,15 +37,23 @@ class Device(object):
         pass
 
     @abstractmethod
-    def _get_connections(self):
-        pass
-
-    @abstractmethod
     def Get(self, attr=None):
         pass
 
     @abstractmethod
     def Set(self, values_dict):
+        pass
+
+    @abstractmethod
+    def _get_connections(self):
+        pass
+
+    @abstractmethod
+    def GetFromConnections(self, connections, attr=None):
+        pass
+
+    @abstractmethod
+    def SetToConnections(self, connections, values_dict):
         pass
 
     def filter_neurons(self, neurons=None, exclude_neurons=[]):
@@ -76,15 +84,15 @@ class Device(object):
             return self._get_connections(source=self.device, target=tuple(neurons))
 
     def get_weights(self, neurons=None, exclude_neurons=[]):
-        return np.array([self.Get((conn,), "weight")[0]
+        return np.array([self.GetFromConnections((conn,), "weight")
                          for conn in self.get_connections(neurons, exclude_neurons)])
 
     def get_delays(self, neurons=None, exclude_neurons=[]):
-        return np.array([self.Get((conn,), "delay")[0]
+        return np.array([self.GetFromConnections((conn,), "delay")
                          for conn in self.get_connections(neurons, exclude_neurons)])
 
     def get_receptors(self, neurons=None, exclude_neurons=[]):
-        return np.array([self.Get((conn,), "receptor")[0]
+        return np.array([self.GetFromConnections((conn,), "receptor")
                          for conn in self.get_connections(neurons, exclude_neurons)])
 
     def get_node_weight(self, neurons=None, exclude_neurons=[]):
@@ -106,15 +114,15 @@ class Device(object):
 
     @property
     def weights(self):
-        return np.array([self.Get((conn,), "weight")[0] for conn in self.connections])
+        return np.array([self.GetFromConnections((conn,), "weight") for conn in self.connections])
 
     @property
     def delays(self):
-        return np.array([self.Get((conn,), "delay")[0] for conn in self.connections])
+        return np.array([self.GetFromConnections((conn,), "delay") for conn in self.connections])
 
     @property
     def receptors(self):
-        return np.array([self.Get((conn,), "receptor")[0] for conn in self.connections])
+        return np.array([self.GetFromConnections((conn,), "receptor") for conn in self.connections])
 
     @property
     def node_weight(self):
@@ -139,7 +147,7 @@ class Device(object):
     # def update_number_of_connections(self):
     #     neurons = self.neurons
     #     for neuron in neurons:
-    #         element_type = self.Get((neuron,))[0]["element_type"]
+    #         element_type = self.Get((neuron,))["element_type"]
     #         if element_type != "neuron":
     #             raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
     #     self.number_of_connections = len(neurons)
@@ -163,7 +171,7 @@ class OutputDevice(Device):
         super(OutputDevice, self).__init__(device, *args, **kwargs)
         self.model = "output_device"
 
-    def filter_events(self, events, variables=None,neurons=None, times=None,
+    def filter_events(self, events, variables=None, neurons=None, times=None,
                       exclude_neurons=[], exclude_times=[]):
         if variables is None:
             variables = events.keys()
@@ -256,17 +264,21 @@ class SpikeDetector(OutputDevice):
     # All the following properties are time summaries without taking into consideration spike timing:
 
     def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.filter_events("times", None, neurons, times, exclude_neurons, exclude_times)["times"]
+        return self.filter_events(None, "times", neurons, times, exclude_neurons, exclude_times)["times"]
 
     def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return self.filter_events("senders", None, neurons, times, exclude_neurons, exclude_times)["senders"]
+        return self.filter_events(None, "senders", neurons, times, exclude_neurons, exclude_times)["senders"]
 
     def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times))
 
     def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / \
-               self.get_number_of_neurons(neurons, exclude_neurons)
+        n_neurons = self.get_number_of_neurons(neurons, exclude_neurons)
+        if n_neurons > 0:
+            return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / n_neurons
+        else:
+            return 0.0
+
 
     def get_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
@@ -358,13 +370,15 @@ class SpikeDetector(OutputDevice):
             return xr.DataArray(rates, dims=["Time"], coords={"Time": time}, name=name)
 
     def compute_mean_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
-                                             spikes_kernel=None, name=None,
-                                             **kwargs):
+                                             spikes_kernel=None, name=None, **kwargs):
         if name is None:
             name = self.model + " - Mean spike rate accross time"
-        return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
-                                                    spikes_kernel, "total", name, **kwargs) / \
-               self.get_number_of_neurons(**kwargs)
+        n_neurons = self.get_number_of_neurons(**kwargs)
+        if n_neurons > 0:
+            return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
+                                                        spikes_kernel, "total", name, **kwargs) / n_neurons
+        else:
+            return 0.0 * time
 
 
 class Multimeter(OutputDevice):
@@ -545,7 +559,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
             events[var] = val[inds]
         events["weights"] = np.array(events[self.spike_var])
         del events[self.spike_var]
-        return self.filter_events(None, events, neurons, times, exclude_neurons, exclude_times)
+        return self.filter_events(events, None, neurons, times, exclude_neurons, exclude_times)
 
     def get_spikes_weights(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["weights"]
@@ -557,8 +571,11 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
 
     def get_mean_spikes_activity(self, neurons=None, exclude_neurons=[]):
-        return np.sum(self.get_spikes_weights(neurons, exclude_neurons)) / \
-               self.get_number_of_neurons(neurons, exclude_neurons)
+        n_neurons = self.get_number_of_neurons(neurons, exclude_neurons)
+        if n_neurons > 0:
+            return np.sum(self.get_spikes_weights(neurons, exclude_neurons)) / n_neurons
+        else:
+            return 0.0
 
     def get_total_spikes_activity(self, neurons=None, exclude_neurons=[]):
         return np.sum(self.get_spikes_weights(neurons, exclude_neurons))
@@ -641,9 +658,12 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                                                  spikes_kernel=None, name=None, **kwargs):
         if name is None:
             name = self.model + " - Mean spike activity accross time"
-        return self.compute_spikes_activity_across_time(time, spike_kernel_width, spikes_kernel,
-                                                        "total", name, **kwargs) / \
-               self.get_number_of_neurons(**kwargs)
+        n_neurons = self.get_number_of_neurons(**kwargs)
+        if n_neurons > 0:
+            return self.compute_spikes_activity_across_time(time, spike_kernel_width, spikes_kernel,
+                                                            "total", name, **kwargs) / n_neurons
+        else:
+            return 0.0 * time
 
 
 OutputDeviceDict = {"spike_detector": SpikeDetector,
@@ -773,8 +793,9 @@ class DeviceSet(pd.Series):
             if np.any([model != self.model for model in models]):
                 raise ValueError("Not all devices of the DeviceSet are of the same model!:\n %s" % str(models))
 
-    def update(self, *args, **kwargs):
-        super(DeviceSet, self).update(*args, **kwargs)
+    def update(self, device_set=None):
+        if device_set:
+            super(DeviceSet, self).update(device_set)
         self.update_model()
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):

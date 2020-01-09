@@ -10,8 +10,8 @@ from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import R
 class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
     tvb_model = ReducedWongWangExcIOInhI()
 
-    def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, N_e=100, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
+    def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_e=100):
         super(RedWWexcIOinhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids,
                                                                 exclusive_nodes,
                                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)

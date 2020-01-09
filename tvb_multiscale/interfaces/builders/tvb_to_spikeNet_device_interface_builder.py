@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 from pandas import Series
 import numpy as np
+from tvb_multiscale.config import CONFIGURED
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils import property_to_fun
 
@@ -12,7 +13,7 @@ LOG = initialize_logger(__name__)
 
 @add_metaclass(ABCMeta)
 class TVBtoSpikeNetDeviceInterfaceBuilder(object):
-    _available_input_devices = {}
+    _available_input_device_interfaces = {}
     interfaces = []
     spiking_nodes = Series()
     tvb_nodes_ids = []
@@ -23,9 +24,11 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
     tvb_dt = 0.1
     exclusive_nodes = False
     node_labels = None
+    config = CONFIGURED
 
     def __init__(self, interfaces, spiking_network, spiking_nodes, spiking_nodes_ids,
-                 tvb_nodes_ids, tvb_model, tvb_weights, tvb_delays, node_labels, tvb_dt, exclusive_nodes=False):
+                 tvb_nodes_ids, tvb_model, tvb_weights, tvb_delays, node_labels, tvb_dt, exclusive_nodes=False,
+                 config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
         self.spiking_nodes = spiking_nodes
@@ -37,6 +40,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         self.node_labels = node_labels
         self.tvb_dt = tvb_dt
         self.exclusive_nodes = exclusive_nodes
+        self.config = config
 
     @abstractmethod
     def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
@@ -59,11 +63,11 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
             # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
             assert np.all(node not in self.tvb_nodes_ids for node in target_nodes)
             assert np.all(node not in self.spiking_nodes_ids for node in source_tvb_nodes)
-        interface_weight = property_to_fun(interface.pop("interface_weights", 1.0))
+        interface_weight_fun = property_to_fun(interface.pop("interface_weights", 1.0))
         interface_weights = np.ones((len(source_tvb_nodes),)).astype("f")
-        weight = property_to_fun(interface.pop("weights", 1.0))
-        delay = property_to_fun(interface.pop("delays", 0.0))
-        receptor_type = property_to_fun(interface.pop("receptor_types", 0))
+        weight_fun = property_to_fun(interface.pop("weights", 1.0))
+        delay_fun = property_to_fun(interface.pop("delays", 0.0))
+        receptor_type_fun = property_to_fun(interface.pop("receptor_types", 0))
         # TODO: Find a way to change self directed weights in cases of non exclusive TVB and NEST nodes!
         weights = np.array(self.tvb_weights[source_tvb_nodes][:, target_nodes])
         delays = np.array(self.tvb_delays[source_tvb_nodes][:, target_nodes])
@@ -73,12 +77,12 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         device_names = []
         for src_node in source_tvb_nodes:
             i_src = np.where(self.tvb_nodes_ids == src_node)[0][0]
-            interface_weights[i_src] = interface_weight(src_node)
+            interface_weights[i_src] = interface_weight_fun(src_node)
             device_names.append(self.node_labels[src_node])
             for trg_node, i_trg in zip(target_nodes, target_nodes_ids):
-                weights[i_src, i_trg] = weight(src_node, trg_node, self.tvb_weights)
-                delays[i_src, i_trg] = delay(src_node, trg_node, self.tvb_delays)
-                receptor_types[i_src, i_trg] = receptor_type(src_node, trg_node)
+                weights[i_src, i_trg] = weight_fun(src_node, trg_node)
+                delays[i_src, i_trg] = delay_fun(src_node, trg_node)
+                receptor_types[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
         interface["weights"] = weights
         interface["delays"] = delays
         interface["receptor_types"] = receptor_types
@@ -91,7 +95,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
             except:
                 raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
             try:
-                interface_builder = self._available_input_devices[device.model]
+                interface_builder = self._available_input_device_interfaces[device.model]
             except:
                 raise_value_error("Interface model %s is not supported yet!" % device.model)
             tvb_to_spikeNet_interface[name] = \
