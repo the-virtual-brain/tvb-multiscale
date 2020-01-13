@@ -116,6 +116,9 @@ class SpikingModelBuilder(object):
     def number_of_spiking_nodes(self):
         return np.maximum(len(self.spiking_nodes_ids), 1)
 
+    # The methods below are used in order to return the builder's properties
+    # per spiking node or spiking nodes' connection
+
     @property
     def spiking_nodes_labels(self):
         if len(self._spiking_nodes_labels) == self.number_of_spiking_nodes:
@@ -259,17 +262,24 @@ class SpikingModelBuilder(object):
         return self._assert_delay(delay)
 
     def _update_spiking_dt(self):
+        # The TVB dt should be an integer multiple of the spiking simulator dt:
         self.spiking_dt = int(np.round(self.tvb_dt / self.tvb_to_spiking_dt_ratio / self.default_min_spiking_dt)) \
                           * self.default_min_spiking_dt
 
     def _update_default_min_delay(self):
+        # The Spiking Network min delay should be smaller than half the TVB dt,
+        # and an integer multiple of the spiking simulator dt
         self.default_min_delay = np.minimum(
             np.maximum(self.default_min_delay_ratio * self.spiking_dt, self.min_delay),
             self.tvb_dt / 2)
 
     def _configure_populations(self):
-        # Every population must have his own model model,
-        # scale of spiking neurons' number, and model specific parameters
+        # Every population must have its own model model, label.
+        # scale of spiking neurons' number, and model specific parameters,
+        # and a list of spiking region nodes where it is going to be placed
+        # "scale" and "parameters" can be given as functions.
+        # This configuration will make confirm user inputs
+        # and set the two properties above as functions of node index
         self.models = []
         self.populations_labels = []
         _populations = []
@@ -290,6 +300,8 @@ class SpikingModelBuilder(object):
         return self._populations
 
     def _assert_connection_populations(self, connection):
+        # This method will make sure that there source and target user inputs for every population connection
+        # and that every source/target population is already among the populations to be generated.
         for pop in ["source", "target"]:
             pops_labels = connection.get(pop, None)
         if pops_labels is None:
@@ -299,6 +311,8 @@ class SpikingModelBuilder(object):
         return pops_labels
 
     def _configure_connections(self, connections, default_connection):
+        # This method sets "weight", "delay" and "receptor_type" synapse properties
+        # as functions of the node where the populations are placed
         _connections = []
         for i_con, connection in enumerate(connections):
             self._assert_connection_populations(connection)
@@ -334,6 +348,7 @@ class SpikingModelBuilder(object):
         # Configure devices by the variable model they measure or stimulate (Series),
         # population (Series),
         # and target node (Series) for faster reading
+        # "weight", "delay" and "receptor_type" are set as functions, following user input
         _devices = list()
         for device in devices:
             _devices.append(dict(device))
@@ -341,7 +356,7 @@ class SpikingModelBuilder(object):
             if spiking_nodes is None:
                 spiking_nodes = self.spiking_nodes_ids
             # User inputs
-            # ..converted to functions
+            # ..set/converted to functions
             weights_fun = property_to_fun(device.get("weights", 1.0))
             delays_fun = property_to_fun(device.get("delays", 0.0))
             receptor_types_fun = property_to_fun(device.get("receptor_types", 0))
@@ -353,9 +368,10 @@ class SpikingModelBuilder(object):
             delays = np.tile([0.0], shape).astype("object")
             target_spiking_nodes_ids = \
                 [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in spiking_nodes]
+            # Set now the properties using the above defined functions:
             for trg_node, i_trg in zip(spiking_nodes, target_spiking_nodes_ids):
-                weights[i_trg] = weights_fun(trg_node)  # a function also fo self.tvb_weights
-                delays[i_trg] = delays_fun(trg_node)    # a function also fo self.tvb_delays
+                weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
+                delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
                 receptor_types[i_trg] = receptor_types_fun(trg_node)
             _devices[-1]["nodes"] = target_spiking_nodes_ids
             _devices[-1]["weights"] = weights
@@ -387,13 +403,15 @@ class SpikingModelBuilder(object):
         return delay
 
     def build_spiking_nodes(self, *args, **kwargs):
-        spiking_nodes_labels = self.spiking_nodes_labels
         self.nodes = Series()
-        for node_id, node_label in zip(self.spiking_nodes_ids, spiking_nodes_labels):  # For every Spiking node
+        # For every Spiking node
+        for node_id, node_label in zip(self.spiking_nodes_ids, self.spiking_nodes_labels):
             self.nodes[node_label] = self.build_spiking_region_node(node_label)
+            # ...and every population in it...
             for iP, population in enumerate(self._populations):
+                # ...if this population exists in this node...
                 if node_id in population["nodes"]:
-                    # ...generate a network of spiking populations
+                    # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
                     self.nodes[node_label][population["label"]] = \
                         self.build_spiking_populations(population["model"], size,
@@ -401,6 +419,7 @@ class SpikingModelBuilder(object):
                                                        *args, **kwargs)
 
     def _get_node_populations_neurons(self, node, populations):
+        # return handles to all neurons of specific neural populations of a Spiking Node
         return flatten_tuple([node[pop] for pop in ensure_list(populations)])
 
     def _set_syn_spec(self, syn_model, weight, delay, receptor_type):
@@ -408,9 +427,11 @@ class SpikingModelBuilder(object):
                 'delay': delay, 'receptor_type': receptor_type}
 
     def _connect_two_populations(self, pop_src, pop_trg, conn_spec, syn_spec):
+        # Prepare the parameters of connectivity:
         conn_spec, n_cons = self._prepare_populations_connection_params(pop_src, pop_trg, conn_spec, syn_spec)
         # Scale the synaptic weight with respect to the total number of connections between the two populations:
         syn_spec["weight"] = self._synaptic_weight_scaling(syn_spec["weight"], n_cons)
+        # We might create the same connection multiple times with different synaptic receptors...
         receptors = ensure_list(syn_spec["receptor_type"])
         for receptor in receptors:
             syn_spec["receptor_type"] = receptor
@@ -435,7 +456,7 @@ class SpikingModelBuilder(object):
     def connect_spiking_nodes(self):
         # For every different type of connections between distinct Spiking nodes' populations
         for i_conn, conn in enumerate(ensure_list(self._nodes_connections)):
-            # ...and form the connection for every distinct pair of Spiking nodes
+            # ...form the connection for every distinct pair of Spiking nodes
             for source_index in conn["source_nodes"]:
                 i_source_node = np.where(self.spiking_nodes_ids == source_index)[0][0]
                 src_pop = self._get_node_populations_neurons(self.nodes[i_source_node], conn["source"])
@@ -510,6 +531,10 @@ def node_key_index_and_label(node, labels):
         except:
             raise_value_error("Node %d is not a region node modeled in Spiking Simulator!" % node)
     return node_key, i_node, label
+
+
+# The functions below are used in order to return the builder's properties
+# per spiking node or spiking nodes' connection
 
 
 def property_per_node(property, nodes, nodes_labels):

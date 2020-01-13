@@ -21,7 +21,10 @@ class SpikingRegionNode(Series):
         super(SpikingRegionNode, self).__init__(input_node)
 
     def __getitem__(self, keys):
+        # return the neurons' indices/handles of specific populations (keys) of this RegionNode
         return flatten_tuple(super(SpikingRegionNode, self).__getitem__(keys))
+
+    # Methods to get or set methods for devices or their connections:
 
     @abstractmethod
     def Get(self, params=None, indices_or_keys=None):
@@ -52,13 +55,19 @@ class SpikingRegionNode(Series):
         return list(self.index)
 
     def neurons(self, indices_or_keys=None):
+        # Return the neurons of this region...
         if indices_or_keys is None:
+            # ...either of all populations...
             return flatten_tuple(self)
         else:
+            # ...or of selected ones:
             return self.__getitem__(indices_or_keys)
 
     @property
     def connections(self, indices_or_keys=None):
+        # Return the neurons of this region...
+        # ...either of all populations...
+        # ...or of selected ones:
         connections = []
         for neuron in self.neurons(indices_or_keys):
             connections.append(self._get_connections(neuron))

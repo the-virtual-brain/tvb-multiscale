@@ -16,6 +16,8 @@ PARAMETERS = ["current", "potential"]
 
 class TVBSpikeNetInterface(object):
 
+    # This is the actual interface class between TVB and a SpikingNetwork
+
     _available_input_devices = InputDeviceDict.keys()
     _current_input_devices = []
     _spike_rate_input_devices = []
@@ -68,7 +70,7 @@ class TVBSpikeNetInterface(object):
         return len(self.tvb_model.state_variables)
 
     def configure(self, tvb_model):
-        """  """
+        # Organize the different kinds of interfaces and set the TVB region model of the TVB Simulator
         self.spikeNet_to_tvb_params = []
         self.spikeNet_to_tvb_params_interfaces_ids = []
         self.spikeNet_to_tvb_sv_interfaces_ids = []
@@ -83,6 +85,7 @@ class TVBSpikeNetInterface(object):
         self.tvb_model = tvb_model
 
     def tvb_state_to_spikeNet(self, state, coupling, stimulus, model):
+        # Apply TVB -> Spiking Network input at time t before integrating time step t -> t+dt
         for interface in self.tvb_to_spikeNet_interfaces:
             if interface.model in self._available_input_devices:
                 values = state[interface.tvb_sv_id].squeeze()  # if we need the state variable
@@ -123,12 +126,13 @@ class TVBSpikeNetInterface(object):
                     # Instantaneous transmission. TVB history is used to buffer delayed communication.
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
+            # General form: interface_scale_weight * transformation_of(TVB_state_values)
             values = interface.scale * \
                      transform_fun(values, interface.nodes_ids)
             interface.set(values)
 
     def spikeNet_state_to_tvb_parameter(self, model):
-        # This method runs at time t, before simulating time step t to t+dt
+        # Apply Spiking Network -> TVB parameter input at time t before integrating time step t -> t+dt
         for interface_id in self.spikeNet_to_tvb_params_interfaces_ids:
             # ...update them:
             interface = self.spikeNet_to_tvb_interfaces[interface_id]
@@ -137,7 +141,7 @@ class TVBSpikeNetInterface(object):
             if interface.model in self._spike_rate_output_devices:
                 transform_fun = self.transforms["spikes_to_tvb"]
                 values = interface.population_mean_spikes_number
-                interface.reset  # We need to erase the spikes we have already read and communicated
+                interface.reset  # We need to erase the spikes we have already read and communicated to TVB
             elif interface.model == self._multimeter_output_devices:
                 transform_fun = self.transforms["spikes_sv_to_tvb"]
                 values = interface.current_population_mean_values
@@ -147,13 +151,14 @@ class TVBSpikeNetInterface(object):
             # TODO: add any other possible Spiking Network output devices to TVB parameters interfaces here!
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
+            # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
             param_values[interface.nodes_ids] = \
                 interface.scale * transform_fun(values, interface.nodes_ids)
             setattr(model, "__" + interface.name, param_values)
         return model
 
     def spikeNet_state_to_tvb_state(self, state):
-        # This method runs at time t+dt, after simulating time step t to t+dt
+        # Apply Spiking Network -> TVB state input at time t+dt after integrating time step t -> t+dt
         for interface_id in self.spikeNet_to_tvb_sv_interfaces_ids:
             interface = self.spikeNet_to_tvb_interfaces[interface_id]
             # Update TVB state
@@ -176,15 +181,13 @@ class TVBSpikeNetInterface(object):
             # TODO: add any other possible Spiking Network output devices to TVB parameters interfaces here!
             else:
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
+            # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
             state[interface.tvb_sv_id, interface.nodes_ids, 0] = \
                 interface.scale * transform_fun(values,  interface.nodes_ids)
         return state
 
     def get_mean_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
-        # the keys of which correspond to population level labels,
-        # and the values to lists of data returned for each spiking region node.
-        # In the case of multimeter mean data, they also take the form of
-        # dictionaries of variables measured by multimeters
+        # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
         mean_data = self.spiking_network.get_mean_data_from_multimeter(**kwargs)
         if mean_data is None:
             return None
@@ -208,9 +211,7 @@ class TVBSpikeNetInterface(object):
             return pd.Series(output_xarrays, index=pd.Index(pop_names, name="Population"), name=name)
 
     def get_mean_spikes_rates_to_TVBTimeSeries(self, **kwargs):
-        # rate is a DataFrame
-        # the keys of which correspond to population level labels,
-        # and the values to lists of data returned for each spiking region node.
+        # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
         rates, spike_detectors = self.spiking_network.compute_mean_spikes_rates(**kwargs)
         if rates is None:
             return None, None

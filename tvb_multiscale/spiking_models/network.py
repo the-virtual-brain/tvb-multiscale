@@ -13,6 +13,13 @@ from tvb_scripts.utils.data_structures_utils import ensure_list
 
 LOG = initialize_logger(__name__)
 
+# A SpikingNetwork consists of Region Nodes holding Spiking Populations,
+# and Input & Output devices connected to them
+# region_nodes is a pandas.Series of RegionNodes, indexed by population,
+# e.g., nodes['rh-insula']['E']
+# output_devices/input_devices is a pandas.Series per population measured quantity of DevicesSet per Region Node,
+# e.g., output_devices['Excitatory']['rh-insula']
+
 
 class SpikingNetwork(object):
     __metaclass__ = ABCMeta
@@ -80,6 +87,7 @@ class SpikingNetwork(object):
         return len(self.region_nodes)
 
     def get_devices_by_model(self, model, nodes=None):
+        # Get all devices set of a given model
         devices = pd.Series()
         if nodes is None:
             get_device = lambda device, nodes: device
@@ -95,7 +103,7 @@ class SpikingNetwork(object):
     def _prepare_to_compute_spike_rates(self, population_devices=None, regions=None, mode="rate",
                                         spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                         spikes_kernel_overlap=0.5, min_spike_interval=None, time=None):
-
+        # This method will get spike measuing devices and prepare for computing rate
         if mode.find("activity") > -1:
             spike_detectors = self.get_devices_by_model("spike_multimeter", nodes=regions)
         else:
@@ -118,6 +126,7 @@ class SpikingNetwork(object):
         if regions is not None:
             regions = ensure_list(regions)
 
+        # If there is no time vector user input, we need to get a feeling of the spike intervals' statistics
         if time is None or spikes_kernel_width is None:
             first_spike_time = self.config.calcul.MAX_SINGLE_VALUE
             last_spike_time = 0.0
@@ -184,9 +193,10 @@ class SpikingNetwork(object):
             kwargs = {}
             mode = mode.lower()
             if mode.find("activity") > -1:
-                fun = "spikes_activity_across_time"
+                fun = "spikes_activity_across_time"  # computing with spike weights
             else:
                 fun = "spikes_rate_across_time"
+            # Computing mean or total (sum) quantities across neurons
             if mode.find("mean") > -1:
                 fun = "compute_mean_" + fun
             else:
@@ -287,8 +297,10 @@ class SpikingNetwork(object):
                                  devices_dim_name="Population", name="Data from Spiking Network multimeter",
                                  **kwargs):
         if mode == "mean":
+            # Mean quantities across neurons
             fun = "get_mean_data"
         else:
+            # Total (summing) quantities across neurons
             fun = "get_data"
             if mode == "total":
                 kwargs.update({"mode": mode})

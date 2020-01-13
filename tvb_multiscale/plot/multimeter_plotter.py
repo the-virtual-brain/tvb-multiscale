@@ -10,12 +10,15 @@ class MultimeterPlotter(TimeSeriesPlotter):
 
     def _confirm_TimeSeries(self, input_time_series, time_series_class=TimeSeries, time_series_args={}):
         if isinstance(input_time_series, DataArray):
+            # if the input is a xarray DataArray, convert it to a TVB TimeSeries
             return time_series_class().from_xarray_DataArray(input_time_series, **time_series_args)
         else:
             return input_time_series
 
     def _join_variables_and_populations(self, time_series,
                                         var_pop_join_str=" - ", default_population_label="population"):
+        # This method will reshape the Time Series by creating a new TimeSeries
+        # with all combinations of (state) variables and spiking neurons' populations
         n_pops = time_series.shape[3]
         n_vars = time_series.shape[1]
         data = np.empty((time_series.time_length, n_vars*n_pops, time_series.shape[2], 1))
@@ -68,6 +71,7 @@ class MultimeterPlotter(TimeSeriesPlotter):
                                    **kwargs):
         time_series = self._confirm_TimeSeries(input_time_series, time_series_class, time_series_args)
         if plot_per_variable:
+            # One figure per (state) variable
             return self._plot_per_variable(self.plot_multimeter_timeseries, time_series, **kwargs)
         if time_series.shape[3] > 1:
             time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
@@ -79,6 +83,7 @@ class MultimeterPlotter(TimeSeriesPlotter):
                                **kwargs):
         time_series = self._confirm_TimeSeries(input_time_series, time_series_class, time_series_args)
         if plot_per_variable:
+            # One figure per (state) variable
             return self._plot_per_variable(self.plot_multimeter_raster, time_series, **kwargs)
         if time_series.shape[3] > 1:
             time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)

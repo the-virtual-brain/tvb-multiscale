@@ -53,9 +53,9 @@ class Config(ConfigBase):
     # at all of the region-population-single neuron levels
     # So, the default behavior is for NO scaling
     # among TVB regions (1 to 1 coupling) and
-    # between TVB and NEST regions (1 to all, and all to 1) coupling,
+    # between TVB and Spiking Network regions (1 to all, and all to 1) coupling,
     # where average quantities will be computed in the respective interface functions
-    # However, within and among NEST nodes' coupling
+    # However, within and among Spiking Network nodes' coupling
     # will need such a weight scaling, so that a neuron receives spikes
     # weighted by the possible spikes it could have received,
     # according to its total number of connections (indegree)

@@ -6,11 +6,11 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error, warning
+from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 from tvb_scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
     sort_events_by_x_and_y, data_xarray_from_continuous_events
-from tvb_scripts.utils.computations_utils import spikes_rate_convolution
+from tvb_scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
 
 LOG = initialize_logger(__name__)
@@ -36,6 +36,8 @@ class Device(object):
     def _assert_device(self):
         pass
 
+    # Methods to get or set methods for devices or their connections:
+
     @abstractmethod
     def Get(self, attr=None):
         pass
@@ -57,6 +59,7 @@ class Device(object):
         pass
 
     def filter_neurons(self, neurons=None, exclude_neurons=[]):
+        # Method to select or exclude some of the connected neurons to the device:
         temp_neurons = self.neurons
         if neurons is not None:
             temp_neurons = list(self.neurons)
@@ -69,6 +72,7 @@ class Device(object):
         return len(self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons))
 
     def get_connections(self, neurons=None, exclude_neurons=[]):
+        # Method to get all connections of the device to/from neurons
         if neurons is not None:
             if len(exclude_neurons) > 0:
                 neurons = list(neurons)
@@ -104,6 +108,8 @@ class Device(object):
     def get_node_receptors(self, neurons=None, exclude_neurons=[]):
         return pd.unique(self.get_receptors(neurons, exclude_neurons))  # pd.unique is faster than np.unique
 
+    # Properties of device connections across all neurons connected to it
+
     @property
     def connections(self):
         return self._get_connections(source=self.device)
@@ -123,6 +129,8 @@ class Device(object):
     @property
     def receptors(self):
         return np.array([self.GetFromConnections((conn,), "receptor") for conn in self.connections])
+
+    # Summary properties of device across all neurons connected to it
 
     @property
     def node_weight(self):
@@ -173,6 +181,7 @@ class OutputDevice(Device):
 
     def filter_events(self, events, variables=None, neurons=None, times=None,
                       exclude_neurons=[], exclude_times=[]):
+        # This method will select/exclude part of the measured events, depending on user inputs
         if variables is None:
             variables = events.keys()
         output_events = OrderedDict()
@@ -261,7 +270,7 @@ class SpikeDetector(OutputDevice):
     def connections(self):
         return self._get_connections(target=self.device)
 
-    # All the following properties are time summaries without taking into consideration spike timing:
+    # The following properties are time summaries without taking into consideration spike timing:
 
     def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.filter_events(None, "times", neurons, times, exclude_neurons, exclude_times)["times"]
@@ -279,7 +288,6 @@ class SpikeDetector(OutputDevice):
         else:
             return 0.0
 
-
     def get_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
 
@@ -289,6 +297,7 @@ class SpikeDetector(OutputDevice):
                                                filter_x=neurons, filter_y=times,
                                                exclude_x=exclude_neurons, exclude_y=exclude_times)
         if full_senders:
+            # In this case we also include neurons with 0 spikes in the output
             sender_neurons = self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons)
             output = OrderedDict()
             for neuron in sender_neurons:
@@ -328,21 +337,8 @@ class SpikeDetector(OutputDevice):
     def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                         spikes_kernel=None, mode="per_neuron",
                                         name=None, **kwargs):
-
-        def compute_spikes_counts(spikes_times, time):
-
-            def spikes_events_to_time_index(spike_time, time):
-                if spike_time < time[0] or spike_time > time[-1]:
-                    warning("Spike time is outside the input time vector!")
-                return np.argmin(np.abs(time-spike_time))
-
-            spikes_counts = np.zeros(time.shape)
-            for spike_time in spikes_times:
-                spikes_counts[spikes_events_to_time_index(spike_time, time)] += 1
-
-            return spikes_counts
-
         if spikes_kernel is None:
+            # Default spikes' kernel is just a rectangular one, normalized with its width.
             spikes_kernel = np.ones((spikes_kernel_width_in_points, )) / spikes_kernel_width
 
         if name is None:
@@ -351,19 +347,25 @@ class SpikeDetector(OutputDevice):
         if mode == "per_neuron":
             senders_neurons = []
             rates = []
+            # Computing separately per neuron
             for neuron, spikes_times in self.get_spikes_times_by_neurons(full_senders=True, **kwargs).items():
                 senders_neurons.append(neuron)
                 if len(spikes_times) > 0:
+                    # Getting spikes counts per time interval
                     spikes_counts = compute_spikes_counts(spikes_times, time)
+                    # Computing rate as some kind of convolution with spikes_kernel
                     rates.append(spikes_rate_convolution(spikes_counts, spikes_kernel))
                 else:
                     rates.append(np.zeros(time.shape))
             return xr.DataArray(rates, dims=["Neuron", "Time"], coords={"Neuron": senders_neurons,
                                                                         "Time": time})
         else:
+            # Computing for the whole population(s) alltogether
             spikes_times = self.get_spikes_times(**kwargs)
             if len(spikes_times) > 0:
+                # Getting spikes counts per time interval
                 spikes_counts = compute_spikes_counts(spikes_times, time)
+                # Computing rate as some kind of convolution with spikes_kernel
                 rates = spikes_rate_convolution(spikes_counts, spikes_kernel)
             else:
                 rates = np.zeros(time.shape)
@@ -401,7 +403,7 @@ class Multimeter(OutputDevice):
         if variables is not None:
             variables = ensure_list(variables)
             for variable in variables:
-                    assert variable in self.record_from
+                assert variable in self.record_from
         else:
             variables = self.record_from
         return variables
@@ -413,6 +415,8 @@ class Multimeter(OutputDevice):
         events = dict(self.events)
         times = events.pop("times")
         senders = events.pop("senders")
+        # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
+        # Therefore, we have to re-arrange the output to get all variables separated following time order.
         return data_xarray_from_continuous_events(events, times, senders,
                                                   variables=self._determine_variables(variables),
                                                   filter_senders=neurons, exclude_senders=exclude_neurons,
@@ -432,6 +436,7 @@ class Multimeter(OutputDevice):
 
     def current_data(self, variables=None, neurons=None, exclude_neurons=[],
                      name=None, dims_names=["Variable", "Neuron"]):
+        # This method will return current time data
         if name is None:
             name = self.model
         coords = OrderedDict()
@@ -440,7 +445,9 @@ class Multimeter(OutputDevice):
         times = events["times"]
         coords[dims_names[0]] = variables
         if len(times) > 0:
+            # Get only the last time stamp events:
             output_inds = events["times"] == events["times"][-1]
+            # Optionally filter sender neurons
             senders = events["senders"]
             if neurons is not None:
                 output_inds = np.logical_and(output_inds,
@@ -483,6 +490,7 @@ class Multimeter(OutputDevice):
 
 
 class Voltmeter(Multimeter):
+    # The Voltmer is just a Mutlimeter measuring only a voltage quantity
     model = "voltmeter"
 
     def __init__(self, device, *args, **kwargs):
@@ -492,6 +500,7 @@ class Voltmeter(Multimeter):
     @property
     @abstractmethod
     def var(self):
+        # A method to return the string of the voltage variable's name, e.g, "V_m" for membrane potential in NEST
         pass
 
     def get_data(self, neurons=None, exclude_neurons=[],
@@ -530,6 +539,10 @@ class Voltmeter(Multimeter):
 
 
 class SpikeMultimeter(Multimeter, SpikeDetector):
+    # This is a multimeter that measure a continuous spike variable,
+    # i.e., a variable that for time moments where there is no spike emitted/received, and
+    # equal to a positive or negative spike weight, where there is a spike.
+
     model = "spike_multimeter"
     spike_var = "spikes"
 
@@ -541,6 +554,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         return self.get_data(self.spike_var, neurons, exclude_neurons)[self.spike_var]
 
     def get_spikes_inds(self, neurons=None, exclude_neurons=[]):
+        # This method returns time moments where there is a spike for every sender neuron.
         spikes = self.events[self.spike_var]
         spikes_inds = spikes != 0.0
         senders = self.senders
@@ -553,6 +567,8 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         return np.where(spikes_inds)
 
     def get_spikes_events(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        # This method returns an event structure similar to a spike_detectors,
+        # i.e., where there are events only for spike times, not for continuous time
         events = dict(self.events)
         inds = events[self.spike_var] != 0
         for var, val in events.items():
@@ -570,7 +586,11 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
     def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
 
+    # The following properties are time summaries without taking into consideration spike timing:
+
     def get_mean_spikes_activity(self, neurons=None, exclude_neurons=[]):
+        # This method returns mean activity by adding spike weights
+        # and dividing by the total number of neurons, after optional filtering
         n_neurons = self.get_number_of_neurons(neurons, exclude_neurons)
         if n_neurons > 0:
             return np.sum(self.get_spikes_weights(neurons, exclude_neurons)) / n_neurons
@@ -578,6 +598,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
             return 0.0
 
     def get_total_spikes_activity(self, neurons=None, exclude_neurons=[]):
+        # This method returns mean activity by adding spike weights
         return np.sum(self.get_spikes_weights(neurons, exclude_neurons))
 
     @property
@@ -616,6 +637,8 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
     def total_spikes_activity(self):
         return self.get_total_spikes_activity()
 
+    # The following properties are computed across time:
+
     def compute_spikes_activity_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                             spikes_kernel=None, mode="per_neuron",
                                             name=None, rate_mode="activity",  **kwargs):
@@ -630,11 +653,14 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         if spikes_kernel is None:
             spikes_kernel = np.ones((spikes_kernel_width_in_points, ))
             if rate_mode.find("rate") > -1:
+                # For spike rate computation we have to normalize with the kernel width in time units
                 spikes_kernel /= spikes_kernel_width
             else:
+                # For "activity" computation we have to normalize with the kernel width in time steps
                 spikes_kernel /= spikes_kernel_width_in_points
 
         if mode == "per_neuron":
+            # Returning output per neuron
             activity = []
             for spike in spikes:
                 activity.append(spikes_rate_convolution(spike, spikes_kernel))
@@ -642,6 +668,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                                 coords={"Neuron": spikes.coords[spikes.dims[0]].item(),
                                         "Time": time})
         else:
+            # Returning output as for all neurons together
             spikes = np.sum(spikes, axis=0).squeeze()
             activity = spikes_rate_convolution(spikes, spikes_kernel)
 
@@ -690,14 +717,14 @@ class DeviceSet(pd.Series):
 
     def _input_nodes(self, nodes=None):
         if nodes is None:
-            # no input
+            # no input nodes
             return list(self.index)
         else:
             if nodes in list(self.index) or nodes in list(range(len(self))):
-                # input is a single index or label
+                # input nodes is a single index or label
                 return [nodes]
             else:
-                # input is a sequence of indices or labels
+                # input nodes is a sequence of indices or labels
                 return list(nodes)
 
     def _return_by_type(self, values_dict, return_type="dict", concatenation_index_name="Region", name=None):
@@ -769,6 +796,8 @@ class DeviceSet(pd.Series):
         return self.do_for_all_devices("node_receptors", return_type="values")
 
     def record_from_per_node(self, nodes=None, return_type="values"):
+        # A method to get the attribute "record_from" from all devices of the set
+        # This method will cause an error if the device set does not consist of OutputDevices
         values_dict = self.do_for_all_devices("record_from", nodes=nodes, return_type="dict")
         if return_type == "dict":
             return values_dict
@@ -799,6 +828,7 @@ class DeviceSet(pd.Series):
         self.update_model()
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
+        # A method to get attributes from all devices of the set
         if attrs is None:
             # Get dictionary of all attributes
             values_dict = []
@@ -815,6 +845,7 @@ class DeviceSet(pd.Series):
         return self._return_by_type(values_dict, return_type, name)
 
     def Set(self, value_dict, nodes=None):
+        # A method to set attributes to all devices of the set
         # TODO: find a nice way to treat arrays or lists attributes.
         #  Some NEST device parameters have to be arrays and some scalars,
         #  but we don't know what is what beforehand...

@@ -12,13 +12,18 @@ LOG = initialize_logger(__name__)
 
 class SpikeNetToTVBinterface(DeviceSet):
 
+    # This class implements an interface that sends Spiking Network state to TVB
+    # via output/measuring devices
+
     def __init__(self, spiking_network, name="", model="",
                  tvb_sv_id=None, nodes_ids=[], scale=array([1.0]), device_set=Series()):
         super(SpikeNetToTVBinterface, self).__init__(name, model, device_set)
         self.spiking_network = spiking_network
-        self.tvb_sv_id = tvb_sv_id
+        self.tvb_sv_id = tvb_sv_id  # The index of the TVB state variable linked to this interface
+        # The indices of the Spiking Nodes which coincide with the TVB region nodes
+        # (i.e., region i implemented in Spiking Network updates the region i in TVB):
         self.nodes_ids = nodes_ids
-        self.scale = scale
+        self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     def from_device_set(self, device_set, tvb_sv_id=None, name=None):

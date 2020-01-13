@@ -162,6 +162,9 @@ class TVBSpikeNetInterfaceBuilder(object):
         return np.maximum(0.0, delay)
 
     def _prepare_tvb_to_spikeNet_transform_fun(self, prop, dummy):
+        # This method sets tranformations of TVB state
+        # to be applied before communication towards Spiking Network
+        # In the simplest case, nothing happens...
         transform_fun = prop.split("w_")[1]
         if hasattr(getattr(self, prop), "__call__"):
             # If the property is already set as a function:
@@ -176,6 +179,9 @@ class TVBSpikeNetInterfaceBuilder(object):
                     state_variable[region_nodes_indices] * weights[region_nodes_indices]}
 
     def _prepare_spikeNet_to_tvb_transform_fun(self, prop, dummy):
+        # This method sets tranformations of Spiking Network state
+        # to be applied before communication towards TVB
+        # In the simplest case, nothing happens...
         transform_fun = prop.split("w_")[1]
         if hasattr(getattr(self, prop), "__call__"):
             # If the property is already set as a function:

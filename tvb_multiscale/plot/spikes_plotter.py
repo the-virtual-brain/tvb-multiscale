@@ -10,8 +10,10 @@ class SpikesPlotter(BasePlotter):
     def plot_spikes(self, spike_detectors, rates=None,
                     title="Population spikes and spike rate",
                     figure_name=None, figsize=None, **kwargs):
+        # This method will plot a spike raster and, optionally,
+        # it will superimpose the mean rate as a faded line.
 
-        # Y axis
+        # Y axis limits and ticks according to maximum number of neurons
         max_n_neurons = np.max([np.max(spike_detector.number_of_neurons) for spike_detector in spike_detectors])
         if max_n_neurons == 0:
             ylims = [0, 1]
@@ -21,12 +23,14 @@ class SpikesPlotter(BasePlotter):
             neurons_step = np.int(np.ceil(np.maximum(1.0 * max_n_neurons / 10, 1.0)))
             yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
 
+        # If we plot rates, we need to....
         max_rate = 0.0
         time_lims = None
         xticks = None
         xticklabels = None
         if rates is not None:
             plot_rates = True
+            # ...compute the maximum rate to adjust the y axis accordingly
             if isinstance(rates, DataArray):  # In case we call this within the NEST interface context using pandas
                 if rates.size > 0:
                     max_rate = np.max(rates).item()
@@ -47,11 +51,12 @@ class SpikesPlotter(BasePlotter):
             yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
             yticklabels = ["%0.2f" % yticklabel for yticklabel in yticklabels]
             if plot_rates:
+                # ..and set the time axis accordingly
                 # Time axis
                 time_lims = [time[0], time[-1]]
                 time_step = np.int(np.ceil(np.maximum(1.0 * len(time) / 10, 1.0)))
-                xticks = time[0:-1:time_step]
-                xticklabels = ["%0.1f" % xtick for xtick in xticks]
+                xticks = np.round(time[0:-1:time_step])
+                xticklabels = ["%0.0f" % xtick for xtick in xticks]
         else:
             yticklabels = ["%d" % ytick for ytick in yticks]
             plot_rates = False
@@ -65,7 +70,7 @@ class SpikesPlotter(BasePlotter):
             figsize = self.config.figures.LARGE_SIZE
         pyplot.figure(figure_name, figsize=figsize)
 
-        # Plot
+        # Plot by arranging populations in columns and regions in rows
         for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
             axes.append([])
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):

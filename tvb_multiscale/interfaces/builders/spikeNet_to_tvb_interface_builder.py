@@ -39,9 +39,9 @@ class SpikeNetToTVBInterfaceBuilder(object):
         pass
 
     def build_interface(self, interface):
-        # One NEST output device for every combination of NEST node
+        # One SpikeNet output device for every combination of SpikeNet node
         # and TVB state variable/parameter to be transmitted
-        # from NEST to TVB
+        # from SpikeNet to TVB
         spikeNet_to_tvb_interface = Series()
         spiking_nodes = interface.get("nodes", self.spiking_nodes_ids)  # Indices corresponding to NEST nodes
         if spiking_nodes is None:
@@ -49,10 +49,9 @@ class SpikeNetToTVBInterfaceBuilder(object):
         spiking_nodes = list(spiking_nodes)
         if self.exclusive_nodes:
             # TODO: decide about the following: can a TVB node be updated from a NEST node via a NEST -> TVB interface,
-            # get simulated in TVB and again update NEST via a TVB -> NEST interface?
+            # get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
             # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_nodes)
-        # We prefer to multiply interface_weights outside NEST:
         interface_weights = np.ones((len(spiking_nodes),)).astype("f")
         interface_weight_fun = property_to_fun(interface.pop("interface_weights", 1.0))
         delays = np.ones((len(spiking_nodes),)).astype("f")
@@ -62,13 +61,14 @@ class SpikeNetToTVBInterfaceBuilder(object):
             delays[i_w] = delay_fun(spiking_node)
         # Delays should be set to the device
         interface["delays"] = delays  # Per node
-        # Convert TVB node index to interface NEST node index:
+        # Convert TVB node index to interface SpikeNet node index:
         spiking_nodes_ids = [np.where(self.spiking_nodes_ids == spiking_node)[0][0]
                              for spiking_node in spiking_nodes]
         interface["nodes"] = spiking_nodes_ids
         devices = self.build_and_connect_devices([interface], self.spiking_nodes)
         for name, device_set in devices.items():
             try:
+                # The index of the TVB state variable that is targeted
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
                 tvb_sv_id = None  # it might be a TVB parameter, not a state variable
