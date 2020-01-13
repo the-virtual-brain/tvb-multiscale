@@ -18,6 +18,9 @@ LOG = initialize_logger(__name__)
 
 
 class NESTModelBuilder(SpikingModelBuilder):
+
+    # This is a very opinionated builder of a NEST Spiking Network
+
     config = CONFIGURED
     nest_instance = None
     default_min_spiking_dt = CONFIGURED.nest.NEST_MIN_DT
