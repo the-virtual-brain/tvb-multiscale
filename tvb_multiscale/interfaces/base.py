@@ -89,7 +89,7 @@ class TVBSpikeNetInterface(object):
         for interface in self.tvb_to_spikeNet_interfaces:
             if interface.model in self._available_input_devices:
                 values = state[interface.tvb_sv_id].squeeze()  # if we need the state variable
-                if interface.model == self._current_input_devices:
+                if interface.model in self._current_input_devices:
                     transform_fun = self.transforms["tvb_to_current"]
                     # We assume that current is a mean field quantity
                     # applied equally and in parallel

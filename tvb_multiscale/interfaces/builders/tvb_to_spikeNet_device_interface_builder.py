@@ -71,8 +71,8 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         receptor_type_fun = property_to_fun(interface.pop("receptor_types", 0))
         # TODO: Find a way to change self directed weights in cases of non exclusive TVB and Spiking Network nodes!
         # Defaults just follow TVB connectivity
-        weights = np.array(self.tvb_weights[source_tvb_nodes][:, target_nodes])
-        delays = np.array(self.tvb_delays[source_tvb_nodes][:, target_nodes])
+        weights = np.array(self.tvb_weights[source_tvb_nodes][:, target_nodes]).astype("O")
+        delays = np.array(self.tvb_delays[source_tvb_nodes][:, target_nodes]).astype("O")
         receptor_types = np.zeros(delays.shape).astype("i")
         target_nodes_ids = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in target_nodes]
         interface["nodes"] = target_nodes_ids

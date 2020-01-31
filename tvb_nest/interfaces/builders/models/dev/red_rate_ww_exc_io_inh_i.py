@@ -4,11 +4,9 @@ from collections import OrderedDict
 from tvb_multiscale.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIOinhI
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 class RedRateWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
-    tvb_model = ReducedWongWangExcIOInhI()
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, config=CONFIGURED):

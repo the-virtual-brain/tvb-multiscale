@@ -4,11 +4,9 @@ import numpy as np
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import Generic2dOscillator
 from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay, receptor_by_source_region
-from tvb_multiscale.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator as TVBGeneric2dOscillator
 
 
 class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
-    tvb_model = TVBGeneric2dOscillator()
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None,

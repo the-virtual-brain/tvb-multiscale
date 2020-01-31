@@ -4,11 +4,9 @@ from collections import OrderedDict
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import WilsonCowan
 from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay
-from tvb_multiscale.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan as TVBWilsonCowan
 
 
 class WilsonCowanBuilder(TVBNESTInterfaceBuilder):
-    tvb_model = TVBWilsonCowan()
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):

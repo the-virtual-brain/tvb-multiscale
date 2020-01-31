@@ -29,7 +29,7 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
         self.exclusive_nodes = exclusive_nodes
-        self.config = CONFIGURED
+        self.config = config
 
     def build_interface(self, interface):
         # One interface for every combination of Spiking node
@@ -38,7 +38,7 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         connections = interface["connections"]
         if isinstance(connections, string_types):
             connections = {connections: slice(None)}  # return all population types
-        default_parameter = self._build_target_class.__available_input_parameters[interface["model"]]
+        default_parameter = self._build_target_class._available_input_parameters[interface["model"]]
         spiking_nodes_ids = interface.get("nodes", self.spiking_nodes_ids)
         if spiking_nodes_ids is None:
             spiking_nodes_ids = self.spiking_nodes_ids
