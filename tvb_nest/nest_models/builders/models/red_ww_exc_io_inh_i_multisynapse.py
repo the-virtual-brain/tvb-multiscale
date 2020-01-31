@@ -105,15 +105,26 @@ class RedWWExcIOInhIMultisynapseBuilder(NESTModelBuilder):
         # all populations of another region-node,
         # we need only one connection type
         self.nodes_connections = [
-            {"source": "E", "target": ["E", "I"],
+            {"source": "E", "target": ["E"],
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": self.G_scale_tvb_weight,  # weight scaling the TVB connectivity weight
+             "weight": self.G_scale_tvb_weight_exc,  # weight scaling the TVB connectivity weight
              "delay": self.tvb_delay,  # additional delay to the one of TVB connectivity
              # Each region emits spikes in its own port:
              "receptor_type": self.receptor_by_source_region,
              "source_nodes": None, "target_nodes": None}  # None means "all"
                                  ]
+        if self.tvb_model.lamda[0] > 0:
+            self.nodes_connections.append(
+                {"source": "E", "target": ["I"],
+                 "model": self.default_nodes_connection["model"],
+                 "conn_spec": self.default_nodes_connection["conn_spec"],
+                 "weight": self.G_scale_tvb_weight_inh,  # weight scaling the TVB connectivity weight
+                 "delay": self.tvb_delay,  # additional delay to the one of TVB connectivity
+                 # Each region emits spikes in its own port:
+                 "receptor_type": self.receptor_by_source_region,
+                 "source_nodes": None, "target_nodes": None}
+            )
 
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
@@ -132,8 +143,13 @@ class RedWWExcIOInhIMultisynapseBuilder(NESTModelBuilder):
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means all here
 
-    def G_scale_tvb_weight(self, source_node, target_node):
-        return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale=self.tvb_model.G[0])
+    def G_scale_tvb_weight_exc(self, source_node, target_node):
+        return scale_tvb_weight(source_node, target_node, self.tvb_weights,
+                                scale=self.tvb_model.G[0])
+
+    def G_scale_tvb_weight_inh(self, source_node, target_node):
+        return scale_tvb_weight(source_node, target_node, self.tvb_weights,
+                                scale=self.tvb_model.lamda[0] * self.tvb_model.G[0])
 
     def tvb_delay(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)

@@ -76,9 +76,9 @@ class WWDeco2014Builder(NESTModelBuilder):
             "N_E": exc_pop_size, "N_I": inh_pop_size-1  # assuming self connections are not allowed
         })
 
-        def param_fun(node_index, params):
+        def param_fun(node_index, params, lamda=1.0):
             out_params = dict(params)
-            out_params.update({"w_E_ext": self.tvb_model.G[0] *
+            out_params.update({"w_E_ext": lamda*self.tvb_model.G[0] *
                                             self.tvb_weights[:, list(self.spiking_nodes_ids).index(node_index)]})
             return out_params
 
@@ -88,7 +88,8 @@ class WWDeco2014Builder(NESTModelBuilder):
                              "scale": exc_pop_scale},
                             {"label": "I", "model": self.default_population["model"],
                              "nodes": None,  # None means "all"
-                             "params": lambda node_index: param_fun(node_index, self.params_in),
+                             "params": lambda node_index: param_fun(node_index, self.params_in,
+                                                                    lamda=self.tvb_model.lamda[0]),
                              "scale": 1.0}
                            ]
 
@@ -132,7 +133,7 @@ class WWDeco2014Builder(NESTModelBuilder):
         # all populations of another region-node,
         # we need only one connection type
         self.nodes_connections = [
-            {"source": "E", "target": ["E", "I"],
+            {"source": "E", "target": ["E"],
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
              #  weight scaling the TVB connectivity weight
@@ -142,6 +143,8 @@ class WWDeco2014Builder(NESTModelBuilder):
              "receptor_type": self.receptor_by_source_region,
              "source_nodes": None, "target_nodes": None}  # None means "all"
                                  ]
+        if self.tvb_model.lamda[0] > 0:
+            self.nodes_connections[0]["target"] += ["I"]
 
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
