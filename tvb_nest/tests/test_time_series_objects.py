@@ -1,78 +1,52 @@
 # -*- coding: utf-8 -*-
 
-import numpy
-from collections import OrderedDict
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_scripts.time_series.model import TimeSeriesRegion
-from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.config import CONFIGURED
+from tvb.basic.profile import TvbProfile
+TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
+import matplotlib as mpl
+mpl.use('Agg')
+
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.monitors import Raw
+
+from tvb_nest.config import Config
+from tvb_nest.examples.example import main_example
+from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
+    import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_scripts.time_series.model import TimeSeriesRegion
 
 
 def create_time_series_region_object():
-    config = CONFIGURED
 
+    config = Config(output_base="outputs/")
+    config.figures.SAVE_FLAG = False
+    config.figures.SHOW_FLAG = False
+    config.figures.MATPLOTLIB_BACKEND = "Agg"
+
+    # Select the regions for the fine scale modeling with NEST spiking networks
+    nest_nodes_ids = []  # the indices of fine scale regions modeled with NEST
+    # In this example, we model parahippocampal cortices (left and right) with NEST
     connectivity = Connectivity.from_file(config.DEFAULT_CONNECTIVITY_ZIP)
-    connectivity.configure()
-
-    simulator = Simulator()
-    simulator.model = ReducedWongWangExcIOInhI()
-
-    def boundary_fun(state):
-        state[state < 0] = 0.0
-        state[state > 1] = 1.0
-        return state
-
-    simulator.boundary_fun = boundary_fun
-    simulator.connectivity = connectivity
-    simulator.integrator.dt = \
-        float(int(numpy.round(simulator.integrator.dt /
-                              config.NEST_MIN_DT))) * config.NEST_MIN_DT
-
-    mon_raw = Raw(period=simulator.integrator.dt)
-    simulator.monitors = (mon_raw,)
-
-    number_of_regions = simulator.connectivity.region_labels.shape[0]
-    nest_nodes_ids = []
-
-    for id in range(number_of_regions):
-        if simulator.connectivity.region_labels[id].find("hippo") > 0:
+    for id in range(connectivity.region_labels.shape[0]):
+        if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
 
-    nest_model_builder = \
-        RedWWExcIOInhIBuilder(simulator, nest_nodes_ids, config=config)
-
-    nest_network = nest_model_builder.build_nest_network()
-
-    tvb_nest_builder = RedWWexcIOinhIBuilder(simulator, nest_network, nest_nodes_ids)
-
-    tvb_nest_builder.tvb_to_nest_interfaces = \
-        [{"model": "current", "parameter": "I_e", "sign": 1,
-          "connections": {"S_e": ["E", "I"]}}]
-
-    connections = OrderedDict()
-    connections["R_e"] = "E"
-    connections["R_i"] = "I"
-    tvb_nest_builder.nest_to_tvb_interfaces = \
-        [{"model": "spike_detector", "params": {}, "connections": connections}]
-
-    tvb_nest_model = tvb_nest_builder.build_interface()
-
-    simulator.configure(tvb_nest_interface=tvb_nest_model)
-    results = simulator.run(simulation_length=100.0)
+    results, simulator = \
+        main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
+                     tvb_state_variable_type_label="Synaptic Gating Variable",
+                     exclusive_nodes=True, config=config)
     time = results[0][0]
     source = results[0][1]
 
     source_ts = TimeSeriesRegion(
-        data=source, time=time,
-        connectivity=simulator.connectivity,
-        labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
-        labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
-                           "Region": simulator.connectivity.region_labels.tolist()},
-        sample_period=simulator.integrator.dt)
+            data=source, time=time,
+            connectivity=simulator.connectivity,
+            labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
+            labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
+                               "Region": simulator.connectivity.region_labels.tolist()},
+            sample_period=simulator.integrator.dt)
 
     return source_ts
 

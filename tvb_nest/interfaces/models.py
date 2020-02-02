@@ -2,8 +2,8 @@
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.interfaces.base import TVBNESTInterface
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan as TVBWilsonCowan
+from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan as TVBWilsonCowan
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb.simulator.models import Generic2dOscillator as TVBGeneric2dOscillator
 

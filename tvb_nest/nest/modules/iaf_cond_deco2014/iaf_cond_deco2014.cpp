@@ -195,7 +195,7 @@ iaf_cond_deco2014_dynamics( double,
   f[S::S_GABA] = y[S::S_GABA] / node.V_.minus_tau_decay_GABA_A ;
   f[S::X_NMDA] = y[S::X_NMDA] / node.V_.minus_tau_rise_NMDA ;
   f[S::S_NMDA] = y[S::S_NMDA] / node.V_.minus_tau_decay_NMDA +
-                       node.P_.alpha * y[S::X_NMDA] * (1 - y[S::S_NMDA] / node.P_.N_E);
+                       node.P_.alpha * y[S::X_NMDA] * (1 - y[S::S_NMDA] / node.V_.s_EXC_max);
 
 
   return GSL_SUCCESS;
@@ -226,6 +226,8 @@ iaf_cond_deco2014::Parameters_::Parameters_()
     , w_I( 1.0 )                    // real number
     , w_E_ext(1, 0.1)               // vector of real numbers
     , N_E( 1 )                      // positive integer
+    , N_I( 1 )
+    , s_AMPA_ext_max(1, 1.0)        // vector of real numbers
     , alpha( 0.5 )                  // in kHz
     , beta( 0.062 )                 // real number
     , lambda_NMDA( 0.28 )           // real number
@@ -291,6 +293,9 @@ iaf_cond_deco2014::Parameters_::get( DictionaryDatum& d ) const
   def< ArrayDatum >( d, "w_E_ext", w_E_ext_ad );
 
   def< long >( d, "N_E", N_E );
+  def< long >( d, "N_I", N_I );
+  ArrayDatum s_AMPA_ext_max_ad( s_AMPA_ext_max );
+  def< ArrayDatum >( d, "s_AMPA_ext_max", s_AMPA_ext_max_ad );
 
   def< double >( d, names::alpha, alpha );
   def< double >( d, names::beta, beta );
@@ -383,12 +388,20 @@ iaf_cond_deco2014::Parameters_::set( const DictionaryDatum& d )
   updateValue< double >( d, "w_I", w_I );
 
   const size_t old_n_receptors = n_receptors();
-  bool w_E_ext_flag =
-    updateValue< std::vector< double > >( d, "w_E_ext", w_E_ext );
+  bool w_E_ext_flag = updateValue< std::vector< double > >( d, "w_E_ext", w_E_ext ) ;
+  bool s_AMPA_ext_max_flag = updateValue< std::vector< double > >( d, "s_AMPA_ext_max", s_AMPA_ext_max ) ;
 
-  if ( w_E_ext_flag )
-  { // receptor arrays have been modified
-
+  if ( w_E_ext_flag || s_AMPA_ext_max_flag ) {
+    if ( ( ( w_E_ext.size() != old_n_receptors) || ( s_AMPA_ext_max.size() != old_n_receptors) ) &&
+         ( ( not w_E_ext_flag ) || ( not s_AMPA_ext_max_flag ) ) )
+    { // receptor arrays have been modified
+        throw BadProperty(
+            "If the number of receptor ports have changed both arrays w_E_ext and s_AMPA_ext_max must be provided!" );
+    }
+    if ( w_E_ext.size() != s_AMPA_ext_max.size() ){
+        throw BadProperty(
+            "w_E_ext and s_AMPA_ext_max must have the same size!" );
+     }
     if ( w_E_ext.size() < old_n_receptors && has_connections_ )
     {
       throw BadProperty(
@@ -401,14 +414,25 @@ iaf_cond_deco2014::Parameters_::set( const DictionaryDatum& d )
       {
         throw BadProperty("Population external excitatory connection weights cannot be negative" );
       }
+
+      if ( s_AMPA_ext_max[ i ] < 1.0 )
+      {
+        throw BadProperty("Maximum boundary of external AMPA synaptic gating variable cannot be smaller than 1.0!" );
+      }
     }
   }
 
-  if ( N_E <= 0 )
+  if ( N_E < 1 )
   {
-    throw BadProperty("The number of excitatory neurons in the population must be a positive integer" );
+    throw BadProperty("The number of excitatory neurons in the population must be an integer >= 1" );
   }
   updateValue< long >( d, "N_E", N_E );
+
+  if ( N_I < 1 )
+  {
+    throw BadProperty("The number of inhibitory neurons in the population must be an integer >= 1" );
+  }
+  updateValue< long >( d, "N_I", N_I );
 
   if ( alpha < 0 )
   {
@@ -629,6 +653,9 @@ iaf_cond_deco2014::calibrate()
     V_.w_E_ext_g_AMPA_ext[i] = P_.g_AMPA_ext * P_.w_E_ext[i] ;
   }
 
+  V_.s_EXC_max = (double) P_.N_E;
+  V_.s_INH_max = (double) P_.N_I;
+
   B_.I_e = 0.0;
   B_.spikes_exc = 0.0;
   B_.spikes_inh = 0.0;
@@ -710,34 +737,26 @@ iaf_cond_deco2014::update( Time const& origin,
         throw NumericalInstability( get_name() );
       }
 
-      // TODO: check whether/how S_ variables should be bounded from above as well
+      // Apply boundaries to synaptic gating variables
 
-      if ( S_.y_[ State_::S_AMPA ] < 0.0 )
-      {
-        S_.y_[ State_::S_AMPA ] = 0.0;
-      }
+      S_.y_[ State_::S_AMPA ] = ( S_.y_[ State_::S_AMPA ] < 0.0 ) ? 0.0 : S_.y_[ State_::S_AMPA ];
+      S_.y_[ State_::S_AMPA ] = ( S_.y_[ State_::S_AMPA ] > V_.s_EXC_max ) ? V_.s_EXC_max : S_.y_[ State_::S_AMPA ];
 
-      if ( S_.y_[ State_::X_NMDA ] < 0.0 )
-      {
-        S_.y_[ State_::X_NMDA ] = 0.0;
-      }
+      S_.y_[ State_::X_NMDA ] = ( S_.y_[ State_::X_NMDA ] < 0.0 ) ? 0.0 : S_.y_[ State_::X_NMDA ];
 
-      if ( S_.y_[ State_::S_NMDA ] < 0.0 )
-      {
-        S_.y_[ State_::S_NMDA ] = 0.0;
-      }
+      S_.y_[ State_::S_NMDA ] = ( S_.y_[ State_::S_NMDA ] < 0.0 ) ? 0.0 : S_.y_[ State_::S_NMDA ];
+      S_.y_[ State_::S_NMDA ] = ( S_.y_[ State_::S_NMDA ] > V_.s_EXC_max ) ? V_.s_EXC_max : S_.y_[ State_::S_NMDA ];
 
-      if ( S_.y_[ State_::S_GABA ] < 0.0 )
-      {
-        S_.y_[ State_::S_GABA ] = 0.0;
-      }
+      S_.y_[ State_::S_GABA ] = ( S_.y_[ State_::S_GABA ] < 0.0 ) ? 0.0 : S_.y_[ State_::S_GABA ];
+      S_.y_[ State_::S_GABA ] = ( S_.y_[ State_::S_GABA ] > V_.s_INH_max ) ? V_.s_INH_max : S_.y_[ State_::S_GABA ];
+
 
       for ( size_t i = 0; i < P_.n_receptors(); ++i )
       {
-        if ( S_.y_[ State_::S_AMPA_EXT + i ] < 0.0 )
-        {
-            S_.y_[ State_::S_AMPA + i] = 0.0;
-        }
+        S_.y_[ State_::S_AMPA_EXT + i ] = ( S_.y_[ State_::S_AMPA_EXT + i ] < 0.0 )
+                                           ? 0.0 : S_.y_[ State_::S_AMPA_EXT + i ];
+        S_.y_[ State_::S_AMPA_EXT + i ] = ( S_.y_[ State_::S_AMPA_EXT + i ] > P_.s_AMPA_ext_max[ i ] )
+                                          ? P_.s_AMPA_ext_max[ i ] : S_.y_[ State_::S_AMPA_EXT + i ];
       }
 
       if ( S_.r_ > 0 ) // if neuron is still in refractory period
@@ -769,18 +788,27 @@ iaf_cond_deco2014::update( Time const& origin,
     }
 
     B_.spikes_exc = B_.spikesExc.get_value(lag);
+//    if (B_.spikes_exc > 0){
+//        std::cout << "\nspikes_exc[" << lag << "]=" << B_.spikes_exc << "!";
+//    }
 
     S_.y_[State_::S_AMPA] += B_.spikes_exc;
 
     S_.y_[State_::X_NMDA] += B_.spikes_exc;
 
     B_.spikes_inh = B_.spikesInh.get_value(lag);
+//    if (B_.spikes_inh > 0){
+//        std::cout << "\nspikes_inh[" << lag << "]=" << B_.spikes_inh << "!";
+//    }
     S_.y_[State_::S_GABA] += B_.spikes_inh;
 
     for ( size_t i = 0; i < P_.n_receptors(); ++i )
     {
        // add incoming spike:
       B_.spikes_exc_ext[ i ] = B_.spikesExc_ext[ i ].get_value( lag ) ;
+//      if (B_.spikes_exc_ext[ i ] > 0){
+//        std::cout << "\nspikes_exc_ext[" << i << "][" << lag << "]=" << B_.spikes_exc_ext[ i ] << "!";
+//      }
       S_.y_[ State_::S_AMPA_EXT + i ] += B_.spikes_exc_ext[ i ] ;
     }
     // set new input current
@@ -795,26 +823,31 @@ iaf_cond_deco2014::update( Time const& origin,
 void
 iaf_cond_deco2014::handle( SpikeEvent& e )
 {
-  const long rport = e.get_rport();
-  assert( ( rport >= 0 ) && ( rport <= (long) P_.n_receptors() ) );
+  assert( ( e.get_rport() >= 0 ) && ( (size_t) e.get_rport() <=  P_.n_receptors() ) );
 
   const double weight = e.get_weight() * e.get_multiplicity();
 
   // Ignore spikes if weight = 0
-  if (rport == 0) {  // these are excitatory and inhibitory spikes internal to the population
+  if (e.get_rport() == 0) {  // these are excitatory and inhibitory spikes internal to the population
     if (weight > 0) {
+//        std::cout << "\nReceived spikesExc[" <<
+//            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ) << "]=" << weight << "!";
         B_.spikesExc.add_value(
-            e.get_rel_delivery_steps( nest::kernel().simulation_manager.get_slice_origin() ), weight );
+            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
     } else if (weight < 0) {  // make sure that weight is always positive for conductance synapses
+//        std::cout << "\nReceived spikesInh[" <<
+//            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ) << "]=" << weight << "!";
         B_.spikesInh.add_value(
-            e.get_rel_delivery_steps( nest::kernel().simulation_manager.get_slice_origin() ), -weight );
+            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), -weight );
     }
   } else {  // these are excitatory AMPA spikes coming from other populations
     if (weight < 0) {
         throw nest::BadProperty("Synaptic weights for AMPA_ext synapses must be positive");
     } else if (weight > 0) {
-        B_.spikesExc_ext[rport - 1].add_value(
-            e.get_rel_delivery_steps( nest::kernel().simulation_manager.get_slice_origin() ), weight );
+//        std::cout << "\nReceived spikeExc_ext[" << (e.get_rport() - 1) << "][" <<
+//            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ) << "]=" << weight << "!";
+        B_.spikesExc_ext[e.get_rport() - 1].add_value(
+            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
     }
   }
 

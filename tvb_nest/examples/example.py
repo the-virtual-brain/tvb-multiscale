@@ -6,27 +6,14 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.examples.plot_results import plot_results
 from tvb_nest.config import CONFIGURED
-from tvb_nest.simulator_tvb.simulator import Simulator
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.simulator_tvb.models.wilson_cowan_constraint import WilsonCowan
-from tvb_nest.simulator_tvb.models.generic_2d_oscillator import Generic2dOscillator
-from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
-from tvb_nest.simulator_nest.builders.models.default_exc_io_inh_i_multisynapse import DefaultExcIOInhIMultisynapseBuilder
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
-    import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
     import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.wilson_cowan import \
-    WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_nest.interfaces.builders.models.wilson_cowan_multisynapse import \
-    WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.generic_2d_oscillator import \
-    Generic2DOscillatorBuilder as InterfaceGeneric2DOscillatorBuilder
-from tvb_nest.plot.plotter import Plotter
+from tvb_multiscale.examples.plot_results import plot_results
+from tvb_multiscale.simulator_tvb.simulator import Simulator
+from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
@@ -74,7 +61,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
     # Common order of neurons' number per population:
     nest_model_builder.populations_order = nest_populations_order
-    nest_network = nest_model_builder.build_nest_network()
+    nest_network = nest_model_builder.build_spiking_network()
 
     print("Done! in %f min" % ((time.time() - tic) / 60))
 
@@ -92,24 +79,23 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # -----------------------------------5. Simulate and gather results-------------------------------------------------
 
     # Configure the simulator with the TVB-NEST interface...
-    simulator.configure(tvb_nest_interface=tvb_nest_model)
+    simulator.configure(tvb_nest_model)
     # ...and simulate!
     t_start = time.time()
     results = simulator.run(simulation_length=simulation_length)
     # Integrate NEST one more NEST time step so that multimeters get the last time point
     # unless you plan to continue simulation later
-    simulator.run_spiking_simulator(simulator.tvb_nest_interface.nest_instance.GetKernelStatus("resolution"))
+    simulator.run_spiking_simulator(simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
     # Clean-up NEST simulation
-    if simulator.run_spiking_simulator == simulator.tvb_nest_interface.nest_instance.Run:
-        simulator.tvb_nest_interface.nest_instance.Cleanup()
+    simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    plot_results(results, simulator, tvb_nest_model, tvb_state_variable_type_label,
+    plot_results(results, simulator, tvb_state_variable_type_label,
                  simulator.model.variables_of_interest, plotter)
 
-    return connectivity, results
+    return results, simulator
 
 
 if __name__ == "__main__":

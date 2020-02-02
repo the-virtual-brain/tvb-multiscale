@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 
-
 import os
-import inspect
-import tvb_data
-from tvb_scripts.config import Config as ConfigBase
-from tvb.datatypes import cortex, connectivity
-from tvb.basic.profile import TvbProfile
-from tvb_scripts.utils.log_error_utils import initialize_logger
 
-TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
-initialize_logger('matplotlib')
+from tvb_multiscale.config import Config as ConfigBase
+from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
 
 
-class Config(ConfigBase):
+
+
+class NESTconfig(object):
+
+    # WORKING DIRECTORY:
+    TVB_NEST_DIR = TVB_NEST_DIR
+    WORKING_DIR = WORKING_DIR
+    MODULES_DIR = MODULES_DIR
+    MODULES_BLDS_DIR = MODULES_BLDS_DIR
+
     # NEST properties:
     NEST_MIN_DT = 0.001
 
@@ -27,53 +29,30 @@ class Config(ConfigBase):
     DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
 
-    # TODO: confirm if the following is correct:
-    # We assume that all quantities of
-    # current, membrane voltage or spike rate
-    # that are communicated between nodes
-    # are mean field quantities, i.e., averages,
-    # and therefore must have the same order of magnitude,
-    # at all of the region-population-single neuron levels
-    # So, the default behavior is for NO scaling
-    # among TVB regions (1 to 1 coupling) and
-    # between TVB and NEST regions (1 to all, and all to 1) coupling,
-    # where average quantities will be computed in the respective interface functions
-    # However, within and among NEST nodes' coupling
-    # will need such a weight scaling, so that a neuron receives spikes
-    # weighted by the possible spikes it could have received,
-    # according to its total number of connections (indegree)
-    def DEFAULT_NEST_SYNAPTIC_WEIGHT_SCALING(self, weight, number_of_connections=1):
-        if isinstance(weight, dict):
-            return weight
-        return weight  # / number_of_connections
-
     # Available NEST output devices for the interface and their default properties
     NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"withtime": True, "withgid": True, 'record_from': ["V_m"]},
                                       "voltimeter": {"withtime": True, "withgid": True},
                                       "spike_detector": {"withgid": True, "withtime": True, 'precise_times': True},
                                       "spike_multimeter": {"withtime": True, "withgid": True, 'record_from': ["spike"]}}
 
-    # WORKING DIRECTORY
-    TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
-    MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
-    MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
-    WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
-    # DATA:
-    TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
-    DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
-    DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
-    DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
-    DEFAULT_CORT_REGION_MAPPING_TXT = "QL_20120814_RegionMapping.txt"
-    DEFAULT_EEG_LOCATIONS_TXT = "QL_20120814_EEGLocations.txt"
-    # Only for surface simulations for this subject:
-    # DEFAULT_EEG_PROJECTION_MAT = "QL_20120814_ProjectionMatrix.mat"
-    DEFAULT_EEG_PROJECTION_MAT = ""
-    DEFAULT_SUBJECT = {"connectivity": connectivity.Connectivity.from_file(DEFAULT_CONNECTIVITY_ZIP),
-                       "cortex": cortex.Cortex.from_file(os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                      DEFAULT_CORT_SURFACE_ZIP),
-                                                         region_mapping_file=os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                                          DEFAULT_CORT_REGION_MAPPING_TXT))
-                       }
+    NEST_INPUT_DEVICES_PARAMS_DEF = {"poisson_generator": {"allow_offgrid_times": False},
+                                     "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
+                                     "inhomogeneous_poisson_generator": {"allow_offgrid_times": False}}
+
+    def __init__(self, nest_path=os.environ["NEST_INSTALL_DIR"], nest_python=os.environ["NEST_PYTHON_PREFIX"]):
+        self.NEST_PATH = nest_path
+        self.PYTHON = nest_python
+        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
+        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
+        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
+        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
+        self.TVB_NEST_DIR = TVB_NEST_DIR
+        self.WORKING_DIR = WORKING_DIR
+        self.MODULES_DIR = MODULES_DIR
+        self.MODULES_BLDS_DIR = MODULES_BLDS_DIR
+
+
+class Config(ConfigBase):
 
     def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
                  output_base=WORKING_DIR, separate_by_run=False):

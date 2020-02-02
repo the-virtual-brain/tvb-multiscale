@@ -9,7 +9,7 @@ from itertools import product
 
 from sklearn.cluster import AgglomerativeClustering
 from tvb_scripts.config import CONFIGURED
-from tvb_scripts.utils.log_error_utils import initialize_logger
+from tvb_scripts.utils.log_error_utils import initialize_logger, warning
 from tvb_scripts.utils.data_structures_utils import is_integer
 
 logger = initialize_logger(__name__)
@@ -183,6 +183,19 @@ def curve_elbow_point(vals, interactive=CONFIGURED.calcul.INTERACTIVE_ELBOW_POIN
         return elbow
     else:
         return elbow
+
+
+def spikes_events_to_time_index(spike_time, time):
+    if spike_time < time[0] or spike_time > time[-1]:
+        warning("Spike time is outside the input time vector!")
+    return np.argmin(np.abs(time-spike_time))
+
+
+def compute_spikes_counts(spikes_times, time):
+    spikes_counts = np.zeros(time.shape)
+    for spike_time in spikes_times:
+        spikes_counts[spikes_events_to_time_index(spike_time, time)] += 1
+    return spikes_counts
 
 
 def spikes_rate_convolution(spike, spikes_kernel):

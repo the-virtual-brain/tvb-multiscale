@@ -97,11 +97,10 @@ ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
 RUN echo "source ${VENV}/bin/activate" >> /home/docker/.bashrc
 
-## Run the following lines in case you want to install your own NEST module with NEST models
-#ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
-#ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
-#RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
-#COPY . tvb-multiscale/
+## Run the following lines in case you want to install your own NEST module with NEST builders
+ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
+ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
+RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014"
 #ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config

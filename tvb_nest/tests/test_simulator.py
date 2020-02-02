@@ -7,12 +7,13 @@ import matplotlib as mpl
 mpl.use('Agg')
 
 import numpy as np
-from tvb.datatypes.connectivity import Connectivity
-from tvb_nest.examples.example import main_example
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_nest.simulator_nest.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
 from tvb_nest.config import Config
+from tvb_nest.examples.example import main_example
+from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import \
+    RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.datatypes.connectivity import Connectivity
 
 
 def prepare_launch_default_simulation():
@@ -30,14 +31,13 @@ def prepare_launch_default_simulation():
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
 
-    connectivity, results = main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder,
-                                         InterfaceRedWWexcIOinhIBuilder,
-                                         nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
-                                         simulation_length=100.0,
-                                         tvb_state_variable_type_label="Synaptic Gating Variable",
-                                         exclusive_nodes=True, config=config)
+    results, simulator = \
+        main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
+                     tvb_state_variable_type_label="Synaptic Gating Variable", delays=True, dt=0.1,
+                     exclusive_nodes=True, config=config)
 
-    return connectivity.weights, connectivity.tract_lengths, results[0][1]
+    return simulator.connectivity.weights, simulator.connectivity.tract_lengths, results[0][1]
 
 
 def test_connectivity_weights_shape():

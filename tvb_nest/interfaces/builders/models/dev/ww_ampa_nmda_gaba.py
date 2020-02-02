@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-from tvb_nest.config import CONFIGURED
+from tvb_multiscale.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIOinhI
-from tvb_nest.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
-    tvb_model = ReducedWongWangExcIOInhI()
 
-    def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
+    def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, N_e=100, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, config=CONFIGURED):
 
         if tvb_to_nest_interfaces is None:
@@ -24,24 +22,24 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
                                             "nodes": None}]  # None means all here
 
     # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
-    # #         self.tvb_to_nest_interfaces = [{"model": "dc_generator", "params": {},
+    # #         self.tvb_to_spikeNet_interfaces = [{"model": "dc_generator", "params": {},
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     #                                        "interface_weights": 1.0, # Applied outside NEST for each interface device
     #                                        "weights": 1.0,  # To multiply TVB connectivity weight
     # #                                      To add to TVB connectivity delay:
-    #                                        "delays": nest_network.nodes_min_delay,
+    #                                        "delays": spiking_network.spikeNet_min_delay,
     # --------------------------------------------------------------------------------------------------------------
     # #                                                TVB sv -> NEST population
     #                                        "connections": {"S_e": ["AMPA", "NMDA", "GABA"]},
     #                                        "source_nodes": None, "target_nodes": None}]  # None means all here
     #
     # #For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
-    #           self.tvb_to_nest_interfaces =  [{"model": "poisson_generator", "params": {},
+    #           self.tvb_to_spikeNet_interfaces =  [{"model": "poisson_generator", "params": {},
     # # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-    #                                           "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    #                                         "weights": 1.0,  # To multiply TVB connectivity weight
+    #                                           "interface_weights": 1.0*N_e,  # Applied outside NEST for each interface device
+    #                                         "weights": tvb_simulator.model.G[0],  # To multiply TVB connectivity weight
     # #                                   To add to TVB connectivity delay:
-    #                                           "delays": nest_network.nodes_min_delay,
+    #                                           "delays": spiking_network.spikeNet_min_delay,
     #                                          "receptor_types": lambda tvb_node_id, nest_node_id: tvb_node_id + 1,
     # --------------------------------------------------------------------------------------------------------------
     # #                                                       TVB sv -> NEST population
@@ -63,7 +61,7 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
     # -----------------------------------------------------------------------------------------------------------------
                   "connections": connections, "nodes": None}]  # None means all here
 
-        super(WWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
+        super(WWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes,
                                                     tvb_to_nest_interfaces, nest_to_tvb_interfaces, config)
         self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
