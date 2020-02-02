@@ -27,9 +27,10 @@ pipeline {
                 sh '''#!/bin/bash
                     source /home/docker/env/neurosci/bin/activate
                     pytest --cov-config .coveragerc --cov=tvb tvb_nest/tests --cov-branch --cov-report xml:tvb_nest_coverage.xml --junitxml=tvb_nest_test_results.xml
+                    pytest --cov-config .coveragerc --cov=tvb tvb_multiscale/tests --cov-branch --cov-report xml:tvb_multiscale_coverage.xml --junitxml=tvb_multiscale_test_results.xml
                     exit 0
                 '''
-                junit 'tvb_nest_test_results.xml'
+                junit 'tvb_*_test_results.xml'
                 step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'tvb_nest_coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
             }
         }
@@ -37,7 +38,7 @@ pipeline {
 
     post {
         changed {
-            mail to: 'lia.domide@codemart.ro, gabriel.florea@codemart.ro',
+            mail to: 'lia.domide@codemart.ro',
             subject: "Jenkins Pipeline ${currentBuild.fullDisplayName} changed status",
             body: """
                 Result: ${currentBuild.result}
