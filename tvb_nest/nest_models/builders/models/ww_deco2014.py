@@ -40,7 +40,7 @@ class WWDeco2014Builder(NESTModelBuilder):
                  exc_pop_scale=1.0,
                  inh_pop_scale=0.7,
                  ):
-        config.nest.DEFAULT_MODEL = "iaf_cond_deco2014"
+        config.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
@@ -159,7 +159,7 @@ class WWDeco2014Builder(NESTModelBuilder):
         #               label    <- target population
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
-        params = dict(self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.nest_instance.GetKernelStatus("resolution")  # self.monitor_period
         params['record_from'] = ["V_m",
                                  "s_AMPA", "x_NMDA", "s_NMDA", "s_GABA",

@@ -23,8 +23,8 @@ class NESTModelBuilder(SpikingModelBuilder):
 
     config = CONFIGURED
     nest_instance = None
-    default_min_spiking_dt = CONFIGURED.nest.NEST_MIN_DT
-    default_min_delay = CONFIGURED.nest.NEST_MIN_DT
+    default_min_spiking_dt = CONFIGURED.NEST_MIN_DT
+    default_min_delay = CONFIGURED.NEST_MIN_DT
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
         super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
@@ -35,16 +35,16 @@ class NESTModelBuilder(SpikingModelBuilder):
             self.nest_instance = load_nest(self.config, self.logger)
 
         # Setting NEST defaults from config
-        self.default_population = {"model": self.config.nest.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
+        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
 
         self.default_synaptic_weight_scaling = \
             lambda weight, n_cons: self.config.DEFAULT_SPIKING_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
 
-        self.default_populations_connection = dict(self.config.nest.DEFAULT_CONNECTION)
+        self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["delay"] = self.default_min_delay
         self.default_populations_connection["nodes"] = None
 
-        self.default_nodes_connection = dict(self.config.nest.DEFAULT_CONNECTION)
+        self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_nodes_connection["delay"] = self.default_populations_connection["delay"]
         self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
 
@@ -86,11 +86,11 @@ class NESTModelBuilder(SpikingModelBuilder):
         # Use these to observe NEST network behavior
         # Labels have to be different
         self.output_devices = [{"model": "spike_detector",
-                                "params": self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
+                                "params": self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
                                     #           label <- target population
                                     "connections": {"E": "E"}, "nodes": None},  # None means "all"
                                    {"model": "multimeter",
-                                    "params": self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"],
+                                    "params": self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"],
                                     #                     label <- target population
                                     "connections": {"Excitatory": "E"}, "nodes": None},  # None means "all"
                                    ]

@@ -20,7 +20,7 @@ class NESTNetwork(SpikingNetwork):
                  input_devices=pd.Series(),
                  config=CONFIGURED):
         if nest_instance is None:
-            nest_instance = load_nest(self.config.nest, LOG)
+            nest_instance = load_nest(self.config, LOG)
         self.nest_instance = nest_instance
         super(NESTNetwork, self).__init__(region_nodes, output_devices, input_devices, config)
 

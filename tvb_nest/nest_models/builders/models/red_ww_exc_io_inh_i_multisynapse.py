@@ -33,7 +33,7 @@ class RedWWExcIOInhIMultisynapseBuilder(NESTModelBuilder):
                  tau_rise_in=1.0,   # assuming tau_rise_GABA = 1.0 ms
                  tau_decay_in=10.0  # tau_decay_GABA =10.0 ms
                  ):
-        config.nest.DEFAULT_MODEL = "aeif_cond_beta_multisynapse"
+        config.DEFAULT_MODEL = "aeif_cond_beta_multisynapse"
         super(RedWWExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
@@ -138,7 +138,7 @@ class RedWWExcIOInhIMultisynapseBuilder(NESTModelBuilder):
         connections = OrderedDict({})
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
-        params = dict(self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means all here
