@@ -8,7 +8,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.examples.plot_results import plot_results
 from tvb_multiscale.config import CONFIGURED
-from tvb_multiscale.plot import Plotter
+from tvb_multiscale.plot.plotter import Plotter
 from tvb_scripts.utils.data_structures_utils import ensure_list
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh
@@ -53,7 +53,7 @@ def main_example(tvb_sim_model, connectivity_zip=CONFIGURED.DEFAULT_CONNECTIVITY
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
-    plot_results(results, simulator, None, "State Variables", simulator.model.variables_of_interest, plotter)
+    plot_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
 
     return connectivity, results
 
