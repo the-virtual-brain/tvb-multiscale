@@ -7,9 +7,9 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
-from tvb_multiscale.simulator_tvb.simulator import Simulator
-from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.simulator import Simulator
+from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 

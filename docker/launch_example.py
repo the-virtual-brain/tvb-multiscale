@@ -14,7 +14,7 @@ from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOI
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
 from tvb_multiscale.plot.plotter import Plotter
-from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.datatypes.connectivity import Connectivity
 
 

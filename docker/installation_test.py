@@ -19,7 +19,7 @@ from tvb_nest.examples.example import main_example
 from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
-from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 # Select the regions for the fine scale modeling with NEST spiking networks
