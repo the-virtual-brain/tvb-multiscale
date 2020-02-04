@@ -11,10 +11,11 @@ from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i_multisynapse impor
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
     import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
 from tvb_multiscale.examples.plot_results import plot_results
-from tvb_multiscale.simulator_tvb.simulator import Simulator
-from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.integrators import HeunStochastic
+from tvb.simulator.simulator import Simulator
+from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 
@@ -43,6 +44,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # (connectivity, model, surface, stimuli etc)
     # We choose all defaults in this example
     simulator = Simulator()
+    simulator.integrator = HeunStochastic()
     simulator.integrator.dt = dt
     simulator.integrator.noise.nsig = np.array([noise_strength])
     simulator.model = tvb_sim_model
@@ -107,6 +109,7 @@ if __name__ == "__main__":
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
     # # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
+    # from tvb.simulator.models.generic_2d_oscillator_multiscale import Generic2dOscillator
     # model = Generic2dOscillator()
     # model.d = np.array([0.1])
     # model.e = np.array([0.0])
@@ -121,6 +124,7 @@ if __name__ == "__main__":
     # model.c = np.array([0.0])
     # model.variables_of_interest = ["V", "W"]
     # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
+    # from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
     # model = WilsonCowan()
     # model.tau_e = np.array([8.0])
     # model.tau_i = np.array([8.0])

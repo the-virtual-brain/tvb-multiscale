@@ -110,3 +110,6 @@ venv.bak/
 outputs/figs
 outputs/logs
 /tvb_nest/examples/outputs/
+/tvb_nest/examples/notebooks/reduced_wong_wang_exc_io_inh_i/ConceptGraph.png
+/tvb_nest/examples/notebooks/reduced_wong_wang_exc_io_inh_i/documented_notebook_example.ipynb
+/tvb_nest/examples/notebooks/reduced_wong_wang_exc_io_inh_i/simulator_loop.png

@@ -7,12 +7,12 @@ from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_device_interface_builder
 from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_parameter_interface_builder import \
     TVBtoSpikeNetParameterInterfaceBuilder
 from tvb_multiscale.interfaces.builders.spikeNet_to_tvb_interface_builder import SpikeNetToTVBInterfaceBuilder
-from tvb_multiscale.simulator_tvb.simulator import Simulator
 from tvb_multiscale.spiking_models.network import SpikingNetwork
 from tvb_multiscale.spiking_models.devices import InputDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
+from tvb.simulator.simulator import Simulator
 
 LOG = initialize_logger(__name__)
 
