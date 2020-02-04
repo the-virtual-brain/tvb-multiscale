@@ -20,7 +20,11 @@ def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
         os.makedirs(target_folder)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+
+    if name == "matplotlib":
+        logger.setLevel(logging.WARNING)
+    else:
+        logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 

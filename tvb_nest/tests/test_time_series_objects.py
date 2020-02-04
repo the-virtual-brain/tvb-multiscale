@@ -55,11 +55,4 @@ def test_time_series_region_object():
     tsr = create_time_series_region_object()
 
     # Check the correctness of time_series_region object
-    assert tsr.shape == (1000, 2, 68, 1)
-
-    # Check for existence of S_e attribute
-    assert hasattr(tsr, 'S_e') is True
-
-    # Check for shape after slice
-    assert tsr.S_e.shape == (1000, 1, 68, 1)
-
+    assert tsr.shape == (1000, 4, 68, 1)

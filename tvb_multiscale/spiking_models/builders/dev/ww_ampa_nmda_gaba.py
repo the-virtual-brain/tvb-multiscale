@@ -11,7 +11,7 @@ class WWAMPANMDAGABABuilder(SpikingModelBuilder):
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
         # Some properties for the default synapse to be used:
-        config.nest.DEFAULT_CONNECTION["model"] = "scale_connection"
+        config.DEFAULT_CONNECTION["model"] = "scale_connection"
         super(WWAMPANMDAGABABuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Connection weights between the distinct populations:
@@ -89,7 +89,7 @@ class WWAMPANMDAGABABuilder(SpikingModelBuilder):
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -1.0, "delay": self.default_populations_connection["delay"],
              "receptor_type": rcptr_ampa_gaba["SPIKESINH_GABA"], "nodes": None},  # None means "all"
-                            ]
+        ]
 
         # Among/Between region-node connections
         # Given that only the AMPA population of one region-node couples to

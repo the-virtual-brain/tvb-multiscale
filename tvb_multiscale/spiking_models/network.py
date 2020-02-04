@@ -10,7 +10,6 @@ from tvb_multiscale.spiking_models.devices \
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
-
 LOG = initialize_logger(__name__)
 
 # A SpikingNetwork consists of Region Nodes holding Spiking Populations,
@@ -110,7 +109,7 @@ class SpikingNetwork(object):
             for device_name in OutputSpikeDeviceDict.keys():
                 spike_detectors = self.get_devices_by_model(device_name, nodes=regions)
                 if len(spike_detectors) > 0:
-                    break   # If this is not an empty dict of devices
+                    break  # If this is not an empty dict of devices
         if len(spike_detectors) == 0:
             LOG.warning("No spike measuring device in this Spiking Network network!")
             return None, None, None
@@ -262,10 +261,10 @@ class SpikingNetwork(object):
 
     def compute_spikes_activities(self, mode="total", population_devices=None, regions=None,
                                  devices_dim_name="Population", name="Spikes activities from Spiking Network",
-                                 spikes_kernel_width=None, spikes_kernel_n_intervals=10,
-                                 spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
-                                 spikes_kernel=None):
-        return self.compute_spikes_rates(mode+"_activity", population_devices, regions,
+                                  spikes_kernel_width=None, spikes_kernel_n_intervals=10,
+                                  spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
+                                  spikes_kernel=None):
+        return self.compute_spikes_rates(mode + "_activity", population_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
                                          spikes_kernel_overlap, min_spike_interval, time,
