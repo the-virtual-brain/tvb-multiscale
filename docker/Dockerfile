@@ -89,9 +89,13 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     cd tvb-data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git; \
-    cd tvb-root; git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
-    cd scientific_library; $VENV/bin/python setup.py develop;
+RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
+
+ARG LAST_SHA=LATEST
+RUN cd tvb-root; \
+    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
+    cd scientific_library; \
+    $VENV/bin/python setup.py develop;
 
 #RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
 #    cd tvb-multiscale; \
