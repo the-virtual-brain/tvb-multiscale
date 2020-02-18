@@ -10,12 +10,23 @@ MAINTAINER lia.domide@codemart.ro
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
-RUN apt-get update; apt-get install -y automake libtool build-essential openmpi-bin libopenmpi-dev git vim octave \
+RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion python3-mpi4py cmake zip unzip; \
+                       subversion cmake zip unzip; \
     apt-get clean
+
+RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
+    && tar xf mpich-3.1.4.tar.gz \
+    && cd mpich-3.1.4 \
+    && ./configure --disable-fortran --enable-fast=all,O3 --prefix=/usr \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
+    && cd .. \
+    && rm -rf mpich-3.1.4 \
+    && rm mpich-3.1.4.tar.gz
 
 # Create user different than root
 RUN useradd -ms /bin/bash docker
@@ -58,7 +69,7 @@ RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $H
     tar xzf $NEST.tar.gz; rm $NEST.tar.gz; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
-          -Dwith-mpi=ON  \
+#          -Dwith-mpi=ON  \
           -Dwith-python=3 \
           ###-Dwith-music=ON \
           -Dwith-libneurosim=$VENV \
