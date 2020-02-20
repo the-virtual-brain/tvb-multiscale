@@ -22,35 +22,35 @@ tvb-nest_usage_local.mov
 00:11 -- 00:15
     You should clone locally this repository. This is what we already did for this video.
 
-00:15 -- 00:30
+00:15 -- 00:45
     With the local copy, make sure that in the Docker file, the command to launch Jupyter Notebook is uncommented,
-    and bind port 8888 from inside the container to a localhost port.
+    and bind port 8888 from inside the container to a localhost port. Make sure that the context folder is set to ".".
     Then launch docker, to run the container.
 
 * Alternatively use Docker Hub and this command:
 *  docker pull thevirtualbrain/tvb-nest
 *  docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser —allow-root
 
-00:32 -- 00:36
+00:46 -- 00:51
     You should be able to see in the container logs that Notebook is running.
 
-00:37 -- 00:40
+00:52 -- 00:59
     In a browser on your machine, access localhost with the port 8888
 
-00:41 -- 00:44
+01:00 -- 01:05
     Password is set to tvb42
 
 * Password is 'tvb42'
 
-00:45 -- 00:50
+01:06 -- 01:14
     Navigate to folder packages, then tvb-multiscale, tvb_nest, examples and notebooks.
 
-00:51 -- 00:55
+01:15 -- 01:19
     Open the available notebook and work with it, as you would with regular Jupyter Notebooks
 
 * This notebook will be opened: https://github.com/dionperd/tvb-multiscale/tree/master/tvb_nest/examples/notebooks
 
-00:56 -- end
+01:20 -- end
     The notebook demonstrates the usage of tvb-nest package, via a simulation in which Wong-Wang models, with an
     excitatory and an inhibitory population, are used for the TVB region nodes.
     Two region nodes are modelled in NEST as networks of spiking neural populations, an excitatory and inhibitory one,
@@ -63,81 +63,53 @@ tvb-nest_usage_local.mov
 
 
 --------------------------------------------------
-tvb-nest_usage_on_collabhbp_and_cscs2.mov
+tvb-nest_usage_on_collabhbp_and_cscs3.mp4
 --------------------------------------------------
-00:00 -- 00:20
-    This video-tutorial is demonstrating the usage of TVB and NEST simulators on HBP Collaboratory,
-    with CSCS computers as backend processing hardware.
-    We need to have a CSCS account for this example to work, plus we should prepare our CSCS home directory.
-    We had just logged-in on CSCS shell: first on the front-end node ELA, then on DAINT cluster.
-
-* ssh [user]@ela.cscs.ch
-* ssh [user]@daint.cscs.ch
-* More about CSCS: https://user.cscs.ch/tools/containers/
-
-00:21 -- 00:30
-    First, we need to make sure that the relevant command modules are loaded in our environment: daint-mc and shifter.
-
-* ~/.bashrc
-* module load daint-mc # or daint-gpu
-* module load shifter-ng
-* More about CSCS:
-*   https://user.cscs.ch/tools/containers/
-*   https://user.cscs.ch/tools/containers/advanced_shifter/
-
-00:31 -- 01:00
-    Shifter is an HPC correspondent to Docker client.
-    We ensure that tvb-nest image is downloaded locally.
-    If not found, we use shifter pull command to get it from Docker Hub.
-
-* srun -C mc shifter pull thevirtualbrain/tvb-nest
-
-01:01 -- 01:22
-    Last step in preparing our CSCS home directory, is to have a shell file for launching tvb-nest simulations.
-    One example for such a file can be found on tvb-nest Github page.
-
-* https://github.com/the-virtual-brain/tvb-multiscale/blob/master/docker/cosimulate_with_staging.sh
-
-01:23 -- 01:32
-    Next, we move focus towards HBP Collaboratory GUI, which is used for actually launching simulation jobs,
-    in the CSCS environment prepared above.
-    We could also just continue to use SSH, but switching to Collab is recommended, for improving the user experience.
-
-    First we should login with a valid HBP collab account.
-    If you do not have an account on HBP collab, someone with a valid account needs to invite you on the platform.
-    Unfortunately, this account is different than the CSCS account, and the two accounts need to be linked by the
-    HBP infrastructure team. To achieve the linked accounts, we can write a request towards support@humanbrainproject.eu
+00:00 -- 00:15
+    	This video-tutorial is demonstrating the usage of TVB and NEST simulators on HBP Collaboratory, with CSCS computers as backend processing hardware. We need to have a CSCS account for this example to work
+First we should login with a valid HBP collab account. If you do not have an account on HBP collab, someone with a valid account needs to invite you on the platform.
+Unfortunately, this account is different than the CSCS account, and the two accounts need to be linked by the HBP infrastructure team. To achieve the linked accounts, we can write a request towards support@humanbrainproject.eu
 
 * https://services.humanbrainproject.eu/oidc/login
 * support@humanbrainproject.eu
+* More about CSCS: https://user.cscs.ch/tools/containers/
 
-01:33 -- 01:46
-    After login, we  navigate to tab COLLABS, and search for “TVB NEST” entity.
+00:15 -- 00:25
+After login, we  navigate to tab COLLABS, and search for “TVB NEST” entity.
 
-* https://collab.humanbrainproject.eu/#/collab/58136/nav/396829
+* https://collab.humanbrainproject.eu/#/collab/58136/nav/396819
 
-01:47 -- 02:07
-    On the left-side, click on “Run a custom co-simulation” and we will see a demo notebook for launching tvb-nest
-    simulations on the CSCS servers, in the environment prepared above.
-    Exactly this notebook will work for my user only. For another CSCS user, you should copy this notebook in your own
-    collab space and change the username.
+00:30 -- 00:35
+On the left-side, click on “Run a custom cosimulation” and we will see a demo notebook for launching tvb-nest simulations on the CSCS servers.
 
-02:08 -- 02:09
-    On this notebook, or on a copy of it, we use menu entry Cell and then "Run all", to launch the simulation job.
-    While it is running, let us observe the configuration elements prepared bellow: CSCS URL, the  cosimulation shell
-    launch command to execute, which was prepared in our server home directory.
+00:35 -- 00:36
+    	On this notebook, we will use the “Run Cell” button in order to run a cell.
 
-02:29 -- 02:58
-    This notebook can be configured into what simulation to execute and with what parameters, through a Python script
-    that will be downloaded at run-time. Here we have the script public on our Github.
-    In this script, relevant are the configuration of TVB and NEST simulators, plus saving the resuts as numpy files at
-    the end.
+00:37 -- 00:43
+	In the first cell we will configure the UNICORE API, by specify the HBP registry and the DAINT supercomputer.
 
+00:44 -- 00:55
+	In this step we will configure the job parameters, what shell script to launch and with what arguments. These files will be downloaded at run-time.
+
+00:56 -- 01:14
+One example for such a shell file can be found on tvb-nest Github page.
+*https://github.com/the-virtual-brain/tvb-multiscale/blob/master/docker/cosimulate_with_staging.sh
+	Sarus is an HPC correspondent to Docker client. Using this shell file first we ensure that we have the docker image downloaded locally, then we start a container using this image where we will execute the simulation.
+
+01:20 -- 01:36
+This notebook can be configured into what simulation to execute and with what parameters, through a Python script. Here we have the script public on our Github.
+   	 In this script, relevant are the configuration of TVB and NEST simulators, plus saving the results as numpy files at the end.
 * https://github.com/the-virtual-brain/tvb-multiscale/blob/master/docker/launch_example.py
 
-02:58 -- 03:35
-    Returning to our notebook, we see that our job is running, but the Output was not yet ready.
-    We re-run that cell until we see that the simulation is done.
+01:55 -- 02:21
+Returning to our notebook, we see that our job is running. In the first phase, our job will be in status ‘STAGINGIN’ where all the input files will be downloaded in the job’s working directory.
 
-03:36 -- end
-    The rest of the cell, with go through the result files, and plot the most relevant.
+02:22 -- 04:20
+	Next, the job will be in status ‘QUEUED’. In this phase we are waiting for the job scheduler to start the execution.
+
+04:21 -- 06:13
+	When the job is running we can check the ‘stdout’ file from the job’s working directory for the status of the execution.
+
+06:30 -- end
+    The rest of the cell, with go through the result files, and plot the most relevant results.
+
