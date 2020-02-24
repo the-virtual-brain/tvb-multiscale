@@ -61,3 +61,17 @@ all_lines[-20:]
 # Download 'outputs/res/results.npy' file
 wd.stat("outputs/res/results.npy").download("results.npy")
 ```
+
+### Examples
+##### test_tvb-nest_installation_19.02.2020.ipynb 
+
+Run the cosimulate_tvb_nest.sh script on the CSCS Daint supercomputer. In this example, basically we are running the
+installation_test.py file which is in the docker folder.
+
+##### run_custom_cosimulation_19.02.2020.ipynb
+For this example we are using the cosimulate_with_staging.sh script in order to pull the tvb-nest docker image and we 
+are using a custom simulation script (from Github page) which will be uploaded in the staging in phase.
+
+##### run_custom_cosimulation_from_notebook_19.02.2020.ipynb
+This example is running the same simulation as the example above but instead of using an external file with the simulation 
+code we will build a simulation file from a few notebook cells and we will pass this file to the CSCS server.

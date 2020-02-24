@@ -1,12 +1,12 @@
 #!/bin/sh
 
 echo "Pulling TVB-Nest docker image"
-/apps/daint/system/opt/sarus/1.0.1/bin/sarus pull thevirtualbrain/tvb-nest:0.3.1
+/apps/daint/system/opt/sarus/1.1.0/bin/sarus pull thevirtualbrain/tvb-nest:0.3.1
 
 start=$SECONDS
 
 echo "Start docker container"
-srun -C mc /apps/daint/system/opt/sarus/1.0.1/bin/sarus --debug run --mpi thevirtualbrain/tvb-nest:0.3.1 /home/docker/env/neurosci/bin/python /home/docker/installation_test.py
+srun -C mc /apps/daint/system/opt/sarus/1.1.0/bin/sarus --debug run --mpi thevirtualbrain/tvb-nest:0.3.1 /home/docker/env/neurosci/bin/python /home/docker/installation_test.py
 
 duration=$(( SECONDS - start ))
 
