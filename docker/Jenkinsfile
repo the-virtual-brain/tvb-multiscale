@@ -11,8 +11,7 @@ pipeline {
             steps {
                 script {
                     def dockerfile = 'docker/Dockerfile'
-                    def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:${env.BUILD_ID}", "-f ${dockerfile} .")
-                    dockerImage.push()
+                    def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}", "-f ${dockerfile} .")
                     dockerImage.push('${VERSION_TAG}')
                 }
             }
