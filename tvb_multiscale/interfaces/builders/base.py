@@ -134,7 +134,7 @@ class TVBSpikeNetInterfaceBuilder(object):
 
     @property
     def tvb_weights(self):
-        return self.tvb_simulator.connectivity.tvb_weights
+        return self.tvb_simulator.connectivity.weights
 
     @property
     def tvb_delays(self):
