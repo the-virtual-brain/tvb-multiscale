@@ -90,12 +90,17 @@ RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
     $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
-
 ARG LAST_SHA=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop;
+
+RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
+ARG LAST_SHA=LATEST
+RUN cd tvb-multiscale; \
+    git pull origin ongoing_dp_work --allow-unrelated-histories; \
+    $VENV/bin/python setup.py develop --no-deps;
 
 #RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
 #    cd tvb-multiscale; \
@@ -115,13 +120,15 @@ ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
 ENV NEST_DOC_DIR=${NEST_INSTALL_DIR}/share/doc/nest
 RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
-# Install tvb-multiscale:
-WORKDIR $HOME/packages
-RUN mkdir tvb-multiscale
-COPY . tvb-multiscale/
-RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 
-## Run the following lines in case you want to install your own NEST module with NEST builders
+# ----------------------------------------------------------------------------------------------------------------------
+# Run the following lines in case you want to install your own NEST module with NEST builders
+# The commented lines will install modules in the MODULES_LIST upon building this image
+## Install local tvb-multiscale:
+#WORKDIR $HOME/packages
+#RUN mkdir tvb-multiscale
+#COPY ./tvb-multiscale/ tvb-multiscale/
+#RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
@@ -134,6 +141,7 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #            cmake -Dwith-nest=$NEST_CONFIG ${MYMODULE_DIR}; \
 #            make; make install; \
 #    done
+# ----------------------------------------------------------------------------------------------------------------------
 
 # Final configurations
 # tvb42
@@ -141,18 +149,17 @@ RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
-COPY docker/installation_test.py /home/docker/
+# COPY ./tvb-multiscale/docker/installation_test.py /home/docker/
+#For running instalation test
+# CMD $VENV/bin/python installation_test.py
 
 # Activate the rights python env
 ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
 
-#For running instalation test
-CMD $VENV/bin/python installation_test.py
-
 # For running tests
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
 # Test NEST installation
 # RUN cd $NEST; make installcheck
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
