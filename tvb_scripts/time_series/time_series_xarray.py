@@ -96,14 +96,14 @@ class TimeSeries(HasTraits):
             return None
 
     @property
-    def number_of_labels(self):
+    def number_of_variables(self):
         try:
             return self.shape[1]
         except:
             return None
 
     @property
-    def number_of_variables(self):
+    def number_of_labels(self):
         try:
             return self.shape[2]
         except:
@@ -435,6 +435,12 @@ class TimeSeries(HasTraits):
     #             else:
     #                 slice_list.append(slice(None))
     #         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
+
+    def swapaxes(self, ax1, ax2):
+        dims = list(self.dims)
+        dims[ax1] = self.dims[ax2]
+        dims[ax2] = self.dims[ax1]
+        return self.transpose(*dims)
 
     def _prepare_plot_args(self, **kwargs):
         plotter = kwargs.pop("plotter", None)
