@@ -34,9 +34,8 @@ def create_time_series_region_object():
 
     results, simulator = \
         main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
-                     tvb_state_variable_type_label="Synaptic Gating Variable",
-                     exclusive_nodes=True, config=config)
+                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
+                     simulation_length=100.0, exclusive_nodes=True, config=config)
     time = results[0][0]
     source = results[0][1]
 

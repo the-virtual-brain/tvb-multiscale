@@ -33,10 +33,9 @@ for id in range(connectivity.region_labels.shape[0]):
         nest_nodes_ids.append(id)
 
 results, simulator = \
-    main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
-                 tvb_state_variable_type_label="Synaptic Gating Variable",
-                 exclusive_nodes=True, config=config)
+    main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
+                 simulation_length=100.0, exclusive_nodes=True, config=config)
 
 np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)
 np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), simulator.connectivity.tract_lengths)
