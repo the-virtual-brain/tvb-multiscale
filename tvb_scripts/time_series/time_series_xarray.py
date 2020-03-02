@@ -234,6 +234,18 @@ class TimeSeries(HasTraits):
             assert [key in labels_ordering for key in labels_dimensions.keys()]
         return labels_ordering, labels_dimensions
 
+    def from_TVB_time_series(self, ts, **kwargs):
+        labels_ordering = kwargs.pop("labels_ordering", kwargs.pop("dims", ts.labels_ordering))
+        labels_dimensions = kwargs.pop("labels_dimensions", kwargs.pop("coords", ts.labels_dimensions))
+        name = kwargs.pop("name", kwargs.pop("title", ts.title))
+        time = kwargs.pop("time", ts.time)
+        labels_dimensions[labels_ordering[0]] = time
+        self._data = xr.DataArray(ts.data,
+                                  dims=labels_ordering,
+                                  coords=labels_dimensions,
+                                  attrs=kwargs,
+                                  name=name)
+
     def from_numpy(self, data, **kwargs):
         # We have to infer time and labels inputs from kwargs
         data = prepare_4d(data)
@@ -265,7 +277,7 @@ class TimeSeries(HasTraits):
     def configure(self):
         # To be always used when a new object is created
         # to check that everything is set correctly
-        self.title = self.name
+        self.title = "TimeSeries"
         super(TimeSeries, self).configure()
         try:
             time_length = self.time_length
@@ -284,15 +296,21 @@ class TimeSeries(HasTraits):
         elif isinstance(data, self.__class__):
             for attr, val in data.__dict__.items():
                 setattr(self, attr, val)
+        # TODO: Find out why this is not working
+        # elif issubclass(data.__class__, TimeSeries):
+        #     self.from_TVB_time_series(data, **kwargs)
         else:
-            # Assuming data is an input xr.DataArray() can handle,
-            if isinstance(data, dict):
-                # ...either as kwargs
-                self._data = xr.DataArray(**data)
-            else:
-                # ...or as args
-                # including a xr.DataArray or None
-                self._data = xr.DataArray(data)
+            try:
+                self.from_TVB_time_series(data, **kwargs)
+            except:
+                # Assuming data is an input xr.DataArray() can handle,
+                if isinstance(data, dict):
+                    # ...either as kwargs
+                    self._data = xr.DataArray(**data)
+                else:
+                    # ...or as args
+                    # including a xr.DataArray or None
+                    self._data = xr.DataArray(data)
         self.configure()
 
     def summary_info(self):
