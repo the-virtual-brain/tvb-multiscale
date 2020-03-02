@@ -42,7 +42,6 @@ class SpikingModelBuilder(object):
     # Internal configurations and outputs:
     monitor_period = 1.0
     spiking_dt = 0.1 / tvb_to_spiking_dt_ratio
-    tvb_weights = np.array([])
     _spiking_nodes_labels = []
     _populations = []
     _populations_connections = []
@@ -56,7 +55,6 @@ class SpikingModelBuilder(object):
         self.logger = logger
         self.spiking_nodes_ids = np.unique(spiking_nodes_ids)
         self.tvb_simulator = tvb_simulator
-        self.tvb_weights = self.tvb_connectivity.scaled_weights(mode='region')
         self._update_spiking_dt()
         self._update_default_min_delay()
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
@@ -101,8 +99,12 @@ class SpikingModelBuilder(object):
         return self.tvb_simulator.connectivity
 
     @property
+    def tvb_weights(self):
+        return self.tvb_simulator.connectivity.weights
+
+    @property
     def tvb_delays(self):
-        return self.tvb_connectivity.delays
+        return self.tvb_simulator.connectivity.delays
 
     @property
     def tvb_dt(self):

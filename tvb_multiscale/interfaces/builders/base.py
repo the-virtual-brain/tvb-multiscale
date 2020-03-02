@@ -69,7 +69,6 @@ class TVBSpikeNetInterfaceBuilder(object):
         self.exclusive_nodes = exclusive_nodes
         if isinstance(tvb_simulator, Simulator):
             self.tvb_simulator = tvb_simulator
-            self.tvb_weights = self.tvb_connectivity.scaled_weights(mode='region')
             self.spiking_nodes_ids = np.array(ensure_list(spiking_nodes_ids))
             self.tvb_nodes_ids = list(range(self.tvb_connectivity.weights.shape[0]))
             if self.exclusive_nodes:
@@ -132,6 +131,10 @@ class TVBSpikeNetInterfaceBuilder(object):
     @property
     def spikeNet_min_delay(self):
         return self.spiking_network.min_delay
+
+    @property
+    def tvb_weights(self):
+        return self.tvb_simulator.connectivity.tvb_weights
 
     @property
     def tvb_delays(self):
