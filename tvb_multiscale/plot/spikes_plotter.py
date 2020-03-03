@@ -2,7 +2,7 @@
 from matplotlib import pyplot
 import numpy as np
 from xarray import DataArray
-from tvb_multiscale.spiking_models.devices import SpikeDetector
+from pandas import Series
 from tvb_scripts.plot.base_plotter import BasePlotter
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
@@ -10,9 +10,11 @@ from tvb_scripts.utils.data_structures_utils import ensure_list
 class SpikesPlotter(BasePlotter):
 
     def plot_spikes(self, spikes_data, **kwargs):
-        if np.all([isinstance(spike, SpikeDetector) for spike in spikes_data]):
+        if isinstance(spikes_data, Series):
+            # Either a Series (for populations) of Series (for regions) of SpikeDetectors'outputs...
             return self.plot_spike_detectors(spikes_data, **kwargs)
         else:
+            # ...or a list (for populations) of TVB time series or TVB xarray time series (for regions)
             return self._plot_spikes(spikes_data, **kwargs)
 
     def _get_rates(self, rates, yticks):
