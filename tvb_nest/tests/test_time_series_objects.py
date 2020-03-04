@@ -13,8 +13,8 @@ from tvb_nest.examples.example import main_example
 from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
     import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
-from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_scripts.time_series.model import TimeSeriesRegion
+from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
 def create_time_series_region_object():
@@ -34,9 +34,8 @@ def create_time_series_region_object():
 
     results, simulator = \
         main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity, simulation_length=100.0,
-                     tvb_state_variable_type_label="Synaptic Gating Variable",
-                     exclusive_nodes=True, config=config)
+                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
+                     simulation_length=100.0, exclusive_nodes=True, config=config)
     time = results[0][0]
     source = results[0][1]
 

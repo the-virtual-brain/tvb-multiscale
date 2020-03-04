@@ -31,13 +31,15 @@ def plot_results(results, simulator, tvb_state_variable_type_label="", tvb_state
     # plotter.plot_timeseries_interactive(source_ts)
 
     try:
-        tvb_spikeNet_interface = simulator.tvb_spikeNet_interface
+        if simulator.tvb_spikeNet_interface is None:
+            return
+
     except:
         return
 
     # Focus on the nodes modelled in NEST:
     try:
-        source_ts_nest = source_ts.get_subspace(tvb_spikeNet_interface.spiking_nodes_ids)
+        source_ts_nest = source_ts.get_subspace(simulator.tvb_spikeNet_interface.spiking_nodes_ids)
         plotter.plot_timeseries(source_ts_nest, title="NEST nodes Region Time Series")
         plotter.plot_raster(source_ts_nest, title="NEST nodes Region Time Series Raster")
     except:
@@ -47,7 +49,7 @@ def plot_results(results, simulator, tvb_state_variable_type_label="", tvb_state
     # whereas we average across individual neurons
 
     # Plot NEST multimeter variables
-    multimeter_mean_data = tvb_spikeNet_interface.get_mean_data_from_multimeter_to_TVBTimeSeries()
+    multimeter_mean_data = simulator.tvb_spikeNet_interface.get_mean_data_from_multimeter_to_TVBTimeSeries()
     if multimeter_mean_data is not None and multimeter_mean_data.size > 0:
         plotter.plot_multimeter_timeseries(multimeter_mean_data, plot_per_variable=True,
                                            time_series_class=TimeSeriesRegion, time_series_args={},
@@ -60,7 +62,7 @@ def plot_results(results, simulator, tvb_state_variable_type_label="", tvb_state
 
     # Plot spikes and mean field spike rates
     rates, spike_detectors = \
-        tvb_spikeNet_interface.get_mean_spikes_rates_to_TVBTimeSeries(
+        simulator.tvb_spikeNet_interface.get_mean_spikes_rates_to_TVBTimeSeries(
             spikes_kernel_width=1.0,  # ms
             spikes_kernel_overlap=0.5, time=t)
     if spike_detectors is not None and rates.size > 0:
@@ -68,7 +70,7 @@ def plot_results(results, simulator, tvb_state_variable_type_label="", tvb_state
 
     # ------------------------------------Testing code for xarray TimeSeries--------------------------------------------
 
-    spiking_network = tvb_spikeNet_interface.spiking_network
+    spiking_network = simulator.tvb_spikeNet_interface.spiking_network
     multimeter_mean_data = spiking_network.get_mean_data_from_multimeter()
 
     if multimeter_mean_data.size > 0:

@@ -185,7 +185,7 @@ class TimeSeries(TimeSeriesTVB):
 
     def _process_slice_tuple(self, slice_tuple):
         n_slices = len(slice_tuple)
-        assert (n_slices >= 0 and n_slices < self.number_of_dimensions)
+        assert (n_slices >= 0 and n_slices <= self.number_of_dimensions)
         slice_list = []
         for idx, current_slice in enumerate(slice_tuple):
             slice_list.append(self._process_slice(current_slice, idx))
@@ -326,6 +326,20 @@ class TimeSeries(TimeSeriesTVB):
                        "slice_data_across_dimension_by_%s" %
                        self._index_or_label_or_slice(subspace_inputs))(subspace_inputs, 2, **kwargs)
 
+    def get_modes_by_index(self, list_of_index, **kwargs):
+        return self.slice_data_across_dimension_by_index(list_of_index, 3, **kwargs)
+
+    def get_modes_by_label(self, list_of_labels):
+        return self.slice_data_across_dimension_by_label(list_of_labels, 3, **kwargs)
+
+    def get_modes_by_slice(self, slice_arg, **kwargs):
+        return self.slice_data_across_dimension_by_slice(slice_arg, 3, **kwargs)
+
+    def get_modes(self, modes_inputs, **kwargs):
+        return getattr(self,
+                       "slice_data_across_dimension_by_%s" %
+                       self._index_or_label_or_slice(modes_inputs))(modes_inputs, 3, **kwargs)
+
     # TODO: find out if there is anyway this will not cause bugs, if it is worth the trouble...
     # def __getattr__(self, attr_name):
     #     for dim_index in range(4):
@@ -338,6 +352,9 @@ class TimeSeries(TimeSeriesTVB):
 
     def __getitem__(self, slice_tuple):
         return self.data[self._process_slice_tuple(slice_tuple)]
+
+    def __setitem__(self, slice_tuple, values):
+        self.data[self._process_slice_tuple(slice_tuple)] = values
 
     @property
     def size(self):
@@ -352,11 +369,11 @@ class TimeSeries(TimeSeriesTVB):
         return self.data.shape[0]
 
     @property
-    def number_of_labels(self):
+    def number_of_variables(self):
         return self.data.shape[1]
 
     @property
-    def number_of_variables(self):
+    def number_of_labels(self):
         return self.data.shape[2]
 
     @property
@@ -440,6 +457,12 @@ class TimeSeries(TimeSeriesTVB):
         if subsample_data.ndim == 3:
             subsample_data = numpy.expand_dims(subsample_data, 3)
         return self.duplicate(data=subsample_data, **kwargs)
+
+    def swapaxes(self, ax1, ax2):
+        labels_ordering = list(self.labels_ordering)
+        labels_ordering[ax1] = self.labels_ordering[ax2]
+        labels_ordering[ax2] = self.labels_ordering[ax1]
+        return self.duplicate(data=numpy.swapaxes(self.data, ax1, ax2), labels_ordering=labels_ordering)
 
     def configure(self):
         super(TimeSeries, self).configure()

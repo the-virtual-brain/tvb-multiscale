@@ -1,7 +1,8 @@
 #
 # TVB & NEST simulations environment
 #
-# Install Python 3, NEST, then tvb packages
+# Install Python 3.7, NEST, then tvb-library from Pypi
+# Finally link tvb-scripts and tvb-nest from Github sources
 #
 
 FROM neurodebian:buster
@@ -13,8 +14,8 @@ ENV LANG=C.UTF-8
 RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
-                       python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion cmake zip unzip; \
+                       ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       subversion python3-mpi4py cmake zip unzip; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
@@ -32,23 +33,21 @@ RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
 RUN useradd -ms /bin/bash docker
 USER docker
 ARG HOME=/home/docker
+RUN mkdir $HOME/env; mkdir $HOME/packages
 
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
-RUN mkdir $HOME/env; mkdir $HOME/packages
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
-    $VENV/bin/pip3 install pandas jupyterlab nodejs pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy xarray; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints; \
-    $VENV/bin/pip3 install --upgrade nose
+    $VENV/bin/pip3 install --upgrade nose ipython
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
-    cd libneurosim; ./autogen.sh
-RUN mkdir $VENV/build
+    cd libneurosim; ./autogen.sh; \
+    mkdir $VENV/build
 WORKDIR $VENV/build
 RUN mkdir libneurosim; \
     cd libneurosim; \
@@ -60,9 +59,9 @@ RUN mkdir libneurosim; \
 ARG NEST_VER=2.18.0
 ARG NEST=nest-simulator-$NEST_VER
 ARG NEST_SRC=$HOME/packages/$NEST
-ENV NEST_INSTALL_DIR=$VENV/nest_build
-ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
-ENV NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
+ARG NEST_INSTALL_DIR=$VENV/nest_build
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
+ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
 RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz; \
@@ -84,31 +83,64 @@ RUN $VENV/bin/pip3 install setuptools; \
     cd nestml; \
     $VENV/bin/python setup.py install
 
+# Install pyNN
+# RUN pip install pyNN
+#ARG PYNN_VER=0.9.4
+#RUN wget https://github.com/NeuralEnsemble/PyNN/archive/${PYNN_VER}.tar.gz -O $HOME/packages/PyNN-${PYNN_VER}.tar.gz; \
+#    cd $HOME/packages; \
+#    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
+#    cd PyNN-${PYNN_VER}; \
+#    $VENV/bin/python setup.py install
+
 # Install TVB specific packages
 WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN wget https://zenodo.org/record/3497545/files/tvb_data_2_0_1.zip?download=1 -O tvb_data.zip; \
-    unzip tvb_data.zip; rm tvb_data.zip; \
-    cd tvb_data; \
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
+    cd tvb-data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git; \
-    cd tvb-root/scientific_library; \
+RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
+ARG LAST_SHA=LATEST
+RUN cd tvb-root; \
+    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
+    cd scientific_library; \
     $VENV/bin/python setup.py develop;
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
-    cd tvb-multiscale; \
-    $VENV/bin/python setup.py develop --no-deps
+RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
+ARG LAST_SHA=LATEST
+RUN cd tvb-multiscale; \
+    git pull origin ongoing_dp_work --allow-unrelated-histories; \
+    $VENV/bin/python setup.py develop --no-deps;
 
-# Activate the right env:
+#RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
+#    cd tvb-multiscale; \
+#    $VENV/bin/python setup.py develop --no-deps
+
+WORKDIR /home/docker/
+# Activate the right python env.
+ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
+ENV NEST_PYTHON_PREFIX=${NEST_PYTHON_PREFIX}
 ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_PYTHON_PREFIX}
+# Note that the following are automatically reset if NEST is imported
+# via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
 ENV NEST_DATA_DIR=${NEST_INSTALL_DIR}/share/nest
-ENV NEST_DOC_DIR=${NEST_INSTALL_DIR}/share/doc/nest
 ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
+ENV NEST_MODULE_PATH=${NEST_MODULE_PATH}
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
-RUN echo "source ${VENV}/bin/activate" >> /home/docker/.bashrc
+ENV NEST_DOC_DIR=${NEST_INSTALL_DIR}/share/doc/nest
+RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
-## Run the following lines in case you want to install your own NEST module with NEST builders
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Run the following lines in case you want to install your own NEST module with NEST builders
+# The commented lines will install modules in the MODULES_LIST upon building this image
+## Install local tvb-multiscale:
+#WORKDIR $HOME/packages
+#RUN mkdir tvb-multiscale
+#COPY ./tvb-multiscale/ tvb-multiscale/
+#RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
@@ -121,6 +153,7 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #            cmake -Dwith-nest=$NEST_CONFIG ${MYMODULE_DIR}; \
 #            make; make install; \
 #    done
+# ----------------------------------------------------------------------------------------------------------------------
 
 # Final configurations
 # tvb42
@@ -128,16 +161,39 @@ RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
-COPY docker/installation_test.py /home/docker/
+# COPY ./tvb-multiscale/docker/installation_test.py /home/docker/
+#For running instalation test
+# CMD $VENV/bin/python installation_test.py
+
+# Activate the rights python env
+ENV PYTHONPATH $VENV
+ENV SLI_PATH $VENV
+RUN echo "source $VENV/bin/activate" >> .bashrc
 
 # For running tests
-#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
-
-# CMD cd /home/docker/packages/nestml; $VENV/bin/pytest setup.py test
-# CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+# Test NEST installation
+# RUN cd $NEST; make installcheck
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 # CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
-# CMD /bin/bash
+# pynestml installation test:
+# CMD cd /home/docker/packages/nestml; $VENV/bin/pytest setup.py test
+# pyNN-NEST installation test:
+# CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
+#For running tests with coverage
+#CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
+
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/rate_ww_ampa_nmda_gaba.py
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+
+#CMD /bin/bash
+
+#srun -C mc --time 01:00:00 --partition=normal
+#       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
+
+#docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+
+#docker run thevirtualbrain/tvb-nest -v /WORK/TVB/VBC/tvb-multiscale:/home/docker/packages/tvb-multiscale
+#    /home/docker/env/neurosci/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py

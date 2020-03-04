@@ -96,14 +96,14 @@ class TimeSeries(HasTraits):
             return None
 
     @property
-    def number_of_labels(self):
+    def number_of_variables(self):
         try:
             return self.shape[1]
         except:
             return None
 
     @property
-    def number_of_variables(self):
+    def number_of_labels(self):
         try:
             return self.shape[2]
         except:
@@ -234,6 +234,22 @@ class TimeSeries(HasTraits):
             assert [key in labels_ordering for key in labels_dimensions.keys()]
         return labels_ordering, labels_dimensions
 
+    def from_TVB_time_series(self, ts, **kwargs):
+        labels_ordering = kwargs.pop("labels_ordering", kwargs.pop("dims", ts.labels_ordering))
+        labels_dimensions = kwargs.pop("labels_dimensions", kwargs.pop("coords", ts.labels_dimensions))
+        name = kwargs.pop("name", kwargs.pop("title", ts.title))
+        time = kwargs.pop("time", ts.time)
+        labels_dimensions[labels_ordering[0]] = time
+        for label, dimensions in labels_dimensions.items():
+            id = labels_ordering.index(label)
+            if ts.shape[id] != len(dimensions):
+                labels_dimensions[label] = np.arange(ts.shape[id]).astype("i")
+        self._data = xr.DataArray(ts.data,
+                                  dims=labels_ordering,
+                                  coords=labels_dimensions,
+                                  attrs=kwargs,
+                                  name=name)
+
     def from_numpy(self, data, **kwargs):
         # We have to infer time and labels inputs from kwargs
         data = prepare_4d(data)
@@ -265,7 +281,10 @@ class TimeSeries(HasTraits):
     def configure(self):
         # To be always used when a new object is created
         # to check that everything is set correctly
-        self.title = self.name
+        if self.name is None:
+            self.title = "TimeSeries"
+        else:
+            self.title = self.name
         super(TimeSeries, self).configure()
         try:
             time_length = self.time_length
@@ -284,15 +303,21 @@ class TimeSeries(HasTraits):
         elif isinstance(data, self.__class__):
             for attr, val in data.__dict__.items():
                 setattr(self, attr, val)
+        # TODO: Find out why this is not working
+        # elif issubclass(data.__class__, TimeSeries):
+        #     self.from_TVB_time_series(data, **kwargs)
         else:
-            # Assuming data is an input xr.DataArray() can handle,
-            if isinstance(data, dict):
-                # ...either as kwargs
-                self._data = xr.DataArray(**data)
-            else:
-                # ...or as args
-                # including a xr.DataArray or None
-                self._data = xr.DataArray(data)
+            try:
+                self.from_TVB_time_series(data, **kwargs)
+            except:
+                # Assuming data is an input xr.DataArray() can handle,
+                if isinstance(data, dict):
+                    # ...either as kwargs
+                    self._data = xr.DataArray(**data)
+                else:
+                    # ...or as args
+                    # including a xr.DataArray or None
+                    self._data = xr.DataArray(data)
         self.configure()
 
     def summary_info(self):
@@ -436,6 +461,15 @@ class TimeSeries(HasTraits):
     #                 slice_list.append(slice(None))
     #         raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr_name))
 
+    def swapaxes(self, ax1, ax2):
+        dims = list(self._data.dims)
+        dims[ax1] = self._data.dims[ax2]
+        dims[ax2] = self._data.dims[ax1]
+        new_self = self.duplicate()
+        new_self._data = self._data.transpose(*dims)
+        new_self.configure()
+        return new_self
+
     def _prepare_plot_args(self, **kwargs):
         plotter = kwargs.pop("plotter", None)
         labels_ordering = self.labels_ordering
@@ -457,29 +491,27 @@ class TimeSeries(HasTraits):
             modes = None
         return time, variables, regions, modes, plotter, kwargs
 
-    # def plot(self, **kwargs):
-    #     time, variables, regions, modes, plotter, kwargs = \
-    #         self._prepare_plot_args(**kwargs)
-    #     robust = kwargs.pop("robust", True)
-    #     cmap = kwargs.pop("cmap", "jet")
-    #     figure_name = kwargs.pop("figname", "%s plot" % self.title)
-    #     output = self._data.plot(x=time,         # Time
-    #                              y=regions,      # Regions
-    #                              col=variables,  # Variables
-    #                              row=modes,      # Modes/Samples/Populations etc
-    #                              robust=robust, cmap=cmap, **kwargs)
-    #     # TODO: Something better than this temporary hack for base_plotter functionality
-    #     if plotter is not None:
-    #         plotter._save_figure(figure_name=figure_name)
-    #         plotter._check_show()
-    #     return output
+    def plot(self, **kwargs):
+        time, variables, regions, modes, plotter, kwargs = \
+            self._prepare_plot_args(**kwargs)
+        robust = kwargs.pop("robust", True)
+        cmap = kwargs.pop("cmap", "jet")
+        figure_name = kwargs.pop("figname", "%s plot" % self.title)
+        output = self._data.plot(x=time,           # Time
+                                 y=kwargs.pop("y", regions),        # Regions
+                                 col=kwargs.pop("col", variables),  # Variables
+                                 row=kwargs.pop("row", modes),      # Modes/Samples/Populations etc
+                                 robust=robust, cmap=cmap, **kwargs)
+        # TODO: Something better than this temporary hack for base_plotter functionality
+        if plotter is not None:
+            plotter.base._save_figure(figure_name=figure_name)
+            plotter.base._check_show()
+        return output
 
     def plot_timeseries(self, **kwargs):
         if kwargs.pop("per_variable", False):
             outputs = []
-            figure_name = kwargs.pop("figure_name", "%s time series plot" % self.title)
             for var in self.labels_dimensions[self.labels_ordering[1]]:
-                kwargs["figure_name"] = figure_name + " - %s" % var
                 outputs.append(self[:, var].plot_timeseries(**kwargs))
             return outputs
         time, variables, regions, modes, plotter, kwargs = \
@@ -487,11 +519,18 @@ class TimeSeries(HasTraits):
         if self.shape[3] == 1 or variables is None or regions is None or modes is None:
             if variables is None:
                 data = self._data[:, 0]
-                data.name = self.labels_dimensions[self.labels_ordering[1]][0]
-            else:
-                data = self._data
+                try:
+                    data.name = self.name + ": " + self.labels_dimensions[self.labels_ordering[1]][0]
+                except:
+                    pass
+            elif modes is None:
+                data = self.swapaxes(1, 3)
+                return data.plot_timeseries(plotter=plotter, **kwargs)
+            elif regions is None:
+                data = self.swapaxes(1, 2)
+                return data.plot_timeseries(plotter=plotter, **kwargs)
             col_wrap = kwargs.pop("col_wrap", self.shape[3])  # Row per variable
-            figure_name = kwargs.pop("figure_name", "%s time series plot" % self.title)
+            figure_name = kwargs.pop("figure_name", "%s" % data.name)
             output = data.plot.line(x=time,       # Time
                                     y=variables,  # Variables
                                     hue=regions,  # Regions
@@ -512,7 +551,7 @@ class TimeSeries(HasTraits):
             outputs = []
             figure_name = kwargs.pop("figure_name", "%s raster plot" % self.title)
             for var in self.labels_dimensions[self.labels_ordering[1]]:
-                kwargs["figure_name"] = figure_name + " - %s" % var
+                kwargs["figure_name"] = figure_name + ": %s" % var
                 outputs.append(self[:, var].plot_raster(**kwargs))
             return outputs
         time, variables, regions, modes, plotter, kwargs = \

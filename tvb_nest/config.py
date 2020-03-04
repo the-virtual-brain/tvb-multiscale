@@ -9,6 +9,10 @@ WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
 MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
 MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
 
+TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
+WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
+MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
+MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:
@@ -54,5 +58,5 @@ class Config(ConfigBase):
         self.MODULES_DIR = MODULES_DIR
         self.MODULES_BLDS_DIR = MODULES_BLDS_DIR
 
-
+        
 CONFIGURED = Config()

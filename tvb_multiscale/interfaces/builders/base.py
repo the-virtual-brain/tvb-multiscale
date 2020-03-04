@@ -7,12 +7,12 @@ from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_device_interface_builder
 from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_parameter_interface_builder import \
     TVBtoSpikeNetParameterInterfaceBuilder
 from tvb_multiscale.interfaces.builders.spikeNet_to_tvb_interface_builder import SpikeNetToTVBInterfaceBuilder
-from tvb_multiscale.simulator_tvb.simulator import Simulator
 from tvb_multiscale.spiking_models.network import SpikingNetwork
 from tvb_multiscale.spiking_models.devices import InputDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
+from tvb.simulator.simulator import Simulator
 
 LOG = initialize_logger(__name__)
 
@@ -69,7 +69,6 @@ class TVBSpikeNetInterfaceBuilder(object):
         self.exclusive_nodes = exclusive_nodes
         if isinstance(tvb_simulator, Simulator):
             self.tvb_simulator = tvb_simulator
-            self.tvb_weights = self.tvb_connectivity.scaled_weights(mode='region')
             self.spiking_nodes_ids = np.array(ensure_list(spiking_nodes_ids))
             self.tvb_nodes_ids = list(range(self.tvb_connectivity.weights.shape[0]))
             if self.exclusive_nodes:
@@ -132,6 +131,10 @@ class TVBSpikeNetInterfaceBuilder(object):
     @property
     def spikeNet_min_delay(self):
         return self.spiking_network.min_delay
+
+    @property
+    def tvb_weights(self):
+        return self.tvb_simulator.connectivity.weights
 
     @property
     def tvb_delays(self):
