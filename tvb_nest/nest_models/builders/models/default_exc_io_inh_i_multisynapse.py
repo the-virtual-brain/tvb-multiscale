@@ -11,7 +11,7 @@ class DefaultExcIOInhIMultisynapseBuilder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  **kwargs):
-        config.nest.DEFAULT_MODEL = "aeif_cond_beta_multisynapse"
+        config.DEFAULT_MODEL = "aeif_cond_beta_multisynapse"
         super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
         self.scale_e = kwargs.get("scale_e", 1)
         self.scale_i = kwargs.get("scale_i", 1)
@@ -102,7 +102,7 @@ class DefaultExcIOInhIMultisynapseBuilder(NESTModelBuilder):
         connections = OrderedDict({})
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
-        params = dict(self.config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means all here

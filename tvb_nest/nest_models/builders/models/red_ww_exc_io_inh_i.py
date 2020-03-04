@@ -30,7 +30,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
                  tau_decay_in=10.0,  # tau_GABA = 10.0 ms
                  tau_rise_in=1.0  # assuming tau_rise_GABA = 1.0 ms
                  ):
-        # config.nest.DEFAULT_MODEL = "iaf_cond_deco2014"
+        # config.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(RedWWExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:

@@ -25,7 +25,7 @@ LOG = initialize_logger(__name__)
 def load_nest(config=CONFIGURED, logger=LOG):
 
     logger.info("Loading a NEST instance...")
-    nest_path = config.nest.NEST_PATH
+    nest_path = config.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
     log_path('NEST_INSTALL_DIR', logger)
     os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
@@ -44,7 +44,7 @@ def load_nest(config=CONFIGURED, logger=LOG):
     os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
     log_path('SLI_PATH', logger)
 
-    os.environ['NEST_PYTHON_PREFIX'] = config.nest.PYTHON
+    os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
     log_path('NEST_PYTHON_PREFIX', logger)
     sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
     logger.info("%s: %s" % ("system path", sys.path))
@@ -56,21 +56,21 @@ def load_nest(config=CONFIGURED, logger=LOG):
 def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     # ...unless we need to first compile it:
     from pynestml.frontend.pynestml_frontend import install_nest
-    if not os.path.exists(config.nest.MODULES_BLDS_DIR):
-        logger.info("Creating MODULES_BLDS_DIR: %s" % config.nest.MODULES_BLDS_DIR)
-        os.makedirs(config.nest.MODULES_BLDS_DIR)
+    if not os.path.exists(config.MODULES_BLDS_DIR):
+        logger.info("Creating MODULES_BLDS_DIR: %s" % config.MODULES_BLDS_DIR)
+        os.makedirs(config.MODULES_BLDS_DIR)
     for module in ensure_list(modules):
         logger.info("Compiling %s..." % module)
-        module_bld_dir = os.path.join(config.nest.MODULES_BLDS_DIR, module)
+        module_bld_dir = os.path.join(config.MODULES_BLDS_DIR, module)
         logger.info("from in build_interfaces directory %s..." % module_bld_dir)
         if not os.path.exists(module_bld_dir) or recompile:
-            source_path = os.path.join(config.nest.MODULES_DIR, module)
+            source_path = os.path.join(config.MODULES_DIR, module)
             logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
             shutil.copytree(source_path, module_bld_dir)
         logger.info("Running compilation...")
-        install_nest(module_bld_dir, config.nest.NEST_PATH)
-        if os.path.isfile(os.path.join(config.nest.MODULES_BLDS_DIR, module + "module.so")) and \
-            os.path.isfile(os.path.join(config.nest.MODULES_BLDS_DIR, "lib" + module + "module.so")):
+        install_nest(module_bld_dir, config.NEST_PATH)
+        if os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, module + "module.so")) and \
+            os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, "lib" + module + "module.so")):
             logger.info("DONE compiling %s!" % module)
         else:
             logger.warn("Something seems to have gone wrong with compiling %s!" % module)
@@ -79,7 +79,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
 def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
-    conn_spec = dict(config.nest.DEFAULT_CONNECTION["conn_spec"])
+    conn_spec = dict(config.DEFAULT_CONNECTION["conn_spec"])
     P_DEF = conn_spec["p"]
     conn_spec.update(kwargs)
     rule = conn_spec["rule"]
@@ -146,7 +146,7 @@ def device_to_dev_model(device):
 
 def create_device(device_model, device_name=None, params=None, config=CONFIGURED, nest_instance=None):
     if nest_instance is None:
-        nest_instance = load_nest(config=config.nest)
+        nest_instance = load_nest(config=config)
         return_nest = True
     else:
         return_nest = False
@@ -157,15 +157,15 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
         device_model = device_to_dev_model(device_name)
     if device_model in NESTInputDeviceDict.keys():
         devices_dict = NESTInputDeviceDict
-        default_params_dict = config.nest.NEST_INPUT_DEVICES_PARAMS_DEF
+        default_params_dict = config.NEST_INPUT_DEVICES_PARAMS_DEF
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params_dict = config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF
+        default_params_dict = config.NEST_OUTPUT_DEVICES_PARAMS_DEF
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
-                          (device_model, str(config.nest.NEST_INPUT_DEVICES_PARAMS_DEF),
-                           str(config.nest.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
+                          (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
+                           str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
     default_params = dict(default_params_dict.get(device_name, {}))
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
