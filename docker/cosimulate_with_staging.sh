@@ -1,10 +1,13 @@
 #!/bin/sh
-. /opt/cray/pe/modules/3.2.11.3/init/bash
-. /etc/profile.d/cscs.sh
-module load sarus
+
+echo "Pulling TVB-Nest docker image"
+/apps/daint/system/opt/sarus/1.1.0/bin/sarus pull thevirtualbrain/tvb-nest:0.3.1
+
 start=$SECONDS
 
-sarus run --mpi --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest:0.3 /home/docker/env/neurosci/bin/python $1 $2
+echo "Start docker container"
+srun -C mc /apps/daint/system/opt/sarus/1.1.0/bin/sarus --debug run --mpi --mount=type=bind,source=$PWD,destination=$PWD thevirtualbrain/tvb-nest:0.3.1 /bin/bash -c "cd $PWD && /home/docker/env/neurosci/bin/python $1"
 
 duration=$(( SECONDS - start ))
+
 echo "TVB-NEST test completed in $duration seconds"

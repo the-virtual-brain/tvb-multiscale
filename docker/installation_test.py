@@ -8,7 +8,7 @@ mpl.use('Agg')
 
 from tvb.datatypes.connectivity import Connectivity
 
-from tvb_nest import Config
+from tvb_nest.config import Config
 
 config = Config(output_base="outputs/")
 config.figures.SAVE_FLAG = False
