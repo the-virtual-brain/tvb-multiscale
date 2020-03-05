@@ -108,10 +108,10 @@ RUN cd tvb-root; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop;
 
-RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch master https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA=LATEST
 RUN cd tvb-multiscale; \
-    git pull origin ongoing_dp_work --allow-unrelated-histories; \
+    git pull origin master --allow-unrelated-histories; \
     $VENV/bin/python setup.py develop --no-deps;
 
 #RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
