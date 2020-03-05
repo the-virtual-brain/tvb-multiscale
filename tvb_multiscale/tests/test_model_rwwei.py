@@ -41,17 +41,17 @@ def reduced_wong_wang_exc_io_inh_i(N, abs_err, tvb_model, lamda):
     assert max_difference < abs_err
 
 
-def test_reduced_wong_wang_exc_io_inh_i_internal():
-    reduced_wong_wang_exc_io_inh_i(100, 1e-12, ReducedWongWangExcIOInhI(), 1.0)
+def test_reduced_wong_wang_exc_io_inh_i_TVBcosim():
+    reduced_wong_wang_exc_io_inh_i(100, 1e-12, ReducedWongWangExcIOInhI(), 0.0)
 
 
-def test_reduced_wong_wang_exc_io_inh_i_external():
+def test_reduced_wong_wang_exc_io_inh_i_TVB():
     reduced_wong_wang_exc_io_inh_i(100, 1e-12, TVBReducedWongWangExcIOInhI(), 0.0)
     octave.exit()
 
 
 if __name__ == "__main__":
-    test_reduced_wong_wang_exc_io_inh_i_internal()
-    test_reduced_wong_wang_exc_io_inh_i_external()
+    test_reduced_wong_wang_exc_io_inh_i_TVBcosim()
+    test_reduced_wong_wang_exc_io_inh_i_TVB()
 
 
