@@ -33,7 +33,7 @@ def create_time_series_region_object():
             nest_nodes_ids.append(id)
 
     results, simulator = \
-        main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+        main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
                      nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
                      simulation_length=100.0, exclusive_nodes=True, config=config)
     time = results[0][0]
