@@ -97,26 +97,23 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-data.git; \
-    cd tvb-data; \
+RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
+    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
+    cd tvb_data; \
     $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
-ARG LAST_SHA=LATEST
+ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop;
 
-RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
-ARG LAST_SHA=LATEST
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
-    git pull origin ongoing_dp_work --allow-unrelated-histories; \
+    git pull; \
     $VENV/bin/python setup.py develop --no-deps;
-
-#RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git; \
-#    cd tvb-multiscale; \
-#    $VENV/bin/python setup.py develop --no-deps
 
 WORKDIR /home/docker/
 # Activate the right python env.
@@ -161,39 +158,34 @@ RUN $VENV/bin/jupyter notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
-# COPY ./tvb-multiscale/docker/installation_test.py /home/docker/
-#For running instalation test
-# CMD $VENV/bin/python installation_test.py
 
 # Activate the rights python env
 ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
 
-# For running tests
-CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+# For running examples
+#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/rate_ww_ampa_nmda_gaba.py
+
 # Test NEST installation
 # RUN cd $NEST; make installcheck
 # CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
-# CMD cd /home/docker/packages/tvb-multiscale; $VENV/bin/pytest tvb_nest/tests
+
 # pynestml installation test:
 # CMD cd /home/docker/packages/nestml; $VENV/bin/pytest setup.py test
+
 # pyNN-NEST installation test:
 # CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
-#For running tests with coverage
-#CMD $VENV/bin/pytest --cov /home/docker/packages/tvb-multiscale/tvb_nest/tests
+#For running tests
+#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
 
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/rate_ww_ampa_nmda_gaba.py
+#For running tests with coverage
+#CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tvb_nest/tests
+
+#Run jupyter notebooks
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
 #CMD /bin/bash
-
-#srun -C mc --time 01:00:00 --partition=normal
-#       shifter run --mount=type=bind,source=$HOME,destination=$HOME thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/python installation_test.py
-
-#docker run -d -p 8888:8888 thevirtualbrain/tvb-nest /home/docker/env/neurosci/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
-
-#docker run thevirtualbrain/tvb-nest -v /WORK/TVB/VBC/tvb-multiscale:/home/docker/packages/tvb-multiscale
-#    /home/docker/env/neurosci/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py

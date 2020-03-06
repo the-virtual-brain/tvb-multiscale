@@ -33,9 +33,9 @@ def create_time_series_region_object():
             nest_nodes_ids.append(id)
 
     results, simulator = \
-        main_example(ReducedWongWangExcIOInhI(), RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
-                     simulation_length=100.0, exclusive_nodes=True, config=config)
+        main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+                     nest_nodes_ids, nest_populations_order=10, connectivity=connectivity,
+                     simulation_length=10.0, exclusive_nodes=True, config=config)
     time = results[0][0]
     source = results[0][1]
 
@@ -54,4 +54,8 @@ def test_time_series_region_object():
     tsr = create_time_series_region_object()
 
     # Check the correctness of time_series_region object
-    assert tsr.shape == (1000, 4, 68, 1)
+    assert tsr.shape == (100, 4, 68, 1)
+
+
+if __name__ == "__main__":
+    test_time_series_region_object()
