@@ -195,7 +195,7 @@ iaf_cond_deco2014_dynamics( double,
   f[S::S_GABA] = y[S::S_GABA] / node.V_.minus_tau_decay_GABA_A ;
   f[S::X_NMDA] = y[S::X_NMDA] / node.V_.minus_tau_rise_NMDA ;
   f[S::S_NMDA] = y[S::S_NMDA] / node.V_.minus_tau_decay_NMDA +
-                       node.P_.alpha * y[S::X_NMDA] * (1 - y[S::S_NMDA] / node.V_.s_EXC_max);
+                       node.P_.alpha * y[S::X_NMDA] * (1 - node.P_.epsilon * y[S::S_NMDA]);
 
 
   return GSL_SUCCESS;
@@ -228,6 +228,7 @@ iaf_cond_deco2014::Parameters_::Parameters_()
     , N_E( 1 )                      // positive integer
     , N_I( 1 )
     , s_AMPA_ext_max(1, 1.0)        // vector of real numbers
+    , epsilon( 1.0 )                // scaling of s_NMDA in the ds_NMDA/dt equation
     , alpha( 0.5 )                  // in kHz
     , beta( 0.062 )                 // real number
     , lambda_NMDA( 0.28 )           // real number
@@ -296,6 +297,8 @@ iaf_cond_deco2014::Parameters_::get( DictionaryDatum& d ) const
   def< long >( d, "N_I", N_I );
   ArrayDatum s_AMPA_ext_max_ad( s_AMPA_ext_max );
   def< ArrayDatum >( d, "s_AMPA_ext_max", s_AMPA_ext_max_ad );
+
+  def< double >( d, "epsilon", epsilon );
 
   def< double >( d, names::alpha, alpha );
   def< double >( d, names::beta, beta );
@@ -433,6 +436,12 @@ iaf_cond_deco2014::Parameters_::set( const DictionaryDatum& d )
     throw BadProperty("The number of inhibitory neurons in the population must be an integer >= 1" );
   }
   updateValue< long >( d, "N_I", N_I );
+
+  if ( ( epsilon < 0 ) || ( epsilon > 1 ) )
+  {
+    throw BadProperty("epsilon has to be a positive real number <= 1 " );
+  }
+  updateValue< double >( d, "epsilon", epsilon );
 
   if ( alpha < 0 )
   {
