@@ -8,8 +8,11 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
+from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
     import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
+from tvb_nest.interfaces.builders.models.ww_deco2014 \
+    import WWDeco2014Builder as InterfaceWWDeco2014Builder
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.examples.plot_results import plot_results
 from tvb_multiscale.plot.plotter import Plotter

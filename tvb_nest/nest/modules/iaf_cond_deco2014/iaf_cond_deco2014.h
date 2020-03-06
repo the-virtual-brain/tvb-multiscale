@@ -289,6 +289,9 @@ private:
     //! Ceiling of s_AMPA_ext
     std::vector< double > s_AMPA_ext_max;
 
+    //! Scaling parameter of s_NMDA in the ds_NMDA/dt equation
+    double epsilon;
+
     //!
     double alpha;
 
