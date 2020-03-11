@@ -8,6 +8,7 @@
 import os
 import glob
 import shutil
+import datetime
 
 
 def ensure_unique_file(parent_folder, filename):
@@ -84,3 +85,11 @@ def move_overwrite_files_to_folder_with_wildcard(folder, path_wildcard):
         if os.path.isfile(file_):
             filepath = os.path.join(folder, os.path.basename(file_))
             shutil.move(file_, filepath)
+
+
+def write_metadata(meta_dict, h5_file, key_date, key_version, path="/"):
+    root = h5_file[path].attrs
+    root[key_date] = str(datetime.now())
+    root[key_version] = 2
+    for key, val in meta_dict.iteritems():
+        root[key] = val

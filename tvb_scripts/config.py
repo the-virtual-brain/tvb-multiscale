@@ -4,6 +4,18 @@ import os
 import numpy
 from datetime import datetime
 
+from tvb.basic.profile import TvbProfile
+
+TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
+
+class GenericConfig(object):
+    _module_path = os.path.dirname(__file__)
+
+    # Identify and choose the Simulator, or data folder type to read.
+    MODE_H5 = "H5"
+    MODE_TVB = "TVB"
+
 
 class InputConfig(object):
     _base_input = os.getcwd()
@@ -21,15 +33,21 @@ class InputConfig(object):
             return self._base_input
 
     @property
+    def IS_TVB_MODE(self):
+        """Identify and choose the Input data type to use"""
+        return self._data_mode == GenericConfig.MODE_TVB
+
+    @property
     def RAW_DATA_FOLDER(self):
         if self._raw_data is not None:
             return self._raw_data
 
         return os.path.join(self._base_input, "data", "raw")
 
-    def __init__(self, head_folder=None, raw_folder=None):
+    def __init__(self, head_folder=None, raw_folder=None, data_mode=GenericConfig.MODE_TVB):
         self._head_folder = head_folder
         self._raw_data = raw_folder
+        self._data_mode = data_mode
 
 
 class OutputConfig(object):
@@ -118,6 +136,7 @@ class CalculusConfig(object):
 
 
 class Config(object):
+    generic = GenericConfig()
     figures = FiguresConfig()
     calcul = CalculusConfig()
 
