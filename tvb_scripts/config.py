@@ -110,6 +110,8 @@ class FiguresConfig(object):
     MOUSE_HOOVER = False
     MATPLOTLIB_BACKEND = "Agg"  # "Qt4Agg"
     FONTSIZE = 10
+    SMALL_FONTSIZE = 8
+    LARGE_FONTSIZE = 12
 
     def largest_size(self):
         import sys
