@@ -34,7 +34,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
         super(RedWWExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
-        self.population_order = 100
+        self.population_order = 200
 
         # Populations' configurations
         # When any of the properties model, params and scale below depends on regions,
@@ -63,7 +63,7 @@ class RedWWExcIOInhIBuilder(NESTModelBuilder):
                             {"label": "I", "model": self.default_population["model"],
                              "nodes": None,  # None means "all"
                              "params": self.params_in,
-                             "scale": 0.7}
+                             "scale": 0.2}
                             ]
 
         # Within region-node connections
