@@ -26,8 +26,8 @@ class TVBSpikeNetInterfaceBuilder(object):
 
     integrator = None
     connectivity = None
-    tvb_nodes_ids = []
-    spiking_nodes_ids = []
+    tvb_nodes_ids = np.array([])
+    spiking_nodes_ids = np.array([])
     exclusive_nodes = False
     spiking_network = []
 

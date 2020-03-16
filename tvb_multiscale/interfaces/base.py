@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from xarray import DataArray
 import pandas as pd
+import numpy as np
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.spiking_models.devices import InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict
 from tvb_scripts.utils.log_error_utils import initialize_logger
@@ -29,8 +30,8 @@ class TVBSpikeNetInterface(object):
     tvb_model = None
     dt = 0.1
 
-    tvb_nodes_ids = []
-    spiking_nodes_ids = []
+    tvb_nodes_ids = np.array([])
+    spiking_nodes_ids = np.array([])
 
     spiking_network = None
 
@@ -63,7 +64,7 @@ class TVBSpikeNetInterface(object):
 
     @property
     def number_of_nodes(self):
-        return self.number_of_spiking_nodes + self.number_of_tvb_nodes
+        return len(np.union1d(self.tvb_nodes_ids , self.spiking_nodes_ids))
 
     @property
     def number_of_tvb_state_variables(self):
