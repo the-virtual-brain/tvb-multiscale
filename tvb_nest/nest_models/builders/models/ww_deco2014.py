@@ -160,7 +160,7 @@ class WWDeco2014Builder(NESTModelBuilder):
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
-        params["interval"] = self.nest_instance.GetKernelStatus("resolution")  # self.monitor_period
+        params["interval"] = self.monitor_period
         params['record_from'] = ["V_m",
                                  "s_AMPA", "x_NMDA", "s_NMDA", "s_GABA",
                                  "I_AMPA", "I_NMDA", "I_GABA", "I_L", "I_e",

@@ -25,9 +25,11 @@ class SimulatorBuilder(object):
     dt = 0.1
     noise_strength = 0.001
     monitors = (Raw, )
+    monitor_period = 1.0
     config = CONFIGURED
 
     def __init__(self):
+        self.config = CONFIGURED
         self.connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
         self.scale_connectivity_weights = "region"
         self.delays_flag = True
@@ -35,7 +37,7 @@ class SimulatorBuilder(object):
         self.integrator = HeunStochastic
         self.dt = 0.1
         self.noise_strength = 0.001
-        self.config = CONFIGURED
+        self.monitor_period = 1.0
 
     def build(self, **model_params):
         # Load, normalize and configure connectivity
@@ -67,7 +69,7 @@ class SimulatorBuilder(object):
         assert Raw in self.monitors
         monitors = []
         for monitor in self.monitors:
-            monitors.append(monitor(period=self.dt))
+            monitors.append(monitor(period=self.monitor_period))
         monitors = tuple(monitors)
 
         # Build simulator
