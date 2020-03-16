@@ -10,7 +10,7 @@ from tvb_multiscale.spiking_models.builders.templates \
 class WWDeco2014Builder(TVBNESTInterfaceBuilder):
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=200):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=160):
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         if tvb_to_nest_interfaces is None:
