@@ -37,14 +37,14 @@ class WWDeco2014Builder(NESTModelBuilder):
                  # inh spikes (GABA):
                  E_in=-70.0,  # mV
                  tau_decay_GABA=10.0,  # ms
-                 exc_pop_scale=1.0,
-                 inh_pop_scale=0.2,
+                 exc_pop_scale=1.6,
+                 inh_pop_scale=0.4,
                  ):
         config.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
-        self.population_order = 200
+        self.population_order = 100
 
         # Populations' configurations
         # When any of the properties model, params and scale below depends on regions,
@@ -90,7 +90,7 @@ class WWDeco2014Builder(NESTModelBuilder):
                              "nodes": None,  # None means "all"
                              "params": lambda node_index: param_fun(node_index, self.params_in,
                                                                     lamda=self.tvb_model.lamda[0]),
-                             "scale": 1.0}
+                             "scale": inh_pop_scale}
                            ]
 
         # Within region-node connections

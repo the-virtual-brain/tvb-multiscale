@@ -9,7 +9,7 @@ from tvb_multiscale.spiking_models.builders.templates import scale_tvb_weight, t
 class RedWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_e=200):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_e=160):
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                     tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         if tvb_to_nest_interfaces is None:
