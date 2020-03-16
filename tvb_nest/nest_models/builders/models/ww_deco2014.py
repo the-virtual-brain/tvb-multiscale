@@ -38,13 +38,13 @@ class WWDeco2014Builder(NESTModelBuilder):
                  E_in=-70.0,  # mV
                  tau_decay_GABA=10.0,  # ms
                  exc_pop_scale=1.0,
-                 inh_pop_scale=0.7,
+                 inh_pop_scale=0.2,
                  ):
         config.DEFAULT_MODEL = "iaf_cond_deco2014"
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
         # Common order of neurons' number per population:
-        self.population_order = 100
+        self.population_order = 200
 
         # Populations' configurations
         # When any of the properties model, params and scale below depends on regions,

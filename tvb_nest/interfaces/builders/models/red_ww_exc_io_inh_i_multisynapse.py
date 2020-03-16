@@ -8,7 +8,7 @@ from tvb_multiscale.spiking_models.builders.templates import scale_tvb_weight, t
 class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_e=100):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_e=200):
         super(RedWWexcIOinhIMultisynapseBuilder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids,
                                                                 exclusive_nodes,
                                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
@@ -83,7 +83,7 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
                                        "model": "inhomogeneous_poisson_generator",
                                        "params": {"allow_offgrid_times": False},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-                                        "interface_weights": N_e*1.0,  # Applied outside NEST for each interface device
+                                        "interface_weights": 1.0,  # Applied outside NEST for each interface device
     #                               A function of TVB connectivity weight
                                         "weights": self.G_scale_tvb_weight_exc,
     #                                 A function of TVB connectivity delay:
@@ -100,7 +100,7 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
                     {   "model": "inhomogeneous_poisson_generator",
                         "params": {"allow_offgrid_times": False},
                         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-                        "interface_weights": N_e * 1.0,  # Applied outside NEST for each interface device
+                        "interface_weights": 1.0,  # Applied outside NEST for each interface device
                         #                               A function of TVB connectivity weight
                         "weights": self.G_scale_tvb_weight_inh,
                         #                                 A function of TVB connectivity delay:
