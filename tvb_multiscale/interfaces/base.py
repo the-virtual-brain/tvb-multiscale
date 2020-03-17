@@ -187,52 +187,102 @@ class TVBSpikeNetInterface(object):
                 interface.scale * transform_fun(values,  interface.nodes_ids)
         return state
 
-    def get_mean_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
-        # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
-        mean_data = self.spiking_network.get_mean_data_from_multimeter(**kwargs)
-        if mean_data is None:
-            return None
-        connectivity = kwargs.pop("connectivity", None)
+    def _construct_output_data(self, data, default_name, connectivity=None):
         if connectivity is None:
             time_series = TimeSeries()
         else:
             time_series = TimeSeriesRegion(connectivity=connectivity)
-        if isinstance(mean_data, DataArray):
-            return time_series.from_xarray_DataArray(mean_data)
+        if isinstance(data, DataArray):
+            return time_series.from_xarray_DataArray(data)
         else:  # Assuming a pd.Series or a dict of xarrays.DataArray
-            output_xarrays = []
+            output_time_series = []
             pop_names = []
-            for d_name, d in mean_data.iteritems():
-                output_xarrays.append(time_series.from_xarray_DataArray(d))
+            for d_name, d in data.iteritems():
+                output_time_series.append(time_series.from_xarray_DataArray(d))
                 pop_names.append(d_name)
-            if isinstance(mean_data, pd.Series):
-                name = mean_data.name
+            if isinstance(data, pd.Series):
+                name = data.name
             else:
-                name = kwargs.get("name", "Mean data from multimeter")
-            return pd.Series(output_xarrays, index=pd.Index(pop_names, name="Population"), name=name)
+                name = default_name
+            return pd.Series(output_time_series, index=pd.Index(pop_names, name="Population"), name=name)
+
+    def _get_data_from_multimeter_to_TVBTimeSeries(self, mode="mean", **kwargs):
+        connectivity = kwargs.pop("connectivity", None)
+        if mode == "per_neuron":
+            fun = "get_data_from_multimeter"
+            name = kwargs.get("name", "Data from multimeter")
+        elif mode == "total":
+            fun = "get_total_data_from_multimeter"
+            name = kwargs.get("name", "Total data from multimeter")
+        else:
+            fun = "get_mean_data_from_multimeter"
+            name = kwargs.get("name", "Mean data from multimeter")
+        data = getattr(self.spiking_network, fun)(**kwargs)
+        return self._construct_output_data(data, name, connectivity)
+
+    def get_mean_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
+        return self.get_data_from_multimeter_to_TVBTimeSeries("mean", **kwargs)
+
+    def get_total_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
+        return self.get_data_from_multimeter_to_TVBTimeSeries("total", **kwargs)
+
+    def get_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
+        return self.get_data_from_multimeter_to_TVBTimeSeries("per_neuron", **kwargs)
+
+    def _get_spikes_rates_to_TVBTimeSeries(self, mode="mean", **kwargs):
+        connectivity = kwargs.pop("connectivity", None)
+        if mode == "per_neuron":
+            fun = "compute_spikes_rates"
+            name = kwargs.get("name", "Neurons' rates from spike detectors")
+            kwargs["mode"] = "per_neuron_rate"
+        elif mode == "total":
+            fun = "compute_spikes_rates"
+            name = kwargs.get("name", "Total rates from spike detectors")
+            kwargs["mode"] = "total_rate"
+        else:
+            fun = "compute_mean_spikes_rates"
+            name = kwargs.get("name",  "Mean rates from spike detectors")
+        data, spike_detectors = getattr(self.spiking_network, fun)(**kwargs)
+        return self._construct_output_data(data, name, connectivity), spike_detectors
 
     def get_mean_spikes_rates_to_TVBTimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        rates, spike_detectors = self.spiking_network.compute_mean_spikes_rates(**kwargs)
-        if rates is None:
-            return None, None
+        return self._get_spikes_rates_to_TVBTimeSeries("mean", **kwargs)
+
+    def get_total_spikes_rates_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
+        return self._get_spikes_rates_to_TVBTimeSeries("total", **kwargs)
+
+    def get_spikes_rates_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
+        return self._get_spikes_rates_to_TVBTimeSeries("per_neuron", **kwargs)
+
+    def _get_spikes_activites_to_TVBTimeSeries(self, mode="mean", **kwargs):
         connectivity = kwargs.pop("connectivity", None)
-        if connectivity is None:
-            time_series = TimeSeries()
+        if mode == "per_neuron":
+            fun = "compute_spikes_activities"
+            name = kwargs.get("name", "Neurons' spike activities")
+            kwargs["mode"] = "per_neuron_activity"
+        elif mode == "total":
+            fun = "compute_spikes_activities"
+            name = kwargs.get("name", "Total spike activities")
+            kwargs["mode"] = "total_activity"
         else:
-            time_series = TimeSeriesRegion(connectivity=connectivity)
-        if isinstance(rates, DataArray):
-            return time_series.from_xarray_DataArray(rates), spike_detectors
-        else:
-            # Assuming a pd.Series or a dict of xarrays.DataArray
-            output_xarrays = []
-            pop_names = []
-            for d_name, d in rates.iteritems():
-                output_xarrays.append(time_series.from_xarray_DataArray(d))
-                pop_names.append(d_name)
-            if isinstance(rates, pd.Series):
-                name = rates.name
-            else:
-                name = kwargs.get("name", "Mean rates from spike detectors")
-            return pd.Series(output_xarrays, index=pd.Index(pop_names, name="Population"), name=name), \
-                   spike_detectors
+            fun = "compute_mean_spikes_activities"
+            name = kwargs.get("name",  "Mean spike activities")
+        data, spike_detectors = getattr(self.spiking_network, fun)(**kwargs)
+        return self._construct_output_data(data, name, connectivity), spike_detectors
+
+    def get_mean_spikes_activities_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
+        return self._get_spikes_activites_to_TVBTimeSeries("mean", **kwargs)
+
+    def get_total_spikes_activities_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
+        return self._get_spikes_activites_to_TVBTimeSeries("total", **kwargs)
+
+    def get_spikes_activities_to_TVBTimeSeries(self, **kwargs):
+        # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
+        return self._get_activites_to_TVBTimeSeries("per_neuron", **kwargs)
