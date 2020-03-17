@@ -202,6 +202,8 @@ class SpikingNetwork(object):
                 fun = "compute_" + fun
                 if mode.find("total") > -1:
                     kwargs.update({"mode": "total"})
+                else:
+                    mode = "per_neuron"
             shape = spike_detectors[0].shape
             equal_shape_per_population = True
             rates = []
@@ -298,11 +300,12 @@ class SpikingNetwork(object):
         if mode == "mean":
             # Mean quantities across neurons
             fun = "get_mean_data"
+        elif mode == "total":
+            fun = "get_total_data"
         else:
             # Total (summing) quantities across neurons
             fun = "get_data"
-            if mode == "total":
-                kwargs.update({"mode": mode})
+            mode = "per_neuron"
         multimeters = self.get_devices_by_model("multimeter", nodes=regions)
         if len(multimeters) == 0:
             LOG.warning("No multimeter device in this Spiking Network!")
@@ -368,6 +371,14 @@ class SpikingNetwork(object):
                                       devices_dim_name="Population", name="Mean data from Spiking Network multimeter",
                                       **kwargs):
         data = self.get_data_from_multimeter("mean", population_devices, variables, regions,
+                                             devices_dim_name, **kwargs)
+        data.name = name
+        return data
+
+    def get_total_data_from_multimeter(self, population_devices=None, variables=None, regions=None,
+                                      devices_dim_name="Population", name="Mean data from Spiking Network multimeter",
+                                      **kwargs):
+        data = self.get_data_from_multimeter("total", population_devices, variables, regions,
                                              devices_dim_name, **kwargs)
         data.name = name
         return data

@@ -426,6 +426,10 @@ class Multimeter(OutputDevice):
         data = self.get_data(variables, neurons, exclude_neurons)
         return data.mean(dim="Neuron")
 
+    def get_total_data(self, variables=None, neurons=None, exclude_neurons=[]):
+        data = self.get_data(variables, neurons, exclude_neurons)
+        return data.sum(dim="Neuron")
+
     @property
     def data(self):
         return self.get_data()
