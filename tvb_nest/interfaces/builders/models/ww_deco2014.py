@@ -87,7 +87,7 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
                                         "model": "inhomogeneous_poisson_generator",
                                         "params": {"allow_offgrid_times": False},
     # # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------------------
-                                         "interface_weights": 1.0, # The number of excitatory neurons per region
+                                         "interface_weights": 1.0*N_E, # The number of excitatory neurons per region
     # Applied outside NEST for each interface device
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
     # #                                 A function of TVB connectivity weight

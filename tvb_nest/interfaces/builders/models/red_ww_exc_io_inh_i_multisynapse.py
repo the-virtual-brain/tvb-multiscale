@@ -83,7 +83,7 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
                                        "model": "inhomogeneous_poisson_generator",
                                        "params": {"allow_offgrid_times": False},
     # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-                                        "interface_weights": 1.0,  # Applied outside NEST for each interface device
+                                        "interface_weights": 1.0*N_e,  # Applied outside NEST for each interface device
     #                               A function of TVB connectivity weight
                                         "weights": self.G_scale_tvb_weight_exc,
     #                                 A function of TVB connectivity delay:
@@ -100,7 +100,7 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
                     {   "model": "inhomogeneous_poisson_generator",
                         "params": {"allow_offgrid_times": False},
                         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
-                        "interface_weights": 1.0,  # Applied outside NEST for each interface device
+                        "interface_weights": 1.0*N_e,  # Applied outside NEST for each interface device
                         #                               A function of TVB connectivity weight
                         "weights": self.G_scale_tvb_weight_inh,
                         #                                 A function of TVB connectivity delay:
