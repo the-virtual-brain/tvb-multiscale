@@ -222,14 +222,14 @@ class TVBSpikeNetInterface(object):
 
     def get_mean_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
-        return self.get_data_from_multimeter_to_TVBTimeSeries("mean", **kwargs)
+        return self._get_data_from_multimeter_to_TVBTimeSeries("mean", **kwargs)
 
     def get_total_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
-        return self.get_data_from_multimeter_to_TVBTimeSeries("total", **kwargs)
+        return self._get_data_from_multimeter_to_TVBTimeSeries("total", **kwargs)
 
     def get_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
-        return self.get_data_from_multimeter_to_TVBTimeSeries("per_neuron", **kwargs)
+        return self._get_data_from_multimeter_to_TVBTimeSeries("per_neuron", **kwargs)
 
     def _get_spikes_rates_to_TVBTimeSeries(self, mode="mean", **kwargs):
         connectivity = kwargs.pop("connectivity", None)
@@ -285,4 +285,4 @@ class TVBSpikeNetInterface(object):
 
     def get_spikes_activities_to_TVBTimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_activites_to_TVBTimeSeries("per_neuron", **kwargs)
+        return self._get_spikes_activites_to_TVBTimeSeries("per_neuron", **kwargs)
