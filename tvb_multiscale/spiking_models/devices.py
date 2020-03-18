@@ -181,6 +181,18 @@ class OutputDevice(Device):
 
     def filter_events(self, events, variables=None, neurons=None, times=None,
                       exclude_neurons=[], exclude_times=[]):
+
+        def in_fun(x, values):
+            in_flag = False
+            if len(values) > 0:
+                in_flag = (x in values)
+                if len(values) == 2:
+                    if values[0] is not None:
+                        in_flag = in_flag or (x > values[0])
+                    if values[1] is not None:
+                        in_flag = in_flag or (x < values[1])
+            return in_flag
+
         # This method will select/exclude part of the measured events, depending on user inputs
         if variables is None:
             variables = events.keys()
@@ -192,26 +204,26 @@ class OutputDevice(Device):
         inds = np.ones((self.n_events,))
         if len(inds) > 0:
             if times is not None:
-                if senders is not None:
-                    inds = np.logical_and(inds, [time in flatten_list(times) and
-                                                 time not in flatten_list(exclude_times) and
-                                                 sender in flatten_list(neurons) and
-                                                 sender not in flatten_list(exclude_neurons)
+                if neurons is not None:
+                    inds = np.logical_and(inds, [in_fun(time, flatten_list(times)) and
+                                                 (not in_fun(time, flatten_list(exclude_times))) and
+                                                 in_fun(sender, flatten_list(neurons)) and
+                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
                                                  for time, sender in zip(events_times, senders)])
                 else:
-                    inds = np.logical_and(inds, [time in flatten_list(times) and
-                                                 time not in flatten_list(exclude_times) and
-                                                 sender not in flatten_list(exclude_neurons)
+                    inds = np.logical_and(inds, [in_fun(time, flatten_list(times)) and
+                                                 (not in_fun(time, flatten_list(exclude_times))) and
+                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
                                                  for time, sender in zip(events_times, senders)])
             else:
                 if neurons is not None:
-                    inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
-                                                 sender in flatten_list(neurons) and
-                                                 sender not in flatten_list(exclude_neurons)
+                    inds = np.logical_and(inds, [(not in_fun(time, flatten_list(exclude_times))) and
+                                                 in_fun(sender, flatten_list(neurons)) and
+                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
                                                  for time, sender in zip(events_times, senders)])
                 else:
-                    inds = np.logical_and(inds, [time not in flatten_list(exclude_times) and
-                                                 sender not in flatten_list(exclude_neurons)
+                    inds = np.logical_and(inds, [(not in_fun(time, flatten_list(exclude_times))) and
+                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
                                                  for time, sender in zip(events_times, senders)])
             for var in ensure_list(variables):
                 output_events[var] = events[var][inds]
