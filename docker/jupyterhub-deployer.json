@@ -27,6 +27,11 @@
       "required": true
     },
     {
+      "name": "KEYCLOAK_CLIENT_SECRET",
+      "value": "",
+      "required": true
+    },
+    {
       "name": "JUPYTERHUB_CONFIG",
       "value": "",
       "required": false
@@ -238,6 +243,26 @@
                   {
                     "name": "JUPYTERHUB_COOKIE_SECRET",
                     "value": "${COOKIE_SECRET}"
+                  },
+                  {
+                    "name": "KEYCLOAK_CLIENT_SECRET",
+                    "value": "${KEYCLOAK_CLIENT_SECRET}"
+                  },
+                  {
+                    "name": "OAUTH2_TOKEN_URL",
+                    "value": "https://iam.humanbrainproject.eu/auth/realms/hbp/protocol/openid-connect/token"
+                  },
+                  {
+                    "name": "OAUTH2_AUTHORIZE_URL",
+                    "value": "https://iam.humanbrainproject.eu/auth/realms/hbp/protocol/openid-connect/auth"
+                  },
+                  {
+                    "name": "OAUTH2_USERDATA_URL",
+                    "value": "https://iam.humanbrainproject.eu/auth/realms/hbp/protocol/openid-connect/userinfo"
+                  },
+                  {
+                    "name": "OAUTH_CALLBACK_URL",
+                    "value": "https://tvb-nest.apps.hbp.eu/hub/oauth_callback"
                   }
                 ],
                 "volumeMounts": [
