@@ -63,7 +63,7 @@
     {
       "name": "NOTEBOOK_MEMORY",
       "description": "Amount of memory available to each notebook.",
-      "value": "512Mi",
+      "value": "2Gi",
       "required": true
     }
   ],
@@ -301,7 +301,7 @@
         }
       },
       "spec": {
-        "host": "",
+        "host": "tvb-nest.apps.hbp.eu",
         "to": {
           "kind": "Service",
           "name": "${APPLICATION_NAME}",
@@ -321,6 +321,10 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${APPLICATION_NAME}-db",
+        "annotations": {
+          "volume.beta.kubernetes.io/storage-class": "managed-nfs-storage",
+          "volume.beta.kubernetes.io/storage-provisioner": "fuseim.pri/ifs"
+        },
         "labels": {
           "app": "${APPLICATION_NAME}"
         }
