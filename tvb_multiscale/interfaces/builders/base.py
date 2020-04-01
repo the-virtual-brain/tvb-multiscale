@@ -24,8 +24,6 @@ class TVBSpikeNetInterfaceBuilder(object):
     _spikeNet_to_tvb_interface_builder = SpikeNetToTVBInterfaceBuilder
     _input_device_dict = InputDeviceDict
 
-    integrator = None
-    connectivity = None
     tvb_nodes_ids = np.array([])
     spiking_nodes_ids = np.array([])
     exclusive_nodes = False
