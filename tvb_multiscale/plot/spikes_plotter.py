@@ -174,9 +174,13 @@ class SpikesPlotter(BasePlotter):
         return pyplot.gcf(), axes
 
     def _neurons_axis_from_indices(self, neurons):
-        max_n_neurons = np.max(neurons)
-        min_n_neurons = np.min(neurons)
-        ylims, yticks = self._get_y_ticks_labels(max_n_neurons, np.min(neurons))
+        if len(neurons) > 0:
+            max_n_neurons = np.max(neurons)
+            min_n_neurons = np.min(neurons)
+        else:
+            max_n_neurons = 1.0
+            min_n_neurons = 0.0
+        ylims, yticks = self._get_y_ticks_labels(max_n_neurons, min_n_neurons)
         return ylims, yticks, max_n_neurons, min_n_neurons
 
     def plot_spike_detectors(self, spike_detectors, rates=None,
@@ -200,7 +204,7 @@ class SpikesPlotter(BasePlotter):
             axes.append([])
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
                 # Define spike senders and rates' axis
-                neurons = region_spike_detector.neurons
+                neurons = region_spike_detector.senders
                 ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
@@ -257,6 +261,7 @@ class SpikesPlotter(BasePlotter):
             for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.iteritems()):
                 # Define spike senders and rates' axis
                 neurons = region_spikes_events["senders"]
+
                 ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
