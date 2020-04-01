@@ -10,6 +10,12 @@ class Plotter(BasePlotter):
     def plot_spikes(self, *args, **kwargs):
         return SpikesPlotter(self.config).plot_spikes(*args, **kwargs)
 
+    def plot_spike_events(self, *args, **kwargs):
+        return SpikesPlotter(self.config).plot_spike_events(*args, **kwargs)
+
+    def plot_spike_detectors(self, *args, **kwargs):
+        return SpikesPlotter(self.config).plot_spike_detectors(*args, **kwargs)
+
     def plot_multimeter_timeseries(self, *args, **kwargs):
         return MultimeterPlotter(self.config).plot_multimeter_timeseries(*args, **kwargs)
 

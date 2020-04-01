@@ -3,21 +3,14 @@ from matplotlib import pyplot
 import numpy as np
 from xarray import DataArray
 from pandas import Series
+from tvb_multiscale.spiking_models.devices import DeviceSet
 from tvb_scripts.plot.base_plotter import BasePlotter
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
 
 class SpikesPlotter(BasePlotter):
 
-    def plot_spikes(self, spikes_data, **kwargs):
-        if isinstance(spikes_data, Series):
-            # Either a Series (for populations) of Series (for regions) of SpikeDetectors'outputs...
-            return self.plot_spike_detectors(spikes_data, **kwargs)
-        else:
-            # ...or a list (for populations) of TVB time series or TVB xarray time series (for regions)
-            return self._plot_spikes(spikes_data, **kwargs)
-
-    def _get_rates(self, rates, yticks):
+    def _get_rates(self, rates):
         # If we plot rates, we need to....
         max_rate = 0.0
         time_lims = None
@@ -43,9 +36,6 @@ class SpikesPlotter(BasePlotter):
                     plot_rates = False
             if max_rate == 0:
                 max_rate = 1.0  # if no spikes at all...
-            rate_step = max_rate / len(yticks)
-            yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
-            yticklabels = ["%0.2f" % yticklabel for yticklabel in yticklabels]
             if plot_rates:
                 # ..and set the time axis accordingly
                 # Time axis
@@ -54,19 +44,20 @@ class SpikesPlotter(BasePlotter):
                 xticks = np.round(time[0:-1:time_step])
                 xticklabels = ["%0.0f" % xtick for xtick in xticks]
         else:
-            yticklabels = ["%d" % ytick for ytick in yticks]
             plot_rates = False
-        return time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, yticklabels, plot_rates
+            time = None
 
-    def _get_y_ticks_labels(self, max_n_neurons):
+        return time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, plot_rates
+
+    def _get_y_ticks_labels(self, max_n_neurons, min_n_neurons=0):
         if max_n_neurons == 0:
             ylims = [0, 1]
             yticks = np.arange(0, 1.1, 0.1)
         else:
-            ylims = [0, max_n_neurons]
+            ylims = [min_n_neurons, max_n_neurons]
             neurons_step = np.int(np.ceil(np.maximum(1.0 * max_n_neurons / 10, 1.0)))
-            yticks = np.arange(0, max_n_neurons + neurons_step, neurons_step)
-        return ylims, yticks, neurons_step
+            yticks = np.arange(ylims[0], ylims[1], neurons_step)
+        return ylims, yticks
 
     def _get_figname_figsize(self, title="Population spikes and spike rate",
                              figure_name=None, figsize=None):
@@ -76,10 +67,49 @@ class SpikesPlotter(BasePlotter):
             figsize = self.config.figures.LARGE_SIZE
         return figure_name, figsize
 
-    def _plot_spikes(self, pop_spikes, rates=None,
+    def _rate_ytick_labels(self, max_rate, yticks):
+        rate_step = max_rate / len(yticks)
+        yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
+        return ["%0.2f" % yticklabel for yticklabel in yticklabels]
+
+    def _format_axes(self, axes, n_regions, i_pop, i_region, pop_label, reg_label,
+                     time_lims, xticks, xticklabels,
+                     ylims, yticks, rate_ytick_labels):
+        axes.set_ylim(ylims)
+        axes.set_yticks(yticks)
+        if time_lims is not None:
+            axes.set_xlim(time_lims)
+        if xticks is not None:
+            axes.set_xticks(xticks)
+
+        if rate_ytick_labels is not None:
+            if i_pop == 0:
+                axes.set_yticklabels(rate_ytick_labels)
+                axes.set_ylabel("%s (spikes/s)" % reg_label)
+            else:
+                axes.set_yticklabels([])
+        else:
+            if i_pop == 0:
+                axes.set_ylabel("%s neurons" % reg_label)
+
+        if i_region == 0:
+            axes.set_title(pop_label)
+
+        if i_region == n_regions - 1:
+            if xticklabels is not None:
+                axes.set_xticklabels(xticklabels)
+            axes.set_xlabel("Time (ms)")
+        else:
+            axes.set_xticklabels([])
+        return axes
+
+    def _scale_rate_to_axis(self, rate, max_rate, max_n_neurons, min_n_neurons=0):
+        return rate / max_rate * max_n_neurons + min_n_neurons
+
+    def plot_spikes(self, pop_spikes, rates=None,
                      title="Population spikes and spike rate",
                      figure_name=None, figsize=None, **kwargs):
-        if isinstance(rates, DataArray):
+        if isinstance(pop_spikes, DataArray):
             get_spikes_fun = lambda spikes, i_region: spikes[:, :, i_region].values.squeeze()
             get_time = lambda spikes, time: spikes.get_index(spikes.dims[0])
         else:
@@ -87,11 +117,11 @@ class SpikesPlotter(BasePlotter):
             get_time = lambda spikes, time: time
 
         pop_spikes = ensure_list(pop_spikes)
-        max_n_neurons = np.max([spikes.number_of_samples for spikes in pop_spikes])
-        ylims, yticks, neurons_step = self._get_y_ticks_labels(max_n_neurons)
+        max_n_neurons = np.max([spikes.shape[3] for spikes in pop_spikes])
+        ylims, yticks = self._get_y_ticks_labels(max_n_neurons)
 
-        time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, yticklabels, plot_rates = \
-            self._get_rates(rates, yticks)
+        time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, plot_rates = \
+            self._get_rates(rates)
 
         # Create figure
         n_pops = len(pop_spikes)
@@ -109,9 +139,12 @@ class SpikesPlotter(BasePlotter):
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
 
+                rate_ytick_labels = None
                 if plot_rates:
                     # Adjust rates values to neurons axis range
-                    rate_vals = get_rate_fun(rates, i_region, i_pop) / max_rate * max_n_neurons
+                    rate_vals = self._scale_rate_to_axis(get_rate_fun(rates, i_region, i_pop),
+                                                         max_rate, max_n_neurons)
+                    rate_ytick_labels = self._rate_ytick_labels(max_rate, yticks)
                     axes[i_pop][i_region].plot(time, rate_vals,
                                                linestyle=kwargs.get("rate_linestyle", "-"),
                                                color=kwargs.get("rate_color", "k"),
@@ -130,32 +163,21 @@ class SpikesPlotter(BasePlotter):
                                            markersize=kwargs.get("spikes_markersize", 2.0),
                                            alpha=kwargs.get("spikes_alpha", 1.0))
 
-                axes[i_pop][i_region].set_ylim(ylims)
-                axes[i_pop][i_region].set_yticks(yticks)
-                if time_lims is not None:
-                    axes[i_pop][i_region].set_xlim(time_lims)
-                if xticks is not None:
-                    axes[i_pop][i_region].set_xticks(xticks)
-
-                if i_pop == 0:
-                    axes[i_pop][i_region].set_yticklabels(yticklabels)
-                    axes[i_pop][i_region].set_ylabel("%s (spikes/s)" % reg_label)
-                else:
-                    axes[i_pop][i_region].set_yticklabels([])
-
-                if i_region == 0:
-                    axes[i_pop][i_region].set_title(pop_label)
-
-                if i_region == n_regions - 1:
-                    axes[i_pop][i_region].set_xticklabels(xticklabels)
-                    axes[i_pop][i_region].set_xlabel("Time (ms)")
-                else:
-                    axes[i_pop][i_region].set_xticklabels([])
+                axes[i_pop][i_region] = self._format_axes(axes[i_pop][i_region], n_regions,
+                                                          i_pop, i_region, pop_label, reg_label,
+                                                          time_lims, xticks, xticklabels,
+                                                          ylims, yticks, rate_ytick_labels)
 
         self._save_figure(pyplot.gcf(), figure_name)
         self._check_show()
 
         return pyplot.gcf(), axes
+
+    def _neurons_axis_from_indices(self, neurons):
+        max_n_neurons = np.max(neurons)
+        min_n_neurons = np.min(neurons)
+        ylims, yticks = self._get_y_ticks_labels(max_n_neurons, np.min(neurons))
+        return ylims, yticks, max_n_neurons, min_n_neurons
 
     def plot_spike_detectors(self, spike_detectors, rates=None,
                              title="Population spikes and spike rate",
@@ -163,12 +185,8 @@ class SpikesPlotter(BasePlotter):
         # This method will plot a spike raster and, optionally,
         # it will superimpose the mean rate as a faded line.
 
-        # Y axis limits and ticks according to maximum number of neurons
-        max_n_neurons = np.max([np.max(spike_detector.number_of_neurons) for spike_detector in spike_detectors])
-        ylims, yticks, neurons_step = self._get_y_ticks_labels(max_n_neurons)
-
-        time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, yticklabels, plot_rates = \
-            self._get_rates(rates, yticks)
+        time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, plot_rates = \
+            self._get_rates(rates)
 
         # Create figure
         n_pops = len(spike_detectors)
@@ -182,14 +200,17 @@ class SpikesPlotter(BasePlotter):
             axes.append([])
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
                 # Define spike senders and rates' axis
-                neurons = np.unique(region_spike_detector.neurons).tolist()
-                spike_senders_indices = [neurons.index(sender) for sender in region_spike_detector.spikes_senders]
+                neurons = region_spike_detector.neurons
+                ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
 
+                rate_ytick_labels = None
                 if plot_rates:
                     # Adjust rates values to neurons axis range
-                    rate_vals = get_rate_fun(rates, i_region, i_pop) / max_rate * max_n_neurons
+                    rate_vals = self._scale_rate_to_axis(get_rate_fun(rates, i_region, i_pop),
+                                                         max_rate, max_n_neurons, min_n_neurons)
+                    rate_ytick_labels = self._rate_ytick_labels(max_rate, yticks)
                     axes[i_pop][i_region].plot(time, rate_vals,
                                                linestyle=kwargs.get("rate_linestyle", "-"),
                                                color=kwargs.get("rate_color", "k"),
@@ -197,7 +218,7 @@ class SpikesPlotter(BasePlotter):
                                                alpha=kwargs.get("rate_alpha", 0.5))
 
                 # Plot spikes
-                axes[i_pop][i_region].plot(region_spike_detector.spikes_times, spike_senders_indices,
+                axes[i_pop][i_region].plot(region_spike_detector.spikes_times, neurons,
                                            linestyle="None",
                                            marker=kwargs.get("spikes_marker", "o"),
                                            markerfacecolor=kwargs.get("spikes_color", "k"),
@@ -205,27 +226,66 @@ class SpikesPlotter(BasePlotter):
                                            markersize=kwargs.get("spikes_markersize", 2.0),
                                            alpha=kwargs.get("spikes_alpha", 1.0))
 
-                axes[i_pop][i_region].set_ylim(ylims)
-                axes[i_pop][i_region].set_yticks(yticks)
-                if time_lims is not None:
-                    axes[i_pop][i_region].set_xlim(time_lims)
-                if xticks is not None:
-                    axes[i_pop][i_region].set_xticks(xticks)
+                axes[i_pop][i_region] = self._format_axes(axes[i_pop][i_region], n_regions,
+                                                          i_pop, i_region, pop_label, reg_label,
+                                                          time_lims, xticks, xticklabels,
+                                                          ylims, yticks, rate_ytick_labels)
 
-                if i_pop == 0:
-                    axes[i_pop][i_region].set_yticklabels(yticklabels)
-                    axes[i_pop][i_region].set_ylabel("%s (spikes/s)" % reg_label)
-                else:
-                    axes[i_pop][i_region].set_yticklabels([])
+        self._save_figure(pyplot.gcf(), figure_name)
+        self._check_show()
 
-                if i_region == 0:
-                    axes[i_pop][i_region].set_title(pop_label)
+        return pyplot.gcf(), axes
 
-                if i_region == n_regions - 1:
-                    axes[i_pop][i_region].set_xticklabels(xticklabels)
-                    axes[i_pop][i_region].set_xlabel("Time (ms)")
-                else:
-                    axes[i_pop][i_region].set_xticklabels([])
+    def plot_spike_events(self, spikes_events, rates=None,
+                          title="Population spikes and spike rate",
+                          figure_name=None, figsize=None, **kwargs):
+        # This method will plot a spike raster and, optionally,
+        # it will superimpose the mean rate as a faded line.
+        time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, plot_rates = \
+            self._get_rates(rates)
+
+        # Create figure
+        n_pops = len(spikes_events)
+        n_regions = np.max([len(pop_spikes_events) for pop_spikes_events in spikes_events])
+        axes = []
+        figure_name, figsize = self._get_figname_figsize(title, figure_name, figsize)
+        pyplot.figure(figure_name, figsize=figsize)
+
+        # Plot by arranging populations in columns and regions in rows
+        for i_pop, (pop_label, pop_spikes_events) in enumerate(spikes_events.iteritems()):
+            axes.append([])
+            for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.iteritems()):
+                # Define spike senders and rates' axis
+                neurons = region_spikes_events["senders"]
+                ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
+
+                axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
+
+                rate_ytick_labels = None
+                if plot_rates:
+                    # Adjust rates values to neurons axis range
+                    rate_vals = self._scale_rate_to_axis(get_rate_fun(rates, i_region, i_pop),
+                                                         max_rate, max_n_neurons, min_n_neurons)
+                    rate_ytick_labels = self._rate_ytick_labels(max_rate, yticks)
+                    axes[i_pop][i_region].plot(time, rate_vals,
+                                               linestyle=kwargs.get("rate_linestyle", "-"),
+                                               color=kwargs.get("rate_color", "k"),
+                                               linewidth=kwargs.get("rate_linewidth", 5.0),
+                                               alpha=kwargs.get("rate_alpha", 0.5))
+
+                # Plot spikes
+                axes[i_pop][i_region].plot(region_spikes_events["times"], neurons,
+                                           linestyle="None",
+                                           marker=kwargs.get("spikes_marker", "o"),
+                                           markerfacecolor=kwargs.get("spikes_color", "k"),
+                                           markeredgecolor=kwargs.get("spikes_color", "k"),
+                                           markersize=kwargs.get("spikes_markersize", 2.0),
+                                           alpha=kwargs.get("spikes_alpha", 1.0))
+
+                axes[i_pop][i_region] = self._format_axes(axes[i_pop][i_region], n_regions,
+                                                          i_pop, i_region, pop_label, reg_label,
+                                                          time_lims, xticks, xticklabels,
+                                                          ylims, yticks, rate_ytick_labels)
 
         self._save_figure(pyplot.gcf(), figure_name)
         self._check_show()
