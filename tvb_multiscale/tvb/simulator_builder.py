@@ -31,7 +31,8 @@ class SimulatorBuilder(object):
     def __init__(self):
         self.config = CONFIGURED
         self.connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
-        self.scale_connectivity_weights = "region"
+        self.scale_connectivity_normalize = "region"
+        self.scale_connectivity_weights_by_percentile = 95
         self.delays_flag = True
         self.model = ReducedWongWangExcIOInhI
         self.integrator = HeunStochastic
@@ -45,11 +46,10 @@ class SimulatorBuilder(object):
             connectivity = Connectivity.from_file(self.connectivity)
         else:
             connectivity = self.connectivity
-        if self.scale_connectivity_weights is not None:
-            if isinstance(self.scale_connectivity_weights, string_types):
-                connectivity.weights = connectivity.scaled_weights(mode=self.scale_connectivity_weights)
-            else:
-                connectivity.weights /= self.scale_connectivity_weights
+        if isinstance(self.scale_connectivity_weights, string_types):
+            connectivity.weights = connectivity.scaled_weights(mode=self.scale_connectivity_weights)
+        if self.scale_connectivity_weights_by_percentile is not None:
+            connectivity.weights /= np.percentile(connectivity.weights, self.scale_connectivity_weights_by_percentile)
         if not self.delays_flag:
             connectivity.configure()  # to set speed
             # Given that
