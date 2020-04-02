@@ -2,7 +2,7 @@
 from collections import OrderedDict
 from xarray import DataArray
 import numpy as np
-from tvb_scripts.time_series.model import TimeSeries
+from tvb_scripts.datatypes.time_series import TimeSeries
 from tvb_scripts.plot.time_series_plotter import TimeSeriesPlotter
 
 

@@ -9,6 +9,8 @@
 # Such functions will depend only on the brain region "node" argument.
 # Set different entries in the SpikingNetwork builder for populations that differ in
 # "label", "model" or "nodes"
+
+
 def set_neural_population_params(node):
     return {}
     # return dict

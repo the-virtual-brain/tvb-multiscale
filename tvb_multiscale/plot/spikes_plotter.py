@@ -2,8 +2,6 @@
 from matplotlib import pyplot
 import numpy as np
 from xarray import DataArray
-from pandas import Series
-from tvb_multiscale.spiking_models.devices import DeviceSet
 from tvb_scripts.plot.base_plotter import BasePlotter
 from tvb_scripts.utils.data_structures_utils import ensure_list
 
