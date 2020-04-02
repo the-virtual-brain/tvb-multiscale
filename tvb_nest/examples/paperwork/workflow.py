@@ -4,7 +4,6 @@ import os
 import time
 from collections import OrderedDict
 import numpy as np
-from pandas import Series
 from xarray import DataArray, concat
 
 from tvb.basic.profile import TvbProfile
@@ -19,7 +18,7 @@ from tvb.simulator.simulator import Simulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_scripts.time_series.time_series_xarray import TimeSeriesRegion
+from tvb_scripts.datatypes.time_series_xarray import TimeSeriesRegion
 from tvb_scripts.io.h5_writer import H5Writer
 
 

@@ -51,7 +51,7 @@ from tvb.simulator.common import numpy_add_at
 from tvb.simulator.history import SparseHistory
 from tvb.simulator.simulator import Simulator as SimulatorTVB
 from tvb_multiscale.config import CONFIGURED
-from tvb_multiscale.simulator_tvb.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.simulator_tvb_deprecated.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 
 

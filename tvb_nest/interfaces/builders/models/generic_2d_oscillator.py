@@ -3,7 +3,6 @@
 import numpy as np
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import Generic2dOscillator
-from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay, receptor_by_source_region
 
 
 class Generic2DOscillatorBuilder(TVBNESTInterfaceBuilder):
