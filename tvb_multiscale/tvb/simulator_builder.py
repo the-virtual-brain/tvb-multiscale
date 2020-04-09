@@ -6,7 +6,7 @@ import numpy as np
 
 from tvb_multiscale.config import CONFIGURED
 
-from tvb_scripts.utils.data_structures_utils import ensure_list
+from tvb.simulator.plot.utils.data_structures_utils import ensure_list
 
 from tvb.simulator.simulator import Simulator
 from tvb.datatypes.connectivity import Connectivity

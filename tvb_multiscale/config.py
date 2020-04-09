@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import os
 import inspect
-import tvb_data
+import os
 
-from tvb_scripts.config import Config as ConfigBase
-from tvb.datatypes import cortex, connectivity
+import tvb_data
 from tvb.basic.profile import TvbProfile
+from tvb.datatypes import cortex, connectivity
+from tvb.simulator.plot.config import Config as ConfigBase
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
-
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
 WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/examples/outputs")
@@ -63,5 +62,6 @@ class Config(ConfigBase):
         if isinstance(weight, dict):
             return weight
         return weight  # / number_of_connections
+
 
 CONFIGURED = Config()

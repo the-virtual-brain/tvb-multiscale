@@ -6,7 +6,7 @@ from tvb_multiscale.spiking_models.network import SpikingNetwork
 from tvb_nest.nest_models.builders.nest_factory import load_nest
 from tvb_nest.nest_models.region_node import NESTRegionNode
 from tvb_multiscale.spiking_models.devices import DeviceSet
-from tvb_scripts.utils.log_error_utils import initialize_logger
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger
 
 
 LOG = initialize_logger(__name__)

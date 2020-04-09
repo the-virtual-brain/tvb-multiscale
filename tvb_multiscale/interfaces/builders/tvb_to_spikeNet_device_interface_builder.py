@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-from six import add_metaclass
-from pandas import Series
-import numpy as np
-from tvb_multiscale.config import CONFIGURED
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils import property_to_fun
 
+import numpy as np
+from pandas import Series
+from six import add_metaclass
+from tvb.simulator.plot.utils.data_structures_utils import property_to_fun
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
+
+from tvb_multiscale.config import CONFIGURED
 
 LOG = initialize_logger(__name__)
 

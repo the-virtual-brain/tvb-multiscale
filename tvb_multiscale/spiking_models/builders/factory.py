@@ -7,8 +7,8 @@ from six import string_types
 
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.spiking_models.devices import DeviceSet
-from tvb_scripts.utils.data_structures_utils import flatten_tuple, ensure_list
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+from tvb.simulator.plot.utils.data_structures_utils import flatten_tuple, ensure_list
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
 
 LOG = initialize_logger(__name__)

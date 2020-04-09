@@ -1,22 +1,20 @@
 # -*- coding: utf-8 -*-
-from xarray import DataArray
-import pandas as pd
 import numpy as np
+import pandas as pd
+from tvb.simulator.plot.utils.data_structures_utils import is_integer
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger
+from xarray import DataArray
+
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.spiking_models.devices import InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import is_integer
 from tvb_scripts.datatypes.time_series import TimeSeries, TimeSeriesRegion
 
-
 LOG = initialize_logger(__name__)
-
 
 PARAMETERS = ["current", "potential"]
 
 
 class TVBSpikeNetInterface(object):
-
     # This is the actual interface class between TVB and a SpikingNetwork
 
     _available_input_devices = InputDeviceDict.keys()
@@ -64,7 +62,7 @@ class TVBSpikeNetInterface(object):
 
     @property
     def number_of_nodes(self):
-        return len(np.union1d(self.tvb_nodes_ids , self.spiking_nodes_ids))
+        return len(np.union1d(self.tvb_nodes_ids, self.spiking_nodes_ids))
 
     @property
     def number_of_tvb_state_variables(self):
@@ -184,7 +182,7 @@ class TVBSpikeNetInterface(object):
                 raise ValueError("Interface model %s is not supported yet!" % interface.model)
             # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
             state[interface.tvb_sv_id, interface.nodes_ids, 0] = \
-                interface.scale * transform_fun(values,  interface.nodes_ids)
+                interface.scale * transform_fun(values, interface.nodes_ids)
         return state
 
     def _construct_output_data(self, data, default_name, connectivity=None):
@@ -243,7 +241,7 @@ class TVBSpikeNetInterface(object):
             kwargs["mode"] = "total_rate"
         else:
             fun = "compute_mean_spikes_rates"
-            name = kwargs.get("name",  "Mean rates from spike detectors")
+            name = kwargs.get("name", "Mean rates from spike detectors")
         data, spike_detectors = getattr(self.spiking_network, fun)(**kwargs)
         return self._construct_output_data(data, name, connectivity), spike_detectors
 
@@ -271,7 +269,7 @@ class TVBSpikeNetInterface(object):
             kwargs["mode"] = "total_activity"
         else:
             fun = "compute_mean_spikes_activities"
-            name = kwargs.get("name",  "Mean spike activities")
+            name = kwargs.get("name", "Mean spike activities")
         data, spike_detectors = getattr(self.spiking_network, fun)(**kwargs)
         return self._construct_output_data(data, name, connectivity), spike_detectors
 

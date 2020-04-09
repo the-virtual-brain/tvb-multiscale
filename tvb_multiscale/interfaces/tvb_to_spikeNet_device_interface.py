@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from six import string_types
-from pandas import Series
 import numpy as np
-from tvb_multiscale.spiking_models.devices import DeviceSet
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+from pandas import Series
+from six import string_types
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
+from tvb_multiscale.spiking_models.devices import DeviceSet
 
 LOG = initialize_logger(__name__)
 
@@ -18,11 +18,11 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
                  nodes_ids=[], target_nodes=[], scale=np.array([1.0]), device_set=Series()):
         super(TVBtoSpikeNetDeviceInterface, self).__init__(name, model, device_set)
         self.spiking_network = spiking_network
-        self.dt = dt # TVB time step
+        self.dt = dt  # TVB time step
         self.tvb_sv_id = tvb_sv_id  # TVB state variable index linked to this interface
         self.nodes_ids = nodes_ids  # TVB region nodes' (proxies') indices
         self.target_nodes = target_nodes  # Spiking Network target region nodes' indices
-        self.scale = scale # a scaling weight
+        self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     @property
@@ -31,7 +31,7 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
 
     def _return_unique(self, attr):
         dummy = self.do_for_all_devices(attr)
-        shape = (self.n_target_nodes, int(len(dummy[0])/self.n_target_nodes))
+        shape = (self.n_target_nodes, int(len(dummy[0]) / self.n_target_nodes))
         for ii, dum in enumerate(dummy):
             dummy[ii] = np.reshape(dum, shape).mean(axis=1)
         return np.array(dummy)

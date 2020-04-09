@@ -4,7 +4,7 @@ from six import string_types
 from pandas import Series
 from numpy import array
 from tvb_multiscale.spiking_models.devices import DeviceSet
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
 
 LOG = initialize_logger(__name__)

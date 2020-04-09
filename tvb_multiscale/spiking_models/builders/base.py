@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-from six import string_types
 from collections import OrderedDict
+
 import numpy as np
 from pandas import Series
-from tvb_multiscale.config import CONFIGURED
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
+from six import string_types
+from tvb.simulator.plot.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
+from tvb_multiscale.config import CONFIGURED
 
 LOG = initialize_logger(__name__)
 
@@ -36,7 +37,7 @@ class SpikingModelBuilder(object):
     populations = []
     populations_connections = []
     nodes_connections = []
-    output_devices = [] # Use these to observe Spiking Simulator behavior
+    output_devices = []  # Use these to observe Spiking Simulator behavior
     input_devices = []  # use these for possible external stimulation devices
 
     # Internal configurations and outputs:
@@ -373,7 +374,7 @@ class SpikingModelBuilder(object):
             # Set now the properties using the above defined functions:
             for trg_node, i_trg in zip(spiking_nodes, target_spiking_nodes_ids):
                 weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
-                delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
+                delays[i_trg] = delays_fun(trg_node)  # a function also of self.tvb_delays
                 receptor_types[i_trg] = receptor_types_fun(trg_node)
             _devices[-1]["nodes"] = target_spiking_nodes_ids
             _devices[-1]["weights"] = weights
@@ -425,7 +426,7 @@ class SpikingModelBuilder(object):
         return flatten_tuple([node[pop] for pop in ensure_list(populations)])
 
     def _set_syn_spec(self, syn_model, weight, delay, receptor_type):
-        return {'model': syn_model,  'weight': weight,
+        return {'model': syn_model, 'weight': weight,
                 'delay': delay, 'receptor_type': receptor_type}
 
     def _connect_two_populations(self, pop_src, pop_trg, conn_spec, syn_spec):
@@ -483,7 +484,7 @@ class SpikingModelBuilder(object):
         _devices = Series()
         for device in devices:
             _devices = _devices.append(
-                            self.build_and_connect_devices(device))
+                self.build_and_connect_devices(device))
         return _devices
 
     def build_and_connect_output_devices(self):

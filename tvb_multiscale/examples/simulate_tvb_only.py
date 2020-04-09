@@ -2,24 +2,19 @@
 import time
 
 import numpy as np
-
 from tvb.basic.profile import TvbProfile
+
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.examples.plot_results import plot_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
-from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
-from tvb.simulator.models.generic_2d_oscillator_multiscale import Generic2dOscillator
 
 
 def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
                  simulation_length=100.0, config=CONFIGURED, **model_params):
-
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
@@ -115,7 +110,6 @@ def mean_field_per_population(source_ts, populations, pop_sizes):
 
 
 def spikes_per_population(source_spikes, populations, pop_sizes):
-
     pop_sizes = [0] + pop_sizes
     spikes = []
     for i_pop, (pop_name, pop_size) in enumerate(zip(populations, pop_sizes[1:])):
@@ -134,8 +128,8 @@ def spikes_per_population(source_spikes, populations, pop_sizes):
 
 
 def spike_rates_from_spike_ts(spikes, dt):
-    from tvb_scripts.utils.data_structures_utils import ensure_list
-    from tvb_scripts.time_series.service import TimeSeriesService
+    from tvb.simulator.plot.utils.data_structures_utils import ensure_list
+    from tvb_scripts.service.time_series_service import TimeSeriesService
 
     ts_service = TimeSeriesService()
 
@@ -171,9 +165,9 @@ def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_re
     mean_field = mean_field_per_population(source_ts, populations, pop_sizes)
 
     spikes = spikes_per_population(
-                source_ts.get_state_variables("spikes"). \
-                        get_subspace_by_index(spiking_regions_inds),
-            populations, pop_sizes)
+        source_ts.get_state_variables("spikes"). \
+            get_subspace_by_index(spiking_regions_inds),
+        populations, pop_sizes)
 
     if "rate" not in mean_field.labels_dimensions["State Variable"]:
         rate = spike_rates_from_spike_ts(spikes, simulator.integrator.dt)
@@ -200,7 +194,6 @@ def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_re
 
 
 if __name__ == "__main__":
-
     # # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
     # model_params = {
     #     "d": np.array([0.1]),
@@ -230,7 +223,6 @@ if __name__ == "__main__":
     #     "b_i": np.array([3.7]),
     #     "P": np.array([0.0])
     # }
-
 
     # # ----------------------------------------SpikingWongWangExcIOInhI/MultiscaleWongWangExcIOInhI------------------------------------------------
     model_params = {

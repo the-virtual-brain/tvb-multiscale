@@ -10,8 +10,8 @@ from tvb_nest.nest_models.builders.nest_factory import \
 from tvb_multiscale.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.spiking_models.builders.base import SpikingModelBuilder
 from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils import ensure_list
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
+from tvb.simulator.plot.utils.data_structures_utils import ensure_list
 
 
 LOG = initialize_logger(__name__)

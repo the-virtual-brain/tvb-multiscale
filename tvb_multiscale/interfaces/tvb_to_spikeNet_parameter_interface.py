@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-from six import add_metaclass
-from pandas import Series
-import numpy as np
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
 
+import numpy as np
+from pandas import Series
+from six import add_metaclass
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
 LOG = initialize_logger(__name__)
 
 
 @add_metaclass(ABCMeta)
 class TVBtoSpikeNetParameterInterface(Series):
-
     # This class implements an interface that sends TVB state to the Spiking Network
     # by directly setting a specific parameter of its neurons (e.g., external current I_e in NEST)
 
@@ -37,7 +36,7 @@ class TVBtoSpikeNetParameterInterface(Series):
         # The target Spiking Network region nodes which coincide with the source TVB region nodes
         # (i.e., region i of TVB modifies a parameter in region i implemented in Spiking Network):
         self.nodes_ids = nodes_ids
-        self.scale = scale # a scaling weight
+        self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     @property

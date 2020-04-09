@@ -1,29 +1,28 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import shutil
-from six import string_types
+import sys
+
 import numpy as np
+from six import string_types
+from tvb.simulator.plot.utils.data_structures_utils import ensure_list
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
-from tvb_nest.config import CONFIGURED
 from tvb_multiscale.spiking_models.builders.factory import log_path
+from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils import ensure_list
-
 
 LOG = initialize_logger(__name__)
 
 
-#TODO: Find a better way to abstract between nest_factory and factory!
+# TODO: Find a better way to abstract between nest_factory and factory!
 
 
 # Helper functions with NEST
 
 
 def load_nest(config=CONFIGURED, logger=LOG):
-
     logger.info("Loading a NEST instance...")
     nest_path = config.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
@@ -70,7 +69,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         logger.info("Running compilation...")
         install_nest(module_bld_dir, config.NEST_PATH)
         if os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, module + "module.so")) and \
-            os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, "lib" + module + "module.so")):
+                os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, "lib" + module + "module.so")):
             logger.info("DONE compiling %s!" % module)
         else:
             logger.warn("Something seems to have gone wrong with compiling %s!" % module)

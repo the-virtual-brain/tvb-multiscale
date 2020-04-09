@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from itertools import cycle
+
 import numpy as np
 from pandas import Series
+from tvb.simulator.plot.utils.data_structures_utils import ensure_list
+
 from tvb_multiscale.interfaces.tvb_to_spikeNet_parameter_interface import TVBtoSpikeNetParameterInterface
-from tvb_scripts.utils.data_structures_utils import ensure_list
 
 
 class TVBtoNESTParameterInterface(TVBtoSpikeNetParameterInterface):

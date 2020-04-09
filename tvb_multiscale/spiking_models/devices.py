@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-
 from collections import OrderedDict
+
+import numpy as np
 import pandas as pd
 import xarray as xr
-import numpy as np
-
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils \
+from tvb.simulator.plot.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
+from tvb.simulator.plot.utils.data_structures_utils \
     import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
     sort_events_by_x_and_y, data_xarray_from_continuous_events
-from tvb_scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
-
+from tvb.simulator.plot.utils.log_error_utils import initialize_logger, raise_value_error
 
 LOG = initialize_logger(__name__)
 
@@ -174,7 +172,7 @@ InputDeviceDict = {}
 
 class OutputDevice(Device):
     model = "output_device"
-    
+
     def __init__(self, device, *args, **kwargs):
         super(OutputDevice, self).__init__(device, *args, **kwargs)
         self.model = "output_device"
@@ -351,7 +349,7 @@ class SpikeDetector(OutputDevice):
                                         name=None, **kwargs):
         if spikes_kernel is None:
             # Default spikes' kernel is just a rectangular one, normalized with its width.
-            spikes_kernel = np.ones((spikes_kernel_width_in_points, )) / spikes_kernel_width
+            spikes_kernel = np.ones((spikes_kernel_width_in_points,)) / spikes_kernel_width
 
         if name is None:
             name = self.model + " - Total spike rate across time"
@@ -492,7 +490,7 @@ class Multimeter(OutputDevice):
             coords[dims_names[1]] = neurons
             data = np.empty((len(variables), len(neurons)))
             for i_var in range(len(variables)):
-                data[i_var] = np.zeros((n_neurons, ))
+                data[i_var] = np.zeros((n_neurons,))
         return xr.DataArray(data, coords=coords, dims=list(coords.keys()), name=name)
 
     def current_data_mean(self, variables=None, neurons=None, exclude_neurons=[],
@@ -537,7 +535,7 @@ class Voltmeter(Multimeter):
         return self.get_mean_data()
 
     def current_data(self, neurons=None, exclude_neurons=[],
-                          name=None, dims_names=["Variable", "Neuron"]):
+                     name=None, dims_names=["Variable", "Neuron"]):
         return super(Voltmeter, self).current_data(self.var, neurons, exclude_neurons,
                                                    name, dims_names)
 
@@ -657,7 +655,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
 
     def compute_spikes_activity_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                             spikes_kernel=None, mode="per_neuron",
-                                            name=None, rate_mode="activity",  **kwargs):
+                                            name=None, rate_mode="activity", **kwargs):
 
         if name is None:
             name = self.model + " - Total spike activity accross time"
@@ -667,7 +665,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                 spikes[i_spike] = np.heaviside(spike, 0.0)
 
         if spikes_kernel is None:
-            spikes_kernel = np.ones((spikes_kernel_width_in_points, ))
+            spikes_kernel = np.ones((spikes_kernel_width_in_points,))
             if rate_mode.find("rate") > -1:
                 # For spike rate computation we have to normalize with the kernel width in time units
                 spikes_kernel /= spikes_kernel_width
@@ -695,7 +693,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                                         name=None, **kwargs):
         return self.compute_spikes_activity_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
                                                         spikes_kernel=spikes_kernel, mode=mode,
-                                                        name=name, rate_mode="rate",  **kwargs)
+                                                        name=name, rate_mode="rate", **kwargs)
 
     def compute_mean_spikes_activity_across_time(self, time, spike_kernel_width,
                                                  spikes_kernel=None, name=None, **kwargs):
@@ -713,7 +711,6 @@ OutputDeviceDict = {"spike_detector": SpikeDetector,
                     "multimeter": Multimeter,
                     "spike_multimeter": SpikeMultimeter,
                     "voltmeter": Voltmeter}
-
 
 OutputSpikeDeviceDict = {"spike_detector": SpikeDetector,
                          "spike_multimeter": SpikeMultimeter}
