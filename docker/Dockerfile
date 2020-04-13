@@ -2,7 +2,7 @@
 # TVB & NEST simulations environment
 #
 # Install Python 3.7, NEST, then tvb-library from Pypi
-# Finally link tvb-scripts and tvb-nest from Github sources
+# Finally link tvb-multiscale from Github sources
 #
 
 FROM neurodebian:buster
