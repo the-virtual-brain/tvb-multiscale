@@ -115,12 +115,6 @@ RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
 
-RUN git clone --depth 1 https://github.com/dionperd/tvb-scripts.git
-ARG LAST_SHA_SCRIPTS=LATEST
-RUN cd tvb-scripts; \
-    git pull; \
-    $VENV/bin/python setup.py develop --no-deps;
-
 WORKDIR /home/docker/
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}

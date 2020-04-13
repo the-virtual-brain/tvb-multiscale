@@ -2,11 +2,18 @@
 from matplotlib import pyplot
 import numpy as np
 from xarray import DataArray
-from tvb_scripts.plot.base_plotter import BasePlotter
+from tvb_multiscale.config import Config, CONFIGURED
 from tvb_scripts.utils.data_structures_utils import ensure_list
+from tvb.simulator.plot.base_plotter import BasePlotter
 
 
 class SpikesPlotter(BasePlotter):
+
+    def __init__(self, config=CONFIGURED.figures):
+        if isinstance(config, Config) or issubclass(config.__class__, Config):
+            super(SpikesPlotter, self).__init__(config.figures)
+        else:
+            super(SpikesPlotter, self).__init__(config)
 
     def _get_rates(self, rates):
         # If we plot rates, we need to....
@@ -62,11 +69,11 @@ class SpikesPlotter(BasePlotter):
         if figure_name is None:
             figure_name = title
         if figsize is None:
-            figsize = self.config.figures.LARGE_SIZE
+            figsize = self.config.LARGE_SIZE
         return figure_name, figsize
 
     def _rate_ytick_labels(self, max_rate, yticks):
-        rate_step = max_rate / len(yticks)
+        rate_step = np.maximum(max_rate / len(yticks), 1.0)
         yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
         return ["%0.2f" % yticklabel for yticklabel in yticklabels]
 

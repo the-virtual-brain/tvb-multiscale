@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
-
-from tvb_scripts.plot.plotter import Plotter as BasePlotter
+from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.plot.multimeter_plotter import MultimeterPlotter
 from tvb_multiscale.plot.spikes_plotter import SpikesPlotter
 
+from tvb.simulator.plot.plotter import Plotter as BasePlotter
+
 
 class Plotter(BasePlotter):
+
+    def __init__(self, config=CONFIGURED.figures):
+        if isinstance(config, Config) or issubclass(config.__class__, Config):
+            super(Plotter, self).__init__(config.figures)
+        else:
+            super(Plotter, self).__init__(config)
 
     def plot_spikes(self, *args, **kwargs):
         return SpikesPlotter(self.config).plot_spikes(*args, **kwargs)
