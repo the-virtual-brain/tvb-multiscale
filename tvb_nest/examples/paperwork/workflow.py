@@ -46,7 +46,6 @@ class Workflow(object):
     writer = True
     plotter = True
     path = ""
-    filename = ""
     h5_file = None
 
     connectivity_path = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
@@ -80,24 +79,52 @@ class Workflow(object):
         return self.connectivity.number_of_regions
 
     def configure(self):
+        for param, val in self.model_params.items():
+            self.config.out._out_base += ("_%s%.1f" % (param, val))
         if self.writer:
             if self.writer is True:
                 self.writer = H5Writer()
-            self.filename = "sim"
-            for param, val in self.model_params.items():
-                self.filename += ("_%s%.1f" % (param, val))
-            self.path = os.path.join(self.config.out.FOLDER_RES, self.filename)
+            self.path = os.path.join(self.config.out.FOLDER_RES, "params.h5")
+            self.create_file()
         if self.plotter:
             if self.plotter is True:
                 self.plotter = Plotter(self.config)
 
-    def write_group(self, data, name, method, close_file=True):
+    def create_file(self, close_file=True):
+        self.writer.write_mode = "w"
+        self.h5_file, self.path = self.writer._open_file("multiple groups", self.path)
+        self.close_file(close_file)
+        self.writer.write_mode = "a"  # From now on we append file
+
+    def open_file(self):
         if self.h5_file is None:
-            self.h5_file = self.writer._open_file("multiple groups", self.path)
-        getattr(self.writer, "write_%s" % method)(data, h5_file=self.h5_file[name])
+            self.h5_file, self.path = self.writer._open_file("multiple groups", self.path)
+        return self.h5_file
+
+    def close_file(self, close_file=True):
         if close_file:
             self.h5_file.close()
-        self.h5_file = None
+            self.h5_file = None
+
+    def write_group(self, data, name, method, close_file=True):
+        if self.h5_file is None:
+            self.h5_file = self.open_file()
+        try:
+            self.h5_file[name]
+        except:
+            self.h5_file.create_group(name)
+        getattr(self.writer, "write_%s" % method)(data, h5_file=self.h5_file[name], close_file=False)
+        self.close_file(close_file)
+
+    def write_ts(self, ts, name, recursive=True):
+        path = self.path.replace("params.h5", "%s.h5" % name)
+        self.writer.write_tvb_to_h5(ts, path, recursive)
+
+    def write_object(self, ts, name):
+        self.writer.write_mode = "w"
+        path = self.path.replace("params.h5", "%s.h5" % name)
+        self.writer.write_object(ts, path=path)
+        self.writer.write_mode = "a"
 
     @property
     def general_parameters(self):
@@ -105,11 +132,10 @@ class Workflow(object):
                  "tvb_connectivity_path": self.connectivity_path,
                 "decouple": self.decouple, "time_delays": self.time_delays, "force_dims": str(self.force_dims),
                 "transient": self.transient, "simulation_length": self.simulation_length,
-                "filename": self.filename, "path": self.path
-                }
+                "path": self.config.out._out_base}
 
     def write_general_params(self, close_file=True):
-        self.write_group(self.general_params, "general_params", "dictionary", close_file=close_file)
+        self.write_group(self.general_parameters, "general_params", "dictionary", close_file=close_file)
 
     def write_model_params(self, close_file=True):
         self.write_group(self.model_params, "model_params", "dictionary", close_file=close_file)
@@ -132,7 +158,9 @@ class Workflow(object):
                  "noise_strength": self.simulator.integrator.noise.nsig}
 
     def write_tvb_simulator(self):
-        self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
+        self.writer.write_tvb_to_h5(self.simulator.connectivity,
+                                    os.path.join(self.config.out.FOLDER_RES, "Connectivity.h5"))
+        # self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
         self.write_group(self.simulator.model.__dict__, "tvb_model", "dictionary", close_file=False)
         self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=True)
 
@@ -152,39 +180,38 @@ class Workflow(object):
 
     def prepare_simulator(self):
         self.prepare_connectivity()
-
         self.simulator = Simulator()
-
         self.simulator.connectivity = self.connectivity
-
         self.simulator.model = self.tvb_model(**self.model_params)
-
         self.simulator.integrator = self.integrator()
         self.simulator.integrator.dt = self.dt
         #                                            S_e,   S_i,  R_e, R_i
         self.simulator.integrator.noise.nsig = self.tvb_noise_strength
-
         mon_raw = Raw(period=self.simulator.integrator.dt)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
-
         if self.plotter:
             self.plotter.plot_tvb_connectivity(self.simulator.connectivity)
-
         if self.writer:
             self.write_tvb_simulator()
 
     def write_nest_network(self):
-        pass
-        # for pop_params in pops_params:
-        #     for self.nest_model_builder
-        #
-        # nest_network_dict = {""}
-        # h5_file = \
-        #     write_group(simulator.connectivity, "nest_population_model_params", "list_of_dictionaryies",
-        #                 h5_file, writer, config, close_file=False)
+        self.write_group({"population_order": self.nest_model_builder.population_order,
+                          "N_E": self.N_E, "N_I": self.N_I},
+                         "nest_network/props", "dictionary", close_file=False)
+        self.write_group(self.nest_model_builder.params_ex, "nest_network/params_ex", "dictionary", False)
+        self.write_group(self.nest_model_builder.params_in, "nest_network/params_in", "dictionary", False)
+        self.write_group(self.nest_model_builder.populations,
+                         "nest_network/populations", "list_of_dictionaries", False)
+        self.write_group(self.nest_model_builder.populations_connections,
+                         "nest_network/populations_connections", "list_of_dictionaries", False)
+        self.write_group(self.nest_model_builder.nodes_connections,
+                         "nest_network/nodes_connections", "list_of_dictionaries", False)
+        self.write_group(self.nest_model_builder.output_devices,
+                         "nest_network/output_devices", "list_of_objects", False)
+        self.write_group(self.nest_model_builder.input_devices,
+                         "nest_network/input_devices", "list_of_objects", True)
 
     def prepare_nest_network(self):
-
 
         # Build a NEST network model with the corresponding builder
         # Using all default parameters for this example
@@ -254,7 +281,8 @@ class Workflow(object):
 
         def param_fun(node_index, params, lamda=1.0):
             w_E_ext = lamda * G * \
-                      self.nest_model_builder.tvb_weights[:, list(self.nest_model_builder.spiking_nodes_ids).index(node_index)]
+                      self.nest_model_builder.tvb_weights[:,
+                        list(self.nest_model_builder.spiking_nodes_ids).index(node_index)]
             w_E_ext[node_index] = 1.0  # this is external input weight to this node
             out_params = dict(params)
             out_params.update({"w_E_ext": w_E_ext})
@@ -495,6 +523,16 @@ class Workflow(object):
 
         return self.interface_builder
 
+    def write_interface(self):
+        interface_props = {}
+        for prop in ["tvb_nodes_ids", "spiking_nodes_ids",
+                     "w_tvb_to_spike_rate", "w_tvb_to_current", "w_tvb_to_potential",
+                     "w_spikes_to_tvb", "w_spikes_var_to_tvb", "w_potential_to_tvb"]:
+            interface_props[prop] = getattr(self.interface_builder, prop)
+        self.write_group(interface_props, "tvb_nest_interface/props", "dictionary", close_file=False)
+        self.write_group(self.interface_builder.tvb_to_spikeNet_interfaces,
+                         "tvb_nest_interface/interfaces", "list_of_objects", True)
+
     def prepare_interface(self):
 
         G = self.simulator.model.G[0]
@@ -517,6 +555,9 @@ class Workflow(object):
             self.interface_builder = self.prepare_dc_interface(G, lamda)
         elif self.interface == "Ie":
             self.interface_builder = self.prepare_Ie_interface(lamda)
+
+        if self.writer:
+            self.write_interface()
 
         self.tvb_nest_model = self.interface_builder.build_interface()
 
@@ -558,8 +599,14 @@ class Workflow(object):
                                           "Region": self.simulator.connectivity.region_labels.tolist()},
                                        sample_period=self.simulator.integrator.dt)
 
+        if self.writer:
+            self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
+
         if self.tvb_nest_model is not None:
             self.nest_ts, self.nest_spikes = self.get_nest_data()
+            if self.writer:
+                self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
+                self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
 
         return self.nest_ts, self.nest_spikes, self.tvb_ts
 
@@ -585,6 +632,7 @@ class Workflow(object):
         self.rates["NEST"] = DataArray(np.array(rates),
                                        dims=["Population", "Region"],
                                        coords={"Population": pop_labels, "Region": reg_labels})
+
         return self.rates["NEST"]
 
     def get_tvb_rates(self, tvb_rates):
@@ -690,11 +738,11 @@ class Workflow(object):
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
-    def run(self, **model_params):
-
+    def run(self):
         if self.writer:
            self.write_general_params(close_file=False)
-           self.write_model_params()
+           if len(self.model_params) > 0:
+               self.write_model_params(close_file=True)
 
         # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
         print("Preparing TVB simulator...")
@@ -731,8 +779,12 @@ class Workflow(object):
         self.rates = {}
         if self.nest_spikes is not None:
             self.rates["NEST"] = self.get_nest_rates()
+            if self.writer:
+                self.write_object(self.rates["NEST"].to_dict(), "NEST_rates")
         if self.tvb_ts is not None:
             self.rates["TVB"] = self.get_tvb_rates(self.tvb_ts[:, ["R_e", "R_i"]].squeeze())
+            if self.writer:
+                self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
