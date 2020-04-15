@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from tvb_multiscale.interfaces.spikeNet_to_tvb_interface import SpikeNetToTVBinterface
 
 

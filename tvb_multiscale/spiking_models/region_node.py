@@ -2,8 +2,9 @@
 from abc import ABCMeta, abstractmethod
 from pandas import Series
 
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import flatten_tuple
+from tvb_multiscale.config import initialize_logger
+
+from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple
 
 
 LOG = initialize_logger(__name__)

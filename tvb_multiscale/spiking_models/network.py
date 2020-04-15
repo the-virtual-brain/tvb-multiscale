@@ -3,12 +3,13 @@ from abc import ABCMeta, abstractmethod
 import pandas as pd
 import xarray as xr
 import numpy as np
-from tvb_multiscale.config import CONFIGURED
+
+from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.spiking_models.devices \
     import DeviceSet, OutputSpikeDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import ensure_list
+
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 LOG = initialize_logger(__name__)

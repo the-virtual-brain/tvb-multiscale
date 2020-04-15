@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+
 import numpy as np
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.base import NESTModelBuilder

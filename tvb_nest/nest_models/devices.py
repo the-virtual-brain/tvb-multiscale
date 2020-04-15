@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from tvb_multiscale.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeDetector, Multimeter, Voltmeter, SpikeMultimeter

@@ -2,11 +2,11 @@
 from xarray import DataArray
 import pandas as pd
 import numpy as np
-from tvb_multiscale.config import CONFIGURED
+from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.spiking_models.devices import InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import is_integer
-from tvb_scripts.datatypes.time_series import TimeSeries, TimeSeriesRegion
+
+from tvb.contrib.scripts.utils.data_structures_utils import is_integer
+from tvb.contrib.scripts.datatypes.time_series import TimeSeries, TimeSeriesRegion
 
 
 LOG = initialize_logger(__name__)

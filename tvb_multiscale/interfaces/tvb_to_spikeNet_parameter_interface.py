@@ -3,7 +3,9 @@ from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 from pandas import Series
 import numpy as np
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+
+from tvb_multiscale.config import initialize_logger
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 
 
 LOG = initialize_logger(__name__)
