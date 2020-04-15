@@ -20,7 +20,9 @@ from tvb.simulator.simulator import Simulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion
+from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
+from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
 
 CONFIGURED.NEST_MIN_DT = 0.01
@@ -55,6 +57,7 @@ class Workflow(object):
     force_dims = None
 
     tvb_model = ReducedWongWangExcIOInhI
+    tvb_nodes_ids = []
 
     dt = 0.1
     integrator = HeunStochastic
@@ -67,10 +70,17 @@ class Workflow(object):
     nest_nodes_ids = []
     nest_populations_order = 100
     nest_stimulus_rate = 2400.0
+    nest_network = None
 
     interface_builder = InterfaceWWDeco2014Builder
     interface = "rate"
     exclusive_nodes = True
+    tvb_nest_model = None
+
+    tvb_ts = None
+    nest_ts = None
+    nest_spikes = None
+    rates = None
 
     def __init__(self, **model_params):
         self.model_params = model_params
@@ -118,7 +128,9 @@ class Workflow(object):
         self.close_file(close_file)
 
     def write_ts(self, ts, name, recursive=True):
-        self.writer.write_tvb_to_h5(ts, self.path.replace("params.h5", "%s.h5" % name), recursive)
+        self.writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data,
+                                                                             connectivity=ts.connectivity),
+                                    self.path.replace("params.h5", "%s.h5" % name), recursive)
 
     def write_object(self, ts, name):
         self.writer.write_mode = "w"
@@ -140,14 +152,17 @@ class Workflow(object):
         self.write_group(self.model_params, "model_params", "dictionary", close_file=close_file)
 
     def force_dimensionality(self):
-        dim = self.force_dims
-        self.connectivity.weights = self.connectivity.weights[:dim][:, :dim]
-        self.connectivity.tract_lengths = self.connectivity.tract_lengths[:dim][:, :dim]
-        self.connectivity.centres = self.connectivity.centres[:dim]
-        self.connectivity.areas = self.connectivity.areas[:dim]
-        self.connectivity.orientations = self.connectivity.orientations[:dim]
-        self.connectivity.cortical = self.connectivity.cortical[:dim]
-        self.connectivity.hemisphere = self.connectivity.hemisphere[:dim]
+        if is_integer(self.force_dims):
+            inds = np.arange(self.force_dims).astype("i")
+        else:
+            inds = ensure_list(self.force_dims)
+        self.connectivity.weights = self.connectivity.weights[inds][:, inds]
+        self.connectivity.tract_lengths = self.connectivity.tract_lengths[inds][:, inds]
+        self.connectivity.centres = self.connectivity.centres[inds]
+        self.connectivity.areas = self.connectivity.areas[inds]
+        self.connectivity.orientations = self.connectivity.orientations[inds]
+        self.connectivity.cortical = self.connectivity.cortical[inds]
+        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
 
     @property
     def integrator_dict(self):
@@ -194,9 +209,6 @@ class Workflow(object):
             self.write_tvb_simulator()
 
     def write_nest_network(self):
-        self.write_group({"population_order": self.nest_model_builder.population_order,
-                          "N_E": self.N_E, "N_I": self.N_I},
-                         "nest_network/props", "dictionary", close_file=False)
         self.write_group(self.nest_model_builder.params_ex, "nest_network/params_ex", "dictionary", False)
         self.write_group(self.nest_model_builder.params_in, "nest_network/params_in", "dictionary", False)
         self.write_group(self.nest_model_builder.populations,
@@ -302,6 +314,9 @@ class Workflow(object):
                                                     lamda=lamda),
              "scale": inh_pop_scale}
         ]
+        # Just in case we need them:
+        self.populations = ["E", "I"]
+        self.populations_size = [self.N_E, self.N_I]
 
         # Within region-node connections
         # When any of the properties model, conn_spec, weight, delay, receptor_type below
@@ -565,7 +580,7 @@ class Workflow(object):
     def get_nest_data(self):
 
         self.nest_ts = \
-            TimeSeriesRegion(
+            TimeSeriesRegionX(
                 self.nest_network.get_data_from_multimeter(mode="per_neuron"),
                 connectivity=self.connectivity)[self.transient:]
 
@@ -583,14 +598,15 @@ class Workflow(object):
         # ...and simulate!
         results = self.simulator.run(simulation_length=self.simulation_length)
 
-        # Integrate NEST one more NEST time step so that multimeters get the last time point
-        # unless you plan to continue simulation later
-        self.simulator.run_spiking_simulator(
-            self.simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
-        # Clean-up NEST simulation
-        self.simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
+        if self.simulator.tvb_spikeNet_interface is not None:
+            # Integrate NEST one more NEST time step so that multimeters get the last time point
+            # unless you plan to continue simulation later
+            self.simulator.run_spiking_simulator(
+                self.simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
+            # Clean-up NEST simulation
+            self.simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
 
-        self.tvb_ts = TimeSeriesRegion(results[0][1], time=results[0][0],
+        self.tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
                                        connectivity=self.simulator.connectivity,
                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],
                                        labels_dimensions={
@@ -607,10 +623,10 @@ class Workflow(object):
                 self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
                 self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
 
-        return self.nest_ts, self.nest_spikes, self.tvb_ts
+        return self.tvb_ts, self.nest_ts, self.nest_spikes
 
     def simulate_nest(self, cleanup=True):
-        self.nest_network.Prepare()
+        self.nest_network.configure()
         self.nest_network.Run(self.simulation_length)
         self.nest_ts, self.nest_spikes = self.get_nest_data()
         if cleanup:
@@ -620,13 +636,15 @@ class Workflow(object):
     def get_nest_rates(self):
         rates = []
         pop_labels = []
-        for pop_label, pop_spikes in self.nest_spikes.iteritems():
+        for i_pop, (pop_label, pop_spikes) in enumerate(self.nest_spikes.iteritems()):
             pop_labels.append(pop_label)
             rates.append([])
             reg_labels = []
             for reg_label, reg_spikes in pop_spikes.iteritems():
                 reg_labels.append(reg_label)
-                rates[-1].append(len(reg_spikes) / self.duration)
+                # rates (spikes/sec) =
+                #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
+                rates[-1].append(len(reg_spikes["times"]) / self.duration / self.populations_size[i_pop])
 
         self.rates["NEST"] = DataArray(np.array(rates),
                                        dims=["Population", "Region"],
@@ -672,9 +690,9 @@ class Workflow(object):
             pass
         for dim in labels_ordering:
             labels_dimensions[dim] = self.nest_ts.coords[dim]
-        mean_field = TimeSeriesRegion(self.nest_ts._data.mean(axis=-1), connectivity=self.nest_ts.connectivity,
-                                      labels_ordering=labels_ordering, labels_dimensions=labels_dimensions,
-                                      title="Mean field spiking nodes time series")
+        mean_field = TimeSeriesRegionX(self.nest_ts._data.mean(axis=-1), connectivity=self.nest_ts.connectivity,
+                                       labels_ordering=labels_ordering, labels_dimensions=labels_dimensions,
+                                       title="Mean field spiking nodes time series")
 
         # We place here all variables that relate to local excitatory synapses
         mean_field_exc = mean_field[:, ["spikes_exc", "s_AMPA", "I_AMPA", "x_NMDA", "s_NMDA", "I_NMDA"]]
@@ -705,7 +723,7 @@ class Workflow(object):
                 _data.sum(axis=1).expand_dims(axis=1, dim={"Variable": ["spikes_exc_ext_tot"]})
 
         # We place here all variables that relate to large-scale excitatory synapses
-        mean_field_ext = TimeSeriesRegion(
+        mean_field_ext = TimeSeriesRegionX(
             concat([spikes_exc_ext_tot, s_AMPA_ext_tot, I_AMPA_ext_tot,
                     spikes_exc_ext_nest_nodes, s_AMPA_ext_nest_nodes, I_AMPA_ext_nest_nodes], "Variable"),
             connectivity=mean_field.connectivity)
@@ -747,15 +765,20 @@ class Workflow(object):
         print("Preparing TVB simulator...")
         self.prepare_simulator()
 
+        self.tvb_nodes_inds = list(range(self.simulator.connectivity.number_of_regions))
+
         # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
-        print("Building NEST network...")
-        tic = time.time()
-        self.prepare_nest_network()
-        print("Done! in %f min" % ((time.time() - tic) / 60))
+        if len(self.nest_nodes_ids) > 0:
+            for ind in self.nest_nodes_ids:
+                self.tvb_nodes_inds.remove(ind)
+            tic = time.time()
+            print("Building NEST network...")
+            self.prepare_nest_network()
+            print("Done! in %f min" % ((time.time() - tic) / 60))
 
         # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
-        if self.interface is not None:
+        if self.interface is not None and self.nest_network is not None:
             print("Building TVB-NEST interface...")
             tic = time.time()
             self.prepare_interface()
@@ -765,14 +788,14 @@ class Workflow(object):
 
         # -----------------------------------4. Simulate and gather results-------------------------------------------------
         t_start = time.time()
-        if self.tvb_nest_model is not None or len(self.nest_nodes_ids) == 0:
+        if self.tvb_nest_model is not None or len(self.tvb_nodes_inds) != 0:
             self.cosimulate()
 
         else:
             self.simulate_nest()
         print("\nSimulated in %f secs!" % (time.time() - t_start))
 
-        self.duration = self.simulation_length - self.transient
+        self.duration = (self.simulation_length - self.transient) / 1000  # make it seconds
 
         # -----------------------------------5. Compute rate per region and population--------------------------------------
         self.rates = {}
@@ -787,7 +810,9 @@ class Workflow(object):
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
-            self.plot_tvb_ts()
-            self.plot_nest_ts()
+            if self.tvb_ts is not None:
+                self.plot_tvb_ts()
+            if self.nest_ts is not None:
+                self.plot_nest_ts()
 
         return self.rates
