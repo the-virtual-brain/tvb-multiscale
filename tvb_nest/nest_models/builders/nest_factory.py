@@ -6,11 +6,12 @@ import shutil
 from six import string_types
 import numpy as np
 
-from tvb_nest.config import CONFIGURED
-from tvb_multiscale.spiking_models.builders.factory import log_path
+from tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils import ensure_list
+from tvb_multiscale.spiking_models.builders.factory import log_path
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 LOG = initialize_logger(__name__)

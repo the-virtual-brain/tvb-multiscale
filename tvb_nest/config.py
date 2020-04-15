@@ -2,7 +2,8 @@
 
 import os
 from tvb_multiscale.config import Config as ConfigBase
-from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
+from tvb_multiscale.config import DEFAULT_SUBJECT_PATH, initialize_logger
+
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
 WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
@@ -13,6 +14,7 @@ TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
 WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
 MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
 MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
+
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:

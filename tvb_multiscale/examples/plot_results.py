@@ -3,7 +3,8 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.plot.plotter import Plotter
-from tvb_scripts.datatypes.time_series import TimeSeriesRegion
+
+from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 
 
 def plot_results(results, simulator, tvb_state_variable_type_label="", tvb_state_variables_labels=[],
@@ -74,7 +75,7 @@ def plot_results(results, simulator, tvb_state_variable_type_label="", tvb_state
     multimeter_mean_data = spiking_network.get_mean_data_from_multimeter()
 
     if multimeter_mean_data.size > 0:
-        from tvb_scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
+        from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
         ts = TimeSeriesXarray(multimeter_mean_data)
         # ts.plot(plotter=plotter, )

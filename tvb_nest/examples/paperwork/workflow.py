@@ -12,14 +12,15 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.ww_deco2014 import WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
+
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.simulator import Simulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_scripts.datatypes.time_series_xarray import TimeSeriesRegion
-from tvb_scripts.io.h5_writer import H5Writer
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion
 
 
 CONFIGURED.NEST_MIN_DT = 0.01
@@ -117,13 +118,11 @@ class Workflow(object):
         self.close_file(close_file)
 
     def write_ts(self, ts, name, recursive=True):
-        path = self.path.replace("params.h5", "%s.h5" % name)
-        self.writer.write_tvb_to_h5(ts, path, recursive)
+        self.writer.write_tvb_to_h5(ts, self.path.replace("params.h5", "%s.h5" % name), recursive)
 
     def write_object(self, ts, name):
         self.writer.write_mode = "w"
-        path = self.path.replace("params.h5", "%s.h5" % name)
-        self.writer.write_object(ts, path=path)
+        self.writer.write_object(ts, path=self.path.replace("params.h5", "%s.h5" % name))
         self.writer.write_mode = "a"
 
     @property

@@ -2,10 +2,12 @@
 from six import string_types
 from pandas import Series
 import numpy as np
-from tvb_multiscale.config import CONFIGURED
+
+from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.interfaces.tvb_to_spikeNet_parameter_interface import TVBtoSpikeNetParameterInterface
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils import property_to_fun
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 
 LOG = initialize_logger(__name__)

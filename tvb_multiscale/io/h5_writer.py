@@ -5,17 +5,19 @@ import h5py
 import inspect
 import numpy
 
-from tvb_scripts.config import CONFIGURED
-from tvb_scripts.utils.log_error_utils import initialize_logger, warning
-from tvb_scripts.utils.data_structures_utils import is_numeric
-from tvb_scripts.utils.file_utils import change_filename_or_overwrite
+from tvb_nest.config import CONFIGURED, initialize_logger
+from tvb_multiscale.io.datatypes_h5 import REGISTRY
 
 from tvb.core.neocom import h5
+from tvb.contrib.scripts.utils.log_error_utils import warning
+from tvb.contrib.scripts.utils.data_structures_utils import is_numeric
+from tvb.contrib.scripts.utils.file_utils import change_filename_or_overwrite
 
 
 class H5Writer(object):
-    logger = initialize_logger(__name__)
+
     config = CONFIGURED
+    logger = initialize_logger(__name__)
     H5_TYPE_ATTRIBUTE = "Type"
     H5_SUBTYPE_ATTRIBUTE = "Subtype"
     H5_VERSION_ATTRIBUTE = "Version"

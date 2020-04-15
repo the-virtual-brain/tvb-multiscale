@@ -6,11 +6,13 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
-from tvb_scripts.utils.data_structures_utils \
+from tvb_multiscale.config import initialize_logger
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
     sort_events_by_x_and_y, data_xarray_from_continuous_events
-from tvb_scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
+from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
 
 LOG = initialize_logger(__name__)

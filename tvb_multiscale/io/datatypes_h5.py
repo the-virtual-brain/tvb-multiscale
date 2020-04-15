@@ -1,10 +1,9 @@
 # coding=utf-8
 
-from tvb_scripts.datatypes.time_series import *
-
 from tvb.config.init.datatypes_registry import REGISTRY, populate_datatypes_registry
 from tvb.adapters.datatypes.h5.time_series_h5 import *
 from tvb.adapters.datatypes.db.time_series import *
+from tvb.contrib.scripts.datatypes.time_series import *
 
 
 populate_datatypes_registry()

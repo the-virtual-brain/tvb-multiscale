@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict, NESTOutputSpikeDeviceDict
 from tvb_multiscale.interfaces.base import TVBSpikeNetInterface

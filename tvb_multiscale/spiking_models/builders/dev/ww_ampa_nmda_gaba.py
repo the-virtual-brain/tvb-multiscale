@@ -2,8 +2,8 @@
 
 from collections import OrderedDict
 from tvb_multiscale.config import CONFIGURED
-from tvb_multiscale.spiking_models.spiking_models_builders.base import SpikingModelBuilder
-from tvb_multiscale.spiking_models.spiking_models_builders import scale_tvb_weight, tvb_delay
+from tvb_multiscale.spiking_models.builders.base import SpikingModelBuilder
+from tvb_multiscale.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
 class WWAMPANMDAGABABuilder(SpikingModelBuilder):

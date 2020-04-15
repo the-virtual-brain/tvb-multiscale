@@ -10,6 +10,7 @@ from tvb_multiscale.examples.plot_results import plot_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
+
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
@@ -60,7 +61,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     source = results[0][1]
 
     # Put the results in a Timeseries instance
-    from tvb_scripts.time_series.model import TimeSeriesRegion
+    from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 
     source_ts = TimeSeriesRegion(source, time=t,
                                  connectivity=simulator.connectivity,
@@ -87,7 +88,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
 
 
 def mean_field_per_population(source_ts, populations, pop_sizes):
-    from tvb_scripts.time_series.service import TimeSeriesService
+    from tvb.contrib.scripts.service.time_series import TimeSeriesService
 
     ts_service = TimeSeriesService()
 
@@ -134,8 +135,8 @@ def spikes_per_population(source_spikes, populations, pop_sizes):
 
 
 def spike_rates_from_spike_ts(spikes, dt):
-    from tvb_scripts.utils.data_structures_utils import ensure_list
-    from tvb_scripts.time_series.service import TimeSeriesService
+    from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+    from tvb.contrib.scripts.service.time_series import TimeSeriesService
 
     ts_service = TimeSeriesService()
 
@@ -185,7 +186,7 @@ def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_re
 
     fig_spikes, axes_spikes = plotter.plot_spikes(spikes, rates=rate)
 
-    from tvb_scripts.time_series.time_series_xarray import TimeSeries as TimeSeriesXarray
+    from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
     mean_field_xr = TimeSeriesXarray(mean_field.get_subspace(spiking_regions_inds))
     mean_field_xr.plot_timeseries(per_variable=True, plotter=plotter, figsize=(10, 5))

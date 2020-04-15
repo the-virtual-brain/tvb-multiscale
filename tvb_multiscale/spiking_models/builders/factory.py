@@ -5,10 +5,11 @@ import numpy as np
 from pandas import Series
 from six import string_types
 
-from tvb_multiscale.config import CONFIGURED
+from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.spiking_models.devices import DeviceSet
-from tvb_scripts.utils.data_structures_utils import flatten_tuple, ensure_list
-from tvb_scripts.utils.log_error_utils import initialize_logger, raise_value_error
+
+from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple, ensure_list
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 
 
 LOG = initialize_logger(__name__)
