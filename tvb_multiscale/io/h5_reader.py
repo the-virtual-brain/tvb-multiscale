@@ -3,11 +3,12 @@
 import os
 import h5py
 
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.io.h5_writer import H5Writer
+from tvb_multiscale.config import initialize_logger
+from tvb_multiscale.io.h5_writer import H5Writer
 
 
 class H5Reader(object):
+
     logger = initialize_logger(__name__)
 
     H5_TYPE_ATTRIBUTE = H5Writer().H5_TYPE_ATTRIBUTE

@@ -3,10 +3,11 @@ from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 from pandas import Series
 import numpy as np
-from tvb_multiscale.config import CONFIGURED
+
+from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.interfaces.spikeNet_to_tvb_interface import SpikeNetToTVBinterface
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import property_to_fun
+
+from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 
 LOG = initialize_logger(__name__)

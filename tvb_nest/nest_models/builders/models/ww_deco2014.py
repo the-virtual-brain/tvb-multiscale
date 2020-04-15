@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 import numpy as np
+
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.base import NESTModelBuilder
 from tvb_multiscale.spiking_models.builders.templates import tvb_delay, receptor_by_source_region

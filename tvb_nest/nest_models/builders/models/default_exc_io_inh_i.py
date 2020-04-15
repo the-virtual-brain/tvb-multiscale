@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.base import NESTModelBuilder
 from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay

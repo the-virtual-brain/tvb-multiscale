@@ -2,9 +2,11 @@
 from matplotlib import pyplot
 import numpy as np
 from xarray import DataArray
+
 from tvb_multiscale.config import Config, CONFIGURED
-from tvb_scripts.utils.data_structures_utils import ensure_list
+
 from tvb.simulator.plot.base_plotter import BasePlotter
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class SpikesPlotter(BasePlotter):

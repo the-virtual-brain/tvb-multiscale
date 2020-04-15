@@ -3,9 +3,8 @@ from collections import OrderedDict
 from xarray import DataArray
 import numpy as np
 
-from tvb_scripts.datatypes.time_series import TimeSeries
-
 from tvb.simulator.plot.time_series_plotter import TimeSeriesPlotter
+from tvb.contrib.scripts.datatypes.time_series import TimeSeries
 
 
 class MultimeterPlotter(TimeSeriesPlotter):

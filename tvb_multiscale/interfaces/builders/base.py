@@ -2,6 +2,8 @@
 
 from pandas import Series
 import numpy as np
+
+from tvb_multiscale.config import initialize_logger
 from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_device_interface_builder import \
     TVBtoSpikeNetDeviceInterfaceBuilder
 from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_parameter_interface_builder import \
@@ -9,10 +11,10 @@ from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_parameter_interface_buil
 from tvb_multiscale.interfaces.builders.spikeNet_to_tvb_interface_builder import SpikeNetToTVBInterfaceBuilder
 from tvb_multiscale.spiking_models.network import SpikingNetwork
 from tvb_multiscale.spiking_models.devices import InputDeviceDict
-from tvb_scripts.utils.log_error_utils import initialize_logger
-from tvb_scripts.utils.data_structures_utils import ensure_list
 
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.simulator.simulator import Simulator
+
 
 LOG = initialize_logger(__name__)
 

@@ -6,13 +6,12 @@ import numpy as np
 
 from tvb_multiscale.config import CONFIGURED
 
-from tvb_scripts.utils.data_structures_utils import ensure_list
-
-from tvb.simulator.simulator import Simulator
 from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.simulator import Simulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class SimulatorBuilder(object):
