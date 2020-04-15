@@ -20,7 +20,8 @@ from tvb.simulator.simulator import Simulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion
+from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 
 
 CONFIGURED.NEST_MIN_DT = 0.01
@@ -118,7 +119,9 @@ class Workflow(object):
         self.close_file(close_file)
 
     def write_ts(self, ts, name, recursive=True):
-        self.writer.write_tvb_to_h5(ts, self.path.replace("params.h5", "%s.h5" % name), recursive)
+        self.writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data,
+                                                                             connectivity=ts.connectivity),
+                                    self.path.replace("params.h5", "%s.h5" % name), recursive)
 
     def write_object(self, ts, name):
         self.writer.write_mode = "w"
@@ -565,7 +568,7 @@ class Workflow(object):
     def get_nest_data(self):
 
         self.nest_ts = \
-            TimeSeriesRegion(
+            TimeSeriesRegionX(
                 self.nest_network.get_data_from_multimeter(mode="per_neuron"),
                 connectivity=self.connectivity)[self.transient:]
 
@@ -590,7 +593,7 @@ class Workflow(object):
         # Clean-up NEST simulation
         self.simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
 
-        self.tvb_ts = TimeSeriesRegion(results[0][1], time=results[0][0],
+        self.tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
                                        connectivity=self.simulator.connectivity,
                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],
                                        labels_dimensions={
@@ -672,9 +675,9 @@ class Workflow(object):
             pass
         for dim in labels_ordering:
             labels_dimensions[dim] = self.nest_ts.coords[dim]
-        mean_field = TimeSeriesRegion(self.nest_ts._data.mean(axis=-1), connectivity=self.nest_ts.connectivity,
-                                      labels_ordering=labels_ordering, labels_dimensions=labels_dimensions,
-                                      title="Mean field spiking nodes time series")
+        mean_field = TimeSeriesRegionX(self.nest_ts._data.mean(axis=-1), connectivity=self.nest_ts.connectivity,
+                                       labels_ordering=labels_ordering, labels_dimensions=labels_dimensions,
+                                       title="Mean field spiking nodes time series")
 
         # We place here all variables that relate to local excitatory synapses
         mean_field_exc = mean_field[:, ["spikes_exc", "s_AMPA", "I_AMPA", "x_NMDA", "s_NMDA", "I_NMDA"]]
@@ -705,7 +708,7 @@ class Workflow(object):
                 _data.sum(axis=1).expand_dims(axis=1, dim={"Variable": ["spikes_exc_ext_tot"]})
 
         # We place here all variables that relate to large-scale excitatory synapses
-        mean_field_ext = TimeSeriesRegion(
+        mean_field_ext = TimeSeriesRegionX(
             concat([spikes_exc_ext_tot, s_AMPA_ext_tot, I_AMPA_ext_tot,
                     spikes_exc_ext_nest_nodes, s_AMPA_ext_nest_nodes, I_AMPA_ext_nest_nodes], "Variable"),
             connectivity=mean_field.connectivity)
