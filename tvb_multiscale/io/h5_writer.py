@@ -5,7 +5,7 @@ import h5py
 import inspect
 import numpy
 
-from tvb_nest.config import CONFIGURED, initialize_logger
+from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.io.datatypes_h5 import REGISTRY
 
 from tvb.core.neocom import h5
