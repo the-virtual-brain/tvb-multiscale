@@ -30,7 +30,7 @@ class Config(ConfigBase):
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
-                          "conn_spec": {"autapses": False, 'multapses': True, 'rule': "all_to_all",
+                          "conn_spec": {"autapses": True, 'multapses': True, 'rule': "all_to_all",
                                         "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
     DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
