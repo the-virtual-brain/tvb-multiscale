@@ -9,7 +9,7 @@ from xarray import DataArray, concat
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.config import CONFIGURED
+from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.ww_deco2014 import WWDeco2014Builder as InterfaceWWDeco2014Builder
 from tvb_multiscale.io.h5_writer import H5Writer
@@ -44,7 +44,8 @@ CONFIGURED.NEST_INPUT_DEVICES_PARAMS_DEF = \
 
 
 class Workflow(object):
-    config = CONFIGURED
+    config = Config(separate_by_run=True)
+    pse_params = {}
 
     writer = True
     plotter = True
@@ -57,6 +58,7 @@ class Workflow(object):
     force_dims = None
 
     tvb_model = ReducedWongWangExcIOInhI
+    model_params = {}
     tvb_nodes_ids = []
 
     dt = 0.1
@@ -82,24 +84,36 @@ class Workflow(object):
     nest_spikes = None
     rates = None
 
-    def __init__(self, **model_params):
-        self.model_params = model_params
+    def __init__(self, **pse_params):
+        self.pse_params = pse_params
+
 
     @property
     def number_of_regions(self):
         return self.connectivity.number_of_regions
 
+    def _folder_name(self):
+        folder = []
+        for param, val in self.pse_params.items():
+            folder.append("%s%.1f" % (param, val))
+        return "_".join(folder)
+
     def configure(self):
-        for param, val in self.model_params.items():
-            self.config.out._out_base += ("_%s%.1f" % (param, val))
-        if self.writer:
-            if self.writer is True:
-                self.writer = H5Writer()
-            self.path = os.path.join(self.config.out.FOLDER_RES, "params.h5")
-            self.create_file()
-        if self.plotter:
-            if self.plotter is True:
-                self.plotter = Plotter(self.config)
+        if self.writer or self.plotter:
+            self.res_folder = os.path.join(self.config.out.FOLDER_RES, self._folder_name())
+            self.config.figures._out_base = self.res_folder
+            if not os.path.isdir(self.res_folder):
+                os.makedirs(self.res_folder)
+            if self.writer:
+                if self.writer is True:
+                    self.writer = H5Writer()
+                self.path = os.path.join(self.res_folder, "params.h5")
+                self.create_file()
+                if len(self.pse_params) > 0:
+                    self.write_pse_params(close_file=True)
+            if self.plotter:
+                if self.plotter is True:
+                    self.plotter = Plotter(self.config)
 
     def create_file(self, close_file=True):
         self.writer.write_mode = "w"
@@ -144,6 +158,9 @@ class Workflow(object):
                 "decouple": self.decouple, "time_delays": self.time_delays, "force_dims": str(self.force_dims),
                 "transient": self.transient, "simulation_length": self.simulation_length,
                 "path": self.config.out._out_base}
+
+    def write_pse_params(self, close_file=True):
+        self.write_group(self.pse_params, "pse_params", "dictionary", close_file=close_file)
 
     def write_general_params(self, close_file=True):
         self.write_group(self.general_parameters, "general_params", "dictionary", close_file=close_file)
@@ -203,7 +220,7 @@ class Workflow(object):
         self.simulator.integrator.noise.nsig = self.tvb_noise_strength
         mon_raw = Raw(period=self.simulator.integrator.dt)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
-        if self.plotter:
+        if self.plotter and self.simulator.connectivity.number_of_regions > 1:
             self.plotter.plot_tvb_connectivity(self.simulator.connectivity)
         if self.writer:
             self.write_tvb_simulator()
@@ -631,6 +648,9 @@ class Workflow(object):
         self.nest_ts, self.nest_spikes = self.get_nest_data()
         if cleanup:
             self.nest_network.nest_instance.Cleanup()
+        if self.writer:
+            self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
+            self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
         return self.nest_ts, self.nest_spikes
 
     def get_nest_rates(self):
@@ -755,7 +775,8 @@ class Workflow(object):
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
-    def run(self):
+    def run(self, **model_params):
+        self.model_params = model_params
         if self.writer:
            self.write_general_params(close_file=False)
            if len(self.model_params) > 0:
