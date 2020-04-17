@@ -183,6 +183,8 @@ class Workflow(object):
         self.connectivity.orientations = self.connectivity.orientations[inds]
         self.connectivity.cortical = self.connectivity.cortical[inds]
         self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
+        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
+        self.connectivity.region_labels = self.connectivity.region_labels[inds]
 
     @property
     def tvb_model_dict(self):
@@ -214,8 +216,9 @@ class Workflow(object):
         if self.decouple:
             self.connectivity.weights *= 0.0
         else:
-            self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
-            self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
+            if self.connectivity.weights.max() > 0.0:
+                self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
+                self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
         if not self.time_delays:
             self.connectivity.tract_lengths *= 0.0
         self.connectivity.configure()
@@ -821,13 +824,13 @@ class Workflow(object):
         print("Preparing TVB simulator...")
         self.prepare_simulator()
 
-        self.tvb_nodes_inds = list(range(self.simulator.connectivity.number_of_regions))
+        self.tvb_nodes_ids = list(range(self.simulator.connectivity.number_of_regions))
 
         # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
         if len(self.nest_nodes_ids) > 0:
             for ind in self.nest_nodes_ids:
-                self.tvb_nodes_inds.remove(ind)
+                self.tvb_nodes_ids.remove(ind)
             tic = time.time()
             print("Building NEST network...")
             self.prepare_nest_network()
@@ -844,7 +847,7 @@ class Workflow(object):
 
         # -----------------------------------4. Simulate and gather results-------------------------------------------------
         t_start = time.time()
-        if self.tvb_nest_model is not None or len(self.tvb_nodes_inds) != 0:
+        if self.tvb_nest_model is not None or len(self.tvb_nodes_ids) != 0:
             self.cosimulate()
 
         else:
