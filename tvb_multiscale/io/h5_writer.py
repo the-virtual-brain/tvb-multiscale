@@ -75,6 +75,8 @@ class H5Writer(object):
                         metadata_dict.update({key: value})
                     elif callable(value):
                         metadata_dict.update({key: inspect.getsource(value)})
+                    elif value is None:
+                        continue
                     else:
                         groups_keys.append(key)
         except:
@@ -138,32 +140,19 @@ class H5Writer(object):
                         temp = self._prepare_object_for_group(group[subgroup], child_object,
                                                               h5_type_attribute, nr_regions)
                         # If empty delete it
-                        if temp is None or len(temp.keys()) == 0:
+                        if temp is None or (len(temp.keys()) == 0 and len(temp.attrs.keys()) == 0):
                             del group[subgroup]
 
                 return group
             else:
                 return group, subgroups
 
-    def _write_dictionary_to_group(self, dictionary, group):
-        group.attrs.create(self.H5_TYPE_ATTRIBUTE, "Dictionary")
-        group.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, dictionary.__class__.__name__)
-        for key, value in dictionary.items():
-            try:
-                if isinstance(value, numpy.ndarray) and value.size > 0:
-                    group.create_dataset(key, data=value)
-                else:
-                    if isinstance(value, list) and len(value) > 0:
-                        group.create_dataset(key, data=value)
-                    elif callable(value):
-                        group.attrs.create(key, inspect.getsource(value))
-                    else:
-                        group.attrs.create(key, value)
-            except:
-                self.logger.warning("Did not manage to write " + key + " to h5 file " + str(group) + " !")
-
     def write_object(self, object, h5_type_attribute="", nr_regions=None,
                      path=None, h5_file=None, close_file=True):
+        """
+                :param object: object to write recursively in H5
+                :param path: H5 path to be written
+        """
         h5_file, path = self._open_file(object.__class__.__name__, path, h5_file)
         h5_file = self._prepare_object_for_group(h5_file, object, h5_type_attribute, nr_regions)
         self._close_file(h5_file, close_file)
@@ -182,10 +171,34 @@ class H5Writer(object):
         self._log_success("List of objects", path)
         return h5_file, path
 
+    def _write_dictionary_to_group(self, dictionary, group):
+        group.attrs.create(self.H5_TYPE_ATTRIBUTE, "Dictionary")
+        group.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, dictionary.__class__.__name__)
+        for key, value in dictionary.items():
+            try:
+                if isinstance(value, numpy.ndarray) and value.size > 0:
+                    group.create_dataset(key, data=value)
+                else:
+                    if isinstance(value, list) and len(value) > 0:
+                        group.create_dataset(key, data=numpy.array(value))
+                    elif callable(value):
+                        group.attrs.create(key, inspect.getsource(value))
+                    elif isinstance(value, dict):
+                        group.create_group(key)
+                        self._write_dictionary_to_group(value, group[key])
+                    elif value is None:
+                        continue
+                    else:
+                        group.attrs.create(key, str(value))
+            except:
+                self.logger.warning("Did not manage to write " + key + " to h5 file " + str(group) + " !")
+
     def write_dictionary(self, dictionary, path=None, h5_file=None, close_file=True):
         """
-        :param dictionary: dictionary to write in H5
+        :param dictionary: dictionary/ies to write recursively in H5
         :param path: H5 path to be written
+        Use this function only if you have to write dictionaries of data (scalars and arrays or lists of scalars,
+        or of more such dictionaries recursively
         """
         h5_file, path = self._open_file("Dictionary", path, h5_file)
         self._write_dictionary_to_group(dictionary, h5_file)
