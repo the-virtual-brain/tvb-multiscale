@@ -9,7 +9,7 @@ from xarray import DataArray, concat
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.config import CONFIGURED
+from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.ww_deco2014 import WWDeco2014Builder as InterfaceWWDeco2014Builder
 from tvb_multiscale.io.h5_writer import H5Writer
@@ -44,7 +44,8 @@ CONFIGURED.NEST_INPUT_DEVICES_PARAMS_DEF = \
 
 
 class Workflow(object):
-    config = CONFIGURED
+    config = Config(separate_by_run=True)
+    pse_params = {}
 
     writer = True
     plotter = True
@@ -57,6 +58,7 @@ class Workflow(object):
     force_dims = None
 
     tvb_model = ReducedWongWangExcIOInhI
+    model_params = {}
     tvb_nodes_ids = []
 
     dt = 0.1
@@ -73,7 +75,8 @@ class Workflow(object):
     nest_network = None
 
     interface_builder = InterfaceWWDeco2014Builder
-    interface = "rate"
+    tvb_to_nest_interface = "rate"
+    nest_to_tvb_interface = None
     exclusive_nodes = True
     tvb_nest_model = None
 
@@ -82,24 +85,36 @@ class Workflow(object):
     nest_spikes = None
     rates = None
 
-    def __init__(self, **model_params):
-        self.model_params = model_params
+    def __init__(self, **pse_params):
+        self.pse_params = pse_params
+
 
     @property
     def number_of_regions(self):
         return self.connectivity.number_of_regions
 
+    def _folder_name(self):
+        folder = []
+        for param, val in self.pse_params.items():
+            folder.append("%s%.1f" % (param, val))
+        return "_".join(folder)
+
     def configure(self):
-        for param, val in self.model_params.items():
-            self.config.out._out_base += ("_%s%.1f" % (param, val))
-        if self.writer:
-            if self.writer is True:
-                self.writer = H5Writer()
-            self.path = os.path.join(self.config.out.FOLDER_RES, "params.h5")
-            self.create_file()
-        if self.plotter:
-            if self.plotter is True:
-                self.plotter = Plotter(self.config)
+        if self.writer or self.plotter:
+            self.res_folder = os.path.join(self.config.out.FOLDER_RES, self._folder_name())
+            self.config.figures._out_base = self.res_folder
+            if not os.path.isdir(self.res_folder):
+                os.makedirs(self.res_folder)
+            if self.writer:
+                if self.writer is True:
+                    self.writer = H5Writer()
+                self.path = os.path.join(self.res_folder, "params.h5")
+                self.create_file()
+                if len(self.pse_params) > 0:
+                    self.write_pse_params(close_file=True)
+            if self.plotter:
+                if self.plotter is True:
+                    self.plotter = Plotter(self.config)
 
     def create_file(self, close_file=True):
         self.writer.write_mode = "w"
@@ -139,11 +154,16 @@ class Workflow(object):
 
     @property
     def general_parameters(self):
-        return {"nest_nodes_ids": self.nest_nodes_ids, "interface": str(self.interface),
-                 "tvb_connectivity_path": self.connectivity_path,
+        return {"nest_nodes_ids": self.nest_nodes_ids,
+                "tvb_to_nest_interface": str(self.tvb_to_nest_interface),
+                "nest_to_tvb_interface": str(self.nest_to_tvb_interface),
+                "tvb_connectivity_path": self.connectivity_path,
                 "decouple": self.decouple, "time_delays": self.time_delays, "force_dims": str(self.force_dims),
                 "transient": self.transient, "simulation_length": self.simulation_length,
                 "path": self.config.out._out_base}
+
+    def write_pse_params(self, close_file=True):
+        self.write_group(self.pse_params, "pse_params", "dictionary", close_file=close_file)
 
     def write_general_params(self, close_file=True):
         self.write_group(self.general_parameters, "general_params", "dictionary", close_file=close_file)
@@ -163,6 +183,16 @@ class Workflow(object):
         self.connectivity.orientations = self.connectivity.orientations[inds]
         self.connectivity.cortical = self.connectivity.cortical[inds]
         self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
+        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
+        self.connectivity.region_labels = self.connectivity.region_labels[inds]
+
+    @property
+    def tvb_model_dict(self):
+        tvb_model_dict = vars(self.simulator.model)
+        tvb_model_dict["gid"] = str(tvb_model_dict["gid"])
+        del tvb_model_dict["log"]
+        del tvb_model_dict["observe"]
+        return tvb_model_dict
 
     @property
     def integrator_dict(self):
@@ -175,7 +205,7 @@ class Workflow(object):
         self.writer.write_tvb_to_h5(self.simulator.connectivity,
                                     os.path.join(self.config.out.FOLDER_RES, "Connectivity.h5"))
         # self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
-        self.write_group(self.simulator.model.__dict__, "tvb_model", "dictionary", close_file=False)
+        self.write_group(self.tvb_model_dict, "tvb_model", "dictionary", close_file=False)
         self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=True)
 
     def prepare_connectivity(self):
@@ -186,8 +216,9 @@ class Workflow(object):
         if self.decouple:
             self.connectivity.weights *= 0.0
         else:
-            self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
-            self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
+            if self.connectivity.weights.max() > 0.0:
+                self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
+                self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
         if not self.time_delays:
             self.connectivity.tract_lengths *= 0.0
         self.connectivity.configure()
@@ -197,13 +228,15 @@ class Workflow(object):
         self.simulator = Simulator()
         self.simulator.connectivity = self.connectivity
         self.simulator.model = self.tvb_model(**self.model_params)
+        self.simulator.model.configure()
         self.simulator.integrator = self.integrator()
         self.simulator.integrator.dt = self.dt
         #                                            S_e,   S_i,  R_e, R_i
         self.simulator.integrator.noise.nsig = self.tvb_noise_strength
+        self.simulator.integrator.configure()
         mon_raw = Raw(period=self.simulator.integrator.dt)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
-        if self.plotter:
+        if self.plotter and self.simulator.connectivity.number_of_regions > 1:
             self.plotter.plot_tvb_connectivity(self.simulator.connectivity)
         if self.writer:
             self.write_tvb_simulator()
@@ -218,9 +251,9 @@ class Workflow(object):
         self.write_group(self.nest_model_builder.nodes_connections,
                          "nest_network/nodes_connections", "list_of_dictionaries", False)
         self.write_group(self.nest_model_builder.output_devices,
-                         "nest_network/output_devices", "list_of_objects", False)
+                         "nest_network/output_devices", "list_of_dictionaries", False)
         self.write_group(self.nest_model_builder.input_devices,
-                         "nest_network/input_devices", "list_of_objects", True)
+                         "nest_network/input_devices", "list_of_dictionaries", True)
 
     def prepare_nest_network(self):
 
@@ -383,8 +416,9 @@ class Workflow(object):
         #          label <- target population
         connections["E"] = "E"
         connections["I"] = "I"
+        params = dict(self.nest_model_builder.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
         self.nest_model_builder.output_devices.append(
-            {"model": "spike_detector", "params": {},
+            {"model": "spike_detector", "params": params,
              "connections": connections, "nodes": None})  # None means "all"
 
         connections = OrderedDict({})
@@ -407,19 +441,20 @@ class Workflow(object):
             {"model": "multimeter", "params": params,
              "connections": connections, "nodes": None})  # None means "all"
 
-        connections = OrderedDict({})
-        #          label <- target population
-        connections["Stimulus"] = ["E", "I"]
-        self.nest_model_builder.input_devices = [
-            {"model": "poisson_generator",
-             "params": {"rate": self.nest_stimulus_rate, "origin": 0.0,
-                        "start": 0.1,
-                        # "stop": 100.0
-                        },
-             "connections": connections, "nodes": None,
-             "weights": 1.0, "delays": 0.0,
-             "receptor_types": lambda target_node_id: int(target_node_id + 1)}
-        ]
+        if self.nest_stimulus_rate is not None and self.nest_stimulus_rate > 0:
+            connections = OrderedDict({})
+            #          label <- target population
+            connections["Stimulus"] = ["E", "I"]
+            self.nest_model_builder.input_devices = [
+                {"model": "poisson_generator",
+                 "params": {"rate": self.nest_stimulus_rate, "origin": 0.0,
+                            "start": 0.1,
+                            # "stop": 100.0
+                            },
+                 "connections": connections, "nodes": None,
+                 "weights": 1.0, "delays": 0.0,
+                 "receptor_types": lambda target_node_id: int(target_node_id + 1)}
+            ]
 
         # ----------------------------------------------------------------------------------------------------------------
         # ----------------------------------------------------------------------------------------------------------------
@@ -537,6 +572,21 @@ class Workflow(object):
 
         return self.interface_builder
 
+    def prepare_nest_to_tvb_interface(self):
+        # NEST -> TVB:
+        # Use S_e and S_i instead of r_e and r_i
+        # for transmitting to the TVB state variables directly
+        connections = OrderedDict()
+        #            TVB <- NEST
+        connections["R_e"] = ["E"]
+        connections["R_i"] = ["I"]
+        self.interface_builder.spikeNet_to_tvb_interfaces = \
+            [{"model": "spike_detector", "params": {},
+              # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
+              "weights": 1.0, "delays": 0.0,
+              # -----------------------------------------------------------------------------------------------------------------
+              "connections": connections, "nodes": None}]  # None means all here
+
     def write_interface(self):
         interface_props = {}
         for prop in ["tvb_nodes_ids", "spiking_nodes_ids",
@@ -545,7 +595,9 @@ class Workflow(object):
             interface_props[prop] = getattr(self.interface_builder, prop)
         self.write_group(interface_props, "tvb_nest_interface/props", "dictionary", close_file=False)
         self.write_group(self.interface_builder.tvb_to_spikeNet_interfaces,
-                         "tvb_nest_interface/interfaces", "list_of_objects", True)
+                         "tvb_nest_interface/tvb_to_nest_interfaces", "list_of_dictionaries", False)
+        self.write_group(self.interface_builder.spikeNet_to_tvb_interfaces,
+                         "tvb_nest_interface/nest_to_tvb_interfaces", "list_of_dictionaries", True)
 
     def prepare_interface(self):
 
@@ -563,12 +615,15 @@ class Workflow(object):
         # ----------------------------------------------------------------------------------------------------------------
 
         # TVB -> NEST
-        if self.interface == "rate":
+        if self.tvb_to_nest_interface == "rate":
             self.interface_builder = self.prepare_rate_interface(lamda)
-        elif self.interface == "dc":
+        elif self.tvb_to_nest_interface == "dc":
             self.interface_builder = self.prepare_dc_interface(G, lamda)
-        elif self.interface == "Ie":
+        elif self.tvb_to_nest_interface == "Ie":
             self.interface_builder = self.prepare_Ie_interface(lamda)
+
+        if self.nest_to_tvb_interface is not None:
+            self.prepare_nest_to_tvb_interface()
 
         if self.writer:
             self.write_interface()
@@ -621,7 +676,7 @@ class Workflow(object):
             self.nest_ts, self.nest_spikes = self.get_nest_data()
             if self.writer:
                 self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
-                self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
+                self.write_dictionary(self.nest_spikes.to_dict(), "NEST_Spikes")
 
         return self.tvb_ts, self.nest_ts, self.nest_spikes
 
@@ -631,6 +686,9 @@ class Workflow(object):
         self.nest_ts, self.nest_spikes = self.get_nest_data()
         if cleanup:
             self.nest_network.nest_instance.Cleanup()
+        if self.writer:
+            self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
+            self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
         return self.nest_ts, self.nest_spikes
 
     def get_nest_rates(self):
@@ -755,7 +813,8 @@ class Workflow(object):
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
-    def run(self):
+    def run(self, **model_params):
+        self.model_params = model_params
         if self.writer:
            self.write_general_params(close_file=False)
            if len(self.model_params) > 0:
@@ -765,20 +824,20 @@ class Workflow(object):
         print("Preparing TVB simulator...")
         self.prepare_simulator()
 
-        self.tvb_nodes_inds = list(range(self.simulator.connectivity.number_of_regions))
+        self.tvb_nodes_ids = list(range(self.simulator.connectivity.number_of_regions))
 
         # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
         if len(self.nest_nodes_ids) > 0:
             for ind in self.nest_nodes_ids:
-                self.tvb_nodes_inds.remove(ind)
+                self.tvb_nodes_ids.remove(ind)
             tic = time.time()
             print("Building NEST network...")
             self.prepare_nest_network()
             print("Done! in %f min" % ((time.time() - tic) / 60))
 
         # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
-        if self.interface is not None and self.nest_network is not None:
+        if self.tvb_to_nest_interface is not None and self.nest_network is not None:
             print("Building TVB-NEST interface...")
             tic = time.time()
             self.prepare_interface()
@@ -788,7 +847,7 @@ class Workflow(object):
 
         # -----------------------------------4. Simulate and gather results-------------------------------------------------
         t_start = time.time()
-        if self.tvb_nest_model is not None or len(self.tvb_nodes_inds) != 0:
+        if self.tvb_nest_model is not None or len(self.tvb_nodes_ids) != 0:
             self.cosimulate()
 
         else:
