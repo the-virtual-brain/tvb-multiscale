@@ -10,6 +10,8 @@ from tvb_multiscale.examples.plot_results import plot_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
+from tvb_multiscale.examples.paperwork.workflow import \
+    mean_field_per_population, spike_rates_from_mean_field_rates, spike_rates_from_spike_ts, spikes_per_population
 
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
@@ -80,91 +82,12 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     if len(spiking_regions_inds) > 0:
         plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_regions_inds,
                                            ["Exhitatory", "Inhibitory"],
-                                           [simulator.model.N_E[0], simulator.model.number_of_modes])
+                                           [simulator.model.N_E[0],
+                                            simulator.model.number_of_modes - simulator.model.N_E[0]])
 
     # plot_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
 
     return simulator.connectivity, results
-
-
-def mean_field_per_population(source_ts, populations, pop_sizes):
-    from tvb.contrib.scripts.service.time_series import TimeSeriesService
-
-    ts_service = TimeSeriesService()
-
-    pop_sizes = [0] + pop_sizes
-    mean_field = []
-    for i_pop, (pop_name, pop_size) in enumerate(zip(populations, pop_sizes[1:])):
-        mean_field.append(
-            ts_service.mean_across_dimension(
-                source_ts.get_modes_by_index(
-                    np.arange(pop_sizes[i_pop], pop_size).astype("i")),
-                3)
-        )
-
-        mean_field[-1].title = "Region mean field time series of %s population" % pop_name
-
-    mean_field = ts_service.concatenate_modes(mean_field)
-    try:
-        del mean_field.labels_dimensions[mean_field.labels_ordering[3]]
-    except:
-        pass
-    mean_field.labels_ordering[3] = "Population"
-    mean_field.labels_dimensions["Population"] = np.array(populations)
-    mean_field.title = "Region mean field time series"
-    return mean_field
-
-
-def spikes_per_population(source_spikes, populations, pop_sizes):
-
-    pop_sizes = [0] + pop_sizes
-    spikes = []
-    for i_pop, (pop_name, pop_size) in enumerate(zip(populations, pop_sizes[1:])):
-
-        spikes.append(
-            source_spikes.get_modes_by_index(
-                np.arange(pop_sizes[i_pop], pop_size).astype("i")))
-        spikes[-1].title = "Region spikes' time series of %s population" % pop_name
-        try:
-            del spikes[-1].labels_dimensions[spikes[-1].labels_ordering[1]]
-        except:
-            pass
-        spikes[-1].labels_ordering[1] = "Population"
-        spikes[-1].labels_dimensions['Population'] = np.array([pop_name])
-    return spikes
-
-
-def spike_rates_from_spike_ts(spikes, dt):
-    from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-    from tvb.contrib.scripts.service.time_series import TimeSeriesService
-
-    ts_service = TimeSeriesService()
-
-    rate = []
-    for i_pop, spike_ts in enumerate(ensure_list(spikes)):
-        rate.append(ts_service.sum_across_dimension(spike_ts, 3) / dt * 1000)
-        try:
-            del rate[-1].labels_dimensions[rate[-1].labels_ordering[3]]
-        except:
-            pass
-        rate[-1].labels_ordering[3] = "Mode"
-        rate[-1].title = "Spike rate"
-    rate = ts_service.concatenate_variables(rate)
-    rate.title = "Mean field population spike rates"
-    return rate
-
-
-def spike_rates_from_mean_field_rates(mean_field, spiking_regions_inds):
-    rate = mean_field.get_state_variables("rate").get_subspace_by_index(spiking_regions_inds)
-    try:
-        del rate.labels_dimensions[rate.labels_ordering[1]]
-        del rate.labels_dimensions[rate.labels_ordering[3]]
-    except:
-        pass
-    rate = rate.swapaxes(1, 3)  # Swap "State Variable" with "Population"
-    rate.labels_ordering[3] = "Mode"
-    rate.title = "Mean field population spike rates"
-    return rate
 
 
 def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_regions_inds,

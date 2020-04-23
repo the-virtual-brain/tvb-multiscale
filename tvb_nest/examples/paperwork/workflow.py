@@ -12,6 +12,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.ww_deco2014 import WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
 
@@ -43,30 +44,10 @@ CONFIGURED.NEST_INPUT_DEVICES_PARAMS_DEF = \
      "inhomogeneous_poisson_generator": {"allow_offgrid_times": False}}
 
 
-class Workflow(object):
+class Workflow(WorkflowBase):
     config = Config(separate_by_run=True)
-    pse_params = {}
 
-    writer = True
-    plotter = True
-    path = ""
-    h5_file = None
-
-    connectivity_path = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
-    decouple = False
-    time_delays = False
-    force_dims = None
-
-    tvb_model = ReducedWongWangExcIOInhI
-    model_params = {}
     tvb_nodes_ids = []
-
-    dt = 0.1
-    integrator = HeunStochastic
-    #                              S_e,  S_i,  R_e, R_i
-    tvb_noise_strength = np.array([0.01, 0.01, 0.0, 0.0])
-    transient = 10.0
-    simulation_length = 100.0
 
     nest_model_builder = WWDeco2014Builder
     nest_nodes_ids = []
@@ -80,166 +61,19 @@ class Workflow(object):
     exclusive_nodes = True
     tvb_nest_model = None
 
-    tvb_ts = None
     nest_ts = None
     nest_spikes = None
-    rates = None
 
     def __init__(self, **pse_params):
         self.pse_params = pse_params
 
-
-    @property
-    def number_of_regions(self):
-        return self.connectivity.number_of_regions
-
-    def _folder_name(self):
-        folder = []
-        for param, val in self.pse_params.items():
-            folder.append("%s%.1f" % (param, val))
-        return "_".join(folder)
-
-    def configure(self):
-        if self.writer or self.plotter:
-            self.res_folder = os.path.join(self.config.out.FOLDER_RES, self._folder_name())
-            self.config.figures._out_base = self.res_folder
-            if not os.path.isdir(self.res_folder):
-                os.makedirs(self.res_folder)
-            if self.writer:
-                if self.writer is True:
-                    self.writer = H5Writer()
-                self.path = os.path.join(self.res_folder, "params.h5")
-                self.create_file()
-                if len(self.pse_params) > 0:
-                    self.write_pse_params(close_file=True)
-            if self.plotter:
-                if self.plotter is True:
-                    self.plotter = Plotter(self.config)
-
-    def create_file(self, close_file=True):
-        self.writer.write_mode = "w"
-        self.h5_file, self.path = self.writer._open_file("multiple groups", self.path)
-        self.close_file(close_file)
-        self.writer.write_mode = "a"  # From now on we append file
-
-    def open_file(self):
-        if self.h5_file is None:
-            self.h5_file, self.path = self.writer._open_file("multiple groups", self.path)
-        return self.h5_file
-
-    def close_file(self, close_file=True):
-        if close_file:
-            self.h5_file.close()
-            self.h5_file = None
-
-    def write_group(self, data, name, method, close_file=True):
-        if self.h5_file is None:
-            self.h5_file = self.open_file()
-        try:
-            self.h5_file[name]
-        except:
-            self.h5_file.create_group(name)
-        getattr(self.writer, "write_%s" % method)(data, h5_file=self.h5_file[name], close_file=False)
-        self.close_file(close_file)
-
-    def write_ts(self, ts, name, recursive=True):
-        self.writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data,
-                                                                             connectivity=ts.connectivity),
-                                    self.path.replace("params.h5", "%s.h5" % name), recursive)
-
-    def write_object(self, ts, name):
-        self.writer.write_mode = "w"
-        self.writer.write_object(ts, path=self.path.replace("params.h5", "%s.h5" % name))
-        self.writer.write_mode = "a"
-
     @property
     def general_parameters(self):
-        return {"nest_nodes_ids": self.nest_nodes_ids,
-                "tvb_to_nest_interface": str(self.tvb_to_nest_interface),
-                "nest_to_tvb_interface": str(self.nest_to_tvb_interface),
-                "tvb_connectivity_path": self.connectivity_path,
-                "decouple": self.decouple, "time_delays": self.time_delays, "force_dims": str(self.force_dims),
-                "transient": self.transient, "simulation_length": self.simulation_length,
-                "path": self.config.out._out_base}
-
-    def write_pse_params(self, close_file=True):
-        self.write_group(self.pse_params, "pse_params", "dictionary", close_file=close_file)
-
-    def write_general_params(self, close_file=True):
-        self.write_group(self.general_parameters, "general_params", "dictionary", close_file=close_file)
-
-    def write_model_params(self, close_file=True):
-        self.write_group(self.model_params, "model_params", "dictionary", close_file=close_file)
-
-    def force_dimensionality(self):
-        if is_integer(self.force_dims):
-            inds = np.arange(self.force_dims).astype("i")
-        else:
-            inds = ensure_list(self.force_dims)
-        self.connectivity.weights = self.connectivity.weights[inds][:, inds]
-        self.connectivity.tract_lengths = self.connectivity.tract_lengths[inds][:, inds]
-        self.connectivity.centres = self.connectivity.centres[inds]
-        self.connectivity.areas = self.connectivity.areas[inds]
-        self.connectivity.orientations = self.connectivity.orientations[inds]
-        self.connectivity.cortical = self.connectivity.cortical[inds]
-        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
-        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
-        self.connectivity.region_labels = self.connectivity.region_labels[inds]
-
-    @property
-    def tvb_model_dict(self):
-        tvb_model_dict = vars(self.simulator.model)
-        tvb_model_dict["gid"] = str(tvb_model_dict["gid"])
-        del tvb_model_dict["log"]
-        del tvb_model_dict["observe"]
-        return tvb_model_dict
-
-    @property
-    def integrator_dict(self):
-        return {"integrator": self.simulator.integrator.__class__.__name__,
-                 "dt": self.simulator.integrator.dt,
-                 "noise": self.simulator.integrator.noise.__class__.__name__,
-                 "noise_strength": self.simulator.integrator.noise.nsig}
-
-    def write_tvb_simulator(self):
-        self.writer.write_tvb_to_h5(self.simulator.connectivity,
-                                    os.path.join(self.config.out.FOLDER_RES, "Connectivity.h5"))
-        # self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
-        self.write_group(self.tvb_model_dict, "tvb_model", "dictionary", close_file=False)
-        self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=True)
-
-    def prepare_connectivity(self):
-        if os.path.isfile(self.connectivity_path):
-            self.connectivity = Connectivity.from_file(self.connectivity_path)
-        if self.force_dims is not None:
-            self.force_dimensionality()
-        if self.decouple:
-            self.connectivity.weights *= 0.0
-        else:
-            if self.connectivity.weights.max() > 0.0:
-                self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
-                self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
-        if not self.time_delays:
-            self.connectivity.tract_lengths *= 0.0
-        self.connectivity.configure()
-
-    def prepare_simulator(self):
-        self.prepare_connectivity()
-        self.simulator = Simulator()
-        self.simulator.connectivity = self.connectivity
-        self.simulator.model = self.tvb_model(**self.model_params)
-        self.simulator.model.configure()
-        self.simulator.integrator = self.integrator()
-        self.simulator.integrator.dt = self.dt
-        #                                            S_e,   S_i,  R_e, R_i
-        self.simulator.integrator.noise.nsig = self.tvb_noise_strength
-        self.simulator.integrator.configure()
-        mon_raw = Raw(period=self.simulator.integrator.dt)
-        self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
-        if self.plotter and self.simulator.connectivity.number_of_regions > 1:
-            self.plotter.plot_tvb_connectivity(self.simulator.connectivity)
-        if self.writer:
-            self.write_tvb_simulator()
+        general_parameters = super(Workflow, self).general_parameters
+        general_parameters.update({"nest_nodes_ids": self.nest_nodes_ids,
+                                   "tvb_to_nest_interface": str(self.tvb_to_nest_interface),
+                                   "nest_to_tvb_interface": str(self.nest_to_tvb_interface)})
+        return general_parameters
 
     def write_nest_network(self):
         self.write_group(self.nest_model_builder.params_ex, "nest_network/params_ex", "dictionary", False)
@@ -665,9 +499,9 @@ class Workflow(object):
                                        connectivity=self.simulator.connectivity,
                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],
                                        labels_dimensions={
-                                          "State Variable": ["S_e", "S_i", "R_e", "R_i"],
+                                          "State Variable": ensure_list(self.simulator.model.state_variables),
                                           "Region": self.simulator.connectivity.region_labels.tolist()},
-                                       sample_period=self.simulator.integrator.dt)
+                                       sample_period=self.simulator.integrator.dt)[self.transient:]
 
         if self.writer:
             self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
@@ -676,7 +510,7 @@ class Workflow(object):
             self.nest_ts, self.nest_spikes = self.get_nest_data()
             if self.writer:
                 self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
-                self.write_dictionary(self.nest_spikes.to_dict(), "NEST_Spikes")
+                self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
 
         return self.tvb_ts, self.nest_ts, self.nest_spikes
 
@@ -709,13 +543,6 @@ class Workflow(object):
                                        coords={"Population": pop_labels, "Region": reg_labels})
 
         return self.rates["NEST"]
-
-    def get_tvb_rates(self, tvb_rates):
-         self.rates["TVB"] = DataArray(tvb_rates.mean(axis=0).squeeze(),
-                                       dims=tvb_rates.dims[1:3],
-                                       coords={tvb_rates.dims[1]: tvb_rates.coords[tvb_rates.dims[1]],
-                                               tvb_rates.dims[2]: tvb_rates.coords[tvb_rates.dims[2]]})
-         return self.rates["TVB"]
 
     def plot_tvb_ts(self):
         # For raster plot:
@@ -836,6 +663,10 @@ class Workflow(object):
             self.prepare_nest_network()
             print("Done! in %f min" % ((time.time() - tic) / 60))
 
+        # Not considering here the case of TVB spiking/multiscale models:
+        self.mf_nodes_ids = self.tvb_nodes_ids
+        self.spiking_regions_ids = self.nest_nodes_ids
+
         # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
         if self.tvb_to_nest_interface is not None and self.nest_network is not None:
             print("Building TVB-NEST interface...")
@@ -863,7 +694,7 @@ class Workflow(object):
             if self.writer:
                 self.write_object(self.rates["NEST"].to_dict(), "NEST_rates")
         if self.tvb_ts is not None:
-            self.rates["TVB"] = self.get_tvb_rates(self.tvb_ts[:, ["R_e", "R_i"]].squeeze())
+            self.rates["TVB"] = self.get_tvb_rates()
             if self.writer:
                 self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
 
