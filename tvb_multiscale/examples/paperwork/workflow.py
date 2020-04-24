@@ -35,16 +35,19 @@ def mean_field_per_population(source_ts, populations, pop_sizes):
             ts_service.sum_across_dimension(
                 source_ts.get_modes_by_index(
                     np.arange(pop_cumsum[i_pop], pop_inds).astype("i")),
-                3) / pop_size
+                3)
         )
+        mean_field[-1].data /= pop_size
         mean_field[-1].title = "Region mean field time series of %s population" % pop_name
     mean_field = ts_service.concatenate_modes(mean_field)
+    labels_dimensions = mean_field.labels_dimensions
     try:
-        del mean_field.labels_dimensions[mean_field.labels_ordering[3]]
+        del labels_dimensions[mean_field.labels_ordering[3]]
     except:
         pass
-    mean_field.labels_ordering[3] = "Population"
-    mean_field.labels_dimensions["Population"] = np.array(populations)
+    mean_field.update_dimension_names("Population", 3)
+    labels_dimensions["Population"] = np.array(populations)
+    mean_field.labels_dimensions = labels_dimensions
     mean_field.title = "Region mean field time series"
     return mean_field
 
@@ -57,12 +60,14 @@ def spikes_per_population(source_spikes, populations, pop_sizes):
             source_spikes.get_modes_by_index(
                 np.arange(pop_cumsum[i_pop], pop_inds).astype("i")))
         spikes[-1].title = "Region spikes' time series of %s population" % pop_name
+        labels_dimensions = spikes[-1].labels_dimensions
         try:
-            del spikes[-1].labels_dimensions[spikes[-1].labels_ordering[1]]
+            del labels_dimensions[spikes[-1].labels_ordering[1]]
         except:
             pass
-        spikes[-1].labels_ordering[1] = "Population"
-        spikes[-1].labels_dimensions['Population'] = np.array([pop_name])
+        spikes[-1].update_dimension_names("Population", 1)
+        labels_dimensions["Population"] = np.array([pop_name])
+        spikes[-1].labels_dimensions = labels_dimensions
     return spikes
 
 
@@ -70,7 +75,9 @@ def spike_rates_from_spike_ts(spikes, dt, pop_sizes):
     ts_service = TimeSeriesService()
     rate = []
     for i_pop, (spike_ts, pop_size) in enumerate(zip(ensure_list(spikes), pop_sizes)):
-        rate.append(ts_service.sum_across_dimension(spike_ts, 3) / dt * 1000 / pop_size)
+        this_rate = ts_service.sum_across_dimension(spike_ts, 3)
+        this_rate.data = this_rate.data / dt * 1000 / pop_size
+        rate.append(this_rate)
         try:
             del rate[-1].labels_dimensions[rate[-1].labels_ordering[3]]
         except:
@@ -82,8 +89,8 @@ def spike_rates_from_spike_ts(spikes, dt, pop_sizes):
     return rate
 
 
-def spike_rates_from_mean_field_rates(mean_field, spiking_regions_inds):
-    rate = mean_field.get_state_variables("rate").get_subspace_by_index(spiking_regions_inds)
+def spike_rates_from_mean_field_rates(mean_field):
+    rate = mean_field.get_state_variables("rate")
     try:
         del rate.labels_dimensions[rate.labels_ordering[1]]
         del rate.labels_dimensions[rate.labels_ordering[3]]
@@ -96,7 +103,7 @@ def spike_rates_from_mean_field_rates(mean_field, spiking_regions_inds):
 
 
 class Workflow(object):
-    config = Config(separate_by_run=True)
+    config = Config(separate_by_run=False)
     pse_params = {}
 
     writer = True
@@ -130,12 +137,12 @@ class Workflow(object):
 
     tvb_ts = None
     mf_ts = None
+    tvb_rates = None
     tvb_spikes = None
     rates = None
 
     def __init__(self, **pse_params):
         self.pse_params = pse_params
-
 
     @property
     def number_of_regions(self):
@@ -277,10 +284,13 @@ class Workflow(object):
         self.tvb_spiking_model = \
             isinstance(self.simulator.model, (SpikingWongWangExcIOInhI, MultiscaleWongWangExcIOInhI))
         if self.tvb_spiking_model:
-            self.populations = ["Excitatory", "Inhibitory"]
-            self.populations_sizes = [self.simulator.model.N_E[0],
-                                      self.simulator.model.number_of_modes - self.simulator.model.N_E[0]]
-            self.simulator.model._spiking_regions_inds = self.spiking_regions_ids
+            self.simulator.model.N_E = np.array([self.populations_sizes[0], ])
+            self.simulator.model.N_I = np.array([self.populations_sizes[1], ])
+            if isinstance(self.simulator.model, MultiscaleWongWangExcIOInhI):
+                self.simulator.model._spiking_regions_inds = self.spiking_regions_ids
+            else:
+                # All of them are spiking regions
+                self.spiking_regions_ids = list(range(self.simulator.connectivity.number_of_regions))
         self.simulator.model.configure()
         self.simulator.integrator = self.integrator()
         self.simulator.integrator.dt = self.dt
@@ -330,19 +340,21 @@ class Workflow(object):
     def get_tvb_rates(self):
         if self.tvb_spiking_model:
             if self.tvb_spike_rate_var not in self.mf_ts.labels_dimensions["State Variable"]:
-                rate = spike_rates_from_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
+                self.tvb_rates = \
+                    spike_rates_from_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
+                self.tvb_rates.title = "Region mean field spike rate time series"
             else:
-                self.mf_ts[:, self.tvb_spike_rate_var, self.spiking_regions_ids, :] /= \
+                self.mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
                     (self.simulator.integrator.dt * 0.001)  # rate in Hz
-                rate = spike_rates_from_mean_field_rates(self.mf_ts, self.spiking_regions_ids)
-            rate.title = "Region mean field spike rate time series"
-            self.rates["TVB"] = rate
+                self.tvb_rates = spike_rates_from_mean_field_rates(self.mf_ts)
+                self.tvb_rates.title = "Region mean field rate time series"
         else:
-            tvb_rates = self.tvb_ts[:, self.tvb_rate_vars].squeeze()
-            self.rates["TVB"] = DataArray(tvb_rates.mean(axis=0).squeeze(),
-                                          dims=tvb_rates.dims[1:3],
-                                          coords={tvb_rates.dims[1]: tvb_rates.coords[tvb_rates.dims[1]],
-                                                  tvb_rates.dims[2]: tvb_rates.coords[tvb_rates.dims[2]]})
+            self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars].squeeze()
+            self.tvb_rates.title = "Region mean field rate time series"
+        self.rates["TVB"] = DataArray(self.tvb_rates.mean(axis=0).squeeze(),
+                                      dims=self.tvb_rates.dims[1:3],
+                                      coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
+                                              self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
         return self.rates["TVB"]
 
     def plot_tvb_ts(self):
@@ -353,16 +365,17 @@ class Workflow(object):
         self.mf_ts.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=(10, 5))
 
         if len(self.spiking_regions_ids) > 0:
-            self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter=self.plotter,
-                                                                   per_variable=True, figsize=(10, 5),
-                                                                   figname="Spiking nodes TVB Time Series Raster")
-            self.mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter=self.plotter,
+            if len(self.spiking_regions_ids) < self.simulator.connectivity.number_of_regions:
+                self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter=self.plotter,
                                                                        per_variable=True, figsize=(10, 5),
-                                                                       figname="Spiking nodes TVB Time Series")
-            self.rates["TVB"].plot_timeseries(plotter=self.plotter, figsize=(10, 5))
+                                                                       figname="Spiking nodes TVB Time Series Raster")
+                self.mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter=self.plotter,
+                                                                           per_variable=True, figsize=(10, 5),
+                                                                           figname="Spiking nodes TVB Time Series")
             for i_pop, spike in enumerate(self.tvb_spikes):
                 spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
                            robust=True, figsize=(20, 10), plotter=self.plotter)
+            self.tvb_rates.plot_timeseries(plotter=self.plotter, figsize=(10, 5))
 
     def run(self, **model_params):
         self.model_params = model_params
