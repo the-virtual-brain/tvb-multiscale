@@ -104,6 +104,9 @@ def spike_rates_from_mean_field_rates(mean_field):
 
 class Workflow(object):
     config = Config(separate_by_run=False)
+
+    tvb_sim_numba = True
+
     pse_params = {}
 
     writer = True
@@ -235,8 +238,7 @@ class Workflow(object):
         self.connectivity.areas = self.connectivity.areas[inds]
         self.connectivity.orientations = self.connectivity.orientations[inds]
         self.connectivity.cortical = self.connectivity.cortical[inds]
-        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
-        self.connectivity.hemisphere = self.connectivity.hemispheres[inds]
+        self.connectivity.hemispheres = self.connectivity.hemispheres[inds]
         self.connectivity.region_labels = self.connectivity.region_labels[inds]
 
     @property
@@ -304,6 +306,7 @@ class Workflow(object):
         mon_raw = Raw(period=self.simulator.integrator.dt)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
         # Configure the simulator
+        self.simulator.use_numba = self.tvb_sim_numba
         self.simulator.configure()
         if self.plotter and self.simulator.connectivity.number_of_regions > 1:
             self.plotter.plot_tvb_connectivity(self.simulator.connectivity)
@@ -350,7 +353,7 @@ class Workflow(object):
                 self.tvb_rates.title = "Region mean field rate time series"
         else:
             self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars].squeeze()
-            self.tvb_rates.title = "Region mean field rate time series"
+            self.tvb_rates.name = "Region mean field rate time series"
         self.rates["TVB"] = DataArray(self.tvb_rates.mean(axis=0).squeeze(),
                                       dims=self.tvb_rates.dims[1:3],
                                       coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
