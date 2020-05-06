@@ -129,6 +129,7 @@ class Workflow(object):
     tvb_spikes_var = "spikes"
     tvb_rate_vars = ["R_e", "R_i"]
     tvb_spike_rate_var = "rate"
+    tvb_init_cond = 0.0
 
     dt = 0.1
     integrator = HeunStochastic
@@ -231,7 +232,7 @@ class Workflow(object):
         if is_integer(self.force_dims):
             inds = np.arange(self.force_dims).astype("i")
         else:
-            inds = ensure_list(self.force_dims)
+            inds = np.array(ensure_list(self.force_dims))
         self.connectivity.weights = self.connectivity.weights[inds][:, inds]
         self.connectivity.tract_lengths = self.connectivity.tract_lengths[inds][:, inds]
         self.connectivity.centres = self.connectivity.centres[inds]
@@ -278,6 +279,14 @@ class Workflow(object):
             self.connectivity.tract_lengths *= 0.0
         self.connectivity.configure()
 
+    def prepare_initial_conditions(self):
+        initial_conditions = \
+            self.tvb_init_cond * np.ones((self.simulator.horizon,
+                                          self.simulator.model.nvar,
+                                          self.simulator.connectivity.number_of_regions,
+                                          self.simulator.model.number_of_modes))
+        self.simulator._configure_history(initial_conditions=initial_conditions)
+
     def prepare_simulator(self):
         self.prepare_connectivity()
         self.simulator = Simulator()
@@ -308,6 +317,7 @@ class Workflow(object):
         # Configure the simulator
         self.simulator.use_numba = self.tvb_sim_numba
         self.simulator.configure()
+        self.prepare_initial_conditions()
         if self.plotter and self.simulator.connectivity.number_of_regions > 1:
             self.plotter.plot_tvb_connectivity(self.simulator.connectivity)
         if self.writer:
@@ -352,12 +362,13 @@ class Workflow(object):
                 self.tvb_rates = spike_rates_from_mean_field_rates(self.mf_ts)
                 self.tvb_rates.title = "Region mean field rate time series"
         else:
-            self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars].squeeze()
+            self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars]
             self.tvb_rates.name = "Region mean field rate time series"
-        self.rates["TVB"] = DataArray(self.tvb_rates.mean(axis=0).squeeze(),
-                                      dims=self.tvb_rates.dims[1:3],
-                                      coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
-                                              self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
+        self.rates["TVB"] = \
+            DataArray(self.tvb_rates.mean(axis=0).squeeze(axis=-1),
+                      dims=self.tvb_rates.dims[1:3],
+                      coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
+                              self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
         return self.rates["TVB"]
 
     def plot_tvb_ts(self):
