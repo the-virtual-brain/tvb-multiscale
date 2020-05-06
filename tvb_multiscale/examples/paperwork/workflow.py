@@ -105,7 +105,7 @@ def spike_rates_from_mean_field_rates(mean_field):
 class Workflow(object):
     config = Config(separate_by_run=False)
 
-    tvb_sim_numba = True
+    tvb_sim_numba = False
 
     pse_params = {}
 
