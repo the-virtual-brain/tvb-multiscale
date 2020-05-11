@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+
+from tvb_utils.utils import initialize_logger as initialize_logger_base
+
 from tvb_multiscale.config import Config as ConfigBase
-from tvb_multiscale.config import DEFAULT_SUBJECT_PATH, initialize_logger
+from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
@@ -62,3 +65,7 @@ class Config(ConfigBase):
 
         
 CONFIGURED = Config()
+
+
+def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
+    return initialize_logger_base(name, target_folder)
