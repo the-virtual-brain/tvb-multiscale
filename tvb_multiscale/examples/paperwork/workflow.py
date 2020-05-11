@@ -123,6 +123,7 @@ class Workflow(object):
     populations_sizes = [1, 1]
 
     tvb_model = ReducedWongWangExcIOInhI
+    tvb_spike_stimulus = None
     tvb_spiking_model = False
     model_params = {}
     mf_nodes_ids = []
@@ -257,11 +258,20 @@ class Workflow(object):
                  "noise": self.simulator.integrator.noise.__class__.__name__,
                  "noise_strength": self.simulator.integrator.noise.nsig}
 
+    @property
+    def spike_stimulus_dict(self):
+        spike_stimulus_dict = OrderedDict()
+        for spike_target, spike_stimulus in self.tvb_spike_stimulus.to_dict():
+            spike_stimulus_dict[spike_target] = spike_stimulus.to_xarray().values
+        return spike_stimulus_dict
+
     def write_tvb_simulator(self):
         self.writer.write_tvb_to_h5(self.simulator.connectivity,
                                     os.path.join(self.config.out.FOLDER_RES, "Connectivity.h5"))
         # self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
         self.write_group(self.tvb_model_dict, "tvb_model", "dictionary", close_file=False)
+        if self.tvb_spike_stimulus is not None:
+            self.write_group(self.spike_stimulus_dict, "spike_stimulus", "dictionary", close_file=False)
         self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=True)
 
     def prepare_connectivity(self):
@@ -314,6 +324,7 @@ class Workflow(object):
         self.simulator.integrator.configure()
         mon_raw = Raw(period=self.simulator.integrator.dt)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
+        self.simulator.spike_stimulus = self.tvb_spike_stimulus
         # Configure the simulator
         self.simulator.use_numba = self.tvb_sim_numba
         self.simulator.configure()
