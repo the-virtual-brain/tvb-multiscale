@@ -88,8 +88,10 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.output_devices.append({"model": "multimeter", "params": params,
                                     "connections": connections, "nodes": None})  # None means all here
 
+    # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+
     def tvb_weight(self, source_node, target_node):
-        return tvb_weight(source_node, target_node, self.tvb_weights)
+        return tvb_weight(source_node, target_node, self.tvb_simulator.coupling.a[0].item() * self.tvb_weights)
 
     def tvb_delay(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)

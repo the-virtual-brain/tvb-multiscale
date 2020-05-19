@@ -77,9 +77,12 @@ class WWDeco2014Builder(NESTModelBuilder):
             "N_E": exc_pop_size, "N_I": inh_pop_size-1  # assuming self connections are not allowed
         })
 
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+        G = self.tvb_model.G[0].item() * self.tvb_simulator.coupling.a[0].item()
+
         def param_fun(node_index, params, lamda=1.0):
             out_params = dict(params)
-            out_params.update({"w_E_ext": lamda*self.tvb_model.G[0] *
+            out_params.update({"w_E_ext": lamda * G *
                                             self.tvb_weights[:, list(self.spiking_nodes_ids).index(node_index)]})
             return out_params
 

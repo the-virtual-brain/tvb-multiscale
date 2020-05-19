@@ -135,14 +135,18 @@ class WWDeco2014Builder(TVBNESTInterfaceBuilder):
         # given WongWang model parameter r is in Hz but tvb dt is in ms:
         self.w_spikes_to_tvb = 1000.0 / self.tvb_dt
 
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+        self._Gex = self.tvb_model.G[0].item() * self.tvb_simulator.coupling.a[0].item()
+        self._Gin = self.tvb_model.lamda[0].item() * self._Gex
+
     def random_normal_tvb_weight_exc(self, tvb_node_id, nest_node_id, sigma=0.1):
         return random_normal_tvb_weight(tvb_node_id, nest_node_id,
-                                        self.tvb_model.G[0]*self.tvb_weights,
+                                        self._Gex * self.tvb_weights,
                                         sigma=sigma)
 
     def random_normal_tvb_weight_inh(self, tvb_node_id, nest_node_id, sigma=0.1):
         return random_normal_tvb_weight(tvb_node_id, nest_node_id,
-                                        self.tvb_model.lamda[0]*self.tvb_model.G[0]*self.tvb_weights,
+                                        self._Gin * self.tvb_weights,
                                         sigma=sigma)
 
     def tvb_delay(self, source_node, target_node):
