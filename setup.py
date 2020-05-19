@@ -17,7 +17,7 @@ import setuptools
 
 VERSION = "1.0.1"
 
-INSTALL_REQUIREMENTS = ["pandas", "xarray"]
+INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant"]
 
 setuptools.setup(name='tvb-nest',
                  version=VERSION,
