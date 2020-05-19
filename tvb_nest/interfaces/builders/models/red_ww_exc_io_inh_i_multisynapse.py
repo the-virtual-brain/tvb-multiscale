@@ -144,14 +144,17 @@ class RedWWexcIOinhIMultisynapseBuilder(TVBNESTInterfaceBuilder):
         self.w_spikes_to_tvb = 1000.0 / self.tvb_dt
 
     def G_scale_tvb_weight_exc(self, source_node, target_node):
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         return scale_tvb_weight(source_node, target_node,
                                 tvb_weights=self.tvb_weights,
-                                scale=self.tvb_model.G[0])
+                                scale=self.tvb_model.G[0].item() * self.tvb_simulator.coupling.a[0].item())
 
     def G_scale_tvb_weight_inh(self, source_node, target_node):
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         return scale_tvb_weight(source_node, target_node,
                                 tvb_weights=self.tvb_weights,
-                                scale=self.tvb_model.lamda[0]*self.tvb_model.G[0])
+                                scale=self.tvb_model.lamda[0].item() *
+                                      self.tvb_model.G[0].item() * self.tvb_simulator.coupling.a[0].item())
 
     def tvb_delay(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)

@@ -94,13 +94,16 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         self.output_devices = [{"model": "multimeter", "params": params,
                                 "connections": connections, "nodes": None}]  # None means "all"
 
+    # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+
     def J_N_G_scale_tvb_weight_exc(self, source_node, target_node):
         return scale_tvb_weight(source_node, target_node,
-                                scale=self.J_N[0] * self.G[0])
+                                scale=self.J_N[0].item() * self.G[0].item() * self.tvb_simulator.coupling.a[0].item())
 
     def J_N_G_scale_tvb_weight_inh(self, source_node, target_node):
         return scale_tvb_weight(source_node, target_node,
-                                scale=self.J_N[0] * self.lamda[0] * self.G[0])
+                                scale=self.J_N[0].item() * self.lamda[0].item() *
+                                      self.G[0].item() * self.tvb_simulator.coupling.a[0].item())
 
     def tvb_delay(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)

@@ -64,7 +64,8 @@ class WilsonCowanMultisynapseBuilder(TVBNESTInterfaceBuilder):
         self.w_spikes_to_tvb = 1.0
 
     def tvb_weight(self, source_node, target_node):
-        return tvb_weight(source_node, target_node, self.tvb_weights)
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+        return tvb_weight(source_node, target_node, self.tvb_simulator.coupling.a[0].item() * self.tvb_weights)
 
     def tvb_delay(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)
