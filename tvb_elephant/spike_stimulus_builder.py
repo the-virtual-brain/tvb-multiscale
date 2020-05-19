@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from collections import OrderedDict
 import numpy as np
 from pandas import Series
 from xarray import DataArray
@@ -37,6 +38,9 @@ class SpikeStimulusBuilder(object):
     _shape = (1, 1, 1, 1)
     _size = 1
 
+    _return = "Dict"
+    _return_array = "Numpy"
+
     _configured = False
 
     _log = None
@@ -44,7 +48,7 @@ class SpikeStimulusBuilder(object):
     def __init__(self, targets=["spike"], rate=10.0, A=None,
                  number_of_regions=1, number_of_neurons=1, target_regions=None,
                  t_start=0.0, dt=0.1, time_length=1000,
-                 shift=None, sparse=None, squeeze=False,
+                 shift=None, sparse=None, squeeze=False, return_type="Dict", return_array_type="Numpy",
                  logger=None):
         self.targets = ensure_list(targets)
         self.numper_of_targets = len(self.targets)
@@ -62,6 +66,8 @@ class SpikeStimulusBuilder(object):
         self._sparse = sparse
         self._shape = None
         self._squeeze = squeeze
+        self._return = return_type
+        self._return_array = return_array_type
         self._log = logger
 
     def configure(self):
@@ -127,7 +133,9 @@ class SpikeStimulusBuilder(object):
                 np.array(
                     time_histogram([spike_train], self.dt, t_start=self.t_start, t_stop=self._t_stop)))
 
+        #           trains x time -> time x trains -> time x targets x regions x neurons
         spike_ts = np.array(spike_ts).swapaxes(0, 1).reshape(self._shape)
+        del spike_trains
 
         if self.number_of_target_regions != self.number_of_regions:
             new_spike_ts = np.zeros((self.time_length, self.number_of_targets,
@@ -139,17 +147,30 @@ class SpikeStimulusBuilder(object):
         if self._squeeze:
             spike_ts = spike_ts.squeeze()
             if spike_ts.ndim < 2:
-                spike_ts = spike_ts.newaxis(1)
+                # Assuming that only time axis exists for sure:
+                spike_ts = spike_ts[:, np.newaxis]
 
-        spike_ts = DataArray(spike_ts)
+        # targets x time x ...
+        spike_ts = spike_ts.swapaxes(0, 1)
 
-        stimulus = Series()
+        if self._return == "Series":
+            stimulus = Series()
+        else:
+            stimulus = OrderedDict()
+
+        if self._sparse or self._return_array == "DataArray":
+            spike_ts = DataArray(spike_ts, dims=["Target", "Time", "Region", "Neuron"])
+
         if self._sparse:
             for it, target in enumerate(self.targets):
                 stimulus[target] = spike_ts[it].to_series().to_sparse(fill_value=0.0)
         else:
-            for it, target in enumerate(self.targets):
-                stimulus[target] = spike_ts[it].to_series()
+            if self._return_array == "DataArray":
+                for it, target in enumerate(self.targets):
+                    stimulus[target] = spike_ts[it]
+            else:
+                for it, target in enumerate(self.targets):
+                    stimulus[target] = spike_ts[it]
 
         return stimulus
 
