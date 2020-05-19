@@ -13,10 +13,11 @@ from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
 
-from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.simulator import Simulator
-from tvb.simulator.integrators import HeunStochastic
-from tvb.simulator.monitors import Raw
+from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.coupling import Linear
+from tvb.simulator.integrators import IntegratorStochastic, HeunStochastic
+from tvb.simulator.monitors import Raw, TemporalAverage
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
@@ -131,11 +132,13 @@ class Workflow(object):
     tvb_rate_vars = ["R_e", "R_i"]
     tvb_spike_rate_var = "rate"
     tvb_init_cond = 0.0
+    tvb_monitor = Raw
+    tvb_monitor_period = None
 
     dt = 0.1
     integrator = HeunStochastic
     tvb_noise_strength = 0.01
-    transient = 10.0
+    transient = None
     simulation_length = 100.0
 
     spiking_regions_ids = []
@@ -160,6 +163,15 @@ class Workflow(object):
         return "_".join(folder)
 
     def configure(self):
+        if self.transient is None:
+            self.transient = 0.1 * self.simulation_length
+            self.simulation_length += self.transient
+        if self.tvb_monitor_period is None:
+            self.tvb_monitor_period = self.dt
+        if self.tvb_monitor_period > self.dt:
+            self.tvb_monitor = TemporalAverage
+        else:
+            self.tvb_monitor = Raw
         if self.writer or self.plotter:
             self.res_folder = os.path.join(self.config.out.FOLDER_RES, self._folder_name())
             self.config.figures._out_base = self.res_folder
@@ -253,17 +265,30 @@ class Workflow(object):
 
     @property
     def integrator_dict(self):
-        return {"integrator": self.simulator.integrator.__class__.__name__,
-                 "dt": self.simulator.integrator.dt,
-                 "noise": self.simulator.integrator.noise.__class__.__name__,
-                 "noise_strength": self.simulator.integrator.noise.nsig}
+        integrator_dict = {"integrator": self.simulator.integrator.__class__.__name__,
+                           "dt": self.simulator.integrator.dt}
+        if isinstance(self.simulator.integrator, IntegratorStochastic):
+            integrator_dict.update({"noise": self.simulator.integrator.noise.__class__.__name__,
+                                    "noise_strength": self.simulator.integrator.noise.nsig})
+        else:
+            integrator_dict.update({"noise": "",
+                                    "noise_strength": np.array([0.0, ])})
+        return integrator_dict
 
     @property
     def spike_stimulus_dict(self):
         spike_stimulus_dict = OrderedDict()
-        for spike_target, spike_stimulus in self.tvb_spike_stimulus.to_dict():
-            spike_stimulus_dict[spike_target] = spike_stimulus.to_xarray().values
+        for spike_target in self.tvb_spike_stimulus.keys():
+            spike_stimulus_dict[spike_target] = self.simulator._spike_stimulus_fun(spike_target, slice(None))
         return spike_stimulus_dict
+
+    @property
+    def coupling_stimulus_dict(self):
+        coupling_stimulus_dict = OrderedDict()
+        coupling_stimulus_dict["coupling"] = self.simulator.coupling.__class__.__name__
+        coupling_stimulus_dict["a"] = self.simulator.coupling.a
+        coupling_stimulus_dict["b"] = self.simulator.coupling.b
+        return coupling_stimulus_dict
 
     def write_tvb_simulator(self):
         self.writer.write_tvb_to_h5(self.simulator.connectivity,
@@ -272,7 +297,11 @@ class Workflow(object):
         self.write_group(self.tvb_model_dict, "tvb_model", "dictionary", close_file=False)
         if self.tvb_spike_stimulus is not None:
             self.write_group(self.spike_stimulus_dict, "spike_stimulus", "dictionary", close_file=False)
-        self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=True)
+        if self.number_of_regions > 1:
+            self.write_group(self.coupling_stimulus_dict, "coupling", "dictionary", close_file=False)
+        self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=False)
+        self.write_group({"monitor": self.tvb_monitor.__name__,
+                          "period": self.tvb_monitor_period}, "monitor", "dictionary", close_file=True)
 
     def prepare_connectivity(self):
         if os.path.isfile(self.connectivity_path):
@@ -312,17 +341,20 @@ class Workflow(object):
             else:
                 # All of them are spiking regions
                 self.spiking_regions_ids = list(range(self.simulator.connectivity.number_of_regions))
+        # if self.number_of_regions > 1:
+        #     self.simulator.coupling = Linear(a=np.array([1.0, ]), b=np.array([0.0, ]))
         self.simulator.model.configure()
         self.simulator.integrator = self.integrator()
         self.simulator.integrator.dt = self.dt
-        # Some code only for SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI
-        self.simulator.integrator.noise.nsig = np.array(self.simulator.model.nvar * [self.tvb_noise_strength])
-        if self.tvb_spiking_model:
-            self.simulator.integrator.noise.nsig[5:] = 0.0  # No noise for t_ref and derived variables
-        else:
-            self.simulator.integrator.noise.nsig[2:] = 0.0  # No noise for R_e, R_i variables
+        if isinstance(self.simulator.integrator, IntegratorStochastic):
+            # Some code only for SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI
+            self.simulator.integrator.noise.nsig = np.array(self.simulator.model.nvar * [self.tvb_noise_strength])
+            if self.tvb_spiking_model:
+                self.simulator.integrator.noise.nsig[6:] = 0.0  # No noise for t_ref and derived variables
+            else:
+                self.simulator.integrator.noise.nsig[2:] = 0.0  # No noise for R_e, R_i variables
         self.simulator.integrator.configure()
-        mon_raw = Raw(period=self.simulator.integrator.dt)
+        mon_raw = self.tvb_monitor(period=self.tvb_monitor_period)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
         self.simulator.spike_stimulus = self.tvb_spike_stimulus
         # Configure the simulator
@@ -342,7 +374,9 @@ class Workflow(object):
                                        labels_dimensions={
                                             "State Variable": ensure_list(self.simulator.model.state_variables),
                                             "Region": self.simulator.connectivity.region_labels.tolist()},
-                                       sample_period=self.simulator.integrator.dt)[self.transient:]
+                                       sample_period=self.simulator.integrator.dt)
+        if self.transient:
+            self.tvb_ts = self.tvb_ts[self.transient:]
         if self.writer:
             self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
 
@@ -383,23 +417,34 @@ class Workflow(object):
         return self.rates["TVB"]
 
     def plot_tvb_ts(self):
-        # For raster plot:
-        self.mf_ts.plot_raster(plotter=self.plotter, per_variable=True, figsize=(10, 5))
-
         # For timeseries plot:
         self.mf_ts.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=(10, 5))
 
-        if len(self.spiking_regions_ids) > 0:
-            if len(self.spiking_regions_ids) < self.simulator.connectivity.number_of_regions:
-                self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter=self.plotter,
-                                                                       per_variable=True, figsize=(10, 5),
-                                                                       figname="Spiking nodes TVB Time Series Raster")
+        # For raster plot:
+        if self.number_of_regions > 9:
+            self.mf_ts.plot_raster(plotter=self.plotter, per_variable=True, figsize=(10, 5))
+
+        n_spiking_nodes_ids = len(self.spiking_regions_ids)
+        if n_spiking_nodes_ids > 0:
+            if n_spiking_nodes_ids < self.simulator.connectivity.number_of_regions:
+
                 self.mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter=self.plotter,
                                                                            per_variable=True, figsize=(10, 5),
-                                                                           figname="Spiking nodes TVB Time Series")
+                                                                           figname="Spiking nodes mean-field "
+                                                                                   "TVB Time Series")
+                if n_spiking_nodes_ids > 3:
+                    self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter=self.plotter,
+                                                                           per_variable=True, figsize=(10, 5),
+                                                                           figname="Spiking nodes TVB Time Series Raster")
+            self.tvb_ts[:, :, self.spiking_regions_ids].plot_map(y=self.tvb_ts._data.dims[3],
+                                                                 row=self.tvb_ts._data.dims[2],
+                                                                 per_variable=True,
+                                                                 figname="Spiking nodes TVB Time Series",
+                                                                 robust=True, figsize=(20, 10),
+                                                                 plotter=self.plotter)
             for i_pop, spike in enumerate(self.tvb_spikes):
                 spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
-                           robust=True, figsize=(20, 10), plotter=self.plotter)
+                           cmap="jet", robust=True, figsize=(20, 10), plotter=self.plotter)
             self.tvb_rates.plot_timeseries(plotter=self.plotter, figsize=(10, 5))
 
     def run(self, **model_params):

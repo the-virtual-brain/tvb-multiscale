@@ -45,7 +45,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
 
     # Some code only for SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI
     simulator.integrator.noise.nsig = np.array(simulator.model.nvar * [simulator.integrator.noise.nsig[0]])
-    simulator.integrator.noise.nsig[5:] = 0.0  # No noise for t_ref and derived variables
+    simulator.integrator.noise.nsig[6:] = 0.0  # No noise for t_ref and derived variables
 
     plotter.plot_tvb_connectivity(simulator.connectivity)
 
