@@ -102,7 +102,7 @@ class SpikingNetwork(object):
                 devices[pop_label] = get_device(pop_device, nodes)
         return devices
 
-    def get_spike_devices(self, mode="spikes", regions=None, populations=None):
+    def get_spike_devices(self, mode="spikes", regions=None, populations_devices=None):
         # This method will get spike measuing devices and prepare for computing rate
         if mode.find("activity") > -1:
             spike_devices = self.get_devices_by_model("spike_multimeter", nodes=regions)
@@ -114,13 +114,13 @@ class SpikingNetwork(object):
         if len(spike_devices) == 0:
             LOG.warning("No spike measuring device in this Spiking Network network!")
             return None, None, None
-        if populations is not None:
-            populations = np.intersect1d(list(spike_devices.index),
-                                                ensure_list(populations)).tolist()
-            if len(populations) == 0:
+        if populations_devices is not None:
+            populations_devices = np.intersect1d(list(spike_devices.index),
+                                                 ensure_list(populations_devices)).tolist()
+            if len(populations_devices) == 0:
                 LOG.warning("No spike measuring device left after user selection!")
                 return None, None, None
-            spike_devices = spike_devices[populations]
+            spike_devices = spike_devices[populations_devices]
         return spike_devices
 
     def get_spikes(self, mode="events", regions=None, populations=None, **kwargs):
@@ -131,10 +131,10 @@ class SpikingNetwork(object):
                 pop_spike_device.do_for_all_devices("events", **kwargs)
         return spikes
 
-    def _prepare_to_compute_spike_rates(self, populations=None, regions=None, mode="rate",
+    def _prepare_to_compute_spike_rates(self, populations_devices=None, regions=None, mode="rate",
                                         spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                         spikes_kernel_overlap=0.5, min_spike_interval=None, time=None):
-        spike_devices = self.get_spike_devices(mode, regions, populations)
+        spike_devices = self.get_spike_devices(mode, regions, populations_devices)
 
         if regions is not None:
             regions = ensure_list(regions)
@@ -193,13 +193,13 @@ class SpikingNetwork(object):
         spikes_kernel_width = spikes_kernel_width_in_points * time_step
         return spike_devices, time, spikes_kernel_width, spikes_kernel_width_in_points
 
-    def compute_spikes_rates(self, mode="total_rate", populations=None, regions=None,
+    def compute_spikes_rates(self, mode="total_rate", populations_devices=None, regions=None,
                              devices_dim_name="Population", name="Spikes rates from Spiking Network",
                              spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                              spikes_kernel=None):
         spike_devices, time, spikes_kernel_width, spikes_kernel_width_in_points = \
-            self._prepare_to_compute_spike_rates(populations, regions, mode,
+            self._prepare_to_compute_spike_rates(populations_devices, regions, mode,
                                                  spikes_kernel_width, spikes_kernel_n_intervals,
                                                  spikes_kernel_overlap, min_spike_interval, time)
         if spike_devices is not None:
@@ -221,13 +221,13 @@ class SpikingNetwork(object):
             shape = spike_devices[0].shape
             equal_shape_per_population = True
             rates = []
-            populations = []
+            populations_devices = []
             for i_pop, (pop_label, pop_spike_device) in enumerate(spike_devices.iteritems()):
                rates.append(pop_spike_device.do_for_all_devices(fun, time,
                                                                   spikes_kernel_width, spikes_kernel_width_in_points,
                                                                   spikes_kernel=spikes_kernel,
                                                                   return_type="xarray", **kwargs))
-               populations.append(pop_label)
+               populations_devices.append(pop_label)
                equal_shape_per_population = pop_spike_device.shape == shape
             if equal_shape_per_population:
                 rates = xr.concat(rates, dim=pd.Index(list(spike_devices.index), name=devices_dim_name))
@@ -269,47 +269,49 @@ class SpikingNetwork(object):
                         # from:   Region,  Time
                         # to:     "Time,   Region"
                         rates[i_r] = r.transpose(r.dims[-1], r.dims[0])
-                rates = pd.Series(rates, index=pd.Index(populations, name=devices_dim_name))
+                rates = pd.Series(rates, index=pd.Index(populations_devices, name=devices_dim_name))
             rates.name = name
             return rates, spike_devices
         else:
             return None, None
 
-    def compute_spikes_activities(self, mode="total", populations=None, regions=None,
-                                 devices_dim_name="Population", name="Spikes activities from Spiking Network",
+    def compute_spikes_activities(self, mode="total", populations_devices=None, regions=None,
+                                  devices_dim_name="Population Device", name="Spikes activities from Spiking Network",
                                   spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                   spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                   spikes_kernel=None):
-        return self.compute_spikes_rates(mode + "_activity", populations, regions,
+        return self.compute_spikes_rates(mode + "_activity", populations_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
                                          spikes_kernel_overlap, min_spike_interval, time,
                                          spikes_kernel)
 
-    def compute_mean_spikes_rates(self, populations=None, regions=None, mode="rate",
-                                  devices_dim_name="Population", name="Mean spikes rates from Spiking Network",
+    def compute_mean_spikes_rates(self, populations_devices=None, regions=None, mode="rate",
+                                  devices_dim_name="Population Device",
+                                  name="Mean spikes rates from Spiking Network",
                                   spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                   spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                   spikes_kernel=None):
-        return self.compute_spikes_rates(mode + "_mean", populations, regions,
+        return self.compute_spikes_rates(mode + "_mean", populations_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
                                          spikes_kernel_overlap, min_spike_interval, time,
                                          spikes_kernel)
 
-    def compute_mean_spikes_activities(self, populations=None, regions=None,
-                                       devices_dim_name="Population", name="Mean spikes activity from Spiking Network",
+    def compute_mean_spikes_activities(self, populations_devices=None, regions=None,
+                                       devices_dim_name="Population Device",
+                                       name="Mean spikes activity from Spiking Network",
                                        spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                        spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                        spikes_kernel=None):
-        return self.compute_spikes_rates("mean_activity", populations, regions,
+        return self.compute_spikes_rates("mean_activity", populations_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
                                          spikes_kernel_overlap, min_spike_interval, time,
                                          spikes_kernel)
 
-    def get_data_from_multimeter(self, mode="total", populations=None, variables=None, regions=None,
-                                 devices_dim_name="Population", name="Data from Spiking Network multimeter",
+    def get_data_from_multimeter(self, mode="total", populations_devices=None, variables=None, regions=None,
+                                 devices_dim_name="Population Device", name="Data from Spiking Network multimeter",
                                  **kwargs):
         if mode == "mean":
             # Mean quantities across neurons
@@ -325,20 +327,20 @@ class SpikingNetwork(object):
             LOG.warning("No multimeter device in this Spiking Network!")
             return None, None
         index = list(multimeters.index)
-        if populations is None:
-            populations = index
+        if populations_devices is None:
+            populations_devices = index
         else:
-            populations = np.intersect1d(index, ensure_list(populations)).tolist()
-        shape = multimeters[populations[0]].shape
+            populations_devices = np.intersect1d(index, ensure_list(populations_devices)).tolist()
+        shape = multimeters[populations_devices[0]].shape
         equal_shape_per_population = True
         data = []
-        for i_dev, device_name in enumerate(populations):
+        for i_dev, device_name in enumerate(populations_devices):
             data.append(multimeters[device_name].do_for_all_devices(fun, return_type="xarray",
                                                                     variables=variables, **kwargs))
             data[-1].name = device_name
             equal_shape_per_population = multimeters[device_name].shape == shape
         if equal_shape_per_population:
-            data = xr.concat(data, dim=pd.Index(populations, name=devices_dim_name))
+            data = xr.concat(data, dim=pd.Index(populations_devices, name=devices_dim_name))
             if data.size == 0:  # In case there is nothing to measure in Spiking Network
                 data.name = name
                 return data
@@ -377,22 +379,24 @@ class SpikingNetwork(object):
                     # from:   Region,  Variable, Time  "
                     # to:     "Time,   Variable, Region"
                     data[i_d] = d.transpose(d.dims[2], d.dims[1], d.dims[0])
-            data = pd.Series(data, index=pd.Index(populations, name=devices_dim_name))
+            data = pd.Series(data, index=pd.Index(populations_devices, name=devices_dim_name))
         data.name = name
         return data
 
-    def get_mean_data_from_multimeter(self, populations=None, variables=None, regions=None,
-                                      devices_dim_name="Population", name="Mean data from Spiking Network multimeter",
+    def get_mean_data_from_multimeter(self, populations_devices=None, variables=None, regions=None,
+                                      devices_dim_name="Population device",
+                                      name="Mean data from Spiking Network multimeter",
                                       **kwargs):
-        data = self.get_data_from_multimeter("mean", populations, variables, regions,
+        data = self.get_data_from_multimeter("mean", populations_devices, variables, regions,
                                              devices_dim_name, **kwargs)
         data.name = name
         return data
 
-    def get_total_data_from_multimeter(self, populations=None, variables=None, regions=None,
-                                      devices_dim_name="Population", name="Mean data from Spiking Network multimeter",
-                                      **kwargs):
-        data = self.get_data_from_multimeter("total", populations, variables, regions,
+    def get_total_data_from_multimeter(self, populations_devices=None, variables=None, regions=None,
+                                       devices_dim_name="Population device",
+                                       name="Mean data from Spiking Network multimeter",
+                                       **kwargs):
+        data = self.get_data_from_multimeter("total", populations_devices, variables, regions,
                                              devices_dim_name, **kwargs)
         data.name = name
         return data
