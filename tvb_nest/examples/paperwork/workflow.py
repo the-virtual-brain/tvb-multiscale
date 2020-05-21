@@ -471,7 +471,8 @@ class Workflow(WorkflowBase):
 
         self.nest_ts = \
             TimeSeriesRegionX(
-                self.nest_network.get_data_from_multimeter(mode="per_neuron"),
+                self.nest_network.get_data_from_multimeter(mode="per_neuron",
+                                                           populations_devices=["Excitatory", "Inhibitory"]),
                 connectivity=self.connectivity)[self.transient:]
 
         self.nest_spikes = self.nest_network.get_spikes(mode="events",
@@ -567,22 +568,8 @@ class Workflow(WorkflowBase):
                                                                  figname="Spiking nodes TVB Time Series Raster")
 
     def compute_nest_mean_field(self):
-        labels_ordering = list(self.nest_ts.labels_ordering)
-        labels_dimensions = dict(self.nest_ts.labels_dimensions)
-        try:
-            labels_ordering.remove("Neuron")
-        except:
-            pass
-        try:
-            del labels_dimensions["Neuron"]
-        except:
-            pass
-        for dim in labels_ordering:
-            labels_dimensions[dim] = self.nest_ts.coords[dim]
         mean_field = TimeSeriesRegionX(self.nest_ts._data.mean(axis=-1), connectivity=self.nest_ts.connectivity,
-                                       labels_ordering=labels_ordering, labels_dimensions=labels_dimensions,
                                        title="Mean field spiking nodes time series")
-
         # We place here all variables that relate to local excitatory synapses
         mean_field_exc = mean_field[:, ["spikes_exc", "s_AMPA", "I_AMPA", "x_NMDA", "s_NMDA", "I_NMDA"]]
         mean_field_exc._data.name = "Mean excitatory synapse data from NEST multimeter"
@@ -647,6 +634,10 @@ class Workflow(WorkflowBase):
             mean_field_inh.plot_raster(plotter=self.plotter, per_variable=True, figsize=(10, 5))
             # ...and finally the common neuronal variables:
             mean_field_neuron.plot_raster(plotter=self.plotter, per_variable=True, figsize=(10, 5))
+        else:
+            dims = self.nest_ts.labels_ordering
+            self.nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
+                                  cmap="jet", robust=True, figsize=(20, 10), plotter=self.plotter)
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
