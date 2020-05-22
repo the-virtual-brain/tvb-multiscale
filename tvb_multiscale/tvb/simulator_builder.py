@@ -54,7 +54,7 @@ class SimulatorBuilder(object):
             # Given that
             # idelays = numpy.rint(delays / dt).astype(numpy.int32)
             # and delays = tract_lengths / speed
-            connectivity.tract_lengths = 0.1 * self.dt * connectivity.speed
+            connectivity.tract_lengths = 0.1 * self.dt * connectivity.speed * np.ones(connectivity.tract_lengths.shape)
         connectivity.configure()
 
         # Build model:
