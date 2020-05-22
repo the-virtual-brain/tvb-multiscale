@@ -710,6 +710,7 @@ iaf_cond_deco2014::update( Time const& origin,
   for ( long lag = from; lag < to; ++lag ) // proceed by stepsize B_.step_
   {
     double t = 0.0; // internal time of the integration period
+    double temp_spike = 0.0;  // temporary spike variable
 
     // numerical integration with adaptive step size control:
     // ------------------------------------------------------
@@ -796,29 +797,21 @@ iaf_cond_deco2014::update( Time const& origin,
         --S_.r_;
     }
 
-    B_.spikes_exc = B_.spikesExc.get_value(lag);
-//    if (B_.spikes_exc > 0){
-//        std::cout << "\nspikes_exc[" << lag << "]=" << B_.spikes_exc << "!";
-//    }
+    temp_spike = B_.spikesExc.get_value(lag);
+    B_.spikes_exc += temp_spike;
+    S_.y_[State_::S_AMPA] += temp_spike;
+    S_.y_[State_::X_NMDA] += temp_spike;
 
-    S_.y_[State_::S_AMPA] += B_.spikes_exc;
-
-    S_.y_[State_::X_NMDA] += B_.spikes_exc;
-
-    B_.spikes_inh = B_.spikesInh.get_value(lag);
-//    if (B_.spikes_inh > 0){
-//        std::cout << "\nspikes_inh[" << lag << "]=" << B_.spikes_inh << "!";
-//    }
-    S_.y_[State_::S_GABA] += B_.spikes_inh;
+    temp_spike = B_.spikesInh.get_value(lag);
+    B_.spikes_inh += temp_spike;
+    S_.y_[State_::S_GABA] += temp_spike;
 
     for ( size_t i = 0; i < P_.n_receptors(); ++i )
     {
        // add incoming spike:
-      B_.spikes_exc_ext[ i ] = B_.spikesExc_ext[ i ].get_value( lag ) ;
-//      if (B_.spikes_exc_ext[ i ] > 0){
-//        std::cout << "\nspikes_exc_ext[" << i << "][" << lag << "]=" << B_.spikes_exc_ext[ i ] << "!";
-//      }
-      S_.y_[ State_::S_AMPA_EXT + i ] += B_.spikes_exc_ext[ i ] ;
+      temp_spike = B_.spikesExc_ext[ i ].get_value( lag );
+      B_.spikes_exc_ext[ i ] += temp_spike;
+      S_.y_[ State_::S_AMPA_EXT + i ] += temp_spike;
     }
     // set new input current
     B_.I_e = B_.currents.get_value( lag );
