@@ -467,10 +467,10 @@ private:
 
     double I_e;
 
+    //!< neuron spikes received:
     double spikes_exc;
     double spikes_inh;
-
-    std::vector< double > spikes_exc_ext; //!< neuron spikes received
+    std::vector< double > spikes_exc_ext;
 
   };
 
@@ -619,16 +619,22 @@ private:
     return V_.w_E_ext_g_AMPA_ext[ receptor ] * (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_AMPA_EXT + receptor];
   }
 
-  inline double get_spikes_exc() const {
-    return B_.spikes_exc;
+  inline double get_spikes_exc() {
+    double temp = B_.spikes_exc;
+    B_.spikes_exc = 0.0;
+    return temp;
   }
 
-  inline double get_spikes_inh() const {
-    return B_.spikes_inh;
+  inline double get_spikes_inh() {
+    double temp = B_.spikes_inh;
+    B_.spikes_inh = 0.0;
+    return temp;
   }
 
-  inline double get_spikes_exc_ext( size_t receptor ) const {
-    return B_.spikes_exc_ext[ receptor ] ;
+  inline double get_spikes_exc_ext( size_t receptor ) {
+    double temp = B_.spikes_exc_ext[ receptor ];
+    B_.spikes_exc_ext[ receptor ] = 0.0;
+    return temp;
   }
 
   inline double
