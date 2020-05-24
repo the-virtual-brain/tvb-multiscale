@@ -187,12 +187,18 @@ class OutputDevice(Device):
         def in_fun(x, values):
             in_flag = False
             if len(values) > 0:
-                in_flag = (x in values)
+                in_flag = x in values
+                if in_flag:
+                    return in_flag
                 if len(values) == 2:
                     if values[0] is not None:
-                        in_flag = in_flag or (x > values[0])
+                        in_flag = x > values[0]
+                        if in_flag:
+                            if values[1] is not None:
+                                in_flag = x < values[1]
+                        return in_flag
                     if values[1] is not None:
-                        in_flag = in_flag or (x < values[1])
+                        return x < values[1]
             return in_flag
 
         # This method will select/exclude part of the measured events, depending on user inputs
@@ -285,6 +291,8 @@ class SpikeDetector(OutputDevice):
         return self._get_connections(target=self.device)
 
     # The following properties are time summaries without taking into consideration spike timing:
+    def get_spikes_events(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        return self.filter_events(None, None, neurons, times, exclude_neurons, exclude_times)
 
     def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.filter_events(None, "times", neurons, times, exclude_neurons, exclude_times)["times"]

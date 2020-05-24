@@ -128,7 +128,7 @@ class SpikingNetwork(object):
         spikes = pd.Series()
         for i_pop, (pop_label, pop_spike_device) in enumerate(spike_devices.iteritems()):
             spikes[pop_label] = \
-                pop_spike_device.do_for_all_devices("events", **kwargs)
+                pop_spike_device.do_for_all_devices("get_spikes_events", **kwargs)
         return spikes
 
     def _prepare_to_compute_spike_rates(self, populations_devices=None, regions=None, mode="rate",
