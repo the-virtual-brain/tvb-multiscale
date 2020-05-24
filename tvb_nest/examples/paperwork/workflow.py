@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from six import string_types
-import os
+
 import time
 from collections import OrderedDict
 import numpy as np
@@ -11,17 +10,8 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
-from tvb_nest.interfaces.builders.models.ww_deco2014 import WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import WWDeco2014Builder as InterfaceWWDeco2014Builder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
-from tvb_multiscale.io.h5_writer import H5Writer
-from tvb_multiscale.plot.plotter import Plotter
-
-from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.simulator import Simulator
-from tvb.simulator.integrators import HeunStochastic
-from tvb.simulator.monitors import Raw
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
@@ -473,11 +463,16 @@ class Workflow(WorkflowBase):
             TimeSeriesRegionX(
                 self.nest_network.get_data_from_multimeter(mode="per_neuron",
                                                            populations_devices=["Excitatory", "Inhibitory"]),
-                connectivity=self.connectivity)[self.transient:]
+                connectivity=self.connectivity)
 
-        self.nest_spikes = self.nest_network.get_spikes(mode="events",
-                                                        return_type="Series",
-                                                        exclude_times=[0.0, self.transient])
+        if self.transient:
+            self.nest_ts = self.nest_ts[self.transient:]
+            exclude_times = [0.0, self.transient]
+        else:
+            exclude_times = None
+
+        self.nest_spikes = self.nest_network.get_spikes(mode="events", return_type="Series",
+                                                        exclude_times=exclude_times)
 
         return self.nest_ts, self.nest_spikes
 
@@ -503,8 +498,9 @@ class Workflow(WorkflowBase):
                                        labels_dimensions={
                                           "State Variable": ensure_list(self.simulator.model.state_variables),
                                           "Region": self.simulator.connectivity.region_labels.tolist()},
-                                       sample_period=self.simulator.integrator.dt)[self.transient:]
-
+                                       sample_period=self.simulator.integrator.dt)
+        if self.transient:
+            self.tvb_ts = self.tvb_ts[self.transient:]
         if self.writer:
             self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
 
@@ -637,7 +633,7 @@ class Workflow(WorkflowBase):
         else:
             dims = self.nest_ts.labels_ordering
             self.nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
-                                  cmap="jet", robust=True, figsize=(20, 10), plotter=self.plotter)
+                                  cmap="jet", figsize=(20, 10), plotter=self.plotter)
 
         self.plotter.plot_spike_events(self.nest_spikes)
 

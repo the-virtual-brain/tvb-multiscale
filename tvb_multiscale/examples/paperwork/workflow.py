@@ -23,8 +23,9 @@ from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangE
 from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
-from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 from tvb.contrib.scripts.service.time_series_service import TimeSeriesService
+from tvb.contrib.scripts.service.head_service import HeadService
+from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
 
 def mean_field_per_population(source_ts, populations, pop_sizes):
@@ -246,14 +247,7 @@ class Workflow(object):
             inds = np.arange(self.force_dims).astype("i")
         else:
             inds = np.array(ensure_list(self.force_dims))
-        self.connectivity.weights = self.connectivity.weights[inds][:, inds]
-        self.connectivity.tract_lengths = self.connectivity.tract_lengths[inds][:, inds]
-        self.connectivity.centres = self.connectivity.centres[inds]
-        self.connectivity.areas = self.connectivity.areas[inds]
-        self.connectivity.orientations = self.connectivity.orientations[inds]
-        self.connectivity.cortical = self.connectivity.cortical[inds]
-        self.connectivity.hemispheres = self.connectivity.hemispheres[inds]
-        self.connectivity.region_labels = self.connectivity.region_labels[inds]
+        self.connectivity = HeadService().slice_connectivity(self.connectivity, inds)
 
     @property
     def tvb_model_dict(self):
@@ -440,11 +434,11 @@ class Workflow(object):
                                                                  row=self.tvb_ts._data.dims[2],
                                                                  per_variable=True,
                                                                  figname="Spiking nodes TVB Time Series",
-                                                                 robust=True, figsize=(20, 10),
+                                                                 figsize=(20, 10),
                                                                  plotter=self.plotter)
             for i_pop, spike in enumerate(self.tvb_spikes):
                 spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
-                           cmap="jet", robust=True, figsize=(20, 10), plotter=self.plotter)
+                           cmap="jet", figsize=(20, 10), plotter=self.plotter)
             self.tvb_rates.plot_timeseries(plotter=self.plotter, figsize=(10, 5))
 
     def run(self, **model_params):

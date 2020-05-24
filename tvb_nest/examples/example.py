@@ -7,22 +7,22 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i_multisynapse import RedWWExcIOInhIMultisynapseBuilder
+from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIMultisynapseBuilder
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i_multisynapse \
-    import RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.ww_deco2014 \
-    import WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import \
+    RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder, \
+    WWDeco2014Builder as InterfaceWWDeco2014Builder
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
-from tvb_multiscale.examples.plot_results import plot_results
+from tvb_multiscale.examples.plot_write_results import plot_results
 from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
-def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids,
-                 nest_populations_order=100, connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
-                 simulation_length=100.0, exclusive_nodes=False, config=CONFIGURED, **model_params):
+def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
+                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=False,
+                 connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, simulation_length=1100.0, transient=100.0,
+                 config=CONFIGURED, **model_params):
 
     plotter = Plotter(config)
 
@@ -31,10 +31,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
     simulator_builder.connectivity = connectivity
-
+    # simulator_builder.delays_flag = False
     simulator = simulator_builder.build(**model_params)
-
-    plotter.plot_tvb_connectivity(simulator.connectivity)
 
     # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
@@ -43,9 +41,11 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
-    nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
+    nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config,
+                                            populations_order=nest_populations_order)
+    populations_sizes = [int(np.round(nest_model_builder.scale_e * nest_model_builder.population_order)),
+                         int(np.round(nest_model_builder.scale_i * nest_model_builder.population_order))]
     # Common order of neurons' number per population:
-    nest_model_builder.populations_order = nest_populations_order
     nest_network = nest_model_builder.build_spiking_network()
 
     print("Done! in %f min" % ((time.time() - tic) / 60))
@@ -57,8 +57,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
     # Using all default parameters for this example
-    tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes)
-    tvb_nest_model = tvb_nest_builder.build_interface()
+    tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
+                                        N_E=populations_sizes[0], N_I=populations_sizes[1])
+    tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_nest_mode=tvb_to_nest_mode, nest_to_tvb=nest_to_tvb)
     print("Done! in %f min" % ((time.time() - tic)/60))
 
     # -----------------------------------4. Simulate and gather results-------------------------------------------------
@@ -77,8 +78,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
 
-    plot_results(results, simulator, "State Variables",
-                 simulator.model.variables_of_interest, plotter)
+    plot_results(results, simulator, populations_sizes, transient, "State Variables",
+                 simulator.model.variables_of_interest, plotter, config)
 
     return results, simulator
 
@@ -122,6 +123,8 @@ if __name__ == "__main__":
     #     "P": np.array([0.0])
     # }
     model_params = {}
-    main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIMultisynapseBuilder, InterfaceRedWWexcIOinhIMultisynapseBuilder,
-                 nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
-                 simulation_length=100.0, exclusive_nodes=True, config=CONFIGURED, **model_params)
+    main_example(ReducedWongWangExcIOInhI, WWDeco2014Builder, InterfaceWWDeco2014Builder,
+                 nest_nodes_ids,  nest_populations_order=100,
+                 tvb_to_nest_mode="param", nest_to_tvb=True, exclusive_nodes=True,
+                 connectivity=connectivity, simulation_length=1100.0, transient=100.0,
+                 config=CONFIGURED, **model_params)
