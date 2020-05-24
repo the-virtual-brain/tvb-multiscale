@@ -125,6 +125,6 @@ if __name__ == "__main__":
     model_params = {}
     main_example(ReducedWongWangExcIOInhI, WWDeco2014Builder, InterfaceWWDeco2014Builder,
                  nest_nodes_ids,  nest_populations_order=100,
-                 tvb_to_nest_mode="param", nest_to_tvb=True, exclusive_nodes=True,
+                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, simulation_length=1100.0, transient=100.0,
                  config=CONFIGURED, **model_params)
