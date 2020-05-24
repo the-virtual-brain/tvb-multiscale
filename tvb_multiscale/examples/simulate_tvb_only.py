@@ -6,7 +6,7 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.examples.plot_results import plot_results
+from tvb_multiscale.examples.plot_write_results import plot_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
