@@ -3,7 +3,7 @@ from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.plot.multimeter_plotter import MultimeterPlotter
 from tvb_multiscale.plot.spikes_plotter import SpikesPlotter
 
-from tvb.simulator.plot.plotter import Plotter as BasePlotter
+from tvb.contrib.scripts.plot.plotter import Plotter as BasePlotter
 
 
 class Plotter(BasePlotter):
