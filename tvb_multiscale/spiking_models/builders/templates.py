@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 # Functions and/or templates used to set parameters of populations, devices and their connections
 
 # Template used to set neural population parameters:
@@ -79,13 +81,16 @@ def scale_tvb_weight(source_node, target_node, tvb_weights, scale=1.0):
     return scale * tvb_weights[source_node, target_node]
 
 
-def random_normal_tvb_weight(source_node, target_node, tvb_weights, sigma=0.1):
-    if tvb_weights[source_node, target_node] > 0:
-        return {"distribution": "normal",
-                "mu": tvb_weights[source_node, target_node],
-                "sigma": sigma*tvb_weights[source_node, target_node]}
-    else:
+def random_normal_weight(weight, scale=1.0, sigma=0.1):
+    if weight == 0:
         return 0
+    if scale != 1.0:
+        weight *= scale
+    return {"distribution": "normal", "mu": weight, "sigma": sigma*weight}
+
+
+def random_normal_tvb_weight(source_node, target_node, tvb_weights, scale=1.0, sigma=0.1):
+    return random_normal_weight(tvb_weight(source_node, target_node, tvb_weights), scale, sigma)
 
 
 def set_between_nodes_connection_delay(source_node, target_node, tvb_delays):
@@ -99,6 +104,21 @@ def tvb_delay(source_node, target_node, tvb_delays):
 
 def scale_tvb_delay(source_node, target_node, tvb_delays, scale=1.0):
     return scale * tvb_delays[source_node, target_node]
+
+
+def random_uniform_delay(delay, low=0.0, high=1.0, sigma=0.1):
+    if delay == 0:
+        return delay
+    if sigma is not None and sigma > 0.0:
+        low = np.maximum(low, (1-sigma) * delay)
+        high = np.maximum(high, (1 + sigma) * delay)
+    if high <= low:
+        raise ValueError("Maximum delay %f is not larger than the minimum one %f!" % (high, low))
+    return {"distribution": "uniform", "low": low, "high": high}
+
+
+def random_uniform_tvb_delay(source_node, target_node, tvb_delays, low=0.0, high=1.0, sigma=0.1):
+    return random_uniform_delay(tvb_delay(source_node, target_node, tvb_delays), low, high, sigma)
 
 
 def add_to_tvb_delay(source_node, target_node, tvb_delays, add=1.0):

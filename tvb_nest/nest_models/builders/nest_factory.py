@@ -10,7 +10,7 @@ from tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict
 from tvb_multiscale.spiking_models.builders.factory import log_path
 
-from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
@@ -181,7 +181,20 @@ def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0,
                    nest_instance=None):
     if nest_instance is None:
         raise_value_error("There is no NEST instance!")
-    delay = np.maximum(delay, nest_instance.GetKernelStatus("resolution"))
+    resolution = nest_instance.GetKernelStatus("resolution")
+    if isinstance(delay, dict):
+        if delay["low"] < resolution:
+            delay["low"] = resolution
+            warning("Minimum delay %f is smaller than the NEST simulation resolution %f!\n"
+                    "Setting minimum delay equal to resolution!" % (delay["low"], resolution))
+        if delay["high"] <= delay["low"]:
+            raise_value_error("Maximum delay %f is not smaller than minimum one %f!" % (delay["high"], delay["low"]))
+    else:
+        if delay < resolution:
+            delay = resolution
+            warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
+                    "Setting minimum delay equal to resolution!" % (delay, resolution))
+
     if nest_device.model == "spike_detector":
         #                     source  ->  target
         nest_instance.Connect(neurons, nest_device.device,
