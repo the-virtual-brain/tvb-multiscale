@@ -253,6 +253,10 @@ class SpikingModelBuilder(object):
     def nodes_connections_target_nodes(self):
         return self._nodes_connection_property_per_node("target_nodes")
 
+    def _assert_delay(self, delay):
+        assert delay >= 0.0
+        return delay
+
     def _assert_within_node_delay(self, delay):
         if delay > self.tvb_dt / 2:
             if delay > self.tvb_dt:
@@ -401,10 +405,6 @@ class SpikingModelBuilder(object):
 
     def _synaptic_weight_scaling(self, weights, number_of_connections):
         return self.default_synaptic_weight_scaling(weights, number_of_connections)
-
-    def _assert_delay(self, delay):
-        assert delay >= 0.0
-        return delay
 
     def build_spiking_nodes(self, *args, **kwargs):
         self.nodes = Series()
