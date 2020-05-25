@@ -75,6 +75,8 @@ class SpikesPlotter(BasePlotter):
         return figure_name, figsize
 
     def _rate_ytick_labels(self, max_rate, yticks):
+        if max_rate == 0.0:
+            max_rate = 1.0
         rate_step = np.maximum(max_rate / len(yticks), 1.0)
         yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
         return ["%0.2f" % yticklabel for yticklabel in yticklabels]
@@ -212,6 +214,7 @@ class SpikesPlotter(BasePlotter):
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
                 # Define spike senders and rates' axis
                 neurons = region_spike_detector.senders
+
                 ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
