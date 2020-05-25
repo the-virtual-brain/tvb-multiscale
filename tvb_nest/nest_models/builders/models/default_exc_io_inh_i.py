@@ -62,7 +62,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         if low is None:
             low = self.default_populations_connection["delay"]
         if high is None:
-            high = 2 * self.default_populations_connection["delay"]
+            high = np.maximum(self.tvb_dt, 2 * self.default_populations_connection["delay"])
         return random_uniform_delay(low, low, high, sigma=None)
 
     def within_node_delay(self):
