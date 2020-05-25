@@ -12,15 +12,9 @@ class RedWWexcIOinhIBuilder(DefaultInterfaceBuilder):
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=160, N_I=40):
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                                    tvb_to_nest_interfaces, nest_to_tvb_interfaces)
+                                                    tvb_to_nest_interfaces, nest_to_tvb_interfaces, N_E, N_I)
         self.global_coupling_scaling *= self.tvb_simulator.model.G[0].item()
-        self.N_E = N_E
-        self.N_I = N_I
-        #       The total external excitatory current (tvb_mean_field_current * N_E)
-        #       will be distributed to the neurons of exc and inh pops if lamda>0 (feeedforward inhibition)
-        self._exc_weight = 1.0 / (1.0 + self.tvb_model.lamda[0]) * self.N_E
-        self._inh_weight = (1.0 - self._exc_weight) * self.N_E
-
+        self.lamda = self.tvb_model.lamda[0].item()
         self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1.0
@@ -35,27 +29,33 @@ class RedWWexcIOinhIBuilder(DefaultInterfaceBuilder):
         # given WongWang model parameter r is in Hz but tvb dt is in ms:
         self.w_spikes_to_tvb = 1000.0 / self.tvb_dt
 
-    def build_default_rate_tvb_to_nest_interfaces(self):
-        self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["E"]},
-                                                        interface_weights=self._exc_weight)
+    def tvb_weight_E_fun(self, source_node, target_node, sigma=0.1):
+        return super(RedWWexcIOinhIBuilder, self).tvb_weight_fun(source_node, target_node,
+                                                                 scale=self.global_coupling_scaling, sigma=sigma)
 
-        if self._inh_weight:
-            self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["I"]},
-                                                            interface_weights=self._inh_weight)
+    def tvb_weight_I_fun(self, source_node, target_node, sigma=0.1):
+        return super(RedWWexcIOinhIBuilder, self).tvb_weight_fun(source_node, target_node,
+                                                                 scale=self.lamda * self.global_coupling_scaling,
+                                                                 sigma=sigma)
+
+    def build_default_rate_tvb_to_nest_interfaces(self):
+        self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["E"]},  weights=self.tvb_weight_E_fun)
+
+        if self.lamda:
+            self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["I"]}, weights=self.tvb_weight_I_fun)
 
     def build_default_current_tvb_to_nest_interfaces(self):
-        self._build_default_current_tvb_to_nest_interfaces({"S_e": ["E"]},
-                                                           interface_weights=self._exc_weight/self.N_E)
-        if self._inh_weight > 0.0:
+        self._build_default_current_tvb_to_nest_interfaces({"S_e": ["E"]}, weights=self.tvb_weight_E_fun)
+        if self.lamda > 0.0:
             self._build_default_current_tvb_to_nest_interfaces({"S_e": ["I"]},
-                                                               interface_weights=self._inh_weight/self.N_I)
+                                                               interface_weights=1.0 * self.N_E / self.N_I,
+                                                               weights=self.tvb_weight_I_fun)
 
     def build_default_param_tvb_to_nest_interfaces(self):
-        self._build_default_param_tvb_to_nest_interfaces({"S_e": ["E"]},
-                                                         interface_weights=self._exc_weight/self.N_E)
-        if self._inh_weight > 0.0:
+        self._build_default_param_tvb_to_nest_interfaces({"S_e": ["E"]})
+        if self.lamda > 0.0:
             self._build_default_param_tvb_to_nest_interfaces({"S_e": ["I"]},
-                                                             interface_weights=self._inh_weight/self.N_I)
+                                                             interface_weights=self.lamda*self.N_E/self.N_I)
 
     def build_default_nest_to_tvb_interfaces(self):
         self._build_default_nest_to_tvb_interfaces({"R_e": ["E"], "R_i": ["I"]})
@@ -84,18 +84,23 @@ class WWDeco2014Builder(RedWWexcIOinhIMultisynapseBuilder):
     # No random jitter to weights and delays by default for this model
 
     def build_default_rate_tvb_to_nest_interfaces(self):
-        self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["E"]}, weights=1.0,
-                                                        interface_weights=self._exc_weight)
+        # The rate interface requires uniform weight = 1.0,
+        # because spikes synapses are weighted with  parameter w_E_ext within the neuron model
+        self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["E"]}, weights=1.0,)
 
-        if self._inh_weight:
-            self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["I"]}, weights=1.0,
-                                                            interface_weights=self._inh_weight)
+        if self.lamda:
+            self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["I"]}, weights=1.0)
 
-    def tvb_weight(self, source_node, target_node):
+    # Instead, the current dc interface requires TVB weights
+    def tvb_weight_E_fun(self, source_node, target_node):
         return scale_tvb_weight(source_node, target_node,
                                 tvb_weights=self.tvb_weights, scale=self.global_coupling_scaling)
 
-    def tvb_delay(self, source_node, target_node, sigma=0.1):
+    def tvb_weight_I_fun(self, source_node, target_node):
+        return scale_tvb_weight(source_node, target_node,
+                                tvb_weights=self.tvb_weights, scale=self.lamda * self.global_coupling_scaling)
+
+    def tvb_delay_fun(self, source_node, target_node, sigma=0.1):
         return tvb_delay(source_node, target_node, self.tvb_delays)
 
     def receptor_fun(self, source_node, target_node, start=1):

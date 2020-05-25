@@ -68,10 +68,10 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def within_node_delay(self):
         return self.delay_fun()
 
-    def receptor_fun_E(self):
+    def receptor_E_fun(self):
         return 0
 
-    def receptor_fun_I(self):
+    def receptor_I_fun(self):
         return 0
 
     def set_EE_populations_connections(self, **params):
@@ -81,7 +81,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee,
              "delay": self.d_ee,
-             "receptor_type": self.receptor_fun_E(), "nodes": None}  # None means "all"
+             "receptor_type": self.receptor_E_fun(), "nodes": None}  # None means "all"
         connections.update(params)
         return connections
 
@@ -92,7 +92,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ei,
              "delay": self.d_ei,
-             "receptor_type": self.receptor_fun_E(), "nodes": None}  # None means "all"
+             "receptor_type": self.receptor_E_fun(), "nodes": None}  # None means "all"
         connections.update(params)
         return connections
 
@@ -103,7 +103,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ie,
              "delay": self.d_ie,
-             "receptor_type": self.receptor_fun_I(), "nodes": None}  # None means "all"
+             "receptor_type": self.receptor_I_fun(), "nodes": None}  # None means "all"
         connections.update(params)
         return connections
 
@@ -114,7 +114,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ii,
              "delay": self.d_ii,
-             "receptor_type": self.receptor_fun_I(), "nodes": None}  # None means "all"
+             "receptor_type": self.receptor_I_fun(), "nodes": None}  # None means "all"
         connections.update(params)
         return connections
 
@@ -134,14 +134,14 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
             scale = self.global_coupling_scaling
         return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
 
-    def tvb_delay(self, source_node, target_node, low=None, high=None, sigma=0.1):
+    def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         if low is None:
             low = self.tvb_dt
         if high is None:
             high = 2 * self.tvb_dt
         return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
 
-    def receptor_by_source_region(self, source_node=None, target_node=None):
+    def receptor_by_source_region_fun(self, source_node=None, target_node=None):
         return 0
 
     def set_nodes_connections(self, **params):
@@ -150,9 +150,9 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
              "model": self.default_nodes_connection["model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
              "weight": self.tvb_weight,
-             "delay": self.tvb_delay,
+             "delay": self.tvb_delay_fun,
              # Each region emits spikes in its own port:
-             "receptor_type": self.receptor_by_source_region, "source_nodes": None, "target_nodes": None}  # None means "all"
+             "receptor_type": self.receptor_by_source_region_fun, "source_nodes": None, "target_nodes": None}  # None means "all"
         ]
         self.nodes_connections[0].update(params)
 
@@ -191,9 +191,10 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
             connections["Stimulus"] = ["E", "I"]
         device = \
             {"model": "poisson_generator",
-             "params": {"rate": 1000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+             "params": {"rate": 10000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
              "connections": connections, "nodes": None,
-             "weights": self.weight_fun(1.0), "delays": self.delay_fun(),
+             "weights": self.weight_fun(1.0),
+             "delays": random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
              "receptor_types": 0}
         device.update(**kwargs)
         return device
@@ -213,6 +214,8 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  set_defaults=True, **kwargs):
+        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(
+            tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults=False, **kwargs)
         self.E_ex = kwargs.get("E_ex", 0.0)
         self.E_in = kwargs.get("E_ex", -85.0)
         self.tau_rise_ex = kwargs.get("tau_rise_ex", 0.2)
@@ -230,10 +233,9 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
                              [self.tau_decay_in] +  # inh spikes (GABA)
                              self.number_of_nodes * [self.tau_decay_ex_ext])  # ext, exc spikes (AMPA,ext)
         self.multisynapse_populations_params = {"E_rev": E_rev, "tau_rise": tau_rise, "tau_decay": tau_decay}
-        kwargs["w_ee"] = kwargs.pop("w_ie", self.weight_fun(1.0))
-        kwargs["w_ie"] = kwargs.pop("w_ii", self.weight_fun(1.0))
-        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(
-            tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults=False, **kwargs)
+        self.w_ie = kwargs.pop("w_ie", self.weight_fun(1.0))
+        self.w_ii = kwargs.pop("w_ii", self.weight_fun(1.0))
+
         self.default_population["model"] = "aeif_cond_beta_multisynapse"
         if set_defaults:
             self.set_defaults()
@@ -243,17 +245,18 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         params_I.update({"params": self.multisynapse_populations_params})
         # Populations' configurations
         self.populations = [self.set_E_population(**params_E),
-                            self.set_E_population(**params_I)]
+                            self.set_I_population(**params_I)]
 
-    def receptor_fun_E(self):
+    def receptor_E_fun(self):
         return 1
 
-    def receptor_fun_I(self):
+    def receptor_I_fun(self):
         return 2
 
-    def receptor_by_source_region(self, source_node, target_node):
+    def receptor_by_source_region_fun(self, source_node, target_node):
         return receptor_by_source_region(source_node, target_node, start=3)
 
     def set_spike_stimulus(self, connections=OrderedDict({}), **kwargs):
+        kwargs["params"] = kwargs.pop("params", {"rate": 6400.0, "origin": 0.0, "start": 0.1})
         kwargs["receptor_types"] = kwargs.pop("receptor_types", lambda target_node: target_node + 3)
         return super(DefaultExcIOInhIMultisynapseBuilder, self).set_spike_stimulus(connections, **kwargs)

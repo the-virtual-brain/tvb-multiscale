@@ -98,25 +98,25 @@ class WWDeco2014Builder(RedWWExcIOInhIMultisynapseBuilder):
 
     def set_populations(self, params_E={}, params_I={}):
         paramsE = {"params": lambda node_index: self.param_fun(node_index, self.params_ex,
-                                                               weight=self.weight_exc)}
+                                                               weight=self.global_coupling_scaling)}
         paramsE.update(params_E)
         paramsI = {"params": lambda node_index: self.param_fun(node_index, self.params_in,
-                                                               weight=self.weight_inh)}
+                                                               weight=self.lamda * self.global_coupling_scaling)}
         paramsE.update(params_I)
         # Populations' configurations
         self.populations = [self.set_E_population(**paramsE),
                             self.set_I_population(**paramsI)]
 
-    def receptor_fun_E(self):
+    def receptor_E_fun(self):
         return 0
 
-    def receptor_fun_I(self):
+    def receptor_I_fun(self):
         return 0
 
-    def tvb_weight_exc(self, source_node, target_node):
+    def tvb_weight_exc_fun(self, source_node, target_node):
         return 1.0
 
-    def tvb_weight_inh(self, source_node, target_node):
+    def tvb_weight_inh_fun(self, source_node, target_node):
         return 1.0
 
     def set_nodes_connections(self, params_EE={}, params_EI={}):
@@ -124,10 +124,10 @@ class WWDeco2014Builder(RedWWExcIOInhIMultisynapseBuilder):
         params_EI.update({"weight": 1.0})
         super(WWDeco2014Builder, self).set_nodes_connections(params_EE, params_EI)
 
-    def tvb_delay(self, source_node, target_node):
+    def tvb_delay_fun(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)
 
-    def receptor_by_source_region(self, source_node, target_node):
+    def receptor_by_source_region_fun(self, source_node, target_node):
         return receptor_by_source_region(source_node, target_node, start=1)
 
     def set_multimeter(self, connections=OrderedDict({}), **kwargs):
@@ -145,7 +145,8 @@ class WWDeco2014Builder(RedWWExcIOInhIMultisynapseBuilder):
         return super(WWDeco2014Builder, self).set_multimeter(connections, **kwargs)
 
     def set_spike_stimulus(self, connections=OrderedDict({}), **kwargs):
+        kwargs["params"] = kwargs.pop("params", {"rate": 2400.0, "origin": 0.0, "start": 0.1})
         kwargs["weights"] = kwargs.pop("weights", 1.0)
-        kwargs["delays"] = kwargs.pop("delays", 0.0)
+        kwargs["delays"] = kwargs.pop("delays", self.tvb_dt)
         kwargs["receptor_types"] = kwargs.pop("receptor_types", lambda target_node: target_node + 1)
         return super(WWDeco2014Builder, self).set_spike_stimulus(connections, **kwargs)
