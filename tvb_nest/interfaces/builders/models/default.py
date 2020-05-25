@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 
-import numpy as np
-
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIOinhI
 from tvb_multiscale.spiking_models.builders.templates import \
@@ -15,7 +13,9 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
     _tvb_nest_interface = RedWWexcIOinhI  # Set here the target interface model
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100, N_I=100):
+        self.N_E = N_E
+        self.N_I = N_I
         super(DefaultInterfaceBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                       tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
@@ -23,10 +23,12 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
 
     # By default we choose weights and delays with a random jitter around TVB ones!
 
-    def tvb_weight(self, source_node, target_node, scale=1.0, sigma=0.1):
-        return random_normal_tvb_weight(source_node, target_node, scale=self.global_coupling_scaling, sigma=sigma)
+    def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
+        if scale is None:
+            scale = self.global_coupling_scaling
+        return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale=scale, sigma=sigma)
 
-    def tvb_delay(self, source_node, target_node, low=None, high=None, sigma=0.1):
+    def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         if low is None:
             low = self.tvb_simulator.integrator.dt
         if high is None:
@@ -35,6 +37,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
 
     def receptor_fun(self, source_node, target_node, start=0):
         return 0
+
+    # Spike rates are applied in parallelto neurons...
 
     def _build_default_rate_tvb_to_nest_interfaces(self, connections, **kwargs):
         # For spike transmission from TVB to NEST devices as TVB proxy nodes with TVB delays:
@@ -48,12 +52,12 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
             {"model": "inhomogeneous_poisson_generator",
              "params": {"allow_offgrid_times": False},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)---------
-              "interface_weights": 1.0,
+              "interface_weights": 1.0*self.N_E,
         # Applied outside NEST for each interface device
         #                                  Function of TVB connectivity weight:
-              "weights": self.tvb_weight,
+              "weights": self.tvb_weight_fun,
         #                                  Function of TVB connectivity delay:
-              "delays": self.tvb_delay,
+              "delays": self.tvb_delay_fun,
               "receptor_types": self.receptor_fun,
         # --------------------------------------------------------------------------------------------------------------
         #                           TVB sv or param -> NEST population
@@ -61,6 +65,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
               "source_nodes": None, "target_nodes": None}  # None means all here
         interface.update(kwargs)
         self.tvb_to_spikeNet_interfaces.append(interface)
+
+    # ...unlike currents that have to be distributed to neurons (e.g., N_E / N_E = 1.0)
 
     def _build_default_current_tvb_to_nest_interfaces(self, connections, **kwargs):
         # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
@@ -70,9 +76,9 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
              # Applied outside NEST for each interface device:
              "interface_weights": 1.0,
              #                                 Function of TVB connectivity weight:
-             "weights": self.tvb_weight,
+             "weights": self.tvb_weight_fun,
              #                                 Function of TVB connectivity delay:
-             "delays": self.tvb_delay,
+             "delays": self.tvb_delay_fun,
              # --------------------------------------------------------------------------------------------------------------
              #                                                 TVB sv -> NEST population
              "connections": connections,
