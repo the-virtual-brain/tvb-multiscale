@@ -7,13 +7,20 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIMultisynapseBuilder
+from tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
+    DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
+from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import \
+    RedWWExcIOInhIBuilder, RedWWExcIOInhIMultisynapseBuilder
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import \
+    RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder, \
     RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder, \
     WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_nest.interfaces.builders.models.wilson_cowan import \
+    WilsonCowanBuilder as InterfaceWilsonCowanBuilder, \
+    WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
-from tvb_multiscale.examples.plot_write_results import plot_results
+from tvb_multiscale.examples.plot_write_results import plot_write_results
 from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
@@ -21,7 +28,8 @@ from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangE
 
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=False,
-                 connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, simulation_length=1100.0, transient=100.0,
+                 connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
+                 simulation_length=1100.0, transient=100.0, variables_of_interest=None,
                  config=CONFIGURED, **model_params):
 
     plotter = Plotter(config)
@@ -30,8 +38,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     simulator_builder = SimulatorBuilder()
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
+    simulator_builder.variables_of_interest = variables_of_interest
     simulator_builder.connectivity = connectivity
-    # simulator_builder.delays_flag = False
+    simulator_builder.delays_flag = delays_flag
     simulator = simulator_builder.build(**model_params)
 
     # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
@@ -77,9 +86,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
-
-    plot_results(results, simulator, populations_sizes, transient, "State Variables",
-                 simulator.model.variables_of_interest, plotter, config)
+    plot_write_results(results, simulator, populations_sizes, transient, "State Variables",
+                       simulator.model.variables_of_interest, plotter, config)
 
     return results, simulator
 
@@ -92,39 +100,43 @@ if __name__ == "__main__":
     for id, label in enumerate(connectivity.region_labels):
         if label.find("hippo") > 0:
             nest_nodes_ids.append(id)
-    # # -----------------------------Generic2dOscillator oscillatory regime-----------------------------------------------
-    # from tvb.simulator.models.generic_2d_oscillator_multiscale import Generic2dOscillator
-    # model_params = {
-    #     "d": np.array([0.1]),
-    #     "e": np.array([0.0]),
-    #     "f": np.array([1.0]),
-    #     "g": np.array([1.0]),
-    #     "I": np.array([0.0]),
-    #     "tau": np.array([1.0]),
-    #     "alpha": np.array([1.0]),
-    #     "beta": np.array([0.0]),
-    #     "a": np.array([0.0]),
-    #     "b": np.array([-1.0]),
-    #     "c": np.array([0.0])
-    # }
+
+    tvb_model = ReducedWongWangExcIOInhI
+    model_params = {}
+
     # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
     # from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
+    #
+    # tvb_model = WilsonCowan
+    #
     # model_params = {
-    #     "tau_e": np.array([8.0]),
-    #     "tau_i": np.array([8.0]),
-    #     "c_ee": np.array([16.0]),
-    #     "c_ei": np.array([12.0]),
-    #     "c_ie": np.array([15.0]),
-    #     "c_ii": np.array([3.0]),
-    #     "a_e": np.array([1.3]),
-    #     "a_i": np.array([2.0]),
-    #     "b_e": np.array([4.0]),
-    #     "b_i": np.array([3.7]),
-    #     "P": np.array([0.0])
+    #     "r_e": np.array([0.0]),
+    #     "r_i": np.array([0.0]),
+    #     "k_e": np.array([1.0]),
+    #     "k_i": np.array([1.0]),
+    #     "tau_e": np.array([10.0]),
+    #     "tau_i": np.array([10.0]),
+    #     "c_ee": np.array([10.0]),
+    #     "c_ei": np.array([6.0]),
+    #     "c_ie": np.array([10.0]),
+    #     "c_ii": np.array([1.0]),
+    #     "alpha_e": np.array([1.2]),
+    #     "alpha_i": np.array([2.0]),
+    #     "a_e": np.array([1.0]),
+    #     "a_i": np.array([1.0]),
+    #     "b_e": np.array([0.0]),
+    #     "b_i": np.array([0.0]),
+    #     "c_e": np.array([1.0]),
+    #     "c_i": np.array([1.0]),
+    #     "theta_e": np.array([2.0]),
+    #     "theta_i": np.array([3.5]),
+    #     "P": np.array([0.5]),
+    #     "Q": np.array([0.0])
     # }
-    model_params = {}
-    main_example(ReducedWongWangExcIOInhI, WWDeco2014Builder, InterfaceWWDeco2014Builder,
+
+    main_example(tvb_model, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
                  nest_nodes_ids,  nest_populations_order=100,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
-                 connectivity=connectivity, simulation_length=1100.0, transient=100.0,
+                 tvb_to_nest_mode="param", nest_to_tvb=True, exclusive_nodes=True,
+                 connectivity=connectivity, delays_flag=True,
+                 simulation_length=1100.0, transient=100.0, variables_of_interest=None,
                  config=CONFIGURED, **model_params)

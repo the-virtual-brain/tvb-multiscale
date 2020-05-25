@@ -43,8 +43,8 @@ np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
 
 
 # # -------------------------------------------6. Plot results--------------------------------------------------------
-# from tvb_nest.examples.plot_results import plot_results
-# plot_results(results, simulator, tvb_nest_model,
+# from tvb_nest.examples.plot_write_results import plot_write_results
+# plot_write_results(results, simulator, tvb_nest_model,
 #              tvb_state_variable_type_label="Synaptic Gating Variable",
 #              tvb_state_variables_labels=["S_e", "S_i"],
 #              plotter=plotter)

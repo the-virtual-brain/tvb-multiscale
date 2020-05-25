@@ -6,7 +6,7 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.examples.plot_write_results import plot_results
+from tvb_multiscale.examples.plot_write_results import plot_write_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
@@ -85,7 +85,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
                                            [simulator.model.N_E[0],
                                             simulator.model.number_of_modes - simulator.model.N_E[0]])
 
-    # plot_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
+    # plot_write_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
 
     return simulator.connectivity, results
 

@@ -226,9 +226,9 @@ class Workflow(WorkflowBase):
                  #  weight scaling the TVB connectivity weight
                  "weight": 1.0,
                  # additional delay to the one of TVB connectivity
-                 "delay": self.nest_model_builder.tvb_delay,
+                 "delay": self.nest_model_builder.tvb_delay_fun,
                  # Each region emits spikes in its own port:
-                 "receptor_type": self.nest_model_builder.receptor_by_source_region,
+                 "receptor_type": self.nest_model_builder.receptor_by_source_region_fun,
                  "source_nodes": None, "target_nodes": None}  # None means "all"
             ]
             if self.nest_model_builder.tvb_model.lamda[0] > 0:
@@ -330,7 +330,7 @@ class Workflow(WorkflowBase):
             {"model": "dc_generator", "params": {},
              # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
              #   Applied outside NEST for each interface device
-             "interface_weights": 1.0 * self.N_E,
+             "interface_weights": 1.0,
              # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
              #    To multiply TVB connectivity weight:
              "weights": lambda tvb_node_id, nest_node_id:
@@ -351,7 +351,7 @@ class Workflow(WorkflowBase):
                 {"model": "dc_generator", "params": {},
                  # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
                  #   Applied outside NEST for each interface device
-                 "interface_weights": 1.0 * self.N_E,
+                 "interface_weights": 1.0 * self.N_E / self.N_I,
                  # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)-----------
                  #    To multiply TVB connectivity weight:
                  "weights": lambda tvb_node_id, nest_node_id:
@@ -377,7 +377,7 @@ class Workflow(WorkflowBase):
         self.interface_builder.tvb_to_spikeNet_interfaces = [
             {"model": "current", "parameter": "I_e",
              # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-             "interface_weights": 1.0 * self.N_E,
+             "interface_weights": 1.0,
              # ----------------------------------------------------------------------------------------------------------------
              #                  TVB sv -> NEST population
              "connections": {"S_e": ["E"]},
@@ -388,7 +388,7 @@ class Workflow(WorkflowBase):
                 {
                     "model": "current", "parameter": "I_e",
                     # ---------Properties potentially set as function handles with args (nest_node_id=None)---------------------------
-                    "interface_weights": 1.0 * self.N_E * lamda,
+                    "interface_weights": lamda * self.N_E / self.N_I,
                     # ----------------------------------------------------------------------------------------------------------------
                     #                     TVB sv -> NEST population
                     "connections": {"S_e": ["I"]},
