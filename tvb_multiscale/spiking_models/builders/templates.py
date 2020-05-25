@@ -86,7 +86,7 @@ def random_normal_weight(weight, scale=1.0, sigma=0.1):
         return 0
     if scale != 1.0:
         weight *= scale
-    return {"distribution": "normal", "mu": weight, "sigma": sigma*weight}
+    return {"distribution": "normal", "mu": weight, "sigma": sigma * np.abs(weight)}
 
 
 def random_normal_tvb_weight(source_node, target_node, tvb_weights, scale=1.0, sigma=0.1):
