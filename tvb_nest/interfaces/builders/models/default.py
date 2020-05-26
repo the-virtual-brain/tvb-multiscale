@@ -14,10 +14,12 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100, N_I=100):
-        self.N_E = N_E
-        self.N_I = N_I
+
         super(DefaultInterfaceBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                       tvb_to_nest_interfaces, nest_to_tvb_interfaces)
+        self.N_E = N_E
+        self.N_I = N_I
+
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
 
@@ -58,7 +60,7 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
               "weights": self.tvb_weight_fun,
         #                                  Function of TVB connectivity delay:
               "delays": self.tvb_delay_fun,
-              "receptor_types": self.receptor_fun,
+              "receptor_type": self.receptor_fun,
         # --------------------------------------------------------------------------------------------------------------
         #                           TVB sv or param -> NEST population
               "connections": connections,
