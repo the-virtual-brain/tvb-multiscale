@@ -107,7 +107,11 @@ ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
+    $VENV/bin/python setup.py develop; \
+    cd contrib; \
     $VENV/bin/python setup.py develop;
+#    cd ../../framework_tvb; \
+#    $VENV/bin/python setup.py develop;
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
