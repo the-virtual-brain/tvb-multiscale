@@ -9,7 +9,11 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.config import CONFIGURED
-from tvb_multiscale.io.h5_writer import H5Writer
+try:
+    from tvb_multiscale.io.h5_writer import H5Writer
+except:
+    H5Writer = None
+
 from tvb_multiscale.plot.plotter import Plotter
 
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
@@ -23,9 +27,9 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     if plotter is None:
         plotter = Plotter(config)
 
-    plotter.plot_tvb_connectivity(simulator.connectivity)
+    figsize = config.figures.DEFAULT_SIZE
 
-    writer = H5Writer()
+    plotter.plot_tvb_connectivity(simulator.connectivity)
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
@@ -44,14 +48,11 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     else:
         exclude_times = []
     t = source_ts.time
-    writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
-                                                                    connectivity=source_ts.connectivity),
-                           os.path.join(config.out.FOLDER_RES, source_ts.title)+".h5")
 
     # Plot time_series
-    source_ts.plot_timeseries(plotter=plotter, per_variable=True, figsize=(10, 5))
+    source_ts.plot_timeseries(plotter=plotter, per_variable=True, figsize=figsize, add_legend=False)
     if source_ts.number_of_labels > 9:
-        source_ts.plot_raster(plotter=plotter, per_variable=True, figsize=(10, 5))
+        source_ts.plot_raster(plotter=plotter, per_variable=True, figsize=figsize, add_legend=False)
 
     try:
         if simulator.tvb_spikeNet_interface is None:
@@ -64,10 +65,10 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     try:
         n_spiking_nodes = len(simulator.tvb_spikeNet_interface.spiking_nodes_ids)
         source_ts_nest = source_ts[:, :, simulator.tvb_spikeNet_interface.spiking_nodes_ids]
-        source_ts_nest.plot_timeseries(plotter=plotter, per_variable=True, figsize=(10, 5),
+        source_ts_nest.plot_timeseries(plotter=plotter, per_variable=True, figsize=figsize,
                                        figname="Spiking nodes TVB Time Series")
         if n_spiking_nodes > 3:
-            source_ts_nest.plot_raster(plotter=plotter, per_variable=True, figsize=(10, 5),
+            source_ts_nest.plot_raster(plotter=plotter, per_variable=True, figsize=figsize,
                                        figname="Spiking nodes TVB Time Series Raster")
     except:
         n_spiking_nodes = 0
@@ -77,12 +78,12 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     # whereas we average across individual neurons
 
     # Plot spikes and mean field spike rates
-    rates, spike_detectors = \
+    mf_rates_ts, spike_detectors = \
         simulator.tvb_spikeNet_interface.get_mean_spikes_rates_to_TVBTimeSeries(
             spikes_kernel_width=1.0,  # ms
             spikes_kernel_overlap=0.5, time=t)
-    if spike_detectors is not None and rates.size > 0:
-        plotter.plot_spike_detectors(spike_detectors, rates=rates, title='Population spikes and mean spike rate')
+    if spike_detectors is not None and mf_rates_ts.size > 0:
+        plotter.plot_spike_detectors(spike_detectors, rates=mf_rates_ts, title='Population spikes and mean spike rate')
 
     # Plot mean field NEST multimeter variables using TVB default TimeSeries and their plotters
 
@@ -107,7 +108,6 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
 
     # Spikes
     nest_spikes = spiking_network.get_spikes(mode="events", return_type="Series", exclude_times=exclude_times)
-    writer.write_object(nest_spikes.to_dict(), path=os.path.join(config.out.FOLDER_RES,  "NEST_Spikes") + ".h5")
 
     plotter.plot_spike_events(nest_spikes)
 
@@ -128,17 +128,17 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     rates = DataArray(np.array(rates), dims=["Population", "Region"], name="NEST_spike_rates",
                       coords={"Population": pop_labels, "Region": reg_labels})
     print(rates)
-    writer.write_object(rates.to_dict(), path=os.path.join(config.out.FOLDER_RES, rates.name) + ".h5")
 
-    # An alternative plot:
-    rates = \
+    # An alternative plot of rates per neuron and time wise:
+    rates_ts_per_neuron = \
         spiking_network.compute_spikes_rates(mode="per_neuron", populations_devices=None, regions=None,
                                              devices_dim_name="Population", name="Spikes rates from NEST network",
                                              spikes_kernel_width=1.0,  # spikes_kernel_n_intervals=10,
                                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=t,
                                              spikes_kernel=None)[0]
-    if rates.size > 0:
-        rates.plot(x=rates.dims[0], y=rates.dims[3], row=rates.dims[2], col=rates.dims[1])
+    if rates_ts_per_neuron.size > 0:
+        rates_ts_per_neuron.plot(x=rates_ts_per_neuron.dims[0], y=rates_ts_per_neuron.dims[3],
+                                 row=rates_ts_per_neuron.dims[2], col=rates_ts_per_neuron.dims[1])
         plotter.base._save_figure(figure_name="Spike rates per neuron")
 
     # Time Series
@@ -149,14 +149,23 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
             nest_ts = nest_ts[transient:]
         if n_spiking_nodes <= 3:
             nest_ts.plot_map(y=nest_ts._data.dims[4], row=nest_ts._data.dims[2], col=nest_ts._data.dims[3],
-                             per_variable=True,  cmap="jet", figsize=(20, 10), plotter=plotter)
+                             per_variable=True,  cmap="jet", figsize=figsize, plotter=plotter)
 
         # Compute mean field
         ts = TimeSeriesXarray(nest_ts._data.mean(axis=-1), connectivity=nest_ts.connectivity,
                               title="Mean field spiking nodes time series")
-        writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data, connectivity=ts.connectivity),
-                               os.path.join(config.out.FOLDER_RES, ts.title)+".h5",
-                               recursive=False)
         ts.plot_timeseries(plotter=plotter, per_variable=True)
         if n_spiking_nodes > 3:
             ts.plot_raster(plotter=plotter, per_variable=True, linestyle="--", alpha=0.5, linewidth=0.5)
+
+        # Write results to file:
+        if H5Writer is not None:
+            writer = H5Writer()
+            writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
+                                                                            connectivity=source_ts.connectivity),
+                                   os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
+            writer.write_object(nest_spikes.to_dict(), path=os.path.join(config.out.FOLDER_RES, "NEST_Spikes") + ".h5")
+            writer.write_object(rates.to_dict(), path=os.path.join(config.out.FOLDER_RES, rates.name) + ".h5")
+            writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data, connectivity=ts.connectivity),
+                                   os.path.join(config.out.FOLDER_RES, ts.title) + ".h5",
+                                   recursive=False)
