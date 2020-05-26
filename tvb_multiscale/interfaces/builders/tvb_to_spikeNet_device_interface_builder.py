@@ -70,12 +70,12 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         interface_weights = np.ones((len(source_tvb_nodes),)).astype("f")
         weight_fun = property_to_fun(interface.pop("weights", 1.0))
         delay_fun = property_to_fun(interface.pop("delays", 0.0))
-        receptor_type_fun = property_to_fun(interface.pop("receptor_types", 0))
+        receptor_type_fun = property_to_fun(interface.pop("receptor_type", 0))
         # TODO: Find a way to change self directed weights in cases of non exclusive TVB and Spiking Network nodes!
         # Defaults just follow TVB connectivity
         weights = np.array(self.tvb_weights[source_tvb_nodes][:, target_nodes]).astype("O")
         delays = np.array(self.tvb_delays[source_tvb_nodes][:, target_nodes]).astype("O")
-        receptor_types = np.zeros(delays.shape).astype("i")
+        receptor_type = np.zeros(delays.shape).astype("i")
         target_nodes_ids = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in target_nodes]
         interface["nodes"] = target_nodes_ids
         device_names = []
@@ -87,10 +87,10 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
             for trg_node, i_trg in zip(target_nodes, target_nodes_ids):
                 weights[i_src, i_trg] = weight_fun(src_node, trg_node)
                 delays[i_src, i_trg] = delay_fun(src_node, trg_node)
-                receptor_types[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
+                receptor_type[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
         interface["weights"] = weights
         interface["delays"] = delays
-        interface["receptor_types"] = receptor_types
+        interface["receptor_type"] = receptor_type
         interface["names"] = device_names
         # Generate the devices => "proxy TVB nodes":
         devices = self.build_and_connect_devices([interface], self.spiking_nodes)
@@ -115,7 +115,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
                 # TODO: an assertion check to include dictionaries
                 # assert np.abs(np.max(tvb_to_spikeNet_interface[name].weights - weights)) < 0.001
                 # assert np.abs(np.max(tvb_to_spikeNet_interface[name].delays - delays)) < 1.0  # ms
-                assert np.abs(np.max(tvb_to_spikeNet_interface[name].receptors - receptor_types)) < 1  # integers
+                assert np.abs(np.max(tvb_to_spikeNet_interface[name].receptors - receptor_type)) < 1  # integers
         return tvb_to_spikeNet_interface
 
     def build(self):

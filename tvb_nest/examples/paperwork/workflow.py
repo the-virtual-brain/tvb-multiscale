@@ -66,8 +66,8 @@ class Workflow(WorkflowBase):
         return general_parameters
 
     def write_nest_network(self):
-        self.write_group(self.nest_model_builder.params_ex, "nest_network/params_ex", "dictionary", False)
-        self.write_group(self.nest_model_builder.params_in, "nest_network/params_in", "dictionary", False)
+        self.write_group(self.nest_model_builder.params_E, "nest_network/pop_E", "dictionary", False)
+        self.write_group(self.nest_model_builder.params_I, "nest_network/pop_I", "dictionary", False)
         self.write_group(self.nest_model_builder.populations,
                          "nest_network/populations", "list_of_dictionaries", False)
         self.write_group(self.nest_model_builder.populations_connections,
@@ -119,8 +119,8 @@ class Workflow(WorkflowBase):
             "lambda_NMDA": 0.28,
             "I_e": 0.0  # pA
         }
-        self.nest_model_builder.params_ex = dict(common_params)
-        self.nest_model_builder.params_ex.update({
+        self.nest_model_builder.params_E = dict(common_params)
+        self.nest_model_builder.params_E.update({
             "C_m": 500.0,  # pF
             "g_L": 25.0,  # nS
             "t_ref": 2.0,  # ms
@@ -133,8 +133,8 @@ class Workflow(WorkflowBase):
             "N_E": self.N_E,
             "N_I": self.N_I
         })
-        self.nest_model_builder.params_in = dict(common_params)
-        self.nest_model_builder.params_in.update({
+        self.nest_model_builder.params_I = dict(common_params)
+        self.nest_model_builder.params_I.update({
             "C_m": 200.0,  # pF
             "g_L": 20.0,  # nS
             "t_ref": 1.0,  # ms
@@ -164,11 +164,11 @@ class Workflow(WorkflowBase):
         self.nest_model_builder.populations = [
             {"label": "E", "model": "iaf_cond_deco2014",
              "nodes": None,  # None means "all"
-             "params": lambda node_index: param_fun(node_index, self.nest_model_builder.params_ex),
+             "params": lambda node_index: param_fun(node_index, self.nest_model_builder.params_E),
              "scale": exc_pop_scale},
             {"label": "I", "model": "iaf_cond_deco2014",
              "nodes": None,  # None means "all"
-             "params": lambda node_index: param_fun(node_index, self.nest_model_builder.params_in,
+             "params": lambda node_index: param_fun(node_index, self.nest_model_builder.params_I,
                                                     lamda=lamda),
              "scale": inh_pop_scale}
         ]
@@ -278,7 +278,7 @@ class Workflow(WorkflowBase):
                             },
                  "connections": connections, "nodes": None,
                  "weights": 1.0, "delays": 0.0,
-                 "receptor_types": lambda target_node_id: int(target_node_id + 1)}
+                 "receptor_type": lambda target_node_id: int(target_node_id + 1)}
             ]
 
         # ----------------------------------------------------------------------------------------------------------------
@@ -308,7 +308,7 @@ class Workflow(WorkflowBase):
              #                                     To add to TVB connectivity delay:
              "delays": lambda tvb_node_id, nest_node_id:
              tvb_delay(tvb_node_id, nest_node_id, self.interface_builder.tvb_delays),
-             "receptor_types": lambda tvb_node_id, nest_node_id:
+             "receptor_type": lambda tvb_node_id, nest_node_id:
              receptor_by_source_region(tvb_node_id, nest_node_id, start=1),
              # --------------------------------------------------------------------------------------------------------------
              #             TVB sv -> NEST population
@@ -453,7 +453,8 @@ class Workflow(WorkflowBase):
         if self.writer:
             self.write_interface()
 
-        self.tvb_nest_model = self.interface_builder.build_interface()
+        self.tvb_nest_model = self.interface_builder.build_interface(self.tvb_to_nest_interface,
+                                                                     self.nest_to_tvb_interface)
 
         return self.tvb_nest_model
 
