@@ -10,7 +10,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
@@ -45,7 +45,7 @@ class Workflow(WorkflowBase):
     nest_stimulus_rate = 2400.0
     nest_network = None
 
-    interface_builder = InterfaceWWDeco2014Builder
+    interface_builder = RedWWexcIOinhIBuilder
     tvb_to_nest_interface = "rate"
     nest_to_tvb_interface = None
     exclusive_nodes = True
