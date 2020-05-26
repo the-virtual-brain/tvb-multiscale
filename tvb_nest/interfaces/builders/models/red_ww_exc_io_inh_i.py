@@ -86,7 +86,7 @@ class WWDeco2014Builder(RedWWexcIOinhIMultisynapseBuilder):
     def build_default_rate_tvb_to_nest_interfaces(self):
         # The rate interface requires uniform weight = 1.0,
         # because spikes synapses are weighted with  parameter w_E_ext within the neuron model
-        self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["E"]}, weights=1.0,)
+        self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["E"]}, weights=1.0)
 
         if self.lamda:
             self._build_default_rate_tvb_to_nest_interfaces({"R_e": ["I"]}, weights=1.0)
