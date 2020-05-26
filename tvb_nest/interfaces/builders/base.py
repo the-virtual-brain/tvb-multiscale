@@ -37,55 +37,6 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     # We return from a Spiking Network multimeter or voltmeter the membrane potential in mV
     w_potential_to_tvb = 1.0
 
-    # Example from RedWWexcIOinhIBuilder
-    # # For directly setting an external current parameter in NEST neurons instantaneously:
-    # tvb_to_spikeNet_interfaces = [{ "model": "current",  "parameter": "I_e",
-    # ---------Properties potentially set as function handles with args (nest_node_id=None)-----------------------------
-    #                            "interface_weights": 1.0,
-    # ------------------------------------------------------------------------------------------------------------------
-    # #                                       TVB sv -> NEST population
-    #                            "connections": {"S_e": ["E", "I"]},
-    #                            "source_nodes": None, "target_nodes": None}]  # None means all here
-    #
-    # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
-    # # tvb_to_spikeNet_interfaces = [{"model": "dc_generator", "params": {},
-    #                              "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    # # --Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None, **kwargs)------
-    #                              "weights": 1.0,  # To multiply TVB connectivity weight
-    # #                            To add to TVB connectivity delay:
-    #                              "delays": self.spikeNet_min_delay ,
-    # #                                       TVB sv -> NEST population
-    #                              "connections": {"S_e": ["E", "I"]},
-    #                              "source_nodes": None, "target_nodes": None}]  # None means all here
-    #
-    # #For spike transmission from TVB to NEST via poisson generators acting as TVB proxy nodes with TVB delays:
-    # tvb_to_spikeNet_interfaces =  [{"model": "poisson_generator", "params": {},
-    #                            "interface_weights": 1.0,  # Applied outside NEST for each interface device
-    # # --Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None, **kwargs)------
-    #                            "weights": 1.0,  # To multiply TVB connectivity weight
-    # #                          To add to TVB connectivity delay:
-    #                            "delays": self.spikeNet_min_delay,
-    #                            "receptor_types": 0,
-    # ------------------------------------------------------------------------------------------------------------------
-    # #                                       TVB sv -> NEST population
-    #                            "connections": {"S_e": ["E", "I"]},
-    #                            "source_nodes": None, "target_nodes": None}]  # None means all here
-
-    # The Spiking Network nodes the activity of which is transformed to TVB state variables or parameters
-    # # Example from RedWWexcIOinhIBuilder
-    # # For transmitting Spiking Network rates to TVB parameters instantaneously:
-    # connections = OrderedDict({})
-    # connections["r_e"] = "E"
-    # connections["r_i"] = "I"
-    # spikeNet_to_tvb_interfaces = [{"model": "spike_detector",
-    #                           "params": NEST_OUTPUT_DEVICES_PROPS_DEF["device_type"],
-    # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
-    #                           "interface_weights": 1.0,
-    #                           "delays": 0.0,
-    # ------------------------------------------------------------------------------------------------------------------
-    #                           "connections": {"r_e": "E",
-    #                                           "r_i": "I"}, "nodes": None}]  # None means all here
-
     @property
     def nest_instance(self):
         return self.spiking_network.nest_instance
