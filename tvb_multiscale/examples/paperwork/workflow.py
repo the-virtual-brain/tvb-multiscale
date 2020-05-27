@@ -416,22 +416,22 @@ class Workflow(object):
 
     def plot_tvb_ts(self):
         # For timeseries plot:
-        self.mf_ts.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=self.figsize, add_legend=False)
+        self.mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
 
         # For raster plot:
         if self.number_of_regions > 9:
-            self.mf_ts.plot_raster(plotter=self.plotter, per_variable=True, figsize=self.figsize, add_legend=False)
+            self.mf_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
 
         n_spiking_nodes_ids = len(self.spiking_regions_ids)
         if n_spiking_nodes_ids > 0:
             if n_spiking_nodes_ids < self.simulator.connectivity.number_of_regions:
 
-                self.mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter=self.plotter,
+                self.mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter_config=self.plotter.config,
                                                                            per_variable=True, figsize=self.figsize,
                                                                            figname="Spiking nodes mean-field "
                                                                                    "TVB Time Series")
                 if n_spiking_nodes_ids > 3:
-                    self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter=self.plotter,
+                    self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter_config=self.plotter.config,
                                                                            per_variable=True, figsize=self.figsize,
                                                                            figname="Spiking nodes TVB Time Series Raster")
             self.tvb_ts[:, :, self.spiking_regions_ids].plot_map(y=self.tvb_ts._data.dims[3],
@@ -439,11 +439,11 @@ class Workflow(object):
                                                                  per_variable=True,
                                                                  figname="Spiking nodes TVB Time Series",
                                                                  figsize=self.figsize,
-                                                                 plotter=self.plotter)
+                                                                 plotter_config=self.plotter.config)
             for i_pop, spike in enumerate(self.tvb_spikes):
                 spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
-                           cmap="jet", figsize=(20, 10), plotter=self.plotter)
-            self.tvb_rates.plot_timeseries(plotter=self.plotter, figsize=self.figsize)
+                           cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
+            self.tvb_rates.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
 
     def run(self, **model_params):
         self.model_params = model_params

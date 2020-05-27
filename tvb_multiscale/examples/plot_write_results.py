@@ -50,9 +50,9 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     t = source_ts.time
 
     # Plot time_series
-    source_ts.plot_timeseries(plotter=plotter, per_variable=True, figsize=figsize, add_legend=False)
+    source_ts.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
     if source_ts.number_of_labels > 9:
-        source_ts.plot_raster(plotter=plotter, per_variable=True, figsize=figsize, add_legend=False)
+        source_ts.plot_raster(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
 
     try:
         if simulator.tvb_spikeNet_interface is None:
@@ -65,10 +65,10 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     try:
         n_spiking_nodes = len(simulator.tvb_spikeNet_interface.spiking_nodes_ids)
         source_ts_nest = source_ts[:, :, simulator.tvb_spikeNet_interface.spiking_nodes_ids]
-        source_ts_nest.plot_timeseries(plotter=plotter, per_variable=True, figsize=figsize,
+        source_ts_nest.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize,
                                        figname="Spiking nodes TVB Time Series")
         if n_spiking_nodes > 3:
-            source_ts_nest.plot_raster(plotter=plotter, per_variable=True, figsize=figsize,
+            source_ts_nest.plot_raster(plotter_config=plotter.config, per_variable=True, figsize=figsize,
                                        figname="Spiking nodes TVB Time Series Raster")
     except:
         n_spiking_nodes = 0
@@ -149,14 +149,14 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
             nest_ts = nest_ts[transient:]
         if n_spiking_nodes <= 3:
             nest_ts.plot_map(y=nest_ts._data.dims[4], row=nest_ts._data.dims[2], col=nest_ts._data.dims[3],
-                             per_variable=True,  cmap="jet", figsize=figsize, plotter=plotter)
+                             per_variable=True,  cmap="jet", figsize=figsize, plotter_config=plotter.config)
 
         # Compute mean field
         ts = TimeSeriesXarray(nest_ts._data.mean(axis=-1), connectivity=nest_ts.connectivity,
                               title="Mean field spiking nodes time series")
-        ts.plot_timeseries(plotter=plotter, per_variable=True)
+        ts.plot_timeseries(plotter_config=plotter.config, per_variable=True)
         if n_spiking_nodes > 3:
-            ts.plot_raster(plotter=plotter, per_variable=True, linestyle="--", alpha=0.5, linewidth=0.5)
+            ts.plot_raster(plotter_config=plotter.config, per_variable=True, linestyle="--", alpha=0.5, linewidth=0.5)
 
         # Write results to file:
         if H5Writer is not None:

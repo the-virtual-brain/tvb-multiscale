@@ -545,11 +545,11 @@ class Workflow(WorkflowBase):
 
     def plot_tvb_ts(self):
         # For timeseries plot:
-        self.tvb_ts.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=self.figsize, add_legend=False)
+        self.tvb_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
 
         # For raster plot:
         if self.number_of_regions > 9:
-            self.tvb_ts.plot_raster(plotter=self.plotter, per_variable=True, figsize=self.figsize, add_legend=False)
+            self.tvb_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
 
         spiking_nodes_ids = []
         if self.exclusive_nodes:
@@ -557,11 +557,11 @@ class Workflow(WorkflowBase):
 
         n_spiking_nodes_ids = len(spiking_nodes_ids)
         if n_spiking_nodes_ids > 0:
-            self.tvb_ts[:, :, spiking_nodes_ids].plot_timeseries(plotter=self.plotter, per_variable=True,
+            self.tvb_ts[:, :, spiking_nodes_ids].plot_timeseries(plotter_config=self.plotter.config, per_variable=True,
                                                                 figsize=self.figsize,
                                                                 figname="Spiking nodes TVB Time Series")
             if n_spiking_nodes_ids > 3:
-                self.tvb_ts[:, :, spiking_nodes_ids].plot_raster(plotter=self.plotter, per_variable=True,
+                self.tvb_ts[:, :, spiking_nodes_ids].plot_raster(plotter_config=self.plotter.config, per_variable=True,
                                                                  figsize=self.figsize,
                                                                  figname="Spiking nodes TVB Time Series Raster")
 
@@ -611,13 +611,13 @@ class Workflow(WorkflowBase):
     def plot_nest_ts(self):
         mean_field, mean_field_ext, mean_field_exc, mean_field_inh, mean_field_neuron = self.compute_nest_mean_field()
 
-        mean_field_ext.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+        mean_field_ext.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
         # Then plot the local excitatory...:
-        mean_field_exc.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+        mean_field_exc.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
         # ...and local inhibtiory synaptic activity that result:
-        mean_field_inh.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+        mean_field_inh.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
         # ...and finally the common neuronal variables:
-        mean_field_neuron.plot_timeseries(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+        mean_field_neuron.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
 
         spiking_nodes_ids = []
         if self.exclusive_nodes:
@@ -625,17 +625,17 @@ class Workflow(WorkflowBase):
 
         n_spiking_nodes_ids = len(spiking_nodes_ids)
         if n_spiking_nodes_ids > 3:
-            mean_field_ext.plot_raster(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+            mean_field_ext.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
             # Then plot the local excitatory...:
-            mean_field_exc.plot_raster(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+            mean_field_exc.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
             # ...and local inhibtiory synaptic activity that result:
-            mean_field_inh.plot_raster(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+            mean_field_inh.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
             # ...and finally the common neuronal variables:
-            mean_field_neuron.plot_raster(plotter=self.plotter, per_variable=True, figsize=self.figsize)
+            mean_field_neuron.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
         else:
             dims = self.nest_ts.labels_ordering
             self.nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
-                                  cmap="jet", figsize=self.figsize, plotter=self.plotter)
+                                  cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
