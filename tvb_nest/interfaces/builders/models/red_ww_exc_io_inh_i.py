@@ -14,7 +14,8 @@ class RedWWexcIOinhIBuilder(DefaultMultiSynapseInterfaceBuilder):
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                     tvb_to_nest_interfaces, nest_to_tvb_interfaces, N_E, N_I)
 
-        self.global_coupling_scaling *= self.tvb_simulator.model.G[0].item()
+        self.G = self.tvb_simulator.model.G[0].item()
+        self.global_coupling_scaling *= self.G
         self.lamda = self.tvb_model.lamda[0].item()
 
         self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
@@ -60,14 +61,15 @@ class RedWWexcIOinhIBuilder(DefaultMultiSynapseInterfaceBuilder):
         self._build_default_current_tvb_to_nest_interfaces({"S_e": ["E"]}, weights=self.tvb_weight_E_fun)
         if self.lamda > 0.0:
             self._build_default_current_tvb_to_nest_interfaces({"S_e": ["I"]},
-                                                               interface_weights=1.0 * self.N_E / self.N_I,
+                                                               interface_weights=1.0*self.N_E/self.N_I,
                                                                weights=self.tvb_weight_I_fun)
 
     def build_default_param_tvb_to_nest_interfaces(self):
-        self._build_default_param_tvb_to_nest_interfaces({"S_e": ["E"]})
+        self._build_default_param_tvb_to_nest_interfaces({"S_e": ["E"]},
+                                                         interface_weights=self.G)
         if self.lamda > 0.0:
             self._build_default_param_tvb_to_nest_interfaces({"S_e": ["I"]},
-                                                             interface_weights=self.lamda * self.N_E / self.N_I)
+                                                             interface_weights=self.lamda * self.G * self.N_E/self.N_I)
 
     def build_default_nest_to_tvb_interfaces(self):
         self._build_default_nest_to_tvb_interfaces({"R_e": ["E"], "R_i": ["I"]})
