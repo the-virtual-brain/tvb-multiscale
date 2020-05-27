@@ -37,8 +37,6 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
                  # inh spikes (GABA):
                  E_in=-70.0,  # mV
                  tau_decay_GABA=10.0,  # ms
-                 exc_pop_scale=1.6,
-                 inh_pop_scale=0.4,
                  **kwargs
                  ):
 
@@ -70,8 +68,8 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
             # When any of the properties model, params and scale below depends on regions,
             # set a handle to a function with
             # arguments (region_index=None) returning the corresponding property
-            N_E = int(self.population_order * exc_pop_scale)
-            N_I = int(self.population_order * inh_pop_scale)
+            N_E = int(self.population_order * self.scale_e)
+            N_I = int(self.population_order * self.scale_i)
 
             common_params = {
                 "V_th": V_th, "V_reset": V_reset, "E_L": E_L, "E_ex": E_ex, "E_in": E_in,
@@ -115,7 +113,7 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
             params["record_from"] = record_from
             self.multimeter["params"] = params
             self.spike_stimulus = {"params": {"rate": 2400.0, "origin": 0.0, "start": 0.1},
-                                   "connections": ["E", "I"],
+                                   "connections": {"Stimulus": ["E", "I"]},
                                    "weights": 1.0, "delay": self.tvb_dt,
                                    "receptor_type": lambda target_node: target_node + 1}
             self.set_defaults()
