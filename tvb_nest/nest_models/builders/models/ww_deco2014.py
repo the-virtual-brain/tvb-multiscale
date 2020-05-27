@@ -84,8 +84,8 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
                 "C_m": C_m_ex, "g_L": g_L_ex, "t_ref": t_ref_ex,
                 "g_AMPA_ext": g_AMPA_ext_ex, "g_AMPA": g_AMPA_rec_ex,
                 "g_NMDA": g_NMDA_ex, "g_GABA_A": g_GABA_ex,
-                "w_E": self.tvb_model.w_p[0], "w_I": self.tvb_model.J_i[0],
-                "N_E": N_E - 1, "N_I": N_I  # assuming self connections are not allowed
+                "w_E": self.tvb_model.w_p[0].item(), "w_I": self.tvb_model.J_i[0].item(),
+                "N_E": N_E, "N_I": N_I
             })
             self.params_E = lambda node_index: self.param_fun(node_index, params_E,
                                                               weight=self.global_coupling_scaling)
@@ -95,7 +95,7 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
                 "g_AMPA_ext": g_AMPA_ext_in, "g_AMPA": g_AMPA_rec_in,
                 "g_NMDA": g_NMDA_in, "g_GABA_A": g_GABA_in,
                 "w_E": 1.0, "w_I": 1.0,
-                "N_E": N_E, "N_I": N_I - 1  # assuming self connections are not allowed
+                "N_E": N_E, "N_I": N_I
             })
             self.params_I = lambda node_index: self.param_fun(node_index, params_I,
                                                               weight=self.lamda * self.global_coupling_scaling)
@@ -114,8 +114,8 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
             params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
             params["record_from"] = record_from
             self.multimeter["params"] = params
-
             self.spike_stimulus = {"params": {"rate": 2400.0, "origin": 0.0, "start": 0.1},
+                                   "connections": ["E", "I"],
                                    "weights": 1.0, "delay": self.tvb_dt,
                                    "receptor_type": lambda target_node: target_node + 1}
             self.set_defaults()

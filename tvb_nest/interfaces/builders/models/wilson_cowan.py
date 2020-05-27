@@ -16,6 +16,7 @@ class WilsonCowanBuilder(DefaultInterfaceBuilder):
                                                  tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.N_E = N_E
         self.N_I = N_I
+
         # WilsonCowan model state variables are bounded in [0, 1],
         # and have to be converted in Hz as poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1000.0
