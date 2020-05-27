@@ -4,7 +4,7 @@ import os
 import time
 from collections import OrderedDict
 import numpy as np
-from xarray import DataArray, concat
+from xarray import DataArray
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
