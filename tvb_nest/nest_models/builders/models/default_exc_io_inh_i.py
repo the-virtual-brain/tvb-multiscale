@@ -238,12 +238,13 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         tau_syn = np.array([tau_syn_ex] +  # exc spikes
                            [tau_syn_in] +  # inh spikes
                            self.number_of_nodes * [tau_syn_ex])  # ext, exc spikes
-        self.params_E = {"E_rev": E_rev, "tau_rise": tau_syn}
+        self.params_E = {"E_rev": E_rev, "tau_syn": tau_syn}
         self.params_I = self.params_E
 
         self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
 
-        self.spike_stimulus = {"receptor_type": lambda target_node: target_node + 3}
+        self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+                               "receptor_type": lambda target_node: target_node + 3}
 
         if set_defaults:
             self.set_defaults()
@@ -256,6 +257,3 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
     def receptor_by_source_region_fun(self, source_node, target_node):
         return receptor_by_source_region(source_node, target_node, start=3)
-
-    def set_spike_stimulus(self):
-        return super(DefaultExcIOInhIMultisynapseBuilder, self).set_spike_stimulus()
