@@ -3,6 +3,7 @@ import numpy
 from tvb_multiscale.tests.test_time_series import _prepare_dummy_time_series
 from tvb.datatypes.connectivity import Connectivity
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion, TimeSeriesDimensions, PossibleVariables
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionXarray
 from tvb_multiscale.io.h5_writer import H5Writer, h5
 
 
@@ -21,21 +22,31 @@ def _prepare_connectivity():
     return connectivity
 
 
-def test_timeseries_4D():
+def test_timeseries_4D(datatype=TimeSeriesRegion):
     writer = H5Writer()
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(4)
     ts = \
-        TimeSeriesRegion(data,
-                         labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", "r4"],
-                                            TimeSeriesDimensions.VARIABLES.value: [
-                                                PossibleVariables.X.value, PossibleVariables.Y.value,
-                                                PossibleVariables.Z.value]},
-                         start_time=start_time, sample_period=sample_period,
-                         sample_period_unit=sample_period_unit,
-                         connectivity=_prepare_connectivity())
+        datatype(data,
+                 labels_dimensions={"Region": ["r1", "r2", "r3", "r4"],
+                                    TimeSeriesDimensions.VARIABLES.value: [
+                                    PossibleVariables.X.value, PossibleVariables.Y.value,
+                                    PossibleVariables.Z.value]},
+                 start_time=start_time, sample_period=sample_period,
+                 sample_period_unit=sample_period_unit,
+                 connectivity=_prepare_connectivity())
 
-    path = writer.write_tvb_to_h5(ts, recursive=True)
-    ts2 = TimeSeriesRegion.from_tvb_instance(h5.load(path, with_references=True))
+    if isinstance(ts, TimeSeriesRegionXarray):
+        ts_write = TimeSeriesRegion().from_xarray_DataArray(ts._data, connectivity=ts.connectivity)
+    else:
+        ts_write = ts
+    path = writer.write_tvb_to_h5(ts_write, recursive=True)
+
+    ts_read = TimeSeriesRegion.from_tvb_instance(h5.load(path, with_references=True))
+    if isinstance(ts, TimeSeriesRegionXarray):
+        ts2 = TimeSeriesRegionXarray(ts_read)
+    else:
+        ts2 = ts_read
+
     assert numpy.max(numpy.abs(ts.data - ts2.data)) < 1e-6
     assert numpy.all(ts.variables_labels == ts2.variables_labels)
     assert numpy.all(ts.space_labels == ts2.space_labels)
@@ -47,3 +58,4 @@ def test_timeseries_4D():
 if __name__ == "__main__":
 
     test_timeseries_4D()
+    test_timeseries_4D(TimeSeriesRegionXarray)
