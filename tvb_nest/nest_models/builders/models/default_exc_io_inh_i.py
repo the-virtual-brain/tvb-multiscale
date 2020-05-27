@@ -193,15 +193,15 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def set_spike_stimulus(self):
         connections = OrderedDict()
         #             label <- target population
-        connections["Stimulus"] = ["E", "I"]
+        connections["Stimulus"] = ["E"]
         device = \
             {"model": "poisson_generator",
-             "params": {"rate": 10000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+             "params": {"rate": 6000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": self.weight_fun(1.0),
              "delays": random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
              "receptor_type": 0}
-        device.update(**self.spike_stimulus)
+        device.update(self.spike_stimulus)
         return device
 
     def set_input_devices(self):
@@ -243,8 +243,7 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
         self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
 
-        self.spike_stimulus = {"params": {"rate": 6400.0, "origin": 0.0, "start": 0.1},
-                               "receptor_type": lambda target_node: target_node + 3}
+        self.spike_stimulus = {"receptor_type": lambda target_node: target_node + 3}
 
         if set_defaults:
             self.set_defaults()
