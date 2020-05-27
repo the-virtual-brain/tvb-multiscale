@@ -181,4 +181,4 @@ class NESTModelBuilder(SpikingModelBuilder):
 
     def build(self):
         return NESTNetwork(self.nest_instance, self.nodes,
-                           self._output_devices, self.input_devices, config=self.config)
+                           self._output_devices, self._input_devices, config=self.config)
