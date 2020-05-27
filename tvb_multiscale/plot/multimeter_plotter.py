@@ -75,7 +75,7 @@ class MultimeterPlotter(TimeSeriesPlotter):
         if time_series.shape[3] > 1:
             time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
         if isinstance(time_series, TimeSeriesXarray):
-            return time_series.plot_timeseries(plotter=self, per_variable=plot_per_variable,
+            return time_series.plot_timeseries(plotter_config=self.config, per_variable=plot_per_variable,
                                                figsize=self.config.LARGE_SIZE, **kwargs)
         if plot_per_variable:
             # One figure per (state) variable
@@ -90,7 +90,7 @@ class MultimeterPlotter(TimeSeriesPlotter):
         if time_series.shape[3] > 1:
             time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
         if isinstance(time_series, TimeSeriesXarray):
-            return time_series.plot_raster(plotter=self, per_variable=plot_per_variable,
+            return time_series.plot_raster(plotter_config=self.config, per_variable=plot_per_variable,
                                            figsize=self.config.LARGE_SIZE, **kwargs)
         if plot_per_variable:
             # One figure per (state) variable
