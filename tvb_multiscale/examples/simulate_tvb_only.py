@@ -112,14 +112,14 @@ def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_re
     from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
     mean_field_xr = TimeSeriesXarray(mean_field.get_subspace(spiking_regions_inds))
-    mean_field_xr.plot_timeseries(per_variable=True, plotter=plotter, figsize=(10, 5))
+    mean_field_xr.plot_timeseries(per_variable=True, plotter_config=plotter.config, figsize=(10, 5))
     rate_xr = TimeSeriesXarray(rate)
-    rate_xr.plot_timeseries(plotter=plotter, figsize=(10, 5))
+    rate_xr.plot_timeseries(plotter_config=plotter.config, figsize=(10, 5))
 
     for i_pop, spike in enumerate(spikes):
         spike_xr = TimeSeriesXarray(spike)
         spike_xr.plot(y=spike_xr._data.dims[3], row=spike_xr._data.dims[2],
-                      robust=True, figsize=(20, 10), plotter=plotter)
+                      robust=True, figsize=(20, 10), plotter_config=plotter.config)
     return fig_spikes, axes_spikes
 
 
