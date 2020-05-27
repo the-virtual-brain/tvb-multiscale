@@ -9,13 +9,9 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
     DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import \
-    RedWWExcIOInhIBuilder, RedWWExcIOInhIMultisynapseBuilder
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import \
-    RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder, \
-    RedWWexcIOinhIMultisynapseBuilder as InterfaceRedWWexcIOinhIMultisynapseBuilder, \
-    WWDeco2014Builder as InterfaceWWDeco2014Builder
+from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCownMultisynapseBuilder
+from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder, \
     WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
@@ -50,8 +46,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
-    nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config,
-                                            populations_order=nest_populations_order)
+    nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
+    nest_model_builder.population_order = nest_populations_order
     populations_sizes = [int(np.round(nest_model_builder.scale_e * nest_model_builder.population_order)),
                          int(np.round(nest_model_builder.scale_i * nest_model_builder.population_order))]
     # Common order of neurons' number per population:
@@ -134,9 +130,9 @@ if __name__ == "__main__":
     #     "Q": np.array([0.0])
     # }
 
-    main_example(tvb_model, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+    main_example(tvb_model, WWDeco2014Builder, RedWWexcIOinhIBuilder,
                  nest_nodes_ids,  nest_populations_order=100,
-                 tvb_to_nest_mode="param", nest_to_tvb=True, exclusive_nodes=True,
+                 tvb_to_nest_mode=None, nest_to_tvb=False, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=1100.0, transient=100.0, variables_of_interest=None,
+                 simulation_length=110.0, transient=10.0, variables_of_interest=None,
                  config=CONFIGURED, **model_params)
