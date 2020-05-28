@@ -14,10 +14,13 @@ from tvb_multiscale.examples.paperwork.workflow import \
     mean_field_per_population, spike_rates_from_mean_field_rates, spike_rates_from_spike_ts, spikes_per_population
 
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
-from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
+# from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
+# from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.generic_2d_oscillator_multiscale import Generic2dOscillator
+
+
+# TODO Fix SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI functionality
 
 
 def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
@@ -33,19 +36,19 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
 
     simulator = simulator_builder.build(**model_params)
 
-    # Some code only for MultiscaleWongWangExcIOInhI
-    # Select the regions for the fine scale modeling with NEST spiking networks
-    spiking_regions_inds = []  # the indices of fine scale regions modeled with NEST
-    # In this example, we model parahippocampal cortices (left and right) with NEST
-    for id, label in enumerate(simulator.connectivity.region_labels):
-        if label.find("hippo") > 0:
-            spiking_regions_inds.append(id)
-    simulator.model._spiking_regions_inds = spiking_regions_inds
-    # simulator.model._spiking_regions_inds = list(range(simulator.connectivity.number_of_regions))
-
-    # Some code only for SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI
-    simulator.integrator.noise.nsig = np.array(simulator.model.nvar * [simulator.integrator.noise.nsig[0]])
-    simulator.integrator.noise.nsig[6:] = 0.0  # No noise for t_ref and derived variables
+    # # Some code only for MultiscaleWongWangExcIOInhI
+    # # Select the regions for the fine scale modeling with NEST spiking networks
+    # spiking_regions_inds = []  # the indices of fine scale regions modeled with NEST
+    # # In this example, we model parahippocampal cortices (left and right) with NEST
+    # for id, label in enumerate(simulator.connectivity.region_labels):
+    #     if label.find("hippo") > 0:
+    #         spiking_regions_inds.append(id)
+    # simulator.model._spiking_regions_inds = spiking_regions_inds
+    # # simulator.model._spiking_regions_inds = list(range(simulator.connectivity.number_of_regions))
+    #
+    # # Some code only for SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI
+    # simulator.integrator.noise.nsig = np.array(simulator.model.nvar * [simulator.integrator.noise.nsig[0]])
+    # simulator.integrator.noise.nsig[6:] = 0.0  # No noise for t_ref and derived variables
 
     plotter.plot_tvb_connectivity(simulator.connectivity)
 
@@ -58,34 +61,38 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------3. Plot results--------------------------------------------------------
-    # Gather the results
-    t = results[0][0]
-    source = results[0][1]
 
-    # Put the results in a Timeseries instance
-    from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
+    plot_write_results(results, simulator, tvb_state_variables_labels=simulator.model.variables_of_interest,
+                       plotter=Plotter(config))
 
-    source_ts = TimeSeriesRegion(source, time=t,
-                                 connectivity=simulator.connectivity,
-                                 labels_ordering=["Time", "State Variable", "Region", "Neurons"],
-                                 labels_dimensions=
-                                 {"State Variable": simulator.model.state_variables,
-                                  "Region": simulator.connectivity.region_labels.tolist()},
-                                 sample_period=simulator.integrator.dt)
-    source_ts.configure()
+    # # Gather the results
+    # t = results[0][0]
+    # source = results[0][1]
+    #
+    # # Put the results in a Timeseries instance
+    # from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion
+    #
+    # source_ts = TimeSeriesRegion(source, time=t,
+    #                              connectivity=simulator.connectivity,
+    #                              labels_ordering=["Time", "State Variable", "Region", "Neurons"],
+    #                              labels_dimensions=
+    #                              {"State Variable": simulator.model.state_variables,
+    #                               "Region": simulator.connectivity.region_labels.tolist()},
+    #                              sample_period=simulator.integrator.dt)
+    # source_ts.configure()
 
     # # For timeseries plot:
     # for sv in source_ts.variables_labels:
     #     plotter.plot_timeseries(source_ts.get_state_variables(sv),
     #                             title="Region %s Time Series" % sv, figsize=config.figures.NOTEBOOK_SIZE)
 
-    if len(spiking_regions_inds) > 0:
-        plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_regions_inds,
-                                           ["Exhitatory", "Inhibitory"],
-                                           [simulator.model.N_E[0],
-                                            simulator.model.number_of_modes - simulator.model.N_E[0]])
+    # if len(spiking_regions_inds) > 0:
+    #     plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_regions_inds,
+    #                                        ["Exhitatory", "Inhibitory"],
+    #                                        [simulator.model.N_E[0],
+    #                                         simulator.model.number_of_modes - simulator.model.N_E[0]])
 
-    # plot_write_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
+
 
     return simulator.connectivity, results
 
@@ -157,13 +164,14 @@ if __name__ == "__main__":
 
 
     # # ----------------------------------------SpikingWongWangExcIOInhI/MultiscaleWongWangExcIOInhI------------------------------------------------
-    model_params = {
-        "N_E": np.array([10, ]),
-        "N_I": np.array([7, ]),
-        "J_i": np.array([0.1, ]),
-        "w_IE": np.array([0.1, ]),
-        "lamda": np.array([0.5, ]),
-        "G": np.array([20.0, ])  # G / N_E to normalize for the order of the spiking networks
-    }
+    # model_params = {
+    #     "N_E": np.array([10, ]),
+    #     "N_I": np.array([7, ]),
+    #     "J_i": np.array([0.1, ]),
+    #     "w_IE": np.array([0.1, ]),
+    #     "lamda": np.array([0.5, ]),
+    #     "G": np.array([20.0, ])  # G / N_E to normalize for the order of the spiking networks
+    # }
 
-    main_example(MultiscaleWongWangExcIOInhI, simulation_length=100.0, config=CONFIGURED, **model_params)
+    model_params = {}
+    main_example(ReducedWongWangExcIOInhI, simulation_length=100.0, config=CONFIGURED, **model_params)

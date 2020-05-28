@@ -20,8 +20,8 @@ from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
 
-def plot_write_results(results, simulator, population_sizes, transient=0.0,
-                       tvb_state_variable_type_label="", tvb_state_variables_labels=[],
+def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
+                       tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
                        plotter=None, config=CONFIGURED):
 
     if plotter is None:
@@ -115,6 +115,8 @@ def plot_write_results(results, simulator, population_sizes, transient=0.0,
     rates = []
     pop_labels = []
     duration = (t[-1] - t[0]) / 1000  # in sec
+    if len(population_sizes) == 0:
+        population_sizes = [0] * len(nest_spikes)
     for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
         pop_labels.append(pop_label)
         rates.append([])
