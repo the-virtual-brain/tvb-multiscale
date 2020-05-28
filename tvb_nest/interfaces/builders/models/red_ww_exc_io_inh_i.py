@@ -72,4 +72,4 @@ class RedWWexcIOinhIBuilder(DefaultMultiSynapseInterfaceBuilder):
                                                              interface_weights=self.lamda * self.G * self.N_E/self.N_I)
 
     def build_default_nest_to_tvb_interfaces(self):
-        self._build_default_nest_to_tvb_interfaces({"R_e": ["E"], "R_i": ["I"]})
+        self._build_default_nest_to_tvb_interfaces({"Rin_e": ["E"], "Rin_i": ["I"]})

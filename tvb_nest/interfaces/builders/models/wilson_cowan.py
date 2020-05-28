@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
 
 from tvb_multiscale.spiking_models.builders.templates import receptor_by_source_region
 from tvb_nest.interfaces.builders.models.default import DefaultInterfaceBuilder
@@ -37,7 +36,7 @@ class WilsonCowanBuilder(DefaultInterfaceBuilder):
         raise NotImplementedError
 
     def build_default_nest_to_tvb_interfaces(self):
-        self._build_default_nest_to_tvb_interfaces({"E": ["E"], "I": ["I"]})
+        self._build_default_nest_to_tvb_interfaces({"Ein": ["E"], "Iin": ["I"]})
 
 
 class WilsonCowanMultisynapseBuilder(WilsonCowanBuilder):
