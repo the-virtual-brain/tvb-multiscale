@@ -83,7 +83,7 @@ def _get_device_props_with_correct_shape(device, shape):
 
     return _assert_conn_params_shape(device.get("weights", 1.0), "weights", shape), \
            _assert_conn_params_shape(device.get("delays", 0.0), "delays", shape), \
-           _assert_conn_params_shape(device.get("receptor_types", 0), "receptor_types", shape)
+           _assert_conn_params_shape(device.get("receptor_type", 0), "receptor_type", shape)
 
 
 def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect_device_fun, spiking_nodes,

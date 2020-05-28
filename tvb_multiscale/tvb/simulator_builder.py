@@ -20,6 +20,7 @@ class SimulatorBuilder(object):
     scale_connectivity_weights = "region"
     delays_flag = True
     model = ReducedWongWangExcIOInhI
+    variables_of_interest = None
     integrator = HeunStochastic
     dt = 0.1
     noise_strength = 0.001
@@ -54,11 +55,13 @@ class SimulatorBuilder(object):
             # Given that
             # idelays = numpy.rint(delays / dt).astype(numpy.int32)
             # and delays = tract_lengths / speed
-            connectivity.tract_lengths = 0.1 * self.dt * connectivity.speed
+            connectivity.tract_lengths = 0.1 * self.dt * connectivity.speed * np.ones(connectivity.tract_lengths.shape)
         connectivity.configure()
 
         # Build model:
         model = self.model(**model_params)
+        if self.variables_of_interest is not None:
+            model.variables_of_interest = self.variables_of_interest
 
         # Build integrator
         integrator = self.integrator(dt=self.dt)

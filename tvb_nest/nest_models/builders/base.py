@@ -10,7 +10,6 @@ from tvb_nest.nest_models.builders.nest_factory import \
     load_nest, compile_modules, create_conn_spec, create_device, connect_device
 from tvb_multiscale.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.spiking_models.builders.base import SpikingModelBuilder
-from tvb_multiscale.spiking_models.builders.templates import tvb_weight, tvb_delay
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -21,7 +20,7 @@ LOG = initialize_logger(__name__)
 
 class NESTModelBuilder(SpikingModelBuilder):
 
-    # This is a very opinionated builder of a NEST Spiking Network
+    # This is a not so opinionated builder of a NEST Spiking Network
 
     config = CONFIGURED
     nest_instance = None
@@ -49,55 +48,6 @@ class NESTModelBuilder(SpikingModelBuilder):
         self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_nodes_connection["delay"] = self.default_populations_connection["delay"]
         self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
-
-        # When any of the properties params and scale below depends on regions,
-        # set a handle to a function with
-        # arguments (region_index=None) returning the corresponding property
-        self.populations = [{"label": "E", "model": self.default_population["model"], "params": {},
-                             "scale": 1, "nodes": None}]  # None means "all"
-
-        # When any of the properties weight, delay, receptor_type below
-        # set a handle to a function with
-        # arguments (region_index=None) returning the corresponding property
-        self.populations_connections = \
-            [{"source": "E", "target": "E",  # E -> E This is a self-connection for population "E"
-              "model": self.default_populations_connection["model"],
-              "conn_spec": self.default_populations_connection["conn_spec"],
-              "weight": 1.0, "delay": self.default_populations_connection["delay"],
-              "receptor_type": 0,
-              "nodes": None,  # None means "all"
-              }]
-
-        # When any of the properties weight, delay, receptor_type below
-        # depends on regions, set a handle to a function with
-        # arguments (source_region_index=None, target_region_index=None)
-
-        # Between NEST node delays should be at least equal to NEST time resolution
-        # Therefore, zero TVB delays will become spiking_dt delays in NEST
-
-        self.nodes_connections = \
-            [{"source": "E", "target": "E",
-              "model": self.default_nodes_connection["model"],
-              "conn_spec": self.default_nodes_connection["conn_spec"],
-              "weight": tvb_weight,
-              "delay": tvb_delay,
-              "receptor_type": 0,
-              "source_nodes": None, "target_nodes": None}  # None means "all"
-             ]
-
-        # Use these to observe NEST network behavior
-        # Labels have to be different
-        self.output_devices = [{"model": "spike_detector",
-                                "params": self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"],
-                                    #           label <- target population
-                                    "connections": {"E": "E"}, "nodes": None},  # None means "all"
-                                   {"model": "multimeter",
-                                    "params": self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"],
-                                    #                     label <- target population
-                                    "connections": {"Excitatory": "E"}, "nodes": None},  # None means "all"
-                                   ]
-        self.output_devices[1]["params"]["interval"] = self.monitor_period
-        self.input_devices = []  # use these for possible external stimulation devices
 
     def _configure_nest_kernel(self):
         self.nest_instance.ResetKernel()  # This will restart NEST!
@@ -148,15 +98,35 @@ class NESTModelBuilder(SpikingModelBuilder):
         return create_conn_spec(n_src=len(pop_src), n_trg=len(pop_trg),
                                 src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
 
+    def _get_minmax_delay(self, delay, minmax):
+        if isinstance(delay, dict):
+            if "distribution" in delay.keys():
+                if delay["distribution"] == "uniform":
+                    return delay[minmax]
+                else:
+                    raise_value_error("Only uniform distribution is allowed for delays to make sure that > min_delay!\n"
+                                      "Distribution given is %s!" % delay["distribution"])
+            else:
+                raise_value_error("If delay is a dictionary it has to be a distribution dictionary!\n"
+                                  "Instead, the delay given is %s\n" % str(delay))
+        else:
+            return delay
+
+    def _get_min_delay(self, delay):
+        return self._get_minmax_delay(delay, "low")
+
+    def _get_max_delay(self, delay):
+        return self._get_minmax_delay(delay, "high")
+
     def _assert_synapse_model(self, synapse_model, delay):
         if synapse_model.find("rate") > -1:
             if synapse_model == "rate_connection_instantaneous" and delay != 0.0:
                 raise_value_error("Coupling neurons with rate_connection_instantaneous synapse "
-                                  "and delay = %f != 0.0 is not possible!" % delay)
-            elif delay == 0.0 and synapse_model == "rate_connection_delayed":
+                                  "and delay = %s != 0.0 is not possible!" % str(delay))
+            elif self._get_min_delay(delay) == 0.0 and synapse_model == "rate_connection_delayed":
                 raise_value_error("Coupling neurons with rate_connection_delayed synapse "
-                                  "and delay = %f <= 0.0 is not possible!" % delay)
-            elif delay == 0.0:
+                                  "and delay = %s <= 0.0 is not possible!" % str(delay))
+            elif self._get_max_delay(delay) == 0.0:
                 return "rate_connection_instantaneous"
             else:
                 return "rate_connection_delayed"
@@ -167,18 +137,29 @@ class NESTModelBuilder(SpikingModelBuilder):
         if synapse_model.find("rate") > -1:
             if synapse_model == "rate_connection_instantaneous" and delay != 0.0:
                 raise_value_error("Coupling neurons with rate_connection_instantaneous synapse "
-                                  "and delay = %f != 0.0 is not possible!" % delay)
-            elif synapse_model == "rate_connection_delayed" and delay <= 0.0:
+                                  "and delay = %s != 0.0 is not possible!" % str(delay))
+            elif synapse_model == "rate_connection_delayed" and self._get_min_delay(delay) <= 0.0:
                 raise_value_error("Coupling neurons with rate_connection_delayed synapse "
-                                  "and delay = %f <= 0.0 is not possible!" % delay)
-            elif delay < 0.0:
-                raise_value_error("Coupling rate neurons with negative delay = %f < 0.0 is not possible!" % delay)
-        elif delay < self.spiking_dt:
-            LOG.warning("Coupling spiking neurons with delay = %f < NEST integration step = %s is not possible!\n"
-                        "Setting delay equal to NEST integration step!" % (delay, self.spiking_dt))
-            return self.default_min_delay
-        else:
-            return delay
+                                  "and delay = %s <= 0.0 is not possible!" % str(delay))
+            elif self._get_min_delay(delay) < 0.0:
+                raise_value_error("Coupling rate neurons with negative delay = %s < 0.0 is not possible!" % str(delay))
+        elif self._get_min_delay(delay) < self.spiking_dt:
+            raise_value_error("Coupling spiking neurons with delay = %s < NEST integration step = %f is not possible!:"
+                              "\n" % (str(delay), self.spiking_dt))
+        return delay
+
+    def _assert_within_node_delay(self, delay):
+        max_delay = self._get_max_delay(delay)
+        if max_delay > self.tvb_dt / 2:
+            if max_delay > self.tvb_dt:
+                raise ValueError("Within Spiking nodes delay %s is not smaller "
+                                 "than the TVB integration time step %f!"
+                                 % (str(delay), self.tvb_dt))
+            else:
+                LOG.warning("Within Spiking nodes delay %s is not smaller "
+                            "than half the TVB integration time step %f!"
+                            % (str(delay), self.tvb_dt))
+        return self._assert_delay(delay)
 
     def connect_two_populations(self, source, target, conn_spec, syn_spec):
         syn_spec["model"] = self._assert_synapse_model(syn_spec["model"], syn_spec["delay"])
@@ -200,4 +181,4 @@ class NESTModelBuilder(SpikingModelBuilder):
 
     def build(self):
         return NESTNetwork(self.nest_instance, self.nodes,
-                           self._output_devices, self.input_devices, config=self.config)
+                           self._output_devices, self._input_devices, config=self.config)

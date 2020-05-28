@@ -3,6 +3,7 @@ import numpy
 import pytest
 
 from tvb.contrib.scripts.datatypes.time_series import TimeSeries, TimeSeriesDimensions, PossibleVariables
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
 
 def _prepare_dummy_time_series(dim):
@@ -34,13 +35,13 @@ def _prepare_dummy_time_series(dim):
     return data, start_time, sample_period, sample_period_unit
 
 
-def test_timeseries_1D_definition():
+def test_timeseries_1D_definition(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(1)
     with pytest.raises(ValueError):
-        TimeSeries(data, labels_dimensions={}, start_time=start_time,
-                   sample_period=sample_period, sample_period_unit=sample_period_unit)
+        datatype(data, labels_dimensions={}, start_time=start_time,
+                 sample_period=sample_period, sample_period_unit=sample_period_unit)
 
-def test_timeseries_2D():
+def test_timeseries_2D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(2)
     ts_from_2D = TimeSeries(data, labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3"]},
                             start_time=start_time, sample_period=sample_period,
@@ -105,7 +106,8 @@ def test_timeseries_2D():
     with pytest.raises(AttributeError):
         ts_from_2D.lfp
 
-def test_timeseries_3D():
+
+def test_timeseries_3D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(3)
     ts_3D = TimeSeries(data,
                        labels_dimensions={TimeSeriesDimensions.SPACE.value: [],
@@ -115,7 +117,8 @@ def test_timeseries_3D():
     assert ts_3D.data.ndim == 4
     assert ts_3D.data.shape[3] == 1
 
-def test_timeseries_data_access():
+
+def test_timeseries_data_access(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(3)
     ts = TimeSeries(data,
                     labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3",],
@@ -145,12 +148,12 @@ def test_timeseries_data_access():
     assert ts[:, 1, :, :].shape == ts.data[:, 1, :, :].shape
 
     assert ts[:, :, "r2":, :].shape == ts.data[:, :,  1:, :].shape
-    assert ts[:, :, :"r2", :].shape == ts.data[:, :, :1, :].shape
+    assert ts[:, :, :"r2", :].shape == ts.data[:, :, :2, :].shape
     assert ts[:, :, "r2", :].shape == ts.data[:, :, 1, :].shape
-    assert ts[:, :, "r2":"r3", :].shape == ts.data[:, :, 1:2, :].shape
+    assert ts[:, :, "r2":"r3", :].shape == ts.data[:, :, 1:3, :].shape
 
-    assert ts[1:2, :, "r2":"r3", :].shape == ts.data[1:2, :, 1:2, :].shape
-    assert ts[1, :, "r2":"r3", :].shape == ts.data[1, :, 1:2, :].shape
+    assert ts[1:2, :, "r2":"r3", :].shape == ts.data[1:2, :, 1:3, :].shape
+    assert ts[1, :, "r2":"r3", :].shape == ts.data[1, :, 1:3, :].shape
 
     assert ts[:, :, 1:, :].shape == ts.data[:, :, 1:, :].shape
     assert ts[:, :, :1, :].shape == ts.data[:, :, :1, :].shape
@@ -158,27 +161,27 @@ def test_timeseries_data_access():
     assert ts[:, :, 2, :].shape == ts.data[:, :, 2, :].shape
 
     assert ts[:, "sv2":, :, :].shape == ts.data[:, 1:, :, :].shape
-    assert ts[:, :"sv2", :, :].shape == ts.data[:, :1, :, :].shape
-    assert ts[:, "sv1":"sv3", :, :].shape == ts.data[:, 0:2, :, :].shape
+    assert ts[:, :"sv2", :, :].shape == ts.data[:, :2, :, :].shape
+    assert ts[:, "sv1":"sv3", :, :].shape == ts.data[:, 0:3, :, :].shape
     assert ts[:, "sv3", :, :].shape == ts.data[:, 2, :, :].shape
 
     assert ts[1:2, "sv2":, :, :].shape == ts.data[1:2, 1:, :, :].shape
-    assert ts[1:2, :"sv2", :, :].shape == ts.data[1:2, :1, :, :].shape
-    assert ts[1:2, "sv1":"sv3", :, :].shape == ts.data[1:2, 0:2, :,  :].shape
+    assert ts[1:2, :"sv2", :, :].shape == ts.data[1:2, :2, :, :].shape
+    assert ts[1:2, "sv1":"sv3", :, :].shape == ts.data[1:2, 0:3, :, :].shape
     assert ts[1:2, "sv3", :, :].shape == ts.data[1:2, 2, :, :].shape
     assert ts[2, "sv3", :, :].shape == ts.data[2, 2, :, :].shape
 
     assert ts[2, "sv3", 0:3, :].shape == ts.data[2, 2, 0:3, :].shape
-    assert ts[2, "sv3", "r1":"r3", :].shape == ts.data[2, 2, 0:2, :].shape
-    assert ts[0:2, "sv3", "r1":"r3", :].shape == ts.data[0:2, 2, 0:2, :].shape
-    assert ts[0:2, "sv3", :"r2", :].shape == ts.data[0:2, 2, :1, :].shape
+    assert ts[2, "sv3", "r1":"r3", :].shape == ts.data[2, 2, 0:3, :].shape
+    assert ts[0:2, "sv3", "r1":"r3", :].shape == ts.data[0:2, 2, 0:3, :].shape
+    assert ts[0:2, "sv3", :"r2", :].shape == ts.data[0:2, 2, :2, :].shape
     assert ts[0:2, "sv3", "r2":, :].shape == ts.data[0:2, 2, 1:, :].shape
     assert ts[0:2, "sv3", "r1", :].shape == ts.data[0:2, 2, 0, :].shape
 
     assert numpy.all(ts[0:2, "sv3", "r1", :].data == ts.data[0:2, 2,  0, :])
-    assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, 2,  0:1, :])
-    assert numpy.all(ts[0:2, :"sv2", "r1":"r2", :].data == ts.data[0:2, :1, 0:1, :])
-    assert numpy.all(ts[2, :"sv2", "r1":"r3", :].data == ts.data[2, :1, 0:2, :])
+    assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, 2,  0:2, :])
+    assert numpy.all(ts[0:2, :"sv2", "r1":"r2", :].data == ts.data[0:2, :2, 0:2, :])
+    assert numpy.all(ts[2, :"sv2", "r1":"r3", :].data == ts.data[2, :2, 0:3, :])
     assert numpy.all(ts[2, "sv2", "r3", :].data == ts.data[2, 1,  2, :])
     assert numpy.all(ts[2, "sv2", "r3", 0].data == ts.data[2, 1, 2, 0])
 
@@ -196,7 +199,7 @@ def test_timeseries_data_access():
         ts.lfp
 
 
-def test_timeseries_4D():
+def test_timeseries_4D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(4)
     ts_4D = TimeSeries(data,
                        labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", "r4"],
@@ -210,8 +213,14 @@ def test_timeseries_4D():
 
 
 if __name__ == "__main__":
-    test_timeseries_1D_definition()
-    test_timeseries_2D()
-    test_timeseries_3D()
-    test_timeseries_data_access()
-    test_timeseries_4D()
+    test_timeseries_1D_definition(TimeSeriesXarray)
+    test_timeseries_2D(TimeSeriesXarray)
+    test_timeseries_3D(TimeSeriesXarray)
+    test_timeseries_data_access(TimeSeriesXarray)
+    test_timeseries_4D(TimeSeriesXarray)
+
+    test_timeseries_1D_definition(TimeSeries)
+    test_timeseries_2D(TimeSeries)
+    test_timeseries_3D(TimeSeries)
+    test_timeseries_data_access(TimeSeries)
+    test_timeseries_4D(TimeSeries)

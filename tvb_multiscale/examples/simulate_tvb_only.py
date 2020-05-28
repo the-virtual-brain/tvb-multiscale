@@ -6,7 +6,7 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.examples.plot_results import plot_results
+from tvb_multiscale.examples.plot_write_results import plot_write_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
@@ -45,7 +45,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
 
     # Some code only for SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI
     simulator.integrator.noise.nsig = np.array(simulator.model.nvar * [simulator.integrator.noise.nsig[0]])
-    simulator.integrator.noise.nsig[5:] = 0.0  # No noise for t_ref and derived variables
+    simulator.integrator.noise.nsig[6:] = 0.0  # No noise for t_ref and derived variables
 
     plotter.plot_tvb_connectivity(simulator.connectivity)
 
@@ -85,7 +85,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
                                            [simulator.model.N_E[0],
                                             simulator.model.number_of_modes - simulator.model.N_E[0]])
 
-    # plot_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
+    # plot_write_results(results, simulator, "State Variables", simulator.model.variables_of_interest, plotter)
 
     return simulator.connectivity, results
 
@@ -112,14 +112,14 @@ def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_re
     from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
     mean_field_xr = TimeSeriesXarray(mean_field.get_subspace(spiking_regions_inds))
-    mean_field_xr.plot_timeseries(per_variable=True, plotter=plotter, figsize=(10, 5))
+    mean_field_xr.plot_timeseries(per_variable=True, plotter_config=plotter.config, figsize=(10, 5))
     rate_xr = TimeSeriesXarray(rate)
-    rate_xr.plot_timeseries(plotter=plotter, figsize=(10, 5))
+    rate_xr.plot_timeseries(plotter_config=plotter.config, figsize=(10, 5))
 
     for i_pop, spike in enumerate(spikes):
         spike_xr = TimeSeriesXarray(spike)
         spike_xr.plot(y=spike_xr._data.dims[3], row=spike_xr._data.dims[2],
-                      robust=True, figsize=(20, 10), plotter=plotter)
+                      robust=True, figsize=(20, 10), plotter_config=plotter.config)
     return fig_spikes, axes_spikes
 
 

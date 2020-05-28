@@ -253,6 +253,10 @@ class SpikingModelBuilder(object):
     def nodes_connections_target_nodes(self):
         return self._nodes_connection_property_per_node("target_nodes")
 
+    def _assert_delay(self, delay):
+        assert delay >= 0.0
+        return delay
+
     def _assert_within_node_delay(self, delay):
         if delay > self.tvb_dt / 2:
             if delay > self.tvb_dt:
@@ -363,10 +367,10 @@ class SpikingModelBuilder(object):
             # ..set/converted to functions
             weights_fun = property_to_fun(device.get("weights", 1.0))
             delays_fun = property_to_fun(device.get("delays", 0.0))
-            receptor_types_fun = property_to_fun(device.get("receptor_types", 0))
+            receptor_type_fun = property_to_fun(device.get("receptor_type", 0))
             # Defaults in arrays:
             shape = (len(spiking_nodes),)
-            receptor_types = np.zeros(shape).astype("i")
+            receptor_type = np.zeros(shape).astype("i")
             # weights and delays might be dictionaries for distributions:
             weights = np.tile([1.0], shape).astype("object")
             delays = np.tile([0.0], shape).astype("object")
@@ -376,11 +380,11 @@ class SpikingModelBuilder(object):
             for trg_node, i_trg in zip(spiking_nodes, target_spiking_nodes_ids):
                 weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
                 delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
-                receptor_types[i_trg] = receptor_types_fun(trg_node)
+                receptor_type[i_trg] = receptor_type_fun(trg_node)
             _devices[-1]["nodes"] = target_spiking_nodes_ids
             _devices[-1]["weights"] = weights
             _devices[-1]["delays"] = delays
-            _devices[-1]["receptor_types"] = receptor_types
+            _devices[-1]["receptor_type"] = receptor_type
             _devices[-1]["params"] = device.get("params", {})
         return _devices
 
@@ -401,10 +405,6 @@ class SpikingModelBuilder(object):
 
     def _synaptic_weight_scaling(self, weights, number_of_connections):
         return self.default_synaptic_weight_scaling(weights, number_of_connections)
-
-    def _assert_delay(self, delay):
-        assert delay >= 0.0
-        return delay
 
     def build_spiking_nodes(self, *args, **kwargs):
         self.nodes = Series()

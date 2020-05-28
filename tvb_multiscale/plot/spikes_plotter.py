@@ -75,7 +75,9 @@ class SpikesPlotter(BasePlotter):
         return figure_name, figsize
 
     def _rate_ytick_labels(self, max_rate, yticks):
-        rate_step = np.maximum(max_rate / len(yticks), 1.0)
+        if max_rate == 0.0:
+            max_rate = 1.0
+        rate_step = np.maximum(max_rate / len(yticks), 1.0/len(yticks))
         yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
         return ["%0.2f" % yticklabel for yticklabel in yticklabels]
 
@@ -211,7 +213,9 @@ class SpikesPlotter(BasePlotter):
             axes.append([])
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
                 # Define spike senders and rates' axis
-                neurons = region_spike_detector.senders
+                senders = region_spike_detector.senders
+
+                neurons = region_spike_detector.neurons
                 ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
@@ -229,7 +233,7 @@ class SpikesPlotter(BasePlotter):
                                                alpha=kwargs.get("rate_alpha", 0.5))
 
                 # Plot spikes
-                axes[i_pop][i_region].plot(region_spike_detector.spikes_times, neurons,
+                axes[i_pop][i_region].plot(region_spike_detector.spikes_times, senders,
                                            linestyle="None",
                                            marker=kwargs.get("spikes_marker", "o"),
                                            markerfacecolor=kwargs.get("spikes_color", "k"),

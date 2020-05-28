@@ -5,11 +5,12 @@ import numpy as np
 
 from tvb.simulator.plot.time_series_plotter import TimeSeriesPlotter
 from tvb.contrib.scripts.datatypes.time_series import TimeSeries
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
 
 class MultimeterPlotter(TimeSeriesPlotter):
 
-    def _confirm_TimeSeries(self, input_time_series, time_series_class=TimeSeries, time_series_args={}):
+    def _confirm_TimeSeries(self, input_time_series, time_series_class=TimeSeriesXarray, time_series_args={}):
         if isinstance(input_time_series, DataArray):
             # if the input is a xarray DataArray, convert it to a TVB TimeSeries
             return time_series_class().from_xarray_DataArray(input_time_series, **time_series_args)
@@ -49,7 +50,7 @@ class MultimeterPlotter(TimeSeriesPlotter):
         for i_var, var in enumerate(time_series.labels_dimensions[time_series.labels_ordering[1]]):
             for i_pop in range(n_pops):
                 labels_dimensions[new_variable_label].append(variable_label(var, i_pop))
-                data[:, i_var * n_vars + i_pop, :, 0] = time_series.data[:, i_var, :, i_pop]
+                data[:, i_var * n_pops + i_pop, :, 0] = time_series.data[:, i_var, :, i_pop]
         return time_series.duplicate(data=data, time=time_series.time,
                                      labels_ordering=labels_ordering, labels_dimensions=labels_dimensions)
 
@@ -71,11 +72,14 @@ class MultimeterPlotter(TimeSeriesPlotter):
                                    var_pop_join_str=" - ", default_population_label="population",
                                    **kwargs):
         time_series = self._confirm_TimeSeries(input_time_series, time_series_class, time_series_args)
+        if time_series.shape[3] > 1:
+            time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
+        if isinstance(time_series, TimeSeriesXarray):
+            return time_series.plot_timeseries(plotter_config=self.config, per_variable=plot_per_variable,
+                                               figsize=self.config.LARGE_SIZE, **kwargs)
         if plot_per_variable:
             # One figure per (state) variable
             return self._plot_per_variable(self.plot_multimeter_timeseries, time_series, **kwargs)
-        if time_series.shape[3] > 1:
-            time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
         return self.plot_time_series(time_series, **kwargs)
 
     def plot_multimeter_raster(self, input_time_series, plot_per_variable=True,
@@ -83,9 +87,12 @@ class MultimeterPlotter(TimeSeriesPlotter):
                                var_pop_join_str=" - ", default_population_label="population",
                                **kwargs):
         time_series = self._confirm_TimeSeries(input_time_series, time_series_class, time_series_args)
+        if time_series.shape[3] > 1:
+            time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
+        if isinstance(time_series, TimeSeriesXarray):
+            return time_series.plot_raster(plotter_config=self.config, per_variable=plot_per_variable,
+                                           figsize=self.config.LARGE_SIZE, **kwargs)
         if plot_per_variable:
             # One figure per (state) variable
             return self._plot_per_variable(self.plot_multimeter_raster, time_series, **kwargs)
-        if time_series.shape[3] > 1:
-            time_series = self._join_variables_and_populations(time_series, var_pop_join_str, default_population_label)
         return self.plot_raster(time_series, **kwargs)

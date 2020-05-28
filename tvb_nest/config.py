@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+
+from tvb_utils.utils import initialize_logger as initialize_logger_base
+
 from tvb_multiscale.config import Config as ConfigBase
-from tvb_multiscale.config import DEFAULT_SUBJECT_PATH, initialize_logger
+from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
@@ -26,7 +29,7 @@ class Config(ConfigBase):
     # NEST properties:
     NEST_MIN_DT = 0.001
 
-    DEFAULT_MODEL = "iaf_cond_beta"  # "iaf_cond_deco2014"
+    DEFAULT_MODEL = "iaf_cond_alpha"  # "iaf_cond_deco2014"
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
@@ -62,3 +65,7 @@ class Config(ConfigBase):
 
         
 CONFIGURED = Config()
+
+
+def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
+    return initialize_logger_base(name, target_folder)
