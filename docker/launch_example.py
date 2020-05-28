@@ -13,8 +13,7 @@ from tvb_nest.examples.example import main_example
 from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.plot.plotter import Plotter
-from tvb.simulator.models.wilson_cowan import WilsonCowan
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.datatypes.connectivity import Connectivity
 
 
@@ -61,7 +60,7 @@ results, simulator = \
                  nest_nodes_ids, nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=10.0, variables_of_interest=["E", "I"],
+                 simulation_length=110.0, transient=10.0,
                  config=config, **model_params)
 
 np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)

@@ -100,39 +100,40 @@ if __name__ == "__main__":
     tvb_model = ReducedWongWangExcIOInhI
     model_params = {}
 
-    # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
-    from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
+    # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
+    # from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
+    #
+    # tvb_model = WilsonCowan
+    #
+    # model_params = {
+    #     "r_e": np.array([0.0]),
+    #     "r_i": np.array([0.0]),
+    #     "k_e": np.array([1.0]),
+    #     "k_i": np.array([1.0]),
+    #     "tau_e": np.array([10.0]),
+    #     "tau_i": np.array([10.0]),
+    #     "c_ee": np.array([10.0]),
+    #     "c_ei": np.array([6.0]),
+    #     "c_ie": np.array([10.0]),
+    #     "c_ii": np.array([1.0]),
+    #     "alpha_e": np.array([1.2]),
+    #     "alpha_i": np.array([2.0]),
+    #     "a_e": np.array([1.0]),
+    #     "a_i": np.array([1.0]),
+    #     "b_e": np.array([0.0]),
+    #     "b_i": np.array([0.0]),
+    #     "c_e": np.array([1.0]),
+    #     "c_i": np.array([1.0]),
+    #     "theta_e": np.array([2.0]),
+    #     "theta_i": np.array([3.5]),
+    #     "P": np.array([0.5]),
+    #     "Q": np.array([0.0])
+    # }
 
-    tvb_model = WilsonCowan
-
-    model_params = {
-        "r_e": np.array([0.0]),
-        "r_i": np.array([0.0]),
-        "k_e": np.array([1.0]),
-        "k_i": np.array([1.0]),
-        "tau_e": np.array([10.0]),
-        "tau_i": np.array([10.0]),
-        "c_ee": np.array([10.0]),
-        "c_ei": np.array([6.0]),
-        "c_ie": np.array([10.0]),
-        "c_ii": np.array([1.0]),
-        "alpha_e": np.array([1.2]),
-        "alpha_i": np.array([2.0]),
-        "a_e": np.array([1.0]),
-        "a_i": np.array([1.0]),
-        "b_e": np.array([0.0]),
-        "b_i": np.array([0.0]),
-        "c_e": np.array([1.0]),
-        "c_i": np.array([1.0]),
-        "theta_e": np.array([2.0]),
-        "theta_i": np.array([3.5]),
-        "P": np.array([0.5]),
-        "Q": np.array([0.0])
-    }
-
-    main_example(tvb_model, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
+    main_example(tvb_model, WWDeco2014Builder, ReducedWongWangExcIOInhI,
                  nest_nodes_ids,  nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=10.0, variables_of_interest=["E", "I"],
+                 simulation_length=1100.0, transient=100.0,
+                 variables_of_interest=None,
                  config=CONFIGURED, **model_params)
