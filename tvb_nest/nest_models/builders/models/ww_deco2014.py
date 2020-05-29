@@ -54,10 +54,10 @@ class WWDeco2014Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.w_ie = -1.0
         self.w_ii = -1.0
 
-        self.d_ee = self.default_populations_connection["delay"]
-        self.d_ie = self.default_populations_connection["delay"]
-        self.d_ei = self.default_populations_connection["delay"]
-        self.d_ii = self.default_populations_connection["delay"]
+        self.d_ee = self.spiking_dt
+        self.d_ie = self.spiking_dt
+        self.d_ei = self.spiking_dt
+        self.d_ii = self.spiking_dt
 
         self.global_coupling_scaling *= self.tvb_model.G[0].item()
         self.lamda = self.tvb_model.lamda[0].item()
