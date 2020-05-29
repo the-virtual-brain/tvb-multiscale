@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from six import string_types
 import os
 import h5py
 import inspect
@@ -10,7 +11,7 @@ from tvb_multiscale.io.datatypes_h5 import REGISTRY
 
 from tvb.core.neocom import h5
 from tvb.contrib.scripts.utils.log_error_utils import warning
-from tvb.contrib.scripts.utils.data_structures_utils import is_numeric
+from tvb.contrib.scripts.utils.data_structures_utils import is_numeric, ensure_list
 from tvb.contrib.scripts.utils.file_utils import change_filename_or_overwrite
 
 
@@ -171,17 +172,27 @@ class H5Writer(object):
         self._log_success("List of objects", path)
         return h5_file, path
 
+    def _convert_sequences_of_strings(self, sequence):
+        new_sequence = []
+        for val in ensure_list(sequence):
+            if isinstance(val, string_types):
+                new_sequence.append(numpy.string_(val))
+            elif isinstance(val, (numpy.ndarray, tuple, list)):
+                new_sequence.append(self._convert_sequences_of_strings(val))
+            else:
+                new_sequence.append(val)
+        return numpy.array(new_sequence)
+
     def _write_dictionary_to_group(self, dictionary, group):
         group.attrs.create(self.H5_TYPE_ATTRIBUTE, "Dictionary")
         group.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, dictionary.__class__.__name__)
         for key, value in dictionary.items():
             try:
-                if isinstance(value, numpy.ndarray) and value.size > 0:
-                    group.create_dataset(key, data=value)
+                if isinstance(value, (numpy.ndarray, list, tuple)) and len(value) > 0:
+                    new_value = self._convert_sequences_of_strings(value)
+                    group.create_dataset(key, data=new_value)
                 else:
-                    if isinstance(value, list) and len(value) > 0:
-                        group.create_dataset(key, data=numpy.array(value))
-                    elif callable(value):
+                    if callable(value):
                         group.attrs.create(key, inspect.getsource(value))
                     elif isinstance(value, dict):
                         group.create_group(key)
@@ -189,7 +200,7 @@ class H5Writer(object):
                     elif value is None:
                         continue
                     else:
-                        group.attrs.create(key, str(value))
+                        group.attrs.create(key, numpy.string_(value))
             except:
                 self.logger.warning("Did not manage to write " + key + " to h5 file " + str(group) + " !")
 
