@@ -32,7 +32,7 @@ class Config(ConfigBase):
     DEFAULT_MODEL = "iaf_cond_alpha"  # "iaf_cond_deco2014"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.0, 'receptor_type': 0,
+    DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.01, 'receptor_type': 0,
                           "conn_spec": {"autapses": True, 'multapses': True, 'rule': "all_to_all",
                                         "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
