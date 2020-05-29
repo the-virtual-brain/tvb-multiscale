@@ -72,9 +72,9 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
 
     def delay_fun(self, low=None, high=None):
         if low is None:
-            low = self.default_populations_connection["delay"]
+            low = self.spiking_dt
         if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.default_populations_connection["delay"])
+            high = np.maximum(self.tvb_dt, 2 * self.spiking_dt)
         return random_uniform_delay(low, low, high, sigma=None)
 
     def within_node_delay(self):
