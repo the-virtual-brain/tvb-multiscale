@@ -2,6 +2,7 @@
 from abc import ABCMeta, abstractmethod
 
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
+from tvb_nest.interfaces.base import TVBNESTInterface
 from tvb_nest.interfaces.models import RedWWexcIOinhI
 from tvb_multiscale.spiking_models.builders.templates import \
     random_normal_tvb_weight, random_uniform_tvb_delay, receptor_by_source_region
@@ -132,13 +133,13 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
         if tvb_to_nest_mode and \
                 (self.tvb_to_spikeNet_interfaces is None or len(self.tvb_to_spikeNet_interfaces) == 0):
             self.tvb_to_spikeNet_interfaces = []
-            if tvb_to_nest_mode == "rate":
+            if tvb_to_nest_mode.lower() == "rate":
                 # For spike transmission from TVB to NEST devices as TVB proxy nodes with TVB delays:
                 self.build_default_rate_tvb_to_nest_interfaces()
-            elif tvb_to_nest_mode == "current":
+            elif tvb_to_nest_mode.lower() == "current":
                 # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
                 self.build_default_current_tvb_to_nest_interfaces()
-            elif tvb_to_nest_mode == "param":
+            elif tvb_to_nest_mode.lower() == "param":
                 # For directly setting an external current parameter in NEST neurons instantaneously:
                 self.build_default_param_tvb_to_nest_interfaces()
 
@@ -150,7 +151,7 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
 
     def build_interface(self, tvb_nest_interface=None, tvb_to_nest_mode="rate", nest_to_tvb=True):
         self.default_build(tvb_to_nest_mode, nest_to_tvb)
-        if tvb_nest_interface is None:
+        if not isinstance(tvb_nest_interface, TVBNESTInterface):
             tvb_nest_interface = self._tvb_nest_interface()
         return super(DefaultInterfaceBuilder, self).build_interface(tvb_nest_interface)
 
