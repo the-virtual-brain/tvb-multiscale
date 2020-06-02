@@ -455,8 +455,8 @@ class Workflow(WorkflowBase):
         if self.writer:
             self.write_interface()
 
-        self.tvb_nest_model = self.interface_builder.build_interface(self.tvb_to_nest_interface,
-                                                                     self.nest_to_tvb_interface)
+        self.tvb_nest_model = self.interface_builder.build_interface(tvb_to_nest_mode=self.tvb_to_nest_interface,
+                                                                     nest_to_tvb=self.nest_to_tvb_interface)
 
         return self.tvb_nest_model
 
