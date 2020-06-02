@@ -118,7 +118,7 @@ class Workflow(object):
 
     connectivity_path = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     decouple = False
-    time_delays = False
+    time_delays = True
     force_dims = None
 
     populations = ["Excitatory", "Inhibitory"]
