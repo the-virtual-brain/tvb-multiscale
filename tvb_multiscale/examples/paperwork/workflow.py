@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from six import string_types
 import os
 import time
 from collections import OrderedDict
 import numpy as np
+from scipy.stats import spearmanr
 from xarray import DataArray
+from pandas import MultiIndex
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -102,6 +103,45 @@ def spike_rates_from_mean_field_rates(mean_field):
     rate.labels_ordering[3] = "Mode"
     rate.title = "Mean field population spike rates"
     return rate
+
+
+def pearson(x):
+    return np.corrcoef(x.T)
+
+
+def spearman(x):
+    return spearmanr(x)[0]
+
+
+def TimeSeries_correlation(ts, corrfun=pearson, force_dims=4):
+    data = ts._data # Get the DataArray of TimeSeries
+    if data.shape[-1] == 1:  # Get rid of the 4th dimension if it is only 1
+        data = data.squeeze(axis=-1)
+    dims = list(data.dims[1:])
+    # Combine variables State Variable x Region x ...
+    # and prepare the two dimensions (i, j) of the correlation matrix
+    stacked_dims = "-".join(dims)
+    names = []
+    new_dims = []
+    for d in ["i", "j"]:
+        names.append([dim+"_"+d for dim in dims])
+        new_dims.append(stacked_dims+"_"+d)
+    # Stack data across combined variables
+    data = data.stack(**{stacked_dims: tuple(data.dims[1:])})
+    # Prepare output DataArray
+    n = len(data.coords[stacked_dims])
+    corrs = DataArray(np.empty((n, n), dtype="f"),
+                      dims=new_dims,
+                      coords={new_dims[0]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[0]),
+                              new_dims[1]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[1])})
+    corrs.values = corrfun(data.values)  # Compute all combinations of correlations across Time
+    corrs = corrs.unstack(new_dims)  # Unstack the combinations of State Variable x Region x ...
+    new_dims = list(corrs.dims)
+    corrs = corrs.transpose(*tuple(new_dims[0::2] + new_dims[1::2]))  # Put variables in front of regions
+    if force_dims is not None:  # Compute the mean over possible 4th dimension ("Mode", or "Neuron")
+        while len(corrs.dims) > force_dims:
+            corrs = corrs.mean(axis=-1)
+    return corrs
 
 
 class Workflow(object):
@@ -414,6 +454,11 @@ class Workflow(object):
                               self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
         return self.rates["TVB"]
 
+    def get_tvb_corrs(self):
+        self.tvb_corrs = {"Pearson": TimeSeries_correlation(self.tvb_rates, corrfun=pearson, force_dims=4),
+                          "Spearman": TimeSeries_correlation(self.tvb_rates, corrfun=spearman, force_dims=4)}
+        return self.tvb_corrs
+
     def plot_tvb_ts(self):
         # For timeseries plot:
         self.mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
@@ -480,9 +525,11 @@ class Workflow(object):
         if self.writer:
             self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
 
+        self.tvb_corrs = self.get_tvb_corrs()
+
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
             if self.tvb_ts is not None:
                 self.plot_tvb_ts()
 
-        return self.rates
+        return self.rates, self.tvb_corrs
