@@ -158,6 +158,7 @@ class Workflow(object):
 
     connectivity_path = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     decouple = False
+    symmetric_connectome = False
     time_delays = True
     force_dims = None
 
@@ -349,6 +350,8 @@ class Workflow(object):
         if self.decouple:
             self.connectivity.weights *= 0.0
         else:
+            if self.symmetric_connectome:
+                self.connectivity.weights = np.sqrt(self.connectivity.weights * self.connectivity.weights.T)
             if self.connectivity.weights.max() > 0.0:
                 self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
                 self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
