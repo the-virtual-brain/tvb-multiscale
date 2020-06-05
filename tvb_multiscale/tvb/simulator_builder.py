@@ -19,6 +19,7 @@ class SimulatorBuilder(object):
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
     delays_flag = True
+    symmetric_connectome = False
     model = ReducedWongWangExcIOInhI
     variables_of_interest = None
     integrator = HeunStochastic
@@ -46,6 +47,8 @@ class SimulatorBuilder(object):
             connectivity = Connectivity.from_file(self.connectivity)
         else:
             connectivity = self.connectivity
+        if self.symmetric_connectome:
+            connectivity.weights = np.sqrt(connectivity.weights * connectivity.weights.T)
         if isinstance(self.scale_connectivity_weights, string_types):
             connectivity.weights = connectivity.scaled_weights(mode=self.scale_connectivity_weights)
         if self.scale_connectivity_weights_by_percentile is not None:
