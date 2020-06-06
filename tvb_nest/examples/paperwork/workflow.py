@@ -4,7 +4,12 @@ import time
 from collections import OrderedDict
 import numpy as np
 from xarray import DataArray, concat
-
+from pandas import MultiIndex
+from elephant.statistics import time_histogram
+from elephant.conversion import BinnedSpikeTrain
+from elephant import spike_train_correlation
+from neo.core import SpikeTrain
+from quantities import ms
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -12,6 +17,7 @@ from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
 from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
+from tvb_multiscale.examples.paperwork.workflow import pearson, spearman
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
@@ -217,8 +223,9 @@ class Workflow(WorkflowBase):
         # When any of the properties model, conn_spec, weight, delay, receptor_type below
         # depends on regions, set a handle to a function with
         # arguments (source_region_index=None, target_region_index=None)
-        self.nest_model_builder.tvb_delay_fun = lambda source_node, target_node: \
-                                                        self.nest_model_builder.tvb_delays[source_node, target_node]
+        self.nest_model_builder.tvb_delay_fun = \
+            lambda source_node, target_node: \
+                float(np.maximum(self.nest_model_builder.tvb_delays[source_node, target_node], self.dt))
         self.nest_model_builder.nodes_connections = []
         if len(self.nest_nodes_ids) > 1:
             self.nest_model_builder.nodes_connections = [
@@ -343,7 +350,8 @@ class Workflow(WorkflowBase):
                                             self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
              #    To add to TVB connectivity delay:
              "delays": lambda tvb_node_id, nest_node_id:
-                                    self.interface_builder.tvb_delays(tvb_node_id, nest_node_id),
+                                    float(np.maximum(self.interface_builder.tvb_delays(tvb_node_id, nest_node_id),
+                                                     self.dt)),
              # ---------------------------------------------------------------------------------------------------------
              #    TVB sv -> NEST population
              "connections": {"S_e": ["E"]},
@@ -364,7 +372,8 @@ class Workflow(WorkflowBase):
                                             self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
                  #    To add to TVB connectivity delay:
                  "delays": lambda tvb_node_id, nest_node_id:
-                                            self.interface_builder.tvb_delays[tvb_node_id, nest_node_id],
+                                    float(np.maximum(self.interface_builder.tvb_delays[tvb_node_id, nest_node_id],
+                                                     self.dt)),
                  # -----------------------------------------------------------------------------------------------------
                  #    TVB sv -> NEST population
                  "connections": {"S_e": ["I"]},
@@ -526,9 +535,16 @@ class Workflow(WorkflowBase):
             self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
         return self.nest_ts, self.nest_spikes
 
-    def get_nest_rates(self):
+    def get_nest_rates_corrs(self):
+        corrs = OrderedDict()
         rates = []
+        spike_ts = []
+        binned_spikes = []
         pop_labels = []
+        time = self.nest_ts.time
+        t_start = time[0]
+        t_stop = time[-1]
+        dt = np.diff(time).mean()
         for i_pop, (pop_label, pop_spikes) in enumerate(self.nest_spikes.iteritems()):
             pop_labels.append(pop_label)
             rates.append([])
@@ -538,12 +554,32 @@ class Workflow(WorkflowBase):
                 # rates (spikes/sec) =
                 #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
                 rates[-1].append(len(reg_spikes["times"]) / self.duration / self.populations_sizes[i_pop])
+                spike_train = SpikeTrain(reg_spikes["times"]*ms, t_stop=t_stop, t_start=t_start)
+                spike_ts.append(np.array(time_histogram(spike_train, binsize=dt)))
+                binned_spikes.append(BinnedSpikeTrain(spike_train, binsize=dt))
 
-        self.rates["NEST"] = DataArray(np.array(rates),
-                                       dims=["Population", "Region"],
-                                       coords={"Population": pop_labels, "Region": reg_labels})
-
-        return self.rates["NEST"]
+        corrs["spike_train"] = spike_train_correlation.corrcoef(binned_spikes)
+        spike_ts = np.array(spike_ts).T
+        corrs["Pearson"] = pearson(spike_ts)
+        corrs["Spearman"] = spearman(spike_ts)
+        rates = DataArray(np.array(rates),
+                          dims=["Population", "Region"],
+                          coords={"Population": pop_labels, "Region": reg_labels})
+        dims = list(rates.dims)
+        stacked_dims = "-".join(dims)
+        names = []
+        new_dims = []
+        for d in ["i", "j"]:
+            names.append([dim + "_" + d for dim in dims])
+            new_dims.append(stacked_dims + "_" + d)
+        for corr in ["spike train", "Pearson", "Spearman"]:
+            corrs[corr] = DataArray(np.array(rates),
+                                    dims=new_dims,
+                                    coords={new_dims[0]: MultiIndex.from_product([pop_labels, reg_labels],
+                                                                                 names=names[0]),
+                                            new_dims[1]: MultiIndex.from_product([pop_labels, reg_labels],
+                                                                                 names=names[1])}).unstack(new_dims)
+        return rates, corrs
 
     def plot_tvb_ts(self):
         # For timeseries plot:
@@ -693,13 +729,16 @@ class Workflow(WorkflowBase):
         # -----------------------------------5. Compute rate per region and population--------------------------------------
         self.rates = {}
         if self.nest_spikes is not None:
-            self.rates["NEST"] = self.get_nest_rates()
+            self.rates["NEST"], self.corrs["NEST"] = self.get_nest_rates_corrs()
             if self.writer:
                 self.write_object(self.rates["NEST"].to_dict(), "NEST_rates")
+                self.write_object(self.corrs["NEST"].to_dict(), "NEST_corrs")
         if self.tvb_ts is not None:
             self.rates["TVB"] = self.get_tvb_rates()
+            self.corrs["TVB"] = self.get_tvb_corrs()
             if self.writer:
                 self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
+                self.write_object(self.corrs["TVB"].to_dict(), "TVB_corrs")
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
