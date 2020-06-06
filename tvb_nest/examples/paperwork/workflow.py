@@ -4,12 +4,7 @@ import time
 from collections import OrderedDict
 import numpy as np
 from xarray import DataArray, concat
-from pandas import MultiIndex
-from elephant.statistics import time_histogram
-from elephant.conversion import BinnedSpikeTrain
-from elephant import spike_train_correlation
-from neo.core import SpikeTrain
-from quantities import ms
+
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -536,6 +531,12 @@ class Workflow(WorkflowBase):
         return self.nest_ts, self.nest_spikes
 
     def get_nest_rates_corrs(self):
+        from pandas import MultiIndex
+        from elephant.statistics import time_histogram
+        from elephant.conversion import BinnedSpikeTrain
+        from elephant import spike_train_correlation
+        from neo.core import SpikeTrain
+        from quantities import ms
         corrs = OrderedDict()
         rates = []
         spike_ts = []
