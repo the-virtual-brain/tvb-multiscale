@@ -450,17 +450,14 @@ class Workflow(object):
         else:
             self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars]
             self.tvb_rates.name = "Region mean field rate time series"
-        self.rates["TVB"] = \
-            DataArray(self.tvb_rates.mean(axis=0).squeeze(axis=-1),
-                      dims=self.tvb_rates.dims[1:3],
-                      coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
-                              self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
-        return self.rates["TVB"]
+        return DataArray(self.tvb_rates.mean(axis=0).squeeze(axis=-1),
+                         dims=self.tvb_rates.dims[1:3],
+                         coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
+                                 self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
 
     def get_tvb_corrs(self):
-        self.tvb_corrs = {"Pearson": TimeSeries_correlation(self.tvb_rates, corrfun=pearson, force_dims=4),
-                          "Spearman": TimeSeries_correlation(self.tvb_rates, corrfun=spearman, force_dims=4)}
-        return self.tvb_corrs
+        return {"Pearson": TimeSeries_correlation(self.tvb_rates, corrfun=pearson, force_dims=4),
+                "Spearman": TimeSeries_correlation(self.tvb_rates, corrfun=spearman, force_dims=4)}
 
     def plot_tvb_ts(self):
         # For timeseries plot:
@@ -524,15 +521,16 @@ class Workflow(object):
         self.get_mean_field()
         self.get_tvb_spikes()
         self.rates = {}
+        self.corrs = {}
         self.rates["TVB"] = self.get_tvb_rates()
+        self.corrs["TVB"] = self.get_tvb_corrs()
         if self.writer:
             self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
-
-        self.tvb_corrs = self.get_tvb_corrs()
+            self.write_object(self.corrs["TVB"].to_dict(), "TVB_corrs")
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
             if self.tvb_ts is not None:
                 self.plot_tvb_ts()
 
-        return self.rates, self.tvb_corrs
+        return self.rates, self.corrs
