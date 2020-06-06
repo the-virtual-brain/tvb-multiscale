@@ -130,7 +130,7 @@ if __name__ == "__main__":
     #     "Q": np.array([0.0])
     # }
 
-    main_example(tvb_model, WWDeco2014Builder, ReducedWongWangExcIOInhI,
+    main_example(tvb_model, WWDeco2014Builder, RedWWexcIOinhIBuilder,
                  nest_nodes_ids,  nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
