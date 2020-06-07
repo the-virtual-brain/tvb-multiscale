@@ -526,7 +526,7 @@ class Workflow(object):
         self.corrs["TVB"] = self.get_tvb_corrs()
         if self.writer:
             self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
-            self.write_object(self.corrs["TVB"].to_dict(), "TVB_corrs")
+            self.write_object(self.corrs["TVB"], "TVB_corrs")
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
