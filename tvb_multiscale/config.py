@@ -162,7 +162,7 @@ class FiguresConfig(object):
         :param out_base: Base folder where figures should be kept
         :param separate_by_run: Set TRUE, when you want figures to be in different files / each run
         """
-        self._out_base = out_base or TvbProfile.current.TVB_STORAGE or os.path.join(os.getcwd(), "outputs")
+        self._out_base = out_base or os.path.join(os.getcwd(), "outputs")  # or TvbProfile.current.TVB_STORAGE
         self._separate_by_run = separate_by_run
 
     @property
