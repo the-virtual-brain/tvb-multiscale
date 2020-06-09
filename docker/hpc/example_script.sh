@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Have these in your bash_profile and bashrc:
+#export SCRATCH=$HOME/scratch  # only for BIH, it is done already
+#export TVB=$SCRATCH/Software/TVB
+#export TVB_MULTISCALE=$TVB/tvb-multiscale
+#export TVB_ROOT=$TVB/tvb-root
+
+export DOCKER_HOME=/home/docker
+export DOCKER_TVB_ROOT=$HOME_DOCKER/packages/tvb-root
+export DOCKER_TVB_MULTISCALE=$HOME_DOCKER/packages/tvb-multiscale
+
+export CMD="/home/docker/env/neurosci/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/example.py"
+
+# Sarus
+export INTERACTIVE_CMD='sarus --debug run -t
+                        --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_TVB_MULTISCALE}
+                        --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_TVB_ROOT}
+                        thevirtualbrain/tvb-nest:dp-ongoing-work bash'
+
+export COMMAND='sarus --debug run
+                --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_TVB_MULTISCALE}
+                --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_TVB_ROOT}
+                thevirtualbrain/tvb-nest:dp-ongoing-work $CMD'
+
+# Singularity
+export INTERACTIVE_CMD='singularity shell
+                        --bind ${TVB_MULTISCALE}:${DOCKER_TVB_MULTISCALE}
+                        --bind ${TVB_ROOT}:${DOCKER_TVB_ROOT}
+                        docker://thevirtualbrain/tvb-nest:dp-ongoing-work'
+
+export COMMAND='singularity exec
+                --bind ${TVB_MULTISCALE}:${DOCKER_TVB_MULTISCALE}
+                --bind ${TVB_ROOT}:${DOCKER_TVB_ROOT}
+                docker://thevirtualbrain/tvb-nest:dp-ongoing-work $CMD'
+
+
+
+
