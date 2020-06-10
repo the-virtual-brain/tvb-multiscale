@@ -12,28 +12,46 @@ export DOCKER_TVB_MULTISCALE=$HOME_DOCKER/packages/tvb-multiscale
 
 export CMD="/home/docker/env/neurosci/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/example.py"
 
+export NODES=mc  # or gpu, nothing for BIH cluster
+export SRUN='srun -C $NODES'
+
 # Sarus
+## In PizDaint, we assume that these lines have been already ran:
+#module load daint-mc # or daint-gpu
+#module load sarus
+
 export INTERACTIVE_CMD='sarus --debug run -t
                         --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_TVB_MULTISCALE}
                         --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_TVB_ROOT}
                         thevirtualbrain/tvb-nest:dp-ongoing-work bash'
+
+export SRUN_INTERACTIVE_CMD = '$SRUN --pty -C $INTERACTIVE_CMD'
 
 export COMMAND='sarus --debug run
                 --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_TVB_MULTISCALE}
                 --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_TVB_ROOT}
                 thevirtualbrain/tvb-nest:dp-ongoing-work $CMD'
 
+export SRUN_COMMAND='$SRUN $COMMAND'
+
 # Singularity
+## In PizDaint, we assume that these lines have been already ran:
+#module load daint-mc # or daint-gpu
+#module load singularity/3.5.3-daint
+
 export INTERACTIVE_CMD='singularity shell
                         --bind ${TVB_MULTISCALE}:${DOCKER_TVB_MULTISCALE}
                         --bind ${TVB_ROOT}:${DOCKER_TVB_ROOT}
                         docker://thevirtualbrain/tvb-nest:dp-ongoing-work'
+
+export SRUN_INTERACTIVE_CMD = '$SRUN -pty -C $INTERACTIVE_CMD'
 
 export COMMAND='singularity exec
                 --bind ${TVB_MULTISCALE}:${DOCKER_TVB_MULTISCALE}
                 --bind ${TVB_ROOT}:${DOCKER_TVB_ROOT}
                 docker://thevirtualbrain/tvb-nest:dp-ongoing-work $CMD'
 
+export SRUN_COMMAND='$SRUN $COMMAND'
 
 
 
