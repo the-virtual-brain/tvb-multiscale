@@ -54,6 +54,8 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
         writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
                                                                         connectivity=source_ts.connectivity),
                                os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
+    else:
+        writer = None
 
     # Plot time_series
     source_ts.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
@@ -167,7 +169,7 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
             ts.plot_raster(plotter_config=plotter.config, per_variable=True, linestyle="--", alpha=0.5, linewidth=0.5)
 
         # Write results to file:
-        if H5Writer is not None:
+        if writer is not None:
             writer.write_object(nest_spikes.to_dict(), path=os.path.join(config.out.FOLDER_RES, "NEST_Spikes") + ".h5")
             writer.write_object(rates.to_dict(), path=os.path.join(config.out.FOLDER_RES, rates.name) + ".h5")
             writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data, connectivity=ts.connectivity),
