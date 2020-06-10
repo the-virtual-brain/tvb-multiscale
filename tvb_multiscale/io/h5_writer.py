@@ -189,7 +189,9 @@ class H5Writer(object):
         for key, value in dictionary.items():
             try:
                 if isinstance(value, (numpy.ndarray, list, tuple)) and len(value) > 0:
-                    new_value = self._convert_sequences_of_strings(value)
+                    new_value = numpy.array(value)
+                    if not numpy.issubdtype(value.dtype, numpy.number):
+                        new_value = self._convert_sequences_of_strings(new_value)
                     group.create_dataset(key, data=new_value)
                 else:
                     if callable(value):
