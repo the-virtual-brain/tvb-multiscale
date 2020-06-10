@@ -94,7 +94,7 @@ RUN $VENV/bin/pip3 install setuptools; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant; \
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy flask; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
@@ -109,11 +109,11 @@ RUN cd tvb-root; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop; \
     cd contrib; \
+    $VENV/bin/python setup.py develop; \
+    cd ../../framework_tvb; \
     $VENV/bin/python setup.py develop;
-#    cd ../../framework_tvb; \
-#    $VENV/bin/python setup.py develop;
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
