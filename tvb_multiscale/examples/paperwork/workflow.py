@@ -134,7 +134,11 @@ def TimeSeries_correlation(ts, corrfun=pearson, force_dims=4):
                       dims=new_dims,
                       coords={new_dims[0]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[0]),
                               new_dims[1]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[1])})
-    corrs.values = corrfun(data.values)  # Compute all combinations of correlations across Time
+    try:
+        # TODO: a better hack for when spearman returns nan
+        corrs.values = corrfun(data.values)  # Compute all combinations of correlations across Time
+    except:
+        corrs.values = corrfun(data.values) * np.ones(corrs.values.shape)
     corrs = corrs.unstack(new_dims)  # Unstack the combinations of State Variable x Region x ...
     new_dims = list(corrs.dims)
     corrs = corrs.transpose(*tuple(new_dims[0::2] + new_dims[1::2]))  # Put variables in front of regions
@@ -322,12 +326,12 @@ class Workflow(object):
         return spike_stimulus_dict
 
     @property
-    def coupling_stimulus_dict(self):
-        coupling_stimulus_dict = OrderedDict()
-        coupling_stimulus_dict["coupling"] = self.simulator.coupling.__class__.__name__
-        coupling_stimulus_dict["a"] = self.simulator.coupling.a
-        coupling_stimulus_dict["b"] = self.simulator.coupling.b
-        return coupling_stimulus_dict
+    def coupling_dict(self):
+        coupling_dict = OrderedDict()
+        coupling_dict["coupling"] = self.simulator.coupling.__class__.__name__
+        coupling_dict["a"] = self.simulator.coupling.a
+        coupling_dict["b"] = self.simulator.coupling.b
+        return coupling_dict
 
     def write_tvb_simulator(self):
         self.writer.write_tvb_to_h5(self.simulator.connectivity,
@@ -337,7 +341,7 @@ class Workflow(object):
         if self.tvb_spike_stimulus is not None:
             self.write_group(self.spike_stimulus_dict, "spike_stimulus", "dictionary", close_file=False)
         if self.number_of_regions > 1:
-            self.write_group(self.coupling_stimulus_dict, "coupling", "dictionary", close_file=False)
+            self.write_group(self.coupling_dict, "coupling", "dictionary", close_file=False)
         self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=False)
         self.write_group({"monitor": self.tvb_monitor.__name__,
                           "period": self.tvb_monitor_period}, "monitor", "dictionary", close_file=True)
