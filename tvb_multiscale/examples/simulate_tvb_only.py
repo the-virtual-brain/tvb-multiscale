@@ -11,7 +11,7 @@ from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
 from tvb_multiscale.examples.paperwork.workflow import \
-    mean_field_per_population, spike_rates_from_mean_field_rates, spike_rates_from_spike_ts, spikes_per_population
+    mean_field_per_population, spike_rates_from_mean_field_rates, spike_rates_from_TVB_spike_ts, spikes_per_population
 
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 # from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
@@ -107,7 +107,7 @@ def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_re
             populations, pop_sizes)
 
     if "rate" not in mean_field.labels_dimensions["State Variable"]:
-        rate = spike_rates_from_spike_ts(spikes, simulator.integrator.dt)
+        rate = spike_rates_from_TVB_spike_ts(spikes, simulator.integrator.dt)
 
     else:
         mean_field[:, "rate", spiking_regions_inds, :] /= (simulator.integrator.dt * 0.001)  # rate in Hz
