@@ -85,6 +85,13 @@ class Workflow(WorkflowBase):
         self.write_group(self.nest_model_builder.input_devices,
                          "nest_network/input_devices", "list_of_dictionaries", True)
 
+    def _update_nest_model_params(self):
+        for pop in ["E", "I"]:
+            p_names = getattr(self.nest_model_builder, "params_"+pop).keys()
+            for p, p_val in self.model_params["NEST"][pop].items():
+                if p in p_names:
+                    getattr(self.nest_model_builder, "params_" + pop)[p] = p_val
+
     def prepare_nest_network(self):
 
         # Build a NEST network model with the corresponding builder
@@ -121,7 +128,7 @@ class Workflow(WorkflowBase):
             "tau_decay_NMDA": 100.0,  # ms
             "tau_rise_NMDA": 2.0,  # ms
             "s_AMPA_ext_max": self.N_E * np.ones((self.nest_model_builder.number_of_nodes,)).astype("f"),
-            "epsilon": 1.0,
+            "epsilon": 1.0/self.N_E,
             "alpha": 0.5,  # kHz
             "beta": 0.062,
             "lambda_NMDA": 0.28,
@@ -155,6 +162,9 @@ class Workflow(WorkflowBase):
             "N_E": self.N_E,
             "N_I": self.N_I
         })
+
+        # Update the above parameters with possible user inputs
+        self._update_nest_model_params()
 
         def param_fun(node_index, params, weight=self.nest_model_builder.global_coupling_scaling):
             w_E_ext = \
@@ -684,8 +694,8 @@ class Workflow(WorkflowBase):
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
-    def run(self, **model_params):
-        self.model_params = model_params
+    def run(self, model_params={}):
+        self.model_params.update(model_params)
         if self.writer:
            self.write_general_params(close_file=False)
            if len(self.model_params) > 0:
