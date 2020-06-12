@@ -172,7 +172,7 @@ class Workflow(object):
     tvb_model = ReducedWongWangExcIOInhI
     tvb_spike_stimulus = None
     tvb_spiking_model = False
-    model_params = {}
+    model_params = {"TVB": {}, "NEST": {"E": {}, "I": {}}}
     mf_nodes_ids = []
     tvb_spikes_var = "spikes"
     tvb_rate_vars = ["R_e", "R_i"]
@@ -209,7 +209,7 @@ class Workflow(object):
     def _folder_name(self):
         folder = []
         for param, val in self.pse_params.items():
-            folder.append("%s%.1f" % (param, val))
+            folder.append("%s%.1f" % (param, np.mean(val).item()))
         return "_".join(folder)
 
     def configure(self):
@@ -375,7 +375,7 @@ class Workflow(object):
         self.prepare_connectivity()
         self.simulator = Simulator()
         self.simulator.connectivity = self.connectivity
-        self.simulator.model = self.tvb_model(**self.model_params)
+        self.simulator.model = self.tvb_model(**(self.model_params["TVB"]))
         self.tvb_spiking_model = \
             isinstance(self.simulator.model, (SpikingWongWangExcIOInhI, MultiscaleWongWangExcIOInhI))
         if self.tvb_spiking_model:
@@ -494,8 +494,8 @@ class Workflow(object):
                            cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
             self.tvb_rates.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
 
-    def run(self, **model_params):
-        self.model_params = model_params
+    def run(self, model_params={}):
+        self.model_params.update(model_params)
         if self.writer:
            self.write_general_params(close_file=False)
            if len(self.model_params) > 0:
