@@ -3,6 +3,7 @@
 import sys
 import os
 import logging
+import time
 from logging.handlers import TimedRotatingFileHandler
 
 
@@ -38,3 +39,17 @@ def initialize_logger(name, target_folder):
     logger.addHandler(fhe)
 
     return logger
+
+
+def print_toc_message(tic):
+    toc = time.time() - tic
+    if toc > 60.0:
+        if toc > 3600.0:
+            toc /= 3600.0
+            unit = "hours"
+        else:
+            toc /= 60.0
+            unit = "mins"
+    else:
+        unit = "sec"
+    print("DONE in %f %s!" % (toc, unit))
