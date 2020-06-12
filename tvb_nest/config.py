@@ -9,12 +9,7 @@ from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
-WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
-MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
-MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
-
-TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
-WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/examples/outputs")
+WORKING_DIR = os.getcwd()
 MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
 MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds")
 
@@ -49,8 +44,8 @@ class Config(ConfigBase):
                                      "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
                                      "inhomogeneous_poisson_generator": {"allow_offgrid_times": False}}
 
-    def __init__(self, head_folder=WORKING_DIR, raw_data_folder=DEFAULT_SUBJECT_PATH,
-                 output_base=WORKING_DIR, separate_by_run=False):
+    def __init__(self, head_folder=None, raw_data_folder=DEFAULT_SUBJECT_PATH,
+                 output_base=None, separate_by_run=False):
         super(Config, self).__init__(head_folder, raw_data_folder, output_base, separate_by_run)
         self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
         self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
