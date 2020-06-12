@@ -74,12 +74,13 @@ def spikes_per_population(source_spikes, populations, pop_sizes):
     return spikes
 
 
-def spike_rates_from_spike_ts(spikes, dt, pop_sizes):
+def spike_rates_from_TVB_spike_ts(spikes, integrator_dt, pop_sizes):
+    # spikes_ts are assumed to have an amplitude of tvb_integrator_dt / tvb_monitor_dt
     ts_service = TimeSeriesService()
     rate = []
     for i_pop, (spike_ts, pop_size) in enumerate(zip(ensure_list(spikes), pop_sizes)):
         this_rate = ts_service.sum_across_dimension(spike_ts, 3)
-        this_rate.data = this_rate.data / dt * 1000 / pop_size
+        this_rate.data = this_rate.data / integrator_dt * 1000 / pop_size
         rate.append(this_rate)
         try:
             del rate[-1].labels_dimensions[rate[-1].labels_ordering[3]]
@@ -444,7 +445,7 @@ class Workflow(object):
         if self.tvb_spiking_model:
             if self.tvb_spike_rate_var not in self.mf_ts.labels_dimensions["State Variable"]:
                 self.tvb_rates = \
-                    spike_rates_from_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
+                    spike_rates_from_TVB_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
                 self.tvb_rates.title = "Region mean field spike rate time series"
             else:
                 self.mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
