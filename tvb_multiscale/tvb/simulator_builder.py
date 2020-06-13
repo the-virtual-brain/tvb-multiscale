@@ -18,8 +18,12 @@ class SimulatorBuilder(object):
 
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
-    delays_flag = True
+    scale_connectivity_normalize = "region"
+    scale_connectivity_weights_by_percentile = 95
+    ceil_connectivity = 1.0
     symmetric_connectome = False
+    remove_self_connections = False
+    delays_flag = True
     model = ReducedWongWangExcIOInhI
     variables_of_interest = None
     integrator = HeunStochastic
@@ -34,6 +38,8 @@ class SimulatorBuilder(object):
         self.connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
         self.scale_connectivity_normalize = "region"
         self.scale_connectivity_weights_by_percentile = 95
+        self.ceil_connectivity = 1.0
+        self.symmetric_connectome = False
         self.delays_flag = True
         self.model = ReducedWongWangExcIOInhI
         self.integrator = HeunStochastic
@@ -47,18 +53,25 @@ class SimulatorBuilder(object):
             connectivity = Connectivity.from_file(self.connectivity)
         else:
             connectivity = self.connectivity
-        if self.symmetric_connectome:
-            connectivity.weights = np.sqrt(connectivity.weights * connectivity.weights.T)
+        # Given that
+        # idelays = numpy.rint(delays / dt).astype(numpy.int32)
+        # and delays = tract_lengths / speed
+        minimum_tract_length = 0.1 * self.dt * connectivity.speed
+        if self.remove_self_connections:
+            np.fill_diagonal(connectivity.weights, 0.0)
+            np.fill_diagonal(connectivity.tract_lengths, minimum_tract_length)
         if isinstance(self.scale_connectivity_weights, string_types):
             connectivity.weights = connectivity.scaled_weights(mode=self.scale_connectivity_weights)
+        if self.symmetric_connectome:
+            connectivity.weights = np.sqrt(connectivity.weights * connectivity.weights.T)
+            connectivity.tract_lengths = np.sqrt(connectivity.tract_lengths * connectivity.tract_lengths.T)
         if self.scale_connectivity_weights_by_percentile is not None:
             connectivity.weights /= np.percentile(connectivity.weights, self.scale_connectivity_weights_by_percentile)
+        if self.ceil_connectivity and self.ceil_connectivity > 0.0:
+            connectivity.weights[connectivity.weights > self.ceil_connectivity] = self.ceil_connectivity
         if not self.delays_flag:
             connectivity.configure()  # to set speed
-            # Given that
-            # idelays = numpy.rint(delays / dt).astype(numpy.int32)
-            # and delays = tract_lengths / speed
-            connectivity.tract_lengths = 0.1 * self.dt * connectivity.speed * np.ones(connectivity.tract_lengths.shape)
+            connectivity.tract_lengths = minimum_tract_length * np.ones(connectivity.tract_lengths.shape)
         connectivity.configure()
 
         # Build model:
