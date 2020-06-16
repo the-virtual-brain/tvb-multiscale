@@ -156,8 +156,8 @@ class PSE_1_tvb_mf_node_St_w(PSEWorkflowBase):
         self.workflow.transient = 1000.0
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = True
-        self.workflow.plotter = True
-        self.workflow.writer = True
+        self.workflow.plotter = False
+        self.workflow.writer = False
         super(PSE_1_tvb_mf_node_St_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -206,8 +206,8 @@ class PSE_2_tvb_mf_nodes_G_w(PSEWorkflowBase):
         self.workflow.transient = 1000.0
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = True
-        self.workflow.plotter = True
-        self.workflow.writer = True
+        self.workflow.plotter = False
+        self.workflow.writer = False
         super(PSE_2_tvb_mf_nodes_G_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -264,8 +264,8 @@ class PSE_3_tvb_mf_nodes_G_w(PSE_2_tvb_mf_nodes_G_w):
         self.workflow.transient = 1000.0
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = True
-        self.workflow.plotter = True
-        self.workflow.writer = True
+        self.workflow.plotter = False
+        self.workflow.writer = False
         PSEWorkflowBase.__init__(self)
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
@@ -287,7 +287,7 @@ class PSE_1_tvb_spiking_node_St_w(PSEWorkflowBase):
 
     def __init__(self, init_cond=0):
         self.PSE["params"]["Stimulus"] = np.arange(0.9, 2.1, 0.5)
-        self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
+        self.PSE["params"]["w+"] = np.arange(1.05, 2.1, 0.5)
         self.configure_PSE()
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
                                        "I": np.zeros(self.pse_shape)}
@@ -355,7 +355,7 @@ class PSE_2_tvb_spiking_nodes_G_w(PSEWorkflowBase):
 
     def __init__(self, init_cond=0):
         self.PSE["params"]["G"] = np.arange(0.0, 405.0, 10.0)
-        self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
+        self.PSE["params"]["w+"] = np.arange(1.05, 2.1, 0.5)
         self.configure_PSE()
         Nreg_shape = (2,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
@@ -392,8 +392,8 @@ class PSE_2_tvb_spiking_nodes_G_w(PSEWorkflowBase):
         self.workflow.transient = 1000.0
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = False
-        self.workflow.plotter = True
-        self.workflow.writer = True
+        self.workflow.plotter = False
+        self.workflow.writer = False
         super(PSE_2_tvb_spiking_nodes_G_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -438,7 +438,7 @@ class PSE_3_tvb_spiking_nodes_G_w(PSE_2_tvb_spiking_nodes_G_w):
 
     def __init__(self, init_cond=0):
         self.PSE["params"]["G"] = np.arange(0.0, 405.0, 10.0)
-        self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
+        self.PSE["params"]["w+"] = np.arange(1.05, 2.1, 0.5)
         self.configure_PSE()
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
@@ -481,8 +481,8 @@ class PSE_3_tvb_spiking_nodes_G_w(PSE_2_tvb_spiking_nodes_G_w):
         self.workflow.transient = 1000.0
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = False
-        self.workflow.plotter = True
-        self.workflow.writer = True
+        self.workflow.plotter = False
+        self.workflow.writer = False
         super(PSE_2_tvb_spiking_nodes_G_w, self).__init__()
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
