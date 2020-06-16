@@ -9,9 +9,9 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
     DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
-from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
+from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCownMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder, \
     WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
@@ -19,6 +19,7 @@ from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.examples.plot_write_results import plot_write_results
 from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
