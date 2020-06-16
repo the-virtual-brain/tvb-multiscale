@@ -3,6 +3,7 @@
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
+import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 
@@ -16,10 +17,9 @@ config.figures.SHOW_FLAG = False
 config.figures.MATPLOTLIB_BACKEND = "Agg"
 
 from tvb_nest.examples.example import main_example
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
-    import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
+from tvb_nest.interfaces.builders.models.wilson_cowan import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
 # Select the regions for the fine scale modeling with NEST spiking networks
@@ -29,7 +29,35 @@ connectivity = Connectivity.from_file(config.DEFAULT_CONNECTIVITY_ZIP)
 for id in range(connectivity.region_labels.shape[0]):
     if connectivity.region_labels[id].find("hippo") > 0:
         nest_nodes_ids.append(id)
+model_params = {
+        "r_e": np.array([0.0]),
+        "r_i": np.array([0.0]),
+        "k_e": np.array([1.0]),
+        "k_i": np.array([1.0]),
+        "tau_e": np.array([10.0]),
+        "tau_i": np.array([10.0]),
+        "c_ee": np.array([10.0]),
+        "c_ei": np.array([6.0]),
+        "c_ie": np.array([10.0]),
+        "c_ii": np.array([1.0]),
+        "alpha_e": np.array([1.2]),
+        "alpha_i": np.array([2.0]),
+        "a_e": np.array([1.0]),
+        "a_i": np.array([1.0]),
+        "b_e": np.array([0.0]),
+        "b_i": np.array([0.0]),
+        "c_e": np.array([1.0]),
+        "c_i": np.array([1.0]),
+        "theta_e": np.array([2.0]),
+        "theta_i": np.array([3.5]),
+        "P": np.array([0.5]),
+        "Q": np.array([0.0])
+    }
 
-main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
-             nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
-             simulation_length=50.0, exclusive_nodes=True, config=config)
+results, simulator = \
+    main_example(WilsonCowan, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
+                 nest_nodes_ids, nest_populations_order=100,
+                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
+                 connectivity=connectivity, delays_flag=True,
+                 simulation_length=110.0, transient=10.0,
+                 config=config, **model_params)
