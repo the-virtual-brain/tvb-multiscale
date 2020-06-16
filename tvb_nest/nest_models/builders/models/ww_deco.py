@@ -252,8 +252,12 @@ class WWDeco2014Builder(WWDeco2013Builder):
         self.scale_i = 0.4
 
         self.lamda = self.tvb_model.lamda[0].item()
-        w_EE = kwargs.get("w_EE", kwargs.get("w_p", getattr(self.tvb_model, "w_p", 1.4)))
-        w_IE = kwargs.get("w_IE", kwargs.get("J_i", getattr(self.tvb_model, "J_i", 1.0)))
+        w_EE = kwargs.get("w_EE",
+                          kwargs.get("w_p",
+                                     getattr(self.tvb_model, "w_p", np.array([1.4, ]))[0].item()))
+        w_IE = kwargs.get("w_IE",
+                          kwargs.get("J_i",
+                                     getattr(self.tvb_model, "J_i", np.array([1.0, ]))[0].item()))
 
         if set_defaults:
             self._set_defaults(V_th, V_reset, E_L, E_ex, E_in,
