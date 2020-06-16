@@ -4,6 +4,7 @@ import sys
 import os
 import logging
 import time
+from collections import OrderedDict
 from logging.handlers import TimedRotatingFileHandler
 
 
@@ -53,3 +54,13 @@ def print_toc_message(tic):
     else:
         unit = "sec"
     print("DONE in %f %s!" % (toc, unit))
+
+
+def read_dicts_from_h5file_recursively(h5file_or_group):
+    d = OrderedDict()
+    for k in h5file_or_group.keys():
+        try:
+            d[k] = h5file_or_group[k][()]
+        except:
+            d[k] = read_dicts_from_h5file_recursively(h5file_or_group[k])
+    return d
