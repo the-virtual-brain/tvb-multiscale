@@ -50,6 +50,7 @@ class PSEWorkflowBase(object):
     workflow = Workflow()
     writer = H5Writer()
     _plot_results = ["rate", "Pearson", "Spearman"]
+    _corr_results = ["Pearson", "Spearman",]
 
     def __init__(self):
         self.folder_res = self.config.out.FOLDER_RES.replace("res", self.name)
@@ -74,7 +75,7 @@ class PSEWorkflowBase(object):
             self.pse_shape.append(self.PSE["n_params"][np])
         self.pse_shape = tuple(self.pse_shape)
 
-    def pse_to_model_params(self):
+    def pse_to_model_params(self, pse_params):
         pass
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
@@ -88,7 +89,7 @@ class PSEWorkflowBase(object):
         PSE = self.PSE["results"]
         for res in self._plot_results:
             for pop in list(PSE[res].keys()):
-                if res in ["Pearson", "Spearman"]:
+                if res in self._corr_results:
                     name = "%s %s Corr" % (res, pop)
                 else:
                     name = "%s %s" % (res, pop)
@@ -123,7 +124,7 @@ class PSEWorkflowBase(object):
                 pse_params[params[1]] = w
                 tic = time.time()
                 self.print_PSE(pse_params)
-                self.workflow.reset_workflow(**pse_params)
+                self.workflow.reset(pse_params)
                 self.workflow.configure()
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
                 rates, corrs = self.workflow.run()
@@ -225,7 +226,7 @@ class PSE_2_tvb_mf_nodes_G_w(PSEWorkflowBase):
         PSE["rate % diff"]["E"][i_g, i_w] = \
             100 * np.abs(np.diff(PSE["rate per node"]["E"][:, i_g, i_w]) /
                          PSE["rate"]["E"][i_g, i_w])
-        for corr in ["Pearson", "Spearman"]:
+        for corr in self._corr_results:
             PSE[corr]["EE"][i_g, i_w] = corrs["TVB"][corr][0, 0, 0, 1].values.item()
 
 
@@ -277,7 +278,7 @@ class PSE_3_tvb_mf_nodes_G_w(PSE_2_tvb_mf_nodes_G_w):
         PSE["rate % zscore"]["E"][i_g, i_w] = \
             100 * np.abs(np.std(PSE["rate per node"]["E"][:, i_g, i_w]) /
                          PSE["rate"]["E"][i_g, i_w])
-        for corr in ["Pearson", "Spearman"]:
+        for corr in self._corr_results:
             PSE[corr]["EE"][:, i_g, i_w] = corrs["TVB"][corr][0, 0].values[self._triu_inds[0], self._triu_inds[1]]
             PSE[corr]["FC-SC"][i_g, i_w] = \
                 (np.dot(PSE[corr]["EE"][:, i_g, i_w], self._SC)) / \
@@ -343,7 +344,7 @@ class PSE_1_tvb_spiking_node_St_w(PSEWorkflowBase):
                 pse_params[params[1]] = w
                 tic = time.time()
                 self.print_PSE(pse_params)
-                self.workflow.reset_workflow(**pse_params)
+                self.workflow.reset(pse_params)
                 self.workflow.tvb_spike_stimulus = stimulus
                 self.workflow.configure()
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
@@ -418,7 +419,7 @@ class PSE_2_tvb_spiking_nodes_G_w(PSEWorkflowBase):
                 pse_params[params[1]] = w
                 tic = time.time()
                 self.print_PSE(pse_params)
-                self.workflow.reset_workflow(**pse_params)
+                self.workflow.reset(pse_params)
                 self.workflow.tvb_spike_stimulus = deepcopy(self.stimulus)
                 self.workflow.configure()
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
@@ -438,7 +439,7 @@ class PSE_2_tvb_spiking_nodes_G_w(PSEWorkflowBase):
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
             PSE["rate % diff"][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
-        for corr in ["Pearson", "Spearman"]:
+        for corr in self._corr_results:
             PSE[corr]["EE"][i_g, i_w] = corrs["TVB"][corr][0, 0, 0, 1].values.item()
 
 
@@ -503,7 +504,7 @@ class PSE_3_tvb_spiking_nodes_G_w(PSE_2_tvb_spiking_nodes_G_w):
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
             PSE["rate % zscore"][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
-        for corr in ["Pearson", "Spearman"]:
+        for corr in self._corr_results:
             PSE[corr]["EE"][:, i_g, i_w] = corrs["TVB"][corr][0, 0].values[self._triu_inds[0], self._triu_inds[1]]
             PSE[corr]["FC-SC"][i_g, i_w] = \
                 (np.dot(PSE[corr]["EE"][:, i_g, i_w], self._SC)) / \
