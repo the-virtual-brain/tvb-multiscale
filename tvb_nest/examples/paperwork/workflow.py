@@ -59,8 +59,8 @@ class Workflow(WorkflowBase):
     def __init__(self, **pse_params):
         self.pse_params = pse_params
 
-    def reset_workflow(self):
-        super(Workflow, self).reset_workflow()
+    def reset(self, pse_params):
+        super(Workflow, self).reset(pse_params)
         self.nest_network = None
         self.tvb_nest_model = None
         self.nest_ts = None
@@ -740,9 +740,10 @@ class Workflow(WorkflowBase):
         # -----------------------------------4. Simulate and gather results-------------------------------------------------
         t_start = time.time()
         if self.tvb_nest_model is not None or len(self.tvb_nodes_ids) != 0:
+            print("Co-Simulating...")
             self.cosimulate()
-
         else:
+            print("Simulating NEST...")
             self.simulate_nest()
         print("\nSimulated in %f secs!" % (time.time() - t_start))
 
