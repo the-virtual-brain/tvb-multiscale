@@ -216,7 +216,7 @@ class Workflow(object):
             folder.append("%s%g" % (param, np.mean(val).item()))
         return "_".join(folder)
 
-    def reset_workflow(self, **pse_params):
+    def reset(self, pse_params):
         self.pse_params = pse_params
         self.model_params = {"TVB": {}, "NEST": {"E": {}, "I": {}}}
         self.tvb_spike_stimulus = None
@@ -535,6 +535,7 @@ class Workflow(object):
 
         # -----------------------------------3. Simulate and gather results-------------------------------------------------
         # ...and simulate!
+        print("Simulating TVB...")
         t_start = time.time()
         self.simulate()
         print("\nSimulated in %g secs!" % (time.time() - t_start))
