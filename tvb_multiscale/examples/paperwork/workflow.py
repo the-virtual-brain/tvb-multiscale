@@ -190,6 +190,7 @@ class Workflow(object):
     tvb_noise_strength = 0.01
     transient = None
     simulation_length = 100.0
+    print_progression_message=True
 
     spiking_regions_ids = []
 
@@ -430,7 +431,8 @@ class Workflow(object):
             self.write_tvb_simulator()
 
     def simulate(self):
-        results = self.simulator.run(simulation_length=self.simulation_length)
+        results = self.simulator.run(simulation_length=self.simulation_length,
+                                     print_progression_message=self.print_progression_message)
         self.tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
                                        connectivity=self.simulator.connectivity,
                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],

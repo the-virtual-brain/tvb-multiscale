@@ -506,7 +506,8 @@ class Workflow(WorkflowBase):
         self.simulator.configure(self.tvb_nest_model)
 
         # ...and simulate!
-        results = self.simulator.run(simulation_length=self.simulation_length)
+        results = self.simulator.run(simulation_length=self.simulation_length,
+                                     print_progression_message=self.print_progression_message)
 
         if self.simulator.tvb_spikeNet_interface is not None:
             # Integrate NEST one more NEST time step so that multimeters get the last time point
