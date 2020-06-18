@@ -15,7 +15,11 @@ export DOCKER_RUN_FILE=/home/docker/packages/tvb-multiscale/tvb_nest/examples/ex
 export CMD=$DOCKER_PYTHON' '$DOCKER_RUN_FILE
 
 export NODES=mc  # or gpu, nothing for BIH cluster
-export SRUN='srun -C '$NODES
+export TIME=24:00:00
+export MEM=3gb
+export OUTPUT_FILE='$SCRATCH/slurm/output.out'
+export SRUN='srun -C '$NODES' -t '$TIME' --mem='$MEM' -o '$OUTPUT_FILE
+
 
 # Sarus
 ## In PizDaint, we assume that these lines have been already ran:
@@ -23,14 +27,14 @@ export SRUN='srun -C '$NODES
 #module load sarus
 export DOCKER_IMAGE='thevirtualbrain/tvb-nest:ongoing_dp_work'
 
-export INTERACTIVE_CMD='sarus --debug run -t --workdir='$DOCKER_WORKDIR'
+export INTERACTIVE_CMD='sarus --debug run -t --mpi --workdir='$DOCKER_WORKDIR'
                               --mount=type=bind,source=${TVB_MULTISCALE},destination=$'DOCKER_TVB_MULTISCALE'
                               --mount=type=bind,source=${TVB_ROOT},destination=$'DOCKER_TVB_ROOT'
                          '$DOCKER_IMAGE' bash'
 
 export SRUN_INTERACTIVE_CMD=$SRUN' --pty -C '$INTERACTIVE_CMD
 
-export COMMAND='sarus --debug run --workdir='$DOCKER_WORKDIR'
+export COMMAND='sarus --debug run --mpi --workdir='$DOCKER_WORKDIR'
                       --mount=type=bind,source=${TVB_MULTISCALE},destination=$'DOCKER_TVB_MULTISCALE'
                       --mount=type=bind,source=${TVB_ROOT},destination=$'DOCKER_TVB_ROOT'
                 '$DOCKER_IMAGE' '$CMD
