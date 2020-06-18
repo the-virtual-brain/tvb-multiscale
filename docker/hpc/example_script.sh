@@ -21,7 +21,7 @@ export SRUN='srun -C '$NODES
 ## In PizDaint, we assume that these lines have been already ran:
 #module load daint-mc # or daint-gpu
 #module load sarus
-export DOCKER_IMAGE='thevirtualbrain/tvb-nest:dp-ongoing-work'
+export DOCKER_IMAGE='thevirtualbrain/tvb-nest:ongoing_dp_work'
 
 export INTERACTIVE_CMD='sarus --debug run -t --workdir='$DOCKER_WORKDIR'
                               --mount=type=bind,source=${TVB_MULTISCALE},destination=$'DOCKER_TVB_MULTISCALE'
