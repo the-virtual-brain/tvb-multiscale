@@ -43,6 +43,7 @@ class PSE_1_nest_node_St_w(PSENESTWorkflowBase):
         self.workflow.transient = 100.0
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
 
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
@@ -86,6 +87,7 @@ class PSE_2_nest_nodes_G_w(PSENESTWorkflowBase):
         self.workflow.nest_stimulus_rate = 2018.0
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
 
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
@@ -144,6 +146,7 @@ class PSE_3_nest_nodes_G_w(PSENESTWorkflowBase):
         self.workflow.nest_stimulus_rate = 2018.0
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]

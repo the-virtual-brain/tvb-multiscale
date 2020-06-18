@@ -51,6 +51,7 @@ class PSEWorkflowBase(object):
     writer = H5Writer()
     _plot_results = ["rate", "Pearson", "Spearman"]
     _corr_results = ["Pearson", "Spearman",]
+    print_progression_message = False
 
     def __init__(self):
         self.folder_res = self.config.out.FOLDER_RES.replace("res", self.name)
@@ -161,6 +162,7 @@ class PSE_1_tvb_mf_node_St_w(PSEWorkflowBase):
         self.workflow.tvb_sim_numba = True
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
         super(PSE_1_tvb_mf_node_St_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -211,6 +213,7 @@ class PSE_2_tvb_mf_nodes_G_w(PSEWorkflowBase):
         self.workflow.tvb_sim_numba = True
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
         super(PSE_2_tvb_mf_nodes_G_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -269,6 +272,7 @@ class PSE_3_tvb_mf_nodes_G_w(PSE_2_tvb_mf_nodes_G_w):
         self.workflow.tvb_sim_numba = True
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
         PSEWorkflowBase.__init__(self)
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
@@ -317,6 +321,7 @@ class PSE_1_tvb_spiking_node_St_w(PSEWorkflowBase):
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
         super(PSE_1_tvb_spiking_node_St_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -402,6 +407,7 @@ class PSE_2_tvb_spiking_nodes_G_w(PSEWorkflowBase):
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
         super(PSE_2_tvb_spiking_nodes_G_w, self).__init__()
 
     def pse_to_model_params(self, pse_params):
@@ -494,6 +500,7 @@ class PSE_3_tvb_spiking_nodes_G_w(PSE_2_tvb_spiking_nodes_G_w):
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
         self.workflow.writer = True
+        self.workflow.print_progression_message = self.print_progression_message
         super(PSE_2_tvb_spiking_nodes_G_w, self).__init__()
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
