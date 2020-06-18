@@ -18,7 +18,8 @@ export NODES=mc  # or gpu, nothing for BIH cluster
 export TIME=24:00:00
 export MEM=3gb
 export OUTPUT_FILE='$SCRATCH/slurm/output.out'
-export SRUN='srun -C '$NODES' -t '$TIME' --mem='$MEM' -o '$OUTPUT_FILE
+export MAIL=...@gmail.con
+export SRUN='srun -C '$NODES' -t '$TIME' --mem='$MEM' -o '$OUTPUT_FILE' --mail-type=ALL --mail-user='$MAIL
 
 
 # Sarus
