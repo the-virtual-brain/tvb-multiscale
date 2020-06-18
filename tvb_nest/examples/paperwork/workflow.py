@@ -45,6 +45,7 @@ class Workflow(WorkflowBase):
     nest_nodes_ids = []
     nest_populations_order = 100
     nest_stimulus_rate = 2180.0  # 2400.0
+    nest_stimulus_times = 0.1
     nest_network = None
 
     interface_builder_class = RedWWexcIOBuilder  # RedWWexcIOinhIBuilder
@@ -288,17 +289,31 @@ class Workflow(WorkflowBase):
             {"model": "multimeter", "params": params,
              "connections": connections, "nodes": None})  # None means "all"
 
-        if self.nest_stimulus_rate is not None and self.nest_stimulus_rate > 0:
+        if self.nest_stimulus_rate is not None:
             connections = OrderedDict({})
             #          label <- target population
             connections["Stimulus"] = ["E", "I"]
-            self.nest_model_builder.input_devices = [
-                {"model": "poisson_generator",
-                 "params": {"rate": self.nest_stimulus_rate, "origin": 0.0, "start": 0.1},  # "stop": 100.0
-                 "connections": connections, "nodes": None,
+            self.nest_stimulus_rate = ensure_list(self.nest_stimulus_rate)
+            self.nest_stimulus_times = ensure_list(self.nest_stimulus_times)
+            if len(self.nest_stimulus_times) > 1:
+                self.nest_model_builder.input_devices = [
+                    {"model": "inhomogeneous_poisson_generator",
+                     "params": {"rate_values": self.nest_stimulus_rate,
+                                "rate_times": self.nest_stimulus_times}
+                     }
+                ]
+            else:
+                self.nest_model_builder.input_devices = [
+                    {"model": "poisson_generator",
+                     "params": {"rate": self.nest_stimulus_rate[0], "origin": 0.0,
+                                "start": self.nest_stimulus_times[0]},  # "stop": 100.0
+                     }
+                ]
+            self.nest_model_builder.input_devices[0].update(
+                {"connections": connections, "nodes": None,
                  "weights": 1.0, "delays": 0.0,
-                 "receptor_type": lambda target_node_id: int(target_node_id + 1)}
-            ]
+                 "receptor_type": lambda target_node_id: int(target_node_id + 1)})
+
 
         # --------------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
@@ -526,14 +541,14 @@ class Workflow(WorkflowBase):
                                         sample_period=self.simulator.integrator.dt)
         if self.transient:
             self.tvb_ts = self.tvb_ts[self.transient:]
-        # if self.writer:
-        #     self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
+        if self.writer and self.write_time_series:
+            self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
 
         if self.tvb_nest_model is not None:
             self.nest_ts, self.nest_spikes = self.get_nest_data()
-            # if self.writer:
-            #     self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
-            #     self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
+            if self.writer and self.write_time_series:
+                self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
+                self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
 
         return self.tvb_ts, self.nest_ts, self.nest_spikes
 
@@ -543,7 +558,7 @@ class Workflow(WorkflowBase):
         self.nest_ts, self.nest_spikes = self.get_nest_data()
         if cleanup:
             self.nest_network.nest_instance.Cleanup()
-        if self.writer:
+        if self.writer and self.write_time_series:
             self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
             self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
         return self.nest_ts, self.nest_spikes
