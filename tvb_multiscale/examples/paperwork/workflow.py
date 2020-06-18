@@ -157,6 +157,7 @@ class Workflow(object):
     pse_params = {}
 
     writer = True
+    write_time_series = False
     plotter = True
     path = ""
     h5_file = None
@@ -442,7 +443,7 @@ class Workflow(object):
                                        sample_period=self.simulator.integrator.dt)
         if self.transient:
             self.tvb_ts = self.tvb_ts[self.transient:]
-        if self.writer:
+        if self.writer and self.write_time_series:
             self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
 
     def get_mean_field(self):
