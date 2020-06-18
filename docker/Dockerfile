@@ -15,7 +15,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential git vim 
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion python3-mpi4py cmake zip unzip; \
+                       subversion cmake zip unzip; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
