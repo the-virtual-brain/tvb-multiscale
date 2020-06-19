@@ -15,7 +15,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential git vim 
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion python3-mpi4py cmake zip unzip; \
+                       subversion cmake zip unzip; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
@@ -94,7 +94,7 @@ RUN $VENV/bin/pip3 install setuptools; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant; \
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy flask; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
@@ -109,11 +109,11 @@ RUN cd tvb-root; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop; \
     cd contrib; \
+    $VENV/bin/python setup.py develop; \
+    cd ../../framework_tvb; \
     $VENV/bin/python setup.py develop;
-#    cd ../../framework_tvb; \
-#    $VENV/bin/python setup.py develop;
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \

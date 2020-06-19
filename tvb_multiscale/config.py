@@ -32,12 +32,15 @@ DEFAULT_EEG_LOCATIONS_TXT = "QL_20120814_EEGLocations.txt"
 # Only for surface simulations for this subject:
 # DEFAULT_EEG_PROJECTION_MAT = "QL_20120814_ProjectionMatrix.mat"
 DEFAULT_EEG_PROJECTION_MAT = ""
-DEFAULT_SUBJECT = {"connectivity": connectivity.Connectivity.from_file(DEFAULT_CONNECTIVITY_ZIP),
-                   "cortex": cortex.Cortex.from_file(os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                  DEFAULT_CORT_SURFACE_ZIP),
-                                                     region_mapping_file=os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                                      DEFAULT_CORT_REGION_MAPPING_TXT))
-                   }
+try:
+    DEFAULT_SUBJECT = {"connectivity": connectivity.Connectivity.from_file(DEFAULT_CONNECTIVITY_ZIP),
+                       "cortex": cortex.Cortex.from_file(os.path.join(DEFAULT_SUBJECT_PATH,
+                                                                      DEFAULT_CORT_SURFACE_ZIP),
+                                                         region_mapping_file=os.path.join(DEFAULT_SUBJECT_PATH,
+                                                                                          DEFAULT_CORT_REGION_MAPPING_TXT))
+                       }
+except:
+    DEFAULT_SUBJECT = None
 
 
 class GenericConfig(object):
@@ -162,7 +165,7 @@ class FiguresConfig(object):
         :param out_base: Base folder where figures should be kept
         :param separate_by_run: Set TRUE, when you want figures to be in different files / each run
         """
-        self._out_base = out_base or TvbProfile.current.TVB_STORAGE or os.path.join(os.getcwd(), "outputs")
+        self._out_base = out_base or os.path.join(os.getcwd(), "outputs")  # or TvbProfile.current.TVB_STORAGE
         self._separate_by_run = separate_by_run
 
     @property

@@ -9,9 +9,11 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import Config, CONFIGURED
-from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
+from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder
+from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOinhIBuilder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
+from tvb_multiscale.examples.paperwork.workflow import pearson, spearman
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
@@ -35,17 +37,18 @@ CONFIGURED.NEST_INPUT_DEVICES_PARAMS_DEF = \
 
 
 class Workflow(WorkflowBase):
-    config = Config(separate_by_run=True)
+    config = Config(separate_by_run=False)
 
     tvb_nodes_ids = []
 
-    nest_model_builder = WWDeco2014Builder
+    nest_model_builder_class = WWDeco2013Builder  # WWDeco2014Builder
     nest_nodes_ids = []
     nest_populations_order = 100
-    nest_stimulus_rate = 2400.0
+    nest_stimulus_rate = 2180.0  # 2400.0
+    nest_stimulus_times = 0.1
     nest_network = None
 
-    interface_builder = RedWWexcIOinhIBuilder
+    interface_builder_class = RedWWexcIOBuilder  # RedWWexcIOinhIBuilder
     tvb_to_nest_interface = "rate"
     nest_to_tvb_interface = None
     exclusive_nodes = True
@@ -56,6 +59,13 @@ class Workflow(WorkflowBase):
 
     def __init__(self, **pse_params):
         self.pse_params = pse_params
+
+    def reset(self, pse_params):
+        super(Workflow, self).reset(pse_params)
+        self.nest_network = None
+        self.tvb_nest_model = None
+        self.nest_ts = None
+        self.nest_spikes = None
 
     @property
     def general_parameters(self):
@@ -84,11 +94,18 @@ class Workflow(WorkflowBase):
         self.write_group(self.nest_model_builder.input_devices,
                          "nest_network/input_devices", "list_of_dictionaries", True)
 
+    def _update_nest_model_params(self):
+        for pop in ["E", "I"]:
+            p_names = getattr(self.nest_model_builder, "params_"+pop).keys()
+            for p, p_val in self.model_params["NEST"][pop].items():
+                if p in p_names:
+                    getattr(self.nest_model_builder, "params_" + pop)[p] = p_val
+
     def prepare_nest_network(self):
 
         # Build a NEST network model with the corresponding builder
         # Using all default parameters for this example
-        self.nest_model_builder = self.nest_model_builder(self.simulator, self.nest_nodes_ids, config=self.config)
+        self.nest_model_builder = self.nest_model_builder_class(self.simulator, self.nest_nodes_ids, config=self.config)
         self.nest_model_builder.spiking_dt = self.dt / 4
 
         # ----------------------------------------------------------------------------------------------------------------
@@ -97,17 +114,17 @@ class Workflow(WorkflowBase):
 
         self.nest_model_builder.population_order = self.nest_populations_order
 
-        self.nest_model_builder.scale_e = 1.6
-        self.nest_model_builder.scale_i = 0.4
+        self.nest_model_builder.scale_e = 1.0  # 1.6
+        self.nest_model_builder.scale_i = 1.0  # 0.4
         self.N_E = int(self.nest_model_builder.population_order * self.nest_model_builder.scale_e)
         self.N_I = int(self.nest_model_builder.population_order * self.nest_model_builder.scale_i)
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.nest_model_builder.global_coupling_scaling = \
             self.simulator.model.G[0].item() * self.simulator.coupling.a[0].item()
-        self.nest_model_builder.lamda = self.simulator.model.lamda[0].item()
-        w_p = self.simulator.model.w_p[0].item()
-        J_i = self.simulator.model.J_i[0].item()
+        self.nest_model_builder.lamda = 0.0  # self.simulator.model.lamda[0].item()
+        w_p = 1.55  # self.simulator.model.w_p[0].item()
+        J_i = 1.0  # self.simulator.model.J_i[0].item()
 
         common_params = {
             "V_th": -50.0,  # mV
@@ -120,7 +137,7 @@ class Workflow(WorkflowBase):
             "tau_decay_NMDA": 100.0,  # ms
             "tau_rise_NMDA": 2.0,  # ms
             "s_AMPA_ext_max": self.N_E * np.ones((self.nest_model_builder.number_of_nodes,)).astype("f"),
-            "epsilon": 1.0,
+            "epsilon": 1.0/self.N_E,
             "alpha": 0.5,  # kHz
             "beta": 0.062,
             "lambda_NMDA": 0.28,
@@ -131,10 +148,10 @@ class Workflow(WorkflowBase):
             "C_m": 500.0,  # pF
             "g_L": 25.0,  # nS
             "t_ref": 2.0,  # ms
-            "g_AMPA_ext": 3.37,  # nS
-            "g_AMPA": 0.065,  # nS
-            "g_NMDA": 0.20,  # nS
-            "g_GABA_A": 10.94,  # nS
+            "g_AMPA_ext": 2.496,  # 3.37,  # nS
+            "g_AMPA": 0.104,  # 0.065,  # nS
+            "g_NMDA": 0.327,  # 0.20,  # nS
+            "g_GABA_A": 4.375,  # 10.94,  # nS
             "w_E": w_p,  # w+ in the paper
             "w_I": J_i,
             "N_E": self.N_E,
@@ -145,15 +162,18 @@ class Workflow(WorkflowBase):
             "C_m": 200.0,  # pF
             "g_L": 20.0,  # nS
             "t_ref": 1.0,  # ms
-            "g_AMPA_ext": 2.59,  # nS
-            "g_AMPA": 0.051,  # nS
-            "g_NMDA": 0.16,  # nS
-            "g_GABA_A": 8.51,  # nS
+            "g_AMPA_ext": 1.944,  # 2.59,  # nS
+            "g_AMPA": 0.081,  # 0.051,  # nS
+            "g_NMDA": 0.258,  # 0.16,  # nS
+            "g_GABA_A": 3.4055,  # 8.51,  # nS
             "w_E": 1.0,
             "w_I": 1.0,
             "N_E": self.N_E,
             "N_I": self.N_I
         })
+
+        # Update the above parameters with possible user inputs
+        self._update_nest_model_params()
 
         def param_fun(node_index, params, weight=self.nest_model_builder.global_coupling_scaling):
             w_E_ext = \
@@ -170,11 +190,11 @@ class Workflow(WorkflowBase):
         # set a handle to a function with
         # arguments (region_index=None) returning the corresponding property
         self.nest_model_builder.populations = [
-            {"label": "E", "model": "iaf_cond_deco2014",
+            {"label": "E", "model": "iaf_cond_ww_deco",
              "nodes": None,  # None means "all"
              "params": lambda node_index: param_fun(node_index, self.nest_model_builder.params_E),
              "scale": self.nest_model_builder.scale_e},
-            {"label": "I", "model": "iaf_cond_deco2014",
+            {"label": "I", "model": "iaf_cond_ww_deco",
              "nodes": None,  # None means "all"
              "params": lambda node_index: param_fun(node_index, self.nest_model_builder.params_I,
                                                     weight=self.nest_model_builder.lamda * \
@@ -217,8 +237,9 @@ class Workflow(WorkflowBase):
         # When any of the properties model, conn_spec, weight, delay, receptor_type below
         # depends on regions, set a handle to a function with
         # arguments (source_region_index=None, target_region_index=None)
-        self.nest_model_builder.tvb_delay_fun = lambda source_node, target_node: \
-                                                        self.nest_model_builder.tvb_delays[source_node, target_node]
+        self.nest_model_builder.tvb_delay_fun = \
+            lambda source_node, target_node: \
+                float(np.maximum(self.nest_model_builder.tvb_delays[source_node, target_node], self.dt))
         self.nest_model_builder.nodes_connections = []
         if len(self.nest_nodes_ids) > 1:
             self.nest_model_builder.nodes_connections = [
@@ -268,17 +289,31 @@ class Workflow(WorkflowBase):
             {"model": "multimeter", "params": params,
              "connections": connections, "nodes": None})  # None means "all"
 
-        if self.nest_stimulus_rate is not None and self.nest_stimulus_rate > 0:
+        if self.nest_stimulus_rate is not None:
             connections = OrderedDict({})
             #          label <- target population
             connections["Stimulus"] = ["E", "I"]
-            self.nest_model_builder.input_devices = [
-                {"model": "poisson_generator",
-                 "params": {"rate": self.nest_stimulus_rate, "origin": 0.0, "start": 0.1},  # "stop": 100.0
-                 "connections": connections, "nodes": None,
+            self.nest_stimulus_rate = ensure_list(self.nest_stimulus_rate)
+            self.nest_stimulus_times = ensure_list(self.nest_stimulus_times)
+            if len(self.nest_stimulus_times) > 1:
+                self.nest_model_builder.input_devices = [
+                    {"model": "inhomogeneous_poisson_generator",
+                     "params": {"rate_values": self.nest_stimulus_rate,
+                                "rate_times": self.nest_stimulus_times}
+                     }
+                ]
+            else:
+                self.nest_model_builder.input_devices = [
+                    {"model": "poisson_generator",
+                     "params": {"rate": self.nest_stimulus_rate[0], "origin": 0.0,
+                                "start": self.nest_stimulus_times[0]},  # "stop": 100.0
+                     }
+                ]
+            self.nest_model_builder.input_devices[0].update(
+                {"connections": connections, "nodes": None,
                  "weights": 1.0, "delays": 0.0,
-                 "receptor_type": lambda target_node_id: int(target_node_id + 1)}
-            ]
+                 "receptor_type": lambda target_node_id: int(target_node_id + 1)})
+
 
         # --------------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
@@ -317,12 +352,12 @@ class Workflow(WorkflowBase):
              "receptor_type": lambda tvb_node_id, nest_node_id: int(tvb_node_id+1),
              # ---------------------------------------------------------------------------------------------------------
              #             TVB sv -> NEST population
-             "connections": {"R_e": ["E"]},
+             "connections": {"R": ["E"]},  # R_e
              "source_nodes": None, "target_nodes": None}]  # None means all here
 
-        if self.interface_builder.lamda > 0.0:
-            #       Coupling towards the inhibitory population as well:
-            self.interface_builder.tvb_to_spikeNet_interfaces[0]["connections"]["R_e"] += ["I"]
+        # if self.interface_builder.lamda > 0.0:
+        #     #       Coupling towards the inhibitory population as well:
+        #     self.interface_builder.tvb_to_spikeNet_interfaces[0]["connections"]["R_e"] += ["I"]
 
         return self.interface_builder
 
@@ -343,33 +378,35 @@ class Workflow(WorkflowBase):
                                             self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
              #    To add to TVB connectivity delay:
              "delays": lambda tvb_node_id, nest_node_id:
-                                    self.interface_builder.tvb_delays(tvb_node_id, nest_node_id),
+                                    float(np.maximum(self.interface_builder.tvb_delays(tvb_node_id, nest_node_id),
+                                                     self.dt)),
              # ---------------------------------------------------------------------------------------------------------
              #    TVB sv -> NEST population
-             "connections": {"S_e": ["E"]},
+             "connections": {"S": ["E"]},  # S_e
              "source_nodes": None, "target_nodes": None}]  # None means all here
 
-        if self.interface_builder.lamda > 0.0:
-            # Coupling to inhibitory populations as well (feedforward inhibition):
-            self.interface_builder.tvb_to_spikeNet_interfaces.append(
-                {"model": "dc_generator", "params": {},
-                 # ---------Properties potentially set as function handles with args (nest_node_id=None)----------------
-                 #   Applied outside NEST for each interface device
-                 "interface_weights": 1.0 * self.N_E / self.N_I,
-                 # ---Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)----
-                 #    To multiply TVB connectivity weight:
-                 "weights": lambda tvb_node_id, nest_node_id:
-                                            self.interface_builder.lamda *
-                                            self.interface_builder.global_coupling_scaling *
-                                            self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
-                 #    To add to TVB connectivity delay:
-                 "delays": lambda tvb_node_id, nest_node_id:
-                                            self.interface_builder.tvb_delays[tvb_node_id, nest_node_id],
-                 # -----------------------------------------------------------------------------------------------------
-                 #    TVB sv -> NEST population
-                 "connections": {"S_e": ["I"]},
-                 "source_nodes": None, "target_nodes": None}
-            )
+        # if self.interface_builder.lamda > 0.0:
+        #     # Coupling to inhibitory populations as well (feedforward inhibition):
+        #     self.interface_builder.tvb_to_spikeNet_interfaces.append(
+        #         {"model": "dc_generator", "params": {},
+        #          # ---------Properties potentially set as function handles with args (nest_node_id=None)----------------
+        #          #   Applied outside NEST for each interface device
+        #          "interface_weights": 1.0 * self.N_E / self.N_I,
+        #          # ---Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)----
+        #          #    To multiply TVB connectivity weight:
+        #          "weights": lambda tvb_node_id, nest_node_id:
+        #                                     self.interface_builder.lamda *
+        #                                     self.interface_builder.global_coupling_scaling *
+        #                                     self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
+        #          #    To add to TVB connectivity delay:
+        #          "delays": lambda tvb_node_id, nest_node_id:
+        #                             float(np.maximum(self.interface_builder.tvb_delays[tvb_node_id, nest_node_id],
+        #                                              self.dt)),
+        #          # -----------------------------------------------------------------------------------------------------
+        #          #    TVB sv -> NEST population
+        #          "connections": {"S_e": ["I"]},
+        #          "source_nodes": None, "target_nodes": None}
+        #     )
 
         return self.interface_builder
 
@@ -384,20 +421,20 @@ class Workflow(WorkflowBase):
              "interface_weights": 1.0,
              # ----------------------------------------------------------------------------------------------------------------
              #                  TVB sv -> NEST population
-             "connections": {"S_e": ["E"]},
+             "connections": {"S": ["E"]},  # S_e
              "nodes": None}]  # None means all here
-        if self.interface_builder.tvb_model.lamda[0] > 0.0:
-            # Coupling to inhibitory populations as well (feedforward inhibition):
-            self.interface_builder.tvb_to_spikeNet_interfaces.append(
-                {
-                    "model": "current", "parameter": "I_e",
-                    # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------
-                    "interface_weights": self.interface_builder.lamda * self.N_E / self.N_I,
-                    # --------------------------------------------------------------------------------------------------
-                    #                     TVB sv -> NEST population
-                    "connections": {"S_e": ["I"]},
-                    "nodes": None}
-            )
+        # if self.interface_builder.tvb_model.lamda[0] > 0.0:
+        #     # Coupling to inhibitory populations as well (feedforward inhibition):
+        #     self.interface_builder.tvb_to_spikeNet_interfaces.append(
+        #         {
+        #             "model": "current", "parameter": "I_e",
+        #             # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------
+        #             "interface_weights": self.interface_builder.lamda * self.N_E / self.N_I,
+        #             # --------------------------------------------------------------------------------------------------
+        #             #                     TVB sv -> NEST population
+        #             "connections": {"S_e": ["I"]},
+        #             "nodes": None}
+        #     )
 
         return self.interface_builder
 
@@ -407,8 +444,8 @@ class Workflow(WorkflowBase):
         # for transmitting to the TVB state variables directly
         connections = OrderedDict()
         #            TVB <- NEST
-        connections["Rin_e"] = ["E"]
-        connections["Rin_i"] = ["I"]
+        connections["Rin"] = ["E"]  # Rin_e
+        # connections["Rin_i"] = ["I"]
         self.interface_builder.spikeNet_to_tvb_interfaces = \
             [{"model": "spike_detector", "params": {},
               # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------
@@ -430,16 +467,15 @@ class Workflow(WorkflowBase):
 
     def prepare_interface(self):
 
-        self.interface_builder.global_coupling_scaling = self.simulator.model.G[0] * self.simulator.coupling.a[0]
-        self.interface_builder.lamda = self.simulator.model.lamda[0]
-
         # Build a TVB-NEST interface with all the appropriate connections between the
         # TVB and NEST modelled regions
         # Using all default parameters for this example
-        self.interface_builder = self.interface_builder(self.simulator, self.nest_network,
-                                                        self.nest_nodes_ids, exclusive_nodes=self.exclusive_nodes,
-                                                        N_E=self.N_E, N_I=self.N_I)
+        self.interface_builder = self.interface_builder_class(self.simulator, self.nest_network,
+                                                              self.nest_nodes_ids, exclusive_nodes=self.exclusive_nodes,
+                                                              N_E=self.N_E, N_I=self.N_I)
 
+        self.interface_builder.global_coupling_scaling = self.simulator.model.G[0] * self.simulator.coupling.a[0]
+        self.interface_builder.lamda = self.simulator.model.lamda[0]
 
         # TVB -> NEST
         if self.tvb_to_nest_interface == "rate":
@@ -485,7 +521,8 @@ class Workflow(WorkflowBase):
         self.simulator.configure(self.tvb_nest_model)
 
         # ...and simulate!
-        results = self.simulator.run(simulation_length=self.simulation_length)
+        results = self.simulator.run(simulation_length=self.simulation_length,
+                                     print_progression_message=self.print_progression_message)
 
         if self.simulator.tvb_spikeNet_interface is not None:
             # Integrate NEST one more NEST time step so that multimeters get the last time point
@@ -504,12 +541,12 @@ class Workflow(WorkflowBase):
                                         sample_period=self.simulator.integrator.dt)
         if self.transient:
             self.tvb_ts = self.tvb_ts[self.transient:]
-        if self.writer:
+        if self.writer and self.write_time_series:
             self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
 
         if self.tvb_nest_model is not None:
             self.nest_ts, self.nest_spikes = self.get_nest_data()
-            if self.writer:
+            if self.writer and self.write_time_series:
                 self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
                 self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
 
@@ -521,14 +558,27 @@ class Workflow(WorkflowBase):
         self.nest_ts, self.nest_spikes = self.get_nest_data()
         if cleanup:
             self.nest_network.nest_instance.Cleanup()
-        if self.writer:
+        if self.writer and self.write_time_series:
             self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
             self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
         return self.nest_ts, self.nest_spikes
 
-    def get_nest_rates(self):
+    def get_nest_rates_corrs(self):
+        from pandas import MultiIndex
+        from elephant.statistics import time_histogram
+        from elephant.conversion import BinnedSpikeTrain
+        from elephant import spike_train_correlation
+        from neo.core import SpikeTrain
+        from quantities import ms
+        corrs = {}
         rates = []
+        spike_ts = []
+        spike_trains = []
         pop_labels = []
+        time = self.nest_ts.time
+        t_start = time[0]
+        t_stop = time[-1]
+        dt = np.diff(time).mean()
         for i_pop, (pop_label, pop_spikes) in enumerate(self.nest_spikes.iteritems()):
             pop_labels.append(pop_label)
             rates.append([])
@@ -537,13 +587,37 @@ class Workflow(WorkflowBase):
                 reg_labels.append(reg_label)
                 # rates (spikes/sec) =
                 #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
-                rates[-1].append(len(reg_spikes["times"]) / self.duration / self.populations_sizes[i_pop])
+                these_spikes = [spike for spike in reg_spikes["times"] if spike >= t_start and spike <= t_stop]
+                rates[-1].append(len(these_spikes) / self.duration / self.populations_sizes[i_pop])
+                spike_trains.append(SpikeTrain(these_spikes*ms, t_stop=t_stop, t_start=t_start))
+                spike_ts.append(np.array(time_histogram([spike_trains[-1]], binsize=dt*ms)).squeeze())
 
-        self.rates["NEST"] = DataArray(np.array(rates),
-                                       dims=["Population", "Region"],
-                                       coords={"Population": pop_labels, "Region": reg_labels})
-
-        return self.rates["NEST"]
+        binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt * ms)
+        corrs["spike_train"] = spike_train_correlation.corrcoef(binned_spikes)
+        spike_ts = np.array(spike_ts).T
+        corrs["Pearson"] = pearson(spike_ts)
+        corrs["Spearman"] = spearman(spike_ts)
+        rates = DataArray(np.array(rates),
+                          dims=["Population", "Region"],
+                          coords={"Population": pop_labels, "Region": reg_labels})
+        dims = list(rates.dims)
+        stacked_dims = "-".join(dims)
+        names = []
+        new_dims = []
+        for d in ["i", "j"]:
+            names.append([dim + "_" + d for dim in dims])
+            new_dims.append(stacked_dims + "_" + d)
+        for corr in ["spike_train", "Pearson", "Spearman"]:
+            corrs[corr] = DataArray(corrs[corr],
+                                    dims=new_dims,
+                                    coords={new_dims[0]: MultiIndex.from_product([pop_labels, reg_labels],
+                                                                                 names=names[0]),
+                                            new_dims[1]: MultiIndex.from_product([pop_labels, reg_labels],
+                                                                                 names=names[1])})
+            corrs[corr] = corrs[corr].unstack(new_dims)
+            temp_dims = list(corrs[corr].dims)
+            corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))  # Put variables in front of regions
+        return rates, corrs
 
     def plot_tvb_ts(self):
         # For timeseries plot:
@@ -643,8 +717,8 @@ class Workflow(WorkflowBase):
 
         self.plotter.plot_spike_events(self.nest_spikes)
 
-    def run(self, **model_params):
-        self.model_params = model_params
+    def run(self, model_params={}):
+        self.model_params.update(model_params)
         if self.writer:
            self.write_general_params(close_file=False)
            if len(self.model_params) > 0:
@@ -682,24 +756,29 @@ class Workflow(WorkflowBase):
         # -----------------------------------4. Simulate and gather results-------------------------------------------------
         t_start = time.time()
         if self.tvb_nest_model is not None or len(self.tvb_nodes_ids) != 0:
+            print("Co-Simulating...")
             self.cosimulate()
-
         else:
+            print("Simulating NEST...")
             self.simulate_nest()
         print("\nSimulated in %f secs!" % (time.time() - t_start))
 
         self.duration = (self.simulation_length - self.transient) / 1000  # make it seconds
 
         # -----------------------------------5. Compute rate per region and population--------------------------------------
-        self.rates = {}
+        self.rates = {"TVB": [], "NEST": []}
+        self.corrs = {"TVB": [], "NEST": []}
         if self.nest_spikes is not None:
-            self.rates["NEST"] = self.get_nest_rates()
+            self.rates["NEST"], self.corrs["NEST"] = self.get_nest_rates_corrs()
             if self.writer:
                 self.write_object(self.rates["NEST"].to_dict(), "NEST_rates")
+                self.write_object(self.corrs["NEST"], "NEST_corrs")
         if self.tvb_ts is not None:
             self.rates["TVB"] = self.get_tvb_rates()
+            self.corrs["TVB"] = self.get_tvb_corrs()
             if self.writer:
                 self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
+                self.write_object(self.corrs["TVB"], "TVB_corrs")
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
@@ -708,4 +787,4 @@ class Workflow(WorkflowBase):
             if self.nest_ts is not None:
                 self.plot_nest_ts()
 
-        return self.rates
+        return self.rates, self.corrs

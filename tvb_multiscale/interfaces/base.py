@@ -35,11 +35,10 @@ class TVBSpikeNetInterface(object):
 
     spiking_network = None
 
-    tvb_to_spikeNet_interfaces = None
-    tvb_to_spikeNet_params = []
-    spikeNet_to_tvb_interfaces = None
-    spikeNet_to_tvb_params_interfaces_ids = None
-    spikeNet_to_tvb_sv_interfaces_ids = None
+    tvb_to_spikeNet_interfaces = []
+    spikeNet_to_tvb_interfaces = []
+    # spikeNet_to_tvb_params_interfaces_ids = []  # deprecate this due to use of non-state dynamical variables
+    spikeNet_to_tvb_sv_interfaces_ids = []
     spikeNet_to_tvb_params = []
 
     def __init__(self, config=CONFIGURED):
@@ -73,19 +72,22 @@ class TVBSpikeNetInterface(object):
     def configure(self, tvb_model):
         # Organize the different kinds of interfaces and set the TVB region model of the TVB Simulator
         self.spikeNet_to_tvb_params = []
-        self.spikeNet_to_tvb_params_interfaces_ids = []
+        # self.spikeNet_to_tvb_params_interfaces_ids = []   # deprecated
         self.spikeNet_to_tvb_sv_interfaces_ids = []
         for interface_id, interface in enumerate(self.spikeNet_to_tvb_interfaces):
             if is_integer(interface.tvb_sv_id) and interface.tvb_sv_id >= 0:
                 self.spikeNet_to_tvb_sv_interfaces_ids.append(interface_id)
             else:
-                self.spikeNet_to_tvb_params_interfaces_ids.append(interface_id)
+                # self.spikeNet_to_tvb_params_interfaces_ids.append(interface_id)  # deprecated
+                raise ValueError("tvb_sv_id=%s doesn't correspond "
+                                 "to the index of a TVB state variable for interface %s!\n"
+                                 % (str(interface.tvb_sv_id), str(interface)))
             # Even if the target in TVB is a state variable,
             # we are going to create a TVB parameter with the same name
             self.spikeNet_to_tvb_params.append(interface.name)
         self.tvb_model = tvb_model
 
-    def tvb_state_to_spikeNet(self, state, coupling, stimulus, model):
+    def tvb_state_to_spikeNet(self, state, coupling, stimulus):
         # Apply TVB -> Spiking Network input at time t before integrating time step t -> t+dt
         for interface in self.tvb_to_spikeNet_interfaces:
             if interface.model in self._available_input_devices:
@@ -132,31 +134,32 @@ class TVBSpikeNetInterface(object):
                      transform_fun(values, interface.nodes_ids)
             interface.set(values)
 
-    def spikeNet_state_to_tvb_parameter(self, model):
-        # Apply Spiking Network -> TVB parameter input at time t before integrating time step t -> t+dt
-        for interface_id in self.spikeNet_to_tvb_params_interfaces_ids:
-            # ...update them:
-            interface = self.spikeNet_to_tvb_interfaces[interface_id]
-            # Update TVB parameter
-            param_values = getattr(model, interface.name)
-            if interface.model in self._spike_rate_output_devices:
-                transform_fun = self.transforms["spikes_to_tvb"]
-                values = interface.population_mean_spikes_number
-                interface.reset  # We need to erase the spikes we have already read and communicated to TVB
-            elif interface.model == self._multimeter_output_devices:
-                transform_fun = self.transforms["spikes_sv_to_tvb"]
-                values = interface.current_population_mean_values
-            elif interface.model == self._voltmeter_output_devices:
-                transform_fun = self.transforms["potential_to_tvb"]
-                values = interface.current_population_mean_values
-            # TODO: add any other possible Spiking Network output devices to TVB parameters interfaces here!
-            else:
-                raise ValueError("Interface model %s is not supported yet!" % interface.model)
-            # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
-            param_values[interface.nodes_ids] = \
-                interface.scale * transform_fun(values, interface.nodes_ids)
-            setattr(model, "__" + interface.name, param_values)
-        return model
+    # Deprecated
+    # def spikeNet_state_to_tvb_parameter(self, model):
+    #     # Apply Spiking Network -> TVB parameter input at time t before integrating time step t -> t+dt
+    #     for interface_id in self.spikeNet_to_tvb_params_interfaces_ids:
+    #         # ...update them:
+    #         interface = self.spikeNet_to_tvb_interfaces[interface_id]
+    #         # Update TVB parameter
+    #         param_values = getattr(model, interface.name)
+    #         if interface.model in self._spike_rate_output_devices:
+    #             transform_fun = self.transforms["spikes_to_tvb"]
+    #             values = interface.population_mean_spikes_number
+    #             interface.reset  # We need to erase the spikes we have already read and communicated to TVB
+    #         elif interface.model == self._multimeter_output_devices:
+    #             transform_fun = self.transforms["spikes_sv_to_tvb"]
+    #             values = interface.current_population_mean_values
+    #         elif interface.model == self._voltmeter_output_devices:
+    #             transform_fun = self.transforms["potential_to_tvb"]
+    #             values = interface.current_population_mean_values
+    #         # TODO: add any other possible Spiking Network output devices to TVB parameters interfaces here!
+    #         else:
+    #             raise ValueError("Interface model %s is not supported yet!" % interface.model)
+    #         # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
+    #         param_values[interface.nodes_ids] = \
+    #             interface.scale * transform_fun(values, interface.nodes_ids)
+    #         setattr(model, "__" + interface.name, param_values)
+    #     return model
 
     def spikeNet_state_to_tvb_state(self, state):
         # Apply Spiking Network -> TVB state input at time t+dt after integrating time step t -> t+dt

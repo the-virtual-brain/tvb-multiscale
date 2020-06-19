@@ -34,7 +34,7 @@ def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
             try:
                 return create_device_fun(None, device, config=config, **kwargs)
             except:
-                raise ValueError("Failed to set device%s!" % str(device))
+                raise ValueError("Failed to set device %s!" % str(device))
         else:
             try:
                 return create_device_fun(device.get("model", None), device,

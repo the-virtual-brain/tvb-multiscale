@@ -10,12 +10,12 @@ import numpy as np
 
 from tvb_nest.config import Config
 from tvb_nest.examples.example import main_example
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import \
-    RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
+from tvb_nest.interfaces.builders.models.wilson_cowan import \
+    WilsonCowanBuilder as InterfacWilsonCowanBuilder
 
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
 def prepare_launch_default_simulation():
@@ -34,7 +34,7 @@ def prepare_launch_default_simulation():
             nest_nodes_ids.append(id)
 
     results, simulator = \
-        main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+        main_example(WilsonCowan, WilsonCowanBuilder, InterfacWilsonCowanBuilder,
                      nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
                      simulation_length=100.0, exclusive_nodes=True, config=config)
 

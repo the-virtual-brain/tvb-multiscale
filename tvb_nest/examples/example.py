@@ -9,9 +9,9 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
     DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
-from tvb_nest.nest_models.builders.models.ww_deco2014 import WWDeco2014Builder
+from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCownMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i import RedWWexcIOinhIBuilder
+from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder, \
     WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
@@ -19,6 +19,7 @@ from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.examples.plot_write_results import plot_write_results
 from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
+from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 
@@ -130,10 +131,10 @@ if __name__ == "__main__":
     #     "Q": np.array([0.0])
     # }
 
-    main_example(tvb_model, WWDeco2014Builder, ReducedWongWangExcIOInhI,
+    main_example(tvb_model, WWDeco2014Builder, RedWWexcIOinhIBuilder,
                  nest_nodes_ids,  nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=1100.0, transient=100.0,
+                 simulation_length=110.0, transient=10.0,
                  variables_of_interest=None,
                  config=CONFIGURED, **model_params)

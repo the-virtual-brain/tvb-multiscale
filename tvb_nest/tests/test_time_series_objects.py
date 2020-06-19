@@ -8,12 +8,12 @@ mpl.use('Agg')
 
 from tvb_nest.config import Config
 from tvb_nest.examples.example import main_example
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIBuilder
-from tvb_nest.interfaces.builders.models.red_ww_exc_io_inh_i \
-    import RedWWexcIOinhIBuilder as InterfaceRedWWexcIOinhIBuilder
+from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
+from tvb_nest.interfaces.builders.models.wilson_cowan \
+    import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
 
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 
 
@@ -33,7 +33,7 @@ def create_time_series_region_object():
             nest_nodes_ids.append(id)
 
     results, simulator = \
-        main_example(ReducedWongWangExcIOInhI, RedWWExcIOInhIBuilder, InterfaceRedWWexcIOinhIBuilder,
+        main_example(WilsonCowan, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
                      nest_nodes_ids, nest_populations_order=10, connectivity=connectivity,
                      simulation_length=10.0, exclusive_nodes=True, config=config)
     time = results[0][0]

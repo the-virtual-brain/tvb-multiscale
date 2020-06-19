@@ -170,11 +170,17 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
     default_params = dict(default_params_dict.get(device_name, {}))
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
+    # TODO: a better solution for the strange error with inhomogeneous poisson generator
+    try:
+        nest_device_id = nest_instance.Create(device_model, params=default_params)
+    except:
+        warning("Using temporary hack for creating successive %s devices!" % device_model)
+        nest_device_id = nest_instance.Create(device_model, params=default_params)
+    nest_device = devices_dict[device_name](nest_device_id, nest_instance)
     if return_nest:
-        return devices_dict[device_name](nest_instance.Create(device_model, params=default_params), nest_instance), \
-               nest_instance
+        return nest_device, nest_instance
     else:
-        return devices_dict[device_name](nest_instance.Create(device_model, params=default_params), nest_instance)
+        return nest_device
 
 
 def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0, config=CONFIGURED,
@@ -194,13 +200,11 @@ def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0,
             delay = resolution
             warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
                     "Setting minimum delay equal to resolution!" % (delay, resolution))
-
+    syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
     if nest_device.model == "spike_detector":
         #                     source  ->  target
-        nest_instance.Connect(neurons, nest_device.device,
-                              syn_spec={"weight": weight, "delay": delay, "receptor_type": receptor_type})
+        nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)
     else:
-        nest_instance.Connect(nest_device.device, neurons,
-                              syn_spec={"weight": weight, "delay": delay, "receptor_type": receptor_type})
+        nest_instance.Connect(nest_device.device, neurons, syn_spec=syn_spec)
     # nest_device.update_number_of_connections()
     return nest_device

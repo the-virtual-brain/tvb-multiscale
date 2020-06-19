@@ -18,8 +18,8 @@ class SpikeNetToTVBinterface(DeviceSet):
     # This class implements an interface that sends Spiking Network state to TVB
     # via output/measuring devices
 
-    def __init__(self, spiking_network, name="", model="",
-                 tvb_sv_id=None, nodes_ids=[], scale=array([1.0]), device_set=Series()):
+    def __init__(self, spiking_network, tvb_sv_id, name="", model="",
+                 nodes_ids=[], scale=array([1.0]), device_set=Series()):
         super(SpikeNetToTVBinterface, self).__init__(name, model, device_set)
         self.spiking_network = spiking_network
         self.tvb_sv_id = tvb_sv_id  # The index of the TVB state variable linked to this interface
@@ -29,12 +29,11 @@ class SpikeNetToTVBinterface(DeviceSet):
         self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
-    def from_device_set(self, device_set, tvb_sv_id=None, name=None):
+    def from_device_set(self, device_set, name=None):
         if isinstance(device_set, DeviceSet):
             super(SpikeNetToTVBinterface, self).__init__(device_set.name, device_set.model, device_set)
         else:
             raise_value_error("Input device_set is not a DeviceSet!: %s" % str(device_set))
-        self.tvb_sv_id = tvb_sv_id
         if isinstance(name, string_types):
             self.name = name
         self.update_model()

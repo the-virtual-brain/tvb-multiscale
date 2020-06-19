@@ -19,9 +19,9 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.coupling import Linear
 from tvb.simulator.integrators import IntegratorStochastic, HeunStochastic
 from tvb.simulator.monitors import Raw, TemporalAverage
+from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
-from tvb.simulator.models.multiscale_wong_wang_exc_io_inh_i import MultiscaleWongWangExcIOInhI
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 from tvb.contrib.scripts.service.time_series_service import TimeSeriesService
@@ -74,12 +74,13 @@ def spikes_per_population(source_spikes, populations, pop_sizes):
     return spikes
 
 
-def spike_rates_from_spike_ts(spikes, dt, pop_sizes):
+def spike_rates_from_TVB_spike_ts(spikes, integrator_dt, pop_sizes):
+    # spikes_ts are assumed to have an amplitude of tvb_integrator_dt / tvb_monitor_dt
     ts_service = TimeSeriesService()
     rate = []
     for i_pop, (spike_ts, pop_size) in enumerate(zip(ensure_list(spikes), pop_sizes)):
         this_rate = ts_service.sum_across_dimension(spike_ts, 3)
-        this_rate.data = this_rate.data / dt * 1000 / pop_size
+        this_rate.data = this_rate.data / integrator_dt * 1000 / pop_size
         rate.append(this_rate)
         try:
             del rate[-1].labels_dimensions[rate[-1].labels_ordering[3]]
@@ -134,7 +135,11 @@ def TimeSeries_correlation(ts, corrfun=pearson, force_dims=4):
                       dims=new_dims,
                       coords={new_dims[0]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[0]),
                               new_dims[1]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[1])})
-    corrs.values = corrfun(data.values)  # Compute all combinations of correlations across Time
+    try:
+        # TODO: a better hack for when spearman returns nan
+        corrs.values = corrfun(data.values)  # Compute all combinations of correlations across Time
+    except:
+        corrs.values = corrfun(data.values) * np.ones(corrs.values.shape)
     corrs = corrs.unstack(new_dims)  # Unstack the combinations of State Variable x Region x ...
     new_dims = list(corrs.dims)
     corrs = corrs.transpose(*tuple(new_dims[0::2] + new_dims[1::2]))  # Put variables in front of regions
@@ -147,30 +152,35 @@ def TimeSeries_correlation(ts, corrfun=pearson, force_dims=4):
 class Workflow(object):
     config = Config(separate_by_run=False)
 
-    tvb_sim_numba = False
+    name = "Workflow"
 
     pse_params = {}
 
     writer = True
+    write_time_series = False
     plotter = True
     path = ""
     h5_file = None
 
+    tvb_sim_numba = False
+
     connectivity_path = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     decouple = False
+    symmetric_connectome = False
     time_delays = True
     force_dims = None
 
     populations = ["Excitatory", "Inhibitory"]
     populations_sizes = [1, 1]
 
-    tvb_model = ReducedWongWangExcIOInhI
+    simulator = None
+    tvb_model = ReducedWongWangExcIO  # ReducedWongWangExcIOInhI
     tvb_spike_stimulus = None
     tvb_spiking_model = False
-    model_params = {}
+    model_params = {"TVB": {}, "NEST": {"E": {}, "I": {}}}
     mf_nodes_ids = []
     tvb_spikes_var = "spikes"
-    tvb_rate_vars = ["R_e", "R_i"]
+    tvb_rate_vars = ["R"]  # ["R_e", "R_i"]
     tvb_spike_rate_var = "rate"
     tvb_init_cond = 0.0
     tvb_monitor = Raw
@@ -181,6 +191,7 @@ class Workflow(object):
     tvb_noise_strength = 0.01
     transient = None
     simulation_length = 100.0
+    print_progression_message=True
 
     spiking_regions_ids = []
 
@@ -204,8 +215,19 @@ class Workflow(object):
     def _folder_name(self):
         folder = []
         for param, val in self.pse_params.items():
-            folder.append("%s%.1f" % (param, val))
+            folder.append("%s%g" % (param, np.mean(val).item()))
         return "_".join(folder)
+
+    def reset(self, pse_params):
+        self.pse_params = pse_params
+        self.model_params = {"TVB": {}, "NEST": {"E": {}, "I": {}}}
+        self.tvb_spike_stimulus = None
+        self.simulator = None
+        self.tvb_ts = None
+        self.mf_ts = None
+        self.tvb_rates = None
+        self.tvb_spikes = None
+        self.rates = None
 
     def configure(self):
         if self.transient is None:
@@ -218,7 +240,7 @@ class Workflow(object):
         else:
             self.tvb_monitor = Raw
         if self.writer or self.plotter:
-            self.res_folder = os.path.join(self.config.out.FOLDER_RES, self._folder_name())
+            self.res_folder = os.path.join(self.config.out.FOLDER_RES.replace("res", self.name), self._folder_name())
             self.config.figures._out_base = self.res_folder
             if not os.path.isdir(self.res_folder):
                 os.makedirs(self.res_folder)
@@ -321,12 +343,12 @@ class Workflow(object):
         return spike_stimulus_dict
 
     @property
-    def coupling_stimulus_dict(self):
-        coupling_stimulus_dict = OrderedDict()
-        coupling_stimulus_dict["coupling"] = self.simulator.coupling.__class__.__name__
-        coupling_stimulus_dict["a"] = self.simulator.coupling.a
-        coupling_stimulus_dict["b"] = self.simulator.coupling.b
-        return coupling_stimulus_dict
+    def coupling_dict(self):
+        coupling_dict = OrderedDict()
+        coupling_dict["coupling"] = self.simulator.coupling.__class__.__name__
+        coupling_dict["a"] = self.simulator.coupling.a
+        coupling_dict["b"] = self.simulator.coupling.b
+        return coupling_dict
 
     def write_tvb_simulator(self):
         self.writer.write_tvb_to_h5(self.simulator.connectivity,
@@ -336,7 +358,7 @@ class Workflow(object):
         if self.tvb_spike_stimulus is not None:
             self.write_group(self.spike_stimulus_dict, "spike_stimulus", "dictionary", close_file=False)
         if self.number_of_regions > 1:
-            self.write_group(self.coupling_stimulus_dict, "coupling", "dictionary", close_file=False)
+            self.write_group(self.coupling_dict, "coupling", "dictionary", close_file=False)
         self.write_group(self.integrator_dict, "integrator", "dictionary", close_file=False)
         self.write_group({"monitor": self.tvb_monitor.__name__,
                           "period": self.tvb_monitor_period}, "monitor", "dictionary", close_file=True)
@@ -348,10 +370,13 @@ class Workflow(object):
             self.force_dimensionality()
         if self.decouple:
             self.connectivity.weights *= 0.0
-        else:
-            if self.connectivity.weights.max() > 0.0:
-                self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
-                self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
+        elif self.connectivity.weights.max() > 0.0:
+            self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
+            if self.symmetric_connectome:
+                self.connectivity.weights = np.sqrt(self.connectivity.weights * self.connectivity.weights.T)
+                self.connectivity.tract_lengths = np.sqrt(self.connectivity.tract_lengths * self.connectivity.tract_lengths.T)
+            self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
+            self.connectivity.weights[self.connectivity.weights > 1.0] = 1.0
         if not self.time_delays:
             self.connectivity.tract_lengths *= 0.0
         self.connectivity.configure()
@@ -368,17 +393,17 @@ class Workflow(object):
         self.prepare_connectivity()
         self.simulator = Simulator()
         self.simulator.connectivity = self.connectivity
-        self.simulator.model = self.tvb_model(**self.model_params)
+        self.simulator.model = self.tvb_model(**(self.model_params["TVB"]))
         self.tvb_spiking_model = \
-            isinstance(self.simulator.model, (SpikingWongWangExcIOInhI, MultiscaleWongWangExcIOInhI))
+            isinstance(self.simulator.model, (SpikingWongWangExcIOInhI, ))  # MultiscaleWongWangExcIOInhI
         if self.tvb_spiking_model:
             self.simulator.model.N_E = np.array([self.populations_sizes[0], ])
             self.simulator.model.N_I = np.array([self.populations_sizes[1], ])
-            if isinstance(self.simulator.model, MultiscaleWongWangExcIOInhI):
-                self.simulator.model._spiking_regions_inds = self.spiking_regions_ids
-            else:
-                # All of them are spiking regions
-                self.spiking_regions_ids = list(range(self.simulator.connectivity.number_of_regions))
+            # if isinstance(self.simulator.model, MultiscaleWongWangExcIOInhI):
+            #     self.simulator.model._spiking_regions_inds = self.spiking_regions_ids
+            # else:
+            # All of them are spiking regions
+            self.spiking_regions_ids = list(range(self.simulator.connectivity.number_of_regions))
         # if self.number_of_regions > 1:
         #     self.simulator.coupling = Linear(a=np.array([1.0, ]), b=np.array([0.0, ]))
         self.simulator.model.configure()
@@ -389,8 +414,10 @@ class Workflow(object):
             self.simulator.integrator.noise.nsig = np.array(self.simulator.model.nvar * [self.tvb_noise_strength])
             if self.tvb_spiking_model:
                 self.simulator.integrator.noise.nsig[6:] = 0.0  # No noise for t_ref and derived variables
+            elif isinstance(self.simulator.model, ReducedWongWangExcIOInhI):
+                self.simulator.integrator.noise.nsig[2:] = 0.0  # No noise for R_e, R_i, Rin_e, Rin_i, I_e, I_i
             else:
-                self.simulator.integrator.noise.nsig[2:] = 0.0  # No noise for R_e, R_i variables
+                self.simulator.integrator.noise.nsig[1:] = 0.0  # No noise for R, Rin, I variables
         self.simulator.integrator.configure()
         mon_raw = self.tvb_monitor(period=self.tvb_monitor_period)
         self.simulator.monitors = (mon_raw,)  # mon_bold, mon_eeg
@@ -405,7 +432,8 @@ class Workflow(object):
             self.write_tvb_simulator()
 
     def simulate(self):
-        results = self.simulator.run(simulation_length=self.simulation_length)
+        results = self.simulator.run(simulation_length=self.simulation_length,
+                                     print_progression_message=self.print_progression_message)
         self.tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
                                        connectivity=self.simulator.connectivity,
                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],
@@ -415,7 +443,7 @@ class Workflow(object):
                                        sample_period=self.simulator.integrator.dt)
         if self.transient:
             self.tvb_ts = self.tvb_ts[self.transient:]
-        if self.writer:
+        if self.writer and self.write_time_series:
             self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
 
     def get_mean_field(self):
@@ -437,7 +465,7 @@ class Workflow(object):
         if self.tvb_spiking_model:
             if self.tvb_spike_rate_var not in self.mf_ts.labels_dimensions["State Variable"]:
                 self.tvb_rates = \
-                    spike_rates_from_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
+                    spike_rates_from_TVB_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
                 self.tvb_rates.title = "Region mean field spike rate time series"
             else:
                 self.mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
@@ -447,25 +475,24 @@ class Workflow(object):
         else:
             self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars]
             self.tvb_rates.name = "Region mean field rate time series"
-        self.rates["TVB"] = \
-            DataArray(self.tvb_rates.mean(axis=0).squeeze(axis=-1),
-                      dims=self.tvb_rates.dims[1:3],
-                      coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
-                              self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
-        return self.rates["TVB"]
+        return DataArray(self.tvb_rates.mean(axis=0).squeeze(axis=-1),
+                         dims=self.tvb_rates.dims[1:3],
+                         coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
+                                 self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
 
     def get_tvb_corrs(self):
-        self.tvb_corrs = {"Pearson": TimeSeries_correlation(self.tvb_rates, corrfun=pearson, force_dims=4),
-                          "Spearman": TimeSeries_correlation(self.tvb_rates, corrfun=spearman, force_dims=4)}
-        return self.tvb_corrs
+        return {"Pearson": TimeSeries_correlation(self.tvb_rates, corrfun=pearson, force_dims=4),
+                "Spearman": TimeSeries_correlation(self.tvb_rates, corrfun=spearman, force_dims=4)}
 
     def plot_tvb_ts(self):
         # For timeseries plot:
-        self.mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
+        self.mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True,
+                                   figsize=self.figsize, add_legend=False)
 
         # For raster plot:
         if self.number_of_regions > 9:
-            self.mf_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize, add_legend=False)
+            self.mf_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True,
+                                   figsize=self.figsize, add_legend=False)
 
         n_spiking_nodes_ids = len(self.spiking_regions_ids)
         if n_spiking_nodes_ids > 0:
@@ -490,8 +517,8 @@ class Workflow(object):
                            cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
             self.tvb_rates.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
 
-    def run(self, **model_params):
-        self.model_params = model_params
+    def run(self, model_params={}):
+        self.model_params.update(model_params)
         if self.writer:
            self.write_general_params(close_file=False)
            if len(self.model_params) > 0:
@@ -511,9 +538,10 @@ class Workflow(object):
 
         # -----------------------------------3. Simulate and gather results-------------------------------------------------
         # ...and simulate!
+        print("Simulating TVB...")
         t_start = time.time()
         self.simulate()
-        print("\nSimulated in %f secs!" % (time.time() - t_start))
+        print("\nSimulated in %g secs!" % (time.time() - t_start))
 
         self.duration = (self.simulation_length - self.transient) / 1000  # make it seconds
 
@@ -521,15 +549,16 @@ class Workflow(object):
         self.get_mean_field()
         self.get_tvb_spikes()
         self.rates = {}
+        self.corrs = {}
         self.rates["TVB"] = self.get_tvb_rates()
+        self.corrs["TVB"] = self.get_tvb_corrs()
         if self.writer:
             self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
-
-        self.tvb_corrs = self.get_tvb_corrs()
+            self.write_object(self.corrs["TVB"], "TVB_corrs")
 
         # -------------------------------------------5. Plot results--------------------------------------------------------
         if self.plotter:
             if self.tvb_ts is not None:
                 self.plot_tvb_ts()
 
-        return self.rates, self.tvb_corrs
+        return self.rates, self.corrs
