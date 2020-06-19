@@ -10,6 +10,7 @@ from tvb_multiscale.examples.paperwork.workflow import Workflow
 from tvb_utils.utils import print_toc_message
 
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 def prepare_spike_stimulus(rate, dt, time_length, number_of_regions, number_of_neurons):
@@ -29,20 +30,16 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman", "spike train"]
     _corr_results = ["Pearson", "Spearman", "spike train"]
 
-    def __init__(self, noise=0.0):
-        self.noise = noise
-        if self.noise:
-            self.name = "low" + self.name
-
+    def __init__(self, w=None, branch="low"):
+        self.branch = branch
+        if self.branch == "low":
+            self.noise = 0.01
         else:
-            self.name = "high" + self.name
+            self.noise = 0.0
+        self.name = branch + self.name
         self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
         self.workflow = Workflow()
         self.workflow.tvb_model = SpikingWongWangExcIOInhI
-        if self.noise:
-            self.name = "low" + self.name
-        else:
-            self.name = "high" + self.name
         self.workflow.name = self.name
         self.workflow.populations_sizes = [100, 100]
         self.n_neurons = np.sum(self.workflow.populations_sizes).item()
@@ -54,26 +51,39 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         self.workflow.simulation_length = 2000.0
         self.stim_time_length = int(np.ceil(self.workflow.simulation_length / self.workflow.dt))
         self.workflow.transient = 1000.0
-        self.workflow.tvb_noise_strength = self.noise # 0.0001 / 2
+        self.workflow.tvb_noise_strength = self.noise  # 0.0001 / 2
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
         self.workflow.writer = True
         self.workflow.write_time_series = False
         self.workflow.print_progression_message = self.print_progression_message
-        self.configure_paths()
+        kwargs = {}
+        if w is not None:
+            w = ensure_list(w)
+            if len(w) == 1:
+                kwargs = {"w+": w[0]}
+        self.configure_paths(**kwargs)
 
-    def configure_PSE(self):
-        self.PSE["params"]["w+"] = np.arange(1.05, 2.1, 0.5)
+    def configure_PSE(self, w=None):
+        if w is None:
+            w = np.sort(np.arange(1.0, 1.7, 0.1).tolist() + [1.55])
+        else:
+            w = np.sort(ensure_list(w))
+        self.PSE["params"]["w+"] = w
         super(PSEWorkflowSpiking, self).configure_PSE()
 
 
 class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
     name = "PSE_1_TVBspikingNodeStW"
 
-    def __init__(self, noise=0.01):
-        super(PSE_1_TVBspikingNodeStW, self).__init__(noise)
-        self.PSE["params"]["Stimulus"] = np.arange(0.9, 5.1, 1.0)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch)
+        if fast:
+            step = 1.0
+        else:
+            step = 0.1
+        self.PSE["params"]["Stimulus"] = np.arange(0.9, 5.1, step)
+        self.configure_PSE(w)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
                                        "I": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
@@ -116,10 +126,14 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
 class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
     name = "PSE_2_TVBspikingNodesGW"
 
-    def __init__(self, noise=0.01):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(noise)
-        self.PSE["params"]["G"] = np.arange(0.0, 405.0, 10.0)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch)
+        if fast:
+            step = 100.0
+        else:
+            step = 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+        self.configure_PSE(w)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
@@ -176,10 +190,14 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
 class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
     name = "PSE_3_TVBspikingNodesGW"
 
-    def __init__(self, noise=0.01):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(noise)
-        self.PSE["params"]["G"] = np.arange(0.0, 405.0, 10.0)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch)
+        if fast:
+            step = 100.0
+        else:
+            step = 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
+        self.configure_PSE(w)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
