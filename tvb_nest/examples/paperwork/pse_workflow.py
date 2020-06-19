@@ -7,12 +7,13 @@ import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
 from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class PSENESTWorkflowBase(PSEWorkflowBase):
     name = "PSENESTWorkflow"
 
-    def __init__(self, branch="low"):
+    def __init__(self, w=None, branch="low"):
         super(PSENESTWorkflowBase, self).__init__()
         self.branch = branch
         self.name = self.branch + self.name
@@ -32,28 +33,41 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
         self.workflow.nest_stimulus_times = [0.1]
         if self.branch == "high":
             self.workflow.nest_stimulus_rate *= np.array([2.0, 1.0])
-            self.workflow.simulation_length += self.workflow.transient
-            self.workflow.transient *= 2
-            self.workflow.nest_stimulus_times += [self.workflow.transient/2]
+            # self.workflow.simulation_length += self.workflow.transient
+            # self.workflow.transient *= 2
+            self.workflow.nest_stimulus_times += [250.0]
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
         self.workflow.writer = True
         self.workflow.write_time_series = False
         self.workflow.print_progression_message = self.print_progression_message
-        self.configure_paths()
+        kwargs = {}
+        if w is not None:
+            w = ensure_list(w)
+            if len(w) == 1:
+                kwargs = {"w+": w[0]}
+        self.configure_paths(**kwargs)
 
-    def configure_PSE(self):
-        self.PSE["params"]["w+"] = np.sort(np.arange(1.0, 1.7, 0.1).tolist() + [1.55])
+    def configure_PSE(self, w=None):
+        if w is None:
+            w = np.sort(np.arange(1.0, 1.7, 0.1).tolist() + [1.55])
+        else:
+            w = np.sort(ensure_list(w))
+        self.PSE["params"]["w+"] = w
         super(PSENESTWorkflowBase, self).configure_PSE()
 
 
 class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
     name = "PSE_1_NESTnodeStW"
 
-    def __init__(self, branch="low"):
-        super(PSE_1_NESTnodeStW, self).__init__(branch)
-        self.PSE["params"]["Stimulus"] = np.arange(0.9, 5.1, 0.1)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_1_NESTnodeStW, self).__init__(w, branch)
+        if fast:
+            step = 2.0
+        else:
+            step = 0.1
+        self.PSE["params"]["Stimulus"] = np.arange(0.9, 5.1, step)
+        self.configure_PSE(w)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
                                        "I": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
@@ -76,10 +90,14 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
 class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
     name = "PSE_2_NESTnodesGW"
 
-    def __init__(self, branch="low"):
-        super(PSE_2_NESTnodesGW, self).__init__(branch)
-        self.PSE["params"]["G"] = np.arange(0.0, 305.0, 10.0)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_2_NESTnodesGW, self).__init__(w, branch)
+        if fast:
+            step = 100.0
+        else:
+            step = 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+        self.configure_PSE(w)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
@@ -117,10 +135,14 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
     name = "PSE_3_NESTnodesGW"
 
-    def __init__(self, branch="low"):
-        super(PSE_2_NESTnodesGW, self).__init__(branch)
-        self.PSE["params"]["G"] = np.arange(0.0, 205.0, 10.0)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_2_NESTnodesGW, self).__init__(w, branch)
+        if fast:
+            step = 100.0
+        else:
+            step = 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+        self.configure_PSE(w)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
