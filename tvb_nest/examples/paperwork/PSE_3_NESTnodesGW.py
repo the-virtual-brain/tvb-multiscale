@@ -10,7 +10,7 @@ args = sys.argv
 tic = time.time()
 
 try:
-    fast = args[3] == "True"
+    fast = args[3] == "fast"
 except:
     fast = False
 
