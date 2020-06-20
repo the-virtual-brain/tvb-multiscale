@@ -240,7 +240,7 @@ class Workflow(object):
         else:
             self.tvb_monitor = Raw
         if self.writer or self.plotter:
-            self.res_folder = os.path.join(self.config.out.FOLDER_RES.replace("res", self.name), self._folder_name())
+            self.res_folder = os.path.join(self.config.out._folder_res.replace("res", self.name), self._folder_name())
             self.config.figures._out_base = self.res_folder
             if not os.path.isdir(self.res_folder):
                 os.makedirs(self.res_folder)
