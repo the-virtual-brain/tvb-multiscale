@@ -89,7 +89,7 @@ if __name__ == "__main__":
     tic = time.time()
 
     #try:
-    PSElow = deepcopy(two_nest_nodes_PSE(w=1.55, fast=True))
+    PSElow = deepcopy(two_nest_nodes_PSE(w=1.55, branch="low", fast=True))
     PSEhigh = deepcopy(two_nest_nodes_PSE(w=1.55, branch="high", fast=True))
     name = "PSE_2_NEST_nodes_G_w"
     results = ["rate", "Pearson", "Spearman", "spike train"]
