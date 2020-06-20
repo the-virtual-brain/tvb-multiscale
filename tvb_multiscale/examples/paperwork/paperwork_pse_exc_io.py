@@ -110,22 +110,22 @@ if __name__ == "__main__":
     # PSEhigh = deepcopy(three_symmetric_mf_PSE(branch="high"))
 
     # try:
-    #     PSElow = deepcopy(single_nest_PSE(noise=0.01))
-    #     PSEhigh = deepcopy(single_nest_PSE(noise=0.0))
+    # PSElow = deepcopy(single_mf_PSE(w=0.9, fast=True))
+    # PSEhigh = deepcopy(single_mf_PSE(w=0.9, branch="high", fast=True))
     #
-    #     name = "PSE_1_tvb_spiking_node_St_w"
-    #     results = ["rate", "Pearson", "Spearman"]
-    #     pops = ["E", "I", "EE", "FC-SC"]
-    #     names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
-    #     plot_results(name, results, pops, names)
-    #
-    # except:
-    #     pass
+    # name = "PSE_1_TVBmfNodeStW"
+    # results = ["rate", "Pearson", "Spearman"]
+    # pops = ["E", "I", "EE", "FC-SC"]
+    # names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
+    # plot_results(name, results, pops, names)
+#
+# except:
+#     pass
 
-    # try:
-    PSElow = deepcopy(two_symmetric_spiking_PSE())
-    PSEhigh = deepcopy(two_symmetric_spiking_PSE(branch="high"))
-    name = "PSE_2_tvb_spiking_nodes_G_w"
+# try:
+    PSElow = deepcopy(two_symmetric_mf_PSE(w=0.9, fast=True))
+    PSEhigh = deepcopy(two_symmetric_mf_PSE(w=0.9, branch="high", fast=True))
+    name = "PSE_2_TVBmfNodesGW"
     results = ["rate", "Pearson", "Spearman"]
     pops = ["E", "I", "EE", "FC-SC"]
     names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
@@ -135,14 +135,14 @@ if __name__ == "__main__":
     #     pass
 
     # try:
-    # PSElow = deepcopy(three_nest_nodes_PSE(noise=0.01))
-    # PSEhigh = deepcopy(three_nest_nodes_PSE(branch="high"))
-    #
-    # name = "PSE_3_tvb_spiking_nodes_G_w"
-    # results = ["rate", "Pearson", "Spearman"]
-    # pops = ["E", "I", "EE", "FC-SC"]
-    # names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
-    # plot_results(name, results, pops, names)
+    PSElow = deepcopy(three_symmetric_mf_PSE(w=0.9, fast=True))
+    PSEhigh = deepcopy(three_symmetric_mf_PSE(w=0.9, branch="high", fast=True))
+
+    name = "PSE_3_TVBmfNodesGW"
+    results = ["rate", "Pearson", "Spearman"]
+    pops = ["E", "I", "EE", "FC-SC"]
+    names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
+    plot_results(name, results, pops, names)
     # except:
     #     pass
 

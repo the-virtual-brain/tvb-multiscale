@@ -12,7 +12,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman"]
     _corr_results = ["Pearson", "Spearman"]
 
-    def __init__(self, w=None, branch="low"):
+    def __init__(self, w=None, branch="low", fast=False):
         self.branch = branch
         self.workflow = Workflow()
         self.workflow.tvb_model = ReducedWongWangExcIO
@@ -25,6 +25,9 @@ class PSEWorkflowMF(PSEWorkflowBase):
         self.workflow.time_delays = False
         self.workflow.simulation_length = 2000.0
         self.workflow.transient = 1000.0
+        if fast:
+            self.workflow.simulation_length /= 10
+            self.workflow.transient /= 10
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = True
         self.workflow.plotter = True
@@ -51,7 +54,7 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
     name = "PSE_1_tvb_mf_node_St_w"
 
     def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_TVBmfNodeStW, self).__init__(w, branch)
+        super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast)
         if fast:
             step = 0.1
         else:
@@ -77,7 +80,7 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
     name = "PSE_2_tvb_mf_nodes_G_w"
 
     def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch)
+        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast)
         if fast:
             step = 100.0
         else:
@@ -116,7 +119,7 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
     name = "PSE_3_tvb_mf_nodes_G_w"
 
     def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch)
+        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast)
         if fast:
             step = 100.0
         else:
