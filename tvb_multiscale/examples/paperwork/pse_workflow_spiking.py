@@ -30,7 +30,7 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman", "spike train"]
     _corr_results = ["Pearson", "Spearman", "spike train"]
 
-    def __init__(self, w=None, branch="low"):
+    def __init__(self, w=None, branch="low", fast=False):
         self.branch = branch
         if self.branch == "low":
             self.noise = 0.01
@@ -49,8 +49,11 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         self.workflow.tvb_init_cond[:, 5, :, :] = -70.0  # Setting V_m to V_rest
         self.workflow.dt = 0.025
         self.workflow.simulation_length = 2000.0
-        self.stim_time_length = int(np.ceil(self.workflow.simulation_length / self.workflow.dt))
         self.workflow.transient = 1000.0
+        if fast:
+            self.workflow.simulation_length /= 10
+            self.workflow.transient /= 10
+        self.stim_time_length = int(np.ceil(self.workflow.simulation_length / self.workflow.dt))
         self.workflow.tvb_noise_strength = self.noise  # 0.0001 / 2
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
@@ -77,7 +80,7 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
     name = "PSE_1_TVBspikingNodeStW"
 
     def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch)
+        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast)
         if fast:
             step = 1.0
         else:
@@ -127,7 +130,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
     name = "PSE_2_TVBspikingNodesGW"
 
     def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch)
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast)
         if fast:
             step = 100.0
         else:
@@ -191,7 +194,7 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
     name = "PSE_3_TVBspikingNodesGW"
 
     def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch)
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast)
         if fast:
             step = 100.0
         else:
