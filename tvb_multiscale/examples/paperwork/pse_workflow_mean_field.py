@@ -43,7 +43,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
 
     def configure_PSE(self, w=None):
         if w is None:
-            w = np.arange(0.5, 1.6, 0.4)
+            w = np.arange(0.8, 1.6, 0.1)
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
