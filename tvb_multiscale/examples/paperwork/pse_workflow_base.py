@@ -47,7 +47,7 @@ class PSEWorkflowBase(object):
     print_progression_message = False
 
     def configure_paths(self, **kwargs):
-        self.folder_res = self.config.out.FOLDER_RES.replace("res", self.name)
+        self.folder_res = self.config.out._folder_res.replace("res", self.name)
         if not os.path.isdir(self.folder_res):
             os.makedirs(self.folder_res)
         self.res_path = os.path.join(self.folder_res, self.name)
