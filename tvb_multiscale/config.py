@@ -101,7 +101,7 @@ class OutputConfig(object):
         folder = os.path.join(self._out_base, "logs")
         if self._separate_by_run:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
+        if not os.path.isdir(folder):
             os.makedirs(folder)
         return folder
 
@@ -110,7 +110,7 @@ class OutputConfig(object):
         folder = os.path.join(self._out_base, "res")
         if self._separate_by_run:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
+        if not os.path.isdir(folder):
             os.makedirs(folder)
         if self.subfolder is not None:
             os.path.join(folder, self.subfolder)
@@ -121,7 +121,7 @@ class OutputConfig(object):
         folder = os.path.join(self._out_base, "figs")
         if self._separate_by_run:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
+        if not os.path.isdir(folder):
             os.makedirs(folder)
         if self.subfolder is not None:
             os.path.join(folder, self.subfolder)
@@ -173,7 +173,7 @@ class FiguresConfig(object):
         folder = os.path.join(self._out_base, "figs")
         if self._separate_by_run:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
+        if not os.path.isdir(folder):
             os.makedirs(folder)
         return folder
 
