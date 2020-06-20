@@ -352,7 +352,7 @@ class Workflow(object):
 
     def write_tvb_simulator(self):
         self.writer.write_tvb_to_h5(self.simulator.connectivity,
-                                    os.path.join(self.config.out.FOLDER_RES, "Connectivity.h5"))
+                                    os.path.join(self.res_folder, "Connectivity.h5"))
         # self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
         self.write_group(self.tvb_model_dict, "tvb_model", "dictionary", close_file=False)
         if self.tvb_spike_stimulus is not None:
