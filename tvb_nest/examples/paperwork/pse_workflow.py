@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import time
 from collections import OrderedDict
 
 import numpy as np
@@ -7,6 +7,8 @@ import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
 from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
+from tvb_utils.utils import print_toc_message
+
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 

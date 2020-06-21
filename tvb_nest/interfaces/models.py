@@ -16,7 +16,7 @@ class RedWWexcIO(TVBNESTInterface):
     tvb_model = ReducedWongWangExcIO()
 
     def __init__(self, config=CONFIGURED):
-        super(RedWWexcIOinhI, self).__init__(config)
+        super(RedWWexcIO, self).__init__(config)
         LOG.info("%s created!" % self.__class__)
 
 
