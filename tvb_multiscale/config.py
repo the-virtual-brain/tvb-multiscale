@@ -14,7 +14,7 @@ from tvb.datatypes import cortex, connectivity
 
 import tvb_data
 
-from tvb_utils.utils import initialize_logger as initialize_logger_base
+from tvb_utils.utils import initialize_logger as initialize_logger_base, safe_makedirs
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
@@ -114,26 +114,22 @@ class OutputConfig(object):
     def _folder_figs(self):
         return self._folder("figs")
 
-    def _safe_makedir(self, folder):
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
     @property
     def FOLDER_LOGS(self):
         folder = self._folder_logs
-        self._safe_makedir(folder)
+        safe_makedirs(folder)
         return folder
 
     @property
     def FOLDER_RES(self):
         folder = self._folder_res
-        self._safe_makedir(folder)
+        safe_makedirs(folder)
         return folder
 
     @property
     def FOLDER_FIGURES(self):
         folder = self._folder_figs
-        self._safe_makedir(folder)
+        safe_makedirs(folder)
         return folder
 
     @property
@@ -182,8 +178,7 @@ class FiguresConfig(object):
         folder = os.path.join(self._out_base, "figs")
         if self._separate_by_run:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
+        safe_makedirs(folder)
         return folder
 
 
