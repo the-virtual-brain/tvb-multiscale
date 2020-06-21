@@ -129,5 +129,6 @@ class PSEWorkflowBase(object):
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
                 print_toc_message(tic)
+        self.workflow = None
         self.write_PSE()
         self.plot_PSE()

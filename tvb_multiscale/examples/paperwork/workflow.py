@@ -191,14 +191,10 @@ class Workflow(object):
     tvb_noise_strength = 0.01
     transient = None
     simulation_length = 100.0
-    print_progression_message=True
+    print_progression_message = True
 
     spiking_regions_ids = []
 
-    tvb_ts = None
-    mf_ts = None
-    tvb_rates = None
-    tvb_spikes = None
     rates = None
 
     def __init__(self, **pse_params):
@@ -221,18 +217,16 @@ class Workflow(object):
     def reset(self, pse_params):
         self.pse_params = pse_params
         self.model_params = {"TVB": {}, "NEST": {"E": {}, "I": {}}}
+        self.mf_nodes_ids = []
         self.tvb_spike_stimulus = None
         self.simulator = None
-        self.tvb_ts = None
-        self.mf_ts = None
-        self.tvb_rates = None
-        self.tvb_spikes = None
         self.rates = None
 
     def configure(self):
         if self.transient is None:
             self.transient = 0.1 * self.simulation_length
             self.simulation_length += self.transient
+        self.duration = (self.simulation_length - self.transient) / 1000  # make it seconds
         if self.tvb_monitor_period is None:
             self.tvb_monitor_period = self.dt
         if self.tvb_monitor_period > self.dt:
@@ -434,88 +428,87 @@ class Workflow(object):
     def simulate(self):
         results = self.simulator.run(simulation_length=self.simulation_length,
                                      print_progression_message=self.print_progression_message)
-        self.tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
+        try:
+            tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
                                        connectivity=self.simulator.connectivity,
                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],
                                        labels_dimensions={
                                             "State Variable": ensure_list(self.simulator.model.state_variables),
                                             "Region": self.simulator.connectivity.region_labels.tolist()},
                                        sample_period=self.simulator.integrator.dt)
-        if self.transient:
-            self.tvb_ts = self.tvb_ts[self.transient:]
-        if self.writer and self.write_time_series:
-            self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
+        except:
+            print("No TVB time series have been loaded!")
+            tvb_ts = None
+        del results
+        if tvb_ts is not None and self.transient:
+            tvb_ts = tvb_ts[self.transient:]
+        return tvb_ts
 
-    def get_mean_field(self):
+    def get_mean_field(self, tvb_ts):
+        mf_ts = None
         if self.tvb_spiking_model:
-            self.mf_ts = mean_field_per_population(self.tvb_ts, self.populations, self.populations_sizes)
-        else:
-            self.mf_ts = self.tvb_ts
-        return self.mf_ts
+            mf_ts = mean_field_per_population(tvb_ts, self.populations, self.populations_sizes)
+        return mf_ts
 
-    def get_tvb_spikes(self):
+    def get_tvb_spikes(self, tvb_ts):
+        tvb_spikes = None
         if self.tvb_spiking_model:
-            self.tvb_spikes = spikes_per_population(
-                    self.tvb_ts.get_state_variables(
+            tvb_spikes = spikes_per_population(
+                    tvb_ts.get_state_variables(
                         self.tvb_spikes_var).get_subspace_by_index(self.spiking_regions_ids),
                  self.populations, self.populations_sizes)
-        return self.tvb_spikes
+        return tvb_spikes
 
-    def get_tvb_rates(self):
+    def get_tvb_rates(self, tvb_ts=None, mf_ts=None, tvb_spikes=None):
         if self.tvb_spiking_model:
-            if self.tvb_spike_rate_var not in self.mf_ts.labels_dimensions["State Variable"]:
-                self.tvb_rates = \
-                    spike_rates_from_TVB_spike_ts(self.tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
-                self.tvb_rates.title = "Region mean field spike rate time series"
+            if self.tvb_spike_rate_var not in mf_ts.labels_dimensions["State Variable"]:
+                tvb_rates = \
+                    spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
+                tvb_rates.title = "Region mean field spike rate time series"
             else:
-                self.mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
+                mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
                     (self.simulator.integrator.dt * 0.001)  # rate in Hz
-                self.tvb_rates = spike_rates_from_mean_field_rates(self.mf_ts)
-                self.tvb_rates.title = "Region mean field rate time series"
+                tvb_rates = spike_rates_from_mean_field_rates(mf_ts)
+                tvb_rates.title = "Region mean field rate time series"
         else:
-            self.tvb_rates = self.tvb_ts[:, self.tvb_rate_vars]
-            self.tvb_rates.name = "Region mean field rate time series"
-        return DataArray(self.tvb_rates.mean(axis=0).squeeze(axis=-1),
-                         dims=self.tvb_rates.dims[1:3],
-                         coords={self.tvb_rates.dims[1]: self.tvb_rates.coords[self.tvb_rates.dims[1]],
-                                 self.tvb_rates.dims[2]: self.tvb_rates.coords[self.tvb_rates.dims[2]]})
+            tvb_rates = tvb_ts[:, self.tvb_rate_vars]
+            tvb_rates.name = "Region mean field rate time series"
+        return DataArray(tvb_rates.mean(axis=0).squeeze(axis=-1),
+                         dims=tvb_rates.dims[1:3],
+                         coords={tvb_rates.dims[1]: tvb_rates.coords[tvb_rates.dims[1]],
+                                 tvb_rates.dims[2]: tvb_rates.coords[tvb_rates.dims[2]]}), tvb_rates
 
-    def get_tvb_corrs(self):
-        return {"Pearson": TimeSeries_correlation(self.tvb_rates, corrfun=pearson, force_dims=4),
-                "Spearman": TimeSeries_correlation(self.tvb_rates, corrfun=spearman, force_dims=4)}
+    def get_tvb_corrs(self, tvb_rates):
+        return {"Pearson": TimeSeries_correlation(tvb_rates, corrfun=pearson, force_dims=4),
+                "Spearman": TimeSeries_correlation(tvb_rates, corrfun=spearman, force_dims=4)}
 
-    def plot_tvb_ts(self):
+    def plot_tvb_ts(self, tvb_ts, mf_ts=None):
+        if mf_ts is None:
+            mf_ts = tvb_ts
         # For timeseries plot:
-        self.mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True,
-                                   figsize=self.figsize, add_legend=False)
-
+        mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True,
+                              figsize=self.figsize, add_legend=False)
         # For raster plot:
         if self.number_of_regions > 9:
-            self.mf_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True,
-                                   figsize=self.figsize, add_legend=False)
-
+            mf_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True,
+                              figsize=self.figsize, add_legend=False)
         n_spiking_nodes_ids = len(self.spiking_regions_ids)
         if n_spiking_nodes_ids > 0:
             if n_spiking_nodes_ids < self.simulator.connectivity.number_of_regions:
-
-                self.mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter_config=self.plotter.config,
-                                                                           per_variable=True, figsize=self.figsize,
-                                                                           figname="Spiking nodes mean-field "
-                                                                                   "TVB Time Series")
+                mf_ts[:, :, self.spiking_regions_ids].plot_timeseries(plotter_config=self.plotter.config,
+                                                                      per_variable=True, figsize=self.figsize,
+                                                                      figname="Spiking nodes mean-field "
+                                                                              "TVB Time Series")
                 if n_spiking_nodes_ids > 3:
-                    self.mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter_config=self.plotter.config,
-                                                                           per_variable=True, figsize=self.figsize,
-                                                                           figname="Spiking nodes TVB Time Series Raster")
-            self.tvb_ts[:, :, self.spiking_regions_ids].plot_map(y=self.tvb_ts._data.dims[3],
-                                                                 row=self.tvb_ts._data.dims[2],
-                                                                 per_variable=True,
-                                                                 figname="Spiking nodes TVB Time Series",
-                                                                 figsize=self.figsize,
-                                                                 plotter_config=self.plotter.config)
-            for i_pop, spike in enumerate(self.tvb_spikes):
-                spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
-                           cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
-            self.tvb_rates.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
+                    mf_ts[:, :, self.spiking_regions_ids].plot_raster(plotter_config=self.plotter.config,
+                                                                      per_variable=True, figsize=self.figsize,
+                                                                      figname="Spiking nodes TVB Time Series Raster")
+            tvb_ts[:, :, self.spiking_regions_ids].plot_map(y=tvb_ts._data.dims[3],
+                                                            row=tvb_ts._data.dims[2],
+                                                            per_variable=True,
+                                                            figname="Spiking nodes TVB Time Series",
+                                                            figsize=self.figsize,
+                                                            plotter_config=self.plotter.config)
 
     def run(self, model_params={}):
         self.model_params.update(model_params)
@@ -524,41 +517,49 @@ class Workflow(object):
            if len(self.model_params) > 0:
                self.write_model_params(close_file=True)
 
-        # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
+        # ----------------------1. Define a TVB simulator (model, integrator, monitors...)------------------------------
         print("Preparing TVB simulator...")
         self.prepare_simulator()
 
         self.mf_nodes_ids = list(range(self.simulator.connectivity.number_of_regions))
 
-        # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
+        # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)---
 
         if len(self.spiking_regions_ids) > 0:
             for ind in self.spiking_regions_ids:
                 self.mf_nodes_ids.remove(ind)
 
-        # -----------------------------------3. Simulate and gather results-------------------------------------------------
+        # -----------------------------------3. Simulate and gather results---------------------------------------------
         # ...and simulate!
         print("Simulating TVB...")
         t_start = time.time()
-        self.simulate()
+        tvb_ts = self.simulate()
         print("\nSimulated in %g secs!" % (time.time() - t_start))
 
-        self.duration = (self.simulation_length - self.transient) / 1000  # make it seconds
-
-        # -----------------------------------4. Compute rate per region and population--------------------------------------
-        self.get_mean_field()
-        self.get_tvb_spikes()
+        # -----------------------------------4. Compute rate per region and population----------------------------------
         self.rates = {}
         self.corrs = {}
-        self.rates["TVB"] = self.get_tvb_rates()
-        self.corrs["TVB"] = self.get_tvb_corrs()
-        if self.writer:
-            self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
-            self.write_object(self.corrs["TVB"].to_dict(), "TVB_corrs")
-
-        # -------------------------------------------5. Plot results--------------------------------------------------------
-        if self.plotter:
-            if self.tvb_ts is not None:
-                self.plot_tvb_ts()
+        if tvb_ts is not None:
+            if self.writer and self.write_time_series:
+                self.write_ts(tvb_ts, "TVB_TimeSeries", recursive=True)
+            mf_ts = self.get_mean_field(tvb_ts)
+            if self.plotter:
+                self.plot_tvb_ts(tvb_ts, mf_ts)
+            tvb_spikes = self.get_tvb_spikes(tvb_ts)
+            if tvb_spikes is not None and self.plotter:
+                for i_pop, spike in enumerate(tvb_spikes):
+                    spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
+                               cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
+            self.rates["TVB"], tvb_rates = self.get_tvb_rates(tvb_ts, mf_ts, tvb_spikes)
+            del tvb_ts  # Free memory...
+            del mf_ts  # Free memory...
+            del tvb_spikes  # Free memory...
+            self.corrs["TVB"] = self.get_tvb_corrs(tvb_rates)
+            if self.plotter:
+                tvb_rates.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
+                del tvb_rates  # Free memory
+            if self.writer:
+                self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
+                self.write_object(self.corrs["TVB"], "TVB_corrs")
 
         return self.rates, self.corrs
