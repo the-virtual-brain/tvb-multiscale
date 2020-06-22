@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 import time
 from collections import OrderedDict
 import numpy as np
@@ -54,18 +54,30 @@ class Workflow(WorkflowBase):
     exclusive_nodes = True
     tvb_nest_model = None
 
-    nest_ts = None
-    nest_spikes = None
+    @property
+    def _nest_instance(self):
+        try:
+            return self.nest_network.nest_instance
+        except:
+            return None
 
     def __init__(self, **pse_params):
         self.pse_params = pse_params
 
-    def reset(self, pse_params):
+    def reset(self, pse_params, reset_nest_kernel=True, kill_nest_kernel=True):
         super(Workflow, self).reset(pse_params)
         self.nest_network = None
         self.tvb_nest_model = None
-        self.nest_ts = None
-        self.nest_spikes = None
+        if reset_nest_kernel:
+            try:
+                self._nest_instance.ResetKernel()
+            except:
+                pass
+        if kill_nest_kernel:
+            try:
+                del self.nest_network.nest_instance
+            except:
+                pass
 
     @property
     def general_parameters(self):
@@ -122,7 +134,10 @@ class Workflow(WorkflowBase):
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.nest_model_builder.global_coupling_scaling = \
             self.simulator.model.G[0].item() * self.simulator.coupling.a[0].item()
-        self.nest_model_builder.lamda = 0.0  # self.simulator.model.lamda[0].item()
+        try:
+            self.nest_model_builder.lamda = self.simulator.model.lamda[0].item()
+        except:
+            self.nest_model_builder.lamda = 0.0
         w_p = 1.55  # self.simulator.model.w_p[0].item()
         J_i = 1.0  # self.simulator.model.J_i[0].item()
 
@@ -475,7 +490,10 @@ class Workflow(WorkflowBase):
                                                               N_E=self.N_E, N_I=self.N_I)
 
         self.interface_builder.global_coupling_scaling = self.simulator.model.G[0] * self.simulator.coupling.a[0]
-        self.interface_builder.lamda = self.simulator.model.lamda[0]
+        try:
+            self.interface_builder.lamda = self.simulator.model.lamda[0]
+        except:
+            self.interface_builder.lamda = 0.0
 
         # TVB -> NEST
         if self.tvb_to_nest_interface == "rate":
@@ -496,34 +514,12 @@ class Workflow(WorkflowBase):
 
         return self.tvb_nest_model
 
-    def get_nest_data(self):
-
-        self.nest_ts = \
-            TimeSeriesRegionX(
-                self.nest_network.get_data_from_multimeter(mode="per_neuron",
-                                                           populations_devices=["Excitatory", "Inhibitory"]),
-                connectivity=self.connectivity)
-
-        if self.transient:
-            self.nest_ts = self.nest_ts[self.transient:]
-            exclude_times = [0.0, self.transient]
-        else:
-            exclude_times = None
-
-        self.nest_spikes = self.nest_network.get_spikes(mode="events", return_type="Series",
-                                                        exclude_times=exclude_times)
-
-        return self.nest_ts, self.nest_spikes
-
     def cosimulate(self, cleanup=True):
-
         # Configure the simulator with the TVB-NEST interface...
         self.simulator.configure(self.tvb_nest_model)
-
         # ...and simulate!
         results = self.simulator.run(simulation_length=self.simulation_length,
                                      print_progression_message=self.print_progression_message)
-
         if self.simulator.tvb_spikeNet_interface is not None:
             # Integrate NEST one more NEST time step so that multimeters get the last time point
             # unless you plan to continue simulation later
@@ -531,39 +527,53 @@ class Workflow(WorkflowBase):
                 self.simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
             # Clean-up NEST simulation
             self.simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
-
-        self.tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
-                                        connectivity=self.simulator.connectivity,
-                                        labels_ordering=["Time", "State Variable", "Region", "Neurons"],
-                                        labels_dimensions={
+        try:
+            tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
+                                       connectivity=self.simulator.connectivity,
+                                       labels_ordering=["Time", "State Variable", "Region", "Neurons"],
+                                       labels_dimensions={
                                            "State Variable": ensure_list(self.simulator.model.state_variables),
                                            "Region": self.simulator.connectivity.region_labels.tolist()},
-                                        sample_period=self.simulator.integrator.dt)
-        if self.transient:
-            self.tvb_ts = self.tvb_ts[self.transient:]
-        if self.writer and self.write_time_series:
-            self.write_ts(self.tvb_ts, "TVB_TimeSeries", recursive=True)
-
-        if self.tvb_nest_model is not None:
-            self.nest_ts, self.nest_spikes = self.get_nest_data()
-            if self.writer and self.write_time_series:
-                self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
-                self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
-
-        return self.tvb_ts, self.nest_ts, self.nest_spikes
+                                       sample_period=self.simulator.integrator.dt)
+        except:
+            print("No TVB time series have been loaded!")
+            tvb_ts = None
+        del results
+        if tvb_ts is not None and self.transient:
+            tvb_ts = tvb_ts[self.transient:]
+        return tvb_ts
 
     def simulate_nest(self, cleanup=True):
         self.nest_network.configure()
         self.nest_network.Run(self.simulation_length)
-        self.nest_ts, self.nest_spikes = self.get_nest_data()
         if cleanup:
             self.nest_network.nest_instance.Cleanup()
-        if self.writer and self.write_time_series:
-            self.write_ts(self.nest_ts, "NEST_TimeSeries", recursive=True)
-            self.write_object(self.nest_spikes.to_dict(), "NEST_Spikes")
-        return self.nest_ts, self.nest_spikes
+        return 1
 
-    def get_nest_rates_corrs(self):
+    def get_nest_ts(self):
+        try:
+            nest_ts = \
+                TimeSeriesRegionX(
+                    self.nest_network.get_data_from_multimeter(mode="per_neuron",
+                                                               populations_devices=["Excitatory", "Inhibitory"]),
+                    connectivity=self.connectivity)
+        except:
+            print("No time series loaded from NEST!")
+            nest_ts = None
+        if nest_ts is not None and self.transient:
+            nest_ts = nest_ts[self.transient:]
+        return nest_ts
+
+    def get_nest_spikes(self):
+        if self.transient:
+            exclude_times = [0.0, self.transient]
+        else:
+            exclude_times = None
+        nest_spikes = self.nest_network.get_spikes(mode="events", return_type="Series",
+                                                   exclude_times=exclude_times)
+        return nest_spikes
+
+    def get_nest_rates_corrs(self, nest_spikes, time=None):
         from pandas import MultiIndex
         from elephant.statistics import time_histogram
         from elephant.conversion import BinnedSpikeTrain
@@ -575,11 +585,20 @@ class Workflow(WorkflowBase):
         spike_ts = []
         spike_trains = []
         pop_labels = []
-        time = self.nest_ts.time
-        t_start = time[0]
-        t_stop = time[-1]
+        if time is not None:
+            t_start = time[0]
+            t_stop = time[-1]
+        else:
+            t_start = []
+            t_stop = []
+            for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
+                for reg_label, reg_spikes in pop_spikes.iteritems():
+                    t_start.append(np.min(reg_spikes["times"]).item())
+                    t_stop.append(np.max(reg_spikes["times"]).item())
+            t_start = np.min(t_start)
+            t_stop = np.max(t_stop)
         dt = np.diff(time).mean()
-        for i_pop, (pop_label, pop_spikes) in enumerate(self.nest_spikes.iteritems()):
+        for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
             pop_labels.append(pop_label)
             rates.append([])
             reg_labels = []
@@ -591,12 +610,16 @@ class Workflow(WorkflowBase):
                 rates[-1].append(len(these_spikes) / self.duration / self.populations_sizes[i_pop])
                 spike_trains.append(SpikeTrain(these_spikes*ms, t_stop=t_stop, t_start=t_start))
                 spike_ts.append(np.array(time_histogram([spike_trains[-1]], binsize=dt*ms)).squeeze())
-
+        del these_spikes
+        del nest_spikes  # Free memory...
         binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt * ms)
+        del spike_trains  # Free memory...
         corrs["spike_train"] = spike_train_correlation.corrcoef(binned_spikes)
+        del binned_spikes  # Free memory...
         spike_ts = np.array(spike_ts).T
         corrs["Pearson"] = pearson(spike_ts)
         corrs["Spearman"] = spearman(spike_ts)
+        del spike_ts  # Free memory...
         rates = DataArray(np.array(rates),
                           dims=["Population", "Region"],
                           coords={"Population": pop_labels, "Region": reg_labels})
@@ -616,18 +639,19 @@ class Workflow(WorkflowBase):
                                                                                  names=names[1])})
             corrs[corr] = corrs[corr].unstack(new_dims)
             temp_dims = list(corrs[corr].dims)
-            corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))  # Put variables in front of regions
+            # Put variables in front of regions:
+            corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))
         return rates, corrs
 
-    def plot_tvb_ts(self):
+    def plot_tvb_ts(self, tvb_ts):
         # For timeseries plot:
-        self.tvb_ts.plot_timeseries(plotter_config=self.plotter.config,
-                                    per_variable=True, figsize=self.figsize, add_legend=False)
+        tvb_ts.plot_timeseries(plotter_config=self.plotter.config,
+                               per_variable=True, figsize=self.figsize, add_legend=False)
 
         # For raster plot:
         if self.number_of_regions > 9:
-            self.tvb_ts.plot_raster(plotter_config=self.plotter.config,
-                                    per_variable=True, figsize=self.figsize, add_legend=False)
+            tvb_ts.plot_raster(plotter_config=self.plotter.config,
+                               per_variable=True, figsize=self.figsize, add_legend=False)
 
         spiking_nodes_ids = []
         if self.exclusive_nodes:
@@ -635,16 +659,16 @@ class Workflow(WorkflowBase):
 
         n_spiking_nodes_ids = len(spiking_nodes_ids)
         if n_spiking_nodes_ids > 0:
-            self.tvb_ts[:, :, spiking_nodes_ids].plot_timeseries(plotter_config=self.plotter.config, per_variable=True,
-                                                                 figsize=self.figsize,
-                                                                 figname="Spiking nodes TVB Time Series")
+            tvb_ts[:, :, spiking_nodes_ids].plot_timeseries(plotter_config=self.plotter.config,
+                                                            per_variable=True, figsize=self.figsize,
+                                                            figname="Spiking nodes TVB Time Series")
             if n_spiking_nodes_ids > 3:
-                self.tvb_ts[:, :, spiking_nodes_ids].plot_raster(plotter_config=self.plotter.config, per_variable=True,
-                                                                 figsize=self.figsize,
-                                                                 figname="Spiking nodes TVB Time Series Raster")
+                tvb_ts[:, :, spiking_nodes_ids].plot_raster(plotter_config=self.plotter.config,
+                                                            per_variable=True, figsize=self.figsize,
+                                                            figname="Spiking nodes TVB Time Series Raster")
 
-    def compute_nest_mean_field(self):
-        mean_field = TimeSeriesRegionX(self.nest_ts._data.mean(axis=-1), connectivity=self.nest_ts.connectivity,
+    def compute_nest_mean_field(self, nest_ts):
+        mean_field = TimeSeriesRegionX(nest_ts._data.mean(axis=-1), connectivity=nest_ts.connectivity,
                                        title="Mean field spiking nodes time series")
         # We place here all variables that relate to local excitatory synapses
         mean_field_exc = mean_field[:, ["spikes_exc", "s_AMPA", "I_AMPA", "x_NMDA", "s_NMDA", "I_NMDA"]]
@@ -686,8 +710,9 @@ class Workflow(WorkflowBase):
 
         return mean_field, mean_field_ext, mean_field_exc, mean_field_inh, mean_field_neuron
 
-    def plot_nest_ts(self):
-        mean_field, mean_field_ext, mean_field_exc, mean_field_inh, mean_field_neuron = self.compute_nest_mean_field()
+    def plot_nest_ts(self, nest_ts):
+        mean_field, mean_field_ext, mean_field_exc, mean_field_inh, mean_field_neuron = \
+            self.compute_nest_mean_field(nest_ts)
 
         mean_field_ext.plot_timeseries(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
         # Then plot the local excitatory...:
@@ -711,11 +736,9 @@ class Workflow(WorkflowBase):
             # ...and finally the common neuronal variables:
             mean_field_neuron.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
         # else:  # Uncomment this but mind that it will take some time and storage...
-        #     dims = self.nest_ts.labels_ordering
-        #     self.nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
-        #                           cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
-
-        self.plotter.plot_spike_events(self.nest_spikes)
+        #     dims = nest_ts.labels_ordering
+        #     nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
+        #                      cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
 
     def run(self, model_params={}):
         self.model_params.update(model_params)
@@ -753,38 +776,55 @@ class Workflow(WorkflowBase):
         else:
             self.tvb_nest_model = None
 
-        # -----------------------------------4. Simulate and gather results-------------------------------------------------
+        self.rates = {"TVB": [], "NEST": []}
+        self.corrs = {"TVB": [], "NEST": []}
+
+        # -----------------------------------4. Simulate and gather results---------------------------------------------
         t_start = time.time()
+        t = None
         if self.tvb_nest_model is not None or len(self.tvb_nodes_ids) != 0:
             print("Co-Simulating...")
-            self.cosimulate()
+            tvb_ts = self.cosimulate()
+            # ------------5. Deal with TVB time series (plot, write, compute rates and correlations)--------------------
+
+            print("\nSimulated in %f secs!" % (time.time() - t_start))
+            if tvb_ts is not None:
+                t = tvb_ts.time
+                if self.writer and self.write_time_series:
+                    self.write_ts(tvb_ts, "TVB_TimeSeries", recursive=True)
+                if self.plotter:
+                    self.plot_tvb_ts(tvb_ts)
+                self.rates["TVB"] = self.get_tvb_rates(tvb_ts)[0]
+                self.corrs["TVB"] = self.get_tvb_corrs(tvb_ts)
+                if self.writer:
+                    self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
+                    self.write_object(self.corrs["TVB"], "TVB_corrs")
+                del tvb_ts  # Free memory now...
         else:
             print("Simulating NEST...")
             self.simulate_nest()
-        print("\nSimulated in %f secs!" % (time.time() - t_start))
+            print("\nSimulated in %f secs!" % (time.time() - t_start))
 
-        self.duration = (self.simulation_length - self.transient) / 1000  # make it seconds
+        # --------------------------6. Deal with NEST time series (plot, write)-----------------------------------------
+        nest_ts = self.get_nest_ts()
+        if nest_ts is not None:
+            t = nest_ts.time
+            if self.writer and self.write_time_series:
+                self.write_ts(nest_ts, "NEST_TimeSeries", recursive=True)
+            if self.plotter:
+                self.plot_nest_ts(nest_ts)
+            del nest_ts  # Free memory now...
 
-        # -----------------------------------5. Compute rate per region and population--------------------------------------
-        self.rates = {"TVB": [], "NEST": []}
-        self.corrs = {"TVB": [], "NEST": []}
-        if self.nest_spikes is not None:
-            self.rates["NEST"], self.corrs["NEST"] = self.get_nest_rates_corrs()
+        # --------------7. Deal with NEST spikes series (plot, write, rates, correlations)------------------------------
+        nest_spikes = self.get_nest_spikes()
+        if nest_spikes is not None:
+            if self.writer and self.write_time_series:
+                self.write_object(nest_spikes.to_dict(), "NEST_Spikes")
+            if self.plotter:
+                self.plotter.plot_spike_events(nest_spikes)
+            self.rates["NEST"], self.corrs["NEST"] = self.get_nest_rates_corrs(nest_spikes, t)
             if self.writer:
                 self.write_object(self.rates["NEST"].to_dict(), "NEST_rates")
                 self.write_object(self.corrs["NEST"], "NEST_corrs")
-        if self.tvb_ts is not None:
-            self.rates["TVB"] = self.get_tvb_rates()
-            self.corrs["TVB"] = self.get_tvb_corrs()
-            if self.writer:
-                self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
-                self.write_object(self.corrs["TVB"], "TVB_corrs")
-
-        # -------------------------------------------5. Plot results--------------------------------------------------------
-        if self.plotter:
-            if self.tvb_ts is not None:
-                self.plot_tvb_ts()
-            if self.nest_ts is not None:
-                self.plot_nest_ts()
 
         return self.rates, self.corrs

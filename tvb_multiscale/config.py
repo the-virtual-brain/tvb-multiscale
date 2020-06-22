@@ -14,7 +14,7 @@ from tvb.datatypes import cortex, connectivity
 
 import tvb_data
 
-from tvb_utils.utils import initialize_logger as initialize_logger_base
+from tvb_utils.utils import initialize_logger as initialize_logger_base, safe_makedirs
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
@@ -96,35 +96,40 @@ class OutputConfig(object):
         self._out_base = out_base or os.path.join(os.getcwd(), "outputs")
         self._separate_by_run = separate_by_run
 
+    def _folder(self, ftype=""):
+        folder = os.path.join(self._out_base, ftype)
+        if self._separate_by_run and len(ftype)>0:
+            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
+        return folder
+
+    @property
+    def _folder_logs(self):
+        return self._folder("logs")
+
+    @property
+    def _folder_res(self):
+        return self._folder("res")
+
+    @property
+    def _folder_figs(self):
+        return self._folder("figs")
+
     @property
     def FOLDER_LOGS(self):
-        folder = os.path.join(self._out_base, "logs")
-        if self._separate_by_run:
-            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
-            os.makedirs(folder)
+        folder = self._folder_logs
+        safe_makedirs(folder)
         return folder
 
     @property
     def FOLDER_RES(self):
-        folder = os.path.join(self._out_base, "res")
-        if self._separate_by_run:
-            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
-            os.makedirs(folder)
-        if self.subfolder is not None:
-            os.path.join(folder, self.subfolder)
+        folder = self._folder_res
+        safe_makedirs(folder)
         return folder
 
     @property
     def FOLDER_FIGURES(self):
-        folder = os.path.join(self._out_base, "figs")
-        if self._separate_by_run:
-            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
-            os.makedirs(folder)
-        if self.subfolder is not None:
-            os.path.join(folder, self.subfolder)
+        folder = self._folder_figs
+        safe_makedirs(folder)
         return folder
 
     @property
@@ -173,8 +178,7 @@ class FiguresConfig(object):
         folder = os.path.join(self._out_base, "figs")
         if self._separate_by_run:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        if not (os.path.isdir(folder)):
-            os.makedirs(folder)
+        safe_makedirs(folder)
         return folder
 
 

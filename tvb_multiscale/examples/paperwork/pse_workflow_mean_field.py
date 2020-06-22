@@ -4,6 +4,7 @@ import numpy as np
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb_multiscale.examples.paperwork.pse_workflow_base import PSEWorkflowBase, symmetric_connectivity
 from tvb_multiscale.examples.paperwork.workflow import Workflow
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class PSEWorkflowMF(PSEWorkflowBase):
@@ -11,40 +12,55 @@ class PSEWorkflowMF(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman"]
     _corr_results = ["Pearson", "Spearman"]
 
-    def __init__(self, init_cond=0):
+    def __init__(self, w=None, branch="low", fast=False):
+        self.branch = branch
         self.workflow = Workflow()
         self.workflow.tvb_model = ReducedWongWangExcIO
-        if init_cond:
+        if self.branch == "high":
             self.workflow.tvb_init_cond = np.zeros((1, 4, 1, 1))
             self.workflow.tvb_init_cond[0, 0, 0, 0] = 1.0
-            self.name = "high" + self.name
-        else:
-            self.name = "low" + self.name
+        self.name = self.branch + self.name
         self.workflow.name = self.name
         self.workflow.symmetric_connectome = True
         self.workflow.time_delays = False
         self.workflow.simulation_length = 2000.0
         self.workflow.transient = 1000.0
+        if fast:
+            self.workflow.simulation_length /= 10
+            self.workflow.transient /= 10
         self.workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
         self.workflow.tvb_sim_numba = True
         self.workflow.plotter = True
         self.workflow.writer = True
         self.workflow.write_time_series = False
         self.workflow.print_progression_message = self.print_progression_message
-        self.configure_paths()
+        kwargs = {}
+        if w is not None:
+            w = ensure_list(w)
+            if len(w) == 1:
+                kwargs = {"w+": w[0]}
+        self.configure_paths(**kwargs)
 
-    def configure_PSE(self):
-        self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
+    def configure_PSE(self, w=None):
+        if w is None:
+            w = np.arange(0.8, 1.6, 0.1)
+        else:
+            w = np.sort(ensure_list(w))
+        self.PSE["params"]["w+"] = w
         super(PSEWorkflowMF, self).configure_PSE()
 
 
 class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
     name = "PSE_1_tvb_mf_node_St_w"
 
-    def __init__(self, init_cond=0):
-        super(PSE_1_TVBmfNodeStW, self).__init__(init_cond)
-        self.PSE["params"]["Stimulus"] = np.arange(0.9, 1.31, 0.01)
-        self.configure_PSE()
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast)
+        if fast:
+            step = 0.1
+        else:
+            step = 0.01
+        self.PSE["params"]["Stimulus"] = np.arange(0.9, 1.31, step)
+        self.configure_PSE(w)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
         self.workflow.force_dims = 10
@@ -63,11 +79,16 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
 class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
     name = "PSE_2_tvb_mf_nodes_G_w"
 
-    def __init__(self, init_cond=0):
-        super(PSE_2_TVBmfNodesGW, self).__init__(init_cond)
-        self.PSE["params"]["G"] = np.arange(0.0, 405.0, 10.0)  #  100.0, 320.0, 20.0
-        self.configure_PSE()
-        Nreg_shape = (2, ) + self.pse_shape
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast)
+        if fast:
+            step = 100.0
+        else:
+            step = 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+        self.configure_PSE(w)
+        Nreg = 2
+        Nreg_shape = (Nreg, ) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape)}
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
         self.PSE["results"]["rate % diff"] = {"E": np.zeros(self.pse_shape)}
@@ -75,7 +96,7 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
             self.PSE["results"][corr] = OrderedDict()
             self.PSE["results"][corr]["EE"] = np.zeros(self.pse_shape)
         self._plot_results = ["rate", "rate % diff", "Pearson", "Spearman"]
-        self.workflow.force_dims = 2
+        self.workflow.force_dims = Nreg
 
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
@@ -97,9 +118,13 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
 class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
     name = "PSE_3_tvb_mf_nodes_G_w"
 
-    def __init__(self, init_cond=0):
-        super(PSE_2_TVBmfNodesGW, self).__init__(init_cond)
-        self.PSE["params"]["G"] = np.arange(0.0, 405.0, 10.0)  #  100.0, 320.0, 20.0
+    def __init__(self, w=None, branch="low", fast=False):
+        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast)
+        if fast:
+            step = 100.0
+        else:
+            step = 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)  #  100.0, 320.0, 20.0
         self.configure_PSE()
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape

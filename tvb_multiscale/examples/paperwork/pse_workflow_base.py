@@ -7,7 +7,6 @@ import numpy as np
 from matplotlib import pyplot as pl
 from tvb.datatypes.connectivity import Connectivity
 from tvb_multiscale.config import CONFIGURED, Config
-from tvb_multiscale.examples.paperwork.workflow import Workflow
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_utils.utils import read_dicts_from_h5file_recursively, print_toc_message
 from xarray import DataArray
@@ -15,12 +14,16 @@ from xarray import DataArray
 
 def plot_result(PSE_params, result, name, path):
     arr = DataArray(data=result, dims=list(PSE_params.keys()), coords=dict(PSE_params), name=name)
-    fig, axes = pl.subplots(nrows=2, ncols=2, gridspec_kw={"width_ratios": [1, 0.1]}, figsize=(10, 10))
-    axes[1, 1].remove()
-    im = arr.plot(x=arr.dims[0], y=arr.dims[1], ax=axes[0, 0], add_colorbar=False)
-    axes[0, 0].set_xlabel("")
-    fig.colorbar(im, cax=axes[0, 1], orientation="vertical", label=arr.name)
-    arr.plot.line(x=arr.dims[0], hue=arr.dims[1], ax=axes[1, 0])
+    if arr.shape[1] > 1:
+        fig, axes = pl.subplots(nrows=2, ncols=2, gridspec_kw={"width_ratios": [1, 0.1]}, figsize=(10, 10))
+        axes[1, 1].remove()
+        im = arr.plot(x=arr.dims[0], y=arr.dims[1], ax=axes[0, 0], add_colorbar=False)
+        axes[0, 0].set_xlabel("")
+        fig.colorbar(im, cax=axes[0, 1], orientation="vertical", label=arr.name)
+        arr.plot.line(x=arr.dims[0], hue=arr.dims[1], ax=axes[1, 0])
+    else:
+        fig = pl.figure(figsize=(10, 5))
+        arr.plot.line(x=arr.dims[0])
     pl.savefig(path)
 
 
@@ -43,12 +46,17 @@ class PSEWorkflowBase(object):
     writer = H5Writer()
     print_progression_message = False
 
-    def configure_paths(self):
-        self.folder_res = self.config.out.FOLDER_RES.replace("res", self.name)
+    def configure_paths(self, **kwargs):
+        self.folder_res = self.config.out._folder_res.replace("res", self.name)
         if not os.path.isdir(self.folder_res):
             os.makedirs(self.folder_res)
-        self.res_path = os.path.join(self.folder_res, self.name + ".h5")
+        self.res_path = os.path.join(self.folder_res, self.name)
         self.folder_figs = os.path.join(self.folder_res, "figs")
+        for key, val in kwargs.items():
+            addstring = "_%s%g" % (key, val)
+            self.res_path = self.res_path + addstring
+            self.folder_figs = self.folder_figs + addstring
+        self.res_path = self.res_path + ".h5"
         if not os.path.isdir(self.folder_figs):
             os.makedirs(self.folder_figs)
 
@@ -121,5 +129,6 @@ class PSEWorkflowBase(object):
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
                 print_toc_message(tic)
+        self.workflow = None
         self.write_PSE()
         self.plot_PSE()

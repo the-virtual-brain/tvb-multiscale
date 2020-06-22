@@ -42,6 +42,26 @@ def initialize_logger(name, target_folder):
     return logger
 
 
+def safe_makedirs(folder):
+    # solution based on https://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
+    if not os.path.isdir(folder):
+        try:
+            # This should work for Python >= 3.2
+            os.makedirs(folder, exist_ok=True)
+        except OSError as exc:  # Python ≥ 2.5
+            try:
+                os.makedirs(folder)
+            except:
+                try:  # just in case errno cannot be imported...
+                    import errno
+                    if exc.errno == errno.EEXIST and os.path.isdir(folder):
+                        pass
+                    else:
+                        raise
+                except:
+                    pass
+
+
 def print_toc_message(tic):
     toc = time.time() - tic
     if toc > 60.0:
