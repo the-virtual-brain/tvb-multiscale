@@ -17,14 +17,14 @@ args = sys.argv
 tic = time.time()
 
 try:
-    fast = args[4] == "fast"
+    fast = args[5] == "fast"
 except:
     fast = False
 
 print("fast=%s" % str(fast))
 
 # Run workflow for a single pair of G, w+ values.
-config = Config(separate_by_run=False)
+config = Config(separate_by_run=False, output_base=args[4])
 writer = H5Writer()
 PSE = {"params": OrderedDict(), "results": OrderedDict()}
 _plot_results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
@@ -57,6 +57,7 @@ for key, val in PSE["params"].items():
 res_path = res_path + ".h5"
 # Create and configure workflow
 workflow = Workflow()
+workflow.config = config
 workflow.name = name
 workflow.tvb_to_nest_interface = None
 workflow.symmetric_connectome = True

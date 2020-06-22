@@ -14,14 +14,15 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 class PSENESTWorkflowBase(PSEWorkflowBase):
     name = "PSENESTWorkflow"
 
-    def __init__(self, w=None, branch="low", fast=False):
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSENESTWorkflowBase, self).__init__()
         self.branch = branch
         self.name = self.branch + self.name
-        self.config = Config(separate_by_run=False)
+        self.config = Config(separate_by_run=False, output_base=output_base)
         self._plot_results = ["rate", "Pearson", "Spearman", "spike train"]
         self._corr_results = ["Pearson", "Spearman", "spike train"]
         self.workflow = Workflow()
+        self.workflow.config = self.config
         self.workflow.name = self.name
         self.workflow.tvb_to_nest_interface = None
         self.workflow.symmetric_connectome = True
@@ -64,8 +65,8 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
 class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
     name = "PSE_1_NESTnodeStW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_NESTnodeStW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_1_NESTnodeStW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 2.0
         else:
@@ -94,8 +95,8 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
 class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
     name = "PSE_2_NESTnodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -138,8 +139,8 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
     name = "PSE_3_NESTnodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
