@@ -4,8 +4,9 @@ from copy import deepcopy
 from collections import OrderedDict
 
 import numpy as np
-from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
 
+from tvb_multiscale.config import Config
+from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
 from tvb_multiscale.examples.paperwork.workflow import Workflow
 from tvb_utils.utils import print_toc_message
 
@@ -30,7 +31,8 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman", "spike train"]
     _corr_results = ["Pearson", "Spearman", "spike train"]
 
-    def __init__(self, w=None, branch="low", fast=False):
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        self.config = Config(separate_by_run=False, output_base=output_base)
         self.branch = branch
         if self.branch == "low":
             self.noise = 0.01
@@ -39,6 +41,7 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         self.name = branch + self.name
         self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
         self.workflow = Workflow()
+        self.workflow.config = self.config
         self.workflow.tvb_model = SpikingWongWangExcIOInhI
         self.workflow.name = self.name
         self.workflow.populations_sizes = [100, 100]
@@ -79,8 +82,8 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
 class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
     name = "PSE_1_TVBspikingNodeStW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 1.0
         else:
@@ -129,8 +132,8 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
 class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
     name = "PSE_2_TVBspikingNodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -192,8 +195,8 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
 class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
     name = "PSE_3_TVBspikingNodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:

@@ -29,19 +29,19 @@ def run_PSE(pse_class, todo="run", **kwargs):
     return pse_workflow.PSE
 
 
-def single_nest_PSE(todo="run", w=None, branch="low", fast=False):
+def single_nest_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_nest.examples.paperwork.pse_workflow import PSE_1_NESTnodeStW
-    return run_PSE(PSE_1_NESTnodeStW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_1_NESTnodeStW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def two_nest_nodes_PSE(todo="run", w=None, branch="low", fast=False):
+def two_nest_nodes_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_nest.examples.paperwork.pse_workflow import PSE_2_NESTnodesGW
-    return run_PSE(PSE_2_NESTnodesGW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_2_NESTnodesGW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def three_nest_nodes_PSE(todo="run", w=None, branch="low", fast=False):
+def three_nest_nodes_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_nest.examples.paperwork.pse_workflow import PSE_3_NESTnodesGW
-    return run_PSE(PSE_3_NESTnodesGW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_3_NESTnodesGW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
 def plot_result(PSE_params, result, name, path):

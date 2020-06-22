@@ -10,13 +10,13 @@ args = sys.argv
 tic = time.time()
 
 try:
-    fast = args[3] == "fast"
+    fast = args[4] == "fast"
 except:
     fast = False
 
 print("fast=%s" % str(fast))
 
 # Run PSE for default St values:
-single_nest_PSE(w=float(args[1]), branch=args[2], fast=fast)
+single_nest_PSE(w=float(args[1]), branch=args[2], fast=fast, output_base=args[3])
 
 print_toc_message(tic)
