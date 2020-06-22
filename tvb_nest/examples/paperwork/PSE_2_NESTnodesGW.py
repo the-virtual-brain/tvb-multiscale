@@ -92,9 +92,8 @@ rates, corrs = workflow.run()
 del workflow
 i_g = 0
 i_w = 0
-PSE["results"]["rate per node"]["E"][:, i_g, i_w] = rates["NEST"][0].values.squeeze()
-PSE["results"]["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
-for pop in ["E", "I"]:
+for i_pop, pop in enumerate(["E", "I"]):
+    PSE["results"]["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
     PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate per node"][pop][:, i_g, i_w].mean()
     PSE["results"]["rate % diff"][pop][i_g, i_w] = \
         100 * np.abs(np.std(PSE["results"]["rate per node"][pop][:, i_g, i_w])
