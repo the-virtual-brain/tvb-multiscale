@@ -87,8 +87,8 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
-        self.PSE["results"]["rate"]["E"][i1, i2] = rates["NEST"][0].values.item()
-        self.PSE["results"]["rate"]["I"][i1, i2] = rates["NEST"][1].values.item()
+        for i_pop, pop in enumerate(["E", "I"]):
+            self.PSE["results"]["rate"][pop][i1, i2] = rates["NEST"][i_pop].values.item()
 
 
 class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
@@ -125,9 +125,8 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        PSE["rate per node"]["E"][:, i_g, i_w] = rates["NEST"][0].values.squeeze()
-        PSE["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
-        for pop in ["E", "I"]:
+        for i_pop, pop in enumerate(["E", "I"]):
+            PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
             PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
@@ -170,9 +169,8 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        PSE["rate per node"]["E"][:, i_g, i_w] = rates["NEST"][0].values.squeeze()
-        PSE["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
-        for pop in ["E", "I"]:
+        for i_pop, pop in enumerate(["E", "I"]):
+            PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
             PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
