@@ -88,38 +88,40 @@ if __name__ == "__main__":
 
     tic = time.time()
 
-    #try:
-    PSElow = deepcopy(two_nest_nodes_PSE(w=1.55, branch="low", fast=True))
-    PSEhigh = deepcopy(two_nest_nodes_PSE(w=1.55, branch="high", fast=True))
-    name = "PSE_2_NEST_nodes_G_w"
-    results = ["rate", "Pearson", "Spearman", "spike train"]
-    pops = ["E", "I", "EE", "FC-SC"]
-    names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
-    plot_results(PSElow, PSEhigh, name, results, pops, names)
+    try:
+        PSElow = deepcopy(single_nest_PSE())
+        PSEhigh = deepcopy(single_nest_PSE(branch="high"))
+        name = "PSE_1_NEST_St_w"
+        results = ["rate"]
+        pops = ["E", "I"]
+        names = ["Rate (spikes/sec)"]
+        plot_results(PSElow, PSEhigh, name, results, pops, names)
+    except:
+        pass
+
+    try:
+        PSElow = deepcopy(two_nest_nodes_PSE(branch="low"))
+        PSEhigh = deepcopy(two_nest_nodes_PSE(branch="high"))
+        name = "PSE_2_NEST_nodes_G_w"
+        results = ["rate", "Pearson", "Spearman", "spike train"]
+        pops = ["E", "I", "EE", "FC-SC"]
+        names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+        plot_results(PSElow, PSEhigh, name, results, pops, names)
+
+    except:
+        pass
     #
-    # except:
-    #     pass
-    # #
-    # try:
-    #     PSElow = deepcopy(three_nest_nodes_PSE(fast=True))
-    #     PSEhigh = deepcopy(three_nest_nodes_PSE(branch="high", fast=True))
-    #     name = "PSE_3_NEST_nodes_G_w"
-    #     results = ["rate", "Pearson", "Spearman", "spike train"]
-    #     pops = ["E", "I", "EE", "FC-SC"]
-    #     names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
-    #     plot_results(PSElow, PSEhigh, name, results, pops, names)
-    # except:
-    #     pass
-    #
-    # try:
-    #     PSElow = deepcopy(single_nest_PSE(fast=True))
-    #     PSEhigh = deepcopy(single_nest_PSE(branch="high", fast=True))
-    #     name = "PSE_1_NEST_St_w"
-    #     results = ["rate"]
-    #     pops = ["E", "I"]
-    #     names = ["Rate (spikes/sec)"]
-    #     plot_results(PSElow, PSEhigh, name, results, pops, names)
-    # except:
-    #     pass
+    try:
+        PSElow = deepcopy(three_nest_nodes_PSE())
+        PSEhigh = deepcopy(three_nest_nodes_PSE(branch="high"))
+        name = "PSE_3_NEST_nodes_G_w"
+        results = ["rate", "Pearson", "Spearman", "spike train"]
+        pops = ["E", "I", "EE", "FC-SC"]
+        names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+        plot_results(PSElow, PSEhigh, name, results, pops, names)
+    except:
+        pass
+
+
 
     print_toc_message(tic)
