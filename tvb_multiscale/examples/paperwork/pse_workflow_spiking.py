@@ -184,7 +184,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
         PSE["rate per node"]["I"][:, i_g, i_w] = rates["TVB"][1].values.squeeze()
         for pop in ["E", "I"]:
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % diff"][i_g, i_w] = \
+            PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             PSE[corr]["EE"][i_g, i_w] = corrs["TVB"][corr][0, 0, 0, 1].values.item()
@@ -228,7 +228,7 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
         PSE["rate per node"]["I"][:, i_g, i_w] = rates["TVB"][1].values.squeeze()
         for pop in ["E", "I"]:
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % zscore"][i_g, i_w] = \
+            PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             PSE[corr]["EE"][:, i_g, i_w] = corrs["TVB"][corr][0, 0].values[self._triu_inds[0], self._triu_inds[1]]
