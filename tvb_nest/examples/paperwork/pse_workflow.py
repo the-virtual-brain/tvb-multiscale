@@ -7,7 +7,6 @@ import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
 from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
-from tvb_utils.utils import print_toc_message
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -130,7 +129,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
         PSE["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
         for pop in ["E", "I"]:
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % diff"][i_g, i_w] = \
+            PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             corr_name = corr.replace(" ", "_")
@@ -175,7 +174,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
         PSE["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
         for pop in ["E", "I"]:
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % zscore"][i_g, i_w] = \
+            PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             corr_name = corr.replace(" ", "_")
