@@ -6,10 +6,11 @@ from collections import OrderedDict
 import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
-from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 from tvb_multiscale.examples.paperwork.pse_workflow_base import print_PSE, symmetric_connectivity
 from tvb_multiscale.io.h5_writer import H5Writer
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
+
 
 args = sys.argv
 
