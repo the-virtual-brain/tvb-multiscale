@@ -12,7 +12,11 @@ from matplotlib import pyplot as pl
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb_multiscale.config import CONFIGURED, Config
-from tvb_multiscale.io.h5_writer import H5Writer
+try:
+    from tvb_multiscale.io.h5_writer import H5Writer
+    WRITER = H5Writer()
+except:
+    WRITER = None
 from tvb_multiscale.io.h5_reader import H5Reader
 from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
@@ -57,7 +61,8 @@ class PSEWorkflowBase(object):
     name = "PSEWorkflow"
     config = Config(separate_by_run=False)
     PSE = {"params": OrderedDict(), "n_params": OrderedDict(), "results": OrderedDict()}
-    writer = H5Writer()
+    writer = WRITER
+    reader = H5Reader()
     print_progression_message = False
 
     def configure_paths(self, **kwargs):
@@ -90,7 +95,8 @@ class PSEWorkflowBase(object):
         pass
 
     def write_PSE(self):
-        self.writer.write_dictionary(self.PSE, path=self.res_path)
+        if self.writer:
+            self.writer.write_dictionary(self.PSE, path=self.res_path)
 
     def plot_PSE(self):
         params = self.PSE["params"]
@@ -111,7 +117,7 @@ class PSEWorkflowBase(object):
                     continue
 
     def load_PSE(self):
-        self.PSE = H5Reader().read_dictionary(path=self.res_path, close_file=True)
+        self.PSE = self.reader.read_dictionary(path=self.res_path, close_file=True)
 
     def run(self):
         params = list(self.PSE["params"].keys())

@@ -7,7 +7,11 @@ import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
 from tvb_multiscale.examples.paperwork.pse_workflow_base import print_PSE
-from tvb_multiscale.io.h5_writer import H5Writer
+try:
+    from tvb_multiscale.io.h5_writer import H5Writer
+    writer = H5Writer()
+except:
+    writer = None
 from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
@@ -25,7 +29,6 @@ print("fast=%s" % str(fast))
 
 # Run workflow for a single pair of G, w+ values.
 config = Config(separate_by_run=False, output_base=args[4])
-writer = H5Writer()
 PSE = {"params": OrderedDict(), "results": OrderedDict()}
 _plot_results = ["rate", "rate % diff", "Pearson", "Spearman", "spike train"]
 _corr_results = ["Pearson", "Spearman", "spike train"]
@@ -101,6 +104,7 @@ for i_pop, pop in enumerate(["E", "I"]):
 for corr in _corr_results:
     corr_name = corr.replace(" ", "_")
     PSE["results"][corr]["EE"][i_g, i_w] = corrs["NEST"][corr_name][0, 0, 0, 1].values.item()
-writer.write_dictionary(PSE, path=res_path)
+if writer:
+    writer.write_dictionary(PSE, path=res_path)
 
 print_toc_message(tic)

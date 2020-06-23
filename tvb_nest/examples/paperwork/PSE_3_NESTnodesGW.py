@@ -7,7 +7,11 @@ import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
 from tvb_multiscale.examples.paperwork.pse_workflow_base import print_PSE, symmetric_connectivity
-from tvb_multiscale.io.h5_writer import H5Writer
+try:
+    from tvb_multiscale.io.h5_writer import H5Writer
+    writer = H5Writer()
+except:
+    writer = None
 from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
@@ -25,7 +29,6 @@ print("fast=%s" % str(fast))
 
 # Run workflow for a single pair of G, w+ values.
 config = Config(separate_by_run=False, output_base=args[4])
-writer = H5Writer()
 PSE = {"params": OrderedDict(), "results": OrderedDict()}
 _plot_results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
 _corr_results = ["Pearson", "Spearman", "spike train"]
@@ -110,6 +113,7 @@ for corr in _corr_results:
     PSE["results"][corr]["FC-SC"][i_g, i_w] = \
         (np.dot(PSE["results"][corr]["EE"][:, i_g, i_w], _SC)) / \
         (np.sqrt(np.sum(PSE["results"][corr]["EE"][:, i_g, i_w] ** 2)) * _SCsize)
-writer.write_dictionary(PSE, path=res_path)
+if writer:
+    writer.write_dictionary(PSE, path=res_path)
 
 print_toc_message(tic)
