@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import time
-from tvb_nest.examples.paperwork.paperwork_pse_exc_io import three_nest_nodes_PSE
+from tvb_nest.examples.paperwork.paperwork_pse_exc_io import two_nest_nodes_PSE
 from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 
@@ -17,6 +17,6 @@ except:
 print("fast=%s" % str(fast))
 
 # Run PSE for default G values:
-three_nest_nodes_PSE(w=float(args[1]), branch=args[2], fast=fast, output_base=args[3])
+two_nest_nodes_PSE(w=float(args[1]), branch=args[2], fast=fast, output_base=args[3])
 
 print_toc_message(tic)
