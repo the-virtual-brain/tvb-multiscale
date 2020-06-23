@@ -7,7 +7,6 @@ import numpy as np
 from tvb_nest.config import Config
 from tvb_nest.examples.paperwork.workflow import Workflow
 from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
-from tvb_utils.utils import print_toc_message
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -15,14 +14,15 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 class PSENESTWorkflowBase(PSEWorkflowBase):
     name = "PSENESTWorkflow"
 
-    def __init__(self, w=None, branch="low", fast=False):
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSENESTWorkflowBase, self).__init__()
         self.branch = branch
         self.name = self.branch + self.name
-        self.config = Config(separate_by_run=False)
+        self.config = Config(separate_by_run=False, output_base=output_base)
         self._plot_results = ["rate", "Pearson", "Spearman", "spike train"]
         self._corr_results = ["Pearson", "Spearman", "spike train"]
         self.workflow = Workflow()
+        self.workflow.config = self.config
         self.workflow.name = self.name
         self.workflow.tvb_to_nest_interface = None
         self.workflow.symmetric_connectome = True
@@ -65,8 +65,8 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
 class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
     name = "PSE_1_NESTnodeStW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_NESTnodeStW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_1_NESTnodeStW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 2.0
         else:
@@ -88,15 +88,15 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
-        self.PSE["results"]["rate"]["E"][i1, i2] = rates["NEST"][0].values.item()
-        self.PSE["results"]["rate"]["I"][i1, i2] = rates["NEST"][1].values.item()
+        for i_pop, pop in enumerate(["E", "I"]):
+            self.PSE["results"]["rate"][pop][i1, i2] = rates["NEST"][i_pop].values.item()
 
 
 class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
     name = "PSE_2_NESTnodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -126,11 +126,10 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        PSE["rate per node"]["E"][:, i_g, i_w] = rates["NEST"][0].values.squeeze()
-        PSE["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
-        for pop in ["E", "I"]:
+        for i_pop, pop in enumerate(["E", "I"]):
+            PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % diff"][i_g, i_w] = \
+            PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             corr_name = corr.replace(" ", "_")
@@ -140,8 +139,8 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
     name = "PSE_3_NESTnodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -171,11 +170,10 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        PSE["rate per node"]["E"][:, i_g, i_w] = rates["NEST"][0].values.squeeze()
-        PSE["rate per node"]["I"][:, i_g, i_w] = rates["NEST"][1].values.squeeze()
-        for pop in ["E", "I"]:
+        for i_pop, pop in enumerate(["E", "I"]):
+            PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % zscore"][i_g, i_w] = \
+            PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             corr_name = corr.replace(" ", "_")

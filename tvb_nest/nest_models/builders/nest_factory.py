@@ -12,6 +12,7 @@ from tvb_multiscale.spiking_models.builders.factory import log_path
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 LOG = initialize_logger(__name__)
@@ -57,21 +58,20 @@ def load_nest(config=CONFIGURED, logger=LOG):
 def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     # ...unless we need to first compile it:
     from pynestml.frontend.pynestml_frontend import install_nest
-    if not os.path.exists(config.MODULES_BLDS_DIR):
-        logger.info("Creating MODULES_BLDS_DIR: %s" % config.MODULES_BLDS_DIR)
-        os.makedirs(config.MODULES_BLDS_DIR)
+    logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
+    safe_makedirs(config.MYMODULES_BLD_DIR)
     for module in ensure_list(modules):
         logger.info("Compiling %s..." % module)
-        module_bld_dir = os.path.join(config.MODULES_BLDS_DIR, module)
+        module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
         logger.info("from in build_interfaces directory %s..." % module_bld_dir)
         if not os.path.exists(module_bld_dir) or recompile:
-            source_path = os.path.join(config.MODULES_DIR, module)
+            source_path = os.path.join(config.MYMODULES_DIR, module)
             logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
             shutil.copytree(source_path, module_bld_dir)
         logger.info("Running compilation...")
         install_nest(module_bld_dir, config.NEST_PATH)
-        if os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, module + "module.so")) and \
-            os.path.isfile(os.path.join(config.MODULES_BLDS_DIR, "lib" + module + "module.so")):
+        if os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, module + "module.so")) and \
+            os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, "lib" + module + "module.so")):
             logger.info("DONE compiling %s!" % module)
         else:
             logger.warn("Something seems to have gone wrong with compiling %s!" % module)

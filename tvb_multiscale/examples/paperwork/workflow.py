@@ -27,6 +27,7 @@ from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as
 from tvb.contrib.scripts.service.time_series_service import TimeSeriesService
 from tvb.contrib.scripts.service.head_service import HeadService
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 def mean_field_per_population(source_ts, populations, pop_sizes):
@@ -236,8 +237,7 @@ class Workflow(object):
         if self.writer or self.plotter:
             self.res_folder = os.path.join(self.config.out._folder_res.replace("res", self.name), self._folder_name())
             self.config.figures._out_base = self.res_folder
-            if not os.path.isdir(self.res_folder):
-                os.makedirs(self.res_folder)
+            safe_makedirs(self.res_folder)
             if self.writer:
                 if self.writer is True:
                     self.writer = H5Writer()

@@ -2,12 +2,14 @@
 import time
 from copy import deepcopy
 from collections import OrderedDict
+import gc
 
 import numpy as np
-from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
 
+from tvb_multiscale.config import Config
+from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
 from tvb_multiscale.examples.paperwork.workflow import Workflow
-from tvb_utils.utils import print_toc_message
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -30,7 +32,8 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman", "spike train"]
     _corr_results = ["Pearson", "Spearman", "spike train"]
 
-    def __init__(self, w=None, branch="low", fast=False):
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        self.config = Config(separate_by_run=False, output_base=output_base)
         self.branch = branch
         if self.branch == "low":
             self.noise = 0.01
@@ -39,6 +42,7 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         self.name = branch + self.name
         self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
         self.workflow = Workflow()
+        self.workflow.config = self.config
         self.workflow.tvb_model = SpikingWongWangExcIOInhI
         self.workflow.name = self.name
         self.workflow.populations_sizes = [100, 100]
@@ -79,8 +83,8 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
 class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
     name = "PSE_1_TVBspikingNodeStW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 1.0
         else:
@@ -99,8 +103,8 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
-        self.PSE["results"]["rate"]["E"][i1, i2] = rates["TVB"][0].values.item()
-        self.PSE["results"]["rate"]["I"][i1, i2] = rates["TVB"][1].values.item()
+        for i_pop, pop in enumerate(["E", "I"]):
+            self.PSE["results"]["rate"][pop][i1, i2] = rates["TVB"][i_pop].values.item()
 
     def prepare_stimulus(self, s):
         return prepare_spike_stimulus(s * 2180.0, self.workflow.dt, self.stim_time_length, 1, self.n_neurons)
@@ -121,6 +125,7 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
+                gc.collect()
                 print_toc_message(tic)
         self.write_PSE()
         self.plot_PSE()
@@ -129,8 +134,8 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
 class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
     name = "PSE_2_TVBspikingNodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -174,17 +179,17 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
+                gc.collect()
                 print_toc_message(tic)
         self.write_PSE()
         self.plot_PSE()
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        PSE["rate per node"]["E"][:, i_g, i_w] = rates["TVB"][0].values.squeeze()
-        PSE["rate per node"]["I"][:, i_g, i_w] = rates["TVB"][1].values.squeeze()
-        for pop in ["E", "I"]:
+        for i_pop, pop in enumerate(["E", "I"]):
+            PSE["rate per node"][pop][:, i_g, i_w] = rates["TVB"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % diff"][i_g, i_w] = \
+            PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             PSE[corr]["EE"][i_g, i_w] = corrs["TVB"][corr][0, 0, 0, 1].values.item()
@@ -193,8 +198,8 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
 class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
     name = "PSE_3_TVBspikingNodesGW"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -224,11 +229,10 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        PSE["rate per node"]["E"][:, i_g, i_w] = rates["TVB"][0].values.squeeze()
-        PSE["rate per node"]["I"][:, i_g, i_w] = rates["TVB"][1].values.squeeze()
-        for pop in ["E", "I"]:
+        for i_pop, pop in enumerate(["E", "I"]):
+            PSE["rate per node"][pop][:, i_g, i_w] = rates["TVB"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
-            PSE["rate % zscore"][i_g, i_w] = \
+            PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             PSE[corr]["EE"][:, i_g, i_w] = corrs["TVB"][corr][0, 0].values[self._triu_inds[0], self._triu_inds[1]]

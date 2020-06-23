@@ -14,7 +14,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.config import CONFIGURED
-from tvb_utils.utils import print_toc_message
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 
 def run_PSE(pse_class, todo="run", **kwargs):
@@ -29,34 +29,34 @@ def run_PSE(pse_class, todo="run", **kwargs):
     return pse_workflow.PSE
 
 
-def single_mf_PSE(todo="run", w=None, branch="low", fast=False):
+def single_mf_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_multiscale.examples.paperwork.pse_workflow_mean_field import PSE_1_TVBmfNodeStW
-    return run_PSE(PSE_1_TVBmfNodeStW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_1_TVBmfNodeStW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def two_symmetric_mf_PSE(todo="run", w=None, branch="low", fast=False):
+def two_symmetric_mf_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_multiscale.examples.paperwork.pse_workflow_mean_field import PSE_2_TVBmfNodesGW
-    return run_PSE(PSE_2_TVBmfNodesGW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_2_TVBmfNodesGW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def three_symmetric_mf_PSE(todo="run", w=None, branch="low", fast=False):
+def three_symmetric_mf_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_multiscale.examples.paperwork.pse_workflow_mean_field import PSE_3_TVBmfNodesGW
-    return run_PSE(PSE_3_TVBmfNodesGW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_3_TVBmfNodesGW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def single_spiking_PSE(todo="run", w=None, branch="low", fast=False):
+def single_spiking_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_multiscale.examples.paperwork.pse_workflow_spiking import PSE_1_TVBspikingNodeStW
-    return run_PSE(PSE_1_TVBspikingNodeStW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_1_TVBspikingNodeStW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def two_symmetric_spiking_PSE(todo="run", w=None, branch="low", fast=False):
+def two_symmetric_spiking_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_multiscale.examples.paperwork.pse_workflow_spiking import PSE_2_TVBspikingNodesGW
-    return run_PSE(PSE_2_TVBspikingNodesGW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_2_TVBspikingNodesGW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
-def three_symmetric_spiking_PSE(todo="run", w=None, branch="low", fast=False):
+def three_symmetric_spiking_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_multiscale.examples.paperwork.pse_workflow_spiking import PSE_3_TVBspikingNodesGW
-    return run_PSE(PSE_3_TVBspikingNodesGW, todo, w=w, branch=branch, fast=fast)
+    return run_PSE(PSE_3_TVBspikingNodesGW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
 
 
 def plot_result(PSE_params, result, name, path):

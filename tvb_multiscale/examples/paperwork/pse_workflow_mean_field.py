@@ -1,10 +1,12 @@
 from collections import OrderedDict
 
 import numpy as np
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
+from tvb_multiscale.config import Config
 from tvb_multiscale.examples.paperwork.pse_workflow_base import PSEWorkflowBase, symmetric_connectivity
 from tvb_multiscale.examples.paperwork.workflow import Workflow
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
 class PSEWorkflowMF(PSEWorkflowBase):
@@ -12,9 +14,11 @@ class PSEWorkflowMF(PSEWorkflowBase):
     _plot_results = ["rate", "Pearson", "Spearman"]
     _corr_results = ["Pearson", "Spearman"]
 
-    def __init__(self, w=None, branch="low", fast=False):
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        self.config = Config(separate_by_run=False, output_base=output_base)
         self.branch = branch
         self.workflow = Workflow()
+        self.workflow.config = self.config
         self.workflow.tvb_model = ReducedWongWangExcIO
         if self.branch == "high":
             self.workflow.tvb_init_cond = np.zeros((1, 4, 1, 1))
@@ -53,8 +57,8 @@ class PSEWorkflowMF(PSEWorkflowBase):
 class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
     name = "PSE_1_tvb_mf_node_St_w"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 0.1
         else:
@@ -79,8 +83,8 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
 class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
     name = "PSE_2_tvb_mf_nodes_G_w"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
@@ -118,8 +122,8 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
 class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
     name = "PSE_3_tvb_mf_nodes_G_w"
 
-    def __init__(self, w=None, branch="low", fast=False):
-        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast)
+    def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast, output_base)
         if fast:
             step = 100.0
         else:
