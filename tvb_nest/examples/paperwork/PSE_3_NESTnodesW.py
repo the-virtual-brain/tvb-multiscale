@@ -2,7 +2,8 @@
 import sys
 import time
 
-from tvb_nest.examples.paperwork.paperwork_pse_exc_io import three_nest_nodes_PSE, print_toc_message
+from tvb_nest.examples.paperwork.paperwork_pse_exc_io import three_nest_nodes_PSE
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 args = sys.argv
 

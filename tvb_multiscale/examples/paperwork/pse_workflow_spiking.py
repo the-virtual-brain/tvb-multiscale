@@ -8,7 +8,7 @@ import numpy as np
 from tvb_multiscale.config import Config
 from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity, PSEWorkflowBase
 from tvb_multiscale.examples.paperwork.workflow import Workflow
-from tvb_utils.utils import print_toc_message
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
