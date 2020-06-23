@@ -289,7 +289,7 @@ class Workflow(WorkflowBase):
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
         params = {"withtime": True, "withgid": True,
-                  "interval": self.nest_model_builder.nest_instance.GetKernelStatus("resolution")}
+                  "interval": self.tvb_monitor_period}
         params['record_from'] = ["V_m",
                                  "s_AMPA", "x_NMDA", "s_NMDA", "s_GABA",
                                  "I_AMPA", "I_NMDA", "I_GABA", "I_L", "I_e",
@@ -597,6 +597,7 @@ class Workflow(WorkflowBase):
                     t_stop.append(np.max(reg_spikes["times"]).item())
             t_start = np.min(t_start)
             t_stop = np.max(t_stop)
+            time = np.arange(t_start, t_stop + self.tvb_monitor_period, self.tvb_monitor_period)
         dt = np.diff(time).mean()
         for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
             pop_labels.append(pop_label)
