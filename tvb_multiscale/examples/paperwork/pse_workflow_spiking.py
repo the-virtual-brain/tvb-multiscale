@@ -2,6 +2,7 @@
 import time
 from copy import deepcopy
 from collections import OrderedDict
+import gc
 
 import numpy as np
 
@@ -124,6 +125,7 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
+                gc.collect()
                 print_toc_message(tic)
         self.write_PSE()
         self.plot_PSE()
@@ -177,6 +179,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
+                gc.collect()
                 print_toc_message(tic)
         self.write_PSE()
         self.plot_PSE()
