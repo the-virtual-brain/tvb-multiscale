@@ -2,8 +2,7 @@
 import sys
 import time
 from tvb_nest.examples.paperwork.paperwork_pse_exc_io import single_nest_PSE
-from tvb_nest.examples.paperwork.paperwork_pse_exc_io import print_toc_message
-
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 args = sys.argv
 

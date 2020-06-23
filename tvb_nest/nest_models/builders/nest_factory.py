@@ -9,10 +9,10 @@ import numpy as np
 from tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict
 from tvb_multiscale.spiking_models.builders.factory import log_path
-from tvb_utils.utils import safe_makedirs
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 LOG = initialize_logger(__name__)

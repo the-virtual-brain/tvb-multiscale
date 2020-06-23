@@ -14,7 +14,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.config import CONFIGURED
-from tvb_utils.utils import print_toc_message
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 
 def run_PSE(pse_class, todo="run", **kwargs):

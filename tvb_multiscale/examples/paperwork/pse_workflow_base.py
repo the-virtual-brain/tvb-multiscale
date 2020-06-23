@@ -1,15 +1,22 @@
+# -*- coding: utf-8 -*-
+
 import os
 import time
 from collections import OrderedDict
-
 import h5py
+
 import numpy as np
+from xarray import DataArray
+
 from matplotlib import pyplot as pl
+
 from tvb.datatypes.connectivity import Connectivity
 from tvb_multiscale.config import CONFIGURED, Config
 from tvb_multiscale.io.h5_writer import H5Writer
-from tvb_utils.utils import read_dicts_from_h5file_recursively, print_toc_message, safe_makedirs
-from xarray import DataArray
+from tvb_multiscale.io.h5_reader import H5Reader
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
+
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 def print_PSE(pse_params):
@@ -104,17 +111,7 @@ class PSEWorkflowBase(object):
                     continue
 
     def load_PSE(self):
-        h5_file = h5py.File(self.res_path, 'r', libver='latest')
-        try:
-            for p in h5_file["params"].keys():
-                self.PSE["params"][p] = h5_file["params"][p][()]
-                self.PSE["n_params"]["n_"+p] = len(self.PSE["params"][p])
-        except:
-            pass
-        try:
-            self.PSE["results"] = read_dicts_from_h5file_recursively(h5_file["results"])
-        except:
-            pass
+        self.PSE = H5Reader().read_dictionary(path=self.res_path, close_file=True)
 
     def run(self):
         params = list(self.PSE["params"].keys())

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+from collections import OrderedDict
+
 import h5py
 
 from tvb_multiscale.config import initialize_logger
@@ -32,18 +34,18 @@ class H5Reader(object):
         if path is not None:
             self.logger.info("Successfully read %s from: %s" % (name, path))
 
-    def read_dictionary(self, path=None, h5_file=None, type=None, close_file=True):
+    def read_dictionary(self, path=None, h5_file=None, close_file=True):  # type=None,
         """
         :param path: Path towards a dictionary H5 file
         :return: dict
         """
         h5_file = self._open_file("Dictionary", path, h5_file)
-        dictionary = H5GroupHandlers(self.H5_SUBTYPE_ATTRIBUTE).read_dictionary_from_group(h5_file, type)
+        dictionary = H5GroupHandlers(self.H5_SUBTYPE_ATTRIBUTE).read_dictionary_from_group(h5_file)  # , type
         self._close_file(h5_file, close_file)
         self._log_success("Dictionary", path)
         return dictionary
 
-    def read_list_of_dicts(self, path=None, h5_file=None, type=None, close_file=True):
+    def read_list_of_dicts(self, path=None, h5_file=None, close_file=True):  # type=None,
         h5_file = self._open_file("List of dictionaries", path, h5_file)
         list_of_dicts = []
         id = 0
@@ -53,7 +55,7 @@ class H5Reader(object):
                 dict_group = h5_file[str(id)]
             except:
                 break
-            list_of_dicts.append(h5_group_handlers.read_dictionary_from_group(dict_group, type))
+            list_of_dicts.append(h5_group_handlers.read_dictionary_from_group(dict_group))  # , type
             id += 1
         self._close_file(h5_file, close_file)
         self._log_success("List of dictionaries", path)
@@ -68,13 +70,30 @@ class H5GroupHandlers(object):
         if h5_subtype_attribute is not None:
             self.H5_SUBTYPE_ATTRIBUTE = h5_subtype_attribute
 
-    def read_dictionary_from_group(self, group, type=None):
+    def read_dictionary_from_group(self, group):  # , type=None
         dictionary = dict()
         for dataset in group.keys():
-            dictionary.update({dataset: group[dataset][()]})
+            try:
+                value = group[dataset][()]
+            except:
+                try:
+                    value = self.read_dictionary_from_group(group[dataset])
+                except:
+                    value = None
+            dictionary.update({dataset: value})
         for attr in group.attrs.keys():
             dictionary.update({attr: group.attrs[attr]})
-        if type is None:
-            type = group.attrs[H5Reader.H5_SUBTYPE_ATTRIBUTE]
-        else:
-            return dictionary
+        # if type is None:
+        #     type = group.attrs[H5Reader.H5_SUBTYPE_ATTRIBUTE]
+        # else:
+        return dictionary
+
+
+def read_dicts_from_h5file_recursively(h5file_or_group):
+    d = OrderedDict()
+    for k in h5file_or_group.keys():
+        try:
+            d[k] = h5file_or_group[k][()]
+        except:
+            d[k] = read_dicts_from_h5file_recursively(h5file_or_group[k])
+    return d

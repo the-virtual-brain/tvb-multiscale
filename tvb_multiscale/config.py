@@ -14,8 +14,8 @@ from tvb.datatypes import cortex, connectivity
 
 import tvb_data
 
-from tvb_utils.utils import initialize_logger as initialize_logger_base, safe_makedirs
-
+from tvb_utils.utils import initialize_logger as initialize_logger_base
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
 WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/examples/outputs")

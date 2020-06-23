@@ -2,8 +2,7 @@
 import sys
 import time
 from tvb_multiscale.examples.paperwork.paperwork_pse_exc_io import two_symmetric_mf_PSE
-from tvb_multiscale.examples.paperwork.paperwork_pse_exc_io import print_toc_message
-
+from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 args = sys.argv
 

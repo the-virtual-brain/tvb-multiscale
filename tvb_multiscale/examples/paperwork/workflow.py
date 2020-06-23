@@ -13,7 +13,6 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
-from tvb_utils.utils import safe_makedirs
 
 from tvb.simulator.simulator import Simulator
 from tvb.datatypes.connectivity import Connectivity
@@ -28,6 +27,7 @@ from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as
 from tvb.contrib.scripts.service.time_series_service import TimeSeriesService
 from tvb.contrib.scripts.service.head_service import HeadService
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 def mean_field_per_population(source_ts, populations, pop_sizes):
