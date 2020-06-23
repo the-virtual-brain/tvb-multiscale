@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import sys
+
 import time
 from collections import OrderedDict
 import numpy as np
