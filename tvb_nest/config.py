@@ -9,18 +9,19 @@ from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
-WORKING_DIR = os.getcwd()
-MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules")
-MODULES_BLDS_DIR = os.environ.get("MODULES_BLDS_DIR",
-                                  os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds"))
+WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
+MYMODULES_DIR = os.environ.get("MYMODULES_DIR",
+                               os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules"))
+MYMODULES_BLD_DIR = os.environ.get("MYMODULES_BLD_DIR",
+                                   os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds"))
 
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:
     TVB_NEST_DIR = TVB_NEST_DIR
     WORKING_DIR = WORKING_DIR
-    MODULES_DIR = MODULES_DIR
-    MODULES_BLDS_DIR = MODULES_BLDS_DIR
+    MYMODULES_DIR = MYMODULES_DIR
+    MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
     # NEST properties:
     NEST_MIN_DT = 0.001
@@ -56,8 +57,8 @@ class Config(ConfigBase):
         self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
-        self.MODULES_DIR = MODULES_DIR
-        self.MODULES_BLDS_DIR = MODULES_BLDS_DIR
+        self.MYMODULES_DIR = MYMODULES_DIR
+        self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
         
 CONFIGURED = Config()
