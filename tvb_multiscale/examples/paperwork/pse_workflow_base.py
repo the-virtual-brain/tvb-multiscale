@@ -3,7 +3,7 @@
 import os
 import time
 from collections import OrderedDict
-import h5py
+import gc
 
 import numpy as np
 from xarray import DataArray
@@ -127,6 +127,7 @@ class PSEWorkflowBase(object):
                 self.workflow.model_params = self.pse_to_model_params(pse_params)
                 rates, corrs = self.workflow.run()
                 self.results_to_PSE(i_s, i_w, rates, corrs)
+                gc.collect()
                 print_toc_message(tic)
         self.workflow = None
         self.write_PSE()
