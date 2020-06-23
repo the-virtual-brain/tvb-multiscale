@@ -13,6 +13,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
+from tvb_utils.utils import safe_makedirs
 
 from tvb.simulator.simulator import Simulator
 from tvb.datatypes.connectivity import Connectivity
@@ -236,8 +237,7 @@ class Workflow(object):
         if self.writer or self.plotter:
             self.res_folder = os.path.join(self.config.out._folder_res.replace("res", self.name), self._folder_name())
             self.config.figures._out_base = self.res_folder
-            if not os.path.isdir(self.res_folder):
-                os.makedirs(self.res_folder)
+            safe_makedirs(self.res_folder)
             if self.writer:
                 if self.writer is True:
                     self.writer = H5Writer()
