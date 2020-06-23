@@ -128,7 +128,7 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
             step = 100.0
         else:
             step = 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)  #  100.0, 320.0, 20.0
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)  #  100.0, 320.0, 20.0
         self.configure_PSE()
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape
