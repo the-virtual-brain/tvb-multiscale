@@ -61,6 +61,12 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
         self.PSE["params"]["w+"] = w
         super(PSENESTWorkflowBase, self).configure_PSE()
 
+    def update_pse_params(self, **kwargs):
+        for p in self.PSE["params"].keys():
+            vals = kwargs.get(p, None)
+            if vals is not None:
+                self.PSE["params"][p] = vals
+
 
 class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
     name = "PSE_1_NESTnodeStW"
@@ -71,10 +77,10 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
             step = 2.0
         else:
             step = 0.1
-        self.PSE["params"]["Stimulus"] = np.arange(0.9, 5.1, step)
+        self.PSE["params"]["Stimulus"] = np.arange(0.1, 5.1, step)
         self.configure_PSE(w)
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
-                                       "I": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                       "I": np.empty(self.pse_shape) * np.nan}
         self._plot_results = ["rate"]
         self.workflow.force_dims = [34]
         self.workflow.nest_nodes_ids = [0]  # the indices of fine scale regions modeled with NEST
@@ -91,6 +97,36 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
         for i_pop, pop in enumerate(["E", "I"]):
             self.PSE["results"]["rate"][pop][i1, i2] = rates["NEST"][i_pop].values.item()
 
+    def load_PSE_1D(self, **kwargs):
+        w = kwargs.get("w", None)
+        if w is not None:
+            self.PSE["params"]["w+"] = w
+        for i_w, w in enumerate(self.PSE["params"]["w+"]):
+            path = self.res_path.replace(".h5", "_w+%g.h5" % w)
+            try:
+                PSE = self.reader.read_dictionary(path=path, close_file=True)
+            except:
+                print("Failed to load file %s!" % path)
+                continue
+            for i_pop, pop in enumerate(["E", "I"]):
+                self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
+
+    def load_PSE_2D(self, **kwargs):
+        for p in ["Stimulus", "w+"]:
+            vals = kwargs.get(p, None)
+            if vals is not None:
+                self.PSE["params"][p] = vals
+        for i_s, s in enumerate(self.PSE["params"]["Stimulus"]):
+            for i_w, w in enumerate(self.PSE["params"]["w+"]):
+                path = self.res_path.replace(".h5", "_Stimulus%g_w+%g.h5" % (s, w))
+                try:
+                    PSE = self.reader.read_dictionary(path=path, close_file=True)
+                except:
+                    print("Failed to load file %s!" % path)
+                    continue
+                for i_pop, pop in enumerate(["E", "I"]):
+                    self.PSE["results"]["rate"][pop][i_s, i_w] = PSE["results"]["rate"][pop].item()
+
 
 class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
     name = "PSE_2_NESTnodesGW"
@@ -105,15 +141,15 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
         self.configure_PSE(w)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
-                                                "I": np.zeros(Nreg_shape)}
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
-                                       "I": np.zeros(self.pse_shape)}
-        self.PSE["results"]["rate % diff"] = {"E": np.zeros(self.pse_shape),
-                                              "I": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan,
+                                                "I": np.empty(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                       "I": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % diff"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                              "I": np.empty(self.pse_shape) * np.nan}
         for corr in self._corr_results:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.zeros(self.pse_shape)
+            self.PSE["results"][corr]["EE"] = np.empty(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % diff", "Pearson", "Spearman", "spike train"]
         self.workflow.force_dims = [34, 35]
         self.workflow.nest_nodes_ids = [0, 1]  # the indices of fine scale regions modeled with NEST
@@ -128,12 +164,50 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
         PSE = self.PSE["results"]
         for i_pop, pop in enumerate(["E", "I"]):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
-            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
+            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].nanmean()
             PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             corr_name = corr.replace(" ", "_")
             PSE[corr]["EE"][i_g, i_w] = corrs["NEST"][corr_name][0, 0, 0, 1].values.item()
+
+    def load_PSE_1D(self, **kwargs):
+        w = kwargs.get("w", None)
+        if w is not None:
+            self.PSE["params"]["w+"] = w
+        for i_w, w in enumerate(self.PSE["params"]["w+"]):
+            path = self.res_path.replace(".h5", "_w+%g.h5" % w)
+            try:
+                PSE = self.reader.read_dictionary(path=path, close_file=True)
+            except:
+                print("Failed to load file %s!" % path)
+                continue
+            for i_pop, pop in enumerate(["E", "I"]):
+                self.PSE["results"]["rate per node"][pop][:, :, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
+                self.PSE["results"]["rate % diff"][pop][:, i_w] = PSE["results"]["rate % diff"][pop].squeeze()
+            for corr in self._corr_results:
+                self.PSE["results"][corr]["EE"][:, i_w] = PSE["results"][corr]["EE"].squeeze()
+
+    def load_PSE_2D(self, **kwargs):
+        for p in ["G", "w+"]:
+            vals = kwargs.get(p, None)
+            if vals is not None:
+                self.PSE["params"][p] = vals
+        for i_g, g in enumerate(self.PSE["params"]["G"]):
+            for i_w, w in enumerate(self.PSE["params"]["w+"]):
+                path = self.res_path.replace(".h5", "_G%g_w+%g.h5" % (g, w))
+                try:
+                    PSE = self.reader.read_dictionary(path=path, close_file=True)
+                except:
+                    print("Failed to load file %s!" % path)
+                    continue
+                for i_pop, pop in enumerate(["E", "I"]):
+                    self.PSE["results"]["rate per node"][pop][:, i_g, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                    self.PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate"][pop].item()
+                    self.PSE["results"]["rate % diff"][pop][i_g, i_w] = PSE["results"]["rate % diff"][pop].item()
+                for corr in self._corr_results:
+                    self.PSE["results"][corr]["EE"][i_g, i_w] = PSE["results"][corr]["EE"].item()
 
 
 class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
@@ -149,16 +223,16 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
         self.configure_PSE(w)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
-                                                "I": np.zeros(Nreg_shape)}
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
-                                       "I": np.zeros(self.pse_shape)}
-        self.PSE["results"]["rate % zscore"] = {"E": np.zeros(self.pse_shape),
-                                                "I": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan,
+                                                "I": np.empty(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                       "I": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % zscore"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                                "I": np.empty(self.pse_shape) * np.nan}
         for corr in self._corr_results:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.zeros(Nreg_shape)
-            self.PSE["results"][corr]["FC-SC"] = np.zeros(self.pse_shape)
+            self.PSE["results"][corr]["EE"] = np.empty(Nreg_shape) * np.nan
+            self.PSE["results"][corr]["FC-SC"] = np.empty(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
         self._SC = [0.1, 0.5, 0.9]
         connectivity, self._SC, self._SCsize, self._triu_inds = symmetric_connectivity(self._SC, 3)
@@ -172,12 +246,52 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
         PSE = self.PSE["results"]
         for i_pop, pop in enumerate(["E", "I"]):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
-            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
+            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].nanmean()
             PSE["rate % zscore"][pop][i_g, i_w] = \
-                100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
+                100 * np.abs(np.nanstd(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
             corr_name = corr.replace(" ", "_")
             PSE[corr]["EE"][:, i_g, i_w] = corrs["NEST"][corr_name][0, 0].values[self._triu_inds[0], self._triu_inds[1]]
             PSE[corr]["FC-SC"][i_g, i_w] = \
                 (np.dot(PSE[corr]["EE"][:, i_g, i_w], self._SC)) / \
                 (np.sqrt(np.sum(PSE[corr]["EE"][:, i_g, i_w] ** 2)) * self._SCsize)
+
+    def load_PSE_1D(self, **kwargs):
+        w = kwargs.get("w", None)
+        if w is not None:
+            self.PSE["params"]["w+"] = w
+        for i_w, w in enumerate(self.PSE["params"]["w+"]):
+            path = self.res_path.replace(".h5", "_w+%g.h5" % w)
+            try:
+                PSE = self.reader.read_dictionary(path=path, close_file=True)
+            except:
+                print("Failed to load file %s!" % path)
+                continue
+            for i_pop, pop in enumerate(["E", "I"]):
+                self.PSE["results"]["rate per node"][pop][:, :, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
+                self.PSE["results"]["rate % zscore"][pop][:, i_w] = PSE["results"]["rate % zscore"][pop].squeeze()
+            for corr in self._corr_results:
+                self.PSE["results"][corr]["EE"][:, :, i_w] = PSE["results"][corr]["EE"].squeeze()
+                self.PSE["results"][corr]["FC-SC"][:, i_w] = PSE["results"][corr]["FC-SC"].squeeze()
+
+    def load_PSE_2D(self, **kwargs):
+        for p in ["G", "w+"]:
+            vals = kwargs.get(p, None)
+            if vals is not None:
+                self.PSE["params"][p] = vals
+        for i_g, g in enumerate(self.PSE["params"]["G"]):
+            for i_w, w in enumerate(self.PSE["params"]["w+"]):
+                path = self.res_path.replace(".h5", "_G%g_w+%g.h5" % (g, w))
+                try:
+                    PSE = self.reader.read_dictionary(path=path, close_file=True)
+                except:
+                    print("Failed to load file %s!" % path)
+                    continue
+                for i_pop, pop in enumerate(["E", "I"]):
+                    self.PSE["results"]["rate per node"][pop][:, i_g, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                    self.PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate"][pop].item()
+                    self.PSE["results"]["rate % zscore"][pop][i_g, i_w] = PSE["results"]["rate % zscore"][pop].item()
+                for corr in self._corr_results:
+                    self.PSE["results"][corr]["EE"][:, i_g, i_w] = PSE["results"][corr]["EE"].squeeze()
+                    self.PSE["results"][corr]["FC-SC"][i_g, i_w] = PSE["results"][corr]["FC-SC"].item()
