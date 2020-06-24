@@ -15,6 +15,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
 from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 def run_PSE(pse_class, todo="run", **kwargs):
@@ -22,8 +23,13 @@ def run_PSE(pse_class, todo="run", **kwargs):
     if todo == "run":
         pse_workflow.run()
     else:
-        pse_workflow.load_PSE()
-        if todo == "plot":
+        if todo.find("1D") > -1:
+            pse_workflow.load_PSE_1D(**kwargs)
+        elif todo.find("2D") > -1:
+            pse_workflow.load_PSE_2D(**kwargs)
+        else:
+            pse_workflow.load_PSE()
+        if todo.find("plot") > -1:
             pse_workflow.plot_PSE()
     print(pse_workflow.PSE)
     return pse_workflow.PSE
@@ -49,7 +55,7 @@ def plot_result(PSE_params, result, name, path):
     coords = dict(PSE_params)
     coords["branch"] = ["low", "high"]
     arr = DataArray(data=np.array(result), dims=dims, coords=coords, name=name)
-    fig = pl.figure()
+    fig = pl.figure(figsize=(10, 10))
     arr = arr.stack({"%sbranch" % dims[2]: [dims[2], "branch"]})
     lines = arr.plot.line(x=arr.dims[0], hue=arr.dims[1], add_legend=False)
     cmap = cm.get_cmap('jet')
@@ -69,8 +75,7 @@ def plot_result(PSE_params, result, name, path):
 
 def plot_results(PSElow, PSEhigh, name, results, pops, names):
     folder_figs = CONFIGURED.out.FOLDER_RES.replace("res", name)
-    if not os.path.isdir(folder_figs):
-        os.makedirs(folder_figs)
+    safe_makedirs(folder_figs)
     for res, nam in zip(results, names):
         for pop in pops:
             try:
@@ -88,40 +93,39 @@ if __name__ == "__main__":
 
     tic = time.time()
 
-    try:
-        PSElow = deepcopy(single_nest_PSE())
-        PSEhigh = deepcopy(single_nest_PSE(branch="high"))
-        name = "PSE_1_NEST_St_w"
-        results = ["rate"]
-        pops = ["E", "I"]
-        names = ["Rate (spikes/sec)"]
-        plot_results(PSElow, PSEhigh, name, results, pops, names)
-    except:
-        pass
+    output_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/PSE_2_NESTnodesW'
+    # try:
+    #     PSElow = deepcopy(single_nest_PSE(todo="plot2D", output_base=output_base))
+    #     PSEhigh = deepcopy(single_nest_PSE(todo="plot2D", branch="high", output_base=output_base))
+    #     name = "PSE_1_NESTnodeStW"
+    #     results = ["rate"]
+    #     pops = ["E", "I"]
+    #     names = ["Rate (spikes/sec)"]
+    #     plot_results(PSElow, PSEhigh, name, results, pops, names)
+    # except:
+    #     pass
 
     try:
-        PSElow = deepcopy(two_nest_nodes_PSE(branch="low"))
-        PSEhigh = deepcopy(two_nest_nodes_PSE(branch="high"))
-        name = "PSE_2_NEST_nodes_G_w"
-        results = ["rate", "Pearson", "Spearman", "spike train"]
-        pops = ["E", "I", "EE", "FC-SC"]
-        names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+        PSElow = deepcopy(two_nest_nodes_PSE(todo="plot1D", branch="low", output_base=output_base))
+        PSEhigh = deepcopy(two_nest_nodes_PSE(todo="plot1D", branch="high", output_base=output_base))
+        name = "PSE_2_NESTnodesW"
+        results = ["rate", "rate % diff", "Pearson", "Spearman", "spike train"]
+        pops = ["E", "I", "EE"]
+        names = ["Rate (spikes/sec)", "rate % diff", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
         plot_results(PSElow, PSEhigh, name, results, pops, names)
 
     except:
         pass
     #
-    try:
-        PSElow = deepcopy(three_nest_nodes_PSE())
-        PSEhigh = deepcopy(three_nest_nodes_PSE(branch="high"))
-        name = "PSE_3_NEST_nodes_G_w"
-        results = ["rate", "Pearson", "Spearman", "spike train"]
-        pops = ["E", "I", "EE", "FC-SC"]
-        names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
-        plot_results(PSElow, PSEhigh, name, results, pops, names)
-    except:
-        pass
-
-
+    # try:
+    #     PSElow = deepcopy(three_nest_nodes_PSE(todo="plot1D", branch="low", output_base=output_base))
+    #     PSEhigh = deepcopy(three_nest_nodes_PSE(todo="plot1D", branch="high", output_base=output_base))
+    #     name = "PSE_3_NESTnodesW"
+    #     results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
+    #     pops = ["E", "I", "EE", "FC-SC"]
+    #     names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+    #     plot_results(PSElow, PSEhigh, name, results, pops, names)
+    # except:
+    #     pass
 
     print_toc_message(tic)
