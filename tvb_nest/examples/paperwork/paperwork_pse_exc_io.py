@@ -73,8 +73,9 @@ def plot_result(PSE_params, result, name, path):
     pl.savefig(path)
 
 
-def plot_results(PSElow, PSEhigh, name, results, pops, names):
-    folder_figs = CONFIGURED.out.FOLDER_RES.replace("res", name)
+def plot_results(PSElow, PSEhigh, name, results, pops, names, folder_figs=None):
+    if folder_figs is None:
+        folder_figs = CONFIGURED.out.FOLDER_RES.replace("res", name)
     safe_makedirs(folder_figs)
     for res, nam in zip(results, names):
         for pop in pops:

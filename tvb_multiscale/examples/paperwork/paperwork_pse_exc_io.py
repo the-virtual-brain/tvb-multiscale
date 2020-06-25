@@ -15,6 +15,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.config import CONFIGURED
 from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 def run_PSE(pse_class, todo="run", **kwargs):
@@ -22,8 +23,13 @@ def run_PSE(pse_class, todo="run", **kwargs):
     if todo == "run":
         pse_workflow.run()
     else:
-        pse_workflow.load_PSE()
-        if todo == "plot":
+        if todo.find("1D") > -1:
+            pse_workflow.load_PSE_1D(**kwargs)
+        elif todo.find("2D") > -1:
+            pse_workflow.load_PSE_2D(**kwargs)
+        else:
+            pse_workflow.load_PSE()
+        if todo.find("plot") > -1:
             pse_workflow.plot_PSE()
     print(pse_workflow.PSE)
     return pse_workflow.PSE
@@ -64,7 +70,7 @@ def plot_result(PSE_params, result, name, path):
     coords = dict(PSE_params)
     coords["branch"] = ["low", "high"]
     arr = DataArray(data=np.array(result), dims=dims, coords=coords, name=name)
-    fig = pl.figure()
+    fig = pl.figure(figsize=(10, 10))
     arr = arr.stack({"%sbranch" % dims[2]: [dims[2], "branch"]})
     lines = arr.plot.line(x=arr.dims[0], hue=arr.dims[1], add_legend=False)
     cmap = cm.get_cmap('jet')
@@ -82,10 +88,10 @@ def plot_result(PSE_params, result, name, path):
     pl.savefig(path)
 
 
-def plot_results(name, results, pops, names):
-    folder_figs = CONFIGURED.out.FOLDER_RES.replace("res", name)
-    if not os.path.isdir(folder_figs):
-        os.makedirs(folder_figs)
+def plot_results(PSElow, PSEhigh, name, results, pops, names, folder_figs=None):
+    if folder_figs is None:
+        folder_figs = CONFIGURED.out.FOLDER_RES.replace("res", name)
+    safe_makedirs(folder_figs)
     for res, nam in zip(results, names):
         for pop in pops:
             try:
@@ -102,6 +108,9 @@ def plot_results(name, results, pops, names):
 if __name__ == "__main__":
 
     tic = time.time()
+
+    output_base = "/Users/dionperd/Software/TVB/tvb-multiscale/tvb_multiscale/examples/paperwork/outputs/PSE_TVBmfNodes/PSE_2_TVBmfNodesGW"
+
     # PSElow = deepcopy(single_mf_PSE())
     # PSEhigh = deepcopy(single_mf_PSE(branch="high"))
     # PSElow = deepcopy(two_symmetric_mf_PSE())
@@ -109,40 +118,41 @@ if __name__ == "__main__":
     # PSElow = deepcopy(three_symmetric_mf_PSE())
     # PSEhigh = deepcopy(three_symmetric_mf_PSE(branch="high"))
 
-    # try:
-    # PSElow = deepcopy(single_mf_PSE(w=0.9, fast=True))
-    # PSEhigh = deepcopy(single_mf_PSE(w=0.9, branch="high", fast=True))
+    # # try:
+    # PSElow = deepcopy(single_mf_PSE(todo="plot1D", output_base=output_base))
+    # PSEhigh = deepcopy(single_mf_PSE(todo="plot1D", branch="high", output_base=output_base))
     #
-    # name = "PSE_1_TVBmfNodeStW"
-    # results = ["rate", "Pearson", "Spearman"]
-    # pops = ["E", "I", "EE", "FC-SC"]
-    # names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
-    # plot_results(name, results, pops, names)
+    # name = "PSE_1_TVBmfNodesStW"
+    # results = ["rate"]
+    # pops = ["E", "I"]
+    # names = ["Rate (spikes/sec)"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
 #
 # except:
 #     pass
 
 # try:
-    PSElow = deepcopy(two_symmetric_mf_PSE(w=0.9, fast=True))
-    PSEhigh = deepcopy(two_symmetric_mf_PSE(w=0.9, branch="high", fast=True))
+    PSElow = deepcopy(two_symmetric_mf_PSE(todo="plot1D", output_base=output_base))
+    PSEhigh = deepcopy(two_symmetric_mf_PSE(todo="plot1D", branch="high", output_base=output_base))
+
     name = "PSE_2_TVBmfNodesGW"
     results = ["rate", "Pearson", "Spearman"]
     pops = ["E", "I", "EE", "FC-SC"]
     names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
-    plot_results(name, results, pops, names)
+    plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     #
     # except:
     #     pass
 
     # try:
-    PSElow = deepcopy(three_symmetric_mf_PSE(w=0.9, fast=True))
-    PSEhigh = deepcopy(three_symmetric_mf_PSE(w=0.9, branch="high", fast=True))
-
-    name = "PSE_3_TVBmfNodesGW"
-    results = ["rate", "Pearson", "Spearman"]
-    pops = ["E", "I", "EE", "FC-SC"]
-    names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
-    plot_results(name, results, pops, names)
+    # PSElow = deepcopy(three_symmetric_mf_PSE(todo="plot", output_base=output_base))
+    # PSEhigh = deepcopy(three_symmetric_mf_PSE(todo="plot", branch="high", output_base=output_base))
+    #
+    # name = "PSE_3_TVBmfNodesGW"
+    # results = ["rate", "Pearson", "Spearman"]
+    # pops = ["E", "I", "EE", "FC-SC"]
+    # names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     # except:
     #     pass
 
