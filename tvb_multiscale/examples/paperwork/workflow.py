@@ -107,15 +107,15 @@ def spike_rates_from_mean_field_rates(mean_field):
     return rate
 
 
-def pearson(x):
+def Pearson(x):
     return np.corrcoef(x.T)
 
 
-def spearman(x):
+def Spearman(x):
     return spearmanr(x)[0]
 
 
-def TimeSeries_correlation(ts, corrfun=pearson, force_dims=4):
+def TimeSeries_correlation(ts, corrfun=Pearson, force_dims=4):
     data = ts._data # Get the DataArray of TimeSeries
     if data.shape[-1] == 1:  # Get rid of the 4th dimension if it is only 1
         data = data.squeeze(axis=-1)
@@ -132,12 +132,12 @@ def TimeSeries_correlation(ts, corrfun=pearson, force_dims=4):
     data = data.stack(**{stacked_dims: tuple(data.dims[1:])})
     # Prepare output DataArray
     n = len(data.coords[stacked_dims])
-    corrs = DataArray(np.empty((n, n), dtype="f"),
-                      dims=new_dims,
+    corrs = DataArray(np.empty((n, n), dtype="f"), dims=new_dims,
+                      name="Mean field %s correlation" % corrfun.__name__,
                       coords={new_dims[0]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[0]),
                               new_dims[1]: MultiIndex.from_tuples(data.coords[stacked_dims].values, names=names[1])})
     try:
-        # TODO: a better hack for when spearman returns nan
+        # TODO: a better hack for when Spearman returns nan
         corrs.values = corrfun(data.values)  # Compute all combinations of correlations across Time
     except:
         corrs.values = corrfun(data.values) * np.ones(corrs.values.shape)
@@ -440,8 +440,8 @@ class Workflow(object):
             print("No TVB time series have been loaded!")
             tvb_ts = None
         del results
-        if tvb_ts is not None and self.transient:
-            tvb_ts = tvb_ts[self.transient:]
+        # if tvb_ts is not None and self.transient:
+        #     tvb_ts = tvb_ts[self.transient:]
         return tvb_ts
 
     def get_mean_field(self, tvb_ts):
@@ -462,25 +462,30 @@ class Workflow(object):
     def get_tvb_rates(self, tvb_ts=None, mf_ts=None, tvb_spikes=None):
         if self.tvb_spiking_model:
             if self.tvb_spike_rate_var not in mf_ts.labels_dimensions["State Variable"]:
-                tvb_rates = \
+                tvb_rates_ts = \
                     spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
-                tvb_rates.title = "Region mean field spike rate time series"
+                tvb_rates_ts.title = "Region mean field spike rate time series"
             else:
                 mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
                     (self.simulator.integrator.dt * 0.001)  # rate in Hz
-                tvb_rates = spike_rates_from_mean_field_rates(mf_ts)
-                tvb_rates.title = "Region mean field rate time series"
+                tvb_rates_ts = spike_rates_from_mean_field_rates(mf_ts)
+                tvb_rates_ts.title = "Region mean field rate time series"
         else:
-            tvb_rates = tvb_ts[:, self.tvb_rate_vars]
-            tvb_rates.name = "Region mean field rate time series"
-        return DataArray(tvb_rates.mean(axis=0).squeeze(axis=-1),
-                         dims=tvb_rates.dims[1:3],
-                         coords={tvb_rates.dims[1]: tvb_rates.coords[tvb_rates.dims[1]],
-                                 tvb_rates.dims[2]: tvb_rates.coords[tvb_rates.dims[2]]}), tvb_rates
+            tvb_rates_ts = tvb_ts[:, self.tvb_rate_vars]
+            tvb_rates_ts.title = "Region mean field rate time series"
+        # Remove transient for the computation of mean rate across time:
+        if self.transient:
+            tvb_rates_ts_steady_state = tvb_rates_ts[self.transient:]
+        return DataArray(tvb_rates_ts_steady_state.mean(axis=0).squeeze(axis=-1), name="Mean population firing rates",
+                         dims=tvb_rates_ts.dims[1:3],
+                         coords={tvb_rates_ts.dims[1]: tvb_rates_ts.coords[tvb_rates_ts.dims[1]],
+                                 tvb_rates_ts.dims[2]: tvb_rates_ts.coords[tvb_rates_ts.dims[2]]}), tvb_rates_ts
 
-    def get_tvb_corrs(self, tvb_rates):
-        return {"Pearson": TimeSeries_correlation(tvb_rates, corrfun=pearson, force_dims=4),
-                "Spearman": TimeSeries_correlation(tvb_rates, corrfun=spearman, force_dims=4)}
+    def get_tvb_corrs(self, tvb_rates_ts):
+        if self.transient:
+            tvb_rates_ts_steady_state = tvb_rates_ts[self.transient:]
+        return {"Pearson": TimeSeries_correlation(tvb_rates_ts_steady_state, corrfun=Pearson, force_dims=4),
+                "Spearman": TimeSeries_correlation(tvb_rates_ts_steady_state, corrfun=Spearman, force_dims=4)}
 
     def plot_tvb_ts(self, tvb_ts, mf_ts=None):
         if mf_ts is None:
@@ -550,16 +555,17 @@ class Workflow(object):
                 for i_pop, spike in enumerate(tvb_spikes):
                     spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
                                cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
-            self.rates["TVB"], tvb_rates = self.get_tvb_rates(tvb_ts, mf_ts, tvb_spikes)
+            self.rates["TVB"], tvb_rates_ts = self.get_tvb_rates(tvb_ts, mf_ts, tvb_spikes)
             del tvb_ts  # Free memory...
             del mf_ts  # Free memory...
             del tvb_spikes  # Free memory...
-            self.corrs["TVB"] = self.get_tvb_corrs(tvb_rates)
+            self.corrs["TVB"] = self.get_tvb_corrs(tvb_rates_ts)
             if self.plotter:
-                tvb_rates.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
-                del tvb_rates  # Free memory
+                tvb_rates_ts.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
             if self.writer:
+                if self.write_time_series:
+                    self.write_ts(tvb_rates_ts, name="TVB_rates_ts", recursive=True)
                 self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
                 self.write_object(self.corrs["TVB"], "TVB_corrs")
-
+            del tvb_rates_ts  # Free memory
         return self.rates, self.corrs
