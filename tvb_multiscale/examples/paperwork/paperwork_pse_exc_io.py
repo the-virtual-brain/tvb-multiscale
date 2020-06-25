@@ -117,8 +117,8 @@ if __name__ == "__main__":
     # try:
     name = "PSE_1_TVBmfNodeStW"
     output_base = os.path.join(output_base_base, name)
-    PSElow = deepcopy(single_mf_PSE(todo="plot1D", output_base=output_base, fast=FAST))
-    PSEhigh = deepcopy(single_mf_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    PSElow = deepcopy(single_mf_PSE(todo="run", output_base=output_base, fast=FAST))
+    PSEhigh = deepcopy(single_mf_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
     results = ["rate"]
     pops = ["E", "I"]
     names = ["Rate (spikes/sec)"]
