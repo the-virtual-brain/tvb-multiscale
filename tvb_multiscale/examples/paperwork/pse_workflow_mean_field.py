@@ -47,7 +47,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
 
     def configure_PSE(self, w=None, fast=False):
         if w is None:
-            step = 1.0
+            step = 0.1
             if fast:
                 step = 0.3
             w = np.arange(0.5, 1.3, step)
@@ -67,7 +67,7 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
             step *= 10.0
         self.PSE["params"]["Stimulus"] = np.arange(0.0, 1.275, step)
         self.configure_PSE(w, fast)
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
         self._plot_results = ["rate"]
         self.workflow.force_dims = 10
 
@@ -120,12 +120,12 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
         self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg, ) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape)}
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
-        self.PSE["results"]["rate % diff"] = {"E": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % diff"] = {"E": np.empty(self.pse_shape) * np.nan}
         for corr in ["Pearson", "Spearman"]:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.zeros(self.pse_shape)
+            self.PSE["results"][corr]["EE"] = np.empty(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % diff", "Pearson", "Spearman"]
         self.workflow.force_dims = Nreg
 
@@ -138,7 +138,7 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
         PSE["rate per node"]["E"][:, i_g, i_w] = rates["TVB"][0].values.squeeze()
-        PSE["rate"]["E"][i_g, i_w] = PSE["rate per node"]["E"][:, i_g, i_w].mean()
+        PSE["rate"]["E"][i_g, i_w] = np.nanmean(PSE["rate per node"]["E"][:, i_g, i_w])
         PSE["rate % diff"]["E"][i_g, i_w] = \
             100 * np.abs(np.diff(PSE["rate per node"]["E"][:, i_g, i_w]) /
                          PSE["rate"]["E"][i_g, i_w])
@@ -192,13 +192,13 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
         self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape)}
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
-        self.PSE["results"]["rate % zscore"] = {"E": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % zscore"] = {"E": np.empty(self.pse_shape) * np.nan}
         for corr in ["Pearson", "Spearman"]:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.zeros(Nreg_shape)
-            self.PSE["results"][corr]["FC-SC"] = np.zeros(self.pse_shape)
+            self.PSE["results"][corr]["EE"] = np.empty(Nreg_shape) * np.nan
+            self.PSE["results"][corr]["FC-SC"] = np.empty(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % zscore", "Pearson", "Spearman"]
         self._SC = [0.1, 0.5, 0.9]
         connectivity, self._SC, self._SCsize, self._triu_inds = symmetric_connectivity(self._SC, 3)
@@ -209,7 +209,7 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
         PSE["rate per node"]["E"][:, i_g, i_w] = rates["TVB"][0].values.squeeze()
-        PSE["rate"]["E"][i_g, i_w] = PSE["rate per node"]["E"][:, i_g, i_w].mean()
+        PSE["rate"]["E"][i_g, i_w] = np.nanmean(PSE["rate per node"]["E"][:, i_g, i_w])
         PSE["rate % zscore"]["E"][i_g, i_w] = \
             100 * np.abs(np.std(PSE["rate per node"]["E"][:, i_g, i_w]) /
                          PSE["rate"]["E"][i_g, i_w])
