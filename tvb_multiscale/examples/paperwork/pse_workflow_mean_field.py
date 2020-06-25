@@ -62,10 +62,10 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast, output_base)
-        step = 0.1
+        step = 0.025
         if fast:
             step *= 10.0
-        self.PSE["params"]["Stimulus"] = np.arange(0.0, 2.1, step)
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 1.275, step)
         self.configure_PSE(w, fast)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
@@ -116,7 +116,7 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
         step = 10.0
         if fast:
             step *= 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
+        self.PSE["params"]["G"] = np.arange(0.0, 405.0, step)
         self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg, ) + self.pse_shape
@@ -188,7 +188,7 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
         step = 10.0
         if fast:
             step *= 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)  #  100.0, 320.0, 20.0
+        self.PSE["params"]["G"] = np.arange(0.0, 405.0, step)  #  100.0, 320.0, 20.0
         self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape
