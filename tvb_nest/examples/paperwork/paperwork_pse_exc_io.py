@@ -95,26 +95,26 @@ if __name__ == "__main__":
 
     tic = time.time()
 
-    output_base_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/short_PSE_NESTnodes'
-    FAST = True
+    output_base_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/PSE_NESTnodes2'
+    FAST = False
 
     # # try:
-    # name = "PSE_1_NESTnodeStW"
-    # output_base = os.path.join(output_base_base, name)
-    # PSElow = deepcopy(single_nest_PSE(todo="plot1D", output_base=output_base, fast=FAST))
-    # PSEhigh = deepcopy(single_nest_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
-    # results = ["rate"]
-    # pops = ["E", "I"]
-    # names = ["Rate (spikes/sec)"]
-    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    name = "PSE_1_NESTnodeStW"
+    output_base = os.path.join(output_base_base, name)
+    PSElow = deepcopy(single_nest_PSE(todo="plot1D", output_base=output_base, fast=FAST))
+    PSEhigh = deepcopy(single_nest_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    results = ["rate"]
+    pops = ["E", "I"]
+    names = ["Rate (spikes/sec)"]
+    plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     # # except:
     # #     pass
 
     # # try:
     # name = "PSE_2_NESTnodesGW"
     # output_base = os.path.join(output_base_base, name)
-    # PSElow = deepcopy(two_nest_nodes_PSE(todo="run", branch="low", output_base=output_base, fast=FAST))
-    # PSEhigh = deepcopy(two_nest_nodes_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
+    # PSElow = deepcopy(two_nest_nodes_PSE(todo="plot1D", branch="low", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(two_nest_nodes_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
     # results = ["rate", "rate % diff", "Pearson", "Spearman", "spike train"]
     # pops = ["E", "I", "EE"]
     # names = ["Rate (spikes/sec)", "rate % diff", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
@@ -124,14 +124,14 @@ if __name__ == "__main__":
     # #     pass
 
     # try:
-    name = "PSE_3_NESTnodesGW"
-    output_base = os.path.join(output_base_base, name)
-    PSElow = deepcopy(three_nest_nodes_PSE(todo="run", branch="low", output_base=output_base, fast=FAST))
-    PSEhigh = deepcopy(three_nest_nodes_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
-    results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
-    pops = ["E", "I", "EE", "FC-SC"]
-    names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
-    plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    # name = "PSE_3_NESTnodesGW"
+    # output_base = os.path.join(output_base_base, name)
+    # PSElow = deepcopy(three_nest_nodes_PSE(todo="plot1D", branch="low", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(three_nest_nodes_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    # results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
+    # pops = ["E", "I", "EE", "FC-SC"]
+    # names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     # except:
     #    pass
 
