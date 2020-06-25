@@ -45,9 +45,12 @@ class PSEWorkflowMF(PSEWorkflowBase):
                 kwargs = {"w+": w[0]}
         self.configure_paths(**kwargs)
 
-    def configure_PSE(self, w=None):
+    def configure_PSE(self, w=None, fast=False):
         if w is None:
-            w = np.arange(0.5, 1.2, 0.1)
+            step = 1.0
+            if fast:
+                step = 0.3
+            w = np.arange(0.5, 1.3, step)
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -63,7 +66,7 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
         if fast:
             step *= 10.0
         self.PSE["params"]["Stimulus"] = np.arange(0.0, 2.1, step)
-        self.configure_PSE(w)
+        self.configure_PSE(w, fast)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
         self.workflow.force_dims = 10
@@ -114,7 +117,7 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
         if fast:
             step *= 10.0
         self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
-        self.configure_PSE(w)
+        self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg, ) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape)}
@@ -186,7 +189,7 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
         if fast:
             step *= 10.0
         self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)  #  100.0, 320.0, 20.0
-        self.configure_PSE(w)
+        self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape)}

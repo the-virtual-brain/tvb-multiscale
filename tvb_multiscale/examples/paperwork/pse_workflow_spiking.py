@@ -71,9 +71,12 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
                 kwargs = {"w+": w[0]}
         self.configure_paths(**kwargs)
 
-    def configure_PSE(self, w=None):
+    def configure_PSE(self, w=None, fast=False):
         if w is None:
-            w = np.sort(np.arange(0.9, 1.6, 0.1).tolist() + [1.55])
+            step = 0.1
+            if fast:
+                step = 0.3
+            w = np.sort(np.arange(0.9, 1.6, step).tolist() + [1.55])
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -89,7 +92,7 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
         if fast:
             step *= 10.0
         self.PSE["params"]["Stimulus"] = np.arange(0.0, 50.1, step)
-        self.configure_PSE(w)
+        self.configure_PSE(w, fast)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
                                        "I": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
@@ -139,7 +142,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
         if fast:
             step *= 10.0
         self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
-        self.configure_PSE(w)
+        self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
@@ -202,7 +205,7 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
         if fast:
             step *= 10.0
         self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
-        self.configure_PSE(w)
+        self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
         self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
