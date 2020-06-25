@@ -134,13 +134,17 @@ class PSEWorkflowBase(object):
             for i_w, w in enumerate(self.PSE["params"][params[1]]):
                 pse_params[params[1]] = w
                 tic = time.time()
-                self.print_PSE(pse_params)
-                self.workflow.reset(pse_params)
-                self.workflow.configure()
-                self.workflow.model_params = self.pse_to_model_params(pse_params)
-                rates, corrs = self.workflow.run()
-                self.results_to_PSE(i_s, i_w, rates, corrs)
-                gc.collect()
+                try:
+
+                    self.print_PSE(pse_params)
+                    self.workflow.reset(pse_params)
+                    self.workflow.configure()
+                    self.workflow.model_params = self.pse_to_model_params(pse_params)
+                    rates, corrs = self.workflow.run()
+                    self.results_to_PSE(i_s, i_w, rates, corrs)
+                    gc.collect()
+                except:
+                    pass
                 print_toc_message(tic)
         self.workflow = None
         self.write_PSE()
