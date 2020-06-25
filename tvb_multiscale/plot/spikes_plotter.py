@@ -66,6 +66,16 @@ class SpikesPlotter(BasePlotter):
             yticks = np.arange(ylims[0], ylims[1], neurons_step)
         return ylims, yticks
 
+    def _default_title(self, title, rates_flag, figure_name=None):
+        if title is None:
+            if figure_name is not None:
+                title = figure_name
+            else:
+                title = "Population spikes"
+                if rates_flag:
+                    title = title + " and spike rates"
+        return str(title)
+
     def _get_figname_figsize(self, title="Population spikes and spike rate",
                              figure_name=None, figsize=None):
         if figure_name is None:
@@ -115,9 +125,8 @@ class SpikesPlotter(BasePlotter):
     def _scale_rate_to_axis(self, rate, max_rate, max_n_neurons, min_n_neurons=0):
         return rate / max_rate * max_n_neurons + min_n_neurons
 
-    def plot_spikes(self, pop_spikes, rates=None,
-                     title="Population spikes and spike rate",
-                     figure_name=None, figsize=None, **kwargs):
+    def plot_spikes(self, pop_spikes, rates=None, title=None, figure_name=None, figsize=None, **kwargs):
+        title = self._default_title(title, rates is not None, figure_name=None)
         if isinstance(pop_spikes, DataArray):
             get_spikes_fun = lambda spikes, i_region: spikes[:, :, i_region].values.squeeze()
             get_time = lambda spikes, time: spikes.get_index(spikes.dims[0])
@@ -192,12 +201,10 @@ class SpikesPlotter(BasePlotter):
         ylims, yticks = self._get_y_ticks_labels(max_n_neurons, min_n_neurons)
         return ylims, yticks, max_n_neurons, min_n_neurons
 
-    def plot_spike_detectors(self, spike_detectors, rates=None,
-                             title="Population spikes and spike rate",
-                             figure_name=None, figsize=None, **kwargs):
+    def plot_spike_detectors(self, spike_detectors, rates=None, title=None, figure_name=None, figsize=None, **kwargs):
         # This method will plot a spike raster and, optionally,
         # it will superimpose the mean rate as a faded line.
-
+        title = self._default_title(title, rates is not None, figure_name=None)
         time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, plot_rates = \
             self._get_rates(rates)
 
@@ -251,11 +258,11 @@ class SpikesPlotter(BasePlotter):
 
         return pyplot.gcf(), axes
 
-    def plot_spike_events(self, spikes_events, rates=None,
-                          title="Population spikes and spike rate",
-                          figure_name=None, figsize=None, **kwargs):
+    def plot_spike_events(self, spikes_events, rates=None, title=None, figure_name=None, figsize=None, **kwargs):
         # This method will plot a spike raster and, optionally,
         # it will superimpose the mean rate as a faded line.
+        title = self._default_title(title, rates is not None, figure_name=None)
+
         time, max_rate, get_rate_fun, time_lims, xticks, xticklabels, plot_rates = \
             self._get_rates(rates)
 
