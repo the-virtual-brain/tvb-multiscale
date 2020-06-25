@@ -64,7 +64,9 @@ class H5Reader(object):
 
 class H5GroupHandlers(object):
 
+    H5_TYPE_ATTRIBUTE = H5Writer().H5_TYPE_ATTRIBUTE
     H5_SUBTYPE_ATTRIBUTE = H5Writer().H5_SUBTYPE_ATTRIBUTE
+    H5_TYPES_ATTRUBUTES = [H5_TYPE_ATTRIBUTE, H5_SUBTYPE_ATTRIBUTE]
 
     def __init__(self, h5_subtype_attribute):
         if h5_subtype_attribute is not None:
@@ -82,18 +84,9 @@ class H5GroupHandlers(object):
                     value = None
             dictionary.update({dataset: value})
         for attr in group.attrs.keys():
-            dictionary.update({attr: group.attrs[attr]})
+            if attr not in self.H5_TYPES_ATTRUBUTES:
+                dictionary.update({attr: group.attrs[attr]})
         # if type is None:
         #     type = group.attrs[H5Reader.H5_SUBTYPE_ATTRIBUTE]
         # else:
         return dictionary
-
-
-def read_dicts_from_h5file_recursively(h5file_or_group):
-    d = OrderedDict()
-    for k in h5file_or_group.keys():
-        try:
-            d[k] = h5file_or_group[k][()]
-        except:
-            d[k] = read_dicts_from_h5file_recursively(h5file_or_group[k])
-    return d
