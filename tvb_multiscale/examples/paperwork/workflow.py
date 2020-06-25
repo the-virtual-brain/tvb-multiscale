@@ -368,12 +368,15 @@ class Workflow(object):
             # Remove diagonal:
             np.fill_diagonal(self.connectivity.weights, 0.0)
             np.fill_diagonal(self.connectivity.tract_lengths, 0.0)
+            # Normalize per region:
             self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
             if self.symmetric_connectome:
                 self.connectivity.weights = np.sqrt(self.connectivity.weights * self.connectivity.weights.T)
                 self.connectivity.tract_lengths = \
                     np.sqrt(self.connectivity.tract_lengths * self.connectivity.tract_lengths.T)
+            # Normalize with the 95th percentile of all connections:
             self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
+            # Ceil to 1.0 (i.e., to the above 95h percentile).
             self.connectivity.weights[self.connectivity.weights > 1.0] = 1.0
         if not self.time_delays:
             self.connectivity.tract_lengths *= 0.0
