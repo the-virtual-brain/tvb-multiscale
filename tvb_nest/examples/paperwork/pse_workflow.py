@@ -70,10 +70,10 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_NESTnodeStW, self).__init__(w, branch, fast, output_base)
-        step = 2.5
+        step = 1.0
         if fast:
-            step *= 10.0
-        self.PSE["params"]["Stimulus"] = np.arange(0.0, 50.1, step)
+            step *= 12.5
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 25.1, step)
         self.configure_PSE(w, fast)
         self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
                                        "I": np.empty(self.pse_shape) * np.nan}
@@ -154,7 +154,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
         PSE = self.PSE["results"]
         for i_pop, pop in enumerate(PSE["rate"].keys()):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
-            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].nanmean()
+            PSE["rate"][pop][i_g, i_w] = np.nanmean(PSE["rate per node"][pop][:, i_g, i_w])
             PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
@@ -230,7 +230,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
         PSE = self.PSE["results"]
         for i_pop, pop in enumerate(PSE["rate"].keys()):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
-            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].nanmean()
+            PSE["rate"][pop][i_g, i_w] = np.nanmean(PSE["rate per node"][pop][:, i_g, i_w])
             PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.nanstd(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
