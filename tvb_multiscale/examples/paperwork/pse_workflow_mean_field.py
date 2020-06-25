@@ -62,10 +62,10 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast, output_base)
-        step = 0.025
+        step = 0.005
         if fast:
             step *= 10.0
-        self.PSE["params"]["Stimulus"] = np.arange(0.0, 1.275, step)
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 0.105, step)
         self.configure_PSE(w, fast)
         self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
         self._plot_results = ["rate"]
