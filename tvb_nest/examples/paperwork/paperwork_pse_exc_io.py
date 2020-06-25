@@ -32,8 +32,9 @@ def run_PSE(pse_class, todo="run", **kwargs):
         if todo.find("plot") > -1:
             pse_workflow.plot_PSE()
     print(pse_workflow.PSE)
-    return pse_workflow.PSE
-
+    PSE = deepcopy(pse_workflow.PSE)
+    del pse_workflow
+    return PSE
 
 def single_nest_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_nest.examples.paperwork.pse_workflow import PSE_1_NESTnodeStW
@@ -94,39 +95,44 @@ if __name__ == "__main__":
 
     tic = time.time()
 
-    output_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/PSE_2_NESTnodesW'
-    # try:
-    #     PSElow = deepcopy(single_nest_PSE(todo="plot2D", output_base=output_base))
-    #     PSEhigh = deepcopy(single_nest_PSE(todo="plot2D", branch="high", output_base=output_base))
-    #     name = "PSE_1_NESTnodeStW"
-    #     results = ["rate"]
-    #     pops = ["E", "I"]
-    #     names = ["Rate (spikes/sec)"]
-    #     plot_results(PSElow, PSEhigh, name, results, pops, names)
-    # except:
-    #     pass
+    output_base_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/short_PSE_NESTnodes'
+    FAST = True
 
-    try:
-        PSElow = deepcopy(two_nest_nodes_PSE(todo="plot1D", branch="low", output_base=output_base))
-        PSEhigh = deepcopy(two_nest_nodes_PSE(todo="plot1D", branch="high", output_base=output_base))
-        name = "PSE_2_NESTnodesW"
-        results = ["rate", "rate % diff", "Pearson", "Spearman", "spike train"]
-        pops = ["E", "I", "EE"]
-        names = ["Rate (spikes/sec)", "rate % diff", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
-        plot_results(PSElow, PSEhigh, name, results, pops, names)
+    # # try:
+    # name = "PSE_1_NESTnodeStW"
+    # output_base = os.path.join(output_base_base, name)
+    # PSElow = deepcopy(single_nest_PSE(todo="plot1D", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(single_nest_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    # results = ["rate"]
+    # pops = ["E", "I"]
+    # names = ["Rate (spikes/sec)"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    # # except:
+    # #     pass
 
-    except:
-        pass
-    #
+    # # try:
+    # name = "PSE_2_NESTnodesGW"
+    # output_base = os.path.join(output_base_base, name)
+    # PSElow = deepcopy(two_nest_nodes_PSE(todo="run", branch="low", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(two_nest_nodes_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
+    # results = ["rate", "rate % diff", "Pearson", "Spearman", "spike train"]
+    # pops = ["E", "I", "EE"]
+    # names = ["Rate (spikes/sec)", "rate % diff", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+
+    # # except:
+    # #     pass
+
     # try:
-    #     PSElow = deepcopy(three_nest_nodes_PSE(todo="plot1D", branch="low", output_base=output_base))
-    #     PSEhigh = deepcopy(three_nest_nodes_PSE(todo="plot1D", branch="high", output_base=output_base))
-    #     name = "PSE_3_NESTnodesW"
-    #     results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
-    #     pops = ["E", "I", "EE", "FC-SC"]
-    #     names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
-    #     plot_results(PSElow, PSEhigh, name, results, pops, names)
+    name = "PSE_3_NESTnodesGW"
+    output_base = os.path.join(output_base_base, name)
+    PSElow = deepcopy(three_nest_nodes_PSE(todo="run", branch="low", output_base=output_base, fast=FAST))
+    PSEhigh = deepcopy(three_nest_nodes_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
+    results = ["rate", "rate % zscore", "Pearson", "Spearman", "spike train"]
+    pops = ["E", "I", "EE", "FC-SC"]
+    names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr", "Spike train Corr"]
+    plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     # except:
-    #     pass
+    #    pass
 
     print_toc_message(tic)
