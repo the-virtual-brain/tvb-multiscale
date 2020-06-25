@@ -365,10 +365,14 @@ class Workflow(object):
         if self.decouple:
             self.connectivity.weights *= 0.0
         elif self.connectivity.weights.max() > 0.0:
+            # Remove diagonal:
+            np.fill_diagonal(self.connectivity.weights, 0.0)
+            np.fill_diagonal(self.connectivity.tract_lengths, 0.0)
             self.connectivity.weights = self.connectivity.scaled_weights(mode="region")
             if self.symmetric_connectome:
                 self.connectivity.weights = np.sqrt(self.connectivity.weights * self.connectivity.weights.T)
-                self.connectivity.tract_lengths = np.sqrt(self.connectivity.tract_lengths * self.connectivity.tract_lengths.T)
+                self.connectivity.tract_lengths = \
+                    np.sqrt(self.connectivity.tract_lengths * self.connectivity.tract_lengths.T)
             self.connectivity.weights /= np.percentile(self.connectivity.weights, 95)
             self.connectivity.weights[self.connectivity.weights > 1.0] = 1.0
         if not self.time_delays:
