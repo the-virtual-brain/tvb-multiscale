@@ -658,7 +658,7 @@ class Workflow(WorkflowBase):
 
             corrs[corr] = DataArray(corrs[corr], name="Mean population spike %s correlation" % corr_name, dims=new_dims,
                                     coords={new_dims[0]:
-                                                MultiIndex.from_product([pop_labels, reg_labels], ames=names[0]),
+                                                MultiIndex.from_product([pop_labels, reg_labels], names=names[0]),
                                             new_dims[1]:
                                                 MultiIndex.from_product([pop_labels, reg_labels], names=names[1])})
             corrs[corr] = corrs[corr].unstack(new_dims)
