@@ -13,7 +13,7 @@ from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDe
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOinhIBuilder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
-from tvb_multiscale.examples.paperwork.workflow import pearson, spearman
+from tvb_multiscale.examples.paperwork.workflow import Pearson, Spearman
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
@@ -539,8 +539,8 @@ class Workflow(WorkflowBase):
             print("No TVB time series have been loaded!")
             tvb_ts = None
         del results
-        if tvb_ts is not None and self.transient:
-            tvb_ts = tvb_ts[self.transient:]
+        # if tvb_ts is not None and self.transient:
+        #     tvb_ts = tvb_ts[self.transient:]
         return tvb_ts
 
     def simulate_nest(self, cleanup=True):
@@ -560,31 +560,26 @@ class Workflow(WorkflowBase):
         except:
             print("No time series loaded from NEST!")
             nest_ts = None
-        if nest_ts is not None and self.transient:
-            nest_ts = nest_ts[self.transient:]
+        # if nest_ts is not None and self.transient:
+        #     nest_ts = nest_ts[self.transient:]
         return nest_ts
 
     def get_nest_spikes(self):
-        if self.transient:
-            exclude_times = [0.0, self.transient]
-        else:
-            exclude_times = None
-        nest_spikes = self.nest_network.get_spikes(mode="events", return_type="Series",
-                                                   exclude_times=exclude_times)
+        # if self.transient:
+        #     exclude_times = [0.0, self.transient]
+        # else:
+        #     exclude_times = None
+        nest_spikes = self.nest_network.get_spikes(mode="events", return_type="Series")  # exclude_times=exclude_times
         return nest_spikes
 
     def get_nest_rates_corrs(self, nest_spikes, time=None):
         from pandas import MultiIndex
-        from elephant.statistics import time_histogram
+        from elephant.statistics import time_histogram, instantaneous_rate, mean_firing_rate
         from elephant.conversion import BinnedSpikeTrain
         from elephant import spike_train_correlation
         from neo.core import SpikeTrain
         from quantities import ms
-        corrs = {}
-        rates = []
-        spike_ts = []
-        spike_trains = []
-        pop_labels = []
+
         if time is not None:
             t_start = time[0]
             t_stop = time[-1]
@@ -599,8 +594,22 @@ class Workflow(WorkflowBase):
             t_stop = np.max(t_stop)
             time = np.arange(t_start, t_stop + self.tvb_monitor_period, self.tvb_monitor_period)
         dt = np.diff(time).mean()
+        t_start_ms = t_start*ms
+        t_stop_ms = (t_stop + dt)*ms
+        dt_ms = dt*ms
+        if self.transient:
+            computation_t_start = self.transient*ms
+        else:
+            computation_t_start = t_start*ms
+        corrs = {}
+        rates_ts = []
+        rates = []
+        spike_ts = []
+        spike_trains = []
+        pop_labels = []
         for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
             pop_labels.append(pop_label)
+            rates_ts.append([])
             rates.append([])
             reg_labels = []
             for reg_label, reg_spikes in pop_spikes.iteritems():
@@ -608,22 +617,35 @@ class Workflow(WorkflowBase):
                 # rates (spikes/sec) =
                 #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
                 these_spikes = [spike for spike in reg_spikes["times"] if spike >= t_start and spike <= t_stop]
-                rates[-1].append(len(these_spikes) / self.duration / self.populations_sizes[i_pop])
-                spike_trains.append(SpikeTrain(these_spikes*ms, t_stop=t_stop, t_start=t_start))
-                spike_ts.append(np.array(time_histogram([spike_trains[-1]], binsize=dt*ms)).squeeze())
+                spike_trains.append(SpikeTrain(these_spikes*ms, t_start=t_start_ms, t_stop=t_stop_ms))
+                spike_ts.append(np.array(time_histogram([spike_trains[-1]], binsize=dt_ms,
+                                                        t_start=computation_t_start, t_stop=t_stop_ms)).squeeze())
+                rates[-1].append(float(mean_firing_rate(spike_trains[-1],
+                                                        t_start=computation_t_start, t_stop=t_stop_ms))
+                                 / self.populations_sizes[i_pop])
+                rates_ts[-1].append(np.array(instantaneous_rate(spike_trains[-1], sampling_period=dt_ms,
+                                                                t_start=t_start_ms, t_stop=t_stop_ms))
+                                    / self.populations_sizes[i_pop])
         del these_spikes
         del nest_spikes  # Free memory...
-        binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt * ms)
+        binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt_ms,
+                                         t_start=computation_t_start, t_stop=t_stop_ms)
         del spike_trains  # Free memory...
         corrs["spike_train"] = spike_train_correlation.corrcoef(binned_spikes)
         del binned_spikes  # Free memory...
         spike_ts = np.array(spike_ts).T
-        corrs["Pearson"] = pearson(spike_ts)
-        corrs["Spearman"] = spearman(spike_ts)
+        corrs["Pearson"] = Pearson(spike_ts)
+        corrs["Spearman"] = Spearman(spike_ts)
         del spike_ts  # Free memory...
-        rates = DataArray(np.array(rates),
+        # converting to spikes/sec from spikes/ms:
+        rates = DataArray(1000 * np.array(rates), name="Mean population spiking ratew",
                           dims=["Population", "Region"],
                           coords={"Population": pop_labels, "Region": reg_labels})
+        rates_ts = TimeSeriesRegionX(np.moveaxis(np.array(rates_ts), 2, 0),  # This is already in spikes/sec
+                                     time=time, connectivity=self.simulator.connectivity,
+                                     labels_ordering=["Time", "Population", "Region", "Neurons"],
+                                     labels_dimensions={"Population": pop_labels, "Region": reg_labels},
+                                     sample_period=dt, title="Mean population spiking rates time series")
         dims = list(rates.dims)
         stacked_dims = "-".join(dims)
         names = []
@@ -631,18 +653,19 @@ class Workflow(WorkflowBase):
         for d in ["i", "j"]:
             names.append([dim + "_" + d for dim in dims])
             new_dims.append(stacked_dims + "_" + d)
-        for corr in ["spike_train", "Pearson", "Spearman"]:
-            corrs[corr] = DataArray(corrs[corr],
-                                    dims=new_dims,
-                                    coords={new_dims[0]: MultiIndex.from_product([pop_labels, reg_labels],
-                                                                                 names=names[0]),
-                                            new_dims[1]: MultiIndex.from_product([pop_labels, reg_labels],
-                                                                                 names=names[1])})
+        for corr, corr_name in zip(["spike_train", "Pearson", "Spearman"],
+                                   ["train", "Pearson", "Spearman"]):
+
+            corrs[corr] = DataArray(corrs[corr], name="Mean population spike %s correlation" % corr_name, dims=new_dims,
+                                    coords={new_dims[0]:
+                                                MultiIndex.from_product([pop_labels, reg_labels], ames=names[0]),
+                                            new_dims[1]:
+                                                MultiIndex.from_product([pop_labels, reg_labels], names=names[1])})
             corrs[corr] = corrs[corr].unstack(new_dims)
             temp_dims = list(corrs[corr].dims)
             # Put variables in front of regions:
             corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))
-        return rates, corrs
+        return rates, rates_ts, corrs
 
     def plot_tvb_ts(self, tvb_ts):
         # For timeseries plot:
@@ -795,7 +818,12 @@ class Workflow(WorkflowBase):
                     self.write_ts(tvb_ts, "TVB_TimeSeries", recursive=True)
                 if self.plotter:
                     self.plot_tvb_ts(tvb_ts)
-                self.rates["TVB"] = self.get_tvb_rates(tvb_ts)[0]
+                self.rates["TVB"], tvb_rates_ts = self.get_tvb_rates(tvb_ts)
+                if self.plotter:
+                    tvb_rates_ts.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
+                if self.writer and self.write_time_series:
+                    self.write_ts(tvb_rates_ts, name="TVB_rates_ts", recursive=True)
+                del tvb_rates_ts
                 self.corrs["TVB"] = self.get_tvb_corrs(tvb_ts)
                 if self.writer:
                     self.write_object(self.rates["TVB"].to_dict(), "TVB_rates")
@@ -823,9 +851,14 @@ class Workflow(WorkflowBase):
                 self.write_object(nest_spikes.to_dict(), "NEST_Spikes")
             if self.plotter:
                 self.plotter.plot_spike_events(nest_spikes)
-            self.rates["NEST"], self.corrs["NEST"] = self.get_nest_rates_corrs(nest_spikes, t)
+            self.rates["NEST"], nest_rates_ts, self.corrs["NEST"] = self.get_nest_rates_corrs(nest_spikes, t)
+            del nest_spikes
+            if self.plotter:
+                nest_rates_ts.plot_timeseries(plotter_config=self.plotter.config, figsize=self.figsize)
             if self.writer:
+                if self.write_time_series:
+                    self.write_ts(nest_rates_ts, name="NEST_rates_ts", recursive=True)
                 self.write_object(self.rates["NEST"].to_dict(), "NEST_rates")
                 self.write_object(self.corrs["NEST"], "NEST_corrs")
-
+            del nest_rates_ts
         return self.rates, self.corrs
