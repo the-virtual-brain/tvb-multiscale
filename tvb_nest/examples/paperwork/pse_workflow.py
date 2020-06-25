@@ -61,12 +61,6 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
         self.PSE["params"]["w+"] = w
         super(PSENESTWorkflowBase, self).configure_PSE()
 
-    def update_pse_params(self, **kwargs):
-        for p in self.PSE["params"].keys():
-            vals = kwargs.get(p, None)
-            if vals is not None:
-                self.PSE["params"][p] = vals
-
 
 class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
     name = "PSE_1_NESTnodeStW"
@@ -94,13 +88,11 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
-        for i_pop, pop in enumerate(["E", "I"]):
+        for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
             self.PSE["results"]["rate"][pop][i1, i2] = rates["NEST"][i_pop].values.item()
 
     def load_PSE_1D(self, **kwargs):
-        w = kwargs.get("w", None)
-        if w is not None:
-            self.PSE["params"]["w+"] = w
+        self.update_pse_params(**kwargs)
         for i_w, w in enumerate(self.PSE["params"]["w+"]):
             path = self.res_path.replace(".h5", "_w+%g.h5" % w)
             try:
@@ -108,14 +100,11 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
             except:
                 print("Failed to load file %s!" % path)
                 continue
-            for i_pop, pop in enumerate(["E", "I"]):
+            for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
                 self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
 
     def load_PSE_2D(self, **kwargs):
-        for p in ["Stimulus", "w+"]:
-            vals = kwargs.get(p, None)
-            if vals is not None:
-                self.PSE["params"][p] = vals
+        self.update_pse_params(**kwargs)
         for i_s, s in enumerate(self.PSE["params"]["Stimulus"]):
             for i_w, w in enumerate(self.PSE["params"]["w+"]):
                 path = self.res_path.replace(".h5", "_Stimulus%g_w+%g.h5" % (s, w))
@@ -124,7 +113,7 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
                 except:
                     print("Failed to load file %s!" % path)
                     continue
-                for i_pop, pop in enumerate(["E", "I"]):
+                for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
                     self.PSE["results"]["rate"][pop][i_s, i_w] = PSE["results"]["rate"][pop].item()
 
 
@@ -162,7 +151,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        for i_pop, pop in enumerate(["E", "I"]):
+        for i_pop, pop in enumerate(PSE["rate"].keys()):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].nanmean()
             PSE["rate % diff"][pop][i_g, i_w] = \
@@ -172,9 +161,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
             PSE[corr]["EE"][i_g, i_w] = corrs["NEST"][corr_name][0, 0, 0, 1].values.item()
 
     def load_PSE_1D(self, **kwargs):
-        w = kwargs.get("w", None)
-        if w is not None:
-            self.PSE["params"]["w+"] = w
+        self.update_pse_params(**kwargs)
         for i_w, w in enumerate(self.PSE["params"]["w+"]):
             path = self.res_path.replace(".h5", "_w+%g.h5" % w)
             try:
@@ -182,7 +169,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
             except:
                 print("Failed to load file %s!" % path)
                 continue
-            for i_pop, pop in enumerate(["E", "I"]):
+            for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
                 self.PSE["results"]["rate per node"][pop][:, :, i_w] = PSE["results"]["rate per node"][pop].squeeze()
                 self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
                 self.PSE["results"]["rate % diff"][pop][:, i_w] = PSE["results"]["rate % diff"][pop].squeeze()
@@ -190,10 +177,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
                 self.PSE["results"][corr]["EE"][:, i_w] = PSE["results"][corr]["EE"].squeeze()
 
     def load_PSE_2D(self, **kwargs):
-        for p in ["G", "w+"]:
-            vals = kwargs.get(p, None)
-            if vals is not None:
-                self.PSE["params"][p] = vals
+        self.update_pse_params(**kwargs)
         for i_g, g in enumerate(self.PSE["params"]["G"]):
             for i_w, w in enumerate(self.PSE["params"]["w+"]):
                 path = self.res_path.replace(".h5", "_G%g_w+%g.h5" % (g, w))
@@ -202,7 +186,7 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
                 except:
                     print("Failed to load file %s!" % path)
                     continue
-                for i_pop, pop in enumerate(["E", "I"]):
+                for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
                     self.PSE["results"]["rate per node"][pop][:, i_g, i_w] = PSE["results"]["rate per node"][pop].squeeze()
                     self.PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate"][pop].item()
                     self.PSE["results"]["rate % diff"][pop][i_g, i_w] = PSE["results"]["rate % diff"][pop].item()
@@ -244,7 +228,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
-        for i_pop, pop in enumerate(["E", "I"]):
+        for i_pop, pop in enumerate(PSE["rate"].keys()):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["NEST"][i_pop].values.squeeze()
             PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].nanmean()
             PSE["rate % zscore"][pop][i_g, i_w] = \
@@ -257,9 +241,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
                 (np.sqrt(np.sum(PSE[corr]["EE"][:, i_g, i_w] ** 2)) * self._SCsize)
 
     def load_PSE_1D(self, **kwargs):
-        w = kwargs.get("w", None)
-        if w is not None:
-            self.PSE["params"]["w+"] = w
+        self.update_pse_params(**kwargs)
         for i_w, w in enumerate(self.PSE["params"]["w+"]):
             path = self.res_path.replace(".h5", "_w+%g.h5" % w)
             try:
@@ -267,7 +249,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
             except:
                 print("Failed to load file %s!" % path)
                 continue
-            for i_pop, pop in enumerate(["E", "I"]):
+            for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
                 self.PSE["results"]["rate per node"][pop][:, :, i_w] = PSE["results"]["rate per node"][pop].squeeze()
                 self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
                 self.PSE["results"]["rate % zscore"][pop][:, i_w] = PSE["results"]["rate % zscore"][pop].squeeze()
@@ -276,10 +258,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
                 self.PSE["results"][corr]["FC-SC"][:, i_w] = PSE["results"][corr]["FC-SC"].squeeze()
 
     def load_PSE_2D(self, **kwargs):
-        for p in ["G", "w+"]:
-            vals = kwargs.get(p, None)
-            if vals is not None:
-                self.PSE["params"][p] = vals
+        self.update_pse_params(**kwargs)
         for i_g, g in enumerate(self.PSE["params"]["G"]):
             for i_w, w in enumerate(self.PSE["params"]["w+"]):
                 path = self.res_path.replace(".h5", "_G%g_w+%g.h5" % (g, w))
@@ -288,7 +267,7 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
                 except:
                     print("Failed to load file %s!" % path)
                     continue
-                for i_pop, pop in enumerate(["E", "I"]):
+                for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
                     self.PSE["results"]["rate per node"][pop][:, i_g, i_w] = PSE["results"]["rate per node"][pop].squeeze()
                     self.PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate"][pop].item()
                     self.PSE["results"]["rate % zscore"][pop][i_g, i_w] = PSE["results"]["rate % zscore"][pop].item()

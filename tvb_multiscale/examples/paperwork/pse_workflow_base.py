@@ -88,6 +88,13 @@ class PSEWorkflowBase(object):
             self.pse_shape.append(self.PSE["n_params"][np])
         self.pse_shape = tuple(self.pse_shape)
 
+    def update_pse_params(self, **kwargs):
+        for p in self.PSE["params"].keys():
+            vals = kwargs.get(p, None)
+            if vals is not None:
+                self.PSE["params"][p] = vals
+        self.configure_PSE()
+
     def pse_to_model_params(self, pse_params):
         pass
 

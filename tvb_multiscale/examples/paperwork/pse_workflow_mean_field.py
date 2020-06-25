@@ -55,7 +55,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
 
 
 class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
-    name = "PSE_1_tvb_mf_node_St_w"
+    name = "PSE_1_TVBmfNodeStW"
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast, output_base)
@@ -77,11 +77,37 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
-        self.PSE["results"]["rate"]["E"][i1, i2] = rates["TVB"][0].values.mean()
+        for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+            self.PSE["results"]["rate"][pop][i1, i2] = rates["TVB"][i_pop].values.mean()
+
+    def load_PSE_1D(self, **kwargs):
+        self.update_pse_params(**kwargs)
+        for i_w, w in enumerate(self.PSE["params"]["w+"]):
+            path = self.res_path.replace(".h5", "_w+%g.h5" % w)
+            try:
+                PSE = self.reader.read_dictionary(path=path, close_file=True)
+            except:
+                print("Failed to load file %s!" % path)
+                continue
+            for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+                self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
+
+    def load_PSE_2D(self, **kwargs):
+        self.update_pse_params(**kwargs)
+        for i_s, s in enumerate(self.PSE["params"]["Stimulus"]):
+            for i_w, w in enumerate(self.PSE["params"]["w+"]):
+                path = self.res_path.replace(".h5", "_Stimulus%g_w+%g.h5" % (s, w))
+                try:
+                    PSE = self.reader.read_dictionary(path=path, close_file=True)
+                except:
+                    print("Failed to load file %s!" % path)
+                    continue
+                for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+                    self.PSE["results"]["rate"][pop][i_s, i_w] = PSE["results"]["rate"][pop].item()
 
 
 class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
-    name = "PSE_2_tvb_mf_nodes_G_w"
+    name = "PSE_2_TVBmfNodesGW"
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast, output_base)
@@ -118,9 +144,43 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
         for corr in self._corr_results:
             PSE[corr]["EE"][i_g, i_w] = corrs["TVB"][corr][0, 0, 0, 1].values.item()
 
+    def load_PSE_1D(self, **kwargs):
+        self.update_pse_params(**kwargs)
+        for i_w, w in enumerate(self.PSE["params"]["w+"]):
+            path = self.res_path.replace(".h5", "_w+%g.h5" % w)
+            try:
+                PSE = self.reader.read_dictionary(path=path, close_file=True)
+            except:
+                print("Failed to load file %s!" % path)
+                continue
+            for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+                self.PSE["results"]["rate per node"][pop][:, :, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
+                self.PSE["results"]["rate % diff"][pop][:, i_w] = PSE["results"]["rate % diff"][pop].squeeze()
+            for corr in self._corr_results:
+                self.PSE["results"][corr]["EE"][:, i_w] = PSE["results"][corr]["EE"].squeeze()
+
+    def load_PSE_2D(self, **kwargs):
+        self.update_pse_params(**kwargs)
+        for i_g, g in enumerate(self.PSE["params"]["G"]):
+            for i_w, w in enumerate(self.PSE["params"]["w+"]):
+                path = self.res_path.replace(".h5", "_Stimulus%g_w+%g.h5" % (g, w))
+                try:
+                    PSE = self.reader.read_dictionary(path=path, close_file=True)
+                except:
+                    print("Failed to load file %s!" % path)
+                    continue
+                for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+                    self.PSE["results"]["rate per node"][pop][:, i_g, i_w] = PSE["results"]["rate per node"][
+                        pop].squeeze()
+                    self.PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate"][pop].item()
+                    self.PSE["results"]["rate % diff"][pop][i_g, i_w] = PSE["results"]["rate % diff"][pop].item()
+                for corr in self._corr_results:
+                    self.PSE["results"][corr]["EE"][i_g, i_w] = PSE["results"][corr]["EE"].item()
+
 
 class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
-    name = "PSE_3_tvb_mf_nodes_G_w"
+    name = "PSE_3_TVBmfNodesGW"
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast, output_base)
@@ -158,3 +218,38 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
             PSE[corr]["FC-SC"][i_g, i_w] = \
                 (np.dot(PSE[corr]["EE"][:, i_g, i_w], self._SC)) / \
                 (np.sqrt(np.sum(PSE[corr]["EE"][:, i_g, i_w] ** 2)) * self._SCsize)
+
+    def load_PSE_1D(self, **kwargs):
+        self.update_pse_params(**kwargs)
+        for i_w, w in enumerate(self.PSE["params"]["w+"]):
+            path = self.res_path.replace(".h5", "_w+%g.h5" % w)
+            try:
+                PSE = self.reader.read_dictionary(path=path, close_file=True)
+            except:
+                print("Failed to load file %s!" % path)
+                continue
+            for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+                self.PSE["results"]["rate per node"][pop][:, :, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                self.PSE["results"]["rate"][pop][:, i_w] = PSE["results"]["rate"][pop].squeeze()
+                self.PSE["results"]["rate % zscore"][pop][:, i_w] = PSE["results"]["rate % zscore"][pop].squeeze()
+            for corr in self._corr_results:
+                self.PSE["results"][corr]["EE"][:, :, i_w] = PSE["results"][corr]["EE"].squeeze()
+                self.PSE["results"][corr]["FC-SC"][:, i_w] = PSE["results"][corr]["FC-SC"].squeeze()
+
+    def load_PSE_2D(self, **kwargs):
+        self.update_pse_params(**kwargs)
+        for i_g, g in enumerate(self.PSE["params"]["G"]):
+            for i_w, w in enumerate(self.PSE["params"]["w+"]):
+                path = self.res_path.replace(".h5", "_G%g_w+%g.h5" % (g, w))
+                try:
+                    PSE = self.reader.read_dictionary(path=path, close_file=True)
+                except:
+                    print("Failed to load file %s!" % path)
+                    continue
+                for i_pop, pop in enumerate(self.PSE["results"]["rate"].keys()):
+                    self.PSE["results"]["rate per node"][pop][:, i_g, i_w] = PSE["results"]["rate per node"][pop].squeeze()
+                    self.PSE["results"]["rate"][pop][i_g, i_w] = PSE["results"]["rate"][pop].item()
+                    self.PSE["results"]["rate % zscore"][pop][i_g, i_w] = PSE["results"]["rate % zscore"][pop].item()
+                for corr in self._corr_results:
+                    self.PSE["results"][corr]["EE"][:, i_g, i_w] = PSE["results"][corr]["EE"].squeeze()
+                    self.PSE["results"][corr]["FC-SC"][i_g, i_w] = PSE["results"][corr]["FC-SC"].item()
