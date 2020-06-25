@@ -73,7 +73,7 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
 
     def configure_PSE(self, w=None):
         if w is None:
-            w = np.sort(np.arange(1.0, 1.7, 0.1).tolist() + [1.55])
+            w = np.sort(np.arange(0.9, 1.6, 0.1).tolist() + [1.55])
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -85,11 +85,10 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast, output_base)
+        step = 2.5
         if fast:
-            step = 1.0
-        else:
-            step = 0.1
-        self.PSE["params"]["Stimulus"] = np.arange(0.9, 5.1, step)
+            step *= 10.0
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 50.1, step)
         self.configure_PSE(w)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
                                        "I": np.zeros(self.pse_shape)}
@@ -107,7 +106,7 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
             self.PSE["results"]["rate"][pop][i1, i2] = rates["TVB"][i_pop].values.item()
 
     def prepare_stimulus(self, s):
-        return prepare_spike_stimulus(s * 2180.0, self.workflow.dt, self.stim_time_length, 1, self.n_neurons)
+        return prepare_spike_stimulus((1+s) * 2180.0, self.workflow.dt, self.stim_time_length, 1, self.n_neurons)
 
     def run(self):
         params = list(self.PSE["params"].keys())
@@ -136,11 +135,10 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast, output_base)
+        step = 10.0
         if fast:
-            step = 100.0
-        else:
-            step = 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+            step *= 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
         self.configure_PSE(w)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
@@ -200,10 +198,9 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_TVBspikingNodesGW, self).__init__(w, branch, fast, output_base)
+        step = 10.0
         if fast:
-            step = 100.0
-        else:
-            step = 10.0
+            step *= 10.0
         self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
         self.configure_PSE(w)
         Nreg = 3

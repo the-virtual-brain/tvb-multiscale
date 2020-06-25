@@ -55,7 +55,7 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
 
     def configure_PSE(self, w=None):
         if w is None:
-            w = np.sort(np.arange(1.0, 1.7, 0.1).tolist() + [1.55])
+            w = np.sort(np.arange(0.9, 1.6, 0.1).tolist() + [1.55])
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -67,11 +67,10 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_NESTnodeStW, self).__init__(w, branch, fast, output_base)
+        step = 2.5
         if fast:
-            step = 2.0
-        else:
-            step = 0.1
-        self.PSE["params"]["Stimulus"] = np.arange(0.1, 5.1, step)
+            step *= 10.0
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 50.1, step)
         self.configure_PSE(w)
         self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
                                        "I": np.empty(self.pse_shape) * np.nan}
@@ -82,7 +81,7 @@ class PSE_1_NESTnodeStW(PSENESTWorkflowBase):
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
         model_params["NEST"]["E"] = {"w_E": pse_params["w+"].item()}
-        self.workflow.nest_stimulus_rate = 2018.0 * pse_params["Stimulus"].item()
+        self.workflow.nest_stimulus_rate = 2018.0 * (1 + pse_params["Stimulus"].item())
         if self.branch == "high":
             self.workflow.nest_stimulus_rate *= np.array([2.0, 1.0])
         return model_params
@@ -122,11 +121,10 @@ class PSE_2_NESTnodesGW(PSENESTWorkflowBase):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast, output_base)
+        step = 10.0
         if fast:
-            step = 100.0
-        else:
-            step = 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+            step *= 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
         self.configure_PSE(w)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
@@ -199,11 +197,10 @@ class PSE_3_NESTnodesGW(PSE_2_NESTnodesGW):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_NESTnodesGW, self).__init__(w, branch, fast, output_base)
+        step = 10.0
         if fast:
-            step = 100.0
-        else:
-            step = 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+            step *= 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
         self.configure_PSE(w)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape

@@ -47,7 +47,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
 
     def configure_PSE(self, w=None):
         if w is None:
-            w = np.arange(0.8, 1.6, 0.1)
+            w = np.arange(0.5, 1.2, 0.1)
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -59,11 +59,10 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_TVBmfNodeStW, self).__init__(w, branch, fast, output_base)
+        step = 0.1
         if fast:
-            step = 0.1
-        else:
-            step = 0.01
-        self.PSE["params"]["Stimulus"] = np.arange(0.9, 1.31, step)
+            step *= 10.0
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 2.1, step)
         self.configure_PSE(w)
         self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape)}
         self._plot_results = ["rate"]
@@ -73,7 +72,7 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
         model_params = self.workflow.model_params
         model_params["TVB"] = {"G": np.array([0.0, ]),
                                "w": np.array([pse_params["w+"], ]),
-                               "I_o": np.array([pse_params["Stimulus"] * 0.3, ])}
+                               "I_o": np.array([pse_params["Stimulus"] + 0.3, ])}
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
@@ -111,11 +110,10 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast, output_base)
+        step = 10.0
         if fast:
-            step = 100.0
-        else:
-            step = 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
+            step *= 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)
         self.configure_PSE(w)
         Nreg = 2
         Nreg_shape = (Nreg, ) + self.pse_shape
@@ -184,11 +182,10 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_2_TVBmfNodesGW, self).__init__(w, branch, fast, output_base)
+        step = 10.0
         if fast:
-            step = 100.0
-        else:
-            step = 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)  #  100.0, 320.0, 20.0
+            step *= 10.0
+        self.PSE["params"]["G"] = np.arange(0.0, 205.0, step)  #  100.0, 320.0, 20.0
         self.configure_PSE(w)
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape
