@@ -28,7 +28,7 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
         self.workflow.symmetric_connectome = True
         self.workflow.time_delays = False
         self.workflow.dt = 0.1
-        self.workflow.simulation_length = 2000.0
+        self.workflow.simulation_length = 3000.0
         self.workflow.transient = 1000.0
         if fast:
             self.workflow.simulation_length /= 10
@@ -38,9 +38,9 @@ class PSENESTWorkflowBase(PSEWorkflowBase):
         self.workflow.nest_stimulus_times = [0.1]
         if self.branch == "high":
             self.workflow.nest_stimulus_rate *= np.array([2.0, 1.0])
-            # self.workflow.simulation_length += self.workflow.transient
-            # self.workflow.transient *= 2
-            self.workflow.nest_stimulus_times += [self.workflow.transient/4]
+            self.workflow.simulation_length += self.workflow.transient
+            self.workflow.transient *= 2
+            self.workflow.nest_stimulus_times += [self.workflow.transient/2]
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
         self.workflow.writer = True
