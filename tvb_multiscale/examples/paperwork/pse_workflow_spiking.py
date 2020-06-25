@@ -88,13 +88,13 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
         super(PSE_1_TVBspikingNodeStW, self).__init__(w, branch, fast, output_base)
-        step = 2.5
+        step = 1.0
         if fast:
-            step *= 10.0
-        self.PSE["params"]["Stimulus"] = np.arange(0.0, 50.1, step)
+            step *= 12.5
+        self.PSE["params"]["Stimulus"] = np.arange(0.0, 25.1, step)
         self.configure_PSE(w, fast)
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
-                                       "I": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                       "I": np.empty(self.pse_shape) * np.nan}
         self._plot_results = ["rate"]
         self.workflow.force_dims = 1
 
@@ -145,15 +145,15 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
         self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
-                                                "I": np.zeros(Nreg_shape)}
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
-                                       "I": np.zeros(self.pse_shape)}
-        self.PSE["results"]["rate % diff"] = {"E": np.zeros(self.pse_shape),
-                                              "I": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan,
+                                                "I": np.empty(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                       "I": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % diff"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                              "I": np.empty(self.pse_shape) * np.nan}
         for corr in ["Pearson", "Spearman"]:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.zeros(self.pse_shape)
+            self.PSE["results"][corr]["EE"] = np.empty(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % diff", "Pearson", "Spearman"]
         self.workflow.force_dims = Nreg
         self.stimulus = \
@@ -189,7 +189,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
         PSE = self.PSE["results"]
         for i_pop, pop in enumerate(["E", "I"]):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["TVB"][i_pop].values.squeeze()
-            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
+            PSE["rate"][pop][i_g, i_w] = np.nanmean(PSE["rate per node"][pop][:, i_g, i_w])
             PSE["rate % diff"][pop][i_g, i_w] = \
                 100 * np.abs(np.diff(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
@@ -208,16 +208,16 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
         self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.zeros(Nreg_shape),
-                                                "I": np.zeros(Nreg_shape)}
-        self.PSE["results"]["rate"] = {"E": np.zeros(self.pse_shape),
-                                       "I": np.zeros(self.pse_shape)}
-        self.PSE["results"]["rate % zscore"] = {"E": np.zeros(self.pse_shape),
-                                                "I": np.zeros(self.pse_shape)}
+        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan,
+                                                "I": np.empty(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                       "I": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % zscore"] = {"E": np.empty(self.pse_shape) * np.nan,
+                                                "I": np.empty(self.pse_shape) * np.nan}
         for corr in ["Pearson", "Spearman"]:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.zeros(Nreg_shape)
-            self.PSE["results"][corr]["FC-SC"] = np.zeros(self.pse_shape)
+            self.PSE["results"][corr]["EE"] = np.empty(Nreg_shape) * np.nan
+            self.PSE["results"][corr]["FC-SC"] = np.empty(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % zscore", "Pearson", "Spearman"]
         self._SC = [0.1, 0.5, 0.9]
         connectivity, self._SC, self._SCsize, self._triu_inds = symmetric_connectivity(self._SC, Nreg)
@@ -231,7 +231,7 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
         PSE = self.PSE["results"]
         for i_pop, pop in enumerate(["E", "I"]):
             PSE["rate per node"][pop][:, i_g, i_w] = rates["TVB"][i_pop].values.squeeze()
-            PSE["rate"][pop][i_g, i_w] = PSE["rate per node"][pop][:, i_g, i_w].mean()
+            PSE["rate"][pop][i_g, i_w] = np.nanmean(PSE["rate per node"][pop][:, i_g, i_w])
             PSE["rate % zscore"][pop][i_g, i_w] = \
                 100 * np.abs(np.std(PSE["rate per node"][pop][:, i_g, i_w]) / PSE["rate"][pop][i_g, i_w])
         for corr in self._corr_results:
