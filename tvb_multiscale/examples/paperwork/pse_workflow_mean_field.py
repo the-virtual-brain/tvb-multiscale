@@ -6,6 +6,7 @@ from tvb_multiscale.examples.paperwork.pse_workflow_base import PSEWorkflowBase,
 from tvb_multiscale.examples.paperwork.workflow import Workflow
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
+from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
@@ -15,13 +16,21 @@ class PSEWorkflowMF(PSEWorkflowBase):
     _corr_results = ["Pearson", "Spearman"]
 
     def __init__(self, w=None, branch="low", fast=False, output_base=None):
+        self.w = "w"
+        self.I_o = 0.3
         self.config = Config(separate_by_run=False, output_base=output_base)
         self.branch = branch
         self.workflow = Workflow()
         self.workflow.config = self.config
         self.workflow.tvb_model = ReducedWongWangExcIO
+        # ------Uncomment below to change model to ReducedWongWangExcIOInhI, Deco et al 2014------------------
+        self.workflow.tvb_model = ReducedWongWangExcIOInhI
+        self.workflow.tvb_rate_vars = ["R_e", "R_i"]
+        self.w = "w_p"
+        self.I_o = 0.382
+        # ------Uncomment above to change model to ReducedWongWangExcIOInhI, Deco et al 2014------------------
         if self.branch == "high":
-            self.workflow.tvb_init_cond = np.zeros((1, 4, 1, 1))
+            self.workflow.tvb_init_cond = np.zeros((1, self.workflow.tvb_model._nvar, 1, 1))
             self.workflow.tvb_init_cond[0, 0, 0, 0] = 1.0
         self.name = self.branch + self.name
         self.workflow.name = self.name
@@ -50,7 +59,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
             step = 0.1
             if fast:
                 step = 0.3
-            w = np.arange(0.5, 1.3, step)
+            w = np.array(np.arange(0.9, 1.6, step).tolist()) + [1.55]  # np.arange(0.5, 1.3, step)
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -74,8 +83,8 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
         model_params["TVB"] = {"G": np.array([0.0, ]),
-                               "w": np.array([pse_params["w+"], ]),
-                               "I_o": np.array([pse_params["Stimulus"] + 0.3, ])}
+                               self.w: np.array([pse_params["w+"], ]),
+                               "I_o": np.array([pse_params["Stimulus"] + self.I_o, ])}
         return model_params
 
     def results_to_PSE(self, i1, i2, rates, corrs=None):
@@ -132,7 +141,7 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
         model_params["TVB"] = {"G": np.array([pse_params["G"], ]),
-                               "w": np.array([pse_params["w+"], ])}
+                               self.w: np.array([pse_params["w+"], ])}
         return model_params
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
