@@ -3,7 +3,7 @@ import time
 from copy import deepcopy
 from collections import OrderedDict
 import gc
-
+from itertools import cycle
 import numpy as np
 
 from tvb_multiscale.config import Config
@@ -17,13 +17,25 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 def prepare_spike_stimulus(rate, dt, time_length, number_of_regions, number_of_neurons):
     from tvb_elephant.spike_stimulus_builder import SpikeStimulusBuilder
-    stb = SpikeStimulusBuilder(targets=["spikes_ext"], rate=rate, A=None,
-                              # A=None for uncorrelated spikes
-                              number_of_regions=number_of_regions, number_of_neurons=number_of_neurons,
-                              target_regions=None, t_start=0.0, dt=dt, time_length=time_length,
-                              sparse=False)
-
-    stimulus = stb.build()
+    rate = ensure_list(rate)
+    time_length = ensure_list(time_length)
+    if len(rate) > 1:
+        rates = []
+        for r, t in zip(rate, cycle(time_length)):
+            rates += list(r * np.ones((t, )))
+        stb = SpikeStimulusBuilder(targets=["spikes_ext"], rate=np.array(rates), A=None,
+                                   # A=None for uncorrelated spikes
+                                   number_of_regions=number_of_regions, number_of_neurons=number_of_neurons,
+                                   target_regions=None, t_start=0.0, dt=dt, time_length=np.sum(time_length),
+                                   sparse=False)
+        stimulus = stb.build_inhomogeneous_poisson_process()
+    else:
+        stb = SpikeStimulusBuilder(targets=["spikes_ext"], rate=rate[0], A=None,
+                                  # A=None for uncorrelated spikes
+                                  number_of_regions=number_of_regions, number_of_neurons=number_of_neurons,
+                                  target_regions=None, t_start=0.0, dt=dt, time_length=time_length[0],
+                                  sparse=False)
+        stimulus = stb.build_compound_poisson_process()
     return stimulus
 
 
@@ -40,7 +52,6 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         else:
             self.noise = 0.0
         self.name = branch + self.name
-        self.PSE["params"]["w+"] = np.arange(0.5, 1.6, 0.4)
         self.workflow = Workflow()
         self.workflow.config = self.config
         self.workflow.tvb_model = SpikingWongWangExcIOInhI
@@ -54,10 +65,16 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         self.workflow.dt = 0.025
         self.workflow.simulation_length = 2000.0
         self.workflow.transient = 1000.0
+        self.stimulus_rate = 2018.0
         if fast:
             self.workflow.simulation_length /= 10
             self.workflow.transient /= 10
         self.stim_time_length = int(np.ceil(self.workflow.simulation_length / self.workflow.dt))
+        if self.branch == "high":
+            self.stimulus_rate *= np.array([2.0, 1.0])
+            self.workflow.simulation_length += self.workflow.transient
+            self.stim_time_length = [ int(np.ceil(self.workflow.transient / self.workflow.dt)), self.stim_time_length]
+            self.workflow.transient *= 2
         self.workflow.tvb_noise_strength = self.noise  # 0.0001 / 2
         self.workflow.tvb_sim_numba = False
         self.workflow.plotter = True
@@ -109,7 +126,8 @@ class PSE_1_TVBspikingNodeStW(PSEWorkflowSpiking):
             self.PSE["results"]["rate"][pop][i1, i2] = rates["TVB"][i_pop].values.item()
 
     def prepare_stimulus(self, s):
-        return prepare_spike_stimulus((1+s) * 2180.0, self.workflow.dt, self.stim_time_length, 1, self.n_neurons)
+        return prepare_spike_stimulus(self.stimulus_rate * (1 + s),
+                                      self.workflow.dt, self.stim_time_length, 1, self.n_neurons)
 
     def run(self):
         params = list(self.PSE["params"].keys())
@@ -157,7 +175,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
         self._plot_results = ["rate", "rate % diff", "Pearson", "Spearman"]
         self.workflow.force_dims = Nreg
         self.stimulus = \
-            prepare_spike_stimulus(2180.0, self.workflow.dt, self.stim_time_length, Nreg, self.n_neurons)
+            prepare_spike_stimulus(self.stimulus_rate, self.workflow.dt, self.stim_time_length, Nreg, self.n_neurons)
 
     def pse_to_model_params(self, pse_params):
         model_params = self.workflow.model_params
@@ -228,7 +246,7 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
         self.workflow.connectivity_path = "None"
         self.workflow.connectivity = connectivity
         self.stimulus = \
-            prepare_spike_stimulus(2180.0, self.workflow.dt, self.stim_time_length, Nreg, self.n_neurons)
+            prepare_spike_stimulus(self.stimulus_rate, self.workflow.dt, self.stim_time_length, Nreg, self.n_neurons)
 
     def results_to_PSE(self, i_g, i_w, rates, corrs):
         PSE = self.PSE["results"]
