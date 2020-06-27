@@ -27,7 +27,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
         self.workflow.tvb_model = ReducedWongWangExcIOInhI
         self.workflow.tvb_rate_vars = ["R_e", "R_i"]
         self.w = "w_p"
-        self.I_o = 0.382
+        self.I_o = 0.3
         # ------Uncomment above to change model to ReducedWongWangExcIOInhI, Deco et al 2014------------------
         if self.branch == "high":
             self.workflow.tvb_init_cond = np.zeros((1, self.workflow.tvb_model._nvar, 1, 1))
@@ -59,7 +59,7 @@ class PSEWorkflowMF(PSEWorkflowBase):
             step = 0.1
             if fast:
                 step = 0.3
-            w = np.array(np.arange(0.9, 1.6, step).tolist()) + [1.55]  # np.arange(0.5, 1.3, step)
+            w = np.array(np.arange(0.9, 1.6, step).tolist() + [1.55])   # np.arange(0.5, 1.3, step)
         else:
             w = np.sort(ensure_list(w))
         self.PSE["params"]["w+"] = w
@@ -76,7 +76,7 @@ class PSE_1_TVBmfNodeStW(PSEWorkflowMF):
             step *= 10.0
         self.PSE["params"]["Stimulus"] = np.arange(0.0, 0.105, step)
         self.configure_PSE(w, fast)
-        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.ones(self.pse_shape) * np.nan}
         self._plot_results = ["rate"]
         self.workflow.force_dims = 10
 
@@ -129,12 +129,12 @@ class PSE_2_TVBmfNodesGW(PSEWorkflowMF):
         self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg, ) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan}
-        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
-        self.PSE["results"]["rate % diff"] = {"E": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate per node"] = {"E": np.ones(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.ones(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % diff"] = {"E": np.ones(self.pse_shape) * np.nan}
         for corr in ["Pearson", "Spearman"]:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.empty(self.pse_shape) * np.nan
+            self.PSE["results"][corr]["EE"] = np.ones(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % diff", "Pearson", "Spearman"]
         self.workflow.force_dims = Nreg
 
@@ -201,13 +201,13 @@ class PSE_3_TVBmfNodesGW(PSE_2_TVBmfNodesGW):
         self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (3, ) + self.pse_shape
-        self.PSE["results"]["rate per node"] = {"E": np.empty(Nreg_shape) * np.nan}
-        self.PSE["results"]["rate"] = {"E": np.empty(self.pse_shape) * np.nan}
-        self.PSE["results"]["rate % zscore"] = {"E": np.empty(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate per node"] = {"E": np.ones(Nreg_shape) * np.nan}
+        self.PSE["results"]["rate"] = {"E": np.ones(self.pse_shape) * np.nan}
+        self.PSE["results"]["rate % zscore"] = {"E": np.ones(self.pse_shape) * np.nan}
         for corr in ["Pearson", "Spearman"]:
             self.PSE["results"][corr] = OrderedDict()
-            self.PSE["results"][corr]["EE"] = np.empty(Nreg_shape) * np.nan
-            self.PSE["results"][corr]["FC-SC"] = np.empty(self.pse_shape) * np.nan
+            self.PSE["results"][corr]["EE"] = np.ones(Nreg_shape) * np.nan
+            self.PSE["results"][corr]["FC-SC"] = np.ones(self.pse_shape) * np.nan
         self._plot_results = ["rate", "rate % zscore", "Pearson", "Spearman"]
         self._SC = [0.1, 0.5, 0.9]
         connectivity, self._SC, self._SCsize, self._triu_inds = symmetric_connectivity(self._SC, 3)
