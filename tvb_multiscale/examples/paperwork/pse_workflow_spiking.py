@@ -62,7 +62,7 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         self.workflow.time_delays = False
         self.workflow.tvb_init_cond = np.zeros((1, self.workflow.tvb_model._nvar, 1, 1))
         self.workflow.tvb_init_cond[:, 5, :, :] = -70.0  # Setting V_m to V_rest
-        self.workflow.dt = 0.025
+        self.workflow.dt = 0.01
         self.workflow.simulation_length = 2000.0
         self.workflow.transient = 1000.0
         self.stimulus_rate = 2018.0
