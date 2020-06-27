@@ -111,32 +111,32 @@ if __name__ == "__main__":
 
     tic = time.time()
 
-    output_base_base = "/Users/dionperd/Software/TVB/tvb-multiscale/tvb_multiscale/examples/paperwork/outputs/short_PSE_TVBspikingNodes"
-    FAST = True
+    output_base_base = "/Users/dionperd/Software/TVB/tvb-multiscale/tvb_multiscale/examples/paperwork/outputs/PSE_TVBmfNodesEI"
+    FAST = False
 
-    # # try:
-    # name = "PSE_1_TVBmfNodeStW"
-    # output_base = os.path.join(output_base_base, name)
-    # PSElow = deepcopy(single_mf_PSE(todo="run", output_base=output_base, fast=FAST))
-    # PSEhigh = deepcopy(single_mf_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
-    # results = ["rate"]
-    # pops = ["E", "I"]
-    # names = ["Rate (spikes/sec)"]
-    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
-    # # except:
-    # #     pass
+    # try:
+    name = "PSE_1_TVBmfNodeStW"
+    output_base = os.path.join(output_base_base, name)
+    PSElow = deepcopy(single_mf_PSE(todo="plot1D", output_base=output_base, fast=FAST))
+    PSEhigh = deepcopy(single_mf_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    results = ["rate"]
+    pops = ["E", "I"]
+    names = ["Rate (spikes/sec)"]
+    plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    # except:
+    #     pass
 
-    # # try:
+    # try:
     # name = "PSE_2_TVBmfNodesGW"
     # output_base = os.path.join(output_base_base, name)
-    # PSElow = deepcopy(two_symmetric_mf_PSE(todo="plot1D", output_base=output_base, fast=FAST))
     # PSEhigh = deepcopy(two_symmetric_mf_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    # PSElow = deepcopy(two_symmetric_mf_PSE(todo="plot1D", output_base=output_base, fast=FAST))
     # results = ["rate", "Pearson", "Spearman"]
     # pops = ["E", "I", "EE"]
     # names = ["Rate (spikes/sec)", "Pearson Corr", "Spearman Corr"]
     # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
-    # # except:
-    # #     pass
+    # except:
+    #     pass
 
     # # try:
     # name = "PSE_3_TVBmfNodesGW"
@@ -153,8 +153,8 @@ if __name__ == "__main__":
     # # try:
     # name = "PSE_1_TVBspikingNodeStW"
     # output_base = os.path.join(output_base_base, name)
-    # PSEhigh = deepcopy(single_spiking_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
-    # PSElow = deepcopy(single_spiking_PSE(todo="run", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(single_spiking_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    # PSElow = deepcopy(single_spiking_PSE(todo="plot1D", output_base=output_base, fast=FAST))
     # results = ["rate"]
     # pops = ["E", "I"]
     # names = ["Rate (spikes/sec)"]
@@ -165,8 +165,8 @@ if __name__ == "__main__":
     # try:
     # name = "PSE_2_TVBspikingNodesGW"
     # output_base = os.path.join(output_base_base, name)
-    # PSElow = deepcopy(two_symmetric_spiking_PSE(todo="run", output_base=output_base, fast=FAST))
-    # PSEhigh = deepcopy(two_symmetric_spiking_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
+    # PSElow = deepcopy(two_symmetric_spiking_PSE(todo="plot1D", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(two_symmetric_spiking_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
     # results = ["rate", "rate % diff", "Pearson", "Spearman"]
     # pops = ["E", "I", "EE"]
     # names = ["Rate (spikes/sec)", "rate % diff", "Pearson Corr", "Spearman Corr"]
@@ -175,14 +175,14 @@ if __name__ == "__main__":
     #     pass
     #
     # # try:
-    name = "PSE_3_TVBspikingNodesGW"
-    output_base = os.path.join(output_base_base, name)
-    PSElow = deepcopy(three_symmetric_spiking_PSE(todo="run", output_base=output_base, fast=FAST))
-    PSEhigh = deepcopy(three_symmetric_spiking_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
-    results = ["rate", "rate % zscore", "Pearson", "Spearman"]
-    pops = ["E", "I", "EE", "FC-SC"]
-    names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr"]
-    plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    # name = "PSE_3_TVBspikingNodesGW"
+    # output_base = os.path.join(output_base_base, name)
+    # PSElow = deepcopy(three_symmetric_spiking_PSE(todo="plot1D", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(three_symmetric_spiking_PSE(todo="plot1D", branch="high", output_base=output_base, fast=FAST))
+    # results = ["rate", "rate % zscore", "Pearson", "Spearman"]
+    # pops = ["E", "I", "EE", "FC-SC"]
+    # names = ["Rate (spikes/sec)", "rate % zscore", "Pearson Corr", "Spearman Corr"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     # # except:
     # #    pass
 
