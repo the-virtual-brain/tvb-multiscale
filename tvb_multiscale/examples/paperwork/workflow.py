@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 import time
+from six import string_types
 from collections import OrderedDict
 import numpy as np
+from scipy import signal
 from scipy.stats import spearmanr
 from xarray import DataArray
 from pandas import MultiIndex
@@ -75,13 +77,24 @@ def spikes_per_population(source_spikes, populations, pop_sizes):
     return spikes
 
 
-def spike_rates_from_TVB_spike_ts(spikes, integrator_dt, pop_sizes):
+def spike_rates_from_TVB_spike_ts(spikes, integrator_dt, pop_sizes, sampling_period=0.1,
+                                  window_time_length=100.0, kernel="gaussian", **kwargs):
     # spikes_ts are assumed to have an amplitude of tvb_integrator_dt / tvb_monitor_dt
+    spikes = ensure_list(spikes)
+    if kernel is not None:
+        if isinstance(kernel, string_types):
+            nt = np.maximum(3, int(np.round(window_time_length / sampling_period)))
+            kernel = getattr(signal, kernel)(nt, **kwargs)
+        norm_kernel = np.sum(kernel)
     ts_service = TimeSeriesService()
     rate = []
-    for i_pop, (spike_ts, pop_size) in enumerate(zip(ensure_list(spikes), pop_sizes)):
+    for i_pop, (spike_ts, pop_size) in enumerate(zip(spikes, pop_sizes)):
         this_rate = ts_service.sum_across_dimension(spike_ts, 3)
         this_rate.data = this_rate.data / integrator_dt * 1000 / pop_size
+        if kernel is not None:
+            for i_reg in range(this_rate.shape[2]):
+                this_rate.data[:, 0, i_reg, 0] = \
+                    signal.convolve(this_rate.data[:, 0, i_reg, 0].squeeze(), kernel, mode="same")/norm_kernel
         rate.append(this_rate)
         try:
             del rate[-1].labels_dimensions[rate[-1].labels_ordering[3]]
@@ -469,8 +482,12 @@ class Workflow(object):
     def get_tvb_rates(self, tvb_ts=None, mf_ts=None, tvb_spikes=None):
         if self.tvb_spiking_model:
             if self.tvb_spike_rate_var not in mf_ts.labels_dimensions["State Variable"]:
+                T = np.maximum(np.minimum(100.0, 1000*self.duration/10), 10.0)
+                std = T/3
                 tvb_rates_ts = \
-                    spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes)
+                    spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes,
+                                                  sampling_period=self.tvb_monitor_period, window_time_length=T,
+                                                  kernel="gaussian", std=std)
                 tvb_rates_ts.title = "Region mean field spike rate time series"
             else:
                 mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
