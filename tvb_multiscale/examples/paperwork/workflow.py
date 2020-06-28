@@ -362,7 +362,7 @@ class Workflow(object):
                                     os.path.join(self.res_folder, "Connectivity.h5"))
         # self.write_group(self.simulator.connectivity, "connectivity", "connectivity", close_file=False)
         self.write_group(self.tvb_model_dict, "tvb_model", "dictionary", close_file=False)
-        if self.tvb_spike_stimulus is not None:
+        if self.tvb_spike_stimulus is not None and self.write_time_series:
             self.write_group(self.spike_stimulus_dict, "spike_stimulus", "dictionary", close_file=False)
         if self.number_of_regions > 1:
             self.write_group(self.coupling_dict, "coupling", "dictionary", close_file=False)
