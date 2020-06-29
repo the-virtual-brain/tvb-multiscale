@@ -219,7 +219,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
                 try:
                     self.print_PSE(pse_params)
                     self.workflow.reset(pse_params)
-                    self.workflow.tvb_spike_stimulus = deepcopy(self.stimulus)
+                    self.workflow.tvb_spike_stimulus = self.stimulus
                     self.workflow.configure()
                     self.workflow.model_params = self.pse_to_model_params(pse_params)
                     rates, corrs = self.workflow.run()
