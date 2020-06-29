@@ -150,6 +150,7 @@ class SpikeStimulusBuilder(object):
             else:
                 for it, target in enumerate(self.targets):
                     stimulus[target] = spike_ts[it]
+        del spike_ts
         return stimulus
 
     def configure_compound_poisson_process(self):
