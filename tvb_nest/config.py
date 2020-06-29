@@ -24,6 +24,19 @@ class Config(ConfigBase):
     MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
     # NEST properties:
+    # M_ALL=0,  display all messages
+    # M_DEBUG=5,  display debugging messages and above
+    # M_STATUS=7,  display status messages and above
+    # M_INFO=10, display information messages and above
+    # M_DEPRECATED=18, display deprecation warnings and above
+    # M_WARNING=20, display warning messages and above
+    # M_ERROR=30, display error messages and above
+    # M_FATAL=40, display failure messages and above
+    # M_QUIET=100, suppress all messages
+    NEST_VERBOCITY = 40
+
+    NEST_PRINT_TIME = False
+
     NEST_MIN_DT = 0.001
 
     DEFAULT_MODEL = "iaf_cond_alpha"  # "iaf_cond_deco2014"
