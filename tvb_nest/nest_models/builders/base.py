@@ -53,8 +53,8 @@ class NESTModelBuilder(SpikingModelBuilder):
         self.nest_instance.ResetKernel()  # This will restart NEST!
         self._update_spiking_dt()
         self._update_default_min_delay()
-        self.nest_instance.set_verbosity(100)  # don't print all messages from NEST
-        self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt, "print_time": True})
+        self.nest_instance.set_verbosity(self.config.NEST_VERBOCITY)  # don't print all messages from NEST
+        self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt, "print_time": self.config.NEST_PRINT_TIME})
 
     def _confirm_compile_install_nest_models(self, models, modules=[]):
         nest_models = self.nest_instance.Models()
