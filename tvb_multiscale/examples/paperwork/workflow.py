@@ -448,6 +448,10 @@ class Workflow(object):
     def simulate(self):
         results = self.simulator.run(simulation_length=self.simulation_length,
                                      print_progression_message=self.print_progression_message)
+        if self.simulator.spike_stimulus is not None:
+            del self.simulator.spike_stimulus
+        if self.tvb_spike_stimulus is not None:
+            del self.tvb_spike_stimulus
         try:
             tvb_ts = TimeSeriesRegionX(results[0][1], time=results[0][0],
                                        connectivity=self.simulator.connectivity,
@@ -499,6 +503,8 @@ class Workflow(object):
             tvb_rates_ts.title = "Region mean field rate time series"
         # Remove transient for the computation of mean rate across time:
         if self.transient:
+            tvb_rates_ts_steady_state = tvb_rates_ts[self.transient:]
+        else:
             tvb_rates_ts_steady_state = tvb_rates_ts[self.transient:]
         return DataArray(tvb_rates_ts_steady_state.mean(axis=0).squeeze(axis=-1), name="Mean population firing rates",
                          dims=tvb_rates_ts.dims[1:3],
