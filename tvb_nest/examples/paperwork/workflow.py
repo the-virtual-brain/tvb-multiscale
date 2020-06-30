@@ -374,6 +374,24 @@ class Workflow(WorkflowBase):
         #     #       Coupling towards the inhibitory population as well:
         #     self.interface_builder.tvb_to_spikeNet_interfaces[0]["connections"]["R_e"] += ["I"]
 
+        self.interface_builder.w_tvb_to_spike_rate = \
+            lambda tvb_rate: np.where(tvb_rate < 10, tvb_rate, 40) * np.sqrt(tvb_rate)
+        # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+        # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
+        # as long as a neuron cannot fire twice during a TVB time step, i.e.,
+        # as long as the TVB time step (usually 0.001 to 0.1 ms)
+        # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
+        # For conversion to a rate, one has to do:
+        # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
+        # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
+        # given WongWang model parameter r is in Hz but tvb dt is in ms:
+        def nest_spikes_to_tvb_rate(nest_spikes, tvb_dt):
+            nest_rate = nest_spikes * 1000.0 / tvb_dt
+            return np.where(nest_rate < 40, np.sqrt(nest_rate), 0.00064 * nest_rate**2)
+        self.interface_builder.w_spikes_to_tvb = \
+            lambda nest_spikes: nest_spikes_to_tvb_rate(nest_spikes, self.interface_builder.tvb_dt)
+
+
         return self.interface_builder
 
     def prepare_dc_interface(self):
@@ -759,10 +777,10 @@ class Workflow(WorkflowBase):
             mean_field_inh.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
             # ...and finally the common neuronal variables:
             mean_field_neuron.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
-        # else:  # Uncomment this but mind that it will take some time and storage...
-        #     dims = nest_ts.labels_ordering
-        #     nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
-        #                      cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
+        else:  # This might take some time and storage...
+            dims = nest_ts.labels_ordering
+            nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
+                             cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
 
     def run(self, model_params={}):
         self.model_params.update(model_params)
