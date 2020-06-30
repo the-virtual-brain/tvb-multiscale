@@ -86,7 +86,7 @@ def plot_result(PSE_params, result, name, path):
             lines[i_line].set_label("%s, %s" % (w, branch))
             i_line += 1
     fig.canvas.draw()
-    pl.legend()
+    pl.legend(title=dims[-1])
     pl.savefig(path)
 
 

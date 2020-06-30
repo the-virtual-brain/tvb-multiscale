@@ -36,6 +36,7 @@ def run_PSE(pse_class, todo="run", **kwargs):
     del pse_workflow
     return PSE
 
+
 def single_nest_PSE(todo="run", w=None, branch="low", fast=False, output_base=None):
     from tvb_nest.examples.paperwork.nest_pse_workflow import PSE_1_NESTnodeStW
     return run_PSE(PSE_1_NESTnodeStW, todo, w=w, branch=branch, fast=fast, output_base=output_base)
@@ -70,7 +71,7 @@ def plot_result(PSE_params, result, name, path):
             lines[i_line].set_label("%s, %s" % (w, branch))
             i_line += 1
     fig.canvas.draw()
-    pl.legend()
+    pl.legend(title=dims[-1])
     pl.savefig(path)
 
 
