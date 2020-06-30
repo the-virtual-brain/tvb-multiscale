@@ -71,9 +71,12 @@ class PSEWorkflowBase(object):
         self.res_path = os.path.join(self.folder_res, self.name)
         self.folder_figs = os.path.join(self.folder_res, "figs")
         for key, val in kwargs.items():
-            addstring = "_%s%g" % (key, val)
-            self.res_path = self.res_path + addstring
-            self.folder_figs = self.folder_figs + addstring
+            try: # If a parameter value is a scalar, add it to the results' paths' names
+                addstring = "_%s%g" % (key, val)
+                self.res_path = self.res_path + addstring
+                self.folder_figs = self.folder_figs + addstring
+            except:
+                pass
         self.res_path = self.res_path + ".h5"
         safe_makedirs(self.folder_figs)
 
