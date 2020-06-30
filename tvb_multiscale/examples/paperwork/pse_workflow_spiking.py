@@ -184,7 +184,7 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
         step = 10.0
         if fast:
             step *= 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 405.0, step)
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
         self.configure_PSE(w, fast)
         Nreg = 2
         Nreg_shape = (Nreg,) + self.pse_shape
@@ -283,7 +283,7 @@ class PSE_3_TVBspikingNodesGW(PSE_2_TVBspikingNodesGW):
         step = 10.0
         if fast:
             step *= 10.0
-        self.PSE["params"]["G"] = np.arange(0.0, 405.0, step)
+        self.PSE["params"]["G"] = np.arange(0.0, 305.0, step)
         self.configure_PSE(w, fast)
         Nreg = 3
         Nreg_shape = (Nreg,) + self.pse_shape
