@@ -193,8 +193,7 @@ class Workflow(WorkflowBase):
         def param_fun(node_index, params, weight=self.nest_model_builder.global_coupling_scaling):
             w_E_ext = \
                 weight * \
-                  self.nest_model_builder.tvb_weights[:,
-                                                      list(self.nest_model_builder.spiking_nodes_ids).index(node_index)]
+                  self.nest_model_builder.tvb_weights[:, node_index]
             w_E_ext[node_index] = 1.0  # this is external input weight to this node
             out_params = dict(params)
             out_params.update({"w_E_ext": w_E_ext})
@@ -375,22 +374,7 @@ class Workflow(WorkflowBase):
         #     self.interface_builder.tvb_to_spikeNet_interfaces[0]["connections"]["R_e"] += ["I"]
 
         self.interface_builder.w_tvb_to_spike_rate = \
-            lambda tvb_rate: np.where(tvb_rate < 10, tvb_rate, 40) * np.sqrt(tvb_rate)
-        # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
-        # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
-        # as long as a neuron cannot fire twice during a TVB time step, i.e.,
-        # as long as the TVB time step (usually 0.001 to 0.1 ms)
-        # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
-        # For conversion to a rate, one has to do:
-        # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
-        # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
-        # given WongWang model parameter r is in Hz but tvb dt is in ms:
-        def nest_spikes_to_tvb_rate(nest_spikes, tvb_dt):
-            nest_rate = nest_spikes * 1000.0 / tvb_dt
-            return np.where(nest_rate < 40, np.sqrt(nest_rate), 0.00064 * nest_rate**2)
-        self.interface_builder.w_spikes_to_tvb = \
-            lambda nest_spikes: nest_spikes_to_tvb_rate(nest_spikes, self.interface_builder.tvb_dt)
-
+            lambda tvb_rate: np.where(tvb_rate < 10, tvb_rate, 40 * np.sqrt(tvb_rate))
 
         return self.interface_builder
 
@@ -485,6 +469,22 @@ class Workflow(WorkflowBase):
               "weights": 1.0, "delays": 0.0,
               # --------------------------------------------------------------------------------------------------------
               "connections": connections, "nodes": None}]  # None means all here
+
+        # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+        # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
+        # as long as a neuron cannot fire twice during a TVB time step, i.e.,
+        # as long as the TVB time step (usually 0.001 to 0.1 ms)
+        # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
+        # For conversion to a rate, one has to do:
+        # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
+        # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
+        # given WongWang model parameter r is in Hz but tvb dt is in ms:
+        # def nest_spikes_to_tvb_rate(nest_spikes, tvb_dt):
+        #     nest_rate = nest_spikes * 1000.0 / tvb_dt
+        #     return np.where(nest_rate < 40, np.sqrt(nest_rate), 0.00064 * nest_rate**2)
+        # self.interface_builder.w_spikes_to_tvb = \
+        #     lambda nest_spikes: nest_spikes_to_tvb_rate(nest_spikes, self.interface_builder.tvb_dt)
+        self.interface_builder.w_spikes_to_tvb = 1000.0 / self.interface_builder.tvb_dt
 
     def write_interface(self):
         interface_props = {}
@@ -673,7 +673,6 @@ class Workflow(WorkflowBase):
             new_dims.append(stacked_dims + "_" + d)
         for corr, corr_name in zip(["spike_train", "Pearson", "Spearman"],
                                    ["train", "Pearson", "Spearman"]):
-
             corrs[corr] = DataArray(corrs[corr], name="Mean population spike %s correlation" % corr_name, dims=new_dims,
                                     coords={new_dims[0]:
                                                 MultiIndex.from_product([pop_labels, reg_labels], names=names[0]),
@@ -722,13 +721,13 @@ class Workflow(WorkflowBase):
 
         # TODO: deal specifically with external input of node I to synapse I
 
-        # Substitute the per-region synaptic variables with their sums to reduce outpumean_field:
+        # Substitute the per-region synaptic variables with their sums to reduce output mean_field:
         s_AMPA_ext_nest_nodes = \
-            mean_field[:, ['s_AMPA_ext_%d' % node_id for node_id in [0] + self.nest_nodes_ids]]._data
+            mean_field[:, ['s_AMPA_ext_%d' % node_id for node_id in range(self.number_of_regions)]]._data
         I_AMPA_ext_nest_nodes = \
-            mean_field[:, ['I_AMPA_ext_%d' % node_id for node_id in [0] + self.nest_nodes_ids]]._data
+            mean_field[:, ['I_AMPA_ext_%d' % node_id for node_id in range(self.number_of_regions)]]._data
         spikes_exc_ext_nest_nodes = mean_field[:,
-                                    ['spikes_exc_ext_%d' % node_id for node_id in [0] + self.nest_nodes_ids]]._data
+                                    ['spikes_exc_ext_%d' % node_id for node_id in range(self.number_of_regions)]]._data
 
         s_AMPA_ext_tot = \
             mean_field[:, ['s_AMPA_ext_%d' % node_id for node_id in range(self.number_of_regions)]]. \
@@ -777,10 +776,10 @@ class Workflow(WorkflowBase):
             mean_field_inh.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
             # ...and finally the common neuronal variables:
             mean_field_neuron.plot_raster(plotter_config=self.plotter.config, per_variable=True, figsize=self.figsize)
-        else:  # This might take some time and storage...
-            dims = nest_ts.labels_ordering
-            nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
-                             cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
+        # else:  # This might take some time and storage...
+        #     dims = nest_ts.labels_ordering
+        #     nest_ts.plot_map(y=dims[4], row=dims[2], col=dims[3], per_variable=True,
+        #                      cmap="jet", figsize=self.figsize, plotter_config=self.plotter.config)
 
     def run(self, model_params={}):
         self.model_params.update(model_params)
