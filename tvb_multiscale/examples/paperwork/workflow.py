@@ -231,7 +231,6 @@ class Workflow(object):
     def reset(self, pse_params):
         self.pse_params = pse_params
         self.model_params = {"TVB": {}, "NEST": {"E": {}, "I": {}}}
-        self.mf_nodes_ids = []
         self.tvb_spike_stimulus = None
         self.simulator = None
         self.rates = None
@@ -396,12 +395,11 @@ class Workflow(object):
         self.connectivity.configure()
 
     def prepare_initial_conditions(self):
-        initial_conditions = \
+        self.simulator.initial_conditions = \
             self.tvb_init_cond * np.ones((self.simulator.horizon,
                                           self.simulator.model.nvar,
                                           self.simulator.connectivity.number_of_regions,
                                           self.simulator.model.number_of_modes))
-        self.simulator._configure_history(initial_conditions=initial_conditions)
 
     def prepare_simulator(self):
         self.prepare_connectivity()
@@ -522,7 +520,7 @@ class Workflow(object):
             mf_ts = tvb_ts
         # For timeseries plot:
         mf_ts.plot_timeseries(plotter_config=self.plotter.config, per_variable=True,
-                              figsize=self.figsize, add_legend=False)
+                              figsize=self.figsize, add_legend=mf_ts.shape[2] < 10)
         # For raster plot:
         if self.number_of_regions > 9:
             mf_ts.plot_raster(plotter_config=self.plotter.config, per_variable=True,
