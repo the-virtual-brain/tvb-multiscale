@@ -109,7 +109,7 @@ class PSETVBNESTWorkflow(PSEWorkflowBase):
             if self.n_tvb_nodes:
                 self.workflow.tvb_init_cond[0, 0, self.tvb_nodes, 0] = 1.0
             if self.n_nest_nodes:
-                self.workflow.nest_stimulus_rate *= np.array([20.0, 1.0])
+                self.workflow.nest_stimulus_rate *= np.array([2.0, 1.0])
                 self.workflow.simulation_length += self.workflow.transient
                 self.workflow.transient *= 2
                 self.workflow.nest_stimulus_times += [self.workflow.transient/2]
