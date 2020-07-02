@@ -226,7 +226,7 @@ class TVBSpikeNetInterfaceBuilder(object):
         # TODO: find out why the model instance is different in simulator and interface...
         tvb_spikeNet_interface.tvb_model = self.tvb_model
         tvb_spikeNet_interface.dt = self.tvb_dt
-        tvb_spikeNet_interface.mf_nodes_ids = self.tvb_nodes_ids
+        tvb_spikeNet_interface.tvb_nodes_ids = self.tvb_nodes_ids
         tvb_spikeNet_interface.spiking_nodes_ids = self.spiking_nodes_ids
         tvb_spikeNet_interface.exclusive_nodes = self.exclusive_nodes
         tvb_spikeNet_interface.spiking_network = self.spiking_network
