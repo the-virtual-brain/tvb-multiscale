@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import time
 
+import numpy as np
+
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -10,14 +12,30 @@ from tvb.contrib.scripts.utils.log_error_utils import print_toc_message
 
 def main_workflow():
     workflow = Workflow()
-    workflow.force_dims = [33, 34, 35, 36]
+    workflow.force_dims = 2  # [33, 34, 35]
+    workflow.symmetric_connectome = True
     # Select the regions for the fine scale modeling with NEST spiking networks
-    workflow.nest_nodes_ids = [1, 2]  # the indices of fine scale regions modeled with NEST
+    workflow.nest_nodes_ids = [1]  # the indices of fine scale regions modeled with NEST
+    # from tvb_multiscale.examples.paperwork.pse_workflow_base import symmetric_connectivity
+    # workflow.connectivity = symmetric_connectivity([0.5, 0.5, 0.5], 3)[0]
+    # workflow.connectivity_path = "None"
+    workflow.time_delays = False
     # In this example, we model parahippocampal cortices (34.left and 35.right) with NESTnest_nodes_ids
+    workflow.nest_to_tvb_interface = True
     workflow.plotter = True
     workflow.writer = True
-    workflow.simulation_length = 1000.0
+    workflow.simulation_length = 2000.0
+    workflow.transient = 1000.0
+    workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
+    workflow.tvb_init_cond = np.zeros((1, workflow.tvb_model._nvar, 1, 1))
+    workflow.tvb_init_cond[0, 0, 0, 0] = 1.0
+    workflow.nest_stimulus_rate *= np.array([2.0, 1.0])
+    workflow.nest_stimulus_times = [0.1, 1000.0]
     workflow.configure()
+    model_params = workflow.model_params
+    model_params["NEST"]["E"] = {"w_E": 1.3, "w_I": 1.0}
+    model_params["TVB"] = {'G': np.array([70.0, ]), 'w': np.array([0.9, ])}
+    workflow.model_params = model_params
     rates, corrs = workflow.run()
     return rates, corrs
 
