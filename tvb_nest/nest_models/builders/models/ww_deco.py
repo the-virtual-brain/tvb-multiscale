@@ -161,7 +161,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.set_defaults()
 
     def param_fun(self, node_index, params, weight):
-        w_E_ext = weight * self.tvb_weights[:, list(self.spiking_nodes_ids).index(node_index)]
+        w_E_ext = weight * self.tvb_weights[:, node_index]
         w_E_ext[node_index] = 1.0  # this is external input weight to this node
         out_params = dict(params)
         out_params.update({"w_E_ext": w_E_ext})
