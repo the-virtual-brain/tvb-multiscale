@@ -24,6 +24,7 @@ def main_workflow():
     workflow.nest_to_tvb_interface = True
     workflow.plotter = True
     workflow.writer = True
+    # workflow.tvb_sim_numba = True
     workflow.simulation_length = 2000.0
     workflow.transient = 1000.0
     workflow.tvb_noise_strength = 0.0  # 0.0001 / 2
