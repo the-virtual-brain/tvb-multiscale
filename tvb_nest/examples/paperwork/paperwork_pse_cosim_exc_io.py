@@ -39,30 +39,29 @@ def run_PSE(pse_class, todo="run", **kwargs):
     return PSE
 
 
-
 def two_nest_nodes_PSE(todo="run", wTVB=0.9, wNEST=1.3, branch="low", fast=False, output_base=None):
     return run_PSE(PSETVBNESTWorkflow, todo, branch=branch, fast=fast, output_base=output_base,
-                   n_nodes=2, tvb_nodes=[], nest_nodes=[0, 1], wTVB=wTVB, wNEST=wNEST, SC=None)
+                   tvb_nodes=[], nest_nodes=[0, 1], wTVB=wTVB, wNEST=wNEST, SC=None)
 
 
 def two_tvb_nodes_PSE(todo="run", wTVB=0.9, wNEST=1.3, branch="low", fast=False, output_base=None):
     return run_PSE(PSETVBNESTWorkflow, todo, branch=branch, fast=fast, output_base=output_base,
-                   n_nodes=2, tvb_nodes=[0, 1], nest_nodes=[], wTVB=wTVB, wNEST=wNEST, SC=None)
+                   tvb_nodes=[0, 1], nest_nodes=[], wTVB=wTVB, wNEST=wNEST, SC=None)
 
 
 def one_tvb_node_one_nest_node_PSE(todo="run", wTVB=0.9, wNEST=1.3, branch="low", fast=False, output_base=None):
     return run_PSE(PSETVBNESTWorkflow, todo, branch=branch, fast=fast, output_base=output_base,
-                   n_nodes=2, tvb_nodes=[0], nest_nodes=[1], wTVB=wTVB, wNEST=wNEST, SC=None)
+                   tvb_nodes=[0], nest_nodes=[1], wTVB=wTVB, wNEST=wNEST, SC=None)
 
 
 def two_tvb_nodes_one_nest_node_PSE(todo="run", wTVB=0.9, wNEST=1.3, branch="low", fast=False, output_base=None):
     return run_PSE(PSETVBNESTWorkflow, todo, branch=branch, fast=fast, output_base=output_base,
-                   n_nodes=2, tvb_nodes=[0, 1], nest_nodes=[2], wTVB=wTVB, wNEST=wNEST, SC=[0.9, 0.5, 0.1])
+                   tvb_nodes=[0, 1], nest_nodes=[2], wTVB=wTVB, wNEST=wNEST, SC=[0.9, 0.5, 0.1])
 
 
 def one_tvb_node_two_nest_nodes_PSE(todo="run", wTVB=0.9, wNEST=1.3, branch="low", fast=False, output_base=None):
     return run_PSE(PSETVBNESTWorkflow, todo, branch=branch, fast=fast, output_base=output_base,
-                   n_nodes=2, tvb_nodes=[0], nest_nodes=[1, 2], wTVB=wTVB, wNEST=wNEST, SC=[0.9, 0.5, 0.1])
+                   tvb_nodes=[0], nest_nodes=[1, 2], wTVB=wTVB, wNEST=wNEST, SC=[0.9, 0.5, 0.1])
 
 
 def plot_result(PSE_params, result, name, path):
@@ -71,11 +70,14 @@ def plot_result(PSE_params, result, name, path):
     coords["branch"] = ["low", "high"]
     arr = DataArray(data=np.array(result), dims=dims, coords=coords, name=name)
     fig, axes = pl.subplots(arr.shape[2], arr.shape[3], figsize=(5*arr.shape[2], 5*arr.shape[3]))
+    axes = np.array(axes)
+    while axes.ndim < 2:
+        axes = np.expand_dims(axes, -1)
     for i_w1, w1 in enumerate(coords[dims[2]]):
         for i_w2, w2 in enumerate(coords[dims[2]]):
             lines = arr[:, :, i_w1, i_w2].plot.line(x=arr.dims[1], hue=arr.dims[0],
-                                  add_legend=False, ax=axes[i_w1, i_w2])
-        for i_line, style, branch in enumerate(zip(["--", "-"], coords["branch"])):
+                                                    add_legend=False, ax=axes[i_w1, i_w2])
+        for i_line, (style, branch) in enumerate(zip(["--", "-"], coords["branch"])):
             lines[i_line].set_color("k")
             lines[i_line].set_linestyle(style)
             # lines[i_line].set_label("%s, %s" % (w, branch))
@@ -105,11 +107,11 @@ if __name__ == "__main__":
 
     tic = time.time()
 
-    output_base_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/test'
-    FAST = True
+    output_base_base ='/Users/dionperd/Software/TVB/tvb-multiscale/tvb_nest/examples/paperwork/outputs/PSE1TVB1NESTnodesG'
+    FAST = False
 
     # try:
-    name = "PSE_1_NESTnodeStW"
+    name = "PSE1TVB1NESTnodesG"
     output_base = os.path.join(output_base_base, name)
     PSElow = deepcopy(one_tvb_node_one_nest_node_PSE(todo="run", output_base=output_base, fast=FAST))
     PSEhigh = deepcopy(one_tvb_node_one_nest_node_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
@@ -120,5 +122,31 @@ if __name__ == "__main__":
     plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
     # except:
     #     pass
+
+    # # try:
+    # name = "PSE1TVB2NESTnodesG"
+    # output_base = os.path.join(output_base_base, name)
+    # PSElow = deepcopy(one_tvb_node_two_nest_nodes_PSE(todo="run", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(one_tvb_node_two_nest_nodes_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
+    # results = ["rate", "spike rate", "Pearson", "Spearman", "spike Pearson", "spike Spearman", "spike train"]
+    # pops = ["E", "I", "EE", "FC-SC"]
+    # names = ["Rate (spikes/sec)", "Spike rate (spikes/sec)",
+    #          "Pearson Corr", "Spearman Corr", "Spike Pearson Corr", "Spike Spearman Corr", "Spike train Corr"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    # # except:
+    # #     pass
+    #
+    # # try:
+    # name = "PSE1TVB2NESTnodesG"
+    # output_base = os.path.join(output_base_base, name)
+    # PSElow = deepcopy(two_tvb_nodes_one_nest_node_PSE(todo="run", output_base=output_base, fast=FAST))
+    # PSEhigh = deepcopy(two_tvb_nodes_one_nest_node_PSE(todo="run", branch="high", output_base=output_base, fast=FAST))
+    # results = ["rate", "spike rate", "Pearson", "Spearman", "spike Pearson", "spike Spearman", "spike train"]
+    # pops = ["E", "I", "EE", "FC-SC"]
+    # names = ["Rate (spikes/sec)", "Spike rate (spikes/sec)",
+    #          "Pearson Corr", "Spearman Corr", "Spike Pearson Corr", "Spike Spearman Corr", "Spike train Corr"]
+    # plot_results(PSElow, PSEhigh, name, results, pops, names, output_base)
+    # # except:
+    # #     pass
 
     print_toc_message(tic)
