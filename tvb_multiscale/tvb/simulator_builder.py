@@ -7,7 +7,7 @@ import numpy as np
 from tvb_multiscale.config import CONFIGURED
 
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.simulator import Simulator
+from tvb.simulator.cosimulator import CoSimulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
@@ -15,7 +15,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class SimulatorBuilder(object):
-
+    cosimulation = True
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
     scale_connectivity_normalize = "region"
@@ -84,14 +84,13 @@ class SimulatorBuilder(object):
         integrator.noise.nsig = np.array(ensure_list(self.noise_strength))
 
         # Build monitors:
-        assert Raw in self.monitors
         monitors = []
         for monitor in self.monitors:
             monitors.append(monitor(period=self.monitor_period))
         monitors = tuple(monitors)
 
         # Build simulator
-        simulator = Simulator()
+        simulator = CoSimulator()
 
         simulator._config = self.config
         simulator.connectivity = connectivity

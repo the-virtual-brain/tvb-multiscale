@@ -16,7 +16,7 @@ from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
 
-from tvb.simulator.simulator import Simulator
+from tvb.simulator.cosimulator import CoSimulator
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.coupling import Linear
 from tvb.simulator.integrators import IntegratorStochastic, HeunStochastic
@@ -403,7 +403,7 @@ class Workflow(object):
 
     def prepare_simulator(self):
         self.prepare_connectivity()
-        self.simulator = Simulator()
+        self.simulator = CoSimulator()
         self.simulator.connectivity = self.connectivity
         self.simulator.model = self.tvb_model(**(self.model_params["TVB"]))
         self.tvb_spiking_model = \
