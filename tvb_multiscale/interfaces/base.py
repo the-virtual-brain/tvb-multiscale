@@ -70,6 +70,7 @@ class TVBSpikeNetInterface(object):
         return len(self.tvb_model.state_variables)
 
     def configure(self, tvb_model):
+        self.tvb_model = tvb_model
         # Organize the different kinds of interfaces and set the TVB region model of the TVB Simulator
         self.spikeNet_to_tvb_params = []
         # self.spikeNet_to_tvb_params_interfaces_ids = []   # deprecated
@@ -85,7 +86,6 @@ class TVBSpikeNetInterface(object):
             # Even if the target in TVB is a state variable,
             # we are going to create a TVB parameter with the same name
             self.spikeNet_to_tvb_params.append(interface.name)
-        self.tvb_model = tvb_model
 
     def tvb_state_to_spikeNet(self, state, coupling, stimulus):
         # Apply TVB -> Spiking Network input at time t before integrating time step t -> t+dt
