@@ -173,7 +173,6 @@ class TVBSpikeNetInterface(object):
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
                 transform_fun = self.transforms["spikes_to_tvb"]
                 values = interface.population_mean_spikes_number
-                interface.reset
             elif interface.model == self._multimeter_output_devices:
                 # Instantaneous transmission. TVB history is used to buffer delayed communication.
                 transform_fun = self.transforms["spikes_sv_to_tvb"]

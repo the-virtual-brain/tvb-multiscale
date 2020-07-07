@@ -41,7 +41,9 @@ class SpikeNetToTVBinterface(DeviceSet):
 
     @property
     def population_mean_spikes_number(self):
-        return array(self.do_for_all_devices("mean_number_of_spikes")).flatten()
+        values = array(self.do_for_all_devices("mean_number_of_spikes")).flatten()
+        self.reset
+        return values
 
     @property
     def population_mean_spikes_activity(self):
