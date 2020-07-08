@@ -4,6 +4,8 @@ from copy import deepcopy
 from collections import OrderedDict
 import gc
 from itertools import cycle
+from time import sleep
+
 import numpy as np
 
 from tvb_multiscale.config import Config
@@ -224,10 +226,12 @@ class PSE_2_TVBspikingNodesGW(PSEWorkflowSpiking):
                     self.workflow.model_params = self.pse_to_model_params(pse_params)
                     rates, corrs = self.workflow.run()
                     self.results_to_PSE(i_s, i_w, rates, corrs)
-                    gc.collect()
                 except:
                     pass
                 print_toc_message(tic)
+                gc.collect()
+                # Let the garbage collector do the work
+                sleep(5)
         self.write_PSE()
         self.plot_PSE()
 
