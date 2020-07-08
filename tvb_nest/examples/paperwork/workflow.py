@@ -3,19 +3,18 @@
 import time
 from collections import OrderedDict
 import numpy as np
-from xarray import DataArray, concat
+from xarray import concat
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import Config, CONFIGURED
-from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
+from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder
-from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOinhIBuilder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
-from tvb_multiscale.examples.paperwork.workflow import Pearson, Spearman
+from tvb_utils.computations_utils import get_spike_rates_corrs
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
-from tvb.contrib.scripts.utils.data_structures_utils import is_integer, ensure_list
 
 
 CONFIGURED.NEST_MIN_DT = 0.01
@@ -348,8 +347,6 @@ class Workflow(WorkflowBase):
         return self.nest_network
 
     def prepare_rate_interface(self):
-        from tvb_multiscale.spiking_models.builders.templates \
-            import tvb_delay, receptor_by_source_region
         # For spike transmission from TVB to NEST devices acting as TVB proxy nodes with TVB delays:
         self.interface_builder.tvb_to_spikeNet_interfaces = [
             {"model": "inhomogeneous_poisson_generator",
@@ -379,8 +376,6 @@ class Workflow(WorkflowBase):
         return self.interface_builder
 
     def prepare_dc_interface(self):
-        from tvb_multiscale.spiking_models.builders.templates \
-            import random_normal_tvb_weight, tvb_delay
 
         # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
         self.interface_builder.tvb_to_spikeNet_interfaces = [
@@ -428,8 +423,6 @@ class Workflow(WorkflowBase):
         return self.interface_builder
 
     def prepare_Ie_interface(self):
-        from tvb_multiscale.spiking_models.builders.templates \
-            import random_normal_tvb_weight, tvb_delay
 
         # For directly setting an external current parameter in NEST neurons instantaneously:
         self.interface_builder.tvb_to_spikeNet_interfaces = [
@@ -591,98 +584,8 @@ class Workflow(WorkflowBase):
         return nest_spikes
 
     def get_nest_rates_corrs(self, nest_spikes, time=None):
-        from pandas import MultiIndex
-        from elephant.statistics import time_histogram, instantaneous_rate, mean_firing_rate
-        from elephant.conversion import BinnedSpikeTrain
-        from elephant import spike_train_correlation
-        from neo.core import SpikeTrain
-        from quantities import ms
-
-        if time is not None:
-            t_start = time[0]
-            t_stop = time[-1]
-        else:
-            t_start = []
-            t_stop = []
-            for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
-                for reg_label, reg_spikes in pop_spikes.iteritems():
-                    t_start.append(np.min(reg_spikes["times"]).item())
-                    t_stop.append(np.max(reg_spikes["times"]).item())
-            t_start = np.min(t_start)
-            t_stop = np.max(t_stop)
-            time = np.arange(t_start, t_stop + self.tvb_monitor_period, self.tvb_monitor_period)
-        dt = np.diff(time).mean()
-        t_start_ms = t_start*ms
-        t_stop_ms = (t_stop + dt)*ms
-        dt_ms = dt*ms
-        if self.transient:
-            computation_t_start = self.transient*ms
-        else:
-            computation_t_start = t_start*ms
-        corrs = {}
-        rates_ts = []
-        rates = []
-        spike_ts = []
-        spike_trains = []
-        pop_labels = []
-        for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
-            pop_labels.append(pop_label)
-            rates_ts.append([])
-            rates.append([])
-            reg_labels = []
-            for reg_label, reg_spikes in pop_spikes.iteritems():
-                reg_labels.append(reg_label)
-                # rates (spikes/sec) =
-                #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
-                these_spikes = [spike for spike in reg_spikes["times"] if spike >= t_start and spike <= t_stop]
-                spike_trains.append(SpikeTrain(these_spikes*ms, t_start=t_start_ms, t_stop=t_stop_ms))
-                spike_ts.append(np.array(time_histogram([spike_trains[-1]], binsize=dt_ms,
-                                                        t_start=computation_t_start, t_stop=t_stop_ms)).squeeze())
-                rates[-1].append(float(mean_firing_rate(spike_trains[-1],
-                                                        t_start=computation_t_start, t_stop=t_stop_ms))
-                                 / self.populations_sizes[i_pop])
-                rates_ts[-1].append(np.array(instantaneous_rate(spike_trains[-1], sampling_period=dt_ms,
-                                                                t_start=t_start_ms, t_stop=t_stop_ms))
-                                    / self.populations_sizes[i_pop])
-        del these_spikes
-        del nest_spikes  # Free memory...
-        binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt_ms,
-                                         t_start=computation_t_start, t_stop=t_stop_ms)
-        del spike_trains  # Free memory...
-        corrs["spike_train"] = spike_train_correlation.corrcoef(binned_spikes)
-        del binned_spikes  # Free memory...
-        spike_ts = np.array(spike_ts).T
-        corrs["Pearson"] = Pearson(spike_ts)
-        corrs["Spearman"] = Spearman(spike_ts)
-        del spike_ts  # Free memory...
-        # converting to spikes/sec from spikes/ms:
-        rates = DataArray(1000 * np.array(rates), name="Mean population spiking ratew",
-                          dims=["Population", "Region"],
-                          coords={"Population": pop_labels, "Region": reg_labels})
-        rates_ts = TimeSeriesRegionX(np.moveaxis(np.array(rates_ts), 2, 0),  # This is already in spikes/sec
-                                     time=time, connectivity=self.simulator.connectivity,
-                                     labels_ordering=["Time", "Population", "Region", "Neurons"],
-                                     labels_dimensions={"Population": pop_labels, "Region": reg_labels},
-                                     sample_period=dt, title="Mean population spiking rates time series")
-        dims = list(rates.dims)
-        stacked_dims = "-".join(dims)
-        names = []
-        new_dims = []
-        for d in ["i", "j"]:
-            names.append([dim + "_" + d for dim in dims])
-            new_dims.append(stacked_dims + "_" + d)
-        for corr, corr_name in zip(["spike_train", "Pearson", "Spearman"],
-                                   ["train", "Pearson", "Spearman"]):
-            corrs[corr] = DataArray(corrs[corr], name="Mean population spike %s correlation" % corr_name, dims=new_dims,
-                                    coords={new_dims[0]:
-                                                MultiIndex.from_product([pop_labels, reg_labels], names=names[0]),
-                                            new_dims[1]:
-                                                MultiIndex.from_product([pop_labels, reg_labels], names=names[1])})
-            corrs[corr] = corrs[corr].unstack(new_dims)
-            temp_dims = list(corrs[corr].dims)
-            # Put variables in front of regions:
-            corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))
-        return rates, rates_ts, corrs
+        return get_spike_rates_corrs(nest_spikes, self.populations_sizes, self.simulator.connectivity,
+                                     time=time, monitor_period=self.tvb_monitor_period, transient=self.transient)
 
     def plot_tvb_ts(self, tvb_ts):
         # For timeseries plot:

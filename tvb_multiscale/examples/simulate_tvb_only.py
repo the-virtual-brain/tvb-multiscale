@@ -10,8 +10,8 @@ from tvb_multiscale.examples.plot_write_results import plot_write_results
 from tvb_multiscale.config import CONFIGURED
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
-from tvb_multiscale.examples.paperwork.workflow import \
-    mean_field_per_population, spike_rates_from_mean_field_rates, spike_rates_from_TVB_spike_ts, spikes_per_population
+from tvb_utils.computations_utils import mean_field_per_population, spikes_per_population, \
+    spike_rates_from_TVB_spike_ts, spike_rates_from_mean_field_rates
 
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 # from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
