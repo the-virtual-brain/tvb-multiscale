@@ -14,7 +14,7 @@ from neo import AnalogSignal
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
-from tvb_utils.utils import initialize_logger
+from tvb_utils.log_utils import initialize_logger
 
 
 def _assert_shape(x, y):
