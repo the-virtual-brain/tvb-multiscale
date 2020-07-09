@@ -106,10 +106,10 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
         # NEST -> TVB:
         interface = \
             {"model": "spike_detector", "params": {},
-              # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
-              "weights": 1.0, "delays": 0.0,
-              # --------------------------------------------------------------------------------------------------------------
-              "connections": connections, "nodes": None}  # None means all here
+             # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
+             "weights": 1.0, "delays": 0.0,
+             # --------------------------------------------------------------------------------------------------------------
+             "connections": connections, "nodes": None}  # None means all here
         interface.update(kwargs)
         self.spikeNet_to_tvb_interfaces.append(interface)
 
