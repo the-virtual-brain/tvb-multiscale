@@ -249,7 +249,7 @@ class SpikingNetwork(object):
             else:
                 if mode == 'per_neuron':
                     for i_r, r in enumerate(rates):
-                        if len(r.dims < 3):  # In case there is nothing to measure in Spiking Network
+                        if len(r.dims) < 3:  # In case there is nothing to measure in Spiking Network
                             break
                         # We cannot assume that all populations have the same number of neurons (and/or regions).
                         # Therefore, we need a Series data structure along populations
@@ -265,7 +265,7 @@ class SpikingNetwork(object):
                         # We cannot assume that all populations have the same number of neurons (and/or regions).
                         # Therefore, we need a Series data structure along populations
                         # Reorder dimensions
-                        #           0       2
+                        #           0       1
                         # from:   Region,  Time
                         # to:     "Time,   Region"
                         rates[i_r] = r.transpose(r.dims[-1], r.dims[0])
@@ -359,7 +359,7 @@ class SpikingNetwork(object):
         else:
             if mode == 'per_neuron':
                 for i_d, d in enumerate(data):
-                    if len(d.dims < 4):   # In case there is nothing to measure in Spiking Network
+                    if len(d.dims) < 4:   # In case there is nothing to measure in Spiking Network
                         break
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations
@@ -370,7 +370,7 @@ class SpikingNetwork(object):
                     data[i_d] = d.transpose(d.dims[3], d.dims[1], d.dims[0], d.dims[2])
             else:
                 for i_d, d in enumerate(data):
-                    if len(d.dims < 3):   # In case there is nothing to measure in Spiking Network
+                    if len(d.dims) < 3:   # In case there is nothing to measure in Spiking Network
                         break
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations
