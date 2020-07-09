@@ -108,9 +108,9 @@ RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop; \
-    cd contrib; \
+    cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop; \
-    cd ../../framework_tvb; \
+    cd ../framework_tvb; \
     $VENV/bin/python setup.py develop;
 
 RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
