@@ -33,7 +33,7 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         self.exclusive_nodes = exclusive_nodes
         self.config = config
 
-    def build_interface(self, interface):
+    def build_interface(self, interface, interface_id):
         # One interface for every combination of Spiking node
         # and TVB state variable to be transmitted
         # from TVB to Spiking Network
@@ -58,16 +58,17 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
                     self.tvb_model.state_variables.index(name))
             except:
                 raise_value_error("Failed to compute the coupling index of TVB state variable %s!" % name)
-            tvb_to_spikeNet_interfaces[name] = \
+            interface_index = "%s_%d" % (name, interface_id)
+            tvb_to_spikeNet_interfaces[interface_index] = \
                 self._build_target_class(self.spiking_network, name, interface["model"],
                                          interface.get("parameter", default_parameter),
                                          tvb_coupling_id, spiking_nodes_ids, interface_weights)
             for node in self.spiking_nodes:
-                tvb_to_spikeNet_interfaces[name][node.label] = node[populations]
+                tvb_to_spikeNet_interfaces[interface_index][node.label] = node[populations]
             return tvb_to_spikeNet_interfaces
 
     def build(self):
         tvb_to_spikeNet_interfaces = Series()
-        for interface in self.interfaces:
-            tvb_to_spikeNet_interfaces = tvb_to_spikeNet_interfaces.append(self.build_interface(interface))
+        for id, interface in enumerate(self.interfaces):
+            tvb_to_spikeNet_interfaces = tvb_to_spikeNet_interfaces.append(self.build_interface(interface, id))
         return tvb_to_spikeNet_interfaces
