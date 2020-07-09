@@ -374,18 +374,16 @@ class SpikingModelBuilder(object):
             # weights and delays might be dictionaries for distributions:
             weights = np.tile([1.0], shape).astype("object")
             delays = np.tile([0.0], shape).astype("object")
-            target_spiking_nodes_ids = \
-                [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in spiking_nodes]
             # Set now the properties using the above defined functions:
-            for trg_node, i_trg in zip(spiking_nodes, target_spiking_nodes_ids):
+            for i_trg, trg_node in enumerate(spiking_nodes):
                 weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
                 delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
                 receptor_type[i_trg] = receptor_type_fun(trg_node)
-            _devices[-1]["nodes"] = target_spiking_nodes_ids
+            _devices[-1]["params"] = device.get("params", {})
             _devices[-1]["weights"] = weights
             _devices[-1]["delays"] = delays
             _devices[-1]["receptor_type"] = receptor_type
-            _devices[-1]["params"] = device.get("params", {})
+            _devices[-1]["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in spiking_nodes]
         return _devices
 
     def _configure_output_devices(self):
