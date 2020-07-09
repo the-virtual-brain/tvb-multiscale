@@ -39,7 +39,7 @@ class SpikeNetToTVBInterfaceBuilder(object):
     def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
         pass
 
-    def build_interface(self, interface):
+    def build_interface(self, interface, interface_id):
         # One SpikeNet output device for every combination of SpikeNet node
         # and TVB state variable/parameter to be transmitted
         # from SpikeNet to TVB
@@ -63,9 +63,8 @@ class SpikeNetToTVBInterfaceBuilder(object):
         # Delays should be set to the device
         interface["delays"] = delays  # Per node
         # Convert TVB node index to interface SpikeNet node index:
-        spiking_nodes_ids = [np.where(self.spiking_nodes_ids == spiking_node)[0][0]
-                             for spiking_node in spiking_nodes]
-        interface["nodes"] = spiking_nodes_ids
+        interface["nodes"] = [np.where(self.spiking_nodes_ids == spiking_node)[0][0]
+                              for spiking_node in spiking_nodes]
         devices = self.build_and_connect_devices([interface], self.spiking_nodes)
         for name, device_set in devices.items():
             try:
@@ -76,14 +75,14 @@ class SpikeNetToTVBInterfaceBuilder(object):
                 raise ValueError("tvb_sv_id=%s doesn't correspond "
                                  "to the index of a TVB state variable for interface %s!\n"
                                  % (str(interface.tvb_sv_id), str(name)))
-            spikeNet_to_tvb_interface[name] = \
+            spikeNet_to_tvb_interface["%s_%d" % (name, interface_id)] = \
                 self._build_target_class(self.spiking_network, tvb_sv_id, nodes_ids=spiking_nodes,
                                          scale=interface_weights).from_device_set(device_set, name)
         return spikeNet_to_tvb_interface
 
     def build_interfaces(self):
         spikeNet_to_tvb_interfaces = Series()
-        for interface in self.interfaces:
+        for id, interface in enumerate(self.interfaces):
             spikeNet_to_tvb_interfaces = \
-                spikeNet_to_tvb_interfaces.append(self.build_interface(interface))
+                spikeNet_to_tvb_interfaces.append(self.build_interface(interface, id))
         return spikeNet_to_tvb_interfaces

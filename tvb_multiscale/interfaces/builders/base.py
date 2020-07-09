@@ -234,10 +234,12 @@ class TVBSpikeNetInterfaceBuilder(object):
         tvb_spikeNet_interface.transforms = self.generate_transforms()
 
         tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = Series({})
-        # Create a list of input devices for every TVB node inside Spiking Network and connect them to the target Spiking Network nodes:
+        ids = [-1, -1]
         for interface in self.tvb_to_spikeNet_interfaces:
             model = interface.get("model", None)
             if model in self._input_device_dict.keys():
+
+                ids[0] += 1
                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
                         self._tvb_to_spikNet_device_interface_builder([],
@@ -246,16 +248,18 @@ class TVBSpikeNetInterfaceBuilder(object):
                                                                       self.tvb_model, self.tvb_weights, self.tvb_delays,
                                                                       self.tvb_connectivity.region_labels, self.tvb_dt,
                                                                       self.exclusive_nodes,
-                                                                      self.config).build_interface(interface)
+                                                                      self.config).build_interface(interface, ids[0])
                                                                             )
             else:
+                ids[1] += 1
                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
                             self._tvb_to_spikeNet_parameter_interface_builder([],
                                                                               self.spiking_network, self.spiking_nodes,
                                                                               self.spiking_nodes_ids, self.tvb_nodes_ids,
                                                                               self.tvb_model, self.exclusive_nodes,
-                                                                              self.config).build_interface(interface)
+                                                                              self.config).build_interface(interface,
+                                                                                                           ids[1])
                                                                             )
 
         tvb_spikeNet_interface.spikeNet_to_tvb_interfaces = \
