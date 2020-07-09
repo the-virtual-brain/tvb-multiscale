@@ -260,7 +260,7 @@ class SpikingNetwork(object):
                         rates[i_r] = r.transpose(r.dims[-1], r.dims[1], r.dims[0])
                 else:
                     for i_r, r in enumerate(rates):
-                        if len(r.dims < 2):  # In case there is nothing to measure in Spiking Network
+                        if len(r.dims) < 2:  # In case there is nothing to measure in Spiking Network
                             break
                         # We cannot assume that all populations have the same number of neurons (and/or regions).
                         # Therefore, we need a Series data structure along populations
