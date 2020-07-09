@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+
+from collections import OrderedDict
 from xarray import DataArray
-import pandas as pd
+
 import numpy as np
 from tvb_multiscale.config import CONFIGURED, initialize_logger
 from tvb_multiscale.spiking_models.devices import InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict
 
-from tvb.contrib.scripts.utils.data_structures_utils import is_integer
-from tvb.contrib.scripts.datatypes.time_series import TimeSeries, TimeSeriesRegion
+from tvb.contrib.scripts.utils.data_structures_utils \
+    import is_integer, ensure_list, concatenate_heterogeneous_DataArrays
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries, TimeSeriesRegion
 
 
 LOG = initialize_logger(__name__)
@@ -39,7 +42,7 @@ class TVBSpikeNetInterface(object):
     spikeNet_to_tvb_interfaces = []
     # spikeNet_to_tvb_params_interfaces_ids = []  # deprecate this due to use of non-state dynamical variables
     spikeNet_to_tvb_sv_interfaces_ids = []
-    spikeNet_to_tvb_params = []
+    spikeNet_to_tvb_params = OrderedDict()
 
     def __init__(self, config=CONFIGURED):
         self.config = config
@@ -72,7 +75,7 @@ class TVBSpikeNetInterface(object):
     def configure(self, tvb_model):
         self.tvb_model = tvb_model
         # Organize the different kinds of interfaces and set the TVB region model of the TVB Simulator
-        self.spikeNet_to_tvb_params = []
+        self.spikeNet_to_tvb_params = OrderedDict()
         # self.spikeNet_to_tvb_params_interfaces_ids = []   # deprecated
         self.spikeNet_to_tvb_sv_interfaces_ids = []
         for interface_id, interface in enumerate(self.spikeNet_to_tvb_interfaces):
@@ -85,7 +88,12 @@ class TVBSpikeNetInterface(object):
                                  % (str(interface.tvb_sv_id), str(interface)))
             # Even if the target in TVB is a state variable,
             # we are going to create a TVB parameter with the same name
-            self.spikeNet_to_tvb_params.append(interface.name)
+            if interface.name not in list(self.spikeNet_to_tvb_params.keys()):
+                self.spikeNet_to_tvb_params[interface.name] = interface.nodes_ids
+            else:
+                self.spikeNet_to_tvb_params[interface.name] += interface.nodes_ids
+            self.spikeNet_to_tvb_params[interface.name] = \
+                np.unique(self.spikeNet_to_tvb_params[interface.name]).tolist()
 
     def tvb_state_to_spikeNet(self, state, coupling, stimulus):
         # Apply TVB -> Spiking Network input at time t before integrating time step t -> t+dt
@@ -189,24 +197,15 @@ class TVBSpikeNetInterface(object):
                 interface.scale * transform_fun(values,  interface.nodes_ids)
         return state
 
-    def _construct_output_data(self, data, default_name, connectivity=None):
+    def _construct_output_data(self, data, default_name, dims, connectivity=None):
+        if not isinstance(data, DataArray):
+            data = concatenate_heterogeneous_DataArrays(data, "Population", default_name, fill_value=np.nan, dims=dims)
         if connectivity is None:
             time_series = TimeSeries()
         else:
             time_series = TimeSeriesRegion(connectivity=connectivity)
-        if isinstance(data, DataArray):
-            return time_series.from_xarray_DataArray(data)
-        else:  # Assuming a pd.Series or a dict of xarrays.DataArray
-            output_time_series = []
-            pop_names = []
-            for d_name, d in data.iteritems():
-                output_time_series.append(time_series.from_xarray_DataArray(d))
-                pop_names.append(d_name)
-            if isinstance(data, pd.Series):
-                name = data.name
-            else:
-                name = default_name
-            return pd.Series(output_time_series, index=pd.Index(pop_names, name="Population"), name=name)
+        time_series.from_xarray_DataArray(data)
+        return time_series
 
     def _get_data_from_multimeter_to_TVBTimeSeries(self, mode="mean", **kwargs):
         connectivity = kwargs.pop("connectivity", None)
@@ -220,20 +219,20 @@ class TVBSpikeNetInterface(object):
             fun = "get_mean_data_from_multimeter"
             name = kwargs.get("name", "Mean data from multimeter")
         data = getattr(self.spiking_network, fun)(**kwargs)
-        return self._construct_output_data(data, name, connectivity)
+        return self._construct_output_data(data, name, ['Time', 'Variable', 'Region', 'Population'], connectivity)
 
-    def get_mean_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
+    def get_mean_data_from_multimeter_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
         return self._get_data_from_multimeter_to_TVBTimeSeries("mean", **kwargs)
 
-    def get_total_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
+    def get_total_data_from_multimeter_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's output_devices (if any) for measured quantities
         return self._get_data_from_multimeter_to_TVBTimeSeries("total", **kwargs)
 
-    def get_data_from_multimeter_to_TVBTimeSeries(self, **kwargs):
+    def get_data_from_multimeter_to_TimeSeries(self, **kwargs):
         return self._get_data_from_multimeter_to_TVBTimeSeries("per_neuron", **kwargs)
 
-    def _get_spikes_rates_to_TVBTimeSeries(self, mode="mean", **kwargs):
+    def _get_spikes_rates_to_TimeSeries(self, mode="mean", **kwargs):
         connectivity = kwargs.pop("connectivity", None)
         if mode == "per_neuron":
             fun = "compute_spikes_rates"
@@ -247,21 +246,21 @@ class TVBSpikeNetInterface(object):
             fun = "compute_mean_spikes_rates"
             name = kwargs.get("name",  "Mean rates from spike detectors")
         data, spike_detectors = getattr(self.spiking_network, fun)(**kwargs)
-        return self._construct_output_data(data, name, connectivity), spike_detectors
+        return self._construct_output_data(data, name, ['Time', 'Population', 'Region'], connectivity), spike_detectors
 
-    def get_mean_spikes_rates_to_TVBTimeSeries(self, **kwargs):
+    def get_mean_spikes_rates_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_spikes_rates_to_TVBTimeSeries("mean", **kwargs)
+        return self._get_spikes_rates_to_TimeSeries("mean", **kwargs)
 
-    def get_total_spikes_rates_to_TVBTimeSeries(self, **kwargs):
+    def get_total_spikes_rates_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_spikes_rates_to_TVBTimeSeries("total", **kwargs)
+        return self._get_spikes_rates_to_TimeSeries("total", **kwargs)
 
-    def get_spikes_rates_to_TVBTimeSeries(self, **kwargs):
+    def get_spikes_rates_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_spikes_rates_to_TVBTimeSeries("per_neuron", **kwargs)
+        return self._get_spikes_rates_to_TimeSeries("per_neuron", **kwargs)
 
-    def _get_spikes_activites_to_TVBTimeSeries(self, mode="mean", **kwargs):
+    def _get_spikes_activites_to_TimeSeries(self, mode="mean", **kwargs):
         connectivity = kwargs.pop("connectivity", None)
         if mode == "per_neuron":
             fun = "compute_spikes_activities"
@@ -275,16 +274,16 @@ class TVBSpikeNetInterface(object):
             fun = "compute_mean_spikes_activities"
             name = kwargs.get("name",  "Mean spike activities")
         data, spike_detectors = getattr(self.spiking_network, fun)(**kwargs)
-        return self._construct_output_data(data, name, connectivity), spike_detectors
+        return self._construct_output_data(data, name, ['Time', 'Population', 'Region'], connectivity), spike_detectors
 
-    def get_mean_spikes_activities_to_TVBTimeSeries(self, **kwargs):
+    def get_mean_spikes_activities_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_spikes_activites_to_TVBTimeSeries("mean", **kwargs)
+        return self._get_spikes_activites_to_TimeSeries("mean", **kwargs)
 
-    def get_total_spikes_activities_to_TVBTimeSeries(self, **kwargs):
+    def get_total_spikes_activities_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_spikes_activites_to_TVBTimeSeries("total", **kwargs)
+        return self._get_spikes_activites_to_TimeSeries("total", **kwargs)
 
-    def get_spikes_activities_to_TVBTimeSeries(self, **kwargs):
+    def get_spikes_activities_to_TimeSeries(self, **kwargs):
         # This method interrogates the Spiking Network's spikes' output_devices (if any) for spike rates
-        return self._get_spikes_activites_to_TVBTimeSeries("per_neuron", **kwargs)
+        return self._get_spikes_activites_to_TimeSeries("per_neuron", **kwargs)
