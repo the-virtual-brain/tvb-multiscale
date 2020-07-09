@@ -3,7 +3,7 @@
 import os
 
 import numpy as np
-from xarray import DataArray
+from xarray import DataArray, concat
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -16,6 +16,7 @@ except:
 
 from tvb_multiscale.plot.plotter import Plotter
 
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, concatenate_heterogeneous_DataArrays
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
@@ -82,34 +83,30 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
         n_spiking_nodes = 0
         pass
 
-    # In all the following we assume that all populations are in the same (equal number of) regions,
-    # whereas we average across individual neurons
-
     # Plot spikes and mean field spike rates
     mf_rates_ts, spike_detectors = \
-        simulator.tvb_spikeNet_interface.get_mean_spikes_rates_to_TVBTimeSeries(
+        simulator.tvb_spikeNet_interface.get_mean_spikes_rates_to_TimeSeries(
             spikes_kernel_width=1.0,  # ms
-            spikes_kernel_overlap=0.5, time=t)
+            spikes_kernel_overlap=0.5, time=t, connectivity=simulator.connectivity)
     if spike_detectors is not None and mf_rates_ts.size > 0:
         plotter.plot_spike_detectors(spike_detectors, rates=mf_rates_ts, title='Population spikes and mean spike rate')
 
     # Plot mean field NEST multimeter variables using TVB default TimeSeries and their plotters
 
     # Get them directly as mean field quantities...
-    # multimeter_mean_data = \
-    #     TimeSeriesXarray(simulator.tvb_spikeNet_interface.get_mean_data_from_multimeter_to_TVBTimeSeries(),
-    #                      connectivity=simulator.connectivity)
-    # if multimeter_mean_data is not None and multimeter_mean_data.size > 0:
-    #     plotter.plot_multimeter_timeseries(multimeter_mean_data, plot_per_variable=True,
-    #                                        time_series_class=TimeSeriesXarray, time_series_args={},
-    #                                        var_pop_join_str=" - ", default_population_label="population",
-    #                                        figname="NEST region time series")
-    #     if n_spiking_nodes > 3:
-    #         plotter.plot_multimeter_raster(multimeter_mean_data, plot_per_variable=True,
-    #                                        time_series_class=TimeSeriesXarray, time_series_args={},
-    #                                        var_pop_join_str=" - ", default_population_label="population",
-    #                                        figname="NEST region time series raster")
-    #
+    multimeter_mean_data = \
+       simulator.tvb_spikeNet_interface.get_mean_data_from_multimeter_to_TimeSeries(connectivity=simulator.connectivity)
+    if multimeter_mean_data is not None and multimeter_mean_data.size > 0:
+        plotter.plot_multimeter_timeseries(multimeter_mean_data, plot_per_variable=True,
+                                           time_series_class=TimeSeriesXarray, time_series_args={},
+                                           var_pop_join_str=" - ", default_population_label="population",
+                                           figname="NEST region time series")
+        if n_spiking_nodes > 3:
+            plotter.plot_multimeter_raster(multimeter_mean_data, plot_per_variable=True,
+                                           time_series_class=TimeSeriesXarray, time_series_args={},
+                                           var_pop_join_str=" - ", default_population_label="population",
+                                           figname="NEST region time series raster")
+
 
     # ...or get data per neuron and compute mean-field...
     spiking_network = simulator.tvb_spikeNet_interface.spiking_network
@@ -121,12 +118,10 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
 
     # Spikes' rates
     rates = []
-    pop_labels = []
     duration = (t[-1] - t[0]) / 1000  # in sec
     if len(population_sizes) == 0:
         population_sizes = [0] * len(nest_spikes)
     for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
-        pop_labels.append(pop_label)
         rates.append([])
         reg_labels = []
         for reg_label, reg_spikes in pop_spikes.iteritems():
@@ -134,9 +129,15 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
             # rates (spikes/sec) =
             #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
             rates[-1].append(len(reg_spikes["times"]) / duration / population_sizes[i_pop])
+        rates[-1] = np.array(rates[-1])
+        while rates[-1].ndim < 2:
+            rates[-1] = rates[-1][np.newaxis]
+        rates[-1] = DataArray(np.array(rates[-1]),
+                              dims=["Population", "Region"], name="NEST_spike_rates",
+                              coords={"Population": [pop_label], "Region": reg_labels})
 
-    rates = DataArray(np.array(rates), dims=["Population", "Region"], name="NEST_spike_rates",
-                      coords={"Population": pop_labels, "Region": reg_labels})
+    rates = concat(rates, rates[-1].dims[0], fill_value=np.nan)
+    rates.name = "NEST_spike_rates"
     print(rates)
 
     # An alternative plot of rates per neuron and time wise:
@@ -146,6 +147,11 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
                                              spikes_kernel_width=1.0,  # spikes_kernel_n_intervals=10,
                                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=t,
                                              spikes_kernel=None)[0]
+    if not isinstance(rates_ts_per_neuron, DataArray):
+        # assuming a pandas Series due to heterogeneity of populations in among brain regions:
+        rates_ts_per_neuron = concatenate_heterogeneous_DataArrays(rates_ts_per_neuron, "Population",
+                                                                   dims=["Time", "Population", "Region", "Neuron"])
+
     if rates_ts_per_neuron.size > 0:
         rates_ts_per_neuron.plot(x=rates_ts_per_neuron.dims[0], y=rates_ts_per_neuron.dims[3],
                                  row=rates_ts_per_neuron.dims[2], col=rates_ts_per_neuron.dims[1])
@@ -153,6 +159,10 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
 
     # Time Series
     nest_ts = spiking_network.get_data_from_multimeter(mode="per_neuron")
+    if not isinstance(nest_ts, DataArray):
+        # assuming a pandas Series due to heterogeneity of populations in among brain regions:
+        nest_ts = concatenate_heterogeneous_DataArrays(nest_ts, "Population",
+                                                       dims=["Time", "Variable", "Region", "Population", "Neuron"])
     if nest_ts.size > 0:
         nest_ts = TimeSeriesXarray(nest_ts, connectivity=simulator.connectivity)
         if transient:
