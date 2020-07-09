@@ -29,16 +29,16 @@ class SpikesPlotter(BasePlotter):
             # ...compute the maximum rate to adjust the y axis accordingly
             if isinstance(rates, DataArray):  # In case we call this within the NEST interface context using pandas
                 if rates.size > 0:
-                    max_rate = np.max(rates).item()
+                    max_rate = np.nanmax(rates).item()
                     time = rates.get_index(rates.dims[0])
-                    get_rate_fun = lambda rates, i_region, i_pop: rates[:, i_pop, i_region].values
+                    get_rate_fun = lambda rates, i_region, i_pop: rates[:, i_pop, i_region].values.squeeze()
                 else:
                     plot_rates = False
-            else:  # Assuming TVB TimeSeries
+            else:  # Assuming TimeSeries
                 if rates.size > 0:
-                    max_rate = rates.data.max()
+                    max_rate = np.nanmax(rates)
                     time = rates.time
-                    get_rate_fun = lambda rates, i_region, i_pop: rates[:, i_pop, i_region]
+                    get_rate_fun = lambda rates, i_region, i_pop: rates[:, i_pop, i_region].data.squeeze()
                 else:
                     plot_rates = False
             if max_rate == 0:
@@ -104,15 +104,15 @@ class SpikesPlotter(BasePlotter):
         if rate_ytick_labels is not None:
             if i_pop == 0:
                 axes.set_yticklabels(rate_ytick_labels)
-                axes.set_ylabel("%s (spikes/s)" % reg_label)
+                # axes.set_ylabel("%s (spikes/s)" % reg_label)
             else:
                 axes.set_yticklabels([])
-        else:
-            if i_pop == 0:
-                axes.set_ylabel("%s neurons" % reg_label)
+        # else:
+        #     if i_pop == 0:
+        axes.set_ylabel("%s neurons" % reg_label)
 
-        if i_region == 0:
-            axes.set_title(pop_label)
+        # if i_region == 0:
+        axes.set_title(pop_label)
 
         if i_region == n_regions - 1:
             if xticklabels is not None:
