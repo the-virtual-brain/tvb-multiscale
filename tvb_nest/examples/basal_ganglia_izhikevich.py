@@ -100,7 +100,7 @@ if __name__ == "__main__":
     model_params = {}
 
     main_example(tvb_model, BasalGangliaIzhikevichBuilder, BasalGangliaRedWWexcIOBuilder,
-                 nest_nodes_ids,  nest_populations_order=100,
+                 nest_nodes_ids,  nest_populations_order=200,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
