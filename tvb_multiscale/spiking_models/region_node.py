@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-from pandas import Series
+from pandas import Series, unique
 
-from tvb_multiscale.config import initialize_logger
+import numpy as np
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple
+from tvb_multiscale.config import initialize_logger, LINE
+
+from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple, extract_integer_intervals
 
 
 LOG = initialize_logger(__name__)
@@ -24,6 +26,21 @@ class SpikingRegionNode(Series):
     def __getitem__(self, keys):
         # return the neurons' indices/handles of specific populations (keys) of this RegionNode
         return flatten_tuple(super(SpikingRegionNode, self).__getitem__(keys))
+
+    def __str__(self):
+        populations = ""
+        for pop in self.populations:
+            neurons = self.neurons(pop)
+            populations += LINE + \
+                "Label: %s, %d neurons: %s" \
+                "\nunique connections' weights: %s, " \
+                "\nunique connections' delays: %s, " \
+                "\nunique connections' receptors: %s" % \
+                           (pop, len(neurons), extract_integer_intervals(neurons, print=True),
+                 str(self.get_node_weight(pop)),
+                 str(self.get_node_delay(pop)),
+                 str(self.get_node_receptors(pop)))
+        return "Node Label: %s\n Populations: %s" % (self.label, populations)
 
     # Methods to get or set methods for devices or their connections:
 
@@ -65,7 +82,10 @@ class SpikingRegionNode(Series):
             return self.__getitem__(indices_or_keys)
 
     @property
-    def connections(self, indices_or_keys=None):
+    def number_of_neurons(self):
+        return len(self.neurons())
+
+    def get_connections(self, indices_or_keys=None):
         # Return the neurons of this region...
         # ...either of all populations...
         # ...or of selected ones:
@@ -73,3 +93,28 @@ class SpikingRegionNode(Series):
         for neuron in self.neurons(indices_or_keys):
             connections.append(self._get_connections(neuron))
         return tuple(connections)
+
+    @property
+    def connections(self):
+        return self.get_connections()
+
+    def get_weights(self, pop=None):
+        return np.array([self.GetFromConnections(conn, "weight")
+                         for conn in self.get_connections(pop)]).flatten()
+
+    def get_delays(self, pop=None):
+        return np.array([self.GetFromConnections(conn, "delay")
+                         for conn in self.get_connections(pop)]).flatten()
+
+    def get_receptors(self, pop=None):
+        return np.array([self.GetFromConnections(conn, "receptor")
+                         for conn in self.get_connections(pop)]).flatten()
+
+    def get_node_weight(self, pop=None):
+        return unique(np.around(self.get_weights(pop), decimals=3)).tolist()
+
+    def get_node_delay(self, pop=None):
+        return unique(np.around(self.get_delays(pop), decimals=3)).tolist()
+
+    def get_node_receptors(self, pop=None):
+        return unique(self.get_receptors(pop)).tolist()  # pd.unique is faster than np.unique

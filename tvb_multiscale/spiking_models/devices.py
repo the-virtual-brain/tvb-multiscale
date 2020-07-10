@@ -6,12 +6,12 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_multiscale.config import initialize_logger
+from tvb_multiscale.config import initialize_logger, LINE
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
-    sort_events_by_x_and_y, data_xarray_from_continuous_events
+    sort_events_by_x_and_y, data_xarray_from_continuous_events, extract_integer_intervals
 from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
 
@@ -33,6 +33,14 @@ class Device(object):
     def __init__(self, device, *args, **kwargs):
         self.model = "device"
         self.device = device
+
+    def __str__(self):
+        neurons = self.neurons
+        return LINE + "Model: %s, gid: %d, " \
+               "\nconnections to %d neurons: %s, " \
+               "mean weight: %g, mean delay: %g, unique receptors: %s" % \
+               (self.model, self.device[0], len(neurons), extract_integer_intervals(neurons, print=True),
+                self.node_weight.item(), self.node_delay.item(), self.node_receptors)
 
     @abstractmethod
     def _assert_device(self):
@@ -740,6 +748,12 @@ class DeviceSet(pd.Series):
         self.model = str(model)
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+
+    def __str__(self):
+        detailed_output = ""
+        for node_index, node in self.iteritems():
+            detailed_output += "\n%s" % node.__str__()
+        return 2 * LINE + "Name: %s Model: %s\n%s" % (self.name, self.model, detailed_output)
 
     def _input_nodes(self, nodes=None):
         if nodes is None:
