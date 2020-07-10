@@ -20,7 +20,7 @@ class NESTRegionNode(SpikingRegionNode):
         self.nest_instance.SetStatus(self.neurons(indices_or_keys), values_dict)
 
     def _get_connections(self, neuron):
-        return self.nest_instance.GetConnections(neuron)
+        return self.nest_instance.GetConnections((neuron, ))
 
     def GetFromConnections(self, connections, attr=None):
         if attr is None:

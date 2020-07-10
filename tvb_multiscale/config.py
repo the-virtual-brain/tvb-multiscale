@@ -236,3 +236,7 @@ CONFIGURED = Config()
 
 def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
     return initialize_logger_base(name, target_folder)
+
+
+# Used for nice __str__() outputs
+LINE = "\n" + "-" * 100 + "\n"

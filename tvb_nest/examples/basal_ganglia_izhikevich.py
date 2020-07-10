@@ -50,7 +50,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Common order of neurons' number per population:
     nest_network = nest_model_builder.build_spiking_network()
-
+    print(nest_network)
     print("Done! in %f min" % ((time.time() - tic) / 60))
 
     # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
@@ -63,6 +63,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                         populations_sizes=populations_sizes[0])
     tvb_nest_model = tvb_nest_builder.build_interface()
+    print(tvb_nest_model)
     print("Done! in %f min" % ((time.time() - tic)/60))
 
     # -----------------------------------4. Simulate and gather results-------------------------------------------------

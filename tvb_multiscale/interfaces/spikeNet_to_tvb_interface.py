@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from six import string_types
 
-from pandas import Series
+from pandas import Series, unique
 from numpy import array
 
 from tvb_multiscale.config import initialize_logger
@@ -28,6 +28,15 @@ class SpikeNetToTVBinterface(DeviceSet):
         self.nodes_ids = nodes_ids
         self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+
+    def __str__(self):
+        detailed_output = super(SpikeNetToTVBinterface, self).__str__()
+        return "Name: %s, " \
+               "TVB state variable indice: %d, " \
+               "\nInterface weight: %s"  \
+               "\nTarget NEST Nodes indices:%s " \
+               "\nSource TVB Nodes:\n%s" % \
+               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()), str(list(self.nodes_ids)), detailed_output)
 
     def from_device_set(self, device_set, name=None):
         if isinstance(device_set, DeviceSet):

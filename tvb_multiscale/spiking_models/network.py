@@ -4,7 +4,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_multiscale.config import CONFIGURED, initialize_logger
+from tvb_multiscale.config import CONFIGURED, initialize_logger, LINE
 from tvb_multiscale.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.spiking_models.devices \
     import DeviceSet, OutputSpikeDeviceDict
@@ -66,6 +66,22 @@ class SpikingNetwork(object):
             self.input_devices = input_devices
 
         LOG.info("%s created!" % self.__class__)
+
+    def __str__(self):
+        region_nodes = ""
+        for node_name, node in self.region_nodes.iteritems():
+            region_nodes += LINE + node.__str__()
+        input_devices = ""
+        for node_name, node in self.input_devices.iteritems():
+            input_devices += LINE + node.__str__()
+        output_devices = ""
+        for node_name, node in self.output_devices.iteritems():
+            output_devices += LINE + node.__str__()
+        outputs = "Spiking Network:\n"
+        for output_name, output in zip(["Region Nodes", "Input Devices", "Output Devices"],
+                                       [region_nodes, input_devices, output_devices]):
+            outputs += output
+        return outputs
 
     @abstractmethod
     def configure(self, *args, **kwargs):

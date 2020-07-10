@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
-from pandas import Series
+from pandas import Series, unique
 import numpy as np
 
 from tvb_multiscale.config import initialize_logger
@@ -39,8 +39,18 @@ class TVBtoSpikeNetParameterInterface(Series):
         # The target Spiking Network region nodes which coincide with the source TVB region nodes
         # (i.e., region i of TVB modifies a parameter in region i implemented in Spiking Network):
         self.nodes_ids = nodes_ids
-        self.scale = scale # a scaling weight
+        self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+
+    def __str__(self):
+        return "Name: %s, " \
+               "TVB coupling indice: %d, " \
+               "\nspikeNet target parameter: %s " \
+               "\nInterface weight: %s " \
+               "\nTarget NEST Nodes indices:%s " \
+               "\nSource TVB Nodes:\n%s" % \
+                (self.name, self.tvb_coupling_id, self.parameter, str(unique(self.scale).tolist()),
+                 str(list(self.target_nodes)), str(self.nodes))
 
     @property
     def nodes(self):

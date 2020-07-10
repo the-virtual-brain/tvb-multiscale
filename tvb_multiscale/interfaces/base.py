@@ -4,7 +4,7 @@ from collections import OrderedDict
 from xarray import DataArray
 
 import numpy as np
-from tvb_multiscale.config import CONFIGURED, initialize_logger
+from tvb_multiscale.config import CONFIGURED, initialize_logger, LINE
 from tvb_multiscale.spiking_models.devices import InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict
 
 from tvb.contrib.scripts.utils.data_structures_utils \
@@ -47,6 +47,20 @@ class TVBSpikeNetInterface(object):
     def __init__(self, config=CONFIGURED):
         self.config = config
         LOG.info("%s created!" % self.__class__)
+
+    def __str__(self):
+        tvb_to_spikeNet_interfaces = ""
+        if len(self.tvb_to_spikeNet_interfaces) > 0:
+            for interface_index, interface in self.tvb_to_spikeNet_interfaces.iteritems():
+                tvb_to_spikeNet_interfaces += \
+                    LINE + "\nIndex: %s:\n%s" % (interface_index, interface.__str__())
+        spikeNet_to_tvb_interfaces = ""
+        if len(self.spikeNet_to_tvb_interfaces) > 0:
+            for interface_index, interface in self.spikeNet_to_tvb_interfaces.iteritems():
+                spikeNet_to_tvb_interfaces += \
+                    LINE + "\nIndex: %s:\n%s" % (interface_index, interface.__str__())
+        return "TVB to spikeNet interfaces: %s\n\n\nspikeNet to TVB interfaces: %s" \
+               % (tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces)
 
     @property
     def spiking_nodes(self):
