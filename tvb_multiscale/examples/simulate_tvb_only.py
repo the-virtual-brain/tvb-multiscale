@@ -87,7 +87,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     #                             title="Region %s Time Series" % sv, figsize=config.figures.NOTEBOOK_SIZE)
 
     # if len(spiking_regions_inds) > 0:
-    #     plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_regions_inds,
+    #     plot_results_with_spikes_and_rates(source_ts, simulator, simulation_length, plotter, spiking_regions_inds,
     #                                        ["Exhitatory", "Inhibitory"],
     #                                        [simulator.model.N_E[0],
     #                                         simulator.model.number_of_modes - simulator.model.N_E[0]])
@@ -97,17 +97,19 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     return simulator.connectivity, results
 
 
-def plot_results_with_spikes_and_rates(source_ts, simulator, plotter, spiking_regions_inds,
+def plot_results_with_spikes_and_rates(source_ts, simulator, simulation_length, plotter, spiking_regions_inds,
                                        populations, pop_sizes):
     mean_field = mean_field_per_population(source_ts, populations, pop_sizes)
-
     spikes = spikes_per_population(
-                source_ts.get_state_variables("spikes"). \
-                        get_subspace_by_index(spiking_regions_inds),
-            populations, pop_sizes)
+                source_ts.get_state_variables(
+                    "spikes").get_subspace_by_index(spiking_regions_inds),
+                populations, pop_sizes)
 
     if "rate" not in mean_field.labels_dimensions["State Variable"]:
-        rate = spike_rates_from_TVB_spike_ts(spikes, simulator.integrator.dt)
+        T = np.maximum(np.minimum(100.0, 1000 * simulation_length / 10), 10.0)
+        std = T / 3
+        rate = spike_rates_from_TVB_spike_ts(spikes, simulator.integrator.dt, pop_sizes, sampling_period=0.1,
+                                             window_time_length=100.0, kernel="gaussian", std=std)
 
     else:
         mean_field[:, "rate", spiking_regions_inds, :] /= (simulator.integrator.dt * 0.001)  # rate in Hz
