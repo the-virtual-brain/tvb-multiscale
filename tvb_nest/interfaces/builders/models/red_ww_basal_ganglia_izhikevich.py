@@ -12,7 +12,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
     _tvb_nest_interface = RedWWexcIO
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=200):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[200]):
         super(RedWWexcIOBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.populations_sizes = populations_sizes

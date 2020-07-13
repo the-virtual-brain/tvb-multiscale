@@ -10,11 +10,11 @@ class WilsonCowanBuilder(DefaultInterfaceBuilder):
     _tvb_nest_interface = WilsonCowan
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100, N_I=100):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[100, 100]):
         super(WilsonCowanBuilder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes,
                                                  tvb_to_nest_interfaces, nest_to_tvb_interfaces)
-        self.N_E = N_E
-        self.N_I = N_I
+        self.N_E = populations_sizes[0]
+        self.N_I = populations_sizes[1]
 
         # WilsonCowan model state variables are bounded in [0, 1],
         # and have to be converted in Hz as poisson_generator assumes in NEST:
@@ -42,11 +42,11 @@ class WilsonCowanBuilder(DefaultInterfaceBuilder):
 class WilsonCowanMultisynapseBuilder(WilsonCowanBuilder):
 
     def __init__(self, tvb_simulator, nest_network, spiking_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100, N_I=100):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[100, 100]):
         super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, nest_network, spiking_nodes_ids,
                                                              exclusive_nodes,
                                                              tvb_to_nest_interfaces, nest_to_tvb_interfaces,
-                                                             N_E=N_E, N_I=N_I)
+                                                             populations_sizes=populations_sizes)
 
     def receptor_fun(self, source_node, target_node, start=3):
         return receptor_by_source_region(source_node, target_node, start)
