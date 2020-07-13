@@ -5,6 +5,10 @@ from scipy.stats import spearmanr
 from six import string_types
 from xarray import DataArray
 
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion
+from tvb.contrib.scripts.service.time_series_service import TimeSeriesService
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
 
 def _prepare_mean_fields(source_ts, populations, pop_sizes):
     ts_service = TimeSeriesService()
@@ -39,25 +43,6 @@ def mean_field_per_population(source_ts, populations, pop_sizes):
 
 def spikes_per_population(source_spikes, populations, pop_sizes):
     pop_cumsum = np.cumsum([0] + pop_sizes).tolist()
-    spikes = []
-    for i_pop, (pop_name, pop_inds) in enumerate(zip(populations, pop_cumsum[1:])):
-        spikes.append(
-            source_spikes.get_modes_by_index(
-                np.arange(pop_cumsum[i_pop], pop_inds).astype("i")))
-        spikes[-1].title = "Region spikes' time series of %s population" % pop_name
-        labels_dimensions = spikes[-1].labels_dimensions
-        try:
-            del labels_dimensions[spikes[-1].labels_ordering[1]]
-        except:
-            pass
-        spikes[-1].update_dimension_names("Population", 1)
-        labels_dimensions["Population"] = np.array([pop_name])
-        spikes[-1].labels_dimensions = labels_dimensions
-    return spikes
-
-
-def spikes_per_population_generator(source_spikes, populations, pop_sizes):
-    pop_cumsum = np.cumsum([0] + pop_sizes).tolist()
     for i_pop, (pop_name, pop_inds) in enumerate(zip(populations, pop_cumsum[1:])):
         spike = source_spikes.get_modes_by_index(np.arange(pop_cumsum[i_pop], pop_inds).astype("i"))
         spike.title = "Region spikes' time series of %s population" % pop_name
@@ -72,37 +57,7 @@ def spikes_per_population_generator(source_spikes, populations, pop_sizes):
         yield spike
 
 
-def spike_rates_from_TVB_spike_ts(spikes, integrator_dt, pop_sizes, sampling_period=0.1,
-                                  window_time_length=100.0, kernel="gaussian", **kwargs):
-    # spikes_ts are assumed to have an amplitude of tvb_integrator_dt / tvb_monitor_dt
-    spikes = ensure_list(spikes)
-    if kernel is not None:
-        if isinstance(kernel, string_types):
-            nt = np.maximum(3, int(np.round(window_time_length / sampling_period)))
-            kernel = getattr(signal, kernel)(nt, **kwargs)
-        norm_kernel = np.sum(kernel)
-    ts_service = TimeSeriesService()
-    rate = []
-    for i_pop, (spike_ts, pop_size) in enumerate(zip(spikes, pop_sizes)):
-        this_rate = ts_service.sum_across_dimension(spike_ts, 3)
-        this_rate.data = this_rate.data / integrator_dt * 1000 / pop_size
-        if kernel is not None:
-            for i_reg in range(this_rate.shape[2]):
-                this_rate.data[:, 0, i_reg, 0] = \
-                    signal.convolve(this_rate.data[:, 0, i_reg, 0].squeeze(), kernel, mode="same") / norm_kernel
-        rate.append(this_rate)
-        try:
-            del rate[-1].labels_dimensions[rate[-1].labels_ordering[3]]
-        except:
-            pass
-        rate[-1].labels_ordering[3] = "Mode"
-        rate[-1].title = "Spike rate"
-    rate = ts_service.concatenate_variables(rate)
-    rate.title = "Mean field population spike rates"
-    return rate
-
-
-def compute_rates_generator(spikes_generator, pop_sizes, integrator_dt, kernel, norm_kernel):
+def compute_rates(spikes_generator, pop_sizes, integrator_dt, kernel, norm_kernel):
     ts_service = TimeSeriesService()
 
     for (spike_ts, pop_size) in zip(spikes_generator, pop_sizes):
@@ -121,7 +76,7 @@ def compute_rates_generator(spikes_generator, pop_sizes, integrator_dt, kernel, 
         yield this_rate
 
 
-def spike_rates_from_TVB_spike_ts_generator(spikes_generator, integrator_dt, pop_sizes, sampling_period=0.1,
+def spike_rates_from_TVB_spike_ts(spikes_generator, integrator_dt, pop_sizes, sampling_period=0.1,
                                   window_time_length=100.0, kernel="gaussian", **kwargs):
     # spikes_ts are assumed to have an amplitude of tvb_integrator_dt / tvb_monitor_dt
     if kernel is not None:
@@ -130,7 +85,7 @@ def spike_rates_from_TVB_spike_ts_generator(spikes_generator, integrator_dt, pop
             kernel = getattr(signal, kernel)(nt, **kwargs)
         norm_kernel = np.sum(kernel)
     ts_service = TimeSeriesService()
-    rates = compute_rates_generator(spikes_generator, pop_sizes, integrator_dt, kernel, norm_kernel)
+    rates = compute_rates(spikes_generator, pop_sizes, integrator_dt, kernel, norm_kernel)
     rates = ts_service.concatenate_variables_generator(rates)
     rates.title = "Mean field population spike rates"
     return rates
@@ -262,11 +217,11 @@ def get_spike_rates_corrs(nest_spikes, populations_sizes, connectivity,
     rates = DataArray(1000 * np.array(rates), name="Mean population spiking ratew",
                       dims=["Population", "Region"],
                       coords={"Population": pop_labels, "Region": reg_labels})
-    rates_ts = TimeSeriesRegionX(np.moveaxis(np.array(rates_ts), 2, 0),  # This is already in spikes/sec
-                                 time=time, connectivity=connectivity,
-                                 labels_ordering=["Time", "Population", "Region", "Neurons"],
-                                 labels_dimensions={"Population": pop_labels, "Region": reg_labels},
-                                 sample_period=dt, title="Mean population spiking rates time series")
+    rates_ts = TimeSeriesRegion(np.moveaxis(np.array(rates_ts), 2, 0),  # This is already in spikes/sec
+                                time=time, connectivity=connectivity,
+                                labels_ordering=["Time", "Population", "Region", "Neurons"],
+                                labels_dimensions={"Population": pop_labels, "Region": reg_labels},
+                                sample_period=dt, title="Mean population spiking rates time series")
     dims = list(rates.dims)
     stacked_dims = "-".join(dims)
     names = []
