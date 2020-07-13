@@ -14,12 +14,12 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
     _tvb_nest_interface = RedWWexcIOinhI  # Set here the target interface model
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100, N_I=100):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[100, 100]):
 
         super(DefaultInterfaceBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                       tvb_to_nest_interfaces, nest_to_tvb_interfaces)
-        self.N_E = N_E
-        self.N_I = N_I
+        self.N_E = populations_sizes[0]
+        self.N_I = populations_sizes[1]
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()

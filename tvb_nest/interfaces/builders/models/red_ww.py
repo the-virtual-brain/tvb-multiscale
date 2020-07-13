@@ -9,9 +9,9 @@ class RedWWexcIOBuilder(DefaultMultiSynapseInterfaceBuilder):
     _tvb_nest_interface = RedWWexcIO
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=100, N_I=100):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[100, 100]):
         super(RedWWexcIOBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                                tvb_to_nest_interfaces, nest_to_tvb_interfaces, N_E, N_I)
+                                                tvb_to_nest_interfaces, nest_to_tvb_interfaces, populations_sizes)
 
         self.G = self.tvb_simulator.model.G[0].item()
         self.global_coupling_scaling *= self.G
@@ -64,9 +64,9 @@ class RedWWexcIOinhIBuilder(RedWWexcIOBuilder):
     _tvb_nest_interface = RedWWexcIOinhI
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, N_E=160, N_I=40):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[160, 40]):
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                                    tvb_to_nest_interfaces, nest_to_tvb_interfaces, N_E, N_I)
+                                                    tvb_to_nest_interfaces, nest_to_tvb_interfaces, populations_sizes)
 
         self.lamda = self.tvb_model.lamda[0].item()
 
