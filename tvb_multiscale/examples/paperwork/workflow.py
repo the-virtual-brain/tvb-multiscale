@@ -14,8 +14,8 @@ from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
 
-from tvb_utils.computations_utils import mean_field_per_population, spikes_per_population_generator, \
-    spike_rates_from_TVB_spike_ts_generator, spike_rates_from_mean_field_rates, Pearson, Spearman, \
+from tvb_utils.computations_utils import mean_field_per_population, spikes_per_population, \
+    spike_rates_from_TVB_spike_ts, spike_rates_from_mean_field_rates, Pearson, Spearman, \
     TimeSeries_correlation
 
 from tvb.simulator.cosimulator import CoSimulator
@@ -344,7 +344,7 @@ class Workflow(object):
     def get_tvb_spikes(self, tvb_ts):
         tvb_spikes = None
         if self.tvb_spiking_model:
-            tvb_spikes = spikes_per_population_generator(
+            tvb_spikes = spikes_per_population(
                 tvb_ts.get_state_variables(
                     self.tvb_spikes_var).get_subspace_by_index(self.spiking_regions_ids),
                 self.populations, self.populations_sizes)
@@ -356,9 +356,9 @@ class Workflow(object):
                 T = np.maximum(np.minimum(100.0, 1000*self.duration/10), 10.0)
                 std = T/3
                 tvb_rates_ts = \
-                    spike_rates_from_TVB_spike_ts_generator(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes,
-                                                            sampling_period=self.tvb_monitor_period, window_time_length=T,
-                                                            kernel="gaussian", std=std)
+                    spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes,
+                                                  sampling_period=self.tvb_monitor_period,
+                                                  window_time_length=T, kernel="gaussian", std=std)
                 tvb_rates_ts.title = "Region mean field spike rate time series"
             else:
                 mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
