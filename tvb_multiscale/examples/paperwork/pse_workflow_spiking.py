@@ -28,14 +28,14 @@ def prepare_spike_stimulus(rate, dt, time_length, number_of_regions, number_of_n
         stb = SpikeStimulusBuilder(targets=["spikes_ext"], rate=np.array(rates), A=None,
                                    # A=None for uncorrelated spikes
                                    number_of_regions=number_of_regions, number_of_neurons=number_of_neurons,
-                                   target_regions=None, t_start=0.0, dt=dt, time_length=np.sum(time_length)+1,
+                                   target_regions=None, t_start=0.0, dt=dt, time_length=np.sum(time_length),
                                    sparse=False)
         stimulus = stb.build_inhomogeneous_poisson_process()
     else:
         stb = SpikeStimulusBuilder(targets=["spikes_ext"], rate=rate[0], A=None,
                                   # A=None for uncorrelated spikes
                                   number_of_regions=number_of_regions, number_of_neurons=number_of_neurons,
-                                  target_regions=None, t_start=0.0, dt=dt, time_length=time_length[0]+1,
+                                  target_regions=None, t_start=0.0, dt=dt, time_length=time_length[0],
                                   sparse=False)
         stimulus = stb.build_compound_poisson_process()
     return stimulus
@@ -71,11 +71,11 @@ class PSEWorkflowSpiking(PSEWorkflowBase):
         if fast:
             self.workflow.simulation_length /= 10
             self.workflow.transient /= 10
-        self.stim_time_length = int(np.ceil(self.workflow.simulation_length / self.workflow.dt))
+        self.stim_time_length = int(np.ceil(self.workflow.simulation_length / self.workflow.dt)) + 1
         if self.branch == "high":
             self.stimulus_rate *= np.array([2.0, 1.0])
             self.workflow.simulation_length += self.workflow.transient
-            self.stim_time_length = [ int(np.ceil(self.workflow.transient / self.workflow.dt)), self.stim_time_length]
+            self.stim_time_length = [int(np.ceil(self.workflow.transient / self.workflow.dt)), self.stim_time_length]
             self.workflow.transient *= 2
         self.workflow.tvb_noise_strength = self.noise  # 0.0001 / 2
         self.workflow.tvb_sim_numba = False
