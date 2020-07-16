@@ -111,7 +111,7 @@ class TestIzhikevichRedWWexcIO(TestModel):
 
 def test_models():
     # TODO: find out why it fails if I run first the WilsonCowan tests and then the ReducedWongWang ones...
-    for test_model_class in [TestReducedWongWangExcIO, TestReducedWongWangExcIOinhI,
+    for test_model_class in [TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO,
                              TestWilsonCowan, TestWilsonCowanMultisynapse,
                              TestIzhikevichRedWWexcIO]:
         test_model = test_model_class()
