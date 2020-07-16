@@ -38,7 +38,7 @@ class SpikesPlotter(BasePlotter):
                 if rates.size > 0:
                     max_rate = np.nanmax(rates)
                     time = rates.time
-                    get_rate_fun = lambda rates, i_region, i_pop: rates[:, i_pop, i_region].data.squeeze()
+                    get_rate_fun = lambda rates, i_region, i_pop: rates.data[:, i_pop, i_region].squeeze()
                 else:
                     plot_rates = False
             if max_rate == 0:
@@ -131,7 +131,7 @@ class SpikesPlotter(BasePlotter):
             get_spikes_fun = lambda spikes, i_region: spikes[:, :, i_region].values.squeeze()
             get_time = lambda spikes, time: spikes.get_index(spikes.dims[0])
         else:
-            get_spikes_fun = lambda spikes, i_region: spikes[:, :, i_region].squeeze()
+            get_spikes_fun = lambda spikes, i_region: spikes[:, :, i_region].squeezed
             get_time = lambda spikes, time: time
 
         pop_spikes = ensure_list(pop_spikes)
