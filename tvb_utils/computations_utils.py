@@ -175,7 +175,7 @@ def get_event_spike_rates_corrs(spikes, populations_sizes, connectivity,
     from pandas import MultiIndex
     from elephant.statistics import time_histogram, instantaneous_rate, mean_firing_rate
     from elephant.conversion import BinnedSpikeTrain
-    from elephant import spike_train_correlation
+    from elephant import spike_train_correlation, kernels
     from neo.core import SpikeTrain
     from quantities import ms
 
@@ -225,9 +225,13 @@ def get_event_spike_rates_corrs(spikes, populations_sizes, connectivity,
             try:
                 rates_ts[-1].append(np.array(instantaneous_rate(spike_trains[-1], sampling_period=dt_ms,
                                                                 t_start=t_start_ms, t_stop=t_stop_ms))
-                                    / populations_sizes[i_pop])
+                                 / populations_sizes[i_pop])
             except:
-                pass
+                sigma = np.minimum(1000.0, np.maximum(np.array(t_stop_ms - computation_t_start), 10))*ms
+                kernel = kernels.GaussianKernel(sigma=sigma)
+                rates_ts[-1].append(np.array(instantaneous_rate(spike_trains[-1], sampling_period=dt_ms,
+                                                                t_start=t_start_ms, t_stop=t_stop_ms, kernel=kernel))
+                                    / populations_sizes[i_pop])
     del these_spikes
     del spikes  # Free memory...
     binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt_ms,
