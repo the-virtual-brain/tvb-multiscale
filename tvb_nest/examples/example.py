@@ -28,7 +28,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0, variables_of_interest=None,
-                 config=None, **model_params):
+                 config=None, plot_write=True, **model_params):
 
     if config is None:
         config = Config(output_base=os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
@@ -92,9 +92,10 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
-    plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
-                       transient=transient, tvb_state_variable_type_label="State Variables",
-                       tvb_state_variables_labels=simulator.model.variables_of_interest, plotter=plotter, config=config)
+    if plot_write:
+        plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
+                           transient=transient, tvb_state_variable_type_label="State Variables",
+                           tvb_state_variables_labels=simulator.model.variables_of_interest, plotter=plotter, config=config)
 
     return results, simulator
 
