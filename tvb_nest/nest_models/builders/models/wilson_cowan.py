@@ -19,12 +19,12 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
             self.set_defaults()
 
 
-class WilsonCownMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
+class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
 
-        super(WilsonCownMultisynapseBuilder, self).__init__(
+        super(WilsonCowanMultisynapseBuilder, self).__init__(
             tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults=False, **kwargs)
 
         self.default_population["model"] = "aeif_cond_alpha_multisynapse"
