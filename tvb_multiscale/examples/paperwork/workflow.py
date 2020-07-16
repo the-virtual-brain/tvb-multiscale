@@ -14,9 +14,9 @@ from tvb_multiscale.config import Config, CONFIGURED
 from tvb_multiscale.io.h5_writer import H5Writer
 from tvb_multiscale.plot.plotter import Plotter
 
-from tvb_utils.computations_utils import mean_field_per_population, spikes_per_population, \
-    spike_rates_from_TVB_spike_ts, spike_rates_from_mean_field_rates, Pearson, Spearman, \
-    TimeSeries_correlation
+from tvb_utils.computations_utils import tvb_mean_field_per_population, tvb_spikes_per_population_generator, \
+    tvb_spike_rates_from_TVB_spike_ts, tvb_spike_rates_from_mean_field_rates, Pearson, Spearman, \
+    compute_tvb_spike_rate_corrs
 
 from tvb.simulator.cosimulator import CoSimulator
 from tvb.datatypes.connectivity import Connectivity
@@ -338,13 +338,13 @@ class Workflow(object):
     def get_mean_field(self, tvb_ts):
         mf_ts = None
         if self.tvb_spiking_model:
-            mf_ts = mean_field_per_population(tvb_ts, self.populations, self.populations_sizes)
+            mf_ts = tvb_mean_field_per_population(tvb_ts, self.populations, self.populations_sizes)
         return mf_ts
 
-    def get_tvb_spikes(self, tvb_ts):
+    def get_tvb_spikes_gen(self, tvb_ts):
         tvb_spikes = None
         if self.tvb_spiking_model:
-            tvb_spikes = spikes_per_population(
+            tvb_spikes = tvb_spikes_per_population_generator(
                 tvb_ts.get_state_variables(
                     self.tvb_spikes_var).get_subspace_by_index(self.spiking_regions_ids),
                 self.populations, self.populations_sizes)
@@ -356,14 +356,14 @@ class Workflow(object):
                 T = np.maximum(np.minimum(100.0, 1000*self.duration/10), 10.0)
                 std = T/3
                 tvb_rates_ts = \
-                    spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes,
-                                                  sampling_period=self.tvb_monitor_period,
-                                                  window_time_length=T, kernel="gaussian", std=std)
+                    tvb_spike_rates_from_TVB_spike_ts(tvb_spikes, self.simulator.integrator.dt, self.populations_sizes,
+                                                      sampling_period=self.tvb_monitor_period,
+                                                      window_time_length=T, kernel="gaussian", std=std)
                 tvb_rates_ts.title = "Region mean field spike rate time series"
             else:
                 mf_ts[:, self.tvb_spike_rate_var, :, :].data /= \
                     (self.simulator.integrator.dt * 0.001)  # rate in Hz
-                tvb_rates_ts = spike_rates_from_mean_field_rates(mf_ts)
+                tvb_rates_ts = tvb_spike_rates_from_mean_field_rates(mf_ts)
                 tvb_rates_ts.title = "Region mean field rate time series"
         else:
             tvb_rates_ts = tvb_ts[:, self.tvb_rate_vars]
@@ -381,8 +381,8 @@ class Workflow(object):
     def get_tvb_corrs(self, tvb_rates_ts):
         if self.transient:
             tvb_rates_ts_steady_state = tvb_rates_ts[self.transient:]
-        return {"Pearson": TimeSeries_correlation(tvb_rates_ts_steady_state, corrfun=Pearson, force_dims=4),
-                "Spearman": TimeSeries_correlation(tvb_rates_ts_steady_state, corrfun=Spearman, force_dims=4)}
+        return compute_tvb_spike_rate_corrs(tvb_rates_ts, transient=self.transient)
+
 
     def plot_tvb_ts(self, tvb_ts, mf_ts=None):
         if mf_ts is None:
@@ -447,12 +447,12 @@ class Workflow(object):
             mf_ts = self.get_mean_field(tvb_ts)
             if self.plotter:
                 self.plot_tvb_ts(tvb_ts, mf_ts)
-            tvb_spikes = self.get_tvb_spikes(tvb_ts)
+            tvb_spikes = self.get_tvb_spikes_gen(tvb_ts)
             if tvb_spikes is not None and self.plotter:
                 for spike in tvb_spikes:
                     spike.plot(y=spike._data.dims[3], row=spike._data.dims[2],
                                cmap="jet", figsize=(20, 10), plotter_config=self.plotter.config)
-            self.rates["TVB"], tvb_rates_ts = self.get_tvb_rates(tvb_ts, mf_ts, self.get_tvb_spikes(tvb_ts))
+            self.rates["TVB"], tvb_rates_ts = self.get_tvb_rates(tvb_ts, mf_ts, self.get_tvb_spikes_gen(tvb_ts))
             del tvb_ts  # Free memory...
             del mf_ts  # Free memory...
             del tvb_spikes  # Free memory...
