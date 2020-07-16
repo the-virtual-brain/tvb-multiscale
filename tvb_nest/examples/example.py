@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import time
 
 import numpy as np
@@ -6,9 +7,7 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.config import CONFIGURED
-from tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
-    DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
+from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCownMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
@@ -21,14 +20,19 @@ from tvb_multiscale.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
-def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=False,
+def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
+                 nest_nodes_ids, nest_populations_order=100,
+                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=1100.0, transient=100.0, variables_of_interest=None,
-                 config=CONFIGURED, **model_params):
+                 simulation_length=110.0, transient=10.0, variables_of_interest=None,
+                 config=None, **model_params):
 
+    if config is None:
+        config = Config(output_base=os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
+                                                 tvb_nest_builder.__name__.split("Builder")[0]))
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
@@ -49,8 +53,11 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Using all default parameters for this example
     nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
     nest_model_builder.population_order = nest_populations_order
-    populations_sizes = [int(np.round(nest_model_builder.scale_e * nest_model_builder.population_order)),
-                         int(np.round(nest_model_builder.scale_i * nest_model_builder.population_order))]
+    populations = []
+    populations_sizes = []
+    for pop in nest_model_builder.populations:
+        populations.append(pop["label"])
+        populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Common order of neurons' number per population:
     nest_network = nest_model_builder.build_spiking_network()
 
@@ -85,8 +92,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
-    plot_write_results(results, simulator, populations_sizes, transient, "State Variables",
-                       simulator.model.variables_of_interest, plotter, config)
+    plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
+                       transient=transient, tvb_state_variable_type_label="State Variables",
+                       tvb_state_variables_labels=simulator.model.variables_of_interest, plotter=plotter, config=config)
 
     return results, simulator
 
@@ -100,43 +108,43 @@ if __name__ == "__main__":
         if label.find("hippo") > 0:
             nest_nodes_ids.append(id)
 
-    tvb_model = ReducedWongWangExcIOInhI
+    tvb_sim_model = WilsonCowan
+
     model_params = {}
 
-    # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
-    # from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
-    #
-    # tvb_model = WilsonCowan
-    #
-    # model_params = {
-    #     "r_e": np.array([0.0]),
-    #     "r_i": np.array([0.0]),
-    #     "k_e": np.array([1.0]),
-    #     "k_i": np.array([1.0]),
-    #     "tau_e": np.array([10.0]),
-    #     "tau_i": np.array([10.0]),
-    #     "c_ee": np.array([10.0]),
-    #     "c_ei": np.array([6.0]),
-    #     "c_ie": np.array([10.0]),
-    #     "c_ii": np.array([1.0]),
-    #     "alpha_e": np.array([1.2]),
-    #     "alpha_i": np.array([2.0]),
-    #     "a_e": np.array([1.0]),
-    #     "a_i": np.array([1.0]),
-    #     "b_e": np.array([0.0]),
-    #     "b_i": np.array([0.0]),
-    #     "c_e": np.array([1.0]),
-    #     "c_i": np.array([1.0]),
-    #     "theta_e": np.array([2.0]),
-    #     "theta_i": np.array([3.5]),
-    #     "P": np.array([0.5]),
-    #     "Q": np.array([0.0])
-    # }
+    # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
-    main_example(tvb_model, WWDeco2014Builder, RedWWexcIOinhIBuilder,
+    if isinstance(tvb_sim_model, WilsonCowan):
+
+        model_params = {
+            "r_e": np.array([0.0]),
+            "r_i": np.array([0.0]),
+            "k_e": np.array([1.0]),
+            "k_i": np.array([1.0]),
+            "tau_e": np.array([10.0]),
+            "tau_i": np.array([10.0]),
+            "c_ee": np.array([10.0]),
+            "c_ei": np.array([6.0]),
+            "c_ie": np.array([10.0]),
+            "c_ii": np.array([1.0]),
+            "alpha_e": np.array([1.2]),
+            "alpha_i": np.array([2.0]),
+            "a_e": np.array([1.0]),
+            "a_i": np.array([1.0]),
+            "b_e": np.array([0.0]),
+            "b_i": np.array([0.0]),
+            "c_e": np.array([1.0]),
+            "c_i": np.array([1.0]),
+            "theta_e": np.array([2.0]),
+            "theta_i": np.array([3.5]),
+            "P": np.array([0.5]),
+            "Q": np.array([0.0])
+        }
+
+    main_example(tvb_sim_model, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
                  nest_nodes_ids,  nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
                  variables_of_interest=None,
-                 config=CONFIGURED, **model_params)
+                 config=None, **model_params)
