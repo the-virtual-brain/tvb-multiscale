@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+import gc
+from time import sleep
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -18,28 +20,6 @@ from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangE
 
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
-
-
-class TestModel(object):
-
-    simulation_length = 110.0
-    transient = 10.0
-    model = None
-
-    model_params = {}
-
-    results_path = ""
-
-    def __init__(self, model, model_params={}):
-        self.model = model
-        self.model_params = model_params
-        self.results_path = os.path.join(os.getcwd(), "outputs", self.model.__name__)
-
-    def run(self):
-        delete_folder_safely(self.results_path)
-        return main_example(tvb_sim_model=self.model,
-                            simulation_length=self.simulation_length, transient=self.transient,
-                            **self.model_params)
 
 
 # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
@@ -82,6 +62,67 @@ model_params_sp = {
         "lamda": np.array([0.5, ]),
         "G": np.array([200.0, ])
     }
+
+
+class TestModel(object):
+
+    simulation_length = 110.0
+    transient = 10.0
+    model = None
+
+    model_params = {}
+
+    results_path = ""
+
+    def __init__(self, model, model_params={}):
+        self.model = model
+        self.model_params = model_params
+        self.results_path = os.path.join(os.getcwd(), "outputs", self.model.__name__)
+
+    def run(self):
+        delete_folder_safely(self.results_path)
+        return main_example(tvb_sim_model=self.model,
+                            simulation_length=self.simulation_length, transient=self.transient,
+                            **self.model_params)
+
+
+class TestWilsonCowan(TestModel):
+    model = WilsonCowan
+
+    def __init__(self):
+        super(TestWilsonCowan, self).__init__(WilsonCowan, model_params_wc)
+
+
+class TestReducedWongWangExcIO(TestModel):
+    model = ReducedWongWangExcIO
+
+    def __init__(self):
+        super(TestReducedWongWangExcIO, self).__init__(ReducedWongWangExcIO, model_params_redww_exc_io)
+
+
+class TestReducedWongWangExcIOInhI(TestModel):
+    model = ReducedWongWangExcIOInhI
+
+    def __init__(self):
+        super(TestReducedWongWangExcIOInhI, self).__init__(ReducedWongWangExcIOInhI, model_params_redww_exc_io_inn_i)
+
+
+class TestSpikingWongWangExcIOInhI(TestModel):
+    model = SpikingWongWangExcIOInhI
+
+    def __init__(self):
+        super(TestSpikingWongWangExcIOInhI, self).__init__(SpikingWongWangExcIOInhI, model_params_sp)
+
+
+def test_models():
+    for test_model_class in [TestWilsonCowan,
+                             TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI,
+                             TestSpikingWongWangExcIOInhI]:
+        test_model = test_model_class()
+        print(test_model.run())
+        del test_model
+        gc.collect()
+        sleep(5)
 
 
 if __name__ == "__main__":
