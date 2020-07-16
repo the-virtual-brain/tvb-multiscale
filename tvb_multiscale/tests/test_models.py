@@ -21,7 +21,6 @@ from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangE
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
 
-
 # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
 model_params_wc = {
