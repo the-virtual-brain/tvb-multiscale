@@ -6,7 +6,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import CONFIGURED
-from tvb_nest.nest_models.builders.models.red_ww_exc_io_inh_i import RedWWExcIOInhIMultisynapseBuilder
+from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2014Builder
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.simulator import Simulator
@@ -39,7 +39,7 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
 
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
-    nest_model_builder = RedWWExcIOInhIMultisynapseBuilder(simulator, nest_nodes_ids, config=config)
+    nest_model_builder = WWDeco2014Builder(simulator, nest_nodes_ids, config=config)
     nest_model_builder.configure()
     for prop in ["min_delay", "tvb_dt", "tvb_model", "tvb_connectivity", "tvb_weights", "tvb_delays",
                  "number_of_nodes", "number_of_spiking_nodes", "spiking_nodes_labels",
