@@ -22,7 +22,7 @@ from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangE
 
 
 def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
-                 simulation_length=110.0, transient=10.0, config=None, **model_params):
+                 simulation_length=110.0, transient=10.0, config=None, plot_write=True, **model_params):
 
     if config is None:
         config = Config(output_base=os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
@@ -69,10 +69,10 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------3. Plot results--------------------------------------------------------
-
-    plot_write_results(results, simulator, transient=transient,
-                       tvb_state_variables_labels=simulator.model.variables_of_interest,
-                       populations_sizes=populations_sizes, plotter=Plotter(config), config=config)
+    if plot_write:
+        plot_write_results(results, simulator, transient=transient,
+                           tvb_state_variables_labels=simulator.model.variables_of_interest,
+                           populations_sizes=populations_sizes, plotter=Plotter(config), config=config)
 
     return simulator.connectivity, results
 

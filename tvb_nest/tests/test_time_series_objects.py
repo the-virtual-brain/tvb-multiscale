@@ -35,7 +35,7 @@ def create_time_series_region_object():
     results, simulator = \
         main_example(WilsonCowan, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
                      nest_nodes_ids, nest_populations_order=10, connectivity=connectivity,
-                     simulation_length=10.0, exclusive_nodes=True, config=config)
+                     simulation_length=10.0, exclusive_nodes=True, config=config, plot_write=False)
     time = results[0][0]
     source = results[0][1]
 
