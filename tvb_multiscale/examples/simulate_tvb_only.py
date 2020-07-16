@@ -12,6 +12,7 @@ from tvb_multiscale.config import CONFIGURED, Config
 from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.plot.plotter import Plotter
 
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
