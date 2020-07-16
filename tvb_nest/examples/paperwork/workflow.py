@@ -12,7 +12,7 @@ from tvb_nest.config import Config, CONFIGURED
 from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder
 from tvb_multiscale.examples.paperwork.workflow import Workflow as WorkflowBase
-from tvb_utils.computations_utils import get_spike_rates_corrs
+from tvb_utils.computations_utils import get_event_spike_rates_corrs
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionX
 
@@ -347,6 +347,10 @@ class Workflow(WorkflowBase):
         return self.nest_network
 
     def prepare_rate_interface(self):
+        if isinstance(self.tvb_model, RedWWexcIOBuilder):
+            sv = "R"
+        else:
+            sv = "R_e"
         # For spike transmission from TVB to NEST devices acting as TVB proxy nodes with TVB delays:
         self.interface_builder.tvb_to_spikeNet_interfaces = [
             {"model": "inhomogeneous_poisson_generator",
@@ -363,12 +367,12 @@ class Workflow(WorkflowBase):
              "receptor_type": lambda tvb_node_id, nest_node_id: int(tvb_node_id+1),
              # ---------------------------------------------------------------------------------------------------------
              #             TVB sv -> NEST population
-             "connections": {"R": ["E"]},  # R_e
+             "connections": {sv: ["E"]},  # R_e
              "source_nodes": None, "target_nodes": None}]  # None means all here
 
-        # if self.interface_builder.lamda > 0.0:
-        #     #       Coupling towards the inhibitory population as well:
-        #     self.interface_builder.tvb_to_spikeNet_interfaces[0]["connections"]["R_e"] += ["I"]
+        if self.interface_builder.lamda > 0.0:
+            #       Coupling towards the inhibitory population as well:
+            self.interface_builder.tvb_to_spikeNet_interfaces[0]["connections"]["R_e"] += ["I"]
 
         self.interface_builder.w_tvb_to_spike_rate = \
             lambda tvb_rate: np.where(tvb_rate < 10, tvb_rate, 40 * np.sqrt(tvb_rate))
@@ -376,7 +380,10 @@ class Workflow(WorkflowBase):
         return self.interface_builder
 
     def prepare_dc_interface(self):
-
+        if isinstance(self.tvb_model, RedWWexcIOBuilder):
+            sv = "S"
+        else:
+            sv = "S_e"
         # For injecting current to NEST neurons via dc generators acting as TVB proxy nodes with TVB delays:
         self.interface_builder.tvb_to_spikeNet_interfaces = [
             {"model": "dc_generator", "params": {},
@@ -394,36 +401,39 @@ class Workflow(WorkflowBase):
                                                      self.dt)),
              # ---------------------------------------------------------------------------------------------------------
              #    TVB sv -> NEST population
-             "connections": {"S": ["E"]},  # S_e
+             "connections": {sv: ["E"]},
              "source_nodes": None, "target_nodes": None}]  # None means all here
 
-        # if self.interface_builder.lamda > 0.0:
-        #     # Coupling to inhibitory populations as well (feedforward inhibition):
-        #     self.interface_builder.tvb_to_spikeNet_interfaces.append(
-        #         {"model": "dc_generator", "params": {},
-        #          # ---------Properties potentially set as function handles with args (nest_node_id=None)----------------
-        #          #   Applied outside NEST for each interface device
-        #          "interface_weights": 1.0 * self.N_E / self.N_I,
-        #          # ---Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)----
-        #          #    To multiply TVB connectivity weight:
-        #          "weights": lambda tvb_node_id, nest_node_id:
-        #                                     self.interface_builder.lamda *
-        #                                     self.interface_builder.global_coupling_scaling *
-        #                                     self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
-        #          #    To add to TVB connectivity delay:
-        #          "delays": lambda tvb_node_id, nest_node_id:
-        #                             float(np.maximum(self.interface_builder.tvb_delays[tvb_node_id, nest_node_id],
-        #                                              self.dt)),
-        #          # -----------------------------------------------------------------------------------------------------
-        #          #    TVB sv -> NEST population
-        #          "connections": {"S_e": ["I"]},
-        #          "source_nodes": None, "target_nodes": None}
-        #     )
+        if self.interface_builder.lamda > 0.0:
+            # Coupling to inhibitory populations as well (feedforward inhibition):
+            self.interface_builder.tvb_to_spikeNet_interfaces.append(
+                {"model": "dc_generator", "params": {},
+                 # ---------Properties potentially set as function handles with args (nest_node_id=None)----------------
+                 #   Applied outside NEST for each interface device
+                 "interface_weights": 1.0 * self.N_E / self.N_I,
+                 # ---Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)----
+                 #    To multiply TVB connectivity weight:
+                 "weights": lambda tvb_node_id, nest_node_id:
+                                            self.interface_builder.lamda *
+                                            self.interface_builder.global_coupling_scaling *
+                                            self.interface_builder.tvb_weights[tvb_node_id, nest_node_id],
+                 #    To add to TVB connectivity delay:
+                 "delays": lambda tvb_node_id, nest_node_id:
+                                    float(np.maximum(self.interface_builder.tvb_delays[tvb_node_id, nest_node_id],
+                                                     self.dt)),
+                 # -----------------------------------------------------------------------------------------------------
+                 #    TVB sv -> NEST population
+                 "connections": {"S_e": ["I"]},
+                 "source_nodes": None, "target_nodes": None}
+            )
 
         return self.interface_builder
 
     def prepare_Ie_interface(self):
-
+        if isinstance(self.tvb_model, RedWWexcIOBuilder):
+            sv = "S"
+        else:
+            sv = "S_e"
         # For directly setting an external current parameter in NEST neurons instantaneously:
         self.interface_builder.tvb_to_spikeNet_interfaces = [
             {"model": "current", "parameter": "I_e",
@@ -431,20 +441,20 @@ class Workflow(WorkflowBase):
              "interface_weights": 1.0,
              # ----------------------------------------------------------------------------------------------------------------
              #                  TVB sv -> NEST population
-             "connections": {"S": ["E"]},  # S_e
+             "connections": {sv: ["E"]},
              "nodes": None}]  # None means all here
-        # if self.interface_builder.tvb_model.lamda[0] > 0.0:
-        #     # Coupling to inhibitory populations as well (feedforward inhibition):
-        #     self.interface_builder.tvb_to_spikeNet_interfaces.append(
-        #         {
-        #             "model": "current", "parameter": "I_e",
-        #             # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------
-        #             "interface_weights": self.interface_builder.lamda * self.N_E / self.N_I,
-        #             # --------------------------------------------------------------------------------------------------
-        #             #                     TVB sv -> NEST population
-        #             "connections": {"S_e": ["I"]},
-        #             "nodes": None}
-        #     )
+        if self.interface_builder.tvb_model.lamda[0] > 0.0:
+            # Coupling to inhibitory populations as well (feedforward inhibition):
+            self.interface_builder.tvb_to_spikeNet_interfaces.append(
+                {
+                    "model": "current", "parameter": "I_e",
+                    # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------
+                    "interface_weights": self.interface_builder.lamda * self.N_E / self.N_I,
+                    # --------------------------------------------------------------------------------------------------
+                    #                     TVB sv -> NEST population
+                    "connections": {"S_e": ["I"]},
+                    "nodes": None}
+            )
 
         return self.interface_builder
 
@@ -454,8 +464,11 @@ class Workflow(WorkflowBase):
         # for transmitting to the TVB state variables directly
         connections = OrderedDict()
         #            TVB <- NEST
-        connections["Rin"] = ["E"]  # Rin_e
-        # connections["Rin_i"] = ["I"]
+        if isinstance(self.tvb_model, RedWWexcIOBuilder):
+            connections["Rin"] = ["E"]
+        else:
+            connections["Rin_e"] = ["E"]
+            connections["Rin_i"] = ["I"]
         self.interface_builder.spikeNet_to_tvb_interfaces = \
             [{"model": "spike_detector", "params": {},
               # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------
@@ -472,11 +485,6 @@ class Workflow(WorkflowBase):
         # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
         # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
         # given WongWang model parameter r is in Hz but tvb dt is in ms:
-        # def nest_spikes_to_tvb_rate(nest_spikes, tvb_dt):
-        #     nest_rate = nest_spikes * 1000.0 / tvb_dt
-        #     return np.where(nest_rate < 40, np.sqrt(nest_rate), 0.00064 * nest_rate**2)
-        # self.interface_builder.w_spikes_to_tvb = \
-        #     lambda nest_spikes: nest_spikes_to_tvb_rate(nest_spikes, self.interface_builder.tvb_dt)
         self.interface_builder.w_spikes_to_tvb = 1000.0 / self.interface_builder.tvb_dt
 
     def write_interface(self):
@@ -498,7 +506,7 @@ class Workflow(WorkflowBase):
         # Using all default parameters for this example
         self.interface_builder = self.interface_builder_class(self.simulator, self.nest_network,
                                                               self.nest_nodes_ids, exclusive_nodes=self.exclusive_nodes,
-                                                              N_E=self.N_E, N_I=self.N_I)
+                                                              populations_sizes=self.populations_sizes)
 
         self.interface_builder.global_coupling_scaling = self.simulator.model.G[0] * self.simulator.coupling.a[0]
         try:
@@ -584,8 +592,8 @@ class Workflow(WorkflowBase):
         return nest_spikes
 
     def get_nest_rates_corrs(self, nest_spikes, time=None):
-        return get_spike_rates_corrs(nest_spikes, self.populations_sizes, self.simulator.connectivity,
-                                     time=time, monitor_period=self.tvb_monitor_period, transient=self.transient)
+        return get_event_spike_rates_corrs(nest_spikes, self.populations_sizes, self.simulator.connectivity,
+                                           time=time, monitor_period=self.tvb_monitor_period, transient=self.transient)
 
     def plot_tvb_ts(self, tvb_ts):
         # For timeseries plot:

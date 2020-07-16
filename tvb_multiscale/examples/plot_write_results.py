@@ -3,9 +3,14 @@
 import os
 
 import numpy as np
-from xarray import DataArray, concat
+from xarray import DataArray
 
 from tvb.basic.profile import TvbProfile
+
+from tvb_utils.computations_utils import \
+    tvb_mean_field_per_population, tvb_spikes_per_population, tvb_spike_rates_from_TVB_spike_ts, \
+    tvb_spike_rates_from_mean_field_rates, get_event_spike_rates_corrs, compute_tvb_spike_rate_corrs
+
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.config import CONFIGURED
@@ -16,12 +21,14 @@ except:
 
 from tvb_multiscale.plot.plotter import Plotter
 
+from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
+
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, concatenate_heterogeneous_DataArrays
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
 
-def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
+def plot_write_results(results, simulator, populations=["E", "I"], populations_sizes=[], transient=0.0,
                        tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
                        plotter=None, config=CONFIGURED):
 
@@ -35,8 +42,9 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
     # -------------------------------------------6. Plot results--------------------------------------------------------
 
     #   Remove ts_type="Region" this argument too for TVB TimeSeriesRegion
+    t_with_transient = results[0][0]
     source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
-        data=results[0][1], time=results[0][0],
+        data=results[0][1], time=t_with_transient,
         connectivity=simulator.connectivity,
         labels_ordering=["Time", tvb_state_variable_type_label, "Region", "Neurons"],
         labels_dimensions={tvb_state_variable_type_label: list(tvb_state_variables_labels),
@@ -58,10 +66,30 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
     else:
         writer = None
 
-    # Plot time_series
-    source_ts.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
-    if source_ts.number_of_labels > 9:
-        source_ts.plot_raster(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
+    if isinstance(simulator.model, SpikingWongWangExcIOInhI):
+        mean_field = tvb_mean_field_per_population(source_ts, populations, populations_sizes)
+        # Plot time_series
+        mean_field.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
+        if mean_field.number_of_labels > 9:
+            mean_field.plot_raster(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
+
+        tvb_spikes, tvb_rates = \
+            plot_results_with_spikes_and_rates(source_ts, simulator, source_ts.time[-1] - source_ts.time[0],
+                                               plotter, populations, populations_sizes)
+
+        tvb_corrs = compute_tvb_spike_rate_corrs(tvb_rates)
+
+        if writer is not None:
+            writer.write_object(tvb_spikes.to_dict(), path=os.path.join(config.out.FOLDER_RES, "TVB_Spikes") + ".h5")
+            writer.write_tvb_to_h5(tvb_rates, os.path.join(config.out.FOLDER_RES, tvb_rates.title) + ".h5",
+                                   recursive=False)
+            writer.write_object(tvb_corrs, path=os.path.join(config.out.FOLDER_RES, "TVB_corrs") + ".h5")
+    else:
+        # Plot time_series
+        source_ts.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
+        if source_ts.number_of_labels > 9:
+            source_ts.plot_raster(plotter_config=plotter.config, per_variable=True, figsize=figsize, add_legend=False)
+
 
     try:
         if simulator.tvb_spikeNet_interface is None:
@@ -117,27 +145,9 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
     plotter.plot_spike_events(nest_spikes)
 
     # Spikes' rates
-    rates = []
-    duration = (t[-1] - t[0]) / 1000  # in sec
-    if len(population_sizes) == 0:
-        population_sizes = [0] * len(nest_spikes)
-    for i_pop, (pop_label, pop_spikes) in enumerate(nest_spikes.iteritems()):
-        rates.append([])
-        reg_labels = []
-        for reg_label, reg_spikes in pop_spikes.iteritems():
-            reg_labels.append(reg_label)
-            # rates (spikes/sec) =
-            #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
-            rates[-1].append(len(reg_spikes["times"]) / duration / population_sizes[i_pop])
-        rates[-1] = np.array(rates[-1])
-        while rates[-1].ndim < 2:
-            rates[-1] = rates[-1][np.newaxis]
-        rates[-1] = DataArray(np.array(rates[-1]),
-                              dims=["Population", "Region"], name="NEST_spike_rates",
-                              coords={"Population": [pop_label], "Region": reg_labels})
-
-    rates = concat(rates, rates[-1].dims[0], fill_value=np.nan)
-    rates.name = "NEST_spike_rates"
+    rates, rates_ts, corrs = get_event_spike_rates_corrs(nest_spikes, populations_sizes, simulator.connectivity,
+                                                         time=t_with_transient, transient=transient,
+                                                         monitor_period=simulator.monitors[0].period)
     print(rates)
 
     # An alternative plot of rates per neuron and time wise:
@@ -182,6 +192,48 @@ def plot_write_results(results, simulator, population_sizes=[], transient=0.0,
         if writer is not None:
             writer.write_object(nest_spikes.to_dict(), path=os.path.join(config.out.FOLDER_RES, "NEST_Spikes") + ".h5")
             writer.write_object(rates.to_dict(), path=os.path.join(config.out.FOLDER_RES, rates.name) + ".h5")
+            writer.write_object(corrs, path=os.path.join(config.out.FOLDER_RES, "NEST_corrs") + ".h5")
             writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(ts._data, connectivity=ts.connectivity),
                                    os.path.join(config.out.FOLDER_RES, ts.title) + ".h5",
                                    recursive=False)
+            writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(rates_ts._data,
+                                                                            connectivity=rates_ts.connectivity),
+                                   os.path.join(config.out.FOLDER_RES, rates_ts.title) + ".h5",
+                                   recursive=False)
+
+
+def plot_results_with_spikes_and_rates(source_ts, simulator, simulation_length, plotter, populations, pop_sizes):
+
+    spiking_regions_inds = np.arange(simulator.connectivity.number_of_regions)
+
+    mean_field = tvb_mean_field_per_population(source_ts, populations, pop_sizes)
+    spikes = tvb_spikes_per_population(
+                            source_ts.get_state_variables(
+                                "spikes").get_subspace_by_index(spiking_regions_inds),
+                            populations, pop_sizes)
+
+    if "rate" not in mean_field.labels_dimensions["State Variable"]:
+        T = np.maximum(np.minimum(100.0, 1000 * simulation_length / 10), 10.0)
+        std = T / 3
+        rates = tvb_spike_rates_from_TVB_spike_ts(spikes, simulator.integrator.dt, pop_sizes, sampling_period=0.1,
+                                                 window_time_length=100.0, kernel="gaussian", std=std)
+
+    else:
+        mean_field[:, "rate", spiking_regions_inds, :] /= (simulator.integrator.dt * 0.001)  # rate in Hz
+        rates = tvb_spike_rates_from_mean_field_rates(mean_field, spiking_regions_inds)
+    rates.title = "Region mean field spike rate time series"
+
+    plotter.plot_spikes(spikes, rates=rates)
+
+    from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
+
+    mean_field_xr = mean_field.get_subspace(spiking_regions_inds)
+    mean_field_xr.plot_timeseries(per_variable=True, plotter_config=plotter.config, figsize=(10, 5))
+    rates_xr = TimeSeriesXarray(rates)
+    rates_xr.plot_timeseries(plotter_config=plotter.config, figsize=(10, 5))
+
+    for i_pop, spike in enumerate(spikes):
+        spike_xr = TimeSeriesXarray(spike)
+        spike_xr.plot(y=spike_xr._data.dims[3], row=spike_xr._data.dims[2],
+                      robust=True, figsize=(20, 10), plotter_config=plotter.config)
+    return spikes, rates
