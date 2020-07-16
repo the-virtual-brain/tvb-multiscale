@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import gc
-import time
+from time import sleep
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -12,7 +12,7 @@ mpl.use('Agg')
 from tvb_nest.examples.example import main_example
 from tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
-from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCownMultisynapseBuilder
+from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCowanMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich import \
     RedWWexcIOBuilder as IzhikevichRedWWexcIOBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
@@ -20,7 +20,6 @@ from tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
 
-from tvb_multiscale.tests.test_models import TestModel as TestModelBase
 from tvb_multiscale.tests.test_models import model_params_wc, model_params_redww_exc_io, model_params_redww_exc_io_inn_i
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
@@ -30,7 +29,7 @@ from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangE
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
 
-class TestModel(TestModelBase):
+class TestModel(object):
 
     nest_nodes_ids = []
     nest_model_builder = None
@@ -44,12 +43,13 @@ class TestModel(TestModelBase):
     transient = 10.0
 
     def __init__(self, model, nest_nodes_ids, nest_model_builder, interface_model_builder, model_params={}):
-        super(TestModel, self).__init__(model, model_params)
+        self.model = model
         self.nest_nodes_ids = nest_nodes_ids
         self.nest_model_builder = nest_model_builder
         self.interface_model_builder = interface_model_builder
         self.results_path = os.path.join(os.getcwd(), "outputs",
                                          self.interface_model_builder.__name__.split("Builder")[0])
+        self.model_params = model_params
 
     def run(self):
         delete_folder_safely(self.results_path)
@@ -61,49 +61,64 @@ class TestModel(TestModelBase):
                             **self.model_params)
 
 
+class TestWilsonCowan(TestModel):
+    tvb_to_nest_mode = "rate"
+
+    def __init__(self):
+        super(TestWilsonCowan, self).__init__(WilsonCowan, [33, 34], WilsonCowanBuilder,
+                                              InterfaceWilsonCowanBuilder, model_params_wc)
+
+
+class TestWilsonCowanMultisynapse(TestModel):
+    tvb_to_nest_mode = "rate"
+
+    def __init__(self):
+        super(TestWilsonCowanMultisynapse, self).__init__(WilsonCowan, [33, 34], WilsonCowanMultisynapseBuilder,
+                                                          InterfaceWilsonCowanMultisynapseBuilder, model_params_wc)
+
+
+class TestReducedWongWangExcIO(TestModel):
+
+    def __init__(self):
+        super(TestReducedWongWangExcIO, self).__init__(ReducedWongWangExcIO, [33, 34], WWDeco2013Builder,
+                                                       RedWWexcIOBuilder, model_params_redww_exc_io)
+
+    def run(self):
+        for tvb_to_nest_mode in ["param", "current", "rate"]:
+            self.tvb_to_nest_mode = tvb_to_nest_mode
+            super(TestReducedWongWangExcIO, self).run()
+
+
+class TestReducedWongWangExcIOinhI(TestModel):
+
+    def __init__(self):
+        super(TestReducedWongWangExcIOinhI, self).__init__(ReducedWongWangExcIOInhI, [33, 34], WWDeco2014Builder,
+                                                           RedWWexcIOinhIBuilder, model_params_redww_exc_io_inn_i)
+
+    def run(self):
+        for tvb_to_nest_mode in ["param", "current", "rate"]:
+            self.tvb_to_nest_mode = tvb_to_nest_mode
+            super(TestReducedWongWangExcIOinhI, self).run()
+
+
+class TestIzhikevichRedWWexcIO(TestModel):
+    tvb_to_nest_mode = "rate"
+
+    def __init__(self):
+        super(TestIzhikevichRedWWexcIO, self).__init__(ReducedWongWangExcIO, list(range(10)),
+                                                       BasalGangliaIzhikevichBuilder, IzhikevichRedWWexcIOBuilder, {})
+
+
 def test_models():
-    for model, model_params, nest_model_builder, interface_model_builder \
-            in zip([# WilsonCowan,
-                    # WilsonCowan,
-                    ReducedWongWangExcIO,
-                    ReducedWongWangExcIOInhI,
-                    ReducedWongWangExcIO],
-                    [# model_params_wc,
-                     # model_params_wc,
-                     model_params_redww_exc_io,
-                     model_params_redww_exc_io_inn_i,
-                     {}],
-                    [# WilsonCowanBuilder,
-                     # WilsonCownMultisynapseBuilder,
-                     WWDeco2013Builder,
-                     WWDeco2014Builder,
-                     BasalGangliaIzhikevichBuilder],
-                   [# InterfaceWilsonCowanBuilder,
-                    # InterfaceWilsonCowanMultisynapseBuilder,
-                    RedWWexcIOBuilder,
-                    RedWWexcIOinhIBuilder,
-                    IzhikevichRedWWexcIOBuilder]
-                  ):
-        if interface_model_builder == IzhikevichRedWWexcIOBuilder:
-            nest_nodes_ids = list(range(10))
-        else:
-            nest_nodes_ids = [33, 34]
-
-        test_model = TestModel(model, nest_nodes_ids, nest_model_builder, interface_model_builder, model_params)
-
-        if interface_model_builder in [RedWWexcIOBuilder,
-                                       RedWWexcIOinhIBuilder]:
-            for tvb_to_nest_mode in ["param", "current", "rate"]:
-                test_model.tvb_to_nest_mode = tvb_to_nest_mode
-                print(test_model.run())
-                del test_model
-                gc.collect()
-                time.sleep(5)
-        else:
-            print(test_model.run())
-            del test_model
-            gc.collect()
-            time.sleep(5)
+    # TODO: find out why it fails if I run first the WilsonCowan tests and then the ReducedWongWang ones...
+    for test_model_class in [TestReducedWongWangExcIO, TestReducedWongWangExcIOinhI,
+                             TestWilsonCowan, TestWilsonCowanMultisynapse,
+                             TestIzhikevichRedWWexcIO]:
+        test_model = test_model_class()
+        print(test_model.run())
+        del test_model
+        gc.collect()
+        sleep(5)
 
 
 if __name__ == "__main__":
