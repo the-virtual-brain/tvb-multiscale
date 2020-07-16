@@ -33,7 +33,7 @@ class SpikeNetToTVBinterface(DeviceSet):
         detailed_output = super(SpikeNetToTVBinterface, self).__str__()
         return "Name: %s, " \
                "TVB state variable indice: %d, " \
-               "\nInterface weight: %s"  \
+               "\nInterface weights: %s"  \
                "\nTarget NEST Nodes indices:%s " \
                "\nSource TVB Nodes:\n%s" % \
                (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()), str(list(self.nodes_ids)), detailed_output)

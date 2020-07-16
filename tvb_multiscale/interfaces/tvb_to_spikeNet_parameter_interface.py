@@ -46,11 +46,9 @@ class TVBtoSpikeNetParameterInterface(Series):
         return "Name: %s, " \
                "TVB coupling indice: %d, " \
                "\nspikeNet target parameter: %s " \
-               "\nInterface weight: %s " \
+               "\nInterface weights: %s " \
                "\nTarget NEST Nodes indices:%s " \
-               "\nSource TVB Nodes:\n%s" % \
-                (self.name, self.tvb_coupling_id, self.parameter, str(unique(self.scale).tolist()),
-                 str(list(self.target_nodes)), str(self.nodes))
+                (self.name, self.tvb_coupling_id, self.parameter, str(unique(self.scale).tolist()), str(self.nodes))
 
     @property
     def nodes(self):
