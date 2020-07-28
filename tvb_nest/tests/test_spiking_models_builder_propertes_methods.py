@@ -30,7 +30,7 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
     # We choose all defaults in this example
     simulator = Simulator()
     simulator.integrator.dt = dt
-    simulator.integrator.noise.nsig = np.array([noise_strength])
+    # simulator.integrator.noise.nsig = np.array([noise_strength])
     simulator.model = ReducedWongWangExcIOInhI()
 
     simulator.connectivity = connectivity
