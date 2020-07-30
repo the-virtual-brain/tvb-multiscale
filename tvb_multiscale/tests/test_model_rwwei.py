@@ -16,6 +16,7 @@ def reduced_wong_wang_exc_io_inh_i(N, abs_err, tvb_model, lamda):
     Sinh = 1.0 * np.random.uniform(size=(N, 1))
     state_matlab = np.array([Sexc, Sinh])
 
+    tvb_model.update_derived_parameters()
     if isinstance(tvb_model, ReducedWongWangExcIOInhI):
         Rexc = 1000.0 * np.random.uniform(size=(N, 1))
         Rinh = 1000.0 * np.random.uniform(size=(N, 1))
