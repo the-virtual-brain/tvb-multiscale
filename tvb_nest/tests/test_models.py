@@ -3,6 +3,7 @@ import os
 import gc
 from time import sleep
 
+import pytest
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -109,6 +110,7 @@ class TestIzhikevichRedWWexcIO(TestModel):
                                                        BasalGangliaIzhikevichBuilder, IzhikevichRedWWexcIOBuilder, {})
 
 
+@pytest.mark.skip(reason="These tests are taking too much time")
 def test_models():
     # TODO: find out why it fails if I run first the WilsonCowan tests and then the ReducedWongWang ones...
     for test_model_class in [TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO,
