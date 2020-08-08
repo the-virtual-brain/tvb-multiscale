@@ -22,7 +22,7 @@ from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=False,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=1100.0, transient=100.0, variables_of_interest=None,
+                 simulation_length=110.0, transient=10.0, variables_of_interest=None,
                  config=CONFIGURED, **model_params):
 
     plotter = Plotter(config)
