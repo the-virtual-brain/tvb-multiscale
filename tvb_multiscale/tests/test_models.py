@@ -3,6 +3,7 @@ import os
 import gc
 from time import sleep
 
+import pytest
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -113,6 +114,7 @@ class TestSpikingWongWangExcIOInhI(TestModel):
         super(TestSpikingWongWangExcIOInhI, self).__init__(SpikingWongWangExcIOInhI, model_params_sp)
 
 
+@pytest.mark.skip(reason="These tests are taking too much time")
 def test_models():
     for test_model_class in [TestWilsonCowan,
                              TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI,

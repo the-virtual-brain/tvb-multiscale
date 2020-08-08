@@ -540,7 +540,7 @@ def node_key_index_and_label(node, labels):
 
 
 def property_per_node(property, nodes, nodes_labels):
-    if hasattr(property, "__call__"):
+    if hasattr(property, "__call__") and nodes:
         property_per_node = OrderedDict()
         for node in nodes:
             node_key, node_index = node_key_index_and_label(node, nodes_labels)[:2]

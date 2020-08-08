@@ -137,7 +137,7 @@ class H5Writer(object):
                     else:
                         child_object = getattr(object, subgroup, None)
                     if child_object is not None:
-                        group.create_group(subgroup)
+                        group.require_group(subgroup)
                         temp = self._prepare_object_for_group(group[subgroup], child_object,
                                                               h5_type_attribute, nr_regions)
                         # If empty delete it
