@@ -146,7 +146,7 @@ RUN echo "source ${VENV}/bin/activate" >> .bashrc
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
-#ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014"
+#ARG MYMODULES_LIST="izhikevich_hamker iaf_cond_ww_deco"
 #ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
 #RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
