@@ -83,8 +83,8 @@ nest::izhikevich_hamker::Parameters_::Parameters_()
   , tau_rise_GABA_A_( 10.0 )                        // ms
   , I_e_( 0.0 )                                     // pA
   , V_th_( 30.0 )                                   // mV
-  , E_AMPA_( 0.0 )                                  // mV
-  , E_GABA_A_( -90.0 )                              // mV
+  , E_rev_AMPA_( 0.0 )                                  // mV
+  , E_rev_GABA_A_( -90.0 )                              // mV
   , V_min_( -std::numeric_limits< double >::max() ) // mV
   , consistent_integration_( true )
 {
@@ -115,8 +115,8 @@ nest::izhikevich_hamker::Parameters_::get( DictionaryDatum& d ) const
   def< double >( d, names::tau_rise_GABA_A, tau_rise_GABA_A_ );
   def< double >( d, names::I_e, I_e_ );
   def< double >( d, names::V_th, V_th_ ); // threshold value
-  def< double >( d, names::E_AMPA, E_AMPA_ );
-  def< double >( d, names::E_GABA_A, E_GABA_A_ );
+  def< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
+  def< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
   def< double >( d, names::V_min, V_min_ );
   def< double >( d, names::a, a_ );
   def< double >( d, names::b, b_ );
@@ -136,8 +136,8 @@ nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
   updateValue< double >( d, names::tau_rise_AMPA, tau_rise_AMPA_ );
   updateValue< double >( d, names::tau_rise_GABA_A, tau_rise_GABA_A_ );
   updateValue< double >( d, names::V_th, V_th_ );
-  updateValue< double >( d, names::E_AMPA, E_AMPA_ );
-  updateValue< double >( d, names::E_GABA_A, E_GABA_A_ );
+  updateValue< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
+  updateValue< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
   updateValue< double >( d, names::V_min, V_min_ );
   updateValue< double >( d, names::I_e, I_e_ );
   updateValue< double >( d, names::a, a_ );
@@ -268,9 +268,9 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
 
     // Compute synaptic currents (anyway, S_.v_ = v_old still at this point):
-    S_.I_syn_ex = - S_.g_AMPA_ * ( S_.v_ - P_.E_AMPA_ );
-    S_.I_syn_in = - S_.g_GABA_A_ * ( S_.v_ - P_.E_GABA_A_ );
-    S_.I_syn = S_.I_syn_ex + S_.I_syn_in  - S_.g_L_ * S_.v_;
+    S_.I_syn_ex_ = - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ );
+    S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
+    S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
 
     // neuron is never refractory
     // use standard forward Euler numerics in this case
@@ -282,7 +282,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
       // Integrate V_m and U_m using old values
       S_.v_ +=
-        h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old + S_.I_ + P_.I_e_ + S_.I_syn );
+        h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old + S_.I_ + P_.I_e_ + S_.I_syn_ );
       S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
     }
     // use numerics published in Izhikevich (2003) in this case (not
@@ -290,12 +290,12 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     else
     {
       // Integrate U_m, V_m using current values
-      S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_ + S_.I_syn );
+      S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
       // TODO: Confirm this:
       // For the integration of S_.v_ recompute the synaptic currents with the new value of S_.v_!!!
       S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_
-                           - S_.g_AMPA_ * ( S_.v_ - P_.E_AMPA_ )
-                           - S_.g_GABA_A_ * ( S_.v_ - P_.E_GABA_A_ )
+                           - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ )
+                           - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ )
                            - S_.g_L_ * S_.v_ );
       S_.u_ += h * P_.a_ * ( P_.b_ * S_.v_ - S_.u_ );
     }
@@ -331,7 +331,7 @@ nest::izhikevich_hamker::handle( SpikeEvent& e )
 
   const double weight = e.get_weight() * e.get_multiplicity();
 
-  if weight < 0.0 {
+  if ( weight < 0.0 ) {
     B_.spikes_inh_.add_value(
         e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), -weight );
   } else {
