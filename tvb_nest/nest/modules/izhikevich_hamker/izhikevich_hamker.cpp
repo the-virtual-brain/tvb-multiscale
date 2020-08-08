@@ -79,8 +79,8 @@ nest::izhikevich_hamker::Parameters_::Parameters_()
   , n1_( 5.0 )                                      // n1
   , n2_( 0.04 )                                     // n2
   , tau_rise_( 1.0 )                                // ms
-  , tau_rise_AMPA_( 10.0 )                           // ms
-  , tau_rise_GABA_A_( 10.0 )                         // ms
+  , tau_rise_AMPA_( 10.0 )                          // ms
+  , tau_rise_GABA_A_( 10.0 )                        // ms
   , I_e_( 0.0 )                                     // pA
   , V_th_( 30.0 )                                   // mV
   , E_AMPA_( 0.0 )                                  // mV
