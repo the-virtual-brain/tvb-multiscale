@@ -45,10 +45,10 @@ Implementation of the simple spiking neuron model introduced by Izhikevich
 [1] and modified in [2]. The default parameters' values follow the CortexI population of [3].
 The dynamics are given by:
   @f[
-  dv/dt = n2*v^2 + n1*v + n0 - u + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
+  dv/dt = n2*v^2 + n1*v + n0 - u + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
   du/dt = a*(b*v - u)]
-  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA
-  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A
+  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)
+  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)
   tau_rise*dg_L/dt = -tau_rise
   @f]
 
@@ -221,7 +221,7 @@ private:
     double u_;         // membrane recovery variable
     double g_L_;       // Membrane conductance
     double g_AMPA_;    // AMPA conductance
-    double g_GABA_;    // GABA conductance
+    double g_GABA_A_;    // GABA conductance
     double I_syn_ex_;  // total AMPA synaptic current
     double I_syn_in_;  // total GABA synaptic current
     double I_syn_;     // total synaptic current
@@ -299,29 +299,29 @@ private:
   {
     return S_.g_GABA_A_;
   }
-  //! Read out the Ι_syn_ex variable
+  //! Read out the Ι variable
   double
-  get_Ι_syn_ex_() const
+  get_I_syn_() const
   {
-    return S_.Ι_syn_ex_;
-  }
-  //! Read out the Ι_syn_in variable
-  double
-  get_Ι_syn_in_() const
-  {
-    return S_.Ι_syn_in_;
-  }
-  //! Read out the Ι_syn variable
-  double
-  get_Ι_syn_() const
-  {
-    return S_.Ι_syn_;
+    return S_.I_syn_;
   }
   //! Read out the Ι variable
   double
-  get_Ι_() const
+  get_I_syn_ex_() const
   {
-    return S_.Ι_;
+    return S_.I_syn_ex_;
+  }
+  //! Read out the Ι variable
+  double
+  get_I_syn_in_() const
+  {
+    return S_.I_syn_in_;
+  }
+  //! Read out the Ι variable
+  double
+  get_I_() const
+  {
+    return S_.I_;
   }
 
   // ----------------------------------------------------------------
