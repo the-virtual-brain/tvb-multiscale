@@ -45,8 +45,10 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Using all default parameters for this example
     nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
     nest_model_builder.population_order = nest_populations_order
+    populations = []
     populations_sizes = []
     for pop in nest_model_builder.populations:
+        populations.append(pop["label"])
         populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Common order of neurons' number per population:
     nest_network = nest_model_builder.build_spiking_network()
@@ -81,8 +83,10 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
-    plot_write_results(results, simulator, populations_sizes, transient, "State Variables",
-                       simulator.model.variables_of_interest, plotter, config)
+    plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
+                       transient=transient, tvb_state_variable_type_label="State Variables",
+                       tvb_state_variables_labels=simulator.model.variables_of_interest,
+                       plotter=plotter, config=config)
 
     return results, simulator
 
@@ -101,7 +105,7 @@ if __name__ == "__main__":
     model_params = {}
 
     main_example(tvb_model, BasalGangliaIzhikevichBuilder, BasalGangliaRedWWexcIOBuilder,
-                 nest_nodes_ids,  nest_populations_order=200,
+                 nest_nodes_ids,  nest_populations_order=20,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=10.0,

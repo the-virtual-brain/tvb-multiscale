@@ -95,7 +95,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     if plot_write:
         plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
                            transient=transient, tvb_state_variable_type_label="State Variables",
-                           tvb_state_variables_labels=simulator.model.variables_of_interest, plotter=plotter, config=config)
+                           tvb_state_variables_labels=simulator.model.variables_of_interest,
+                           plotter=plotter, config=config)
 
     return results, simulator
 
