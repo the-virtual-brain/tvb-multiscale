@@ -256,47 +256,58 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
   for ( long lag = from; lag < to; ++lag )
   {
-    //TODO: confirm that conductances' integration is identical for both integration methods!
-
-    // Add the spikes:
-    S_.g_AMPA_ += B_.spikes_exc_.get_value( lag );
-    S_.g_GABA_A_ += B_.spikes_inh_.get_value( lag );
-
-    // Integrate conductances:
-    S_.g_L_ -= h * S_.g_L_ / P_.tau_rise_;
-    S_.g_AMPA_ -= - h * S_.g_AMPA_ / P_.tau_rise_AMPA_;
-    S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
-
-    // Compute synaptic currents (anyway, S_.v_ = v_old still at this point):
-    S_.I_syn_ex_ = - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ );
-    S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
-    S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
+    //TODO: confirm the adjustment of the two integration methods!
 
     // neuron is never refractory
     // use standard forward Euler numerics in this case
     if ( P_.consistent_integration_ )
     {
-      // Use U_m, V_m, from previous time step
+
+      // Use U_m, V_m, from previous time step t:
       v_old = S_.v_;
       u_old = S_.u_;
 
-      // Integrate V_m and U_m using old values
+      // Integrate V_m and U_m using old values at time t
       S_.v_ +=
         h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old + S_.I_ + P_.I_e_ + S_.I_syn_ );
       S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
+
+      // Add the spikes:
+      S_.g_AMPA_ += B_.spikes_exc_.get_value( lag );
+      S_.g_GABA_A_ += B_.spikes_inh_.get_value( lag );
+
+      // Integrate conductances using values at time t + spikes at time t:
+      S_.g_L_ -= h * S_.g_L_ / P_.tau_rise_;
+      S_.g_AMPA_ -= - h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
+      S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
+
+      // Compute synaptic currents at time step t+1:
+      S_.I_syn_ex_ = - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ );
+      S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
+      S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
+
     }
     // use numerics published in Izhikevich (2003) in this case (not
     // recommended)
     else
     {
-      // Integrate U_m, V_m using current values
+      // Add the spikes:
+      S_.g_AMPA_ += B_.spikes_exc_.get_value( lag );
+      S_.g_GABA_A_ += B_.spikes_inh_.get_value( lag );
+
+      // Integrate conductances using values at time t + spikes at time t:
+      S_.g_L_ -= h * S_.g_L_ / P_.tau_rise_;
+      S_.g_AMPA_ -= - h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
+      S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
+
+      // Compute synaptic currents at time step t+1:
+      S_.I_syn_ex_ = - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ );
+      S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
+      S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
+
+      // Integrate U_m, V_m using new values (t+1)
       S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
-      // TODO: Confirm this:
-      // For the integration of S_.v_ recompute the synaptic currents with the new value of S_.v_!!!
-      S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_
-                           - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ )
-                           - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ )
-                           - S_.g_L_ * S_.v_ );
+      S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
       S_.u_ += h * P_.a_ * ( P_.b_ * S_.v_ - S_.u_ );
     }
 
