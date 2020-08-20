@@ -35,13 +35,13 @@ class TestModel(object):
     nest_nodes_ids = []
     nest_model_builder = None
     interface_model_builder = None
-    nest_populations_order = 100
+    nest_populations_order = 10
     tvb_to_nest_mode = "rate"
     nest_to_tvb = True
     exclusive_nodes = True
     delays_flag = True
-    simulation_length = 110.0
-    transient = 10.0
+    simulation_length = 60.0
+    transient = 5.0
 
     def __init__(self, model, nest_nodes_ids, nest_model_builder, interface_model_builder, model_params={}):
         self.model = model
