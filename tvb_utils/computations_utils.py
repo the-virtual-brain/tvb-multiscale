@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 import numpy as np
 from pandas import MultiIndex, Series
 from scipy import signal
@@ -9,6 +10,18 @@ from xarray import DataArray
 
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion
 from tvb.contrib.scripts.service.time_series_service import TimeSeriesService
+from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays, flatten_list
+
+
+def Pearson(x):
+    return np.corrcoef(x.T)
+
+
+def Spearman(x):
+    return spearmanr(x)[0]
+
+
+# ---------------------------------------TVB spikes time series tools---------------------------------------------------
 
 
 def mean_fields_generator(source_ts, populations, pop_sizes):
@@ -118,14 +131,6 @@ def tvb_spike_rates_from_mean_field_rates(mean_field):
     return rate
 
 
-def Pearson(x):
-    return np.corrcoef(x.T)
-
-
-def Spearman(x):
-    return spearmanr(x)[0]
-
-
 def tvb_TimeSeries_correlation(ts, corrfun=Pearson, force_dims=4):
     data = ts._data # Get the DataArray of TimeSeries
     if data.shape[-1] == 1:  # Get rid of the 4th dimension if it is only 1
@@ -170,28 +175,184 @@ def compute_tvb_spike_rate_corrs(tvb_rates_ts, transient=0.0):
             "Spearman": tvb_TimeSeries_correlation(tvb_rates_ts_steady_state, corrfun=Spearman, force_dims=4)}
 
 
-def get_event_spike_rates_corrs(spikes, populations_sizes, connectivity,
-                                time=None, monitor_period=0.1, transient=0.0):
-    from pandas import MultiIndex
-    from elephant.statistics import time_histogram, instantaneous_rate, mean_firing_rate
-    from elephant.conversion import BinnedSpikeTrain
-    from elephant import spike_train_correlation, kernels
+# --------------------------------------------Event spikes tools--------------------------------------------------------
+
+
+def compute_time_from_spike_times(spikes, monitor_period):
+    t_start = np.inf
+    t_stop = -np.inf
+    for i_pop, (pop_label, pop_spikes) in enumerate(spikes.iteritems()):
+        for reg_label, reg_spikes in pop_spikes.iteritems():
+            temp = np.min(reg_spikes["times"]).item()
+            if temp < t_start:
+                t_start = temp
+            temp = np.max(reg_spikes["times"]).item()
+            if temp > t_stop:
+                t_stop = temp
+    return np.arange(t_start, t_stop + monitor_period, monitor_period), t_start, t_stop
+
+
+def compute_event_spike_rates(spikes, populations_size,
+                              t_start_ms, t_stop_ms, computation_t_start, dt_ms):
+    from quantities import ms
     from neo.core import SpikeTrain
+    from elephant.statistics import time_histogram, instantaneous_rate, mean_firing_rate
+    from elephant import kernels
+    # Convert spikes' times to a SpikeTrain
+    spike_train = SpikeTrain(spikes["times"] * ms, t_start=t_start_ms, t_stop=t_stop_ms)
+    # Compute mean firing rate
+    rate = float(mean_firing_rate(spike_train, t_start=computation_t_start, t_stop=t_stop_ms)) / populations_size
+    try:
+        # Try to use the default elephant kernel
+        rate_ts = np.array(
+                    instantaneous_rate(spike_train, sampling_period=dt_ms, t_start=t_start_ms, t_stop=t_stop_ms)) \
+                  / populations_size
+    except:
+        # Set a safe sigma for the Gaussian kernel:
+        sigma = np.minimum(1000.0, np.maximum(np.array(t_stop_ms - computation_t_start), 10)) * ms
+        kernel = kernels.GaussianKernel(sigma=sigma)
+        rate_ts = np.array(
+                    instantaneous_rate(spike_train, kernel=kernel,
+                                       sampling_period=dt_ms, t_start=t_start_ms, t_stop=t_stop_ms)) \
+                  / populations_size
+    spike_ts = np.array(time_histogram([spike_train], binsize=dt_ms,
+                                       t_start=computation_t_start, t_stop=t_stop_ms)).squeeze()
+    return spike_ts, spike_train, rate, rate_ts
+
+
+def regions_spike_rate_generator(population_spikes, pop_label, populations_size,
+                                 t_start_ms, t_stop_ms, computation_t_start, dt_ms):
+    for reg_label, reg_spikes in population_spikes.iteritems():
+        spike_ts, spike_train, rate, rate_ts = compute_event_spike_rates(reg_spikes, populations_size,
+                                                                         t_start_ms, t_stop_ms,
+                                                                         computation_t_start, dt_ms)
+        yield reg_label, (pop_label, reg_label), spike_ts, spike_train, rate, rate_ts
+
+
+def populations_spike_rate_generator(spikes, populations_sizes,
+                                     t_start_ms, t_stop_ms, computation_t_start, dt_ms):
+    for i_pop, (pop_label, pop_spikes) in enumerate(spikes.iteritems()):
+        reg_labels = []
+        pop_reg_labels = []
+        pop_spikes_ts = []
+        pop_spikes_trains = []
+        pop_rates = []
+        pop_rates_ts = []
+        for reg_label, pop_reg_label, reg_spikes_ts, reg_spikes_trains, reg_rates, reg_rates_ts \
+                in regions_spike_rate_generator(pop_spikes, pop_label, populations_sizes[i_pop],
+                                                t_start_ms, t_stop_ms, computation_t_start, dt_ms):
+            reg_labels.append(reg_label)
+            pop_reg_labels.append(pop_reg_label)
+            pop_spikes_ts.append(reg_spikes_ts)
+            pop_spikes_trains.append(reg_spikes_trains)
+            pop_rates.append(reg_rates)
+            pop_rates_ts.append(reg_rates_ts)
+        pop_rates = DataArray(data=np.array(pop_rates) * 1000,  # convert to sec from ms
+                              dims=["Region"], coords={"Region": reg_labels})
+        pop_rates_ts = DataArray(data=np.moveaxis(np.array(pop_rates_ts), 0, 1),
+                                 dims=["Time", "Region", "Neurons"], coords={"Region": reg_labels})
+        yield pop_label, pop_reg_labels, pop_spikes_ts, pop_spikes_trains, pop_rates, pop_rates_ts
+
+
+def compute_populations_spikes_rates(spikes, populations_sizes, time, dt, connectivity,
+                                     t_start_ms, t_stop_ms, computation_t_start, dt_ms):
+    pop_labels = []
+    pop_reg_labels = []
+    spikes_ts = []
+    spikes_trains = []
+    rates = Series()
+    rates_ts = Series()
+    for pop_label, i_pop_reg_labels, pop_spikes_ts, pop_spikes_trains, pop_rates, pop_rates_ts \
+            in populations_spike_rate_generator(spikes, populations_sizes,
+                                                t_start_ms, t_stop_ms, computation_t_start, dt_ms):
+        pop_labels.append(pop_label)
+        pop_reg_labels += i_pop_reg_labels
+        spikes_ts += pop_spikes_ts
+        spikes_trains += pop_spikes_trains
+        rates[pop_label] = pop_rates
+        rates_ts[pop_label] = pop_rates_ts
+
+    # Concatenate (potentially heterogeneous) DataArrays of mean firing rates for each population:
+    # converting to spikes/sec from spikes/ms:
+    rates = concatenate_heterogeneous_DataArrays(rates, "Population",
+                                                 name="Mean population spiking rates",
+                                                 fill_value=np.nan, transpose_dims=["Population", "Region"])
+
+    # This is the total vector of regions' labels:
+    all_regions_lbls = [lb.values.item() for lb in dict(rates.coords)["Region"]]
+
+    # Concatenate (potentially heterogeneous) DataArrays of windowed mean firing rates' time series for each population:
+    rates_ts = concatenate_heterogeneous_DataArrays(rates_ts, "Population",
+                                                    name="Mean population spiking rates time series", fill_value=np.nan,
+                                                    transpose_dims=["Time", "Population", "Region", "Neurons"])
+    # ...and put them to a TimeSeries object:
+    rates_ts = TimeSeriesRegion(rates_ts,  # This is already in spikes/sec
+                                time=time, connectivity=connectivity,
+                                labels_ordering=["Time", "Population", "Region", "Neurons"],
+                                labels_dimensions={"Population": pop_labels, "Region": all_regions_lbls},
+                                sample_period=dt, title="Mean population spiking rates time series")
+
+    return rates, rates_ts, spikes_ts, spikes_trains, pop_labels, all_regions_lbls, pop_reg_labels
+
+
+def compute_event_spike_corrs(spikes_ts, spikes_trains, dt_ms, computation_t_start, t_stop_ms,
+                              pop_labels, all_regions_lbls, pop_reg_labels,
+                              dims=["Population", "Region"]):
+    from elephant.conversion import BinnedSpikeTrain
+    from elephant import spike_train_correlation
+
+    def new_cross_dims_coors(dims, pop_labels, all_regions_lbls):
+        from pandas import MultiIndex
+        stacked_dims = "-".join(dims)
+        names = []
+        new_dims = []
+        for d in ["i", "j"]:
+            names.append([dim + "_" + d for dim in dims])
+            new_dims.append(stacked_dims + "_" + d)
+        new_coords = {new_dims[0]: MultiIndex.from_product([pop_labels, all_regions_lbls], names=names[0]),
+                      new_dims[1]: MultiIndex.from_product([pop_labels, all_regions_lbls], names=names[1])}
+        return new_dims, new_coords
+
+    # Convert spike_train to a binned one for further use for correlations
+    spikes_trains = BinnedSpikeTrain(spikes_trains, binsize=dt_ms, t_start=computation_t_start, t_stop=t_stop_ms)
+
+    corrs = {}
+    # Compute correlations of spike trains
+    corrs["spike_train"] = spike_train_correlation.corrcoef(spikes_trains)
+    del spikes_trains  # Free memory...
+    # Compute correlations of spike time series
+    spike_ts = np.array(spikes_ts).T
+    corrs["Pearson"] = Pearson(spike_ts)
+    corrs["Spearman"] = Spearman(spike_ts)
+    del spike_ts  # Free memory...
+    # Store all correlations together:
+    new_dims, new_coords = new_cross_dims_coors(dims, pop_labels, all_regions_lbls)
+    n_cross_dims = len(pop_labels) * len(all_regions_lbls)
+    for corr, corr_name in zip(["spike_train", "Pearson", "Spearman"],
+                               ["train", "Pearson", "Spearman"]):
+        temp = DataArray(np.nan * np.ones((n_cross_dims, n_cross_dims)),
+                         name="Mean population spike %s correlation" % corr_name,
+                         dims=new_dims, coords=new_coords)
+        temp.loc[pop_reg_labels, pop_reg_labels] = corrs[corr]
+        corrs[corr] = temp
+        corrs[corr] = corrs[corr].unstack(new_dims)
+        temp_dims = list(corrs[corr].dims)
+        # Put variables in front of regions:
+        corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))
+
+    return corrs
+
+
+def compute_event_spike_rates_corrs(spikes, populations_sizes, connectivity,
+                                    time=None, monitor_period=0.1, transient=0.0):
     from quantities import ms
 
+    # Configure time vector
     if time is not None:
         t_start = time[0]
         t_stop = time[-1]
     else:
-        t_start = []
-        t_stop = []
-        for i_pop, (pop_label, pop_spikes) in enumerate(spikes.iteritems()):
-            for reg_label, reg_spikes in pop_spikes.iteritems():
-                t_start.append(np.min(reg_spikes["times"]).item())
-                t_stop.append(np.max(reg_spikes["times"]).item())
-        t_start = np.min(t_start)
-        t_stop = np.max(t_stop)
-        time = np.arange(t_start, t_stop + monitor_period, monitor_period)
+        time, t_start, t_stop = compute_time_from_spike_times(spikes, monitor_period)
     dt = np.diff(time).mean()
     t_start_ms = t_start * ms
     t_stop_ms = (t_stop + dt) * ms
@@ -200,74 +361,15 @@ def get_event_spike_rates_corrs(spikes, populations_sizes, connectivity,
         computation_t_start = transient * ms
     else:
         computation_t_start = t_start * ms
-    corrs = {}
-    rates_ts = []
-    rates = []
-    spike_ts = []
-    spike_trains = []
-    pop_labels = []
-    for i_pop, (pop_label, pop_spikes) in enumerate(spikes.iteritems()):
-        pop_labels.append(pop_label)
-        rates_ts.append([])
-        rates.append([])
-        reg_labels = []
-        for reg_label, reg_spikes in pop_spikes.iteritems():
-            reg_labels.append(reg_label)
-            # rates (spikes/sec) =
-            #   total_number_of_spikes (int) / total_time_duration (sec) / total_number_of_neurons_in_pop (int)
-            these_spikes = [spike for spike in reg_spikes["times"] if spike >= t_start and spike <= t_stop]
-            spike_trains.append(SpikeTrain(these_spikes * ms, t_start=t_start_ms, t_stop=t_stop_ms))
-            spike_ts.append(np.array(time_histogram([spike_trains[-1]], binsize=dt_ms,
-                                                    t_start=computation_t_start, t_stop=t_stop_ms)).squeeze())
-            rates[-1].append(float(mean_firing_rate(spike_trains[-1],
-                                                    t_start=computation_t_start, t_stop=t_stop_ms))
-                             / populations_sizes[i_pop])
-            try:
-                rates_ts[-1].append(np.array(instantaneous_rate(spike_trains[-1], sampling_period=dt_ms,
-                                                                t_start=t_start_ms, t_stop=t_stop_ms))
-                                 / populations_sizes[i_pop])
-            except:
-                sigma = np.minimum(1000.0, np.maximum(np.array(t_stop_ms - computation_t_start), 10))*ms
-                kernel = kernels.GaussianKernel(sigma=sigma)
-                rates_ts[-1].append(np.array(instantaneous_rate(spike_trains[-1], sampling_period=dt_ms,
-                                                                t_start=t_start_ms, t_stop=t_stop_ms, kernel=kernel))
-                                    / populations_sizes[i_pop])
-    del these_spikes
-    del spikes  # Free memory...
-    binned_spikes = BinnedSpikeTrain(spike_trains, binsize=dt_ms,
-                                     t_start=computation_t_start, t_stop=t_stop_ms)
-    del spike_trains  # Free memory...
-    corrs["spike_train"] = spike_train_correlation.corrcoef(binned_spikes)
-    del binned_spikes  # Free memory...
-    spike_ts = np.array(spike_ts).T
-    corrs["Pearson"] = Pearson(spike_ts)
-    corrs["Spearman"] = Spearman(spike_ts)
-    del spike_ts  # Free memory...
-    # converting to spikes/sec from spikes/ms:
-    rates = DataArray(1000 * np.array(rates), name="Mean population spiking rates",
-                      dims=["Population", "Region"],
-                      coords={"Population": pop_labels, "Region": reg_labels})
-    rates_ts = TimeSeriesRegion(np.moveaxis(np.array(rates_ts), 2, 0),  # This is already in spikes/sec
-                                time=time, connectivity=connectivity,
-                                labels_ordering=["Time", "Population", "Region", "Neurons"],
-                                labels_dimensions={"Population": pop_labels, "Region": reg_labels},
-                                sample_period=dt, title="Mean population spiking rates time series")
-    dims = list(rates.dims)
-    stacked_dims = "-".join(dims)
-    names = []
-    new_dims = []
-    for d in ["i", "j"]:
-        names.append([dim + "_" + d for dim in dims])
-        new_dims.append(stacked_dims + "_" + d)
-    for corr, corr_name in zip(["spike_train", "Pearson", "Spearman"],
-                               ["train", "Pearson", "Spearman"]):
-        corrs[corr] = DataArray(corrs[corr], name="Mean population spike %s correlation" % corr_name, dims=new_dims,
-                                coords={new_dims[0]:
-                                            MultiIndex.from_product([pop_labels, reg_labels], names=names[0]),
-                                        new_dims[1]:
-                                            MultiIndex.from_product([pop_labels, reg_labels], names=names[1])})
-        corrs[corr] = corrs[corr].unstack(new_dims)
-        temp_dims = list(corrs[corr].dims)
-        # Put variables in front of regions:
-        corrs[corr] = corrs[corr].transpose(*tuple(temp_dims[0::2] + temp_dims[1::2]))
+
+    # Loop for populations and regions to construct spike trains and compute rates:
+    rates, rates_ts, spikes_ts, spikes_trains, pop_labels, all_regions_lbls, pop_reg_labels = \
+        compute_populations_spikes_rates(spikes, populations_sizes, time, dt, connectivity,
+                                         t_start_ms, t_stop_ms, computation_t_start, dt_ms)
+
+    corrs = compute_event_spike_corrs(spikes_ts, spikes_trains, dt_ms, computation_t_start, t_stop_ms,
+                                      pop_labels, all_regions_lbls, pop_reg_labels,
+                                      dims=list(rates.dims))
+    del spikes_trains, spikes_ts  # Free memory
+
     return rates, rates_ts, corrs
