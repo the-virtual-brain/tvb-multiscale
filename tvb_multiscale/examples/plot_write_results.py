@@ -9,7 +9,7 @@ from tvb.basic.profile import TvbProfile
 
 from tvb_utils.computations_utils import \
     tvb_mean_field_per_population, tvb_spikes_per_population, tvb_spike_rates_from_TVB_spike_ts, \
-    tvb_spike_rates_from_mean_field_rates, get_event_spike_rates_corrs, compute_tvb_spike_rate_corrs
+    tvb_spike_rates_from_mean_field_rates, compute_event_spike_rates_corrs, compute_tvb_spike_rate_corrs
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -145,9 +145,9 @@ def plot_write_results(results, simulator, populations=["E", "I"], populations_s
     plotter.plot_spike_events(nest_spikes)
 
     # Spikes' rates
-    rates, rates_ts, corrs = get_event_spike_rates_corrs(nest_spikes, populations_sizes, simulator.connectivity,
-                                                         time=t_with_transient, transient=transient,
-                                                         monitor_period=simulator.monitors[0].period)
+    rates, rates_ts, corrs = compute_event_spike_rates_corrs(nest_spikes, populations_sizes, simulator.connectivity,
+                                                             time=t_with_transient, transient=transient,
+                                                             monitor_period=simulator.monitors[0].period)
     print(rates)
 
     # An alternative plot of rates per neuron and time wise:
@@ -160,7 +160,8 @@ def plot_write_results(results, simulator, populations=["E", "I"], populations_s
     if not isinstance(rates_ts_per_neuron, DataArray):
         # assuming a pandas Series due to heterogeneity of populations in among brain regions:
         rates_ts_per_neuron = concatenate_heterogeneous_DataArrays(rates_ts_per_neuron, "Population",
-                                                                   dims=["Time", "Population", "Region", "Neuron"])
+                                                                   transpose_dims=["Time", "Population",
+                                                                                   "Region", "Neuron"])
 
     if rates_ts_per_neuron.size > 0:
         rates_ts_per_neuron.plot(x=rates_ts_per_neuron.dims[0], y=rates_ts_per_neuron.dims[3],
@@ -172,7 +173,8 @@ def plot_write_results(results, simulator, populations=["E", "I"], populations_s
     if not isinstance(nest_ts, DataArray):
         # assuming a pandas Series due to heterogeneity of populations in among brain regions:
         nest_ts = concatenate_heterogeneous_DataArrays(nest_ts, "Population",
-                                                       dims=["Time", "Variable", "Region", "Population", "Neuron"])
+                                                       transpose_dims=["Time", "Variable",
+                                                                       "Region", "Population", "Neuron"])
     if nest_ts.size > 0:
         nest_ts = TimeSeriesXarray(nest_ts, connectivity=simulator.connectivity)
         if transient:
