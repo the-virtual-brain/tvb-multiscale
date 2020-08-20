@@ -213,7 +213,8 @@ class TVBSpikeNetInterface(object):
 
     def _construct_output_data(self, data, default_name, dims, connectivity=None):
         if not isinstance(data, DataArray):
-            data = concatenate_heterogeneous_DataArrays(data, "Population", default_name, fill_value=np.nan, dims=dims)
+            data = concatenate_heterogeneous_DataArrays(data, "Population",
+                                                        name=default_name, fill_value=np.nan, transpose_dims=dims)
         if connectivity is None:
             time_series = TimeSeries()
         else:
