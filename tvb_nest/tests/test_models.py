@@ -40,7 +40,7 @@ class TestModel(object):
     nest_to_tvb = True
     exclusive_nodes = True
     delays_flag = True
-    simulation_length = 60.0
+    simulation_length = 55.0
     transient = 5.0
 
     def __init__(self, model, nest_nodes_ids, nest_model_builder, interface_model_builder, model_params={}):
