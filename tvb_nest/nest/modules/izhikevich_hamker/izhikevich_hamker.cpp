@@ -81,11 +81,12 @@ nest::izhikevich_hamker::Parameters_::Parameters_()
   , tau_rise_( 1.0 )                                // ms
   , tau_rise_AMPA_( 10.0 )                          // ms
   , tau_rise_GABA_A_( 10.0 )                        // ms
-  , I_e_( 0.0 )                                     // pA
   , V_th_( 30.0 )                                   // mV
-  , E_rev_AMPA_( 0.0 )                                  // mV
-  , E_rev_GABA_A_( -90.0 )                              // mV
+  , E_rev_AMPA_( 0.0 )                              // mV
+  , E_rev_GABA_A_( -90.0 )                          // mV
   , V_min_( -std::numeric_limits< double >::max() ) // mV
+  , I_e_( 0.0 )                                     // pA
+  , C_m_( 1.0 )                                     // real
   , consistent_integration_( true )
 {
 }
@@ -114,6 +115,7 @@ nest::izhikevich_hamker::Parameters_::get( DictionaryDatum& d ) const
   def< double >( d, names::tau_rise_AMPA, tau_rise_AMPA_ );
   def< double >( d, names::tau_rise_GABA_A, tau_rise_GABA_A_ );
   def< double >( d, names::I_e, I_e_ );
+  def< double >( d, names::C_m, C_m_ );
   def< double >( d, names::V_th, V_th_ ); // threshold value
   def< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
   def< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
@@ -135,11 +137,12 @@ nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
   updateValue< double >( d, names::tau_rise, tau_rise_ );
   updateValue< double >( d, names::tau_rise_AMPA, tau_rise_AMPA_ );
   updateValue< double >( d, names::tau_rise_GABA_A, tau_rise_GABA_A_ );
+  updateValue< double >( d, names::I_e, I_e_ );
+  updateValue< double >( d, names::C_m, C_m_ );
   updateValue< double >( d, names::V_th, V_th_ );
   updateValue< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
   updateValue< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
   updateValue< double >( d, names::V_min, V_min_ );
-  updateValue< double >( d, names::I_e, I_e_ );
   updateValue< double >( d, names::a, a_ );
   updateValue< double >( d, names::b, b_ );
   updateValue< double >( d, names::c, c_ );
@@ -152,6 +155,22 @@ nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
   if ( not consistent_integration_ && h != 1.0 )
   {
     LOG( M_INFO, "Parameters_::set", "Use 1.0 ms as resolution for consistency." );
+  }
+  if ( tau_rise_ <= 0.0 )
+  {
+    throw BadProperty( "tau_rise has to be positive!" );
+  }
+  if ( tau_rise_AMPA_ <= 0.0 )
+  {
+    throw BadProperty( "tau_rise_AMPA has to be positive!" );
+  }
+  if ( tau_rise_GABA_A_ <= 0.0 )
+  {
+    throw BadProperty( "tau_rise_GABA_A has to be positive!" );
+  }
+  if ( C_m_ <= 0.0 )
+  {
+    throw BadProperty( "C_m has to be positive!" );
   }
 }
 
@@ -181,6 +200,18 @@ nest::izhikevich_hamker::State_::set( const DictionaryDatum& d, const Parameters
   updateValue< double >( d, names::I_syn_in, I_syn_in_ );
   updateValue< double >( d, names::I_syn, I_syn_ );
   updateValue< double >( d, names::I, I_ );
+  if ( g_L_ < 0.0 )
+  {
+    throw BadProperty( "g_L has to be positive!" );
+  }
+  if ( g_AMPA_ < 0.0 )
+  {
+    throw BadProperty( "g_AMPA has to be positive!" );
+  }
+  if ( g_GABA_A_ < 0.0 )
+  {
+    throw BadProperty( "g_GABA_A has to be positive!" );
+  }
 }
 
 nest::izhikevich_hamker::Buffers_::Buffers_( izhikevich_hamker& n )
@@ -269,7 +300,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
       // Integrate V_m and U_m using old values at time t
       S_.v_ +=
-        h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old + S_.I_ + P_.I_e_ + S_.I_syn_ );
+        h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old / P_.C_m_+ S_.I_ + P_.I_e_ + S_.I_syn_ );
       S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
 
       // Add the spikes:
@@ -280,6 +311,11 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       S_.g_L_ -= h * S_.g_L_ / P_.tau_rise_;
       S_.g_AMPA_ -= - h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
       S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
+
+      // lower bound of conductances
+      S_.g_L_ = ( S_.g_L_ < 0.0 ? 0.0 : S_.g_L_ );
+      S_.g_AMPA_ = ( S_.g_AMPA_ < 0.0 ? 0.0 : S_.g_AMPA_ );
+      S_.g_GABA_A_ = ( S_.g_GABA_A_ < 0.0 ? 0.0 : S_.g_GABA_A_ );
 
       // Compute synaptic currents at time step t+1:
       S_.I_syn_ex_ = - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ );
@@ -300,14 +336,21 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       S_.g_AMPA_ -= - h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
       S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
 
+      // lower bound of conductances
+      S_.g_L_ = ( S_.g_L_ < 0.0 ? 0.0 : S_.g_L_ );
+      S_.g_AMPA_ = ( S_.g_AMPA_ < 0.0 ? 0.0 : S_.g_AMPA_ );
+      S_.g_GABA_A_ = ( S_.g_GABA_A_ < 0.0 ? 0.0 : S_.g_GABA_A_ );
+
       // Compute synaptic currents at time step t+1:
       S_.I_syn_ex_ = - S_.g_AMPA_ * ( S_.v_ - P_.E_rev_AMPA_ );
       S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
       S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
 
       // Integrate U_m, V_m using new values (t+1)
-      S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
-      S_.v_ += h * 0.5 * ( P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
+      S_.v_ += h * 0.5 * (
+                     P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
+      S_.v_ += h * 0.5 * (
+                     P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
       S_.u_ += h * P_.a_ * ( P_.b_ * S_.v_ - S_.u_ );
     }
 
