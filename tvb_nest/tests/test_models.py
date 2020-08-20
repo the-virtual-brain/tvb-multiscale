@@ -112,15 +112,25 @@ class TestIzhikevichRedWWexcIO(TestModel):
 
 @pytest.mark.skip(reason="These tests are taking too much time")
 def test_models():
+    import numpy as np
+    from collections import OrderedDict
     # TODO: find out why it fails if I run first the WilsonCowan tests and then the ReducedWongWang ones...
+    success = OrderedDict()
     for test_model_class in [TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO,
                              TestWilsonCowan, TestWilsonCowanMultisynapse,
                              TestIzhikevichRedWWexcIO]:
         test_model = test_model_class()
-        print(test_model.run())
+        try:
+            print(test_model.run())
+            success[test_model_class.__name__] = True
+        except Exception as e:
+            success[test_model_class.__name__] = e
         del test_model
         gc.collect()
         sleep(5)
+    if not np.all([result is True for result in list(success.values())]):
+        print(success)
+        raise Exception("Test models failed! Details: \n %s" % str(success))
 
 
 if __name__ == "__main__":
