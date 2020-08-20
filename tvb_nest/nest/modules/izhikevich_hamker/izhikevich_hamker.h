@@ -45,7 +45,7 @@ Implementation of the simple spiking neuron model introduced by Izhikevich
 [1] and modified in [2]. The default parameters' values follow the CortexI population of [3].
 The dynamics are given by:
   @f[
-  dv/dt = n2*v^2 + n1*v + n0 - u + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
+  dv/dt = n2*v^2 + n1*v + n0 - u/C_m + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
   du/dt = a*(b*v - u)]
   tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)
   tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)
@@ -90,8 +90,9 @@ The following parameters can be set in the status dictionary.
  V_th                   mV       Spike threshold
  E_rev_AMPA             mV       AMPA reversal potential
  E_rev_GABA_A           mV       GABA reversal potential
- I_e                    pA       Constant input current (R=1)
  V_min                  mV       Absolute lower value for the membrane potential
+ C_m                    real     Membrane capacitance
+ I_e                    pA       Constant input current (R=1)
  tau_rise               ms       Time constant of baseline conductance
  tau_rise_AMPA          ms       Time constant of AMPA synapse
  tau_rise_GABA_A        ms       Time constant of GABA synapse
@@ -190,9 +191,6 @@ private:
     double tau_rise_AMPA_;
     double tau_rise_GABA_A_;
 
-    /** External DC current */
-    double I_e_;
-
     /** Threshold */
     double V_th_;
     double E_rev_AMPA_;
@@ -200,6 +198,12 @@ private:
 
     /** Lower bound */
     double V_min_;
+
+    /** External DC current */
+    double I_e_;
+
+    /** External DC current */
+    double C_m_;
 
     /** Use standard integration numerics **/
     bool consistent_integration_;

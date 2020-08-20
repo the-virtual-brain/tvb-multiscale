@@ -20,16 +20,15 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.population_order = 200
 
         self.params_common = {"tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
-                              "E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0}
+                              "E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "C_m": 1.0, "c": -65.0}
         self._paramsI = deepcopy(self.params_common)
-        self._paramsI.update({"a": 0.005, "b": 0.585, "c": -65.0, "d": 4.0,
+        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04})
         self._paramsE = deepcopy(self.params_common)
-        self._paramsE.update({"c": -65.0,
-                              "n0": 140.0, "n1": 5.0, "n2": 0.04})
+        self._paramsE.update({"n0": 140.0, "n1": 5.0, "n2": 0.04})
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
-                               "n0": 61.65, "n1": 2.59, "n2": 0.02})
+                               "n0": 61.65, "n1": 2.59, "n2": 0.02, "C_m": 50.0})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
