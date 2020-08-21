@@ -20,12 +20,12 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.population_order = 200
 
         self.params_common = {"tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
-                              "E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "C_m": 1.0, "c": -65.0}
+                              "E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
+                              "C_m": 1.0, "I_e": 0.0,
+                              "n0": 140.0, "n1": 5.0, "n2": 0.04}
         self._paramsI = deepcopy(self.params_common)
-        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0,
-                              "n0": 140.0, "n1": 5.0, "n2": 0.04})
+        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
         self._paramsE = deepcopy(self.params_common)
-        self._paramsE.update({"n0": 140.0, "n1": 5.0, "n2": 0.04})
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
                                "n0": 61.65, "n1": 2.59, "n2": 0.02, "C_m": 50.0})
@@ -36,12 +36,16 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.Eth_nodes_ids = [8, 9]
         self.Istr_nodes_ids = [6, 7]
 
+        self.Estn_stim = {"rate": 500.0, "weight": 0.009}
+        self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
+        self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
+
         self.populations = [
-            {"label": "I", "model": self.default_population["model"],  # Igpe in [0, 1], Igpi in [2, 3]
-             "params": self.paramsI, "nodes": self.Igpe_nodes_ids + self.Igpi_nodes_ids,  # None means "all"
-             "scale": 1.0},
             {"label": "E", "model": self.default_population["model"],  # Estn in [4, 5], Eth in [8, 9]
              "params": self.paramsE, "nodes": self.Estn_nodes_ids + self.Eth_nodes_ids,  # None means "all"
+             "scale": 1.0},
+            {"label": "I", "model": self.default_population["model"],  # Igpe in [0, 1], Igpi in [2, 3]
+             "params": self.paramsI, "nodes": self.Igpe_nodes_ids + self.Igpi_nodes_ids,  # None means "all"
              "scale": 1.0},
             {"label": "I1", "model": self.default_population["model"],  # Isd1 in [6, 7]
              "params": self.paramsStr, "nodes": self.Istr_nodes_ids,  # None means "all"
@@ -104,23 +108,38 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                 {"model": "spike_detector", "params": {},
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
-        # Labels have to be different
-        params = {"withtime": True, "withgid": True, 'record_from': ["V_m"], "interval": 1.0}
+        # Labels have to be different for every connection to every distinct population
+        params = {"withtime": True, "withgid": True, "interval": 1.0,
+                  'record_from': ["V_m", "U_m", "I_syn", "I_syn_ex", "I_syn_in", "g_L", "g_AMPA", "g_GABA_A"]}
         for pop in self.populations:
             connections = OrderedDict({})
-            for var in ["V_m", "U_m", "I_syn", "I_syn_ex", "I_syn_in", "g_L", "g_AMPA", "g_GABA_A"]:
-                #                      label            <- target population
-                connections[pop["label"] + '_%s' % var] = pop["label"]
+            #               label    <- target population
+            connections[pop["label"]] = pop["label"]
             self.output_devices.append(
                 {"model": "multimeter", "params": params,
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
 
         # Create a spike stimulus input device
         self.input_devices = [
+            {"model": "poisson_generator",
+             "params": {"rate": self.Estn_stim["rate"], "origin": 0.0, "start": 0.1},
+             "connections": {"BaselineEstn": ["E"]},  # "Estn"
+             "nodes": self.Estn_nodes_ids,  # None means apply to all
+             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type":1},
+            {"model": "poisson_generator",
+             "params": {"rate": self.Igpe_stim["rate"], "origin": 0.0, "start": 0.1},
+             "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
+             "nodes": self.Igpe_nodes_ids,  # None means apply to all
+             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type":1},
+            {"model": "poisson_generator",
+             "params": {"rate": self.Igpi_stim["rate"], "origin": 0.0, "start": 0.1},
+             "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
+             "nodes": self.Igpi_nodes_ids,  # None means apply to all
+             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type":1},
             {"model": "ac_generator",
              "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0,
                         "start": 1.0},  # "stop": 100.0  "origin": 0.0,
-             "connections": {"Stimulus": ["E"]},  # "Estn"
+             "connections": {"DBS_Estn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
              "weights": 1.0, "delays": 0.0}
         ]  #
@@ -129,18 +148,18 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         # For the moment they are identical, unless you differentiate the noise parameters
         params = deepcopy(self._paramsI)
         if node_id in self.Igpe_nodes_ids:
-            params.update({})
+            params.update({"I_e": 12.0})
         elif node_id in self.Igpi_nodes_ids:
-            params.update({})
+            params.update({"I_e": 30.0})
         return params
 
     def paramsE(self, node_id):
         # For the moment they are identical, unless you differentiate the noise parameters
         params = deepcopy(self._paramsE)
         if node_id in self.Estn_nodes_ids:
-            params.update({"a": 0.005, "b": 0.265, "d": 2.0})
+            params.update({"a": 0.005, "b": 0.265, "d": 2.0, "I_e": 3.0})
         elif node_id in self.Eth_nodes_ids:
-            params.update({"a": 0.02, "b": 0.25, "d": 0.05})
+            params.update({"a": 0.02, "b": 0.25, "d": 0.05, "I_e": 3.5})
         return params
 
     def tvb_weight_fun(self, source_node, target_node):
