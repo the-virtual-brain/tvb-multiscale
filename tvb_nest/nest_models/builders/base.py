@@ -56,15 +56,18 @@ class NESTModelBuilder(SpikingModelBuilder):
         self.nest_instance.set_verbosity(self.config.NEST_VERBOCITY)  # don't print all messages from NEST
         self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt, "print_time": self.config.NEST_PRINT_TIME})
 
-    def _confirm_compile_install_nest_models(self, models, modules=[]):
+    def _confirm_compile_install_nest_models(self, models):
+        # TODO: Find out why modules_to_install=[] gets mysteriously populated...
         nest_models = self.nest_instance.Models()
         models = ensure_list(models)
-        modules = ensure_list(modules)
-        if len(modules) == 0:
-            for model in models:
-                modules.append("%smodule" % model)  # Assuming default naming for modules as modelmodule
-        for model, module in zip(models, cycle(modules)):
+        # modules_to_install = []  # ensure_list(modules_to_install)
+        # if len(modules_to_install) == 0:
+        # for model in models:
+        # # Assuming default naming for modules_to_install as modelmodule:
+        #     modules_to_install.append("%smodule" % model)
+        for model in models:  # , module # zip(models, cycle(modules_to_install)):
             if model not in nest_models:
+                module = "%smodule" % model  # Working only with the default name for the moment
                 try:
                     # Try to install it...
                     self.logger.info("Trying to install module %s..." % module)
@@ -78,6 +81,8 @@ class NESTModelBuilder(SpikingModelBuilder):
                     self.nest_instance.Install(module)
                     self.logger.info("DONE installing module %s!" % module)
                 nest_models = self.nest_instance.Models()
+                del module
+        # del modules_to_install
 
     def _configure_populations(self):
         super(NESTModelBuilder, self)._configure_populations()

@@ -24,8 +24,9 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         # Compile if builders are missing
         # Here there is one module for both builders,
         # so that the default naming pattern would work...:
+        # TODO: this will not work for the moment, after removing the modules_to_install argument
         self._confirm_compile_install_nest_models(["tvb_rate_redwongwang_exc",
-                                                   "tvb_rate_redwongwang_inh"], modules="tvb_rate_wongwangmodule")
+                                                   "tvb_rate_redwongwang_inh"], modules_to_install="tvb_rate_wongwangmodule")
 
         # Common order of neurons' number per population:
         self.population_order = 100
