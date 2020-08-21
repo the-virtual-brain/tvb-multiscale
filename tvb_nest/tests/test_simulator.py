@@ -35,24 +35,34 @@ def prepare_launch_default_simulation():
 
     results, simulator = \
         main_example(WilsonCowan, WilsonCowanBuilder, InterfacWilsonCowanBuilder,
-                     nest_nodes_ids, nest_populations_order=100, connectivity=connectivity,
-                     simulation_length=100.0, exclusive_nodes=True, config=config)
+                     nest_nodes_ids, nest_populations_order=20, connectivity=connectivity,
+                     simulation_length=55.0, exclusive_nodes=True, config=config)
 
     return simulator.connectivity.weights, simulator.connectivity.tract_lengths, results[0][1]
 
 
-def test_connectivity_weights_shape():
-    (weights, tract_lengths, results) = prepare_launch_default_simulation()
+def test_connectivity_weights_shape(weights=None):
+    if weights is None:
+        (weights, tract_lengths, results) = prepare_launch_default_simulation()
     assert weights.shape == (68, 68)
 
 
-def test_connectivity_tract_lengths_shape():
-    (weights, tract_lengths, results) = prepare_launch_default_simulation()
+def test_connectivity_tract_lengths_shape(tract_lengths=None):
+    if tract_lengths is None:
+        (weights, tract_lengths, results) = prepare_launch_default_simulation()
     assert tract_lengths.shape == (68, 68)
 
 
-def test_results_shape():
-    (weights, tract_lengths, results) = prepare_launch_default_simulation()
+def test_results_shape(results=None):
+    if results is None:
+        (weights, tract_lengths, results) = prepare_launch_default_simulation()
     assert not np.isinf(results.ravel()).all()
     assert not np.isnan(results.ravel()).all()
-    assert results.shape == (1000, 4, 68, 1)
+    assert results.shape == (550, 4, 68, 1)
+
+
+if __name__ == "__main__":
+    (weights, tract_lengths, results) = prepare_launch_default_simulation()
+    test_connectivity_weights_shape(weights)
+    test_connectivity_tract_lengths_shape(tract_lengths)
+    test_results_shape(results)
