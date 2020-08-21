@@ -69,10 +69,9 @@ class TestModel(object):
     simulation_length = 55.0
     transient = 5.0
     model = None
-
     model_params = {}
-
     results_path = ""
+    plot_write = True
 
     def __init__(self, model, model_params={}):
         self.model = model
@@ -86,6 +85,7 @@ class TestModel(object):
         delete_folder_safely(self.results_path)
         return main_example(tvb_sim_model=self.model,
                             simulation_length=self.simulation_length, transient=self.transient,
+                            plot_write=self.plot_write,
                             **self.model_params)
 
 
@@ -132,12 +132,11 @@ def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestR
         try:
             tic = time.time()
             test_model.run()
-            print(time.time() - tic)
+            print("\nSuccess in time %f sec!" % (time.time() - tic))
             success[test_model_class.__name__] = True
         except Exception as e:
-            print(time.time() - tic)
             success[test_model_class.__name__] = e
-            print(e)
+            print("\nError after time %f sec!" % (time.time() - tic))
         del test_model
         gc.collect()
         print("******************************************************\n")
@@ -145,8 +144,9 @@ def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestR
     print("\n******************************************************")
     print("******************************************************")
     if not np.all([result is True for result in list(success.values())]):
-        print(success)
         raise Exception("%s\nmodels' tests failed! Details:\n%s" % (str(os.getcwd()), str(success)))
+    else:
+        print(success)
     print("******************************************************\n")
 
 
