@@ -44,6 +44,7 @@ class TestModel(object):
     delays_flag = True
     simulation_length = 55.0
     transient = 5.0
+    plot_write = True
 
     def __init__(self, model, nest_nodes_ids, nest_model_builder, interface_model_builder, model_params={}):
         self.model = model
@@ -64,6 +65,7 @@ class TestModel(object):
                             tvb_to_nest_mode=self.tvb_to_nest_mode, nest_to_tvb=self.nest_to_tvb,
                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                             simulation_length=self.simulation_length, transient=self.transient,
+                            plot_write=self.plot_write,
                             **self.model_params)
 
 
