@@ -73,9 +73,12 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
 
     # -------------------------------------------3. Plot results--------------------------------------------------------
     if plot_write:
-        plot_write_results(results, simulator, transient=transient,
-                           tvb_state_variables_labels=simulator.model.variables_of_interest,
-                           populations_sizes=populations_sizes, plotter=Plotter(config), config=config)
+        try:
+            plot_write_results(results, simulator, transient=transient,
+                               tvb_state_variables_labels=simulator.model.variables_of_interest,
+                               populations_sizes=populations_sizes, plotter=Plotter(config), config=config)
+        except Exception as e:
+            print("Error in plotting or writing to files!:\n%s" % str(e))
 
     return simulator.connectivity, results
 

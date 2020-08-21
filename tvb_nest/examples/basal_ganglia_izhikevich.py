@@ -6,7 +6,8 @@ import numpy as np
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_nest.config import CONFIGURED
+from tvb_nest.config import CONFIGURED, Config
+from tvb_nest.examples.example import results_path_fun
 from tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
@@ -19,11 +20,17 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
-def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, nest_populations_order=100,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=False,
+def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
+                 nest_nodes_ids, nest_populations_order=100,
+                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0, variables_of_interest=None,
-                 config=CONFIGURED, **model_params):
+                 config=None, plot_write=True, **model_params):
+
+    if config is None:
+        config = Config(
+                    output_base=results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode, nest_to_tvb,
+                                                 config))
 
     plotter = Plotter(config)
 
@@ -83,10 +90,14 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
-    plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
-                       transient=transient, tvb_state_variable_type_label="State Variables",
-                       tvb_state_variables_labels=simulator.model.variables_of_interest,
-                       plotter=plotter, config=config)
+    if plot_write:
+        try:
+            plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
+                               transient=transient, tvb_state_variable_type_label="State Variables",
+                               tvb_state_variables_labels=simulator.model.variables_of_interest,
+                               plotter=plotter, config=config)
+        except Exception as e:
+            print("Error in plotting or writing to files!:\n%s" % str(e))
 
     return results, simulator
 
@@ -110,4 +121,4 @@ if __name__ == "__main__":
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
                  variables_of_interest=None,
-                 config=CONFIGURED, **model_params)
+                 config=None, **model_params)
