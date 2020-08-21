@@ -10,7 +10,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 import matplotlib as mpl
 mpl.use('Agg')
 
-from tvb_nest.examples.example import main_example
+from tvb_nest.examples.example import main_example, results_path_fun
 from tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCowanMultisynapseBuilder
@@ -22,6 +22,8 @@ from tvb_nest.interfaces.builders.models.wilson_cowan import \
 from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
 
 from tvb_multiscale.tests.test_models import model_params_wc, model_params_redww_exc_io, model_params_redww_exc_io_inn_i
+
+from tvb_multiscale.tests.test_models import test_models as test_models_base
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
@@ -48,9 +50,12 @@ class TestModel(object):
         self.nest_nodes_ids = nest_nodes_ids
         self.nest_model_builder = nest_model_builder
         self.interface_model_builder = interface_model_builder
-        self.results_path = os.path.join(os.getcwd(), "outputs",
-                                         self.interface_model_builder.__name__.split("Builder")[0])
         self.model_params = model_params
+
+    @property
+    def results_path(self):
+        return results_path_fun(self.nest_model_builder, self.interface_model_builder,
+                                self.tvb_to_nest_mode, self.nest_to_tvb)
 
     def run(self):
         delete_folder_safely(self.results_path)
@@ -111,31 +116,10 @@ class TestIzhikevichRedWWexcIO(TestModel):
 
 
 @pytest.mark.skip(reason="These tests are taking too much time")
-def test_models():
-    import time
-    import numpy as np
-    from collections import OrderedDict
-    # TODO: find out why it fails if I run first the WilsonCowan tests and then the ReducedWongWang ones...
-    success = OrderedDict()
-    for test_model_class in [TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO,
-                             TestWilsonCowan, TestWilsonCowanMultisynapse,
-                             TestIzhikevichRedWWexcIO]:
-        test_model = test_model_class()
-        print(test_model_class.__name__)
-        try:
-            tic = time.time()
-            test_model.run()
-            print(time.time() - tic)
-            success[test_model_class.__name__] = True
-        except Exception as e:
-            print(time.time() - tic)
-            success[test_model_class.__name__] = e
-        del test_model
-        gc.collect()
-        sleep(5)
-    if not np.all([result is True for result in list(success.values())]):
-        print(success)
-        raise Exception("Test models failed! Details: \n %s" % str(success))
+def test_models(models_to_test=[TestWilsonCowan, TestWilsonCowanMultisynapse,
+                                TestIzhikevichRedWWexcIO,
+                                TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO]):
+    test_models_base(models_to_test=models_to_test)
 
 
 if __name__ == "__main__":
