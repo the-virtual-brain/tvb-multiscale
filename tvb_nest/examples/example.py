@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import time
+from six import string_types
 
 import numpy as np
 
@@ -23,6 +24,19 @@ from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangE
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
+def results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode="rate", nest_to_tvb=True, config=None):
+    if config is None:
+        return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
+                            nest_model_builder.__name__.split("Builder")[0] + "_" +
+                            tvb_nest_builder.__name__.split("Builder")[0] +
+                            np.where(isinstance(tvb_to_nest_mode, string_types),
+                                     "_" + tvb_to_nest_mode, "").item()  +
+                            np.where(nest_to_tvb, "_bidir", "").item()
+                            )
+    else:
+        return config.out.FOLDER_RES
+
+
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
                  nest_nodes_ids, nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
@@ -31,8 +45,10 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
                  config=None, plot_write=True, **model_params):
 
     if config is None:
-        config = Config(output_base=os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
-                                                 tvb_nest_builder.__name__.split("Builder")[0]))
+        config = Config(
+                    output_base=results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode, nest_to_tvb,
+                                                 config))
+
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------

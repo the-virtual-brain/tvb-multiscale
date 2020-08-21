@@ -18,15 +18,18 @@ from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangE
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 
 
-# TODO Fix SpikingWongWangExcIOInhI & MultiscaleWongWangExcIOInhI functionality
+def results_path_fun(tvb_sim_model, config=None):
+    if config is None:
+        return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0], tvb_sim_model.__name__)
+    else:
+        return config.out.FOLDER_RES
 
 
 def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
                  simulation_length=110.0, transient=10.0, config=None, plot_write=True, **model_params):
 
     if config is None:
-        config = Config(output_base=os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
-                                                 tvb_sim_model.__name__))
+        config = Config(output_base=results_path_fun(tvb_sim_model, config))
 
     plotter = Plotter(config)
 
