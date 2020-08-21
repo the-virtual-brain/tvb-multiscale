@@ -259,6 +259,7 @@ nest::izhikevich_hamker::init_state_( const Node& proto )
 void
 nest::izhikevich_hamker::init_buffers_()
 {
+  B_.spikes_base_.clear();   // includes resize
   B_.spikes_exc_.clear();   // includes resize
   B_.spikes_inh_.clear();   // includes resize
   B_.currents_.clear(); // includes resize
@@ -304,6 +305,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
 
       // Add the spikes:
+      S_.g_L_ += B_.spikes_base_.get_value( lag );
       S_.g_AMPA_ += B_.spikes_exc_.get_value( lag );
       S_.g_GABA_A_ += B_.spikes_inh_.get_value( lag );
 
@@ -328,6 +330,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     else
     {
       // Add the spikes:
+      S_.g_L_ += B_.spikes_base_.get_value( lag );
       S_.g_AMPA_ += B_.spikes_exc_.get_value( lag );
       S_.g_GABA_A_ += B_.spikes_inh_.get_value( lag );
 
@@ -382,16 +385,26 @@ void
 nest::izhikevich_hamker::handle( SpikeEvent& e )
 {
   assert( e.get_delay_steps() > 0 );
+  assert( ( e.get_rport() >= 0 ) && ( e.get_rport() <= 1 ) );
 
   const double weight = e.get_weight() * e.get_multiplicity();
 
-  if ( weight < 0.0 ) {
-    B_.spikes_inh_.add_value(
-        e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), -weight );
-  } else {
-    B_.spikes_exc_.add_value(
-        e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
-  }
+ if (e.get_rport() > 0) {
+    if ( weight < 0.0 ) {
+        throw nest::BadProperty("Synaptic weights for the baseline spike activity must be positive." );
+    }
+    B_.spikes_base_.add_value(
+            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
+ } else {
+    if ( weight < 0.0 ) {
+       B_.spikes_inh_.add_value(
+           e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), -weight );
+    } else {
+       B_.spikes_exc_.add_value(
+           e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
+    }
+ }
+
 }
 
 void
