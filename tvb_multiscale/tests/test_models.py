@@ -12,7 +12,7 @@ mpl.use('Agg')
 
 import numpy as np
 
-from tvb_multiscale.examples.simulate_tvb_only import main_example
+from tvb_multiscale.examples.simulate_tvb_only import main_example, results_path_fun
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
@@ -66,8 +66,8 @@ model_params_sp = {
 
 class TestModel(object):
 
-    simulation_length = 110.0
-    transient = 10.0
+    simulation_length = 55.0
+    transient = 5.0
     model = None
 
     model_params = {}
@@ -77,7 +77,10 @@ class TestModel(object):
     def __init__(self, model, model_params={}):
         self.model = model
         self.model_params = model_params
-        self.results_path = os.path.join(os.getcwd(), "outputs", self.model.__name__)
+
+    @property
+    def results_path(self):
+        return results_path_fun(self.model)
 
     def run(self):
         delete_folder_safely(self.results_path)
@@ -114,29 +117,38 @@ class TestSpikingWongWangExcIOInhI(TestModel):
         super(TestSpikingWongWangExcIOInhI, self).__init__(SpikingWongWangExcIOInhI, model_params_sp)
 
 
-@pytest.mark.skip(reason="These tests are taking too much time")
-def test_models():
-    for test_model_class in [TestWilsonCowan,
-                             TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI,
-                             TestSpikingWongWangExcIOInhI]:
+# @pytest.mark.skip(reason="These tests are taking too much time") # only TestSpikingWongWangExcIOInhI takes time
+def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):  # , TestSpikingWongWangExcIOInhI
+    import time
+    import numpy as np
+    from collections import OrderedDict
+    success = OrderedDict()
+    for test_model_class in models_to_test:
         test_model = test_model_class()
-        print(test_model.run())
+        print("\n******************************************************")
+        print("******************************************************")
+        print(test_model_class.__name__)
+        print("******************************************************")
+        try:
+            tic = time.time()
+            test_model.run()
+            print(time.time() - tic)
+            success[test_model_class.__name__] = True
+        except Exception as e:
+            print(time.time() - tic)
+            success[test_model_class.__name__] = e
+            print(e)
         del test_model
         gc.collect()
+        print("******************************************************\n")
         sleep(5)
+    print("\n******************************************************")
+    print("******************************************************")
+    if not np.all([result is True for result in list(success.values())]):
+        print(success)
+        raise Exception("%s\nmodels' tests failed! Details:\n%s" % (str(os.getcwd()), str(success)))
+    print("******************************************************\n")
 
 
 if __name__ == "__main__":
-
-    for model, model_params in zip([WilsonCowan,
-                                    ReducedWongWangExcIO,
-                                    ReducedWongWangExcIOInhI,
-                                    SpikingWongWangExcIOInhI],
-                                   [model_params_wc,
-                                    model_params_redww_exc_io,
-                                    model_params_redww_exc_io_inn_i,
-                                    model_params_sp]
-                                   ):
-        test_model = TestModel(model, model_params)
-        print(test_model.run())
-        del test_model
+    test_models()
