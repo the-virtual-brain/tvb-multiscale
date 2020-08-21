@@ -53,3 +53,7 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
                  "nodes_connections_weights", "nodes_connections_delays", "nodes_connections_receptor_types",
                  "nodes_connections_conn_spec"]:
         print("%s:\n%s\n\n" % (prop, str(getattr(nest_model_builder, prop))))
+
+
+if __name__ == "__main__":
+    test()
