@@ -47,9 +47,9 @@ The dynamics are given by:
   @f[
   dv/dt = n2*v^2 + n1*v + n0 - u/C_m + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
   du/dt = a*(b*v - u)]
-  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)
-  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)
-  tau_rise*dg_L/dt = -tau_rise
+  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)      (positively weighted spikes at port 0)
+  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)  (negatively weighted spikes at port 0)
+  tau_rise*dg_L/dt = -g_L + spikes_baseline(t)            (only positively -error otherwise- weighted spikes at port 1)
   @f]
 
     if  \f$ v >= V_{th} \f$:
@@ -259,6 +259,7 @@ private:
     /** buffers and sums up incoming spikes/currents */
     RingBuffer spikes_exc_;
     RingBuffer spikes_inh_;
+    RingBuffer spikes_base_;
     RingBuffer currents_;
   };
 
@@ -352,7 +353,7 @@ izhikevich_hamker::send_test_event( Node& target, rport receptor_type, synindex,
 inline port
 izhikevich_hamker::handles_test_event( SpikeEvent&, rport receptor_type )
 {
-  if ( receptor_type != 0 )
+  if ( receptor_type > 1 )
   {
     throw UnknownReceptorType( receptor_type, get_name() );
   }
