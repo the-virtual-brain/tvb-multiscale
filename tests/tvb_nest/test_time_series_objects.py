@@ -7,7 +7,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 
 from tvb_multiscale.tvb_nest.config import Config
-from tvb_multiscale.examples.tvb_nest.example import main_example
+from examples.tvb_nest.example import main_example
 from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
