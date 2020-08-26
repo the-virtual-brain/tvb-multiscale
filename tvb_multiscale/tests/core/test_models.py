@@ -11,7 +11,7 @@ mpl.use('Agg')
 
 import numpy as np
 
-from tvb_multiscale.core.examples.simulate_tvb_only import main_example, results_path_fun
+from tvb_multiscale.examples.simulate_tvb_only import main_example, results_path_fun
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
