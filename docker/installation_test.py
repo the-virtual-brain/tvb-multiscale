@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # to test all models:
-from tvb_nest.tests.test_models import test_models
+from tvb_multiscale.tvb_nest.tests.test_models import test_models
 test_models()
 
 # # ...or only the faster one:
