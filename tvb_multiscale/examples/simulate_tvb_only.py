@@ -40,7 +40,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     simulator = simulator_builder.build(**model_params)
 
     if isinstance(simulator.model, SpikingWongWangExcIOInhI):
-        from tvb_multiscale.elephant.spike_stimulus_builder import SpikeStimulusBuilder
+        from tvb_multiscale.tvb_elephant.spike_stimulus_builder import SpikeStimulusBuilder
         from tvb.simulator.integrators import Dop853Stochastic
         populations_sizes = [int(simulator.model.N_E[0]), int(simulator.model.N_I[0])]
         spiking_regions_inds = list(range(simulator.connectivity.number_of_regions))
