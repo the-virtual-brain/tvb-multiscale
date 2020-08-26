@@ -63,15 +63,14 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     for module in ensure_list(modules):
         logger.info("Compiling %s..." % module)
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
-        logger.info("from in build_interfaces directory %s..." % module_bld_dir)
+        logger.info("in build directory %s..." % module_bld_dir)
         if not os.path.exists(module_bld_dir) or recompile:
             source_path = os.path.join(config.MYMODULES_DIR, module)
             logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
             shutil.copytree(source_path, module_bld_dir)
         logger.info("Running compilation...")
         install_nest(module_bld_dir, config.NEST_PATH)
-        if os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, module + "module.so")) and \
-            os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, "lib" + module + "module.so")):
+        if os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, "lib" + module + "module.so")):
             logger.info("DONE compiling %s!" % module)
         else:
             logger.warn("Something seems to have gone wrong with compiling %s!" % module)
