@@ -171,8 +171,8 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 
 # For running examples
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/rate_ww_ampa_nmda_gaba.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_multiscale/examples/tvb_nest/example.py
 
 # Test NEST installation
 # RUN cd $NEST; make installcheck
@@ -185,10 +185,10 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 # CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 #For running tests
-#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
+#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_multiscale/tests
 
 #For running tests with coverage
-#CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tvb_nest/tests
+#CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tvb_multiscale/tests
 
 #Run jupyter notebooks
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
