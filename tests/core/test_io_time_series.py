@@ -1,6 +1,6 @@
 # coding=utf-8
 import numpy
-from tvb_multiscale.tests.core.test_time_series import _prepare_dummy_time_series
+from tests.core.test_time_series import _prepare_dummy_time_series
 from tvb.datatypes.connectivity import Connectivity
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion, TimeSeriesDimensions, PossibleVariables
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionXarray
