@@ -6,7 +6,7 @@ import numpy as np
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.base import TVBNESTInterface
 from tvb_nest.interfaces.models import RedWWexcIOinhI
-from tvb_multiscale.spiking_models.builders.templates import \
+from tvb_multiscale.core.spiking_models.builders.templates import \
     random_normal_tvb_weight, random_uniform_tvb_delay, receptor_by_source_region
 
 

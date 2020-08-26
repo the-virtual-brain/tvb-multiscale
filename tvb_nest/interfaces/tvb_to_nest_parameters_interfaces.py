@@ -3,7 +3,7 @@ from itertools import cycle
 import numpy as np
 from pandas import Series
 
-from tvb_multiscale.interfaces.tvb_to_spikeNet_parameter_interface import TVBtoSpikeNetParameterInterface
+from tvb_multiscale.core.interfaces.tvb_to_spikeNet_parameter_interface import TVBtoSpikeNetParameterInterface
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 

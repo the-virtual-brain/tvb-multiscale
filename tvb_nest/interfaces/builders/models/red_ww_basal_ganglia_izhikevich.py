@@ -5,7 +5,7 @@ import numpy as np
 from tvb_nest.interfaces.base import TVBNESTInterface
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIO
-from tvb_multiscale.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
+from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
 class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):

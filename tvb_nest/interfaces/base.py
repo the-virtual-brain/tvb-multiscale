@@ -2,7 +2,7 @@
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict, NESTOutputSpikeDeviceDict
-from tvb_multiscale.interfaces.base import TVBSpikeNetInterface
+from tvb_multiscale.core.interfaces.base import TVBSpikeNetInterface
 
 
 class TVBNESTInterface(TVBSpikeNetInterface):

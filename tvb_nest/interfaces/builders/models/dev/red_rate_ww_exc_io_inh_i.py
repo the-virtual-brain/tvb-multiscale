@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-from tvb_multiscale.config import CONFIGURED
+from tvb_multiscale.core.config import CONFIGURED
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIOinhI
 

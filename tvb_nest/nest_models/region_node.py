@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pandas import Series
 
-from tvb_multiscale.spiking_models.region_node import SpikingRegionNode
+from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 
 
 class NESTRegionNode(SpikingRegionNode):

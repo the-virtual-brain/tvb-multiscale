@@ -4,8 +4,8 @@ import os
 
 from tvb_utils.log_utils import initialize_logger as initialize_logger_base
 
-from tvb_multiscale.config import Config as ConfigBase
-from tvb_multiscale.config import DEFAULT_SUBJECT_PATH
+from tvb_multiscale.core.config import Config as ConfigBase
+from tvb_multiscale.core.config import DEFAULT_SUBJECT_PATH
 
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]

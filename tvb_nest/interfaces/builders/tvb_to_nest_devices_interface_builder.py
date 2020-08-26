@@ -2,9 +2,9 @@
 
 from tvb_nest.interfaces.tvb_to_nest_devices_interfaces import INPUT_INTERFACES_DICT
 from tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
-from tvb_multiscale.interfaces.builders.tvb_to_spikeNet_device_interface_builder import \
+from tvb_multiscale.core.interfaces.builders.tvb_to_spikeNet_device_interface_builder import \
     TVBtoSpikeNetDeviceInterfaceBuilder
-from tvb_multiscale.spiking_models.builders.factory import build_and_connect_devices
+from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 
 class TVBtoNESTDeviceInterfaceBuilder(TVBtoSpikeNetDeviceInterfaceBuilder):
