@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-
 from collections import OrderedDict
+
 import pandas as pd
 import xarray as xr
 import numpy as np
 
 from tvb_multiscale.config import initialize_logger, LINE
+
+from tvb_utils.data_structures_utils import filter_neurons, filter_events, summarize
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils \
@@ -18,157 +20,279 @@ from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution
 LOG = initialize_logger(__name__)
 
 
-# Classes for creating:
-# - output devices that can measure and summarize the activity of a whole neuronal population
-# - input devices that induce some activity by stimulation to a whole neuronal population.
-# Output devices assume that data is structured in discrete events tagged by time and sender neuron.
+"""Classes for creating:
+    - output devices that can measure and summarize the activity of a whole neuronal population
+    - input devices that induce some activity by stimulation to a whole neuronal population.
+Output devices assume that data is structured in discrete events tagged by time and sender neuron.
+"""
 
 
 class Device(object):
     __metaclass__ = ABCMeta
 
-    device = None
-    model = "device"
+    """Class to wrap around a measuring or stimulating device"""
+
+    device = None  # the index of the device in the spiking network
+    model = "device"  # the device model name
+    _number_of_connections = 0  # total number of devices' connections to neurons
 
     def __init__(self, device, *args, **kwargs):
-        self.model = "device"
-        self.device = device
+        self.device = device   # the index of the device in the spiking network
+        self.model = "device"  # the device model name
+        self._number_of_connections = self.number_of_connections
 
     def __str__(self):
         neurons = self.neurons
         return LINE + "Model: %s, gid: %d, " \
-               "\nconnections to %d neurons: %s, " \
-               "mean weight: %g, mean delay: %g, unique receptors: %s" % \
-               (self.model, self.device[0], len(neurons), extract_integer_intervals(neurons, print=True),
-                self.node_weight.item(), self.node_delay.item(), self.node_receptors)
+              "\nparameters: %s, " \
+              "\nconnections to %d neurons: %s, " \
+              "\n  weights: %s," \
+              "\n  delays: %s," \
+              "\n  receptors: %s" % \
+               (self.model, self.device[0],
+                str(self.get_attributes()),
+                len(neurons), extract_integer_intervals(neurons, print=True),
+                str(self.get_weights(summary="stats")),
+                str(self.get_delays(summary="stats")),
+                str(self.get_receptors(summary=1)))
 
     @abstractmethod
     def _assert_device(self):
+        """Method to assert that the node of the network is a device"""
         pass
 
-    # Methods to get or set methods for devices or their connections:
-
-    @abstractmethod
-    def Get(self, attr=None):
-        pass
+    # Methods to get or set attributes for devices and/or their connections:
 
     @abstractmethod
     def Set(self, values_dict):
+        """Method to set attributes of the device
+           Arguments:
+            values_dict: dictionary of attributes names' and values.
+        """
         pass
 
     @abstractmethod
-    def _get_connections(self):
+    def Get(self, attrs=None):
+        """Method to get attributes of the device.
+           Arguments:
+            attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
+           Returns:
+            Dictionary of attributes.
+        """
         pass
 
     @abstractmethod
-    def GetFromConnections(self, connections, attr=None):
+    def _GetConnections(self, **kwargs):
+        """Method to get attributes of the connections from/to the device
+           Return:
+            the connections' objects
+        """
         pass
 
     @abstractmethod
-    def SetToConnections(self, connections, values_dict):
+    def GetConnections(self, neurons=None, exclude_neurons=[]):
+        """Method to get connections of the device to/from neurons.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons which should be included in the output.
+                     Default = None, corresponds to all neurons the device is connected to.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+           Returns:
+            connections' objects.
+        """
+        pass
+
+    @abstractmethod
+    def _SetToConnections(self, connections, values_dict):
+        """Method to set attributes of the connections from/to the device
+            Arguments:
+             connections: connections' objects.
+             values_dict: dictionary of attributes names' and values.
+            Returns:
+             Dictionary of arrays of connections' attributes.
+        """
+        pass
+
+    @abstractmethod
+    def _GetFromConnections(self, connections, attrs=None):
+        """Method to get attributes of the connections from/to the device
+           Arguments:
+            connections: connections' objects.
+            attrs: collection (list, tuple, array) of the attributes to be included in the output.
+           Returns:
+            Dictionary of arrays of connections' attributes.
+        """
         pass
 
     def filter_neurons(self, neurons=None, exclude_neurons=[]):
+        """This method will select/exclude the connected neurons, depending on user inputs
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons which should be included in the output.
+                     Default = None, corresponds to all neurons the device is connected to.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+           Returns:
+            tuple of neurons.
+        """
         # Method to select or exclude some of the connected neurons to the device:
-        temp_neurons = self.neurons
-        if neurons is not None:
-            temp_neurons = list(self.neurons)
-        for neuron in exclude_neurons:
-            if neuron in temp_neurons:
-                temp_neurons.remove(neuron)
-        return np.array(temp_neurons)
-
-    def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
-        return len(self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons))
-
-    def get_connections(self, neurons=None, exclude_neurons=[]):
-        # Method to get all connections of the device to/from neurons
-        if neurons is not None:
-            if len(exclude_neurons) > 0:
-                neurons = list(neurons)
-                for neuron in exclude_neurons:
-                    neurons.remove(neuron)
-            return self._get_connections(source=self.device, target=tuple(neurons))
-        else:
+        if neurons is None:
             neurons = self.neurons
-            if len(exclude_neurons) > 0:
-                neurons = list(neurons)
-                for neuron in exclude_neurons:
-                    neurons.remove(neuron)
-            return self._get_connections(source=self.device, target=tuple(neurons))
+        return filter_neurons(neurons, exclude_neurons)
 
-    def get_weights(self, neurons=None, exclude_neurons=[]):
-        return np.array([self.GetFromConnections((conn,), "weight")
-                         for conn in self.get_connections(neurons, exclude_neurons)])
+    def get_attributes(self):
+        """Method to get all attributes of the device.
+           Returns:
+            Dictionary of arrays of neurons' attributes.
+        """
+        return self.Get()
 
-    def get_delays(self, neurons=None, exclude_neurons=[]):
-        return np.array([self.GetFromConnections((conn,), "delay")
-                         for conn in self.get_connections(neurons, exclude_neurons)])
+    def get_number_of_connections(self, neurons=None, exclude_neurons=[]):
+        """Method to get the number of  connections of the device to/from neurons.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons which should be included in the output.
+                     Default = None, corresponds to all neurons the device is connected to.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+           Returns:
+            int: number of connections
+        """
+        return len(self.GetConnections(neurons=neurons, exclude_neurons=exclude_neurons))
 
-    def get_receptors(self, neurons=None, exclude_neurons=[]):
-        return np.array([self.GetFromConnections((conn,), "receptor")
-                         for conn in self.get_connections(neurons, exclude_neurons)])
+    def SetToConnections(self, values_dict, neurons=None, exclude_neurons=[]):
+        """Method to set attributes of the connections from/to the device.
+           Arguments:
+            values_dict: dictionary of attributes names' and values.
+            neurons: collection (list, tuple, array) of neurons the attribute of which should be set.
+                     Default = None, corresponds to all neurons of the population.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+        """
+        self.SetToConnections(values_dict, self.GetConnections(neurons, exclude_neurons))
 
-    def get_node_weight(self, neurons=None, exclude_neurons=[]):
-        return np.mean(self.get_weights(neurons, exclude_neurons))
+    def GetFromConnections(self, attrs=None, neurons=None, exclude_neurons=[], summary=None):
+        """Method to get attributes of the connections from/to the device.
+           Arguments:
+            attrs: collection (list, tuple, array) of the attributes to be included in the output.
+            neurons: collection (list, tuple, array) of neurons the attribute of which should be set.
+                     Default = None, corresponds to all neurons of the population.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Dictionary of arrays of connections' attributes.
+        """
+        attributes = self._GetFromConnections(self.GetConnections(neurons, exclude_neurons), attrs)
+        if summary:
+            return summarize(attributes, summary)
+        else:
+            return attributes
 
-    def get_node_delay(self, neurons=None, exclude_neurons=[]):
-        return np.mean(self.get_delays(neurons, exclude_neurons))
+    def get_weights(self, neurons=None, exclude_neurons=[], summary=None):
+        """Method to get weights of the connections from/to the device.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons the weights of which should be set.
+                     Default = None, corresponds to all neurons of the population.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Array of connections' weights
+        """
+        return self.GetFromConnections(self._weight_str, neurons, exclude_neurons, summary)[self._weight_str]
 
-    def get_node_receptors(self, neurons=None, exclude_neurons=[]):
-        return pd.unique(self.get_receptors(neurons, exclude_neurons))  # pd.unique is faster than np.unique
+    def get_delays(self, neurons=None, exclude_neurons=[], summary=None):
+        """Method to get delays of the connections from/to the device.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons the delays of which should be set.
+                     Default = None, corresponds to all neurons of the population.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Array of connections' delays
+        """
+        return self.GetFromConnections(self._delay_str, neurons, exclude_neurons, summary)[self._delay_str]
 
-    # Properties of device connections across all neurons connected to it
+    def get_receptors(self, neurons=None, exclude_neurons=[], summary=None):
+        """Method to get the receptors of the connections from/to the device.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons the attribute of which should be set.
+                     Default = None, corresponds to all neurons of the population.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Array of connections' receptors
+        """
+        return self.GetFromConnections(self._receptor_str, neurons, exclude_neurons, summary)[self._receptor_str]
 
+    # attributes of device connections across all neurons connected to it
+
+    @abstractmethod
     @property
     def connections(self):
-        return self._get_connections(source=self.device)
+        """Method to get all connections of the device to/from neurons.
+           Returns:
+            connections' objects.
+        """
+        pass
 
+    @abstractmethod
     @property
     def neurons(self):
-        return tuple([conn[1] for conn in self.connections])
+        """Method to get the indices of all the neurons the device is connected to/from."""
+        pass
 
     @property
     def weights(self):
-        return np.array([self.GetFromConnections((conn,), "weight") for conn in self.connections])
+        """Method to get all connections' weights of the device to/from neurons."""
+        return self.get_weights()
 
     @property
     def delays(self):
-        return np.array([self.GetFromConnections((conn,), "delay") for conn in self.connections])
+        """Method to get all connections' delays of the device to/from neurons."""
+        return self.get_delays()
 
     @property
     def receptors(self):
-        return np.array([self.GetFromConnections((conn,), "receptor") for conn in self.connections])
+        """Method to get all connections' receptors of the device to/from neurons."""
+        return self.get_receptors()
 
-    # Summary properties of device across all neurons connected to it
+    # Summary attributes of device across all neurons connected to it
+
+    @property
+    def number_of_connections(self):
+        """Method to get the number of all connections from/to the device."""
+        if self._number_of_connections == 0 or self._number_of_connections is None:
+            self._number_of_connections = self.get_number_of_connections()
+        return self._number_of_connections
 
     @property
     def node_weight(self):
+        """Method to get the mean of all connections' weights of the device to/from neurons."""
         return np.mean(self.weights)
 
     @property
     def node_delay(self):
+        """Method to get the mean of all connections' delays of the device to/from neurons."""
         return np.mean(self.delays)
 
     @property
     def node_receptors(self):
+        """Method to get all unique connections' receptors of the device to/from neurons."""
         return np.unique(self.receptors)
-
-    @property
-    def number_of_neurons(self):
-        return self.get_number_of_neurons()
-
-    @property
-    def number_of_connections(self):
-        return self.get_number_of_neurons()
-
-    # def update_number_of_connections(self):
-    #     neurons = self.neurons
-    #     for neuron in neurons:
-    #         element_type = self.Get((neuron,))["element_type"]
-    #         if element_type != "neuron":
-    #             raise_value_error("Node %d is not a neuron but a %s!" % (neuron, element_type))
-    #     self.number_of_connections = len(neurons)
 
 
 class InputDevice(Device):
@@ -177,6 +301,26 @@ class InputDevice(Device):
     def __init__(self, device, *args, **kwargs):
         super(InputDevice, self).__init__(device, *args, **kwargs)
         self.model = "input_device"
+
+    def GetConnections(self, neurons=None, exclude_neurons=[]):
+        """Method to get connections of the device to neurons.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons which should be included in the output.
+                     Default = None, corresponds to all neurons the device is connected to.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+           Returns:
+            connections' objects.
+        """
+        return self._GetConnections(source=self.device,
+                                    target=self.filter_neurons(neurons, exclude_neurons))
+
+    @property
+    def connections(self):
+        """Method to get all connections of the device to/from neurons.
+           Returns:
+            connections' objects.
+        """
+        return self.GetConnections(source=self.device)
 
 
 InputDeviceDict = {}
@@ -189,86 +333,76 @@ class OutputDevice(Device):
         super(OutputDevice, self).__init__(device, *args, **kwargs)
         self.model = "output_device"
 
-    def filter_events(self, events, variables=None, neurons=None, times=None,
+    def GetConnections(self, neurons=None, exclude_neurons=[]):
+        """Method to get connections of the device from neurons.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons which should be included in the output.
+                     Default = None, corresponds to all neurons the device is connected to.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+           Returns:
+            connections' objects.
+        """
+        return self._GetConnections(source=self.filter_neurons(neurons, exclude_neurons),
+                                    target=self.device)
+
+    @property
+    def connections(self):
+        """Method to get all connections of the device from neurons.
+           Returns:
+            connections' objects.
+        """
+        return self.GetConnections(target=self.device)
+
+    def filter_events(self, events=None, variables=None, neurons=None, times=None,
                       exclude_neurons=[], exclude_times=[]):
-
-        def in_fun(x, values):
-            in_flag = False
-            if len(values) > 0:
-                in_flag = x in values
-                if in_flag:
-                    return in_flag
-                if len(values) == 2:
-                    if values[0] is not None:
-                        in_flag = x > values[0]
-                        if in_flag:
-                            if values[1] is not None:
-                                in_flag = x < values[1]
-                        return in_flag
-                    if values[1] is not None:
-                        return x < values[1]
-            return in_flag
-
-        # This method will select/exclude part of the measured events, depending on user inputs
-        if variables is None:
-            variables = events.keys()
-        output_events = OrderedDict()
+        """This method will select/exclude part of the measured events, depending on user inputs
+            Arguments:
+                events: dictionary of events
+                variables: collection (list, tuple, array) of variables to be included in the output,
+                           assumed to correspond to keys of the events dict.
+                           Default=None, corresponds to all keys of events.
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              the filtered dictionary (of arrays per attribute) of events
+        """
+        # The events of the device
         if events is None:
             events = self.events
-        events_times = np.array(events["times"])
-        senders = np.array(events["senders"])
-        inds = np.ones((self.n_events,))
-        if len(inds) > 0:
-            if times is not None:
-                if neurons is not None:
-                    inds = np.logical_and(inds, [in_fun(time, flatten_list(times)) and
-                                                 (not in_fun(time, flatten_list(exclude_times))) and
-                                                 in_fun(sender, flatten_list(neurons)) and
-                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
-                                                 for time, sender in zip(events_times, senders)])
-                else:
-                    inds = np.logical_and(inds, [in_fun(time, flatten_list(times)) and
-                                                 (not in_fun(time, flatten_list(exclude_times))) and
-                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
-                                                 for time, sender in zip(events_times, senders)])
-            else:
-                if neurons is not None:
-                    inds = np.logical_and(inds, [(not in_fun(time, flatten_list(exclude_times))) and
-                                                 in_fun(sender, flatten_list(neurons)) and
-                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
-                                                 for time, sender in zip(events_times, senders)])
-                else:
-                    inds = np.logical_and(inds, [(not in_fun(time, flatten_list(exclude_times))) and
-                                                 (not in_fun(sender, flatten_list(exclude_neurons)))
-                                                 for time, sender in zip(events_times, senders)])
-            for var in ensure_list(variables):
-                output_events[var] = events[var][inds]
-        else:
-            for var in ensure_list(variables):
-                output_events[var] = np.array([])
-        return output_events
+        return filter_events(events, variables, neurons, times, exclude_neurons, exclude_times)
 
     @property
     @abstractmethod
     def events(self):
+        """This method returns the dictionary of events"""
         pass
 
     @property
     @abstractmethod
     def number_of_events(self):
+        """This method returns the number (integer) of events"""
         pass
 
     @property
     @abstractmethod
     def reset(self):
+        """This method resets the device by deleting all events"""
         pass
 
     @property
     def senders(self):
+        """This method returns the senders neurons of events"""
         return self.events['senders']
 
     @property
     def times(self):
+        """This method returns the times of events"""
         return self.events['times']
 
 
@@ -279,50 +413,132 @@ class SpikeDetector(OutputDevice):
         super(SpikeDetector, self).__init__(device, *args, **kwargs)
         self.model = "spike_detector"
 
-    def get_connections(self, neurons=None, exclude_neurons=[]):
-        if neurons is not None:
-            if len(exclude_neurons) > 0:
-                neurons = list(neurons)
-                for neuron in exclude_neurons:
-                    neurons.remove(neuron)
-            return self._get_connections(target=self.device, source=tuple(neurons))
-        else:
-            neurons = self.neurons
-            if len(exclude_neurons) > 0:
-                neurons = list(neurons)
-                for neuron in exclude_neurons:
-                    neurons.remove(neuron)
-            return self._get_connections(target=self.device, source=tuple(neurons))
-
-    @property
-    def connections(self):
-        return self._get_connections(target=self.device)
-
-    # The following properties are time summaries without taking into consideration spike timing:
     def get_spikes_events(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        """This method will select/exclude part of the detected spikes' events, depending on user inputs
+            Arguments:
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              the filtered dictionary (of arrays per attribute) of spikes' events
+        """
         return self.filter_events(None, None, neurons, times, exclude_neurons, exclude_times)
 
     def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        """This method will return spikes' times
+            after selecting/excluding part of the detected spikes' events, depending on user inputs
+            Arguments:
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              the spikes' times in an array
+        """
         return self.filter_events(None, "times", neurons, times, exclude_neurons, exclude_times)["times"]
 
     def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        """This method will return spikes' times
+            after selecting/excluding part of the detected spikes' events, depending on user inputs
+            Arguments:
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              the spikes' times in an array
+        """
         return self.filter_events(None, "senders", neurons, times, exclude_neurons, exclude_times)["senders"]
 
+    # The following attributes are time summaries without taking into consideration spike timing:
+
     def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        """This method will return the total number of spikes
+            after selecting/excluding part of the detected spikes' events, depending on user inputs
+            Arguments:
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              int: the spikes' total number
+        """
         return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times))
 
     def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        n_neurons = self.get_number_of_neurons(neurons, exclude_neurons)
+        """This method will return the total number of spikes divided by the total number of connected neurons
+            after selecting/excluding part of the detected spikes' events, depending on user inputs
+            Arguments:
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              float: total number of spikes divided by the total number of connected neurons
+        """
+        n_neurons = self.get_number_of_connections(neurons, exclude_neurons)
         if n_neurons > 0:
             return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / n_neurons
         else:
             return 0.0
 
     def get_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        """This method will return the mean spike rate,
+           as the total number of spikes divided by the total number of connected neurons and time duration
+            after selecting/excluding part of the detected spikes' events, depending on user inputs
+            Arguments:
+                dt: total time duration, Default = 1.0 (in msec)
+                neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                         Default = None, corresponds to all neurons found as senders of events.
+                times: collection (list, tuple, array) of times the events of which should be included in the output.
+                         Default = None, corresponds to all events' times.
+                exclude_neurons: collection (list, tuple, array) of neurons
+                                 the events of which should be excluded from the output. Default = [].
+                exclude_times: collection (list, tuple, array) of times
+                               the events of which should be excluded from the output. Default = [].
+            Returns:
+              float: total number of spikes divided by the total number of connected neurons
+        """
         return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
 
     def get_spikes_times_by_neurons(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[],
                                     full_senders=False):
+        """This method will return the spikes' times per neuron,
+             after selecting/excluding part of the detected spikes' events, depending on user inputs
+             Arguments:
+                 neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                          Default = None, corresponds to all neurons found as senders of events.
+                 times: collection (list, tuple, array) of times the events of which should be included in the output.
+                          Default = None, corresponds to all events' times.
+                 exclude_neurons: collection (list, tuple, array) of neurons
+                                  the events of which should be excluded from the output. Default = [].
+                 exclude_times: collection (list, tuple, array) of times
+                                the events of which should be excluded from the output. Default = [].
+                full_senders: if True, we include neurons' indices that have sent no spike at all. Default=False
+             Returns:
+               dictionary of spike events sorted by sender neuron
+         """
         sorted_events = sort_events_by_x_and_y(self.events, x="senders", y="times",
                                                filter_x=neurons, filter_y=times,
                                                exclude_x=exclude_neurons, exclude_y=exclude_times)
@@ -338,36 +554,73 @@ class SpikeDetector(OutputDevice):
             return sorted_events
 
     def get_spikes_neurons_by_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+        """This method will return the spikes' senders per spike time,
+             after selecting/excluding part of the detected spikes' events, depending on user inputs
+             Arguments:
+                 neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
+                          Default = None, corresponds to all neurons found as senders of events.
+                 times: collection (list, tuple, array) of times the events of which should be included in the output.
+                          Default = None, corresponds to all events' times.
+                 exclude_neurons: collection (list, tuple, array) of neurons
+                                  the events of which should be excluded from the output. Default = [].
+                 exclude_times: collection (list, tuple, array) of times
+                                the events of which should be excluded from the output. Default = [].
+             Returns:
+               dictionary of spike events sorted by time
+         """
         return sort_events_by_x_and_y(self.events, x="times", y="senders",
                                       filter_x=times, filter_y=neurons,
                                       exclude_x=exclude_times, exclude_y=exclude_neurons)
 
     @property
     def spikes_times(self):
+        """This method will return spikes' times in an array"""
         return self.times
 
     @property
     def spikes_senders(self):
+        """This method will return spikes' sender neurons in an array"""
         return self.senders
 
     @property
     def number_of_spikes(self):
+        """This method will return the total number (int) of spike events"""
         return self.number_of_events
 
     @property
     def mean_number_of_spikes(self):
+        """This method will return the total number of spikes divided by the total number of connected neurons"""
         return self.get_mean_number_of_spikes()
 
     @property
     def spikes_rate(self):
+        """This method will return the mean spike rate (float) as the
+           total number of spikes divided by the total number of connected neurons, assuimng a duration of 1 ms
+        """
         return self.get_spikes_rate()
 
-    # The following properties are computed across time:
+    # The following attributes are computed across time:
 
-    def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
+    def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
                                         spikes_kernel=None, mode="per_neuron",
                                         name=None, **kwargs):
+        """
+        This method computes spike rate across time.
+        Arguments:
+         time: the time vector
+         spikes_kernel_width: float: the width of the sliding window kernel in ms
+         spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points
+         spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
+         mode: if "per_neuron" the output is returned for each neuron separetely.
+               Otherwise, it is computed across all neurons. Default = "per_neuron"
+         name: name of the data to be computed. Default = None,
+               which defaults to device_model_name + " - Total spike rate across time"
+        Returns:
+         xarray.DataArray with spike rates' time series
+        """
         if spikes_kernel is None:
+            if spikes_kernel_width_in_points is None:
+                spikes_kernel_width_in_points = np.maximum(1, int(np.ceil(spikes_kernel_width / np.diff(time))))
             # Default spikes' kernel is just a rectangular one, normalized with its width.
             spikes_kernel = np.ones((spikes_kernel_width_in_points, )) / spikes_kernel_width
 
@@ -403,14 +656,29 @@ class SpikeDetector(OutputDevice):
 
     def compute_mean_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                              spikes_kernel=None, name=None, **kwargs):
+        """
+        This method computes mean spike rate across time
+        by dividing the total spike rate with the total number of neurons.
+        Arguments:
+         time: the time vector
+         spikes_kernel_width: float: the width of the sliding window kernel in ms
+         spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points
+         spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
+         mode: if "per_neuron" the output is returned for each neuron separetely.
+               Otherwise, it is computed across all neurons. Default = "per_neuron"
+         name: name of the data to be computed. Default = None,
+               which defaults to device_model_name + " - Mean spike rate accross time"
+        Returns:
+         xarray.DataArray with spike rates' time series
+        """
         if name is None:
             name = self.model + " - Mean spike rate accross time"
-        n_neurons = self.get_number_of_neurons(**kwargs)
+        n_neurons = self.get_number_of_connections(**kwargs)
         if n_neurons > 0:
             return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
                                                         spikes_kernel, "total", name, **kwargs) / n_neurons
         else:
-            return 0.0 * time
+            return xr.DataArray(0.0 * time, dims=["Time"], coords={"Time": time}, name=name)
 
 
 class Multimeter(OutputDevice):
@@ -423,10 +691,12 @@ class Multimeter(OutputDevice):
     @property
     @abstractmethod
     def record_from(self):
+        """This method returns a list of the recorded variabls of the device"""
         pass
 
     @property
     def time(self):
+        """This method returns the time vector (array) of the device."""
         return np.unique(self.times)
 
     def _determine_variables(self, variables=None):
@@ -620,12 +890,12 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
     def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
 
-    # The following properties are time summaries without taking into consideration spike timing:
+    # The following attributes are time summaries without taking into consideration spike timing:
 
     def get_mean_spikes_activity(self, neurons=None, exclude_neurons=[]):
         # This method returns mean activity by adding spike weights
         # and dividing by the total number of neurons, after optional filtering
-        n_neurons = self.get_number_of_neurons(neurons, exclude_neurons)
+        n_neurons = self.get_number_of_connections(neurons, exclude_neurons)
         if n_neurons > 0:
             return np.sum(self.get_spikes_weights(neurons, exclude_neurons)) / n_neurons
         else:
@@ -671,7 +941,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
     def total_spikes_activity(self):
         return self.get_total_spikes_activity()
 
-    # The following properties are computed across time:
+    # The following attributes are computed across time:
 
     def compute_spikes_activity_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
                                             spikes_kernel=None, mode="per_neuron",
@@ -719,7 +989,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                                                  spikes_kernel=None, name=None, **kwargs):
         if name is None:
             name = self.model + " - Mean spike activity accross time"
-        n_neurons = self.get_number_of_neurons(**kwargs)
+        n_neurons = self.get_number_of_connections(**kwargs)
         if n_neurons > 0:
             return self.compute_spikes_activity_across_time(time, spike_kernel_width, spikes_kernel,
                                                             "total", name, **kwargs) / n_neurons
@@ -805,11 +1075,11 @@ class DeviceSet(pd.Series):
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
     @property
-    def number_of_neurons(self):
-        number_of_neurons = self.do_for_all_devices("number_of_neurons")
-        if len(number_of_neurons) == 0:
-            number_of_neurons = 0
-        return number_of_neurons
+    def number_of_connections(self):
+        number_of_connections = self.do_for_all_devices("number_of_connections")
+        if len(number_of_connections) == 0:
+            number_of_connections = 0
+        return number_of_connections
 
     @property
     def times(self):
@@ -887,7 +1157,7 @@ class DeviceSet(pd.Series):
     def Set(self, value_dict, nodes=None):
         # A method to set attributes to all devices of the set
         # TODO: find a nice way to treat arrays or lists attributes.
-        #  Some NEST device parameters have to be arrays and some scalars,
+        #  Some NEST device attributes have to be arrays and some scalars,
         #  but we don't know what is what beforehand...
         def get_scalar_dict1(din, index):
             dout = dict()
