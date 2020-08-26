@@ -17,9 +17,9 @@ from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
 
-from tvb_multiscale.core.tests.test_models import model_params_wc, model_params_redww_exc_io, model_params_redww_exc_io_inn_i
+from tvb_multiscale.tests.core.test_models import model_params_wc, model_params_redww_exc_io, model_params_redww_exc_io_inn_i
 
-from tvb_multiscale.core.tests.test_models import test_models as test_models_base
+from tvb_multiscale.tests.core.test_models import test_models as test_models_base
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
