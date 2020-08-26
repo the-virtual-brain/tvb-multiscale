@@ -13,7 +13,7 @@ from tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
 
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
-from tvb_multiscale.core.examples.plot_write_results import plot_write_results
+from tvb_multiscale.core.io.plot_write_results import plot_write_results
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
