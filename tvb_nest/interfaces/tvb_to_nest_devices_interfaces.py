@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from tvb_multiscale.interfaces.tvb_to_spikeNet_device_interface import TVBtoSpikeNetDeviceInterface
+from tvb_multiscale.core.interfaces.tvb_to_spikeNet_device_interface import TVBtoSpikeNetDeviceInterface
 
 
 # Each interface has its own set(values) method, depending on the underlying device:

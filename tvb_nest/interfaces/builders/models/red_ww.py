@@ -2,7 +2,7 @@
 
 from tvb_nest.interfaces.builders.models.default import DefaultMultiSynapseInterfaceBuilder
 from tvb_nest.interfaces.models import RedWWexcIO, RedWWexcIOinhI
-from tvb_multiscale.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
+from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
 class RedWWexcIOBuilder(DefaultMultiSynapseInterfaceBuilder):

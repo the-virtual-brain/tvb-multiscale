@@ -6,7 +6,7 @@ import numpy as np
 
 from tvb_nest.config import CONFIGURED
 from tvb_nest.nest_models.builders.base import NESTModelBuilder
-from tvb_multiscale.spiking_models.builders.templates import random_normal_weight, random_uniform_delay, \
+from tvb_multiscale.core.spiking_models.builders.templates import random_normal_weight, random_uniform_delay, \
     random_normal_tvb_weight, random_uniform_tvb_delay, receptor_by_source_region
 
 

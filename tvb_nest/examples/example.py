@@ -9,18 +9,13 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_nest.config import Config, CONFIGURED
-from tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
-from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCowanMultisynapseBuilder
-from tvb_nest.interfaces.builders.models.red_ww import RedWWexcIOBuilder, RedWWexcIOinhIBuilder
+from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
 from tvb_nest.interfaces.builders.models.wilson_cowan import \
-    WilsonCowanBuilder as InterfaceWilsonCowanBuilder, \
-    WilsonCowanMultisynapseBuilder as InterfaceWilsonCowanMultisynapseBuilder
-from tvb_multiscale.tvb.simulator_builder import SimulatorBuilder
-from tvb_multiscale.examples.plot_write_results import plot_write_results
-from tvb_multiscale.plot.plotter import Plotter
+    WilsonCowanBuilder as InterfaceWilsonCowanBuilder
+from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
+from tvb_multiscale.core.examples.plot_write_results import plot_write_results
+from tvb_multiscale.core.plot.plotter import Plotter
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 

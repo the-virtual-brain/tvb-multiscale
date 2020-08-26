@@ -3,7 +3,7 @@
 from tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_nest.nest_models.builders.nest_factory import load_nest
 
-from tvb_multiscale.spiking_models.network import SpikingNetwork
+from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
 LOG = initialize_logger(__name__)

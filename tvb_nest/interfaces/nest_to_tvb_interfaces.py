@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tvb_multiscale.interfaces.spikeNet_to_tvb_interface import SpikeNetToTVBinterface
+from tvb_multiscale.core.interfaces.spikeNet_to_tvb_interface import SpikeNetToTVBinterface
 
 
 class NESTtoTVBinterface(SpikeNetToTVBinterface):
