@@ -1,120 +1,277 @@
 # -*- coding: utf-8 -*-
-from abc import ABCMeta, abstractmethod
-from pandas import Series, unique
-
-import numpy as np
+from six import string_types
+from pandas import Series
 
 from tvb_multiscale.config import initialize_logger, LINE
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple, extract_integer_intervals
+from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator
 
 
 LOG = initialize_logger(__name__)
 
 
 class SpikingRegionNode(Series):
-    __metaclass__ = ABCMeta
 
-    # This is an indexed mapping between populations labels and the
-    # indices of neurons belonging to the corresponding populations
-    label = ""
+    """This is an indexed mapping between populations labels and
+       the neuronal populations residing at a specific brain region node,
+       based on inheriting pandas.Series class"""
+
+    label = ""   # the region node label
+    _number_of_neurons = 0
+
+    # Default attributes' labels:
+    _weight_attr = "weight"
+    _delay_attr = "delay"
+    _receptor_attr = "receptor_type"
 
     def __init__(self, label="", input_node=Series()):
         self.label = str(label)
         super(SpikingRegionNode, self).__init__(input_node)
-
-    def __getitem__(self, keys):
-        # return the neurons' indices/handles of specific populations (keys) of this RegionNode
-        return flatten_tuple(super(SpikingRegionNode, self).__getitem__(keys))
+        self._number_of_neurons = self.number_of_neurons
 
     def __str__(self):
         populations = ""
         for pop in self.populations:
-            neurons = self.neurons(pop)
-            populations += LINE + \
-                "Label: %s, %d neurons: %s" \
-                "\nunique connections' weights: %s, " \
-                "\nunique connections' delays: %s, " \
-                "\nunique connections' receptors: %s" % \
-                           (pop, len(neurons), extract_integer_intervals(neurons, print=True),
-                 str(self.get_node_weight(pop)),
-                 str(self.get_node_delay(pop)),
-                 str(self.get_node_receptors(pop)))
-        return "Node Label: %s\n Populations: %s" % (self.label, populations)
+            populations += str(self[pop])
+        return LINE + "Node Label: %s\n Populations: %s" % (self.label, populations)
 
-    # Methods to get or set methods for devices or their connections:
+    # Methods to get or set attributes for neurons and/or their connections:
 
-    @abstractmethod
-    def Get(self, params=None, indices_or_keys=None):
-        pass
+    def _loop_generator(self, pop_inds_or_lbls=None):
+        """Method to create a generator looping through the SpikingPopulation objects
+         and returning the indice, the label, and the SpikingPopulation itself.
+            Arguments:
+             pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                               Default = None, corresponds to all populations of the region node.
+            Returns:
+             The generator object
+         """
+        return series_loop_generator(self, pop_inds_or_lbls)
 
-    @abstractmethod
-    def Set(self, values_dict, indices_or_keys=None):
-        pass
+    def get_neurons(self, pop_inds_or_lbls=None):
+        """Method to get the neurons of the SpikingRegionNode's populations.
+           Argument:
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the SpikingRegionNode.
+           Returns:
+            tuple of neurons."""
+        output = ()
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            output += tuple(pop.neurons)
+        return output
 
-    @abstractmethod
-    def _get_connections(self, neuron):
-        pass
+    def get_number_of_neurons(self, pop_inds_or_lbls=None):
+        return len(self.get_neurons(pop_inds_or_lbls))
 
-    @abstractmethod
-    def GetFromConnections(self, connections, attr=None):
-        pass
+    def Set(self, values_dict, pop_inds_or_lbls=None):
+        """Method to set attributes of the SpikingRegionNode's populations' neurons.
+           Arguments:
+            values_dict: dictionary of attributes names' and values.
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the region node.
+        """
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            pop.Set(values_dict)
 
-    @abstractmethod
-    def SetToConnections(self, connections, values_dict):
-        pass
+    def Get(self, attrs=None, pop_inds_or_lbls=None, summary=False):
+        """Method to get attributes of the SpikingRegionNode's populations' neurons.
+           Arguments:
+            attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                             Default = None, corresponds to all populations of the region node.
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Series of arrays of populations' neurons' attributes.
+        """
+        output = Series()
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            output[lbl] = pop.Get(attrs, summary=summary)
+        return output
+
+    def get_attributes(self, pop_inds_or_lbls=None, summary=False):
+        """Method to get all attributes of the SpikingRegionNode's populations' neurons.
+           Arguments:
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                             Default = None, corresponds to all populations of the region node.
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Series of arrays of populations' neurons' attributes.
+        """
+        return self.Get(pop_inds_or_lbls=pop_inds_or_lbls, summary=summary)
+
+    def GetConnections(self, pop_inds_or_lbls=None, source_or_target=None):
+        """Method to get the connections of the SpikingRegionNode's populations.
+           Argument:
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the SpikingRegionNode.
+            source_or_target: Direction of connections relative to the region's neurons
+                              "source", "target" or None (Default; corresponds to both source and target)
+           Returns:
+            Series of connections.
+        """
+        output = Series()
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            output[lbl] = pop.GetConnections(source_or_target=source_or_target)
+        return output
+
+    def SetToConnections(self, values_dict, pop_inds_or_lbls=None, source_or_target=None):
+        """Method to set attributes of the connections from/to the SpikingRegionNode's populations.
+           Arguments:
+            values_dict: dictionary of attributes names' and values.
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the SpikingRegionNode.
+            source_or_target: Direction of connections relative to the region's neurons
+                              "source", "target" or None (Default; corresponds to both source and target)
+        """
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            pop.SetToConnections(values_dict, source_or_target=source_or_target)
+
+    def GetFromConnections(self, attrs=None, pop_inds_or_lbls=None, source_or_target=None, summary=None):
+        """Method to get attributes of the connections from/to the SpikingRegionNode's populations.
+           Arguments:
+            attrs: collection (list, tuple, array) of the attributes to be included in the output.
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the SpikingRegionNode.
+            source_or_target: Direction of connections relative to the region's neurons
+                              "source", "target" or None (Default; corresponds to both source and target)
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Series of arrays of connections' attributes.
+        """
+        output = Series()
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            output[lbl] = pop.GetFromConnections(attrs, source_or_target=source_or_target, summary=summary)
+        return output
+
+    def get_weights(self, pop_inds_or_lbls=None, source_or_target=None, summary=None):
+        """Method to get the connections' weights of the SpikingRegionNode's neurons.
+           Argument:
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the SpikingRegionNode.
+            source_or_target: Direction of connections relative to the region's neurons
+                              "source", "target" or None (Default; corresponds to both source and target)
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Series of populations' neurons' weights.
+        """
+        return self.GetFromConnections(self._weight_attr, pop_inds_or_lbls, source_or_target, summary)
+
+    def get_delays(self, pop_inds_or_lbls=None, source_or_target=None, summary=None):
+        """Method to get the connections' delays of the SpikingRegionNode's neurons.
+           Argument:
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                              Default = None, corresponds to all populations of the SpikingRegionNode.
+            source_or_target: Direction of connections relative to the region's neurons
+                              "source", "target" or None (Default; corresponds to both source and target)
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Series of populations' neurons' delays.
+        """
+        return self.GetFromConnections(self._delay_attr, pop_inds_or_lbls, source_or_target, summary)
+
+    def get_receptors(self, pop_inds_or_lbls=None, source_or_target=None, summary=None):
+        """Method to get the connections' receptors of the SpikingRegionNode's neurons.
+           Argument:
+            pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
+                               Default = None, corresponds to all populations of the SpikingRegionNode.
+            source_or_target: Direction of connections relative to the region's neurons
+                              "source", "target" or None (Default; corresponds to both source and target)
+            summary: if integer, return a summary of unique output values
+                                 within accuracy of the specified number of decimal digits
+                     otherwise, if it is not None or False return
+                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                     or a list of unique string entries for all other attributes,
+                     Default = None, corresponds to returning all values
+           Returns:
+            Series of populations' neurons' receptors.
+        """
+        return self.GetFromConnections(self._receptor_attr, pop_inds_or_lbls, source_or_target, summary)
 
     @property
     def node(self):
+        """Method to return self (SpikingRegionNode)."""
         return self
 
     @property
     def populations(self):
+        """Method to get the list of populations' labels of the SpikingRegionNode.
+           Returns:
+            list of populations' labels.
+        """
         return list(self.index)
 
-    def neurons(self, indices_or_keys=None):
-        # Return the neurons of this region...
-        if indices_or_keys is None:
-            # ...either of all populations...
-            return flatten_tuple(self)
-        else:
-            # ...or of selected ones:
-            return self.__getitem__(indices_or_keys)
+    @property
+    def neurons(self):
+        """Method to get the neurons of the SpikingRegionNode's populations.
+           Returns:
+            tuple of neurons."""
+        return self.get_neurons()
 
     @property
     def number_of_neurons(self):
-        return len(self.neurons())
+        """Method to get the total number of neurons of the SpikingRegionNode's populations,
+           and for setting the respective protected property."""
+        if self._number_of_neurons is None or self._number_of_neurons == 0:
+            self._number_of_neurons = self.get_number_of_neurons()
+        return self._number_of_neurons
 
-    def get_connections(self, indices_or_keys=None):
-        # Return the neurons of this region...
-        # ...either of all populations...
-        # ...or of selected ones:
-        connections = []
-        for neuron in self.neurons(indices_or_keys):
-            connections.append(self._get_connections(neuron))
-        return tuple(connections)
+    @property
+    def attributes(self):
+        return self.get_attributes()
 
     @property
     def connections(self):
-        return self.get_connections()
+        """Method to get the connections of the SpikingRegionNode's neurons.
+           Returns:
+            Series of connections.
+        """
+        return self.GetConnections()
 
-    def get_weights(self, pop=None):
-        return np.array([self.GetFromConnections(conn, "weight")
-                         for conn in self.get_connections(pop)]).flatten()
+    @property
+    def weights(self):
+        """Method to get the connections' weights of the SpikingRegionNode's neurons.
+           Returns:
+            Series of populations' neurons' weights.
+        """
+        return self.get_weights()
 
-    def get_delays(self, pop=None):
-        return np.array([self.GetFromConnections(conn, "delay")
-                         for conn in self.get_connections(pop)]).flatten()
+    @property
+    def delays(self):
+        """Method to get the connections' delays of the SpikingRegionNode's neurons.
+           Returns:
+            Series of populations' neurons' delays.
+        """
+        return self.get_delays()
 
-    def get_receptors(self, pop=None):
-        return np.array([self.GetFromConnections(conn, "receptor")
-                         for conn in self.get_connections(pop)]).flatten()
-
-    def get_node_weight(self, pop=None):
-        return unique(np.around(self.get_weights(pop), decimals=3)).tolist()
-
-    def get_node_delay(self, pop=None):
-        return unique(np.around(self.get_delays(pop), decimals=3)).tolist()
-
-    def get_node_receptors(self, pop=None):
-        return unique(self.get_receptors(pop)).tolist()  # pd.unique is faster than np.unique
+    @property
+    def receptors(self):
+        """Method to get the connections' receptors of the SpikingRegionNode's neurons.
+           Returns:
+            Series of populations' neurons' receptors.
+        """
+        return self.get_receptors()
