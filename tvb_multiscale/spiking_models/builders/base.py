@@ -50,7 +50,8 @@ class SpikingModelBuilder(object):
     _nodes_connections = []
     _output_devices = []
     _input_devices = []
-    nodes = []
+    _nodes = Series()
+    _models = []
 
     def __init__(self, tvb_simulator, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
         self.config = config
@@ -63,6 +64,7 @@ class SpikingModelBuilder(object):
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
         self.monitor_period = tvb_simulator.monitors[-1].period
         self.population_order = 100
+        self._models = []
 
     @abstractmethod
     def build_spiking_populations(self, model, size, params, *args, **kwargs):
@@ -288,7 +290,6 @@ class SpikingModelBuilder(object):
         # "scale" and "parameters" can be given as functions.
         # This configuration will make confirm user inputs
         # and set the two properties above as functions of node index
-        self.models = []
         self.populations_labels = []
         _populations = []
         for i_pop, population in enumerate(self.populations):
@@ -299,11 +300,11 @@ class SpikingModelBuilder(object):
             self.populations_labels.append(_populations[-1]["label"])
             if _populations[-1]["nodes"] is None:
                 _populations[-1]["nodes"] = self.spiking_nodes_ids
-            self.models.append(_populations[-1]["model"])
+            self._models.append(_populations[-1]["model"])
             _populations[-1]["scale"] = property_to_fun(_populations[-1]["scale"])
             _populations[-1]["params"] = property_to_fun(_populations[-1]["params"])
         self.populations_labels = np.unique(self.populations_labels).tolist()
-        self.models = np.unique(self.models).tolist()
+        self._models = np.unique(self._models).tolist()
         self._populations = _populations
         return self._populations
 
@@ -329,6 +330,8 @@ class SpikingModelBuilder(object):
             _connections.append(temp_conn)
             for prop in ["weight", "delay", "receptor_type"]:
                 _connections[i_con][prop] = property_to_fun(_connections[i_con][prop])
+            self._models.append(_connections[i_con]["model"])
+        self._models = np.unique(self._models).tolist()
         return _connections
 
     def _configure_populations_connections(self):
@@ -405,17 +408,17 @@ class SpikingModelBuilder(object):
         return self.default_synaptic_weight_scaling(weights, number_of_connections)
 
     def build_spiking_nodes(self, *args, **kwargs):
-        self.nodes = Series()
+        self._nodes = Series()
         # For every Spiking node
         for node_id, node_label in zip(self.spiking_nodes_ids, self.spiking_nodes_labels):
-            self.nodes[node_label] = self.build_spiking_region_node(node_label)
+            self._nodes[node_label] = self.build_spiking_region_node(node_label)
             # ...and every population in it...
             for iP, population in enumerate(self._populations):
                 # ...if this population exists in this node...
                 if node_id in population["nodes"]:
                     # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
-                    self.nodes[node_label][population["label"]] = \
+                    self._nodes[node_label][population["label"]] = \
                         self.build_spiking_populations(population["model"], size,
                                                        params=population["params"](node_id),
                                                        *args, **kwargs)
@@ -446,8 +449,8 @@ class SpikingModelBuilder(object):
             for node_index in conn["nodes"]:
                 i_node = np.where(self.spiking_nodes_ids == node_index)[0][0]
                 self._connect_two_populations(
-                    self._get_node_populations_neurons(self.nodes[i_node], conn["source"]),
-                    self._get_node_populations_neurons(self.nodes[i_node], conn["target"]),
+                    self._get_node_populations_neurons(self._nodes[i_node], conn["source"]),
+                    self._get_node_populations_neurons(self._nodes[i_node], conn["target"]),
                     conn['conn_spec'],
                     self._set_syn_spec(conn["model"], conn['weight'](node_index),
                                        self._assert_within_node_delay(conn['delay'](node_index)),
@@ -461,11 +464,11 @@ class SpikingModelBuilder(object):
             # ...form the connection for every distinct pair of Spiking nodes
             for source_index in conn["source_nodes"]:
                 i_source_node = np.where(self.spiking_nodes_ids == source_index)[0][0]
-                src_pop = self._get_node_populations_neurons(self.nodes[i_source_node], conn["source"])
+                src_pop = self._get_node_populations_neurons(self._nodes[i_source_node], conn["source"])
                 for target_index in conn["target_nodes"]:
                     if source_index != target_index:
                         i_target_node = np.where(self.spiking_nodes_ids == target_index)[0][0]
-                        trg_pop = self._get_node_populations_neurons(self.nodes[i_target_node], conn["target"])
+                        trg_pop = self._get_node_populations_neurons(self._nodes[i_target_node], conn["target"])
                         self._connect_two_populations(
                             src_pop, trg_pop,
                             conn['conn_spec'],

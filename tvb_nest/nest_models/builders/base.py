@@ -26,6 +26,7 @@ class NESTModelBuilder(SpikingModelBuilder):
     nest_instance = None
     default_min_spiking_dt = CONFIGURED.NEST_MIN_DT
     default_min_delay = CONFIGURED.NEST_MIN_DT
+    modules_to_install = []
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
         super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
@@ -56,41 +57,49 @@ class NESTModelBuilder(SpikingModelBuilder):
         self.nest_instance.set_verbosity(self.config.NEST_VERBOCITY)  # don't print all messages from NEST
         self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt, "print_time": self.config.NEST_PRINT_TIME})
 
-    def _confirm_compile_install_nest_models(self, models):
-        # TODO: Find out why modules_to_install=[] gets mysteriously populated...
+    def _compile_install_nest_module(self, module):
+        if module[-6:] == "module":
+            module_name = module.split("module")[0]
+        else:
+            module_name = module
+            module = module + "module"
+        self.logger.info("Compiling module %s!" % module_name)
+        # ...unless we need to first compile it:
+        compile_modules(module_name, recompile=False, config=self.config)
+        # and now install it...
+        self.logger.info("Installing now module %s..." % module)
+        self.nest_instance.Install(module)
+        self.logger.info("DONE installing module %s!" % module)
+
+    def compile_install_nest_modules(self, modules):
+        if len(self.modules_to_install) > 0:
+            self.logger.info("Starting to compile modules %s!" % str(self.modules_to_install))
+            while len(self.modules_to_install) > 0:
+                self._compile_install_nest_module(self.modules_to_install.pop())
+
+    def confirm_compile_install_nest_models(self, models):
         nest_models = self.nest_instance.Models()
         models = ensure_list(models)
-        # modules_to_install = []  # ensure_list(modules_to_install)
-        # if len(modules_to_install) == 0:
-        # for model in models:
-        # # Assuming default naming for modules_to_install as modelmodule:
-        #     modules_to_install.append("%smodule" % model)
         for model in models:  # , module # zip(models, cycle(modules_to_install)):
             if model not in nest_models:
-                module = "%smodule" % model  # Working only with the default name for the moment
+                # Working only with the default name for the moment
+                module = "%smodule" % model
                 try:
                     # Try to install it...
                     self.logger.info("Trying to install module %s..." % module)
                     self.nest_instance.Install(module)
                 except:
                     self.logger.info("FAILED! We need to first compile it!")
-                    # ...unless we need to first compile it:
-                    compile_modules(model, recompile=False, config=self.config)
-                    # and now install it...
-                    self.logger.info("Installing now module %s..." % module)
-                    self.nest_instance.Install(module)
-                    self.logger.info("DONE installing module %s!" % module)
+                    self._compile_install_nest_module(module)
                 nest_models = self.nest_instance.Models()
                 del module
         # del modules_to_install
 
-    def _configure_populations(self):
-        super(NESTModelBuilder, self)._configure_populations()
-        self._confirm_compile_install_nest_models(self.models)
-
     def configure(self):
         self._configure_nest_kernel()
         super(NESTModelBuilder, self).configure()
+        self.compile_install_nest_modules(self.modules_to_install)
+        self.confirm_compile_install_nest_models(self._models)
 
     @property
     def min_delay(self):
@@ -182,8 +191,8 @@ class NESTModelBuilder(SpikingModelBuilder):
 
     def build_and_connect_devices(self, devices):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         self.nodes, self.config, nest_instance=self.nest_instance)
+                                         self._nodes, self.config, nest_instance=self.nest_instance)
 
     def build(self):
-        return NESTNetwork(self.nest_instance, self.nodes,
+        return NESTNetwork(self.nest_instance, self._nodes,
                            self._output_devices, self._input_devices, config=self.config)
