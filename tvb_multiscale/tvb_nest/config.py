@@ -2,7 +2,7 @@
 
 import os
 
-from tvb_utils.log_utils import initialize_logger as initialize_logger_base
+from tvb_multiscale.core.log_utils import initialize_logger as initialize_logger_base
 
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.config import DEFAULT_SUBJECT_PATH
