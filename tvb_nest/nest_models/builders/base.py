@@ -63,37 +63,32 @@ class NESTModelBuilder(SpikingModelBuilder):
         else:
             module_name = module
             module = module + "module"
-        self.logger.info("Compiling module %s!" % module_name)
-        # ...unless we need to first compile it:
-        compile_modules(module_name, recompile=False, config=self.config)
-        # and now install it...
-        self.logger.info("Installing now module %s..." % module)
-        self.nest_instance.Install(module)
-        self.logger.info("DONE installing module %s!" % module)
+        try:
+            # Try to install it...
+            self.logger.info("Trying to install module %s..." % module)
+            self.nest_instance.Install(module)
+            self.logger.info("DONE installing module %s!" % module)
+        except:
+            self.logger.info("FAILED! We need to first compile it!")
+            # ...unless we need to first compile it:
+            compile_modules(module_name, recompile=False, config=self.config)
+            # and now install it...
+            self.logger.info("Installing now module %s..." % module)
+            self.nest_instance.Install(module)
+            self.logger.info("DONE installing module %s!" % module)
 
-    def compile_install_nest_modules(self, modules):
-        if len(self.modules_to_install) > 0:
-            self.logger.info("Starting to compile modules %s!" % str(self.modules_to_install))
-            while len(self.modules_to_install) > 0:
-                self._compile_install_nest_module(self.modules_to_install.pop())
+    def compile_install_nest_modules(self, modules_to_install):
+        if len(modules_to_install) > 0:
+            self.logger.info("Starting to compile modules %s!" % str(modules_to_install))
+            while len(modules_to_install) > 0:
+                self._compile_install_nest_module(modules_to_install.pop())
 
     def confirm_compile_install_nest_models(self, models):
         nest_models = self.nest_instance.Models()
         models = ensure_list(models)
         for model in models:  # , module # zip(models, cycle(modules_to_install)):
             if model not in nest_models:
-                # Working only with the default name for the moment
-                module = "%smodule" % model
-                try:
-                    # Try to install it...
-                    self.logger.info("Trying to install module %s..." % module)
-                    self.nest_instance.Install(module)
-                except:
-                    self.logger.info("FAILED! We need to first compile it!")
-                    self._compile_install_nest_module(module)
-                nest_models = self.nest_instance.Models()
-                del module
-        # del modules_to_install
+                self._compile_install_nest_module(model)
 
     def configure(self):
         self._configure_nest_kernel()
@@ -161,19 +156,6 @@ class NESTModelBuilder(SpikingModelBuilder):
             raise_value_error("Coupling spiking neurons with delay = %s < NEST integration step = %f is not possible!:"
                               "\n" % (str(delay), self.spiking_dt))
         return delay
-
-    def _assert_within_node_delay(self, delay):
-        max_delay = self._get_max_delay(delay)
-        if max_delay > self.tvb_dt / 2:
-            if max_delay > self.tvb_dt:
-                raise ValueError("Within Spiking nodes delay %s is not smaller "
-                                 "than the TVB integration time step %f!"
-                                 % (str(delay), self.tvb_dt))
-            else:
-                LOG.warning("Within Spiking nodes delay %s is not smaller "
-                            "than half the TVB integration time step %f!"
-                            % (str(delay), self.tvb_dt))
-        return self._assert_delay(delay)
 
     def connect_two_populations(self, source, target, conn_spec, syn_spec):
         syn_spec["model"] = self._assert_synapse_model(syn_spec["model"], syn_spec["delay"])
