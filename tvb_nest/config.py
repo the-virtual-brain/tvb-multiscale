@@ -43,6 +43,7 @@ class Config(ConfigBase):
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"model": "static_synapse", "weight": 1.0, "delay": 0.01, 'receptor_type': 0,
+                          "source_inds": None, "target_inds": None,
                           "conn_spec": {"autapses": True, 'multapses': True, 'rule': "all_to_all",
                                         "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
