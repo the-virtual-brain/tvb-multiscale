@@ -64,8 +64,11 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     print(nest_network)
     print("Done! in %f min" % ((time.time() - tic) / 60))
     nest_network.nest_instance.Prepare()
+    print("Simulating only NEST!...")
+    tic = time.time()
     nest_network.nest_instance.Run(simulation_length)
     nest_network.nest_instance.Cleanup()
+    print("Done! in %f min" % ((time.time() - tic) / 60))
 
     # # -----------------------------------3. Build the TVB-NEST interface model ---------------------------------------
     #
