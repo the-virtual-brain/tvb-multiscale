@@ -64,7 +64,9 @@ class SpikingPopulation(object):
         return extract_integer_intervals(self.neurons, print=print)
 
     def __str__(self):
-        conn_attrs = self.GetFromConnections(attrs=["weight", "delay", "receptor"], summary=3)
+        conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
+                                             summary=3)
+        print(conn_attrs)
         return LINE + \
                "Label: %s, %d neurons: %s" \
                "\nparameters: %s," \
@@ -73,9 +75,9 @@ class SpikingPopulation(object):
                "\nconnections' receptors: %s" % \
                           (self.label, self.number_of_neurons, self.summarize_neurons_indices(print=True),
                            str(self.get_attributes(summary=True)),
-                           str(conn_attrs["weight"]),
-                           str(conn_attrs["delay"]),
-                           str(conn_attrs["receptor"]))
+                           str(conn_attrs.get(self._weight_attr, "")),
+                           str(conn_attrs.get(self._delay_attr, "")),
+                           str(conn_attrs.get(self._receptor_attr, "")))
 
     # Methods to get or set attributes for neurons and/or their connections:
 
