@@ -12,7 +12,6 @@ from tvb_nest.nest_models.builders.nest_factory import \
     load_nest, compile_modules, create_conn_spec, create_device, connect_device
 from tvb_multiscale.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.spiking_models.builders.base import SpikingModelBuilder
-from tvb_nest.nest_models.brain import NESTBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -29,7 +28,7 @@ class NESTModelBuilder(SpikingModelBuilder):
     default_min_spiking_dt = CONFIGURED.NEST_MIN_DT
     default_min_delay = CONFIGURED.NEST_MIN_DT
     modules_to_install = []
-    _brain_nodes = NESTBrain()
+    _spiking_brain = NESTBrain()
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
         super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
@@ -39,7 +38,7 @@ class NESTModelBuilder(SpikingModelBuilder):
         else:
             self.nest_instance = load_nest(self.config, self.logger)
 
-        self._brain_nodes = NESTBrain()
+        self._spiking_brain = NESTBrain()
 
         # Setting NEST defaults from config
         self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
@@ -174,13 +173,13 @@ class NESTModelBuilder(SpikingModelBuilder):
         return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
                               label, model, self.nest_instance)
 
-    def build_spiking_region_node(self, label="", input_node=NESTRegionNode(), *args, **kwargs):
+    def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         return NESTRegionNode(label, input_node, self.nest_instance)
 
     def build_and_connect_devices(self, devices):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         self._brain_nodes, self.config, nest_instance=self.nest_instance)
+                                         self._spiking_brain, self.config, nest_instance=self.nest_instance)
 
     def build(self):
-        return NESTNetwork(self.nest_instance, self._brain_nodes,
+        return NESTNetwork(self.nest_instance, self._spiking_brain,
                            self._output_devices, self._input_devices, config=self.config)

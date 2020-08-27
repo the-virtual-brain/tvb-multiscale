@@ -18,7 +18,7 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
     # via input/stimulating devices that play the role of TVB region node proxies
 
     def __init__(self, spiking_network, name="", model="", dt=0.1, tvb_sv_id=None,
-                 nodes_ids=[], target_nodes=[], scale=np.array([1.0]), device_set=Series()):
+                 nodes_ids=[], target_nodes=[], scale=np.array([1.0]), device_set=None):
         super(TVBtoSpikeNetDeviceInterface, self).__init__(name, model, device_set)
         self.spiking_network = spiking_network
         self.dt = dt  # TVB time step
@@ -33,9 +33,10 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
         return "Name: %s, " \
                "TVB state variable indice: %d, " \
                "\nInterface weights: %s"  \
-               "\nTarget NEST Nodes indices:%s " \
-               "\nSource TVB Nodes:\n%s" % \
-               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()), str(list(self.target_nodes)),
+               "\nTarget NEST Nodes indices:\n%s " \
+               "\nSource TVB-'proxy' Nodes' devices:\n%s" % \
+               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()),
+                str(self.nodes_ids),
                 detailed_output)
 
     @property

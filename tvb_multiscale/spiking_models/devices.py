@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
+from six import string_types
 from collections import OrderedDict
 
 import pandas as pd
@@ -13,7 +14,7 @@ from tvb_utils.data_structures_utils import filter_neurons, filter_events, summa
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
-    sort_events_by_x_and_y, data_xarray_from_continuous_events, extract_integer_intervals
+    sort_events_by_x_and_y, data_xarray_from_continuous_events, extract_integer_intervals, is_integer
 from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
 
@@ -46,20 +47,20 @@ class Device(object):
         self.model = "device"  # the device model name
         self._number_of_connections = self.number_of_connections
 
-    def __str__(self):
-        neurons = self.neurons
-        return LINE + "Model: %s, gid: %d, " \
-              "\nparameters: %s, " \
-              "\nconnections to %d neurons: %s, " \
-              "\n  weights: %s," \
-              "\n  delays: %s," \
-              "\n  receptors: %s" % \
-               (self.model, self.device[0],
-                str(self.get_attributes()),
-                len(neurons), extract_integer_intervals(neurons, print=True),
-                str(self.get_weights(summary="stats")),
-                str(self.get_delays(summary="stats")),
-                str(self.get_receptors(summary=1)))
+    # def __str__(self):
+    #     neurons = self.neurons
+    #     return LINE + "Model: %s, gid: %d, " \
+    #           "\nparameters: %s, " \
+    #           "\nconnections to %d neurons: %s, " \
+    #           "\n  weights: %s," \
+    #           "\n  delays: %s," \
+    #           "\n  receptors: %s" % \
+    #            (self.model, self.device[0],
+    #             str(self.get_attributes()),
+    #             len(neurons), extract_integer_intervals(neurons, print=True),
+    #             str(self.get_weights(summary="stats")),
+    #             str(self.get_delays(summary="stats")),
+    #             str(self.get_receptors(summary=1)))
 
     @abstractmethod
     def _assert_device(self):
@@ -830,7 +831,7 @@ class Voltmeter(Multimeter):
         return self.get_mean_data()
 
     def current_data(self, neurons=None, exclude_neurons=[],
-                          name=None, dims_names=["Variable", "Neuron"]):
+                     name=None, dims_names=["Variable", "Neuron"]):
         return super(Voltmeter, self).current_data(self.var, neurons, exclude_neurons,
                                                    name, dims_names)
 
@@ -1016,7 +1017,7 @@ class DeviceSet(pd.Series):
 
     _number_of_connections = 0
 
-    def __init__(self, name="", model="", device_set=pd.Series(), **kwargs):
+    def __init__(self, name="", model="", device_set=None, **kwargs):
         super(DeviceSet, self).__init__(device_set, **kwargs)
         if np.any([not isinstance(device, Device) for device in self]):
             raise ValueError("Input device_set is not a Series of Device objects!:\n%s" %
@@ -1025,6 +1026,11 @@ class DeviceSet(pd.Series):
         self.model = str(model)
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+
+    def __getitem__(self, items):
+        if isinstance(items, string_types) or is_integer(items):
+            return super(DeviceSet, self).__getitem__(items)
+        return DeviceSet(name=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
 
     def __str__(self):
         detailed_output = ""

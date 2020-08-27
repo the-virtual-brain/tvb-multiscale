@@ -3,7 +3,8 @@ from six import string_types
 from pandas import Series
 
 from tvb_multiscale.config import initialize_logger, LINE
-from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator
+
+from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
 
 
 LOG = initialize_logger(__name__)
@@ -15,7 +16,6 @@ class SpikingRegionNode(Series):
        the neuronal populations residing at a specific brain region node,
        based on inheriting pandas.Series class"""
 
-    label = ""   # the region node label
     _number_of_neurons = 0
 
     # Default attributes' labels:
@@ -23,9 +23,8 @@ class SpikingRegionNode(Series):
     _delay_attr = "delay"
     _receptor_attr = "receptor"
 
-    def __init__(self, label="", input_node=None, **kwargs):
-        self.label = str(label)
-        super(SpikingRegionNode, self).__init__(input_node, **kwargs)
+    def __init__(self, label="", input_nodes=None, **kwargs):
+        super(SpikingRegionNode, self).__init__(input_nodes, name=label, **kwargs)
         self._number_of_neurons = self.number_of_neurons
 
     def __str__(self):
@@ -36,6 +35,16 @@ class SpikingRegionNode(Series):
 
     def __len__(self):
         return super(SpikingRegionNode, self).__len__()
+
+    def __getitem__(self, items):
+        if isinstance(items, string_types) or is_integer(items):
+            return super(SpikingRegionNode, self).__getitem__(items)
+        return SpikingRegionNode(label=self.label, input_nodes=super(SpikingRegionNode, self).__getitem__(items))
+
+    @property
+    def label(self):
+        """The region node label."""
+        return super(SpikingRegionNode, self).name
 
     # Methods to get or set attributes for neurons and/or their connections:
 

@@ -19,7 +19,7 @@ class SpikeNetToTVBinterface(DeviceSet):
     # via output/measuring devices
 
     def __init__(self, spiking_network, tvb_sv_id, name="", model="",
-                 nodes_ids=[], scale=array([1.0]), device_set=Series()):
+                 nodes_ids=[], scale=array([1.0]), device_set=None):
         super(SpikeNetToTVBinterface, self).__init__(name, model, device_set)
         self.spiking_network = spiking_network
         self.tvb_sv_id = tvb_sv_id  # The index of the TVB state variable linked to this interface
@@ -34,9 +34,10 @@ class SpikeNetToTVBinterface(DeviceSet):
         return "Name: %s, " \
                "TVB state variable indice: %d, " \
                "\nInterface weights: %s"  \
-               "\nTarget NEST Nodes indices:%s " \
-               "\nSource TVB Nodes:\n%s" % \
-               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()), str(list(self.nodes_ids)), detailed_output)
+               "\nSource NEST / Target TVB Nodes indices:%s " \
+               "\nInterface devices:\n%s" % \
+               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()),
+                str(self.nodes_ids), detailed_output)
 
     def from_device_set(self, device_set, name=None):
         if isinstance(device_set, DeviceSet):
