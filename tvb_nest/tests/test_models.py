@@ -118,9 +118,8 @@ class TestIzhikevichRedWWexcIO(TestModel):
 
 
 # @pytest.mark.skip(reason="These tests are taking too much time")
-def test_models(models_to_test=[
-                                # TestWilsonCowan, TestWilsonCowanMultisynapse,
-                                # TestIzhikevichRedWWexcIO,
+def test_models(models_to_test=[TestWilsonCowan, TestWilsonCowanMultisynapse,
+                                TestIzhikevichRedWWexcIO,
                                 TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO]):
     test_models_base(models_to_test=models_to_test)
 
