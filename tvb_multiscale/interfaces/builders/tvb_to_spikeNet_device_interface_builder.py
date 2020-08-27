@@ -111,11 +111,6 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
                                   target_nodes=target_nodes,
                                   scale=interface_weights,
                                   dt=self.tvb_dt).from_device_set(device, tvb_sv_id, name)
-            if len(source_tvb_nodes) * len(target_nodes) > 0:
-                # TODO: an assertion check to include dictionaries
-                # assert np.abs(np.max(tvb_to_spikeNet_interface[name].weights - weights)) < 0.001
-                # assert np.abs(np.max(tvb_to_spikeNet_interface[name].delays - delays)) < 1.0  # ms
-                assert np.abs(np.max(tvb_to_spikeNet_interface[interface_index].receptors - receptor_type)) < 1  # integers
         return tvb_to_spikeNet_interface
 
     def build(self):

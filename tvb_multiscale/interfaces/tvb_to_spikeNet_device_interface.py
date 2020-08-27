@@ -35,30 +35,12 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
                "\nInterface weights: %s"  \
                "\nTarget NEST Nodes indices:%s " \
                "\nSource TVB Nodes:\n%s" % \
-               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()), str(list(self.target_nodes)), detailed_output)
+               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()), str(list(self.target_nodes)),
+                detailed_output)
 
     @property
     def n_target_nodes(self):
         return len(self.target_nodes)
-
-    def _get_devices_properties(self, attr):
-        dummy = self.do_for_all_devices(attr)
-        shape = (self.n_target_nodes, int(len(dummy[0])/self.n_target_nodes))
-        for ii, dum in enumerate(dummy):
-            dummy[ii] = np.reshape(dum, shape).mean(axis=1)
-        return np.array(dummy)
-
-    @property
-    def weights(self):
-        return self._get_devices_properties("weights")
-
-    @property
-    def delays(self):
-        return self._get_devices_properties("delays")
-
-    @property
-    def receptors(self):
-        return self._get_devices_properties("receptors")
 
     def from_device_set(self, device_set, tvb_sv_id=0, name=None):
         # Generate the interface from a DeviceSet (that corresponds to a collection of devices => proxy-nodes)

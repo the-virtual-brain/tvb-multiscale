@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
 
 import numpy as np
 
@@ -20,17 +19,18 @@ class SpikingPopulation(object):
 
     """This is a class wraping around the neurons of a spiking population."""
 
-    label = ""  # label of population
-    model = ""  # label of neuronal model
-    neurons = None  # tuple of populations' neurons
+    label = ""    # label of population
+    model = ""    # label of neuronal model
+    neurons = ()  # tuple of populations' neurons
     _number_of_neurons = 0  # total number of populations' neurons
 
     # Default attributes' labels:
     _weight_attr = "weight"
     _delay_attr = "delay"
-    _receptor_attr = "receptor_type"
+    _receptor_attr = "receptor"
 
-    def __init__(self, label="", model="", *args, **kwargs):
+    def __init__(self, neurons, label="", model="", *args, **kwargs):
+        self.neurons = neurons
         self.label = str(label)
         self.model = str(model)
         self._number_of_neurons = self.number_of_neurons
@@ -143,6 +143,8 @@ class SpikingPopulation(object):
         """
         if neurons is None:
             neurons = self.neurons
+        if len(neurons) == 0:
+            return ()
         return filter_neurons(neurons, exclude_neurons)
 
     def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):

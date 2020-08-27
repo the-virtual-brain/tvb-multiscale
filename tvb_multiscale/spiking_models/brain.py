@@ -19,11 +19,14 @@ class SpikingBrain(Series):
     # Default attributes' labels:
     _weight_attr = "weight"
     _delay_attr = "delay"
-    _receptor_attr = "receptor_type"
+    _receptor_attr = "receptor"
     
-    def __init__(self, input_region_nodes=Series()):
-        super(SpikingBrain, self).__init__(input_region_nodes)
+    def __init__(self, input_brain=None, **kwargs):
+        super(SpikingBrain, self).__init__(input_brain, **kwargs)
         self._number_of_neurons = self.number_of_neurons
+
+    def __len__(self):
+        return super(SpikingBrain, self).__len__()
 
     def __str__(self):
         regions = ""

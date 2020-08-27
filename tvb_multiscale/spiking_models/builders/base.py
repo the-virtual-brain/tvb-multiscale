@@ -6,7 +6,9 @@ import numpy as np
 from pandas import Series
 
 from tvb_multiscale.config import CONFIGURED, initialize_logger
-
+from tvb_multiscale.spiking_models.region_node import SpikingRegionNode
+from tvb_multiscale.spiking_models.brain import SpikingBrain
+from tvb_multiscale.spiking_models.builders.factory import get_node_populations_neurons
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
 
@@ -50,7 +52,7 @@ class SpikingModelBuilder(object):
     _nodes_connections = []
     _output_devices = []
     _input_devices = []
-    _nodes = Series()
+    _brain_nodes = SpikingBrain()
     _models = []
 
     def __init__(self, tvb_simulator, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
@@ -65,13 +67,14 @@ class SpikingModelBuilder(object):
         self.monitor_period = tvb_simulator.monitors[-1].period
         self.population_order = 100
         self._models = []
+        self._brain_nodes = SpikingBrain()
 
     @abstractmethod
-    def build_spiking_populations(self, model, size, params, *args, **kwargs):
+    def build_spiking_population(self, label, model, size, params, *args, **kwargs):
         pass
 
     @abstractmethod
-    def build_spiking_region_node(self, label="", input_node=Series(), *args, **kwargs):
+    def build_spiking_region_node(self, label="", input_node=SpikingRegionNode(), *args, **kwargs):
         pass
 
     @property
@@ -332,10 +335,10 @@ class SpikingModelBuilder(object):
                 _connections[i_con][prop] = property_to_fun(_connections[i_con][prop])
             for prop in ["source_inds", "target_inds"]:
                 inds_fun = _connections[i_con].get(prop, None)
-                if inds_fun is None:
-                    _connections[i_con][prop] = lambda neurons_inds: neurons_inds
-                else:
+                if inds_fun is not None:
                     _connections[i_con][prop] = property_to_fun(inds_fun)
+                else:
+                    _connections[i_con][prop] = None
             self._models.append(_connections[i_con]["model"])
         self._models = np.unique(self._models).tolist()
         return _connections
@@ -413,25 +416,24 @@ class SpikingModelBuilder(object):
     def _synaptic_weight_scaling(self, weights, number_of_connections):
         return self.default_synaptic_weight_scaling(weights, number_of_connections)
 
-    def build_spiking_nodes(self, *args, **kwargs):
-        self._nodes = Series()
+    def build_spiking_region_nodes(self, *args, **kwargs):
         # For every Spiking node
         for node_id, node_label in zip(self.spiking_nodes_ids, self.spiking_nodes_labels):
-            self._nodes[node_label] = self.build_spiking_region_node(node_label)
+            self._brain_nodes[node_label] = self.build_spiking_region_node(node_label)
             # ...and every population in it...
             for iP, population in enumerate(self._populations):
                 # ...if this population exists in this node...
                 if node_id in population["nodes"]:
                     # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
-                    self._nodes[node_label][population["label"]] = \
-                        self.build_spiking_populations(population["model"], size,
-                                                       params=population["params"](node_id),
-                                                       *args, **kwargs)
+                    self._brain_nodes[node_label][population["label"]] = \
+                        self.build_spiking_population(population["label"], population["model"], size,
+                                                      params=population["params"](node_id),
+                                                      *args, **kwargs)
 
     def _get_node_populations_neurons(self, node, populations, inds_fun):
-        # return handles to all neurons of specific neural populations of a Spiking Node
-        return inds_fun(flatten_tuple([node[pop] for pop in ensure_list(populations)]))
+        # return tuples of neurons of specific neural populations of a Spiking Node
+        return get_node_populations_neurons(node, populations, inds_fun)
 
     def _set_syn_spec(self, syn_model, weight, delay, receptor_type):
         return {'model': syn_model,  'weight': weight,
@@ -455,8 +457,8 @@ class SpikingModelBuilder(object):
             for node_index in conn["nodes"]:
                 i_node = np.where(self.spiking_nodes_ids == node_index)[0][0]
                 self._connect_two_populations(
-                    self._get_node_populations_neurons(self._nodes[i_node], conn["source"], conn["source_inds"]),
-                    self._get_node_populations_neurons(self._nodes[i_node], conn["target"], conn["target_inds"]),
+                    self._get_node_populations_neurons(self._brain_nodes[i_node], conn["source"], conn["source_inds"]),
+                    self._get_node_populations_neurons(self._brain_nodes[i_node], conn["target"], conn["target_inds"]),
                     conn['conn_spec'],
                     self._set_syn_spec(conn["model"], conn['weight'](node_index),
                                        self._assert_delay(conn['delay'](node_index)),
@@ -464,18 +466,18 @@ class SpikingModelBuilder(object):
                                        )
                 )
 
-    def connect_spiking_nodes(self):
+    def connect_spiking_region_nodes(self):
         # For every different type of connections between distinct Spiking nodes' populations
         for i_conn, conn in enumerate(ensure_list(self._nodes_connections)):
             # ...form the connection for every distinct pair of Spiking nodes
             for source_index in conn["source_nodes"]:
                 i_source_node = np.where(self.spiking_nodes_ids == source_index)[0][0]
-                src_pop = self._get_node_populations_neurons(self._nodes[i_source_node],
+                src_pop = self._get_node_populations_neurons(self._brain_nodes[i_source_node],
                                                              conn["source"], conn["source_inds"])
                 for target_index in conn["target_nodes"]:
                     if source_index != target_index:
                         i_target_node = np.where(self.spiking_nodes_ids == target_index)[0][0]
-                        trg_pop = self._get_node_populations_neurons(self._nodes[i_target_node],
+                        trg_pop = self._get_node_populations_neurons(self._brain_nodes[i_target_node],
                                                                      conn["target"], conn["target_inds"])
                         self._connect_two_populations(
                             src_pop, trg_pop,
@@ -486,6 +488,13 @@ class SpikingModelBuilder(object):
                                                conn["receptor_type"](source_index, target_index)
                                                )
                         )
+
+    def build_spiking_brain(self):
+        # Build and connect internally all Spiking nodes
+        self.build_spiking_region_nodes()
+        self.connect_within_node_spiking_populations()
+        # Connect Spiking nodes among each other
+        self.connect_spiking_region_nodes()
 
     def _build_and_connect_devices(self, devices):
         # Build devices by the variable model they measure or stimulate (Series),
@@ -512,11 +521,8 @@ class SpikingModelBuilder(object):
     def build_spiking_network(self):
         # Configure all inputs to set them to the correct formats and sizes
         self.configure()
-        # Build and connect internally all Spiking nodes
-        self.build_spiking_nodes()
-        self.connect_within_node_spiking_populations()
-        # Connect Spiking nodes among each other
-        self.connect_spiking_nodes()
+        # Build and connect the brain network
+        self.build_spiking_brain()
         # Build and connect possible Spiking output devices
         # !!Use it only for extra Spiking quantities
         # that do not correspond to TVB state variables or parameters

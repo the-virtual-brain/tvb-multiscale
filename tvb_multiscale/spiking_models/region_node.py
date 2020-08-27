@@ -3,7 +3,6 @@ from six import string_types
 from pandas import Series
 
 from tvb_multiscale.config import initialize_logger, LINE
-
 from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator
 
 
@@ -22,11 +21,11 @@ class SpikingRegionNode(Series):
     # Default attributes' labels:
     _weight_attr = "weight"
     _delay_attr = "delay"
-    _receptor_attr = "receptor_type"
+    _receptor_attr = "receptor"
 
-    def __init__(self, label="", input_node=Series()):
+    def __init__(self, label="", input_node=None, **kwargs):
         self.label = str(label)
-        super(SpikingRegionNode, self).__init__(input_node)
+        super(SpikingRegionNode, self).__init__(input_node, **kwargs)
         self._number_of_neurons = self.number_of_neurons
 
     def __str__(self):
@@ -34,6 +33,9 @@ class SpikingRegionNode(Series):
         for pop in self.populations:
             populations += str(self[pop])
         return LINE + "Node Label: %s\n Populations: %s" % (self.label, populations)
+
+    def __len__(self):
+        return super(SpikingRegionNode, self).__len__()
 
     # Methods to get or set attributes for neurons and/or their connections:
 

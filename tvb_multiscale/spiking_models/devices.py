@@ -36,6 +36,11 @@ class Device(object):
     model = "device"  # the device model name
     _number_of_connections = 0  # total number of devices' connections to neurons
 
+    # Modify accordingly for other simulators than NEST, by overwriting to the inheriting class:
+    _weight_attr = "weight"
+    _delay_attr = "delay"
+    _receptor_attr = "receptor"
+
     def __init__(self, device, *args, **kwargs):
         self.device = device   # the index of the device in the spiking network
         self.model = "device"  # the device model name
@@ -202,7 +207,7 @@ class Device(object):
            Returns:
             Array of connections' weights
         """
-        return self.GetFromConnections(self._weight_str, neurons, exclude_neurons, summary)[self._weight_str]
+        return self.GetFromConnections(self._weight_attr, neurons, exclude_neurons, summary)[self._weight_attr]
 
     def get_delays(self, neurons=None, exclude_neurons=[], summary=None):
         """Method to get delays of the connections from/to the device.
@@ -219,7 +224,7 @@ class Device(object):
            Returns:
             Array of connections' delays
         """
-        return self.GetFromConnections(self._delay_str, neurons, exclude_neurons, summary)[self._delay_str]
+        return self.GetFromConnections(self._delay_attr, neurons, exclude_neurons, summary)[self._delay_attr]
 
     def get_receptors(self, neurons=None, exclude_neurons=[], summary=None):
         """Method to get the receptors of the connections from/to the device.
@@ -236,12 +241,12 @@ class Device(object):
            Returns:
             Array of connections' receptors
         """
-        return self.GetFromConnections(self._receptor_str, neurons, exclude_neurons, summary)[self._receptor_str]
+        return self.GetFromConnections(self._receptor_attr, neurons, exclude_neurons, summary)[self._receptor_attr]
 
     # attributes of device connections across all neurons connected to it
 
-    @abstractmethod
     @property
+    @abstractmethod
     def connections(self):
         """Method to get all connections of the device to/from neurons.
            Returns:
@@ -249,8 +254,8 @@ class Device(object):
         """
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected to/from."""
         pass
@@ -1009,6 +1014,8 @@ OutputSpikeDeviceDict = {"spike_detector": SpikeDetector,
 
 class DeviceSet(pd.Series):
 
+    _number_of_connections = 0
+
     def __init__(self, name="", model="", device_set=pd.Series(), **kwargs):
         super(DeviceSet, self).__init__(device_set, **kwargs)
         if np.any([not isinstance(device, Device) for device in self]):
@@ -1076,10 +1083,10 @@ class DeviceSet(pd.Series):
 
     @property
     def number_of_connections(self):
-        number_of_connections = self.do_for_all_devices("number_of_connections")
-        if len(number_of_connections) == 0:
-            number_of_connections = 0
-        return number_of_connections
+        self._number_of_connections = self.do_for_all_devices("number_of_connections")
+        if len(self._number_of_connections) == 0:
+            self._number_of_connections = 0
+        return self._number_of_connections
 
     @property
     def times(self):
@@ -1136,6 +1143,7 @@ class DeviceSet(pd.Series):
         if device_set:
             super(DeviceSet, self).update(device_set)
         self.update_model()
+        self._number_of_connections = self.number_of_connections
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         # A method to get attributes from all devices of the set
