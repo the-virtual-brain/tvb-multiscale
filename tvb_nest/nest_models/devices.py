@@ -13,17 +13,24 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of
 
 class NESTDevice(Device):
 
+    nest_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"
-    _receptor_attr = "receptor_type"
+    _receptor_attr = "receptor"
 
     def __init__(self, device, nest_instance):
-        super(NESTDevice, self).__init__(device)
         self.nest_instance = nest_instance
+        super(NESTDevice, self).__init__(device)
         self.model = "device"
+
+    def _assert_nest(self):
+        if self.nest_instance is None:
+            raise ValueError("No NEST instance associated to this %s of model %s!" %
+                             (self.__class__.__name__, self.model))
 
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
+        self._assert_nest()
         try:
             self.nest_instance.GetStatus(self.device)[0]["element_type"]
         except:
@@ -35,6 +42,7 @@ class NESTDevice(Device):
 
     @property
     def nest_model(self):
+        self._assert_nest()
         return str(self.nest_instance.GetStatus(self.device)[0]["model"])
 
     def Set(self, values_dict):
@@ -42,6 +50,7 @@ class NESTDevice(Device):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
+        self._assert_nest()
         self.nest_instance.SetStatus(self.device, values_dict)
 
     def Get(self, attrs=None):
@@ -51,6 +60,7 @@ class NESTDevice(Device):
            Returns:
             Dictionary of attributes.
         """
+        self._assert_nest()
         if attrs is None:
             return self.nest_instance.GetStatus(self.device)[0]
         else:
@@ -61,6 +71,11 @@ class NESTDevice(Device):
            Return:
             connections' objects
         """
+        self._assert_nest()
+        for kwarg in ["source", "target"]:
+            kwval = kwargs.get(kwarg, None)
+            if kwval is not None and len(kwval) == 0:
+                kwargs[kwarg] = None
         return self.nest_instance.GetConnections(**kwargs)
 
     def _SetToConnections(self, connections, values_dict):
@@ -71,6 +86,7 @@ class NESTDevice(Device):
             Returns:
              Dictionary of arrays of connections' attributes.
         """
+        self._assert_nest()
         self.nest_instance.SetStatus(connections, values_dict)
 
     def _GetFromConnections(self, connections, attrs=None):
@@ -81,6 +97,7 @@ class NESTDevice(Device):
            Returns:
             Dictionary of arrays of connections' attributes.
         """
+        self._assert_nest()
         if attrs is None:
             return list_of_dicts_to_dicts_of_ndarrays(self.nest_instance.GetStatus(connections))
         else:
@@ -105,7 +122,7 @@ class NESTDevice(Device):
            Returns:
             connections' objects.
         """
-        return self.GetConnections(source=self.device)
+        return self._GetConnections(source=self.device)
 
     @property
     def neurons(self):
@@ -260,19 +277,22 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
         return self._GetConnections(source=self.device,
                                     target=self.filter_neurons(neurons, exclude_neurons))
 
+    @property
     def connections(self):
         """Method to get all connections of the device from neurons.
            Returns:
             connections' objects.
         """
-        return self.GetConnections(source=self.device)
+        return self._GetConnections(source=self.device)
         
     @property
     def events(self):
+        self._assert_nest()
         return self.nest_instance.GetStatus(self.device)[0]["events"]
 
     @property
     def number_of_events(self):
+        self._assert_nest()
         return self.nest_instance.GetStatus(self.device, "n_events")[0]
 
     @property
@@ -281,6 +301,7 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     
     @property
     def reset(self):
+        self._assert_nest()
         self.nest_instance.SetStatus(self.device, {'n_events': 0})
 
 
@@ -309,7 +330,7 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
            Returns:
             connections' objects.
         """
-        return self.GetConnections(target=self.device)
+        return self._GetConnections(target=self.device)
 
     @property
     def neurons(self):
@@ -325,6 +346,7 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     @property
     def record_from(self):
+        self._assert_nest()
         return [str(name) for name in self.nest_instance.GetStatus(self.device)[0]['record_from']]
     
     

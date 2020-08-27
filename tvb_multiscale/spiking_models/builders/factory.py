@@ -34,23 +34,25 @@ def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
             try:
                 return create_device_fun(None, device, config=config, **kwargs)
             except:
-                raise ValueError("Failed to set device %s!" % str(device))
+                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
         else:
             try:
                 return create_device_fun(device.get("model", None), device,
                                          params=device.get("params", None), config=config, **kwargs)
-            except:
-                raise ValueError("Failed to set device %s!" % str(device))
+            except Exception as e:
+                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
     else:
         raise ValueError("Failed to set device%s!\n "
-                         "Fevice has to be a device model or dict!" % str(device))
+                         "Device has to be a device model or dict!" % str(device))
 
 
 def build_and_connect_device(device, create_device_fun, connect_device_fun, neurons,
                              weight=1.0, delay=0.0, receptor_type=0,
                              config=CONFIGURED, **kwargs):
-    return connect_device_fun(build_device(device, create_device_fun, config=config, **kwargs),
-                              neurons, weight, delay, receptor_type, config=config, **kwargs)
+    device = connect_device_fun(build_device(device, create_device_fun, config=config, **kwargs),
+                                 neurons, weight, delay, receptor_type, config=config, **kwargs)
+    device._number_of_connections = device.number_of_connections
+    return device
 
 
 def _get_connections(device, spiking_nodes):
@@ -86,6 +88,14 @@ def _get_device_props_with_correct_shape(device, shape):
            _assert_conn_params_shape(device.get("receptor_type", 0), "receptor_type", shape)
 
 
+def get_node_populations_neurons(node, populations, inds_fun=None):
+    # return tuples of neurons of specific neural populations of a Spiking Node
+    neurons = flatten_tuple([node[pop].neurons for pop in ensure_list(populations)])
+    if inds_fun is None:
+        return neurons
+    return inds_fun(neurons)
+
+
 def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect_device_fun, spiking_nodes,
                                          config=CONFIGURED, **kwargs):
     # This function is mostly used when a measuring (output) device targets one and only Spiking node,
@@ -106,9 +116,11 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
             # and for every target node and population group...
             # create a device
             devices[pop_var][node.label] = \
-                build_and_connect_device(device_dict, create_device_fun, connect_device_fun, node[populations],
+                build_and_connect_device(device_dict, create_device_fun, connect_device_fun,
+                                         get_node_populations_neurons(node, populations),
                                          weights[i_node], delays[i_node], receptor_types[i_node],
                                          config=config, **kwargs)
+        devices[pop_var].update()
     return devices
 
 
@@ -136,9 +148,11 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
                                                       config=config, **kwargs)
             for i_node, node in enumerate(device_target_nodes):
                 devices[pop_var][dev_name] = \
-                    connect_device_fun(devices[pop_var][dev_name], node[populations],
+                    connect_device_fun(devices[pop_var][dev_name],
+                                       get_node_populations_neurons(node, populations),
                                        weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
                                        config=config, **kwargs)
+        devices[pop_var].update()
     return devices
 
 

@@ -32,7 +32,7 @@ def results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode="rat
                                              "_" + str(tvb_to_nest_mode), "").item()
         else:
             tvb_nest_builder_str = ""
-        return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0] +
+        return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
                             nest_model_builder.__name__.split("Builder")[0] +
                             tvb_nest_builder_str +
                             np.where(nest_to_tvb, "_bidir", "").item()

@@ -4,13 +4,15 @@ from pandas import Series
 import numpy as np
 
 from tvb_nest.config import CONFIGURED, initialize_logger
+from tvb_nest.nest_models.population import NESTPopulation
 from tvb_nest.nest_models.region_node import NESTRegionNode
+from tvb_nest.nest_models.brain import NESTBrain
 from tvb_nest.nest_models.network import NESTNetwork
 from tvb_nest.nest_models.builders.nest_factory import \
     load_nest, compile_modules, create_conn_spec, create_device, connect_device
 from tvb_multiscale.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.spiking_models.builders.base import SpikingModelBuilder
-
+from tvb_nest.nest_models.brain import NESTBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -20,13 +22,14 @@ LOG = initialize_logger(__name__)
 
 class NESTModelBuilder(SpikingModelBuilder):
 
-    # This is a not so opinionated builder of a NEST Spiking Network
+    """This is a not so opinionated builder of a NEST Network"""
 
     config = CONFIGURED
     nest_instance = None
     default_min_spiking_dt = CONFIGURED.NEST_MIN_DT
     default_min_delay = CONFIGURED.NEST_MIN_DT
     modules_to_install = []
+    _brain_nodes = NESTBrain()
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
         super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
@@ -35,6 +38,8 @@ class NESTModelBuilder(SpikingModelBuilder):
             self.nest_instance = nest_instance
         else:
             self.nest_instance = load_nest(self.config, self.logger)
+
+        self._brain_nodes = NESTBrain()
 
         # Setting NEST defaults from config
         self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
@@ -165,16 +170,17 @@ class NESTModelBuilder(SpikingModelBuilder):
             syn_spec["delay"] = self._assert_delay(syn_spec["delay"])
         self.nest_instance.Connect(source, target, conn_spec, syn_spec)
 
-    def build_spiking_populations(self, model, size, params, *args, **kwargs):
-        return self.nest_instance.Create(model, int(np.round(size)), params=params)
+    def build_spiking_population(self, label, model, size, params, *args, **kwargs):
+        return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
+                              label, model, self.nest_instance)
 
-    def build_spiking_region_node(self, label="", input_node=Series(), *args, **kwargs):
-        return NESTRegionNode(self.nest_instance, label, input_node)
+    def build_spiking_region_node(self, label="", input_node=NESTRegionNode(), *args, **kwargs):
+        return NESTRegionNode(label, input_node, self.nest_instance)
 
     def build_and_connect_devices(self, devices):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         self._nodes, self.config, nest_instance=self.nest_instance)
+                                         self._brain_nodes, self.config, nest_instance=self.nest_instance)
 
     def build(self):
-        return NESTNetwork(self.nest_instance, self._nodes,
+        return NESTNetwork(self.nest_instance, self._brain_nodes,
                            self._output_devices, self._input_devices, config=self.config)

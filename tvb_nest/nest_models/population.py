@@ -13,15 +13,20 @@ class NESTPopulation(SpikingPopulation):
     nest_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"
-    _receptor_attr = "receptor_type"
+    _receptor_attr = "receptor"
 
-    def __init__(self, nest_instance, label="", model=""):
+    def __init__(self, neurons, label="", model="", nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
-        super(NESTPopulation, self).__init__(label, model)
+        super(NESTPopulation, self).__init__(neurons, label, model, **kwargs)
 
     @property
     def spiking_simulator_module(self):
         return self.nest_instance
+
+    def _assert_nest(self):
+        if self.nest_instance is None:
+            raise ValueError("No NEST instance associated to this %s of model %s with label %s!" %
+                             (self.__class__.__name__, self.model, self.label))
 
     def _Set(self, neurons, values_dict):
         """Method to set attributes of the SpikingPopulation's neurons.
@@ -29,6 +34,7 @@ class NESTPopulation(SpikingPopulation):
             neurons: tuple of neurons the attributes of which should be set.
             values_dict: dictionary of attributes names' and values.
         """
+        self._assert_nest()
         self.nest_instance.SetStatus(neurons, values_dict)
 
     def _Get(self, neurons, attrs=None):
@@ -39,6 +45,7 @@ class NESTPopulation(SpikingPopulation):
            Returns:
             Dictionary of arrays of neurons' attributes.
         """
+        self._assert_nest()
         if attrs is None:
             return list_of_dicts_to_dicts_of_ndarrays(self.nest_instance.GetStatus(neurons))
         else:
@@ -54,7 +61,10 @@ class NESTPopulation(SpikingPopulation):
            Returns:
             connections' objects.
         """
-        if source_or_target is None:
+        self._assert_nest()
+        if neurons is not None and len(neurons) == 0:
+            neurons = None
+        if source_or_target not in ["source", "target"]:
             return self.nest_instance.GetConnections(source=neurons), \
                    self.nest_instance.GetConnections(target=neurons)
         else:
@@ -67,6 +77,7 @@ class NESTPopulation(SpikingPopulation):
              connections: connections' objects.
              values_dict: dictionary of attributes names' and values.
         """
+        self._assert_nest()
         self.nest_instance.SetStatus(connections, values_dict)
 
     def _GetFromConnections(self, connections, attrs=None):
@@ -78,6 +89,7 @@ class NESTPopulation(SpikingPopulation):
              Dictionary of arrays of connections' attributes.
 
         """
+        self._assert_nest()
         if attrs is None:
             return list_of_dicts_to_dicts_of_ndarrays(self.nest_instance.GetStatus(connections))
         else:
