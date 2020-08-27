@@ -52,7 +52,7 @@ class SpikingModelBuilder(object):
     _nodes_connections = []
     _output_devices = []
     _input_devices = []
-    _brain_nodes = SpikingBrain()
+    _spiking_brain = SpikingBrain()
     _models = []
 
     def __init__(self, tvb_simulator, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
@@ -67,7 +67,7 @@ class SpikingModelBuilder(object):
         self.monitor_period = tvb_simulator.monitors[-1].period
         self.population_order = 100
         self._models = []
-        self._brain_nodes = SpikingBrain()
+        self._spiking_brain = SpikingBrain()
 
     @abstractmethod
     def build_spiking_population(self, label, model, size, params, *args, **kwargs):
@@ -419,14 +419,14 @@ class SpikingModelBuilder(object):
     def build_spiking_region_nodes(self, *args, **kwargs):
         # For every Spiking node
         for node_id, node_label in zip(self.spiking_nodes_ids, self.spiking_nodes_labels):
-            self._brain_nodes[node_label] = self.build_spiking_region_node(node_label)
+            self._spiking_brain[node_label] = self.build_spiking_region_node(node_label)
             # ...and every population in it...
             for iP, population in enumerate(self._populations):
                 # ...if this population exists in this node...
                 if node_id in population["nodes"]:
                     # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
-                    self._brain_nodes[node_label][population["label"]] = \
+                    self._spiking_brain[node_label][population["label"]] = \
                         self.build_spiking_population(population["label"], population["model"], size,
                                                       params=population["params"](node_id),
                                                       *args, **kwargs)
@@ -457,8 +457,8 @@ class SpikingModelBuilder(object):
             for node_index in conn["nodes"]:
                 i_node = np.where(self.spiking_nodes_ids == node_index)[0][0]
                 self._connect_two_populations(
-                    self._get_node_populations_neurons(self._brain_nodes[i_node], conn["source"], conn["source_inds"]),
-                    self._get_node_populations_neurons(self._brain_nodes[i_node], conn["target"], conn["target_inds"]),
+                    self._get_node_populations_neurons(self._spiking_brain[i_node], conn["source"], conn["source_inds"]),
+                    self._get_node_populations_neurons(self._spiking_brain[i_node], conn["target"], conn["target_inds"]),
                     conn['conn_spec'],
                     self._set_syn_spec(conn["model"], conn['weight'](node_index),
                                        self._assert_delay(conn['delay'](node_index)),
@@ -472,12 +472,12 @@ class SpikingModelBuilder(object):
             # ...form the connection for every distinct pair of Spiking nodes
             for source_index in conn["source_nodes"]:
                 i_source_node = np.where(self.spiking_nodes_ids == source_index)[0][0]
-                src_pop = self._get_node_populations_neurons(self._brain_nodes[i_source_node],
+                src_pop = self._get_node_populations_neurons(self._spiking_brain[i_source_node],
                                                              conn["source"], conn["source_inds"])
                 for target_index in conn["target_nodes"]:
                     if source_index != target_index:
                         i_target_node = np.where(self.spiking_nodes_ids == target_index)[0][0]
-                        trg_pop = self._get_node_populations_neurons(self._brain_nodes[i_target_node],
+                        trg_pop = self._get_node_populations_neurons(self._spiking_brain[i_target_node],
                                                                      conn["target"], conn["target_inds"])
                         self._connect_two_populations(
                             src_pop, trg_pop,

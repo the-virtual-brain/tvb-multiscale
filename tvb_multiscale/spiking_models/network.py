@@ -6,8 +6,6 @@ import numpy as np
 
 from tvb_multiscale.config import CONFIGURED, initialize_logger, LINE
 from tvb_multiscale.spiking_models.region_node import SpikingRegionNode
-from tvb_multiscale.spiking_models.brain import SpikingBrain
-from tvb_multiscale.spiking_models.devices import DeviceSet
 from tvb_multiscale.spiking_models.devices \
     import DeviceSet, OutputSpikeDeviceDict
 
@@ -28,16 +26,16 @@ LOG = initialize_logger(__name__)
 class SpikingNetwork(object):
     __metaclass__ = ABCMeta
 
-    brain = SpikingBrain()
+    spiking_brain = None  # spiking_brain['rh-insula']['E']
     # These devices are distinct from the ones for the TVB-Spiking Network interface
-    output_devices = DeviceSet()  # output_devices['Excitatory']['rh-insula']
+    output_devices = None  # output_devices['Excitatory']['rh-insula']
     #
-    input_devices = DeviceSet()  # input_devices['Inhibitory']['rh-insula']
+    input_devices = None  # input_devices['Inhibitory']['rh-insula']
 
     def __init__(self,
-                 spiking_brain=SpikingBrain(),
-                 output_devices=DeviceSet,
-                 input_devices=DeviceSet,
+                 spiking_brain=None,
+                 output_devices=None,
+                 input_devices=None,
                  config=CONFIGURED):
         self.config = config
 

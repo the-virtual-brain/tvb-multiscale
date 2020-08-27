@@ -11,9 +11,9 @@ class NESTRegionNode(SpikingRegionNode):
     _delay_attr = "delay"
     _receptor_attr = "receptor"
 
-    def __init__(self, label="", input_node=None, nest_instance=None, **kwargs):
+    def __init__(self, label="", input_nodes=None, nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
-        super(SpikingRegionNode, self).__init__(label, input_node, **kwargs)
+        super(NESTRegionNode, self).__init__(label, input_nodes, **kwargs)
 
     @property
     def spiking_simulator_module(self):

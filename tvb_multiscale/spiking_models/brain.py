@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+from six import string_types
 from pandas import Series
 
 from tvb_multiscale.config import initialize_logger, LINE
 
-from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator
+from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
 
 
 LOG = initialize_logger(__name__)
@@ -33,6 +34,12 @@ class SpikingBrain(Series):
         for region in self.regions:
             regions +=  str(self[region])
         return LINE + "Spiking regions' nodes: %s" % regions
+
+    def __getitem__(self, items):
+        if isinstance(items, string_types) or is_integer(items):
+            return super(SpikingBrain, self).__getitem__(items)
+        return SpikingBrain(input_brain=super(SpikingBrain, self).__getitem__(items))
+
 
     def _loop_generator(self, reg_inds_or_lbls=None):
         """Method to create a generator looping through the SpikingBrain's SpikingRegionNode objects

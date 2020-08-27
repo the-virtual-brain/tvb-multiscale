@@ -53,12 +53,14 @@ class TVBSpikeNetInterface(object):
         if len(self.tvb_to_spikeNet_interfaces) > 0:
             for interface_index, interface in self.tvb_to_spikeNet_interfaces.iteritems():
                 tvb_to_spikeNet_interfaces += \
-                    LINE + "\nIndex: %s:\n%s" % (interface_index, interface.__str__())
+                    LINE + "\nIndex: %s, Class: %s\n%s" % \
+                    (interface_index, interface.__class__.__name__, interface.__str__())
         spikeNet_to_tvb_interfaces = ""
         if len(self.spikeNet_to_tvb_interfaces) > 0:
             for interface_index, interface in self.spikeNet_to_tvb_interfaces.iteritems():
                 spikeNet_to_tvb_interfaces += \
-                    LINE + "\nIndex: %s:\n%s" % (interface_index, interface.__str__())
+                    LINE + "\nIndex: %s, Class: %s\n%s" % \
+                    (interface_index, interface.__class__.__name__, interface.__str__())
         return "TVB to spikeNet interfaces: %s\n\n\nspikeNet to TVB interfaces: %s" \
                % (tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces)
 

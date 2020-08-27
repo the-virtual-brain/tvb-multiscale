@@ -2,10 +2,8 @@
 
 from tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_nest.nest_models.builders.nest_factory import load_nest
-from tvb_nest.nest_models.brain import NESTBrain
 
 from tvb_multiscale.spiking_models.network import SpikingNetwork
-from tvb_multiscale.spiking_models.devices import DeviceSet
 
 
 LOG = initialize_logger(__name__)
@@ -16,9 +14,9 @@ class NESTNetwork(SpikingNetwork):
     nest_instance = None
 
     def __init__(self, nest_instance=None,
-                 brain_nodes=NESTBrain,
-                 output_devices=DeviceSet(),
-                 input_devices=DeviceSet(),
+                 brain_nodes=None,
+                 output_devices=None,
+                 input_devices=None,
                  config=CONFIGURED):
         if nest_instance is None:
             nest_instance = load_nest(self.config, LOG)

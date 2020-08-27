@@ -13,7 +13,7 @@ class TVBtoNESTParameterInterface(TVBtoSpikeNetParameterInterface):
     _available_input_parameters = {"current": "I_e", "potential": "V_m"}  #
 
     def __init__(self, spiking_network, name, model, parameter="", tvb_coupling_id=0, nodes_ids=[],
-                 scale=np.array([1.0]), neurons=Series()):
+                 scale=np.array([1.0]), neurons=None):
         super(TVBtoNESTParameterInterface, self).__init__(spiking_network, name, model, parameter,
                                                           tvb_coupling_id, nodes_ids, scale, neurons)
         self._available_input_parameters = {"current": "I_e", "potential": "V_m"}  #
@@ -29,4 +29,4 @@ class TVBtoNESTParameterInterface(TVBtoSpikeNetParameterInterface):
             raise ValueError("Values' number %d is neither equal to 1 "
                              "nor equal to nodes' number %d!" % (n_vals, self.n_nodes))
         for node, value in zip(self.nodes, cycle(values)):
-            self.nest_instance.SetStatus(self[node], {self.parameter: value})
+            self.nest_instance.SetStatus(self[node].neurons, {self.parameter: value})
