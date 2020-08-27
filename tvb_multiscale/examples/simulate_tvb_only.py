@@ -67,6 +67,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     # Configure the simulator
     simulator.configure()
     # ...and simulate!
+    print("\nSimulating...")
     t_start = time.time()
     results = simulator.run(simulation_length=simulation_length)
     print("\nSimulated in %f secs!" % (time.time() - t_start))

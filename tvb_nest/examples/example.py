@@ -102,6 +102,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     # Configure the simulator with the TVB-NEST interface...
     simulator.configure(tvb_nest_model)
     # ...and simulate!
+    print("\nSimulating...")
     t_start = time.time()
     results = simulator.run(simulation_length=simulation_length)
     # Integrate NEST one more NEST time step so that multimeters get the last time point
