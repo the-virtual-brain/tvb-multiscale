@@ -76,7 +76,7 @@ def filter_events(events, variables=None, neurons=None, times=None,
     senders = np.array(events["senders"])
 
     # As long as there are events:
-    n_events = len(events)
+    n_events = len(events["times"])
     if n_events > 0:
         inds = np.ones((n_events,))
         if times is not None:  # If we select times...
@@ -113,7 +113,10 @@ def summarize(results, decimals=None):
     output = {}
     if is_integer(decimals):
         for key, val in results.items():
-            output[key] = np.unique(np.around(val, decimals=decimals))
+            try:
+                output[key] = np.unique(np.around(val, decimals=decimals))
+            except:
+                output[key] = val
     else:
         for attr, val in results.items():
             try:  # for numerical attributes
