@@ -42,9 +42,15 @@ class TVBtoSpikeNetParameterInterface(Series):
         self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
+    def __repr__(self):
+        return self.__class__.__name__
+
     def __str__(self):
-        return "Name: %s, " \
-               "TVB coupling indice: %d, " \
+        return self.print_str()
+
+    def print_str(self, **kwargs):
+        return "\n" + self.__repr__() + \
+               "\nName: %s, TVB coupling indice: %d, " \
                "\nspikeNet target parameter: %s " \
                "\nInterface weights: %s " \
                "\nTarget NEST Nodes: %s" % \

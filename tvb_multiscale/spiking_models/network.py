@@ -26,7 +26,7 @@ LOG = initialize_logger(__name__)
 class SpikingNetwork(object):
     __metaclass__ = ABCMeta
 
-    spiking_brain = None  # spiking_brain['rh-insula']['E']
+    brain_regions = None  # spiking_brain['rh-insula']['E']
     # These devices are distinct from the ones for the TVB-Spiking Network interface
     output_devices = None  # output_devices['Excitatory']['rh-insula']
     #
@@ -39,7 +39,7 @@ class SpikingNetwork(object):
                  config=CONFIGURED):
         self.config = config
 
-        self.spiking_brain = spiking_brain
+        self.brain_regions = spiking_brain
         self.output_devices = output_devices
         self.input_devices = input_devices
 
@@ -49,7 +49,7 @@ class SpikingNetwork(object):
                 raise ValueError("Input spiking_brain is neither a SpikingRegionNode "
                                  "nor a pandas.Series of SpikingRegionNode objects!: \n %s" %
                                  str(spiking_brain))
-            self.spiking_brain = spiking_brain
+            self.brain_regions = spiking_brain
 
         if isinstance(output_devices, pd.Series):
             if len(output_devices) > 0 \
@@ -66,19 +66,23 @@ class SpikingNetwork(object):
 
         LOG.info("%s created!" % self.__class__)
 
+    def __repr__(self):
+        return self.__class__.__name__
+
     def __str__(self):
-        brain_nodes = ""
-        for node_name, node in self.spiking_brain.iteritems():
-            brain_nodes += LINE + node.__str__()
-        input_devices = ""
+        return self.print_str()
+
+    def print_str(self, connectivity=False):
+        spiking_brain = LINE + self.brain_regions.print_str(connectivity)
+        input_devices = 2*LINE + "\n\nInput Devices:\n"
         for node_name, node in self.input_devices.iteritems():
-            input_devices += LINE + node.__str__()
-        output_devices = ""
+            input_devices += LINE + node.print_str(connectivity)
+        output_devices = 2*LINE + "\n\nOutput Devices:\n"
         for node_name, node in self.output_devices.iteritems():
-            output_devices += LINE + node.__str__()
-        outputs = "Spiking Network:\n"
-        for output_name, output in zip(["Region Nodes", "Input Devices", "Output Devices"],
-                                       [brain_nodes, input_devices, output_devices]):
+            output_devices += LINE + node.print_str(connectivity)
+        outputs = 3*LINE + "%s:\n" % self.__class__.__name__
+        for output_name, output in zip(["Spiking Brain Regions", "Input Devices", "Output Devices"],
+                                       [spiking_brain, input_devices, output_devices]):
             outputs += output
         return outputs
 
@@ -97,11 +101,11 @@ class SpikingNetwork(object):
 
     @property
     def nodes_labels(self):
-        return list(self.spiking_brain.index)
+        return list(self.brain_regions.index)
 
     @property
     def number_of_nodes(self):
-        return len(self.spiking_brain)
+        return len(self.brain_regions)
 
     def get_devices_by_model(self, model, nodes=None):
         # Get all devices set of a given model
@@ -119,6 +123,7 @@ class SpikingNetwork(object):
 
     def get_spike_devices(self, mode="spikes", regions=None, populations_devices=None):
         # This method will get spike measuing devices and prepare for computing rate
+        spike_devices = []
         if mode.find("activity") > -1:
             spike_devices = self.get_devices_by_model("spike_multimeter", nodes=regions)
         else:

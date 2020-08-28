@@ -47,20 +47,25 @@ class Device(object):
         self.model = "device"  # the device model name
         self._number_of_connections = self.number_of_connections
 
-    # def __str__(self):
-    #     neurons = self.neurons
-    #     return LINE + "Model: %s, gid: %d, " \
-    #           "\nparameters: %s, " \
-    #           "\nconnections to %d neurons: %s, " \
-    #           "\n  weights: %s," \
-    #           "\n  delays: %s," \
-    #           "\n  receptors: %s" % \
-    #            (self.model, self.device[0],
-    #             str(self.get_attributes()),
-    #             len(neurons), extract_integer_intervals(neurons, print=True),
-    #             str(self.get_weights(summary="stats")),
-    #             str(self.get_delays(summary="stats")),
-    #             str(self.get_receptors(summary=1)))
+    def __repr__(self):
+        return "%s - Model: %s, gid: %d" % (self.__class__.__name__, self.model, self.device[0])
+
+    def __str__(self):
+        return self.print_str()
+
+    def print_str(self, connectivity=False):
+        output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
+        if connectivity:
+            neurons = self.neurons
+            output += ",\nconnections to %d neurons: %s," \
+                      "\nweights: %s," \
+                      "\ndelays: %s," \
+                      "\nreceptors: %s" % \
+                      (len(neurons), extract_integer_intervals(neurons, print=True),
+                       str(self.get_weights(summary="stats")),
+                       str(self.get_delays(summary="stats")),
+                       str(self.get_receptors(summary=1)))
+        return output
 
     @abstractmethod
     def _assert_device(self):
@@ -1032,11 +1037,22 @@ class DeviceSet(pd.Series):
             return super(DeviceSet, self).__getitem__(items)
         return DeviceSet(name=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
 
+    def _repr(self):
+        return "%s - Name: %s, Model: %s" % \
+               (self.__class__.__name__, self.name, self.model)
+
+    def __repr__(self):
+        return self._repr()
+
     def __str__(self):
-        detailed_output = ""
+        return self.print_str()
+
+    def print_str(self, connectivity=False):
+        output = "\n" + self._repr()
+        output += ",\nDevices:"
         for node_index, node in self.iteritems():
-            detailed_output += "\n%s" % node.__str__()
-        return 2 * LINE + "Name: %s Model: %s\n%s" % (self.name, self.model, detailed_output)
+            output += LINE + node.print_str(connectivity)
+        return output
 
     def _input_nodes(self, nodes=None):
         if nodes is None:

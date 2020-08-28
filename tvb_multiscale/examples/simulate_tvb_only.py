@@ -67,10 +67,10 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     # Configure the simulator
     simulator.configure()
     # ...and simulate!
-    print("\nSimulating...")
+    print("\n\nSimulating...")
     t_start = time.time()
     results = simulator.run(simulation_length=simulation_length)
-    print("\nSimulated in %f secs!" % (time.time() - t_start))
+    print("\nSimulated in %f secs!\n" % (time.time() - t_start))
 
     # -------------------------------------------3. Plot results--------------------------------------------------------
     if plot_write:

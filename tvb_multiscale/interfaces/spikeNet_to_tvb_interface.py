@@ -8,6 +8,7 @@ from tvb_multiscale.config import initialize_logger
 from tvb_multiscale.spiking_models.devices import DeviceSet
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 
 LOG = initialize_logger(__name__)
@@ -29,15 +30,22 @@ class SpikeNetToTVBinterface(DeviceSet):
         self.scale = scale  # a scaling weight
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
+    def __repr__(self):
+        return self.__class__.__name__
+
     def __str__(self):
-        detailed_output = super(SpikeNetToTVBinterface, self).__str__()
-        return "Name: %s, " \
-               "TVB state variable indice: %d, " \
-               "\nInterface weights: %s"  \
-               "\nSource NEST / Target TVB Nodes indices:%s " \
-               "\nInterface devices:\n%s" % \
-               (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()),
-                str(self.nodes_ids), detailed_output)
+        return self.print_str()
+
+    def print_str(self, detailed_output=False, connectivity=False):
+        output = "\n" + self.__repr__() + \
+                 "\nName: %s, TVB state variable indice: %d, " \
+                 "\nInterface weights: %s"  \
+                 "\nSource NEST / Target TVB Nodes indices:%s " % \
+                 (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()),
+                  extract_integer_intervals(self.nodes_ids, print=True))
+        if detailed_output:
+            output += super(SpikeNetToTVBinterface, self).print_str(connectivity)
+        return output
 
     def from_device_set(self, device_set, name=None):
         if isinstance(device_set, DeviceSet):

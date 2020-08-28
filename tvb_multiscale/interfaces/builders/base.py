@@ -125,7 +125,7 @@ class TVBSpikeNetInterfaceBuilder(object):
 
     @property
     def spiking_nodes(self):
-        return self.spiking_network.spiking_brain
+        return self.spiking_network.brain_regions
 
     @property
     def spikeNet_min_delay(self):
