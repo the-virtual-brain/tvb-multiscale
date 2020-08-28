@@ -21,8 +21,6 @@ Unit and integration tests for the module.
 ## tvb_multiscale
 This holds the whole codebase. In the below diagram, you can see a representation of the dependencies between the sub-folders:
 
-::
-
                 core
                 /  \
                /    \
@@ -37,9 +35,8 @@ Contains the base code that is considered generic/abstract enough to interface b
 
 Here, we also keep I/O related code (read/write from/to H5 format and plots).
 
-### tvb_elephant
-Code that interfaces with Elephant and implements a wrapper around it that generates a co-simulator compatible stimulus.
-
 ### tvb_nest
 Code for interfacing with NEST - depends on core and extends the classes defined there in order to specialize them for NEST (inside nest_models and interfaces).
 
+### tvb_elephant
+Code that interfaces with Elephant and implements a wrapper around it that generates a co-simulator compatible stimulus.
