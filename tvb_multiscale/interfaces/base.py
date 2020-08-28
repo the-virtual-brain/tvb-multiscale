@@ -48,25 +48,35 @@ class TVBSpikeNetInterface(object):
         self.config = config
         LOG.info("%s created!" % self.__class__)
 
+    def __repr__(self):
+        return self.__class__.__name__ + " TVB-NEST Interface"
+
     def __str__(self):
+        return self.print_str()
+
+    def print_str(self, detailed_output=False, connectivity=False):
+        output = 3*LINE + "%s\n\n" % self.__repr__()
         tvb_to_spikeNet_interfaces = ""
         if len(self.tvb_to_spikeNet_interfaces) > 0:
             for interface_index, interface in self.tvb_to_spikeNet_interfaces.iteritems():
                 tvb_to_spikeNet_interfaces += \
-                    LINE + "\nIndex: %s, Class: %s\n%s" % \
-                    (interface_index, interface.__class__.__name__, interface.__str__())
+                    LINE + "\nIndex: %s\n%s" % \
+                    (interface_index, interface.print_str(detailed_output=detailed_output, connectivity=connectivity))
+        if len(tvb_to_spikeNet_interfaces) > 0:
+            output += LINE + "\n\nTVB to spikeNet interfaces:\n%s" % tvb_to_spikeNet_interfaces
         spikeNet_to_tvb_interfaces = ""
         if len(self.spikeNet_to_tvb_interfaces) > 0:
             for interface_index, interface in self.spikeNet_to_tvb_interfaces.iteritems():
                 spikeNet_to_tvb_interfaces += \
-                    LINE + "\nIndex: %s, Class: %s\n%s" % \
-                    (interface_index, interface.__class__.__name__, interface.__str__())
-        return "TVB to spikeNet interfaces: %s\n\n\nspikeNet to TVB interfaces: %s" \
-               % (tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces)
+                    LINE + "\nIndex: %s\n%s" % \
+                    (interface_index, interface.print_str(detailed_output=detailed_output, connectivity=connectivity))
+        if len(spikeNet_to_tvb_interfaces) > 0:
+            output += 2*LINE + "\n\nTVB to spikeNet interfaces:\n%s" % spikeNet_to_tvb_interfaces
+        return output
 
     @property
     def spiking_nodes(self):
-        return self.spiking_network.spiking_brain
+        return self.spiking_network.brain_regions
 
     @property
     def spikeNet_min_delay(self):

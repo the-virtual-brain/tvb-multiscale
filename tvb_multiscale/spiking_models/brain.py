@@ -29,11 +29,17 @@ class SpikingBrain(Series):
     def __len__(self):
         return super(SpikingBrain, self).__len__()
 
+    def __repr__(self):
+        return "\nSpikingBrain - Regions: %s" % str(self.regions)
+
     def __str__(self):
-        regions = ""
+        return self.print_str()
+
+    def print_str(self, connectivity=False):
+        output = self.__repr__() + "\nRegions' nodes:\n"
         for region in self.regions:
-            regions +=  str(self[region])
-        return LINE + "Spiking regions' nodes: %s" % regions
+            output += LINE + self[region].print_str(connectivity)
+        return output
 
     def __getitem__(self, items):
         if isinstance(items, string_types) or is_integer(items):

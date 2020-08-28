@@ -27,11 +27,17 @@ class SpikingRegionNode(Series):
         super(SpikingRegionNode, self).__init__(input_nodes, name=label, **kwargs)
         self._number_of_neurons = self.number_of_neurons
 
+    def __repr__(self):
+        return "%s - Label: %s\nPopulations %s" % (self.__class__.__name__, self.label, str(self.populations))
+
     def __str__(self):
-        populations = ""
+        return self.print_str()
+
+    def print_str(self, connectivity=False):
+        output = self.__repr__() + ":\n"
         for pop in self.populations:
-            populations += str(self[pop])
-        return LINE + "Node Label: %s\n Populations: %s" % (self.label, populations)
+            output += LINE + self[pop].print_str(connectivity)
+        return output
 
     def __len__(self):
         return super(SpikingRegionNode, self).__len__()

@@ -66,7 +66,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
 
     # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
-    print("Building NEST network...")
+    print("\n\nBuilding NEST network...")
     tic = time.time()
 
     # Build a NEST network model with the corresponding builder
@@ -81,12 +81,12 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     # Common order of neurons' number per population:
     nest_network = nest_model_builder.build_spiking_network()
 
-    print("Done! in %f min" % ((time.time() - tic) / 60))
-    print(nest_network)
+    print("\nDone! in %f min\n" % ((time.time() - tic) / 60))
+    print(nest_network.print_str(connectivity=True))
 
     # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
 
-    print("Building TVB-NEST interface...")
+    print("\n\nBuilding TVB-NEST interface...")
     tic = time.time()
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
@@ -94,15 +94,15 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                         populations_sizes=populations_sizes)
     tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_nest_mode=tvb_to_nest_mode, nest_to_tvb=nest_to_tvb)
-    print("Done! in %f min" % ((time.time() - tic)/60))
-    print(tvb_nest_model)
+    print("\nDone! in %f min\n" % ((time.time() - tic)/60))
+    print(tvb_nest_model.print_str(detailed_output=True, connectivity=False))
 
     # -----------------------------------4. Simulate and gather results-------------------------------------------------
 
     # Configure the simulator with the TVB-NEST interface...
     simulator.configure(tvb_nest_model)
     # ...and simulate!
-    print("\nSimulating...")
+    print("\n\nSimulating...")
     t_start = time.time()
     results = simulator.run(simulation_length=simulation_length)
     # Integrate NEST one more NEST time step so that multimeters get the last time point
@@ -110,7 +110,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     simulator.run_spiking_simulator(simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
     # Clean-up NEST simulation
     simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
-    print("\nSimulated in %f secs!" % (time.time() - t_start))
+    print("\nSimulated in %f secs!\n" % (time.time() - t_start))
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
     if plot_write:

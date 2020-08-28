@@ -63,21 +63,28 @@ class SpikingPopulation(object):
          a list of intervals' limits, or of single indices, or a string of the list if print = True"""
         return extract_integer_intervals(self.neurons, print=print)
 
-    # def __str__(self):
-    #     conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
-    #                                          summary=3)
-    #     print(conn_attrs)
-    #     return LINE + \
-    #            "Label: %s, %d neurons: %s" \
-    #            "\nparameters: %s," \
-    #            "\nconnections' weights: %s," \
-    #            "\nconnections' delays: %s," \
-    #            "\nconnections' receptors: %s" % \
-    #                       (self.label, self.number_of_neurons, self.summarize_neurons_indices(print=True),
-    #                        str(self.get_attributes(summary=True)),
-    #                        str(conn_attrs.get(self._weight_attr, "")),
-    #                        str(conn_attrs.get(self._delay_attr, "")),
-    #                        str(conn_attrs.get(self._receptor_attr, "")))
+    def __repr__(self):
+        return "%s - Label: %s, %d neurons: %s" % (self.__class__.__name__, self.label,
+                                                   self.number_of_neurons, self.summarize_neurons_indices(print=True))
+
+    def __str__(self):
+        return "\n%s - Label: %s" \
+               "\n%d neurons: %s" \
+               "\nparameters: %s," % \
+                          (self.__class__.__name__,  self.label,
+                           self.number_of_neurons, self.summarize_neurons_indices(print=True),
+                           str(self.get_attributes(summary=True)))
+
+    def print_str(self, connectivity=False):
+        output = self.__str__()
+        if connectivity is True:
+            conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
+                                                 summary=3)
+            output += "\nconnections' weights: %s, \nconnections' delays: %s,\nconnections' receptors: %s" % \
+                      (str(conn_attrs.get(self._weight_attr, "")),
+                       str(conn_attrs.get(self._delay_attr, "")),
+                       str(conn_attrs.get(self._receptor_attr, "")))
+        return output
 
     # Methods to get or set attributes for neurons and/or their connections:
 
