@@ -5,7 +5,8 @@ import numpy as np
 from scipy.stats import describe
 from pandas import unique
 
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_list, is_integer
+from tvb.contrib.scripts.utils.data_structures_utils import \
+    ensure_list, flatten_list, is_integer, extract_integer_intervals
 
 
 def filter_neurons(neurons, exclude_neurons=[]):
@@ -110,23 +111,50 @@ def filter_events(events, variables=None, neurons=None, times=None,
 
 
 def summarize(results, decimals=None):
-    output = {}
+
+    def unique_fun(vals):
+        return unique(np.around(vals, decimals=decimals))
+
+    def stats_fun(vals):
+        d = describe(vals)
+        summary = {}
+        summary["n"] = d.nobs
+        summary["mean"] = d.mean
+        summary["minmax"] = d.minmax
+        summary["var"] = d.variance
+        return summary
+
     if is_integer(decimals):
-        for key, val in results.items():
-            try:
-                output[key] = np.unique(np.around(val, decimals=decimals))
-            except:
-                output[key] = val
+        fun = unique_fun
     else:
-        for attr, val in results.items():
-            try:  # for numerical attributes
-                d = describe(val)
-                summary = {}
-                summary["n"] = d.nobs
-                summary["mean"] = d.mean
-                summary["minmax"] = d.minmax
-                summary["var"] = d.variance
-            except:  # treat the rest as strings
-                summary = list(unique([str(v) for v in ensure_list(val)]))
-            output[attr] = summary
+        fun = stats_fun
+
+    output = {}
+    for attr, val in results.items():
+        vals = ensure_list(val)
+        if len(vals) > 3:
+            try:
+                if str(np.array(vals).dtype)[0] == "i":
+                    output[attr] = extract_integer_intervals(vals)
+                else:
+                    output[attr] = fun(vals)
+            except:
+                try:
+                    # Try boolean
+                    unique_vals = list(unique(vals))
+                    if len(unique_vals) < 2:
+                        # If they are all True or all False
+                        output[attr] = unique_vals
+                    else:
+                        output[attr] = {"True": extract_integer_intervals(np.where(vals)[0]),
+                                        "False": extract_integer_intervals(np.where(np.invert(vals))[0])}
+                except:
+                    try:
+                        # treat the rest as strings
+                        output[attr] = list(unique([str(v) for v in vals]).tolist())
+                    except:
+                        output[attr] = list(vals)
+        else:
+            output[attr] = vals
+
     return output
