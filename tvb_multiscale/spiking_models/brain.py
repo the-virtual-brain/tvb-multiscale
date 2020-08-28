@@ -40,7 +40,6 @@ class SpikingBrain(Series):
             return super(SpikingBrain, self).__getitem__(items)
         return SpikingBrain(input_brain=super(SpikingBrain, self).__getitem__(items))
 
-
     def _loop_generator(self, reg_inds_or_lbls=None):
         """Method to create a generator looping through the SpikingBrain's SpikingRegionNode objects
          and returning the indice, the label, and the SpikingRegionNode itself.
