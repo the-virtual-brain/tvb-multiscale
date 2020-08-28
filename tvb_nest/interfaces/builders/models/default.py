@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
+
 from tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_nest.interfaces.base import TVBNESTInterface
 from tvb_nest.interfaces.models import RedWWexcIOinhI
@@ -62,6 +64,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
         #                                  Function of TVB connectivity delay:
               "delays": self.tvb_delay_fun,
               "receptor_type": self.receptor_fun,
+              "neurons_inds": lambda tvb_id, nest_id, neurons_inds:
+                                tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
         # --------------------------------------------------------------------------------------------------------------
         #                           TVB sv or param -> NEST population
               "connections": connections,
@@ -82,6 +86,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
              "weights": self.tvb_weight_fun,
              #                                 Function of TVB connectivity delay:
              "delays": self.tvb_delay_fun,
+             "neurons_inds": lambda tvb_id, nest_id, neurons_inds:
+                                tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
              # --------------------------------------------------------------------------------------------------------------
              #                                                 TVB sv -> NEST population
              "connections": connections,
@@ -95,6 +101,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
             {"model": "current", "parameter": "I_e",
             # ---------Properties potentially set as function handles with args (nest_node_id=None)-------------------------
             "interface_weights": 1.0,
+            "neurons_inds": lambda node_id, neurons_inds:
+                                tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
             # --------------------------------------------------------------------------------------------------------------
             #                                               TVB sv -> NEST population
             "connections": connections,
@@ -108,6 +116,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
             {"model": "spike_detector", "params": {},
              # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
              "weights": 1.0, "delays": 0.0,
+             "neurons_inds": lambda node_id, neurons_inds:
+                                 tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
              # --------------------------------------------------------------------------------------------------------------
              "connections": connections, "nodes": None}  # None means all here
         interface.update(kwargs)

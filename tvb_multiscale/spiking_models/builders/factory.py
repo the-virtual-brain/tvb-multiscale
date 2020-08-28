@@ -85,7 +85,8 @@ def _get_device_props_with_correct_shape(device, shape):
 
     return _assert_conn_params_shape(device.get("weights", 1.0), "weights", shape), \
            _assert_conn_params_shape(device.get("delays", 0.0), "delays", shape), \
-           _assert_conn_params_shape(device.get("receptor_type", 0), "receptor_type", shape)
+           _assert_conn_params_shape(device.get("receptor_type", 0), "receptor_type", shape), \
+           _assert_conn_params_shape(device.get("neurons_inds", 0), "neurons_inds", shape)
 
 
 def get_node_populations_neurons(node, populations, inds_fun=None):
@@ -106,7 +107,8 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types = _get_device_props_with_correct_shape(device_dict, (len(device_target_nodes),))
+    weights, delays, receptor_types, neurons_inds_funs = \
+        _get_device_props_with_correct_shape(device_dict, (len(device_target_nodes),))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
         # This set of devices will be for variable pop_var...
@@ -117,7 +119,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
             # create a device
             devices[pop_var][node.label] = \
                 build_and_connect_device(device_dict, create_device_fun, connect_device_fun,
-                                         get_node_populations_neurons(node, populations),
+                                         get_node_populations_neurons(node, populations, neurons_inds_funs[i_node]),
                                          weights[i_node], delays[i_node], receptor_types[i_node],
                                          config=config, **kwargs)
         devices[pop_var].update()
@@ -134,7 +136,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types = \
+    weights, delays, receptor_types, neurons_inds_funs = \
         _get_device_props_with_correct_shape(device_dict, (len(names), len(device_target_nodes)))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
@@ -148,10 +150,10 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
                                                       config=config, **kwargs)
             for i_node, node in enumerate(device_target_nodes):
                 devices[pop_var][dev_name] = \
-                    connect_device_fun(devices[pop_var][dev_name],
-                                       get_node_populations_neurons(node, populations),
-                                       weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
-                                       config=config, **kwargs)
+                   connect_device_fun(devices[pop_var][dev_name],
+                                      get_node_populations_neurons(node, populations, neurons_inds_funs[i_dev, i_node]),
+                                      weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
+                                      config=config, **kwargs)
         devices[pop_var].update()
     return devices
 

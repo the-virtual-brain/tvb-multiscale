@@ -71,11 +71,17 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         weight_fun = property_to_fun(interface.pop("weights", 1.0))
         delay_fun = property_to_fun(interface.pop("delays", 0.0))
         receptor_type_fun = property_to_fun(interface.pop("receptor_type", 0))
+        # Default behavior for any combination of region nodes and populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_inds", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
         # TODO: Find a way to change self directed weights in cases of non exclusive TVB and Spiking Network nodes!
         # Defaults just follow TVB connectivity
         weights = np.array(self.tvb_weights[source_tvb_nodes][:, target_nodes]).astype("O")
         delays = np.array(self.tvb_delays[source_tvb_nodes][:, target_nodes]).astype("O")
         receptor_type = np.zeros(delays.shape).astype("i")
+        neurons_inds = np.tile([None], delays.shape).astype("O")
         device_names = []
         # Apply now possible functions per source and target region node:
         for src_node in source_tvb_nodes:
@@ -86,10 +92,13 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
                 weights[i_src, i_trg] = weight_fun(src_node, trg_node)
                 delays[i_src, i_trg] = delay_fun(src_node, trg_node)
                 receptor_type[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
+                if neurons_inds_fun is not None:
+                    neurons_inds[i_src, i_trg] = lambda neurons_inds: neurons_inds_fun(src_node, trg_node, neurons_inds)
         interface["names"] = device_names
         interface["weights"] = weights
         interface["delays"] = delays
         interface["receptor_type"] = receptor_type
+        interface["neurons_inds"] = neurons_inds
         interface["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in target_nodes]
         # Generate the devices => "proxy TVB nodes":
         devices = self.build_and_connect_devices([interface], self.spiking_nodes)

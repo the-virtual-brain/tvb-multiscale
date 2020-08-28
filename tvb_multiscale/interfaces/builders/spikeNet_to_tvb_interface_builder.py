@@ -53,15 +53,24 @@ class SpikeNetToTVBInterfaceBuilder(object):
             # get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
             # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_nodes)
-        interface_weights = np.ones((len(spiking_nodes),)).astype("f")
         interface_weight_fun = property_to_fun(interface.pop("interface_weights", 1.0))
-        delays = np.ones((len(spiking_nodes),)).astype("f")
         delay_fun = property_to_fun(interface.pop("delays", 0.0))
-        for i_w, spiking_node in enumerate(spiking_nodes):
-            interface_weights[i_w] = interface_weight_fun(spiking_node)
-            delays[i_w] = delay_fun(spiking_node)
-        # Delays should be set to the device
-        interface["delays"] = delays  # Per node
+        # Default behavior for any region node and any combination of populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_inds", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
+        shape = (len(spiking_nodes),)
+        interface_weights = np.ones(shape).astype("O")
+        delays = np.zeros(shape).astype("O")
+        neurons_inds = np.tile([None], shape).astype("O")
+        for i_node, spiking_node in enumerate(spiking_nodes):
+            interface_weights[i_node] = interface_weight_fun(spiking_node)
+            delays[i_node] = delay_fun(spiking_node)
+            if neurons_inds_fun is not None:
+                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
+        interface["delays"] = delays
+        interface["neurons_inds"] = neurons_inds
         # Convert TVB node index to interface SpikeNet node index:
         interface["nodes"] = [np.where(self.spiking_nodes_ids == spiking_node)[0][0]
                               for spiking_node in spiking_nodes]

@@ -47,10 +47,19 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         spiking_nodes_ids = list(spiking_nodes_ids)
         if self.exclusive_nodes:
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_nodes_ids)
-        interface_weights = 1.0 * np.ones((len(spiking_nodes_ids),)).astype("f")
         interface_weight_fun = property_to_fun(interface.get("interface_weights", 1.0))
-        for i_w, spiking_node_id in enumerate(spiking_nodes_ids):
-            interface_weights[i_w] = interface_weight_fun(spiking_node_id)
+        # Default behavior for any region node and any combination of populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_inds", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
+        shape = (len(spiking_nodes_ids),)
+        interface_weights = np.ones(shape).astype("O")
+        neurons_inds = np.tile([None], shape).astype("O")
+        for i_node, spiking_node_id in enumerate(spiking_nodes_ids):
+            interface_weights[i_node] = interface_weight_fun(spiking_node_id)
+            if neurons_inds_fun is not None:
+                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node_id, neurons_inds)
         tvb_to_spikeNet_interfaces = Series()
         for name, populations in connections.items():
             try:

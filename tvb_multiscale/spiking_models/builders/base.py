@@ -380,21 +380,30 @@ class SpikingModelBuilder(object):
             weights_fun = property_to_fun(device.get("weights", 1.0))
             delays_fun = property_to_fun(device.get("delays", 0.0))
             receptor_type_fun = property_to_fun(device.get("receptor_type", 0))
+            # Default behavior for any region node and any combination of populations
+            # is to target all of their neurons:
+            neurons_inds_fun = device.get("neurons_inds", None)
+            if neurons_inds_fun is not None:
+                neurons_inds_fun = property_to_fun(neurons_inds_fun)
             # Defaults in arrays:
             shape = (len(spiking_nodes),)
             receptor_type = np.zeros(shape).astype("i")
             # weights and delays might be dictionaries for distributions:
-            weights = np.tile([1.0], shape).astype("object")
-            delays = np.tile([0.0], shape).astype("object")
+            weights = np.ones(shape).astype("O")
+            delays = np.zeros(shape).astype("O")
+            neurons_inds = np.tile([None], shape).astype("O")
             # Set now the properties using the above defined functions:
             for i_trg, trg_node in enumerate(spiking_nodes):
                 weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
                 delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
                 receptor_type[i_trg] = receptor_type_fun(trg_node)
+                if neurons_inds_fun is not None:
+                    neurons_inds[i_trg] = lambda neurons_inds: neurons_inds_fun(trg_node, neurons_inds)
             _devices[-1]["params"] = device.get("params", {})
             _devices[-1]["weights"] = weights
             _devices[-1]["delays"] = delays
             _devices[-1]["receptor_type"] = receptor_type
+            _devices[-1]["neurons_inds"] = neurons_inds
             _devices[-1]["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in spiking_nodes]
         return _devices
 
