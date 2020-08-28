@@ -5,8 +5,8 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_nest.config import CONFIGURED
-from tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.config import CONFIGURED
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 
 
 class CerebBuilder(NESTModelBuilder):
