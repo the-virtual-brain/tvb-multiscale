@@ -3,9 +3,9 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb_multiscale.config import initialize_logger, LINE
+from tvb_multiscale.core.config import initialize_logger, LINE
 
-from tvb_utils.data_structures_utils import filter_neurons, summarize
+from tvb_multiscale.core.data_structures_utils import filter_neurons, summarize
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_tuple, extract_integer_intervals, series_loop_generator, list_of_dicts_to_dict_of_lists
