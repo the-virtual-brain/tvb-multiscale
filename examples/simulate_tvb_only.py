@@ -12,6 +12,7 @@ from tvb_multiscale.core.config import CONFIGURED, Config
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter
 
+from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 
@@ -79,36 +80,36 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
         except Exception as e:
             print("Error in plotting or writing to files!:\n%s" % str(e))
 
-    return simulator.connectivity, results
+    return results, simulator
 
 
 if __name__ == "__main__":
 
     model_params = {}
 
-    # # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
-    # model_params = {
-    #     "tau_e": np.array([8.0]),
-    #     "tau_i": np.array([8.0]),
-    #     "c_ee": np.array([16.0]),
-    #     "c_ei": np.array([12.0]),
-    #     "c_ie": np.array([15.0]),
-    #     "c_ii": np.array([3.0]),
-    #     "a_e": np.array([1.3]),
-    #     "a_i": np.array([2.0]),
-    #     "b_e": np.array([4.0]),
-    #     "b_i": np.array([3.7]),
-    #     "P": np.array([0.0])
-    # }
-
-
-    # ----------------------------------------SpikingWongWangExcIOInhI/MultiscaleWongWangExcIOInhI------------------------------------------------
+    # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
     model_params = {
-        "N_E": np.array([16, ]),
-        "N_I": np.array([4, ]),
-        "w_IE": np.array([1.0, ]),
-        "lamda": np.array([0.5, ]),
-        "G": np.array([200.0, ])
+        "tau_e": np.array([8.0]),
+        "tau_i": np.array([8.0]),
+        "c_ee": np.array([16.0]),
+        "c_ei": np.array([12.0]),
+        "c_ie": np.array([15.0]),
+        "c_ii": np.array([3.0]),
+        "a_e": np.array([1.3]),
+        "a_i": np.array([2.0]),
+        "b_e": np.array([4.0]),
+        "b_i": np.array([3.7]),
+        "P": np.array([0.0])
     }
 
-    main_example(SpikingWongWangExcIOInhI, simulation_length=100.0, **model_params)
+
+    # # ----------------------------------------SpikingWongWangExcIOInhI/MultiscaleWongWangExcIOInhI------------------------------------------------
+    # model_params = {
+    #     "N_E": np.array([16, ]),
+    #     "N_I": np.array([4, ]),
+    #     "w_IE": np.array([1.0, ]),
+    #     "lamda": np.array([0.5, ]),
+    #     "G": np.array([200.0, ])
+    # }
+
+    main_example(WilsonCowan, simulation_length=100.0, **model_params)
