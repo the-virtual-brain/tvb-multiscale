@@ -6,12 +6,8 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 import matplotlib as mpl
 mpl.use('Agg')
 
-from tvb_multiscale.tvb_nest.config import Config
-from examples.tvb_nest.example import main_example
-from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan \
-    import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-
+from tvb_multiscale.core.config import Config
+from examples.simulate_tvb_only import main_example
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
@@ -32,18 +28,17 @@ def create_time_series_region_object():
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
 
-    results, simulator = \
-        main_example(WilsonCowan, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
-                     nest_nodes_ids, nest_populations_order=10, connectivity=connectivity,
-                     simulation_length=10.0, exclusive_nodes=True, config=config, plot_write=False)
+    results, simulator = main_example(WilsonCowan, connectivity=connectivity,
+                                      simulation_length=10.0, transient=0.0,
+                                      config=config, plot_write=False)
     time = results[0][0]
     source = results[0][1]
 
     source_ts = TimeSeriesRegion(
             data=source, time=time,
             connectivity=simulator.connectivity,
-            labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Neurons"],
-            labels_dimensions={"Synaptic Gating Variable": ["S_e", "S_i"],
+            labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Modes"],
+            labels_dimensions={"Synaptic Gating Variable": ["E", "I"],
                                "Region": simulator.connectivity.region_labels.tolist()},
             sample_period=simulator.integrator.dt)
 
