@@ -8,10 +8,10 @@ mpl.use('Agg')
 
 import os
 import numpy as np
-from tvb_nest.config import Config
-from tvb_nest.examples.example import main_example
-from tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_nest.interfaces.builders.models.wilson_cowan \
+from tvb_multiscale.tvb_nest.config import Config
+from examples.tvb_nest.example import main_example
+from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
+from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.datatypes.connectivity import Connectivity
