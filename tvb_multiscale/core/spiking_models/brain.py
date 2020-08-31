@@ -2,7 +2,7 @@
 from six import string_types
 from pandas import Series
 
-from tvb_multiscale.config import initialize_logger, LINE
+from tvb_multiscale.core.config import initialize_logger, LINE
 
 from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
 

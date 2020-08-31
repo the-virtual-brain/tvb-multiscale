@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.spiking_models.population import SpikingPopulation
+from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
 

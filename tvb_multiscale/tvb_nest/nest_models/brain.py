@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-from pandas import Series
 
-from tvb_multiscale.spiking_models.brain import SpikingBrain
+from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 
 
 class NESTBrain(SpikingBrain):
-
     nest_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"
