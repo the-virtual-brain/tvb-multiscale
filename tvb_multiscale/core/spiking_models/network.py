@@ -245,7 +245,7 @@ class SpikingNetwork(object):
                rates.append(pop_spike_device.do_for_all_devices(fun, time,
                                                                   spikes_kernel_width, spikes_kernel_width_in_points,
                                                                   spikes_kernel=spikes_kernel,
-                                                                  return_type="xarray", **kwargs))
+                                                                  return_type="DataArray", **kwargs))
                populations_devices.append(pop_label)
                equal_shape_per_population = pop_spike_device.shape == shape
             if equal_shape_per_population:
@@ -354,7 +354,7 @@ class SpikingNetwork(object):
         equal_shape_per_population = True
         data = []
         for i_dev, device_name in enumerate(populations_devices):
-            data.append(multimeters[device_name].do_for_all_devices(fun, return_type="xarray",
+            data.append(multimeters[device_name].do_for_all_devices(fun, return_type="DataArray",
                                                                     variables=variables, **kwargs))
             data[-1].name = device_name
             equal_shape_per_population = multimeters[device_name].shape == shape
