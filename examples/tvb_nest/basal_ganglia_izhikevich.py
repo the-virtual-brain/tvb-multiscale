@@ -7,14 +7,14 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
-from examples.tvb_nest.example import results_path_fun
 from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
-
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.core.io.plot_write_results import plot_write_results
 from tvb_multiscale.core.plot.plotter import Plotter
+from examples.tvb_nest.example import results_path_fun
+from examples.plot_write_results import plot_write_results
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO

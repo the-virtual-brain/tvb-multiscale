@@ -110,6 +110,7 @@ class CerebBuilder(NESTModelBuilder):
     def __init__(self, tvb_simulator, nest_nodes_ids, path_to_network_source_file,
                  nest_instance=None, config=CONFIGURED, set_defaults=True):
         super(CerebBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+        self.nest_nodes_ids = nest_nodes_ids
         self.path_to_network_source_file = path_to_network_source_file
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
@@ -122,7 +123,6 @@ class CerebBuilder(NESTModelBuilder):
         self.neuron_types = list(self.net_src_file['cells/placement'].keys())
         self.populations = []
         self.start_id_scaffold = {}
-        self.pop_ids = {}
         # All cells are modelled as E-GLIF models;
         # with the only exception of Glomeruli and Mossy Fibers (not cells, just modeled as
         # relays; i.e., parrot neurons)
@@ -163,6 +163,14 @@ class CerebBuilder(NESTModelBuilder):
                  }
             )
 
+    def neurons_inds_fun(self, neurons_inds, n_neurons=100):
+        # We use this in order to measure up to n_neurons neurons from every population
+        n_neurons_inds = len(neurons_inds)
+        if n_neurons_inds > n_neurons:
+            return tuple(np.array(neurons_inds)[0:-1:int(np.ceil(1.0*n_neurons_inds/n_neurons))])
+        else:
+            return neurons_inds
+
     def set_spike_detector(self):
         connections = OrderedDict()
         #          label <- target population
@@ -170,6 +178,7 @@ class CerebBuilder(NESTModelBuilder):
             connections[pop["label"] + "_spikes"] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
         device = {"model": "spike_detector", "params": params,
+                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
@@ -182,6 +191,7 @@ class CerebBuilder(NESTModelBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         device = {"model": "multimeter", "params": params,
+                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
