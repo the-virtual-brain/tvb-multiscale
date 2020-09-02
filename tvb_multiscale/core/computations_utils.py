@@ -183,13 +183,16 @@ def compute_time_from_spike_times(spikes, monitor_period):
     t_stop = -np.inf
     for i_pop, (pop_label, pop_spikes) in enumerate(spikes.iteritems()):
         for reg_label, reg_spikes in pop_spikes.iteritems():
-            temp = np.min(reg_spikes["times"]).item()
-            if temp < t_start:
-                t_start = temp
-            temp = np.max(reg_spikes["times"]).item()
-            if temp > t_stop:
-                t_stop = temp
-    return np.arange(t_start, t_stop + monitor_period, monitor_period), t_start, t_stop
+            if len(reg_spikes["times"]) > 0:
+                temp = np.min(reg_spikes["times"]).item()
+                if temp < t_start:
+                    t_start = temp
+                temp = np.max(reg_spikes["times"]).item()
+                if temp > t_stop:
+                    t_stop = temp
+    time = np.arange(t_start, t_stop+monitor_period, monitor_period)
+    time = time[time <= t_stop]
+    return time, t_start, t_stop
 
 
 def compute_event_spike_rates(spikes, populations_size,
@@ -254,7 +257,7 @@ def populations_spike_rate_generator(spikes, populations_sizes,
         yield pop_label, pop_reg_labels, pop_spikes_ts, pop_spikes_trains, pop_rates, pop_rates_ts
 
 
-def compute_populations_spikes_rates(spikes, populations_sizes, time, dt, connectivity,
+def compute_populations_spikes_rates(spikes, populations_sizes, connectivity,
                                      t_start_ms, t_stop_ms, computation_t_start, dt_ms):
     pop_labels = []
     pop_reg_labels = []
@@ -286,6 +289,9 @@ def compute_populations_spikes_rates(spikes, populations_sizes, time, dt, connec
                                                     name="Mean population spiking rates time series", fill_value=np.nan,
                                                     transpose_dims=["Time", "Population", "Region", "Neurons"])
     # ...and put them to a TimeSeries object:
+    t_start = float(t_start_ms)
+    dt = float(dt_ms)
+    time = np.arange(t_start, t_start+len(rates_ts)*dt, dt)
     rates_ts = TimeSeriesRegion(rates_ts,  # This is already in spikes/sec
                                 time=time, connectivity=connectivity,
                                 labels_ordering=["Time", "Population", "Region", "Neurons"],
@@ -364,7 +370,7 @@ def compute_event_spike_rates_corrs(spikes, populations_sizes, connectivity,
 
     # Loop for populations and regions to construct spike trains and compute rates:
     rates, rates_ts, spikes_ts, spikes_trains, pop_labels, all_regions_lbls, pop_reg_labels = \
-        compute_populations_spikes_rates(spikes, populations_sizes, time, dt, connectivity,
+        compute_populations_spikes_rates(spikes, populations_sizes, connectivity,
                                          t_start_ms, t_stop_ms, computation_t_start, dt_ms)
 
     corrs = compute_event_spike_corrs(spikes_ts, spikes_trains, dt_ms, computation_t_start, t_stop_ms,
