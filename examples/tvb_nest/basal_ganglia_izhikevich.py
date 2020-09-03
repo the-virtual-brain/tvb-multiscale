@@ -11,7 +11,6 @@ from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevic
 from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
-from tvb_multiscale.core.io.plot_write_results import plot_write_results
 from tvb_multiscale.core.plot.plotter import Plotter
 from examples.tvb_nest.example import results_path_fun
 from examples.plot_write_results import plot_write_results
