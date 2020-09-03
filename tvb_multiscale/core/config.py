@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import os
-import numpy
 import inspect
+import os
 from datetime import datetime
 
+import numpy
 from tvb.basic.profile import TvbProfile
+from tvb.simulator.plot.config import FiguresConfig
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
@@ -42,48 +43,6 @@ except:
     DEFAULT_SUBJECT = None
 
 
-class GenericConfig(object):
-    _module_path = os.path.dirname(__file__)
-
-    # Identify and choose the Simulator, or data folder type to read.
-    MODE_H5 = "H5"
-    MODE_TVB = "TVB"
-
-
-class InputConfig(object):
-    _base_input = os.getcwd()
-
-    @property
-    def HEAD(self):
-        if self._head_folder is not None:
-            return self._head_folder
-
-        # or else, try to find tvb_data module
-        try:
-            import tvb_data
-            # TODO: Create a default example Head in tvb-data
-            return os.path.join(os.path.dirname(tvb_data.__file__), "berlinSubjects", "QL_20120814")
-        except ImportError:
-            return self._base_input
-
-    @property
-    def IS_TVB_MODE(self):
-        """Identify and choose the Input data type to use"""
-        return self._data_mode == GenericConfig.MODE_TVB
-
-    @property
-    def RAW_DATA_FOLDER(self):
-        if self._raw_data is not None:
-            return self._raw_data
-
-        return os.path.join(self._base_input, "data", "raw")
-
-    def __init__(self, head_folder=None, raw_folder=None, data_mode=GenericConfig.MODE_TVB):
-        self._head_folder = head_folder
-        self._raw_data = raw_folder
-        self._data_mode = data_mode
-
-
 class OutputConfig(object):
     subfolder = None
 
@@ -97,7 +56,7 @@ class OutputConfig(object):
 
     def _folder(self, ftype=""):
         folder = os.path.join(self._out_base, ftype)
-        if self._separate_by_run and len(ftype)>0:
+        if self._separate_by_run and len(ftype) > 0:
             folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
         return folder
 
@@ -110,10 +69,6 @@ class OutputConfig(object):
         return self._folder("res")
 
     @property
-    def _folder_figs(self):
-        return self._folder("figs")
-
-    @property
     def FOLDER_LOGS(self):
         folder = self._folder_logs
         safe_makedirs(folder)
@@ -122,61 +77,6 @@ class OutputConfig(object):
     @property
     def FOLDER_RES(self):
         folder = self._folder_res
-        safe_makedirs(folder)
-        return folder
-
-    @property
-    def FOLDER_FIGURES(self):
-        folder = self._folder_figs
-        safe_makedirs(folder)
-        return folder
-
-    @property
-    def FOLDER_TEMP(self):
-        return os.path.join(self._out_base, "temp")
-
-
-class FiguresConfig(object):
-    VERY_LARGE_SIZE = (40, 20)
-    VERY_LARGE_PORTRAIT = (30, 50)
-    SUPER_LARGE_SIZE = (80, 40)
-    LARGE_SIZE = (20, 15)
-    SMALL_SIZE = (15, 10)
-    NOTEBOOK_SIZE = (20, 10)
-    DEFAULT_SIZE = (15, 10)
-    FIG_FORMAT = 'png'
-    SAVE_FLAG = True
-    SHOW_FLAG = False
-    MOUSE_HOOVER = False
-    MATPLOTLIB_BACKEND = "Agg"  # "Qt4Agg"
-    WEIGHTS_NORM_PERCENT = 99
-    FONTSIZE = 10
-    SMALL_FONTSIZE = 8
-    LARGE_FONTSIZE = 12
-
-    def largest_size(self):
-        import sys
-        if 'IPython' not in sys.modules:
-            return self.LARGE_SIZE
-        from IPython import get_ipython
-        if getattr(get_ipython(), 'kernel', None) is not None:
-            return self.NOTEBOOK_SIZE
-        else:
-            return self.LARGE_SIZE
-
-    def __init__(self, out_base=None, separate_by_run=False):
-        """
-        :param out_base: Base folder where figures should be kept
-        :param separate_by_run: Set TRUE, when you want figures to be in different files / each run
-        """
-        self._out_base = out_base or os.path.join(os.getcwd(), "outputs")  # or TvbProfile.current.TVB_STORAGE
-        self._separate_by_run = separate_by_run
-
-    @property
-    def FOLDER_FIGURES(self):
-        folder = os.path.join(self._out_base, "figs")
-        if self._separate_by_run:
-            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
         safe_makedirs(folder)
         return folder
 
@@ -195,12 +95,9 @@ class CalculusConfig(object):
 
 
 class Config(object):
-    generic = GenericConfig()
-    figures = FiguresConfig()
     calcul = CalculusConfig()
 
-    def __init__(self, head_folder=None, raw_data_folder=None, output_base=None, separate_by_run=False):
-        self.input = InputConfig(head_folder, raw_data_folder)
+    def __init__(self, output_base=None, separate_by_run=False):
         self.out = OutputConfig(output_base, separate_by_run)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
