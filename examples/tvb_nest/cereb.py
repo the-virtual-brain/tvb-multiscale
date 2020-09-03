@@ -95,7 +95,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     else:
         print("Simulating only NEST!...")
         nest_network.nest_instance.Prepare()
-        nest_network.nest_instance.Run(simulation_length)
+        nest_network.nest_instance.Run(simulation_length + nest_network.nest_instance.GetKernelStatus("resolution"))
         nest_network.nest_instance.Cleanup()
     print("\nSimulated in %f secs!" % (time.time() - t_start))
 
