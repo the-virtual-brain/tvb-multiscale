@@ -7,7 +7,7 @@ from xarray import DataArray
 
 from tvb.basic.profile import TvbProfile
 
-from tvb_multiscale.core.computations_utils import \
+from tvb_multiscale.core.utils.computations_utils import \
     tvb_mean_field_per_population, tvb_spikes_per_population, tvb_spike_rates_from_TVB_spike_ts, \
     tvb_spike_rates_from_mean_field_rates, compute_event_spike_rates_corrs, compute_tvb_spike_rate_corrs
 

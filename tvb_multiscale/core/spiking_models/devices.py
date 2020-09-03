@@ -9,7 +9,7 @@ import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger, LINE
 
-from tvb_multiscale.core.data_structures_utils import filter_neurons, filter_events, summarize
+from tvb_multiscale.core.utils.data_structures_utils import filter_neurons, filter_events, summarize
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils \

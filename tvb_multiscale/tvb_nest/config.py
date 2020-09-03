@@ -3,7 +3,7 @@
 import os
 
 from tvb_multiscale.core.config import Config as ConfigBase
-from tvb_multiscale.core.log_utils import initialize_logger as initialize_logger_base
+from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
 WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
