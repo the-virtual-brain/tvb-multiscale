@@ -223,8 +223,13 @@ def plot_write_spiking_network_results(spiking_network, connectivity,
     if rates_ts_per_neuron.size > 0:
         # Regions in rows
         row = np.where(rates_ts_per_neuron.shape[2] > 1, rates_ts_per_neuron.dims[2], None).item()
-        # Populations in cols
-        col = np.where(rates_ts_per_neuron.shape[1] > 1, rates_ts_per_neuron.dims[1], None).item()
+        if row is None:
+            # Populations in rows
+            row = np.where(rates_ts_per_neuron.shape[1] > 1, rates_ts_per_neuron.dims[1], None).item()
+            col = None
+        else:
+            # Populations in rows
+            col = np.where(rates_ts_per_neuron.shape[1] > 1, rates_ts_per_neuron.dims[1], None).item()
         rates_ts_per_neuron.plot(x=rates_ts_per_neuron.dims[0], y=rates_ts_per_neuron.dims[3],
                                  row=row, col=col)
         plotter.base._save_figure(figure_name="Spike rates per neuron")
@@ -244,8 +249,13 @@ def plot_write_spiking_network_results(spiking_network, connectivity,
         if n_spiking_nodes <= 3:
             # Regions in rows
             row = np.where(nest_ts.shape[2] > 1, nest_ts.dims[2], None).item()
-            # Populations in cols
-            col = np.where(nest_ts.shape[3] > 1, nest_ts.dims[3], None).item()
+            if row is None:
+                # Populations in rows
+                row = np.where(nest_ts.shape[3] > 1, nest_ts.dims[3], None).item()
+                col = None
+            else:
+                # Populations in cols
+                col = np.where(nest_ts.shape[3] > 1, nest_ts.dims[3], None).item()
             nest_ts.plot_map(y=nest_ts._data.dims[4], row=row, col=col,
                              per_variable=True, cmap="jet", figsize=figsize, plotter_config=plotter.config)
 
