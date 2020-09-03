@@ -15,7 +15,7 @@ import shutil
 import setuptools
 
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant"]
 
@@ -33,4 +33,3 @@ setuptools.setup(name='tvb-nest',
                  keywords='tvb brain simulator nest neuroscience human animal neuronal dynamics builders delay')
 
 shutil.rmtree('tvb_nest.egg-info', True)
-shutil.rmtree('tvb_scripts.egg-info', True)
