@@ -291,7 +291,10 @@ def compute_populations_spikes_rates(spikes, populations_sizes, connectivity,
     # ...and put them to a TimeSeries object:
     t_start = float(t_start_ms)
     dt = float(dt_ms)
-    time = np.arange(t_start, t_start+len(rates_ts)*dt, dt)
+    # Make sure that we don't get more time points than in rates_ts:
+    n_times = len(rates_ts)
+    time = np.arange(t_start, t_start+n_times*dt, dt)
+    time = time[:n_times]
     rates_ts = TimeSeriesRegion(rates_ts,  # This is already in spikes/sec
                                 time=time, connectivity=connectivity,
                                 labels_ordering=["Time", "Population", "Region", "Neurons"],
