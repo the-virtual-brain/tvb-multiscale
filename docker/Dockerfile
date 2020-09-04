@@ -2,7 +2,7 @@
 # TVB & NEST simulations environment
 #
 # Install Python 3.7, NEST, then tvb-library from Pypi
-# Finally link tvb-scripts and tvb-nest from Github sources
+# Finally link tvb-multiscale from Github sources
 #
 
 FROM neurodebian:buster
@@ -94,7 +94,7 @@ RUN $VENV/bin/pip3 install setuptools; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy; \
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
@@ -107,7 +107,11 @@ ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
-    $VENV/bin/python setup.py develop;
+    $VENV/bin/python setup.py develop; \
+    cd ../framework_tvb; \
+    $VENV/bin/python setup.py develop; \
+    cd ../tvb_contrib; \
+    $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
@@ -138,11 +142,11 @@ RUN echo "source ${VENV}/bin/activate" >> .bashrc
 #RUN mkdir tvb-multiscale
 #COPY ./tvb-multiscale/ tvb-multiscale/
 #RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
-ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
+ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
-#ARG MYMODULES_LIST="tvb_rate_wongwang iaf_cond_deco2014"
-#ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_nest/nest/modules
+#ARG MYMODULES_LIST="izhikevich_hamker iaf_cond_ww_deco"
+#ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
 #RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
 #        export MYMODULE_BLD=${MYMODULES_BLD_DIR}/${MYMODULE_NAME}module_bld; \
@@ -166,8 +170,8 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 
 # For running examples
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/red_ww_exc_io_inh_i.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/tvb_nest/examples/rate_ww_ampa_nmda_gaba.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
+# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/example.py
 
 # Test NEST installation
 # RUN cd $NEST; make installcheck
@@ -180,10 +184,10 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 # CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 #For running tests
-#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tvb_nest/tests
+#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
 
 #For running tests with coverage
-#CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tvb_nest/tests
+#CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 #Run jupyter notebooks
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root

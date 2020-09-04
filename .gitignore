@@ -109,7 +109,7 @@ venv.bak/
 #tvb-nest outputs
 outputs/figs
 outputs/logs
-/tvb_nest/examples/outputs/
-/tvb_nest/examples/notebooks/reduced_wong_wang_exc_io_inh_i/ConceptGraph.png
-/tvb_nest/examples/notebooks/reduced_wong_wang_exc_io_inh_i/documented_notebook_example.ipynb
-/tvb_nest/examples/notebooks/reduced_wong_wang_exc_io_inh_i/simulator_loop.png
+/examples/tvb_nest/outputs/
+/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/ConceptGraph.png
+/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/documented_notebook_example.ipynb
+/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/simulator_loop.png
