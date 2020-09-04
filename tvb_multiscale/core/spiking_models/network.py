@@ -216,7 +216,7 @@ class SpikingNetwork(object):
                              devices_dim_name="Population", name="Spikes rates from Spiking Network",
                              spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
-                             spikes_kernel=None):
+                             spikes_kernel=None, flatten_neurons_inds=True):
         spike_devices, time, spikes_kernel_width, spikes_kernel_width_in_points = \
             self._prepare_to_compute_spike_rates(populations_devices, regions, mode,
                                                  spikes_kernel_width, spikes_kernel_n_intervals,
@@ -237,6 +237,7 @@ class SpikingNetwork(object):
                     kwargs.update({"mode": "total"})
                 else:
                     mode = "per_neuron"
+                    kwargs["flatten_neurons_inds"] = flatten_neurons_inds
             shape = spike_devices[0].shape
             equal_shape_per_population = True
             rates = []
@@ -255,15 +256,15 @@ class SpikingNetwork(object):
                     return rates, spike_devices
                 if mode == 'per_neuron':
                     # Reorder dimensions
-                    #           0           1       2       3
-                    # from: "Population, Region,   Neuron  Time"
-                    # to:      "Time,  Population  Region, Neuron"
+                    #           0           1        2       3
+                    # from: Population, Region,    Neuron  Time
+                    # to:     Time,    Population  Region, Neuron"
                     rates = rates.transpose(rates.dims[-1], rates.dims[0], rates.dims[1], rates.dims[2])
                 else:
                     # Reorder dimensions
                     #           0           1       2
-                    # from: "Population, Region,   Time
-                    # to:      "Time,  Population  Region, "
+                    # from: Population, Region,   Time
+                    # to:   Time,     Population  Region
                     rates = rates.transpose(rates.dims[-1], rates.dims[0], rates.dims[1])
             else:
                 if mode == 'per_neuron':
@@ -275,8 +276,8 @@ class SpikingNetwork(object):
                         # Reorder dimensions
                         #           0       1        2
                         # from:   Region, Neuron   Time
-                        # to:     "Time,  Neuron   Region"
-                        rates[i_r] = r.transpose(r.dims[-1], r.dims[1], r.dims[0])
+                        # to:     Time,   Region   Neuron
+                        rates[i_r] = r.transpose(r.dims[-1], r.dims[0], r.dims[1])
                 else:
                     for i_r, r in enumerate(rates):
                         if len(r.dims) < 2:  # In case there is nothing to measure in Spiking Network
@@ -286,7 +287,7 @@ class SpikingNetwork(object):
                         # Reorder dimensions
                         #           0       1
                         # from:   Region,  Time
-                        # to:     "Time,   Region"
+                        # to:     Time,   Region
                         rates[i_r] = r.transpose(r.dims[-1], r.dims[0])
                 rates = pd.Series(rates, index=pd.Index(populations_devices, name=devices_dim_name))
             rates.name = name
@@ -331,16 +332,17 @@ class SpikingNetwork(object):
 
     def get_data_from_multimeter(self, mode="total", populations_devices=None, variables=None, regions=None,
                                  devices_dim_name="Population Device", name="Data from Spiking Network multimeter",
-                                 **kwargs):
+                                 flatten_neurons_inds=True, **kwargs):
         if mode == "mean":
             # Mean quantities across neurons
             fun = "get_mean_data"
         elif mode == "total":
+            # Total (summing) quantities across neurons
             fun = "get_total_data"
         else:
-            # Total (summing) quantities across neurons
             fun = "get_data"
             mode = "per_neuron"
+            kwargs["flatten_neurons_inds"] = flatten_neurons_inds
         multimeters = self.get_devices_by_model("multimeter", nodes=regions)
         if len(multimeters) == 0:
             LOG.warning("No multimeter device in this Spiking Network!")
@@ -365,10 +367,10 @@ class SpikingNetwork(object):
                 return data
             if mode == 'per_neuron':
                 # Reorder dimensions
-                #           0           1         2       3       4
-                # from: "Population, Region,   Variable  Neuron  Time"
-                # to:      "Time,   Variable,  Region, Population, Neuron"
-                data = data.transpose(data.dims[4], data.dims[2], data.dims[1], data.dims[0], data.dims[3])
+                #           0           1         2       3         4
+                # from: Population, Region,   Variable  Neuron     Time
+                # to:     Time,    Variable,   Region, Population, Neuron
+                data = data.transpose(data.dims[-1], data.dims[2], data.dims[1], data.dims[0], data.dims[3])
             else:
                 # Reorder dimensions
                 #            0          1         2       3
@@ -383,9 +385,9 @@ class SpikingNetwork(object):
                     # We cannot assume that all populations have the same number of neurons (and/or regions).
                     # Therefore, we need a Series data structure along populations
                     # Reorder dimensions
-                    #           0       1        2       3
-                    # from:   Region, Variable Neuron   Time "
-                    # to:     "Time,  Variable  Region  Neuron"
+                    #           0       1         2       3
+                    # from:   Region, Variable  Neuron   Time
+                    # to:      Time,  Variable  Region  Neuron
                     data[i_d] = d.transpose(d.dims[3], d.dims[1], d.dims[0], d.dims[2])
             else:
                 for i_d, d in enumerate(data):
@@ -395,8 +397,8 @@ class SpikingNetwork(object):
                     # Therefore, we need a Series data structure along populations
                     # Reorder dimensions
                     #           0         1      2
-                    # from:   Region,  Variable, Time  "
-                    # to:     "Time,   Variable, Region"
+                    # from:   Region,  Variable, Time
+                    # to:      Time,   Variable, Region
                     data[i_d] = d.transpose(d.dims[2], d.dims[1], d.dims[0])
             data = pd.Series(data, index=pd.Index(populations_devices, name=devices_dim_name))
         data.name = name

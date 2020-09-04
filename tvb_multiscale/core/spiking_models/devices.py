@@ -9,11 +9,12 @@ import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger, LINE
 
-from tvb_multiscale.core.utils.data_structures_utils import filter_neurons, filter_events, summarize
+from tvb_multiscale.core.utils.data_structures_utils import \
+    filter_neurons, filter_events, summarize, flatten_neurons_inds_in_DataArray
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils \
-    import ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
+from tvb.contrib.scripts.utils.data_structures_utils import \
+    ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
     sort_events_by_x_and_y, data_xarray_from_continuous_events, extract_integer_intervals, is_integer
 from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
@@ -613,7 +614,7 @@ class SpikeDetector(OutputDevice):
     # The following attributes are computed across time:
 
     def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                        spikes_kernel=None, mode="per_neuron",
+                                        spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
                                         name=None, **kwargs):
         """This method computes spike rate across time.
            Arguments:
@@ -651,6 +652,8 @@ class SpikeDetector(OutputDevice):
                     rates.append(spikes_rate_convolution(spikes_counts, spikes_kernel))
                 else:
                     rates.append(np.zeros(time.shape))
+            if flatten_neurons_inds:
+                senders_neurons = np.arange(len(senders_neurons))
             return xr.DataArray(rates, dims=["Neuron", "Time"], coords={"Neuron": senders_neurons,
                                                                         "Time": time})
         else:
@@ -684,10 +687,12 @@ class SpikeDetector(OutputDevice):
         """
         if name is None:
             name = self.model + " - Mean spike rate accross time"
-        n_neurons = self.get_number_of_connections(**kwargs)
+        n_neurons = self.get_number_of_connections(neurons=kwargs.pop("neurons", None),
+                                                   exclude_neurons=kwargs.pop("exclude_neurons", []))
         if n_neurons > 0:
             return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
-                                                        spikes_kernel, "total", name, **kwargs) / n_neurons
+                                                        spikes_kernel=spikes_kernel, mode="total",
+                                                        name=name, **kwargs) / n_neurons
         else:
             return xr.DataArray(0.0 * time, dims=["Time"], coords={"Time": time}, name=name)
 
@@ -727,7 +732,7 @@ class Multimeter(OutputDevice):
         return variables
 
     def get_data(self, variables=None, neurons=None, exclude_neurons=[],
-                 name=None, dims_names=["Variable", "Neuron", "Time"]):
+                 name=None, dims_names=["Variable", "Neuron", "Time"], flatten_neurons_inds=True):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -749,10 +754,13 @@ class Multimeter(OutputDevice):
         senders = events.pop("senders")
         # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
         # Therefore, we have to re-arrange the output to get all variables separated following time order.
-        return data_xarray_from_continuous_events(events, times, senders,
+        data = data_xarray_from_continuous_events(events, times, senders,
                                                   variables=self._determine_variables(variables),
                                                   filter_senders=neurons, exclude_senders=exclude_neurons,
                                                   name=name, dims_names=dims_names)
+        if flatten_neurons_inds:
+            data = flatten_neurons_inds_in_DataArray(data, data.dims[1])
+        return data
 
     def get_mean_data(self, variables=None, neurons=None, exclude_neurons=[],
                       name=None, dims_names=["Variable", "Time"]):
@@ -819,7 +827,7 @@ class Multimeter(OutputDevice):
         return self.get_mean_data()
 
     def current_data(self, variables=None, neurons=None, exclude_neurons=[],
-                     name=None, dims_names=["Variable", "Neuron"]):
+                     name=None, dims_names=["Variable", "Neuron"], flatten_neurons_inds=True):
         """This method returns the last time point of the data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -855,8 +863,12 @@ class Multimeter(OutputDevice):
             if len(exclude_neurons) > 0:
                 output_inds = np.logical_and(output_inds,
                                              [sender not in flatten_list(exclude_neurons) for sender in senders])
-            coords[dims_names[1]] = neurons
-            data = np.empty((len(variables), len(neurons)))
+            n_neurons = len(neurons)
+            if flatten_neurons_inds:
+                coords[dims_names[1]] = np.arange(n_neurons)
+            else:
+                coords[dims_names[1]] = neurons
+            data = np.empty((len(variables), n_neurons))
             for i_var, var in enumerate(variables):
                 data[i_var] = events[var][output_inds]
         else:
@@ -871,8 +883,11 @@ class Multimeter(OutputDevice):
                 except:
                     pass
             n_neurons = len(neurons)
-            coords[dims_names[1]] = neurons
-            data = np.empty((len(variables), len(neurons)))
+            if flatten_neurons_inds:
+                coords[dims_names[1]] = np.arange(n_neurons)
+            else:
+                coords[dims_names[1]] = neurons
+            data = np.empty((len(variables), n_neurons))
             for i_var in range(len(variables)):
                 data[i_var] = np.zeros((n_neurons, ))
         return xr.DataArray(data, coords=coords, dims=list(coords.keys()), name=name)
@@ -1255,8 +1270,8 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
     # The following attributes are computed across time:
 
     def compute_spikes_activity_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                            spikes_kernel=None, mode="per_neuron",
-                                            name=None, rate_mode="activity",  **kwargs):
+                                            spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
+                                            name=None, rate_mode="activity", **kwargs):
         """This method computes spike activity (i.e., weights) across time.
            Arguments:
             time: the time vector
@@ -1292,9 +1307,12 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
             activity = []
             for spike in spikes:
                 activity.append(spikes_rate_convolution(spike, spikes_kernel))
-            return xr.DataArray(np.array(activity), dims=["Neuron", "Time"],
-                                coords={"Neuron": spikes.coords[spikes.dims[0]].item(),
-                                        "Time": time})
+            activity = np.array(activity)
+            if flatten_neurons_inds:
+                neurons = np.arange(activity.shape[0])
+            else:
+                neurons = spikes.coords[spikes.dims[0]].item()
+            return xr.DataArray(np.array(activity), dims=["Neuron", "Time"], coords={"Neuron": neurons, "Time": time})
         else:
             # Returning output as for all neurons together
             spikes = np.sum(spikes, axis=0).squeeze()
@@ -1303,7 +1321,8 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         return xr.DataArray(activity, dims=["Time"], coords={"Time": time}, name=name)
 
     def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                        spikes_kernel=None, mode="per_neuron", name=None, **kwargs):
+                                        spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
+                                        name=None, **kwargs):
         """This method computes spike rate across time.
            Arguments:
             time: the time vector
@@ -1316,8 +1335,9 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
            Returns:
             xarray.DataArray with spike rates' time series
         """
-        return self.compute_spikes_activity_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                                        spikes_kernel=spikes_kernel, mode=mode,
+        return self.compute_spikes_activity_across_time(time, spikes_kernel_width,
+                                                        spikes_kernel_width_in_points=None, spikes_kernel=spikes_kernel,
+                                                        mode=mode, flatten_neurons_inds=flatten_neurons_inds,
                                                         name=name, rate_mode="rate",  **kwargs)
 
     def compute_mean_spikes_activity_across_time(self, time, spike_kernel_width,
@@ -1336,10 +1356,12 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         """
         if name is None:
             name = self.model + " - Mean spike activity accross time"
-        n_neurons = self.get_number_of_connections(**kwargs)
+        n_neurons = self.get_number_of_connections(neurons=kwargs.pop("neurons", None),
+                                                   exclude_neurons=kwargs.pop("exclude_neurons", []))
         if n_neurons > 0:
-            return self.compute_spikes_activity_across_time(time, spike_kernel_width, spikes_kernel,
-                                                            "total", name, **kwargs) / n_neurons
+            return self.compute_spikes_activity_across_time(time, spike_kernel_width,
+                                                            spikes_kernel=spikes_kernel, mode="total",
+                                                            name=name, **kwargs) / n_neurons
         else:
             return 0.0 * time
 
