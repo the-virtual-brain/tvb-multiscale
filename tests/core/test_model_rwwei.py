@@ -6,7 +6,6 @@ import numpy as np
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.simulator.models.wong_wang_exc_inh import ReducedWongWangExcInh as TVBReducedWongWangExcIOInhI
 
-
 TESTS_PATH = os.path.dirname(os.path.realpath(__file__))
 octave.addpath(os.path.join(TESTS_PATH, "DMF2014"))
 
@@ -54,5 +53,3 @@ def test_reduced_wong_wang_exc_io_inh_i_TVB():
 if __name__ == "__main__":
     test_reduced_wong_wang_exc_io_inh_i_TVBcosim()
     test_reduced_wong_wang_exc_io_inh_i_TVB()
-
-

@@ -1,9 +1,14 @@
 # coding=utf-8
+import os
+import shutil
+
 import numpy
-from tests.core.test_time_series import _prepare_dummy_time_series
-from tvb.datatypes.connectivity import Connectivity
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion, TimeSeriesDimensions, PossibleVariables
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionXarray
+from tvb.datatypes.connectivity import Connectivity
+
+from tests.core.test_time_series import _prepare_dummy_time_series
+from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.io.h5_writer import H5Writer, h5
 
 
@@ -29,8 +34,8 @@ def test_timeseries_4D(datatype=TimeSeriesRegion):
         datatype(data,
                  labels_dimensions={"Region": ["r1", "r2", "r3", "r4"],
                                     TimeSeriesDimensions.VARIABLES.value: [
-                                    PossibleVariables.X.value, PossibleVariables.Y.value,
-                                    PossibleVariables.Z.value]},
+                                        PossibleVariables.X.value, PossibleVariables.Y.value,
+                                        PossibleVariables.Z.value]},
                  start_time=start_time, sample_period=sample_period,
                  sample_period_unit=sample_period_unit,
                  connectivity=_prepare_connectivity())
@@ -55,7 +60,12 @@ def test_timeseries_4D(datatype=TimeSeriesRegion):
     assert numpy.all(ts.sample_period_unit == ts2.sample_period_unit)
 
 
-if __name__ == "__main__":
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
+
+if __name__ == "__main__":
     test_timeseries_4D()
     test_timeseries_4D(TimeSeriesRegionXarray)

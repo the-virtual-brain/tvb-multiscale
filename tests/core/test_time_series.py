@@ -41,6 +41,7 @@ def test_timeseries_1D_definition(datatype=TimeSeriesXarray):
         datatype(data, labels_dimensions={}, start_time=start_time,
                  sample_period=sample_period, sample_period_unit=sample_period_unit)
 
+
 def test_timeseries_2D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(2)
     ts_from_2D = TimeSeries(data, labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3"]},
@@ -121,8 +122,8 @@ def test_timeseries_3D(datatype=TimeSeriesXarray):
 def test_timeseries_data_access(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(3)
     ts = TimeSeries(data,
-                    labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3",],
-                                       TimeSeriesDimensions.VARIABLES.value: ["sv1", "sv2","sv3", "sv4"]},
+                    labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", ],
+                                       TimeSeriesDimensions.VARIABLES.value: ["sv1", "sv2", "sv3", "sv4"]},
                     start_time=start_time, sample_period=sample_period,
                     sample_period_unit=sample_period_unit)
     assert isinstance(ts.r1, TimeSeries)
@@ -147,7 +148,7 @@ def test_timeseries_data_access(datatype=TimeSeriesXarray):
     assert ts[:, 1:3, :, :].shape == ts.data[:, 1:3, :, :].shape
     assert ts[:, 1, :, :].shape == ts.data[:, 1, :, :].shape
 
-    assert ts[:, :, "r2":, :].shape == ts.data[:, :,  1:, :].shape
+    assert ts[:, :, "r2":, :].shape == ts.data[:, :, 1:, :].shape
     assert ts[:, :, :"r2", :].shape == ts.data[:, :, :2, :].shape
     assert ts[:, :, "r2", :].shape == ts.data[:, :, 1, :].shape
     assert ts[:, :, "r2":"r3", :].shape == ts.data[:, :, 1:3, :].shape
@@ -178,11 +179,11 @@ def test_timeseries_data_access(datatype=TimeSeriesXarray):
     assert ts[0:2, "sv3", "r2":, :].shape == ts.data[0:2, 2, 1:, :].shape
     assert ts[0:2, "sv3", "r1", :].shape == ts.data[0:2, 2, 0, :].shape
 
-    assert numpy.all(ts[0:2, "sv3", "r1", :].data == ts.data[0:2, 2,  0, :])
-    assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, 2,  0:2, :])
+    assert numpy.all(ts[0:2, "sv3", "r1", :].data == ts.data[0:2, 2, 0, :])
+    assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, 2, 0:2, :])
     assert numpy.all(ts[0:2, :"sv2", "r1":"r2", :].data == ts.data[0:2, :2, 0:2, :])
     assert numpy.all(ts[2, :"sv2", "r1":"r3", :].data == ts.data[2, :2, 0:3, :])
-    assert numpy.all(ts[2, "sv2", "r3", :].data == ts.data[2, 1,  2, :])
+    assert numpy.all(ts[2, "sv2", "r3", :].data == ts.data[2, 1, 2, :])
     assert numpy.all(ts[2, "sv2", "r3", 0].data == ts.data[2, 1, 2, 0])
 
     # IndexError because of [0][0] on numpy array in TSget_index_of_state_variable

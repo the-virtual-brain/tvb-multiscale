@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
+import shutil
 
 from tvb.basic.profile import TvbProfile
+from tvb_multiscale.core.config import Config
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 import matplotlib as mpl
@@ -9,7 +12,8 @@ mpl.use('Agg')
 from examples.tvb_nest.example import main_example, results_path_fun
 from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, WilsonCowanMultisynapseBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder, \
+    WilsonCowanMultisynapseBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich import \
     RedWWexcIOBuilder as IzhikevichRedWWexcIOBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan import \
@@ -29,7 +33,6 @@ from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
 
 class TestModel(object):
-
     nest_nodes_ids = []
     nest_model_builder = None
     interface_model_builder = None
@@ -118,6 +121,12 @@ def test_models(models_to_test=[TestWilsonCowan, TestWilsonCowanMultisynapse,
                                 TestIzhikevichRedWWexcIO,
                                 TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO]):
     test_models_base(models_to_test=models_to_test)
+
+
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
 
 if __name__ == "__main__":
