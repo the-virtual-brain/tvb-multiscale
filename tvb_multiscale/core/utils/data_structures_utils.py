@@ -9,6 +9,18 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_list, is_integer, extract_integer_intervals
 
 
+def flatten_neurons_inds_in_DataArray(data_array, neurons_dim_label="Neuron"):
+    dims = list(data_array.dims)
+    try:
+        dim_id = dims.index(neurons_dim_label)
+    except:
+        dim_id = -1
+    neurons_dim_label = dims[dim_id]
+    neuron_labels = np.arange(data_array.shape[dim_id])
+    data_array.coords[neurons_dim_label] = neuron_labels
+    return data_array
+
+
 def filter_neurons(neurons, exclude_neurons=[]):
     """This method will select/exclude the connected neurons, depending on user inputs
        Arguments:
