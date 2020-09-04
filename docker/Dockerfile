@@ -113,8 +113,7 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-# TODO: adjust the label of the branch from ongoing_dp_work to dev
-RUN git clone --depth 1 --branch ongoing_dp_work https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
