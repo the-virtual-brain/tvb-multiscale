@@ -265,7 +265,7 @@ class SpikingPopulation(object):
         output = []
         for conn in connections:
             if summary is not None:
-                output.append(self._GetFromConnections(conn, attrs))
+                output.append(summarize(self._GetFromConnections(conn, attrs), summary))
             else:
                 output.append(self._GetFromConnections(conn, attrs))
         return list_of_dicts_to_dict_of_lists(output)
