@@ -94,4 +94,5 @@ class NESTPopulation(SpikingPopulation):
             return list_of_dicts_to_dicts_of_ndarrays(self.nest_instance.GetStatus(connections))
         else:
             attrs = ensure_list(attrs)
-            return OrderedDict(zip(attrs, np.array(self.nest_instance.GetStatus(connections, attrs))))
+            return OrderedDict(zip(attrs,
+                                   list(np.array(self.nest_instance.GetStatus(connections, attrs)).T)))
