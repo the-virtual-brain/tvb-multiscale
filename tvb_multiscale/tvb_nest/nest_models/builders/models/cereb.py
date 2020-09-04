@@ -203,7 +203,7 @@ class CerebBuilder(NESTModelBuilder):
     def set_spike_stimulus(self):
         connections = OrderedDict()
         #             label <- target population
-        connections["Stimulus"] = ['glomerulus']
+        connections["Stimulus"] = ['mossy_fibers']
         device = \
             {"model": "poisson_generator",
              "params": {"rate": self.STIM_FREQ, "origin": 0.0, "start": self.STIM_START, "stop": self.STIM_END},
@@ -216,7 +216,7 @@ class CerebBuilder(NESTModelBuilder):
     def set_spike_stimulus_background(self):
         connections = OrderedDict()
         #             label <- target population
-        connections["Background"] = ['glomerulus']
+        connections["Background"] = ['mossy_fibers']
         device = \
             {"model": "poisson_generator",
              "params": {"rate": self.BACKGROUND_FREQ, "origin": 0.0, "start": 0.0}, # not necessary: "stop": self.TOT_DURATION
