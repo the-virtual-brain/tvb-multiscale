@@ -178,7 +178,7 @@ class CerebBuilder(NESTModelBuilder):
             connections[pop["label"] + "_spikes"] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
         device = {"model": "spike_detector", "params": params,
-                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
+                  # "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
@@ -191,7 +191,7 @@ class CerebBuilder(NESTModelBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         device = {"model": "multimeter", "params": params,
-                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
+                  # "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
