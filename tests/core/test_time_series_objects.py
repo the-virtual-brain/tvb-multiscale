@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import shutil
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -14,7 +16,6 @@ from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 
 
 def create_time_series_region_object():
-
     config = Config(output_base="outputs/")
     config.figures.SAVE_FLAG = False
     config.figures.SHOW_FLAG = False
@@ -35,12 +36,12 @@ def create_time_series_region_object():
     source = results[0][1]
 
     source_ts = TimeSeriesRegion(
-            data=source, time=time,
-            connectivity=simulator.connectivity,
-            labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Modes"],
-            labels_dimensions={"Synaptic Gating Variable": ["E", "I"],
-                               "Region": simulator.connectivity.region_labels.tolist()},
-            sample_period=simulator.integrator.dt)
+        data=source, time=time,
+        connectivity=simulator.connectivity,
+        labels_ordering=["Time", "Synaptic Gating Variable", "Region", "Modes"],
+        labels_dimensions={"Synaptic Gating Variable": ["E", "I"],
+                           "Region": simulator.connectivity.region_labels.tolist()},
+        sample_period=simulator.integrator.dt)
 
     return source_ts
 
@@ -50,6 +51,12 @@ def test_time_series_region_object():
 
     # Check the correctness of time_series_region object
     assert tsr.shape == (100, 4, 68, 1)
+
+
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
 
 if __name__ == "__main__":

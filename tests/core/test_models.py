@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
+import shutil
+
 import gc
 from time import sleep
-
 from tvb.basic.profile import TvbProfile
+
+from tvb_multiscale.core.config import Config
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 import matplotlib as mpl
@@ -20,33 +23,32 @@ from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangE
 
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
-
 # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
 model_params_wc = {
-        "r_e": np.array([0.0]),
-        "r_i": np.array([0.0]),
-        "k_e": np.array([1.0]),
-        "k_i": np.array([1.0]),
-        "tau_e": np.array([10.0]),
-        "tau_i": np.array([10.0]),
-        "c_ee": np.array([10.0]),
-        "c_ei": np.array([6.0]),
-        "c_ie": np.array([10.0]),
-        "c_ii": np.array([1.0]),
-        "alpha_e": np.array([1.2]),
-        "alpha_i": np.array([2.0]),
-        "a_e": np.array([1.0]),
-        "a_i": np.array([1.0]),
-        "b_e": np.array([0.0]),
-        "b_i": np.array([0.0]),
-        "c_e": np.array([1.0]),
-        "c_i": np.array([1.0]),
-        "theta_e": np.array([2.0]),
-        "theta_i": np.array([3.5]),
-        "P": np.array([0.5]),
-        "Q": np.array([0.0])
-    }
+    "r_e": np.array([0.0]),
+    "r_i": np.array([0.0]),
+    "k_e": np.array([1.0]),
+    "k_i": np.array([1.0]),
+    "tau_e": np.array([10.0]),
+    "tau_i": np.array([10.0]),
+    "c_ee": np.array([10.0]),
+    "c_ei": np.array([6.0]),
+    "c_ie": np.array([10.0]),
+    "c_ii": np.array([1.0]),
+    "alpha_e": np.array([1.2]),
+    "alpha_i": np.array([2.0]),
+    "a_e": np.array([1.0]),
+    "a_i": np.array([1.0]),
+    "b_e": np.array([0.0]),
+    "b_i": np.array([0.0]),
+    "c_e": np.array([1.0]),
+    "c_i": np.array([1.0]),
+    "theta_e": np.array([2.0]),
+    "theta_i": np.array([3.5]),
+    "P": np.array([0.5]),
+    "Q": np.array([0.0])
+}
 
 model_params_redww_exc_io = {"G": np.array([20.0, ])}
 
@@ -55,16 +57,15 @@ model_params_redww_exc_io_inn_i = {"G": np.array([20.0, ]), "lamda": np.array([0
 # ----------------------------------------SpikingWongWangExcIOInhI/MultiscaleWongWangExcIOInhI----------------------
 
 model_params_sp = {
-        "N_E": np.array([16, ]),
-        "N_I": np.array([4, ]),
-        "w_IE": np.array([1.0, ]),
-        "lamda": np.array([0.5, ]),
-        "G": np.array([200.0, ])
-    }
+    "N_E": np.array([16, ]),
+    "N_I": np.array([4, ]),
+    "w_IE": np.array([1.0, ]),
+    "lamda": np.array([0.5, ]),
+    "G": np.array([200.0, ])
+}
 
 
 class TestModel(object):
-
     simulation_length = 55.0
     transient = 5.0
     model = None
@@ -117,7 +118,8 @@ class TestSpikingWongWangExcIOInhI(TestModel):
 
 
 # @pytest.mark.skip(reason="These tests are taking too much time") # only TestSpikingWongWangExcIOInhI takes time
-def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):  # , TestSpikingWongWangExcIOInhI
+def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO,
+                                TestReducedWongWangExcIOInhI]):  # , TestSpikingWongWangExcIOInhI
     import time
     import numpy as np
     from collections import OrderedDict
@@ -147,6 +149,12 @@ def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestR
     else:
         print(success)
     print("******************************************************\n")
+
+
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
 
 if __name__ == "__main__":

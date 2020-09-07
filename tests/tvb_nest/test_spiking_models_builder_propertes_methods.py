@@ -1,7 +1,10 @@
+import os
+import shutil
+
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
+from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
 from tvb_multiscale.tvb_nest.nest_models.builders.models.ww_deco import WWDeco2014Builder
 
 from tvb.datatypes.connectivity import Connectivity
@@ -11,7 +14,6 @@ from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 
 def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
-
     # Select the regions for the fine scale modeling with NEST spiking networks
     nest_nodes_ids = []  # the indices of fine scale regions modeled with NEST
     # In this example, we model parahippocampal cortices (left and right) with NEST
@@ -49,6 +51,12 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
                  "nodes_connections_weights", "nodes_connections_delays", "nodes_connections_receptor_types",
                  "nodes_connections_conn_spec"]:
         print("%s:\n%s\n\n" % (prop, str(getattr(nest_model_builder, prop))))
+
+
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
 
 if __name__ == "__main__":

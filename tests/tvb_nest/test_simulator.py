@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import shutil
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -59,6 +61,12 @@ def test_results_shape(results=None):
     assert not np.isinf(results.ravel()).all()
     assert not np.isnan(results.ravel()).all()
     assert results.shape == (550, 4, 68, 1)
+
+
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
 
 if __name__ == "__main__":
