@@ -97,7 +97,7 @@ class CerebBuilder(NESTModelBuilder):
                      'parallel_fiber_to_stellate': {'pre': 'granule_cell', 'post': 'stellate_cell'},
                      'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'}}
 
-    RECORD_VM = False
+    RECORD_VM = True
     TOT_DURATION = 600.  # mseconds
     STIM_START = 250.  # beginning of stimulation
     STIM_END = 500.  # end of stimulation
@@ -198,7 +198,9 @@ class CerebBuilder(NESTModelBuilder):
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_detector(), self.set_multimeter()]
+        self.output_devices = [self.set_spike_detector()]
+        if self.RECORD_VM:
+            self.output_devices.append(self.set_multimeter())
 
     def set_spike_stimulus(self):
         connections = OrderedDict()
