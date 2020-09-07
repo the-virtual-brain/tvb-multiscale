@@ -98,9 +98,9 @@ class CerebBuilder(NESTModelBuilder):
                      'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'}}
 
     RECORD_VM = False
-    TOT_DURATION = 300.  # mseconds
-    STIM_START = 100.  # beginning of stimulation
-    STIM_END = 200.  # end of stimulation
+    TOT_DURATION = 600.  # mseconds
+    STIM_START = 250.  # beginning of stimulation
+    STIM_END = 500.  # end of stimulation
     STIM_FREQ = 100.  # Frequency in Hz
     BACKGROUND_FREQ = 4.
 
