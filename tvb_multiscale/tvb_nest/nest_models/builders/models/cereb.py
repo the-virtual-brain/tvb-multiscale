@@ -9,6 +9,19 @@ from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 
 
+class NeuronsIndsFun(object):
+    conns = np.array([])
+    start_id_scaffold = 0
+
+    def __init__(self, start_id_scaffold, conns):
+        self.start_id_scaffold = start_id_scaffold
+        self.conns = conns
+
+    def __call__(self, neurons_inds):
+        return [int(x - self.start_id_scaffold + neurons_inds[0])
+                for x in self.conns]
+
+
 class CerebBuilder(NESTModelBuilder):
 
     path_to_network_source_file = ""
@@ -145,15 +158,14 @@ class CerebBuilder(NESTModelBuilder):
         self.populations_connections = []
         for conn_name in self.conn_weights.keys():
             conn = np.array(self.net_src_file['cells/connections/'+conn_name])
-            pre_name = self.conn_pre_post[conn_name]["pre"]
-            post_name = self.conn_pre_post[conn_name]["post"]
-            pre_fun = lambda neurons_inds: [int(x-self.start_id_scaffold[pre_name]+neurons_inds[0])
-                                            for x in conn[:, 0].flatten()]
-            post_fun = lambda neurons_inds: [int(x-self.start_id_scaffold[post_name]+neurons_inds[0])
-                                             for x in conn[:, 1].flatten()]
             self.populations_connections.append(
-                {"source": pre_name, "target": post_name,
-                 "source_inds": pre_fun, "target_inds": post_fun,
+                {"source": self.conn_pre_post[conn_name]["pre"],
+                 "target": self.conn_pre_post[conn_name]["post"],
+                 "source_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
+                                               conn[:, 0].flatten()),
+
+                 "target_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
+                                               conn[:, 1].flatten()),
                  "model": 'static_synapse',
                  "conn_spec": self.default_populations_connection["conn_spec"],
                  "weight": self.conn_weights[conn_name],
@@ -191,7 +203,7 @@ class CerebBuilder(NESTModelBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         device = {"model": "multimeter", "params": params,
-                  # "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
+                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
