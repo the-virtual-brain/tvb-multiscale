@@ -32,23 +32,23 @@ class SpikingNetwork(object):
     input_devices = None  # input_devices['Inhibitory']['rh-insula']
 
     def __init__(self,
-                 spiking_brain=None,
+                 brain_regions=None,
                  output_devices=None,
                  input_devices=None,
                  config=CONFIGURED):
         self.config = config
 
-        self.brain_regions = spiking_brain
+        self.brain_regions = brain_regions
         self.output_devices = output_devices
         self.input_devices = input_devices
 
-        if isinstance(spiking_brain, pd.Series):
-            if len(spiking_brain) > 0 and \
-                    np.any([not isinstance(node, SpikingRegionNode) for node in spiking_brain]):
+        if isinstance(brain_regions, pd.Series):
+            if len(brain_regions) > 0 and \
+                    np.any([not isinstance(node, SpikingRegionNode) for node in brain_regions]):
                 raise ValueError("Input spiking_brain is neither a SpikingRegionNode "
                                  "nor a pandas.Series of SpikingRegionNode objects!: \n %s" %
-                                 str(spiking_brain))
-            self.brain_regions = spiking_brain
+                                 str(brain_regions))
+            self.brain_regions = brain_regions
 
         if isinstance(output_devices, pd.Series):
             if len(output_devices) > 0 \
