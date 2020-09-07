@@ -320,7 +320,7 @@ def plot_write_results(tvb_results, simulator, spiking_network=None, spiking_nod
         print("Done! in %f min" % ((timeit.time() - tic) / 60))
 
     if spiking_network is not None and len(spiking_nodes_ids) > 0:
-        print("Plotting results from the SpikeNet co-simulation!")
+        print("Plotting results from the SpikeNet simulation!")
         tic = timeit.time()
         plot_write_spiking_network_results(spiking_network, simulator.connectivity,
                                            time_with_transient, transient, simulator.monitors[0].period,
