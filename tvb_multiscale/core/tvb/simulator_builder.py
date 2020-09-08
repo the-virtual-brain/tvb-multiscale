@@ -97,5 +97,6 @@ class SimulatorBuilder(object):
         simulator.model = model
         simulator.integrator = integrator
         simulator.monitors = monitors
+        simulator.log.setLevel(20)
 
         return simulator
