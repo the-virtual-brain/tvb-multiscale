@@ -56,7 +56,7 @@ class SimulatorBuilder(object):
         # Given that
         # idelays = numpy.rint(delays / dt).astype(numpy.int32)
         # and delays = tract_lengths / speed
-        minimum_tract_length = 0.1 * self.dt * connectivity.speed
+        minimum_tract_length = self.dt * connectivity.speed
         if self.remove_self_connections:
             np.fill_diagonal(connectivity.weights, 0.0)
             np.fill_diagonal(connectivity.tract_lengths, minimum_tract_length)
