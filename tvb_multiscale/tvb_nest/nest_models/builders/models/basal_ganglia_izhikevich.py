@@ -28,7 +28,8 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self._paramsE = deepcopy(self.params_common)
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
-                               "n0": 61.65, "n1": 2.59, "n2": 0.02, "C_m": 50.0})
+                               "n0": 61.65, "n1": 2.59, "n2": 0.02,
+                               "V_th": 40.0, "C_m": 50.0})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
