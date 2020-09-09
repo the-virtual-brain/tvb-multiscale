@@ -111,12 +111,15 @@ class CerebBuilder(NESTModelBuilder):
                      'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'}}
 
     RECORD_VM = True
-    TOT_DURATION = 600.  # mseconds
-    STIM_START = 250.  # beginning of stimulation
-    STIM_END = 500.  # end of stimulation
+    STIMULUS = True
+    TOT_DURATION = 350.  # mseconds
+    STIM_START = 150.  # beginning of stimulation
+    STIM_END = 250.  # end of stimulation
     STIM_FREQ = 100.  # Frequency in Hz
     BACKGROUND_FREQ = 4.
 
+    ordered_neuron_types = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
+                            "basket_cell", "stellate_cell", "purkinje_cell"]
     neuron_types = []
     start_id_scaffold = []
 
@@ -134,6 +137,11 @@ class CerebBuilder(NESTModelBuilder):
     def set_populations(self):
         # Populations' configurations
         self.neuron_types = list(self.net_src_file['cells/placement'].keys())
+        ordered_neuron_types = []
+        for neuron_type in self.ordered_neuron_types:
+            ordered_neuron_types.append(self.neuron_types.pop(self.neuron_types.index(neuron_type)))
+        ordered_neuron_types += self.neuron_types
+        self.neuron_types = ordered_neuron_types
         self.populations = []
         self.start_id_scaffold = {}
         # All cells are modelled as E-GLIF models;
@@ -241,7 +249,8 @@ class CerebBuilder(NESTModelBuilder):
         return device
 
     def set_input_devices(self):
-        self.input_devices = [self.set_spike_stimulus(), self.set_spike_stimulus_background()]
+        if self.STIMULUS:
+            self.input_devices = [self.set_spike_stimulus(), self.set_spike_stimulus_background()]
 
     def set_defaults(self):
         self.net_src_file = h5py.File(self.path_to_network_source_file, 'r+')

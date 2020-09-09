@@ -34,9 +34,8 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
 
     # No random jitter to weights and delays by default for this model
 
-    def tvb_weight_fun(self, source_node, target_node):
-        return scale_tvb_weight(source_node, target_node,
-                                tvb_weights=self.tvb_weights, scale=self.global_coupling_scaling)
+    def tvb_weight_fun(self, source_node):
+        return 20 * self.global_coupling_scaling * self.tvb_weights[source_node, self.spiking_nodes_ids].sum()
 
     def tvb_delay_fun(self, source_node, target_node):
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
@@ -53,10 +52,10 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
             {"model": "inhomogeneous_poisson_generator",
              "params": {"allow_offgrid_times": False},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)---------
-              "interface_weights": 1.0,
+              "interface_weights": self.tvb_weight_fun,
         # Applied outside NEST for each interface device
         #                                  Function of TVB connectivity weight:
-              "weights": self.tvb_weight_fun,
+              "weights": 1.0,
         #                                  Function of TVB connectivity delay:
               "delays": self.tvb_delay_fun,
               "receptor_type": 0.0,
