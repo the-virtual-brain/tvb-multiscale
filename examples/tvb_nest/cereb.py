@@ -53,6 +53,9 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
                                         "tvb_nest", "data", "cerebellar_cortex_scaffold.hdf5"),
                           config=config, set_defaults=True)
     nest_model_builder.modules_to_install = ["cereb"]
+    if tvb_nest_builder is not None:
+        nest_model_builder.STIMULUS = False
+
     populations = []
     populations_sizes = []
     for pop in nest_model_builder.populations:
@@ -129,7 +132,7 @@ if __name__ == "__main__":
 
     model_params = {}
 
-    main_example(tvb_model, CerebBuilder, None,  # RedWWexcIOBuilder,  # ,
+    main_example(tvb_model, CerebBuilder, RedWWexcIOBuilder,  # ,
                  nest_nodes_ids,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True, transient=0.0,
