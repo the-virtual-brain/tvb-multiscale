@@ -73,7 +73,13 @@ class CerebBuilder(NESTModelBuilder):
                           'lambda_0': 1.8, 'tau_V': 1.1, 'I_e': 3.711, 'kadap': 2.025, 'k1': 1.887, 'k2': 1.096,
                           'A1': 5.953, 'A2': 5.863,
                           'E_rev1': Erev_exc, 'E_rev2': Erev_inh, 'E_rev3': Erev_exc, 'tau_syn1': tau_exc['basket'],
-                          'tau_syn2': tau_inh['basket'], 'tau_syn3': tau_exc_cfmli}}
+                          'tau_syn2': tau_inh['basket'], 'tau_syn3': tau_exc_cfmli},
+        'dcn_cell': {'t_ref': 0.8, 'C_m': 142.0, 'tau_m': 33.0, 'V_th': -36.0, 'V_reset': -55.0, 'Vinit': -45.0,
+                     'E_L': -45.0,
+                     'lambda_0': 3.5, 'tau_V': 3.0, 'I_e': 75.385, 'kadap': 0.408, 'k1': 0.697, 'k2': 0.047,
+                     'A1': 13.857, 'A2': 3.477,
+                     'E_rev1': Erev_exc, 'E_rev2': Erev_inh, 'E_rev3': Erev_exc, 'tau_syn1': tau_exc['dcn'],
+                     'tau_syn2': tau_inh['dcn']}}
 
     # Connection weights
     conn_weights = {'mossy_to_glomerulus': 1.0, 'ascending_axon_to_golgi': 0.05, 'ascending_axon_to_purkinje': 0.175,
@@ -81,20 +87,23 @@ class CerebBuilder(NESTModelBuilder):
                     'glomerulus_to_golgi': 0.0125, 'glomerulus_to_granule': 0.361, 'golgi_to_granule': 0.338,
                     'parallel_fiber_to_basket': 0.002, 'parallel_fiber_to_golgi': 0.008,
                     'parallel_fiber_to_purkinje': 0.044,
-                    'parallel_fiber_to_stellate': 0.003, 'stellate_to_purkinje': 1.213}
+                    'parallel_fiber_to_stellate': 0.003, 'stellate_to_purkinje': 1.213,
+                    'mossy_to_dcn': 0.5, 'purkinje_to_dcn': 0.45}
 
     # Connection delays
     conn_delays = {'mossy_to_glomerulus': 1.0, 'ascending_axon_to_golgi': 2.0, 'ascending_axon_to_purkinje': 2.0,
                    'basket_to_purkinje': 4.0,
                    'glomerulus_to_golgi': 4.0, 'glomerulus_to_granule': 4.0, 'golgi_to_granule': 2.0,
                    'parallel_fiber_to_basket': 5.0, 'parallel_fiber_to_golgi': 5.0, 'parallel_fiber_to_purkinje': 5.0,
-                   'parallel_fiber_to_stellate': 5.0, 'stellate_to_purkinje': 5.0}
+                   'parallel_fiber_to_stellate': 5.0, 'stellate_to_purkinje': 5.0,
+                   'mossy_to_dcn': 4.0, 'purkinje_to_dcn': 4.0}
 
     # Connection receptors
     conn_receptors = {'ascending_axon_to_golgi': 3, 'ascending_axon_to_purkinje': 1, 'basket_to_purkinje': 2,
                       'glomerulus_to_golgi': 1, 'glomerulus_to_granule': 1, 'golgi_to_granule': 2,
                       'parallel_fiber_to_basket': 1, 'parallel_fiber_to_golgi': 3, 'parallel_fiber_to_purkinje': 1,
-                      'parallel_fiber_to_stellate': 1, 'stellate_to_purkinje': 2}
+                      'parallel_fiber_to_stellate': 1, 'stellate_to_purkinje': 2,
+                      'mossy_to_dcn': 1, 'purkinje_to_dcn': 2}
 
     # Connection pre and post-synaptic neurons
     conn_pre_post = {'mossy_to_glomerulus': {'pre': 'mossy_fibers', 'post': 'glomerulus'},
@@ -108,7 +117,9 @@ class CerebBuilder(NESTModelBuilder):
                      'parallel_fiber_to_golgi': {'pre': 'granule_cell', 'post': 'golgi_cell'},
                      'parallel_fiber_to_purkinje': {'pre': 'granule_cell', 'post': 'purkinje_cell'},
                      'parallel_fiber_to_stellate': {'pre': 'granule_cell', 'post': 'stellate_cell'},
-                     'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'}}
+                     'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'},
+                     'mossy_to_dcn': {'pre': 'mossy_fibers', 'post': 'dcn_cell'},
+                     'purkinje_to_dcn': {'pre': 'purkinje_cell', 'post': 'dcn_cell'}}
 
     RECORD_VM = True
     STIMULUS = True
@@ -119,7 +130,7 @@ class CerebBuilder(NESTModelBuilder):
     BACKGROUND_FREQ = 4.
 
     ordered_neuron_types = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
-                            "basket_cell", "stellate_cell", "purkinje_cell"]
+                            "basket_cell", "stellate_cell", "purkinje_cell", 'dcn_cell']
     neuron_types = []
     start_id_scaffold = []
 
