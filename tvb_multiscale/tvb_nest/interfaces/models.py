@@ -12,6 +12,14 @@ from tvb.simulator.models.generic_2d_oscillator_multiscale import Generic2dOscil
 LOG = initialize_logger(__name__)
 
 
+class Linear(TVBNESTInterface):
+    tvb_model = ReducedWongWangExcIO()
+
+    def __init__(self, config=CONFIGURED):
+        super(Linear, self).__init__(config)
+        LOG.info("%s created!" % self.__class__)
+
+
 class RedWWexcIO(TVBNESTInterface):
     tvb_model = ReducedWongWangExcIO()
 
