@@ -104,4 +104,4 @@ class LinearCerebBuilder(TVBNESTInterfaceBuilder):
         self.default_build(tvb_to_nest_mode, nest_to_tvb)
         if not isinstance(tvb_nest_interface, TVBNESTInterface):
             tvb_nest_interface = self._tvb_nest_interface()
-        return super(RedWWexcIOBuilder, self).build_interface(tvb_nest_interface)
+        return super(LinearCerebBuilder, self).build_interface(tvb_nest_interface)
