@@ -146,24 +146,29 @@ def summarize(results, decimals=None):
         vals = ensure_list(val)
         if len(vals) > 3:
             try:
-                if str(np.array(vals).dtype)[0] == "i":
+                val_type = np.array(vals).dtype
+                if str(val_type)[0] == "i":
                     output[attr] = extract_integer_intervals(vals)
                 else:
                     output[attr] = fun(vals)
+                    if isinstance(output[attr], np.ndarray):
+                        output[attr] = output[attr].astype(val_type)
             except:
                 try:
+                    val_type = np.array(vals).dtype
                     # Try boolean
-                    unique_vals = list(unique(vals))
+                    unique_vals = list(unique(vals).astype(val_type))
                     if len(unique_vals) < 2:
                         # If they are all True or all False
                         output[attr] = unique_vals
                     else:
-                        output[attr] = {"True": extract_integer_intervals(np.where(vals)[0]),
+                        output[attr] = {"True": extract_integer_intervals(np.where(val)[0]),
                                         "False": extract_integer_intervals(np.where(np.invert(vals))[0])}
                 except:
                     try:
+                        val_type = np.array(vals).dtype
                         # treat the rest as strings
-                        output[attr] = list(unique([str(v) for v in vals]).tolist())
+                        output[attr] = list(unique([str(v) for v in vals]).astype(val_type).tolist())
                     except:
                         output[attr] = list(vals)
         else:
