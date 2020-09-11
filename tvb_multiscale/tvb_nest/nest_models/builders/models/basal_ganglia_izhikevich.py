@@ -10,6 +10,21 @@ from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
 
+class TVBWeightFun(object):
+    tvb_weights = np.array([])
+    global_coupling_scaling = 1.0
+    sign = 1
+
+    def __init__(self, tvb_weights, global_coupling_scaling=1.0, sign=1):
+        self.tvb_weights = tvb_weights
+        self.global_coupling_scaling = global_coupling_scaling
+        self.sign = sign
+
+    def __call__(self, source_node, target_node):
+        return scale_tvb_weight(source_node, target_node, self.tvb_weights,
+                                scale=self.sign*self.global_coupling_scaling)
+
+
 class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED):
@@ -88,16 +103,16 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                 [[6, 7],       [6, 7],       [0, 1],       [2, 3],      [0, 1],       [8, 9],              [4, 5]],  # source nodes
                 [[2, 3],       [0, 1],       [2, 3],       [8, 9],      [4, 5],       [6, 7],              [0, 1, 2, 3]]):  # target nodes
             if src_pop[0] == "I":
-                sign = -1.0
+                sign = -1
             else:
-                sign = 1.0
+                sign = 1
             self.nodes_connections.append(
-                {"source": src_pop, "target": trg_pop,
-                 "model": self.default_nodes_connection["model"],
-                 "conn_spec": self.default_nodes_connection["conn_spec"],
-                 "weight": lambda source_node, target_node: sign * self.tvb_weight_fun(source_node, target_node),
-                 "delay": lambda source_node, target_node: self.tvb_delay_fun(source_node, target_node),
-                 "receptor_type": 0, "source_nodes": src_nodes, "target_nodes": trg_nodes})
+                    {"source": src_pop, "target": trg_pop,
+                     "model": self.default_nodes_connection["model"],
+                     "conn_spec": self.default_nodes_connection["conn_spec"],
+                     "weight": TVBWeightFun(self.tvb_weights, self.global_coupling_scaling, sign),
+                     "delay": lambda source_node, target_node: self.tvb_delay_fun(source_node, target_node),
+                     "receptor_type": 0, "source_nodes": src_nodes, "target_nodes": trg_nodes})
 
         # Creating  devices to be able to observe NEST activity:
         self.output_devices = []
@@ -126,23 +141,23 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
              "params": {"rate": self.Estn_stim["rate"], "origin": 0.0, "start": 0.1},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
-             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type":1},
+             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": 1},
             {"model": "poisson_generator",
              "params": {"rate": self.Igpe_stim["rate"], "origin": 0.0, "start": 0.1},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
-             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type":1},
+             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": 1},
             {"model": "poisson_generator",
              "params": {"rate": self.Igpi_stim["rate"], "origin": 0.0, "start": 0.1},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type":1},
-            {"model": "ac_generator",
-             "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0,
-                        "start": 1.0},  # "stop": 100.0  "origin": 0.0,
-             "connections": {"DBS_Estn": ["E"]},  # "Estn"
-             "nodes": self.Estn_nodes_ids,  # None means apply to all
-             "weights": 1.0, "delays": 0.0}
+             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            # {"model": "ac_generator",
+            #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0,
+            #             "start": 1.0},  # "stop": 100.0  "origin": 0.0,
+            #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
+            #  "nodes": self.Estn_nodes_ids,  # None means apply to all
+            #  "weights": 1.0, "delays": 0.0}
         ]  #
 
     def paramsI(self, node_id):
@@ -162,9 +177,6 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         elif node_id in self.Eth_nodes_ids:
             params.update({"a": 0.02, "b": 0.25, "d": 0.05, "I_e": 3.5})
         return params
-
-    def tvb_weight_fun(self, source_node, target_node):
-        return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale=self.global_coupling_scaling)
 
     def tvb_delay_fun(self, source_node, target_node):
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
