@@ -102,22 +102,31 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
 
 
 if __name__ == "__main__":
-    # Select the regions for the fine scale modeling with NEST spiking networks
-    nest_nodes_ids = []  # the indices of fine scale regions modeled with NEST
-    # In this example, we model parahippocampal cortices (left and right) with NEST
-    connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
-    for id, label in enumerate(connectivity.region_labels):
-        if label.find("hippo") > 0:
-            nest_nodes_ids.append(id)
+
+    nest_nodes_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+    import os
+    home_path = os.path.join(os.getcwd().split("tvb-multiscale")[0], "tvb-multiscale")
+    DATA_PATH = os.path.join(home_path, "examples/tvb_nest/data")
+
+    w = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/conn_denis_weights.txt"))
+
+    c = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/aal_plus_BG_centers.txt"), usecols=range(1, 3))
+    rl = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/aal_plus_BG_centers.txt"), dtype="str", usecols=(0,))
+    t = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/BGplusAAL_tract_lengths.txt"))
+
+    # Remove BG -> Cortex connections
+    w[[0, 1, 2, 3, 6, 7], :][:, 10:] = 0.0
+    connectivity = Connectivity(region_labels=rl, weights=w, centres=c, tract_lengths=t)
 
     tvb_model = ReducedWongWangExcIO  # ReducedWongWangExcIOInhI
-    nest_nodes_ids = np.arange(10)
+
     model_params = {}
 
     main_example(tvb_model, BasalGangliaIzhikevichBuilder, BasalGangliaRedWWexcIOBuilder,
-                 nest_nodes_ids,  nest_populations_order=20,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
+                 nest_nodes_ids,  nest_populations_order=200,
+                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,  # "rate"
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=10.0,
+                 simulation_length=110.0, transient=0.0,
                  variables_of_interest=None,
                  config=None, **model_params)
