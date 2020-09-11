@@ -47,9 +47,9 @@ The dynamics are given by:
   @f[
   dv/dt = n2*v^2 + n1*v + n0 - u/C_m + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
   du/dt = a*(b*v - u)]
-  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)      (positively weighted spikes at port 0)
-  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)  (negatively weighted spikes at port 0)
-  tau_rise*dg_L/dt = -g_L + spikes_baseline(t)            (only positively -error otherwise- weighted spikes at port 1)
+  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)      (positively weighted spikes at port 1)
+  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)  (negatively weighted spikes at port 1)
+  tau_rise*dg_L/dt = -g_L + spikes_baseline(t)            (only positively -error otherwise- weighted spikes at port 0)
   @f]
 
     if  \f$ v >= V_{th} \f$:
@@ -170,6 +170,25 @@ private:
   void calibrate();
 
   void update( Time const&, const long, const long );
+
+  /**
+   * Minimal spike receptor type.
+   * @note Start with 1 so we can forbid port 0 to avoid accidental
+   *       creation of connections with no receptor type set.
+   */
+  static const port MIN_SPIKE_RECEPTOR = 0;
+
+  /**
+   * Spike receptors.
+   */
+  enum SpikeSynapseTypes
+  {
+    ACTIVITY = MIN_SPIKE_RECEPTOR,
+    NOISE,
+    SUP_SPIKE_RECEPTOR
+  };
+
+  static const size_t NUM_SPIKE_RECEPTORS = SUP_SPIKE_RECEPTOR - MIN_SPIKE_RECEPTOR;
 
   // ----------------------------------------------------------------
 
@@ -353,11 +372,11 @@ izhikevich_hamker::send_test_event( Node& target, rport receptor_type, synindex,
 inline port
 izhikevich_hamker::handles_test_event( SpikeEvent&, rport receptor_type )
 {
-  if ( receptor_type > 1 )
+  if ( receptor_type < MIN_SPIKE_RECEPTOR || receptor_type > SUP_SPIKE_RECEPTOR )
   {
-    throw UnknownReceptorType( receptor_type, get_name() );
+    throw IncompatibleReceptorType( receptor_type, get_name(), "SpikeEvent" );
   }
-  return 0;
+  return receptor_type - MIN_SPIKE_RECEPTOR;
 }
 
 inline port
@@ -387,6 +406,17 @@ izhikevich_hamker::get_status( DictionaryDatum& d ) const
   S_.get( d, P_ );
   Archiving_Node::get_status( d );
   ( *d )[ names::recordables ] = recordablesMap_.get_list();
+
+  /**
+   * @todo dictionary construction should be done only once for
+   * static member in default c'tor, but this leads to
+   * a seg fault on exit, see #328
+   */
+  DictionaryDatum receptor_dict_ = new Dictionary();
+  ( *receptor_dict_ )[ names::activity ] = ACTIVITY;
+  ( *receptor_dict_ )[ names::noise ] = NOISE;
+
+  ( *d )[ names::receptor_types ] = receptor_dict_;
 }
 
 inline void

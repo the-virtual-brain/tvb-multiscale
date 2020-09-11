@@ -311,8 +311,8 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
       // Integrate conductances using values at time t + spikes at time t:
       S_.g_L_ -= h * S_.g_L_ / P_.tau_rise_;
-      S_.g_AMPA_ -= - h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
-      S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
+      S_.g_AMPA_ -= h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
+      S_.g_GABA_A_ -= h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
 
       // lower bound of conductances
       S_.g_L_ = ( S_.g_L_ < 0.0 ? 0.0 : S_.g_L_ );
@@ -336,8 +336,8 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
       // Integrate conductances using values at time t + spikes at time t:
       S_.g_L_ -= h * S_.g_L_ / P_.tau_rise_;
-      S_.g_AMPA_ -= - h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
-      S_.g_GABA_A_ -= - h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
+      S_.g_AMPA_ -= h * S_.g_AMPA_/ P_.tau_rise_AMPA_;
+      S_.g_GABA_A_ -= h *  S_.g_GABA_A_ / P_.tau_rise_GABA_A_;
 
       // lower bound of conductances
       S_.g_L_ = ( S_.g_L_ < 0.0 ? 0.0 : S_.g_L_ );
@@ -385,17 +385,14 @@ void
 nest::izhikevich_hamker::handle( SpikeEvent& e )
 {
   assert( e.get_delay_steps() > 0 );
-  assert( ( e.get_rport() >= 0 ) && ( e.get_rport() <= 1 ) );
+  assert( ( e.get_rport() >= MIN_SPIKE_RECEPTOR ) && ( e.get_rport() <= SUP_SPIKE_RECEPTOR ) );
 
   const double weight = e.get_weight() * e.get_multiplicity();
 
- if (e.get_rport() > 0) {
-    if ( weight < 0.0 ) {
-        throw nest::BadProperty("Synaptic weights for the baseline spike activity must be positive." );
-    }
+ if (e.get_rport() == NOISE) {
     B_.spikes_base_.add_value(
             e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
- } else {
+ } else if (e.get_rport() == ACTIVITY) {
     if ( weight < 0.0 ) {
        B_.spikes_inh_.add_value(
            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), -weight );
