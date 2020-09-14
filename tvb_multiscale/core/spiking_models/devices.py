@@ -34,7 +34,7 @@ class Device(object):
 
     """Class to wrap around a measuring or stimulating device"""
 
-    device = None  # the index of the device in the spiking network
+    device = None  # a device object, depending on its simulator implementation
     model = "device"  # the device model name
     _number_of_connections = 0  # total number of devices' connections to neurons
 
@@ -44,7 +44,7 @@ class Device(object):
     _receptor_attr = "receptor"
 
     def __init__(self, device, *args, **kwargs):
-        self.device = device   # the index of the device in the spiking network
+        self._device = device  # a device object, depending on its simulator implementation
         self.model = "device"  # the device model name
         self._number_of_connections = self.number_of_connections
 

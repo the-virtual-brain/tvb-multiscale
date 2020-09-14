@@ -32,7 +32,7 @@ class NESTDevice(Device):
         """Method to assert that the node of the network is a device"""
         self._assert_nest()
         try:
-            self.nest_instance.GetStatus(self.device)[0]["element_type"]
+            self.device.get("element_type")[0]
         except:
             raise ValueError("Failed to Get device %s!" % str(self.device))
 
@@ -43,7 +43,7 @@ class NESTDevice(Device):
     @property
     def nest_model(self):
         self._assert_nest()
-        return str(self.nest_instance.GetStatus(self.device)[0]["model"])
+        return str(self.device.get("model")[0])
 
     def Set(self, values_dict):
         """Method to set attributes of the device
@@ -51,7 +51,7 @@ class NESTDevice(Device):
             values_dict: dictionary of attributes names' and values.
         """
         self._assert_nest()
-        self.nest_instance.SetStatus(self.device, values_dict)
+        self.device.get(values_dict)
 
     def Get(self, attrs=None):
         """Method to get attributes of the device.
@@ -62,9 +62,9 @@ class NESTDevice(Device):
         """
         self._assert_nest()
         if attrs is None:
-            return self.nest_instance.GetStatus(self.device)[0]
+            return self.device.get()[0]
         else:
-            return self.nest_instance.GetStatus(self.device, attrs)[0]
+            return self.device.get(attrs)[0]
 
     def _GetConnections(self, **kwargs):
         """Method to get attributes of the connections from/to the device
@@ -87,7 +87,7 @@ class NESTDevice(Device):
              Dictionary of arrays of connections' attributes.
         """
         self._assert_nest()
-        self.nest_instance.SetStatus(connections, values_dict)
+        connections.set(values_dict)
 
     def _GetFromConnections(self, connections, attrs=None):
         """Method to get attributes of the connections from/to the device
@@ -99,10 +99,10 @@ class NESTDevice(Device):
         """
         self._assert_nest()
         if attrs is None:
-            return list_of_dicts_to_dicts_of_ndarrays(self.nest_instance.GetStatus(connections))
+            return list_of_dicts_to_dicts_of_ndarrays(connections.get())
         else:
             attrs = ensure_list(attrs)
-            return OrderedDict(zip(attrs, np.array(self.nest_instance.GetStatus(connections, attrs))))
+            return OrderedDict(zip(attrs, np.array(connections.get(attrs))))
 
     def GetConnections(self, neurons=None, exclude_neurons=[]):
         """Method to get connections of the device from neurons.
@@ -288,12 +288,12 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def events(self):
         self._assert_nest()
-        return self.nest_instance.GetStatus(self.device)[0]["events"]
+        return self.device.get("events")[0]
 
     @property
     def number_of_events(self):
         self._assert_nest()
-        return self.nest_instance.GetStatus(self.device, "n_events")[0]
+        return self.device.get("n_events")[0]
 
     @property
     def n_events(self):
@@ -302,7 +302,7 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def reset(self):
         self._assert_nest()
-        self.nest_instance.SetStatus(self.device, {'n_events': 0})
+        self.device.n_events = 0
 
 
 class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
