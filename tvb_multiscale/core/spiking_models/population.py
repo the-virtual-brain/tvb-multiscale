@@ -21,7 +21,6 @@ class SpikingPopulation(object):
 
     label = ""    # label of population
     model = ""    # label of neuronal model
-    neurons = ()  # tuple of populations' neurons
     _number_of_neurons = 0  # total number of populations' neurons
 
     # Default attributes' labels:
@@ -29,8 +28,16 @@ class SpikingPopulation(object):
     _delay_attr = "delay"
     _receptor_attr = "receptor"
 
-    def __init__(self, neurons, label="", model="", *args, **kwargs):
-        self.neurons = neurons
+    @property
+    @abstractmethod
+    def neurons(self):  # tuple of populations' neurons
+        """Method to get all neurons' indices of this population.
+           Returns:
+            tuple of neurons'indices.
+        """
+    pass
+
+    def __init__(self, label="", model="", *args, **kwargs):
         self.label = str(label)
         self.model = str(model)
         self._number_of_neurons = self.number_of_neurons
@@ -67,12 +74,15 @@ class SpikingPopulation(object):
         return "%s - Label: %s, %d neurons: %s" % (self.__class__.__name__, self.label,
                                                    self.number_of_neurons, self.summarize_neurons_indices(print=True))
 
+    def _print_neurons(self):
+        return "\n%d neurons: %s" % (self.number_of_neurons, self.summarize_neurons_indices(print=True))
+
     def __str__(self):
         return "\n%s - Label: %s" \
-               "\n%d neurons: %s" \
+               "%s" \
                "\nparameters: %s," % \
                           (self.__class__.__name__,  self.label,
-                           self.number_of_neurons, self.summarize_neurons_indices(print=True),
+                           self._print_neurons(),
                            str(self.get_attributes(summary=True)))
 
     def print_str(self, connectivity=False):
@@ -109,7 +119,7 @@ class SpikingPopulation(object):
         pass
 
     @abstractmethod
-    def _GetConnections(self, neurons, source_or_target=None):
+    def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
            Arguments:
             neurons: tuple of neurons the connections of which should be included in the output.
