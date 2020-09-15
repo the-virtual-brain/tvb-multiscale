@@ -125,7 +125,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
         # Labels have to be different for every connection to every distinct population
-        params = {"withtime": True, "withgid": True, "interval": 1.0,
+        params = {"interval": 1.0,
                   'record_from': ["V_m", "U_m", "I_syn", "I_syn_ex", "I_syn_in", "g_L", "g_AMPA", "g_GABA_A"]}
         for pop in self.populations:
             connections = OrderedDict({})
