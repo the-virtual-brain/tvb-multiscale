@@ -19,15 +19,6 @@ def log_path(name, logger=LOG):
     logger.info("%s: %s" % (name, os.environ.get(name, "")))
 
 
-def get_neurons_from_populations(population, index=None):
-    try:
-        # In case this is a list, tuple or dictionary (in which case index is a key)...
-        return flatten_tuple(population[index])
-    except:
-        # Otherwise, if index is None, return the whole tuple of neurons' indices...
-        return flatten_tuple(population)
-
-
 def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
     if isinstance(device, string_types) or isinstance(device, dict):
         if isinstance(device, string_types):
