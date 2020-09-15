@@ -85,14 +85,14 @@ def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kw
     rule = conn_spec["rule"]
     p = conn_spec["p"]
     N = conn_spec["N"]
-    autapses = conn_spec["autapses"]
-    multapses = conn_spec["multapses"]
+    autapses = conn_spec["allow_autapses"]
+    multapses = conn_spec["allow_multapses"]
     indegree = conn_spec["indegree"]
     outdegree = conn_spec["outdegree"]
     conn_spec = {
         'rule': rule,
-        'autapses': autapses,  # self-connections flag
-        'multapses': multapses  # multiple connections per neurons' pairs flag
+        'allow_autapses': autapses,  # self-connections flag
+        'allow_multapses': multapses  # multiple connections per neurons' pairs flag
     }
     if rule == 'one_to_one':
         # TODO: test whether there is an error
