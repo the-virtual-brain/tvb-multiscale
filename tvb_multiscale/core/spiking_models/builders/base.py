@@ -194,7 +194,7 @@ class SpikingModelBuilder(object):
 
     @property
     def populations_connections_models(self):
-        return self._population_connection_property_per_node("model")
+        return self._population_connection_property_per_node("synapse_model")
 
     @property
     def populations_connections_weights(self):
@@ -232,7 +232,7 @@ class SpikingModelBuilder(object):
 
     @property
     def nodes_connections_models(self):
-        return self._nodes_connection_property_per_node("model")
+        return self._nodes_connection_property_per_node("synapse_model")
 
     @property
     def nodes_connections_weights(self):
@@ -339,7 +339,9 @@ class SpikingModelBuilder(object):
                     _connections[i_con][prop] = property_to_fun(inds_fun)
                 else:
                     _connections[i_con][prop] = None
-            self._models.append(_connections[i_con]["model"])
+            synapse_model = _connections[i_con].get("synapse_model", _connections[i_con].get("model", None))
+            if synapse_model is not None:
+                self._models.append(synapse_model)
         self._models = np.unique(self._models).tolist()
         return _connections
 
@@ -445,7 +447,7 @@ class SpikingModelBuilder(object):
         return get_node_populations_neurons(node, populations, inds_fun)
 
     def _set_syn_spec(self, syn_model, weight, delay, receptor_type):
-        return {'model': syn_model,  'weight': weight,
+        return {'synapse_model': syn_model,  'weight': weight,
                 'delay': delay, 'receptor_type': receptor_type}
 
     def _connect_two_populations(self, pop_src, pop_trg, conn_spec, syn_spec):
@@ -469,7 +471,7 @@ class SpikingModelBuilder(object):
                     self._get_node_populations_neurons(self._spiking_brain[i_node], conn["source"], conn["source_inds"]),
                     self._get_node_populations_neurons(self._spiking_brain[i_node], conn["target"], conn["target_inds"]),
                     conn['conn_spec'],
-                    self._set_syn_spec(conn["model"], conn['weight'](node_index),
+                    self._set_syn_spec(conn["synapse_model"], conn['weight'](node_index),
                                        self._assert_delay(conn['delay'](node_index)),
                                        conn['receptor_type'](node_index)
                                        )
@@ -491,7 +493,7 @@ class SpikingModelBuilder(object):
                         self._connect_two_populations(
                             src_pop, trg_pop,
                             conn['conn_spec'],
-                            self._set_syn_spec(conn["model"],
+                            self._set_syn_spec(conn["synapse_model"],
                                                conn["weight"](source_index, target_index),
                                                conn["delay"](source_index, target_index),
                                                conn["receptor_type"](source_index, target_index)

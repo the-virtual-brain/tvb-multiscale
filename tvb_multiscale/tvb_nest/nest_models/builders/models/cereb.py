@@ -185,7 +185,7 @@ class CerebBuilder(NESTModelBuilder):
 
                  "target_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
                                                conn[:, 1].flatten()),
-                 "model": 'static_synapse',
+                 "synapse_model": 'static_synapse',
                  "conn_spec": self.default_populations_connection["conn_spec"],
                  "weight": self.conn_weights[conn_name],
                  "delay": self.conn_delays[conn_name],
