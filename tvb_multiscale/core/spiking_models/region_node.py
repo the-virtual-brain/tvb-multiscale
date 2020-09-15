@@ -103,7 +103,7 @@ class SpikingRegionNode(Series):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Series of arrays of populations' neurons' attributes.
+            Series of lists of populations' neurons' attributes.
         """
         output = Series()
         for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
@@ -122,7 +122,7 @@ class SpikingRegionNode(Series):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Series of arrays of populations' neurons' attributes.
+            Series of lists of populations' neurons' attributes.
         """
         return self.Get(pop_inds_or_lbls=pop_inds_or_lbls, summary=summary)
 
@@ -168,7 +168,7 @@ class SpikingRegionNode(Series):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Series of arrays of connections' attributes.
+            Series of lists of connections' attributes.
         """
         output = Series()
         for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
