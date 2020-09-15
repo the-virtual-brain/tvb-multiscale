@@ -48,7 +48,7 @@ class NESTPopulation(SpikingPopulation):
             values_dict: dictionary of attributes names' and values.
         """
         self._assert_nest()
-        self.node_collection[neurons].set(values_dict)
+        self.nest_instance.NodeCollection(neurons).set(values_dict)
 
     def _Get(self, neurons, attrs=None):
         """Method to get attributes of the SpikingPopulation's neurons.
@@ -56,14 +56,13 @@ class NESTPopulation(SpikingPopulation):
             neurons: tuple of neurons which should be included in the output.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
            Returns:
-            Dictionary of arrays of neurons' attributes.
+            Dictionary of lists of neurons' attributes.
         """
         self._assert_nest()
         if attrs is None:
-            return list_of_dicts_to_dicts_of_ndarrays(self.node_collection[neurons].get())
+            return self.nest_instance.NodeCollection(neurons).get()
         else:
-            attrs = ensure_list(attrs)
-            return OrderedDict(zip(attrs, np.array(self.node_collection[neurons].get(attrs))))
+            return self.nest_instance.NodeCollection(neurons).get(ensure_list(attrs))
 
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
@@ -72,7 +71,7 @@ class NESTPopulation(SpikingPopulation):
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
            Returns:
-            connections' objects.
+            synapses' collections.
         """
         self._assert_nest()
         if neurons is not None:
@@ -80,6 +79,8 @@ class NESTPopulation(SpikingPopulation):
                 neurons = None
         else:
             neurons = self.node_collection
+        if neurons is not None and not isinstance(neurons, self.nest_instance.NodeCollection):
+            neurons = self.nest_instance.NodeCollection(neurons)
         if source_or_target not in ["source", "target"]:
             return self.nest_instance.GetConnections(source=neurons), \
                    self.nest_instance.GetConnections(target=neurons)
@@ -107,8 +108,6 @@ class NESTPopulation(SpikingPopulation):
         """
         self._assert_nest()
         if attrs is None:
-            return list_of_dicts_to_dicts_of_ndarrays(connections.get())
+            return connections.get()
         else:
-            attrs = ensure_list(attrs)
-            return OrderedDict(zip(attrs,
-                                   list(np.array(connections.get(attrs)).T)))
+            return connections.get(attrs)

@@ -114,7 +114,7 @@ class SpikingPopulation(object):
             neurons: tuple of neurons which should be included in the output.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
            Returns:
-            Dictionary of arrays of neurons' attributes.
+            Dictionary of lists of neurons' attributes.
         """
         pass
 
@@ -146,7 +146,7 @@ class SpikingPopulation(object):
              connections: connections' objects.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
             Returns:
-             Dictionary of arrays of connections' attributes.
+             Dictionary of lists of connections' attributes.
 
         """
         pass
@@ -201,7 +201,7 @@ class SpikingPopulation(object):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Dictionary of arrays of neurons' attributes.
+            Dictionary of lists of neurons' attributes.
         """
         attributes = self._Get(self.filter_neurons(neurons, exclude_neurons), attrs)
         if summary:
@@ -223,7 +223,7 @@ class SpikingPopulation(object):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Dictionary of arrays of neurons' attributes.
+            Dictionary of lists of neurons' attributes.
         """
         return self.Get(neurons=neurons, exclude_neurons=exclude_neurons, summary=summary)
 
@@ -269,7 +269,7 @@ class SpikingPopulation(object):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Dictionary of arrays of connections' attributes.
+            Dictionary of lists of connections' attributes.
         """
         connections = self.GetConnections(neurons, exclude_neurons, source_or_target)
         output = []
@@ -353,7 +353,7 @@ class SpikingPopulation(object):
     def attributes(self):
         """Method to get the attributes of the SpikingPopulation's neurons.
            Returns:
-            Dictionary of arrays of population's neurons' attributes.
+            Dictionary of lists of population's neurons' attributes.
         """
         return self.get_attributes()
 
