@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
 import numpy as np
@@ -12,6 +13,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of
 
 
 class NESTDevice(Device):
+    __metaclass__ = ABCMeta
 
     nest_instance = None
     _weight_attr = "weight"
@@ -32,7 +34,7 @@ class NESTDevice(Device):
         """Method to assert that the node of the network is a device"""
         self._assert_nest()
         try:
-            self.device.get("element_type")[0]
+            self.device.get("element_type")
         except:
             raise ValueError("Failed to Get device %s!" % str(self.device))
 
@@ -43,7 +45,7 @@ class NESTDevice(Device):
     @property
     def nest_model(self):
         self._assert_nest()
-        return str(self.device.get("model")[0])
+        return str(self.device.get("model"))
 
     def Set(self, values_dict):
         """Method to set attributes of the device
@@ -62,9 +64,9 @@ class NESTDevice(Device):
         """
         self._assert_nest()
         if attrs is None:
-            return self.device.get()[0]
+            return self.device.get()
         else:
-            return self.device.get(attrs)[0]
+            return self.device.get(attrs)
 
     def _GetConnections(self, **kwargs):
         """Method to get attributes of the connections from/to the device
@@ -72,11 +74,19 @@ class NESTDevice(Device):
             connections' objects
         """
         self._assert_nest()
-        for kwarg in ["source", "target"]:
-            kwval = kwargs.get(kwarg, None)
-            if kwval is not None and len(kwval) == 0:
-                kwargs[kwarg] = None
-        return self.nest_instance.GetConnections(**kwargs)
+        for kw in ["source", "target"]:
+            kwval = kwargs.get(kw, None)
+            if kwval is not None:
+                if len(kwval) == 0:
+                    kwval = None
+                elif not isinstance(kwval, self.nest_instance.NodeCollection):
+                    kwval = self.nest_instance.NodeCollection(kwval)
+                kwargs[kw] = kwval
+        connections = self.nest_instance.GetConnections(**kwargs)
+        if len(connections) == 0:
+            return ()
+        else:
+            return connections
 
     def _SetToConnections(self, connections, values_dict):
         """Method to set attributes of the connections from/to the device
@@ -84,7 +94,7 @@ class NESTDevice(Device):
              connections: connections' objects.
              values_dict: dictionary of attributes names' and values.
             Returns:
-             Dictionary of arrays of connections' attributes.
+             Dictionary of lists of connections' attributes.
         """
         self._assert_nest()
         connections.set(values_dict)
@@ -95,14 +105,13 @@ class NESTDevice(Device):
             connections: connections' objects.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
            Returns:
-            Dictionary of arrays of connections' attributes.
+            Dictionary of lists of connections' attributes.
         """
         self._assert_nest()
         if attrs is None:
-            return list_of_dicts_to_dicts_of_ndarrays(connections.get())
+            return connections.get()
         else:
-            attrs = ensure_list(attrs)
-            return OrderedDict(zip(attrs, np.array(connections.get(attrs))))
+            return connections.get(ensure_list(attrs))
 
     def GetConnections(self, neurons=None, exclude_neurons=[]):
         """Method to get connections of the device from neurons.
@@ -124,10 +133,23 @@ class NESTDevice(Device):
         """
         return self._GetConnections(source=self.device)
 
+    def get_neurons(self, source_or_target="target"):
+        """Method to get the indices of all the neurons the device is connected from/to.
+           Mind that for all input and all out output devices, except for spike detector,
+           the devices connects to the neurons, and not vice-versa,
+           i.e., neurons are the target of the device connection.
+        """
+        neurons = []
+        for conn in self.connections:
+            neuron = getattr(conn, source_or_target)
+            if neuron is not None:
+                neurons.append(neuron)
+        return tuple(np.unique(neurons).tolist())
+
     @property
     def neurons(self):
-        """Method to get the indices of all the neurons the device is connected from."""
-        return tuple([conn[1] for conn in self.connections])
+        """Method to get the indices of all the neurons the device is connected to."""
+        return self.get_neurons("target")
 
 
 class NESTInputDevice(NESTDevice, InputDevice):
@@ -265,35 +287,15 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
         super(NESTOutputDevice, self).__init__(device, nest_instance)
         self.model = "output_device"
 
-    def GetConnections(self, neurons=None, exclude_neurons=[]):
-        """Method to get connections of the device from neurons.
-           Arguments:
-            neurons: collection (list, tuple, array) of neurons which should be included in the output.
-                     Default = None, corresponds to all neurons the device is connected to.
-            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
-           Returns:
-            connections' objects.
-        """
-        return self._GetConnections(source=self.device,
-                                    target=self.filter_neurons(neurons, exclude_neurons))
-
-    @property
-    def connections(self):
-        """Method to get all connections of the device from neurons.
-           Returns:
-            connections' objects.
-        """
-        return self._GetConnections(source=self.device)
-        
     @property
     def events(self):
         self._assert_nest()
-        return self.device.get("events")[0]
+        return self.device.get("events")
 
     @property
     def number_of_events(self):
         self._assert_nest()
-        return self.device.get("n_events")[0]
+        return self.device.get("n_events")
 
     @property
     def n_events(self):
@@ -301,8 +303,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     
     @property
     def reset(self):
+        # TODO: find how to reset recorders!
         self._assert_nest()
-        self.device.n_events = 0
+        pass
+        # self.device.n_events = 0
 
 
 class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
@@ -311,6 +315,8 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
     def __init__(self, device, nest_instance):
         super(NESTSpikeDetector, self).__init__(device, nest_instance)
         self.model = "spike_detector"
+
+    # Only SpikeDetector is the target of connections with neurons in NEST:
 
     def GetConnections(self, neurons=None, exclude_neurons=[]):
         """Method to get connections of the device from neurons.
@@ -334,9 +340,10 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
 
     @property
     def neurons(self):
-        return tuple([conn[0] for conn in self.connections])
-    
-    
+        """Method to get the indices of all the neurons the device is connected to."""
+        return self.get_neurons("source")
+
+
 class NESTMultimeter(NESTOutputDevice, Multimeter):
     model = "multimeter"
 
@@ -347,7 +354,7 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
     @property
     def record_from(self):
         self._assert_nest()
-        return [str(name) for name in self.nest_instance.GetStatus(self.device)[0]['record_from']]
+        return [str(name) for name in self.device.get('record_from')]
     
     
 class NESTVoltmeter(NESTMultimeter, Voltmeter):

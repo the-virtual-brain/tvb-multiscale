@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 from six import string_types
+from copy import deepcopy
 from collections import OrderedDict
 
 import pandas as pd
@@ -36,7 +37,8 @@ class Device(object):
 
     device = None  # a device object, depending on its simulator implementation
     model = "device"  # the device model name
-    _number_of_connections = 0  # total number of devices' connections to neurons
+    _number_of_connections = 0  # total number of device's connections
+    _number_of_neurons = 0  # total number of neurons connected to this device
 
     # Modify accordingly for other simulators than NEST, by overwriting to the inheriting class:
     _weight_attr = "weight"
@@ -44,12 +46,13 @@ class Device(object):
     _receptor_attr = "receptor"
 
     def __init__(self, device, *args, **kwargs):
-        self._device = device  # a device object, depending on its simulator implementation
+        self.device = device   # a device object, depending on its simulator implementation
         self.model = "device"  # the device model name
         self._number_of_connections = self.number_of_connections
+        self._number_of_neurons = self.number_of_neurons
 
     def __repr__(self):
-        return "%s - Model: %s, gid: %d" % (self.__class__.__name__, self.model, self.device[0])
+        return "%s - Model: %s\n%s" % (self.__class__.__name__, self.model, self.device.__str__())
 
     def __str__(self):
         return self.print_str()
@@ -57,7 +60,7 @@ class Device(object):
     def print_str(self, connectivity=False):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
-            neurons = self.neurons
+            neurons = ensure_list(self.neurons)
             output += ",\nconnections to %d neurons: %s," \
                       "\nweights: %s," \
                       "\ndelays: %s," \
@@ -131,7 +134,7 @@ class Device(object):
             connections: connections' objects.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
            Returns:
-            Dictionary of (numpy) arrays of connections' attributes.
+            Dictionary of lists of connections' attributes.
         """
         pass
 
@@ -152,7 +155,7 @@ class Device(object):
     def get_attributes(self):
         """Method to get all attributes of the device.
            Returns:
-            Dictionary of (numpy) arrays of neurons' attributes.
+            Dictionary of lists of neurons' attributes.
         """
         return self.Get()
 
@@ -166,6 +169,17 @@ class Device(object):
             int: number of connections
         """
         return len(self.GetConnections(neurons=neurons, exclude_neurons=exclude_neurons))
+
+    def get_number_of_neurons(self, neurons=None, exclude_neurons=[]):
+        """Method to get the number of  neurons connected to/from the device.
+           Arguments:
+            neurons: collection (list, tuple, array) of neurons which should be included in the output.
+                     Default = None, corresponds to all neurons the device is connected to.
+            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+           Returns:
+            int: number of connections
+        """
+        return len(self.filter_neurons(neurons=neurons, exclude_neurons=exclude_neurons))
 
     def SetToConnections(self, values_dict, neurons=None, exclude_neurons=[]):
         """Method to set attributes of the connections from/to the device.
@@ -212,7 +226,7 @@ class Device(object):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Array of connections' weights
+            List of connections' weights
         """
         return self.GetFromConnections(self._weight_attr, neurons, exclude_neurons, summary)[self._weight_attr]
 
@@ -229,7 +243,7 @@ class Device(object):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Array of connections' delays
+            List of connections' delays
         """
         return self.GetFromConnections(self._delay_attr, neurons, exclude_neurons, summary)[self._delay_attr]
 
@@ -246,7 +260,7 @@ class Device(object):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Array of connections' receptors
+            List of connections' receptors
         """
         return self.GetFromConnections(self._receptor_attr, neurons, exclude_neurons, summary)[self._receptor_attr]
 
@@ -287,9 +301,16 @@ class Device(object):
     @property
     def number_of_connections(self):
         """Method to get the number of all connections from/to the device."""
-        if self._number_of_connections == 0 or self._number_of_connections is None:
+        if not self._number_of_connections:
             self._number_of_connections = self.get_number_of_connections()
         return self._number_of_connections
+
+    @property
+    def number_of_neurons(self):
+        """Method to get the number of all neurons connected from/to the device."""
+        if not self._number_of_neurons:
+            self._number_of_neurons = self.get_number_of_neurons()
+        return self._number_of_neurons
 
     @property
     def node_weight(self):
@@ -365,7 +386,7 @@ class OutputDevice(Device):
         """
         return self.GetConnections(target=self.device)
 
-    def filter_events(self, events=None, variables=None, neurons=None, times=None,
+    def filter_events(self, events, variables=None, neurons=None, times=None,
                       exclude_neurons=[], exclude_times=[]):
         """This method will select/exclude part of the measured events, depending on user inputs
             Arguments:
@@ -384,10 +405,44 @@ class OutputDevice(Device):
             Returns:
               the filtered dictionary of events
         """
-        # The events of the device
-        if events is None:
-            events = self.events
         return filter_events(events, variables, neurons, times, exclude_neurons, exclude_times)
+
+    def get_events(self, events=None, variables=None, events_inds=None, **filter_kwargs):
+        """This method will select/exclude part of the measured events, depending on user inputs
+            Arguments:
+                events: dictionary of events
+                variables: collection (list, tuple, array) of variables to be included in the output,
+                           assumed to correspond to keys of the events dict.
+                           Default=None, corresponds to all keys of events.
+                events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                             to slice the event attributes. Default = None, i.e., it doesn't apply.
+                filter_kwargs: see filter_events method for its possible keywork arguments
+            Returns:
+              the filtered dictionary of events
+        """
+        if events is None:
+            # The events of the device:
+            events = deepcopy(self.events)
+        if variables is None:
+            variables = events.keys()
+        else:
+            variables = ensure_list(variables)
+        n_events = len(events["times"])
+        if n_events > 0:
+            if events_inds is not None:
+                if hasattr(events_inds, "__len__") or isinstance(events_inds, slice):
+                    # events_inds are numerical or boolean indices, or a slice:
+                    select_fun = lambda x, events_inds: np.array(x)[events_inds].tolist()
+                else: # events_inds is a scalar to start indexing from:
+                    select_fun = lambda x, events_inds: np.array(x)[events_inds:].tolist()
+                for var in variables:
+                    events[var] = select_fun(events[var], events_inds)
+            if len(filter_kwargs) > 0:
+                return filter_events(events, **filter_kwargs)
+        else:
+            for var in variables:
+                events[var] = []
+        return events
 
     @property
     @abstractmethod
@@ -425,120 +480,105 @@ class SpikeDetector(OutputDevice):
         super(SpikeDetector, self).__init__(device, *args, **kwargs)
         self.model = "spike_detector"
 
-    def get_spikes_events(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_events(self, events_inds=None, **filter_kwargs):
         """This method will select/exclude part of the detected spikes' events, depending on user inputs
             Arguments:
-             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                      Default = None, corresponds to all neurons found as senders of events.
-             times: collection (list, tuple, array) of times the events of which should be included in the output.
-                    Default = None, corresponds to all events' times.
-             exclude_neurons: collection (list, tuple, array) of neurons
-                              the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
              the filtered dictionary of spikes' events
         """
-        return self.filter_events(None, None, neurons, times, exclude_neurons, exclude_times)
+        return self.get_events(events_inds=events_inds, **filter_kwargs)
 
-    def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_times(self, events_inds=None, **filter_kwargs):
         """This method will return spikes' times
             after selecting/excluding part of the detected spikes' events, depending on user inputs
             Arguments:
-             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                      Default = None, corresponds to all neurons found as senders of events.
-             times: collection (list, tuple, array) of times the events of which should be included in the output.
-                    Default = None, corresponds to all events' times.
-             exclude_neurons: collection (list, tuple, array) of neurons
-                              the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
              the spikes' times in an array
         """
-        return self.filter_events(None, "times", neurons, times, exclude_neurons, exclude_times)["times"]
+        return self.get_spikes_events(events_inds=events_inds, variables="times", **filter_kwargs)["times"]
 
-    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_senders(self, events_inds=None, **filter_kwargs):
         """This method will return spikes' times
            after selecting/excluding part of the detected spikes' events, depending on user inputs
            Arguments:
-            neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                     Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
-                   Default = None, corresponds to all events' times.
-            exclude_neurons: collection (list, tuple, array) of neurons
-                             the events of which should be excluded from the output. Default = [].
-            exclude_times: collection (list, tuple, array) of times
-                           the events of which should be excluded from the output. Default = [].
+            events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
            Returns:
             the spikes' times in an array
         """
-        return self.filter_events(None, "senders", neurons, times, exclude_neurons, exclude_times)["senders"]
+        return self.get_spikes_events(events_inds=events_inds, variables="senders", **filter_kwargs)["senders"]
 
     # The following attributes are time summaries without taking into consideration spike timing:
 
-    def get_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_number_of_spikes(self, events_inds=None, **filter_kwargs):
         """This method will return the total number of spikes
            after selecting/excluding part of the detected spikes' events, depending on user inputs
            Arguments:
-            neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                     Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
-                   Default = None, corresponds to all events' times.
-            exclude_neurons: collection (list, tuple, array) of neurons
-                             the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+            events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                         to slice the event attributes. Default = None, i.e., it doesn't apply.
+            filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
              int: the spikes' total number
         """
-        return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times))
+        return len(self.get_spikes_times(events_inds=events_inds, **filter_kwargs))
 
-    def get_mean_number_of_spikes(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_mean_number_of_spikes(self, events_inds=None, neurons=None, exclude_neurons=[], **filter_kwargs):
         """This method will return the total number of spikes divided by the total number of connected neurons
             after selecting/excluding part of the detected spikes' events, depending on user inputs
             Arguments:
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
              neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
                       Default = None, corresponds to all neurons found as senders of events.
-             times: collection (list, tuple, array) of times the events of which should be included in the output.
-                    Default = None, corresponds to all events' times.
              exclude_neurons: collection (list, tuple, array) of neurons
                               the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
              float: total number of spikes divided by the total number of connected neurons
         """
         n_neurons = self.get_number_of_connections(neurons, exclude_neurons)
         if n_neurons > 0:
-            return len(self.get_spikes_times(neurons, times, exclude_neurons, exclude_times)) / n_neurons
+            for key, arg in zip(["neurons", "exclude_neurons"], [neurons, exclude_neurons]):
+                if arg:
+                    filter_kwargs.update({key: arg})
+            return len(self.get_spikes_times(events_inds=events_inds, **filter_kwargs)) / n_neurons
         else:
             return 0.0
 
-    def get_spikes_rate(self, dt=1.0, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_rate(self, dt=1.0, events_inds=None, neurons=None, exclude_neurons=[], **filter_kwargs):
         """This method will return the mean spike rate,
            as the total number of spikes divided by the total number of connected neurons and time duration
            after selecting/excluding part of the detected spikes' events, depending on user inputs
            Arguments:
             dt: total time duration, Default = 1.0 (in msec)
+            events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                         to slice the event attributes. Default = None, i.e., it doesn't apply.
             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
                      Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
-                   Default = None, corresponds to all events' times.
             exclude_neurons: collection (list, tuple, array) of neurons
                              the events of which should be excluded from the output. Default = [].
-            exclude_times: collection (list, tuple, array) of times
-                           the events of which should be excluded from the output. Default = [].
+            filter_kwargs: see filter_events method for its possible keywork arguments
            Returns:
             float: total number of spikes divided by the total number of connected neurons
         """
-        return self.get_mean_number_of_spikes(neurons, times, exclude_neurons, exclude_times) / dt
+        return self.get_mean_number_of_spikes(events_inds=events_inds, neurons=neurons, exclude_neurons=exclude_neurons,
+                                              **filter_kwargs) / dt
 
-    def get_spikes_times_by_neurons(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[],
+    def get_spikes_times_by_neurons(self, events_inds=None,
+                                    neurons=None, times=None, exclude_neurons=[], exclude_times=[],
                                     full_senders=False):
         """This method will return the spikes' times per neuron,
              after selecting/excluding part of the detected spikes' events, depending on user inputs
              Arguments:
+              events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                           to slice the event attributes. Default = None, i.e., it doesn't apply.
               neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
                        Default = None, corresponds to all neurons found as senders of events.
               times: collection (list, tuple, array) of times the events of which should be included in the output.
@@ -551,7 +591,8 @@ class SpikeDetector(OutputDevice):
              Returns:
               dictionary of spike events sorted by sender neuron
          """
-        sorted_events = sort_events_by_x_and_y(self.events, x="senders", y="times",
+        sorted_events = sort_events_by_x_and_y(self.get_events(events_inds=events_inds),
+                                               x="senders", y="times",
                                                filter_x=neurons, filter_y=times,
                                                exclude_x=exclude_neurons, exclude_y=exclude_times)
         if full_senders:
@@ -565,10 +606,13 @@ class SpikeDetector(OutputDevice):
         else:
             return sorted_events
 
-    def get_spikes_neurons_by_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_neurons_by_times(self, events_inds=None,
+                                    neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
         """This method will return the spikes' senders per spike time,
              after selecting/excluding part of the detected spikes' events, depending on user inputs
              Arguments:
+              events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                           to slice the event attributes. Default = None, i.e., it doesn't apply.
               neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
                        Default = None, corresponds to all neurons found as senders of events.
               times: collection (list, tuple, array) of times the events of which should be included in the output.
@@ -580,7 +624,8 @@ class SpikeDetector(OutputDevice):
              Returns:
               dictionary of spike events sorted by time
          """
-        return sort_events_by_x_and_y(self.events, x="times", y="senders",
+        return sort_events_by_x_and_y(self.get_events(events_inds=events_inds),
+                                      x="times", y="senders",
                                       filter_x=times, filter_y=neurons,
                                       exclude_x=exclude_times, exclude_y=exclude_neurons)
 
@@ -687,9 +732,13 @@ class SpikeDetector(OutputDevice):
         """
         if name is None:
             name = self.model + " - Mean spike rate accross time"
-        n_neurons = self.get_number_of_connections(neurons=kwargs.pop("neurons", None),
-                                                   exclude_neurons=kwargs.pop("exclude_neurons", []))
+        neurons = kwargs.pop("neurons", None)
+        exclude_neurons = kwargs.pop("exclude_neurons", [])
+        n_neurons = self.get_number_of_connections(neurons=neurons, exclude_neurons=exclude_neurons)
         if n_neurons > 0:
+            for key, arg in zip(["neurons", "exclude_neurons"], [neurons, exclude_neurons]):
+                if arg:
+                    kwargs.update({key: arg})
             return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
                                                         spikes_kernel=spikes_kernel, mode="total",
                                                         name=name, **kwargs) / n_neurons
@@ -1063,140 +1112,109 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         """
         return self.get_data([self.spike_var], neurons, exclude_neurons, name, dims_names)
 
-    def get_spikes_inds(self, neurons=None, exclude_neurons=[]):
+    def get_spikes_inds(self):
         """This method returns all events' indices for which there is a spike, i.e., the spike weight is not zero.
-           Arguments:
-            neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                      Default = None, corresponds to all neurons the multimeter records from.
-            exclude_neurons: collection (list, tuple, array) of neurons
-                             the events of which should be excluded from the output. Default = [].
            Returns:
             a numpy array with the output indices
         """
-        spikes = self.events[self.spike_var]
-        spikes_inds = spikes != 0.0
-        senders = self.senders
-        if neurons is not None:
-            spikes_inds = np.logical_and(spikes_inds,
-                                         [sender in flatten_list(neurons) for sender in senders])
-        if len(exclude_neurons) > 0:
-            spikes_inds = np.logical_and(spikes_inds,
-                                         [sender not in flatten_list(exclude_neurons) for sender in senders])
-        return np.where(spikes_inds)[0]
+        return np.where(np.array(self.events[self.spike_var]))[0]
 
-    def get_spikes_events(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        """This method returns an event structure similar to a spike_detectors,
-           i.e., where there are events only for spike times, not for continuous time.
-           Arguments:
-            neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                     Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
-                   Default = None, corresponds to all events' times.
-            exclude_neurons: collection (list, tuple, array) of neurons
-                             the events of which should be excluded from the output. Default = [].
-            exclude_times: collection (list, tuple, array) of times
-                           the events of which should be excluded from the output. Default = [].
+    def get_spikes_events(self, events_inds=None, **filter_kwargs):
+        """This method will select/exclude part of the detected spikes' events, depending on user inputs
+            Arguments:
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
-            the filtered dictionary of events
+             the filtered dictionary of spikes' events
         """
-        events = dict(self.events)
-        inds = events[self.spike_var] != 0
-        for var, val in events.items():
-            events[var] = val[inds]
+        events = deepcopy(self.events)
         events["weights"] = np.array(events[self.spike_var])
-        del events[self.spike_var]
-        return self.filter_events(events, None, neurons, times, exclude_neurons, exclude_times)
+        if events_inds:
+            if (hasattr(events_inds, "__len__") and len(events_inds) > 0) or isinstance(events_inds, slice):
+                # events_inds are numerical or boolean indices, or a slice:
+                events_inds = np.arange(len(events["weight"])).astype("i")[events_inds]
+            else:  # events_inds is a scalar to start indexing from:
+                events_inds = np.arange(len(events["weight"])).astype("i")[events_inds:]
+            events_inds = np.intersect1d(self.get_spikes_inds(), events_inds)
+        else:
+            events_inds = self.get_spikes_inds()
+        return self.get_events(events, events_inds=events_inds, **filter_kwargs)
 
-    def get_spikes_weights(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_weights(self, events_inds=None, **filter_kwargs):
         """This method will return spikes' weights
             after selecting/excluding part of the detected spikes' events, depending on user inputs
             Arguments:
-             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                      Default = None, corresponds to all neurons found as senders of events.
-             times: collection (list, tuple, array) of times the events of which should be included in the output.
-                    Default = None, corresponds to all events' times.
-             exclude_neurons: collection (list, tuple, array) of neurons
-                              the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
-             the spikes' times in an array
+             the spikes' weights in a list
         """
-        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["weights"]
+        return self.get_spikes_events(events_inds=events_inds, variables="weights", **filter_kwargs)["weights"]
 
-    def get_spikes_times(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_spikes_times(self, events_inds=None, **filter_kwargs):
         """This method will return spikes' times
             after selecting/excluding part of the detected spikes' events, depending on user inputs
             Arguments:
-             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                      Default = None, corresponds to all neurons found as senders of events.
-             times: collection (list, tuple, array) of times the events of which should be included in the output.
-                    Default = None, corresponds to all events' times.
-             exclude_neurons: collection (list, tuple, array) of neurons
-                              the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
-             the spikes' times in an array
+             the spikes' times in a list
         """
-        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["times"]
+        return self.get_spikes_events(events_inds=events_inds, variables="times", **filter_kwargs)["times"]
 
-    def get_spikes_senders(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
-        """This method will return spikes' senders neurons' indices,
+    def get_spikes_senders(self, events_inds=None, **filter_kwargs):
+        """This method will return spikes' senders
             after selecting/excluding part of the detected spikes' events, depending on user inputs
             Arguments:
-             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                      Default = None, corresponds to all neurons found as senders of events.
-             times: collection (list, tuple, array) of times the events of which should be included in the output.
-                    Default = None, corresponds to all events' times.
-             exclude_neurons: collection (list, tuple, array) of neurons
-                              the events of which should be excluded from the output. Default = [].
-             exclude_times: collection (list, tuple, array) of times
-                            the events of which should be excluded from the output. Default = [].
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
             Returns:
-             the spikes' senders neurons' indices in an array
+             the spikes' times in a list
         """
-        return self.get_spikes_events(self, neurons, times, exclude_neurons, exclude_times)["senders"]
+        return self.get_spikes_events(events_inds=events_inds, variables="senders", **filter_kwargs)["senders"]
 
     # The following attributes are time summaries without taking into consideration spike timing:
 
-    def get_total_spikes_activity(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_total_spikes_activity(self, events_inds=None, **filter_kwargs):
         """This method returns the total spikes' activity by adding spike weights
            and dividing by the total number of neurons,
            after filtering spikes' events based on user inputs.
            Arguments:
-            neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                     Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
-                   Default = None, corresponds to all events' times.
-            exclude_neurons: collection (list, tuple, array) of neurons
-                             the events of which should be excluded from the output. Default = [].
-            exclude_times: collection (list, tuple, array) of times
-                           the events of which should be excluded from the output. Default = [].
+             events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                          to slice the event attributes. Default = None, i.e., it doesn't apply.
+             filter_kwargs: see filter_events method for its possible keywork arguments
+            Returns:
+             the spikes' weights in a list
            Returns:
             float: total spikes' activity
         """
-        return np.sum(self.get_spikes_weights(neurons, times, exclude_neurons, exclude_times))
+        return np.sum(self.get_spikes_weights(events_inds=events_inds, **filter_kwargs))
 
-    def get_mean_spikes_activity(self, neurons=None, times=None, exclude_neurons=[], exclude_times=[]):
+    def get_mean_spikes_activity(self, events_inds=None, neurons=None, exclude_neurons=[], **filter_kwargs):
         """This method returns the mean spike activity by adding spike weights
            and dividing by the total number of neurons,
            after filtering spikes' events based on user inputs.
            Arguments:
+            events_inds: a scalar to start indexing from, or a collection of indices or a slice,
+                         to slice the event attributes. Default = None, i.e., it doesn't apply.
             neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
                      Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
-                   Default = None, corresponds to all events' times.
             exclude_neurons: collection (list, tuple, array) of neurons
                              the events of which should be excluded from the output. Default = [].
-            exclude_times: collection (list, tuple, array) of times
-                           the events of which should be excluded from the output. Default = [].
+            filter_kwargs: see filter_events method for its possible keywork arguments
            Returns:
             float: mean spikes' activity
         """
         n_neurons = self.get_number_of_connections(neurons, exclude_neurons)
         if n_neurons > 0:
-            return self.get_total_spikes_activity(neurons, times, exclude_neurons, exclude_times) / n_neurons
+            for key, arg in zip(["neurons", "exclude_neurons"], [neurons, exclude_neurons]):
+                if arg:
+                    filter_kwargs.update({key: arg})
+            return self.get_total_spikes_activity(events_inds=events_inds, **filter_kwargs) / n_neurons
         else:
             return 0.0
 
@@ -1356,9 +1374,13 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         """
         if name is None:
             name = self.model + " - Mean spike activity accross time"
-        n_neurons = self.get_number_of_connections(neurons=kwargs.pop("neurons", None),
-                                                   exclude_neurons=kwargs.pop("exclude_neurons", []))
+        neurons = kwargs.pop("neurons", None)
+        exclude_neurons = kwargs.pop("exclude_neurons", [])
+        n_neurons = self.get_number_of_connections(neurons=neurons, exclude_neurons=exclude_neurons)
         if n_neurons > 0:
+            for key, arg in zip(["neurons", "exclude_neurons"], [neurons, exclude_neurons]):
+                if arg:
+                    kwargs.update({key: arg})
             return self.compute_spikes_activity_across_time(time, spike_kernel_width,
                                                             spikes_kernel=spikes_kernel, mode="total",
                                                             name=name, **kwargs) / n_neurons
@@ -1414,18 +1436,18 @@ class DeviceSet(pd.Series):
             output += LINE + node.print_str(connectivity)
         return output
 
-    def _input_nodes(self, nodes=None):
-        """This method returns (a subset of) the DeviceSet nodes' labels in a list."""
-        if nodes is None:
+    def devices(self, input_devices=None):
+        """This method returns (a subset of) the DeviceSet devices' labels in a list."""
+        if input_devices is None:
             # no input nodes
             return list(self.index)
         else:
-            if nodes in list(self.index) or nodes in list(range(len(self))):
+            if input_devices in list(self.index) or input_devices in list(range(len(self))):
                 # input nodes is a single index or label
-                return [nodes]
+                return [input_devices]
             else:
                 # input nodes is a sequence of indices or labels
-                return list(nodes)
+                return list(input_devices)
 
     def _return_by_type(self, values_dict, return_type="dict", concatenation_index_name="Region", name=None):
         """This method returns data collected from the Devices of the DeviceSet in a desired output format, among
@@ -1485,12 +1507,12 @@ class DeviceSet(pd.Series):
             output data in the selected type.
         """
         values_dict = OrderedDict()
-        for node in self._input_nodes(nodes):
-            val = getattr(self[node], attr)
+        for device in self.devices(nodes):
+            val = getattr(self[device], attr)
             if hasattr(val, "__call__"):
-                values_dict.update({node: val(*args, **kwargs)})
+                values_dict.update({device: val(*args, **kwargs)})
             else:
-                values_dict.update({node: val})
+                values_dict.update({device: val})
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
     @property
@@ -1500,9 +1522,20 @@ class DeviceSet(pd.Series):
             a list of Devices' numbers of connections
         """
         self._number_of_connections = self.do_for_all_devices("number_of_connections")
-        if len(self._number_of_connections) == 0:
+        if np.sum(self._number_of_connections) == 0:
             self._number_of_connections = 0
         return self._number_of_connections
+
+    @property
+    def number_of_neurons(self):
+        """This method will return the total number of connections of each Device of the DeviceSet.
+           Returns:
+            a list of Devices' numbers of connections
+        """
+        self._number_of_neurons = self.do_for_all_devices("number_of_neurons")
+        if np.sum(self._number_of_neurons) == 0:
+            self._number_of_neurons = 0
+        return self._number_of_neurons
 
     @property
     def times(self):
@@ -1597,6 +1630,7 @@ class DeviceSet(pd.Series):
             super(DeviceSet, self).update(device_set)
         self.update_model()
         self._number_of_connections = self.number_of_connections
+        self._number_of_neurons = self.number_of_neurons
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DevoceSet.
@@ -1609,14 +1643,14 @@ class DeviceSet(pd.Series):
         if attrs is None:
             # Get dictionary of all attributes
             values_dict = []
-            for node in self._input_nodes(nodes):
+            for node in self.devices(nodes):
                 values_dict.append(self[node].Get())
             values_dict = list_of_dicts_to_dict_of_lists(values_dict)
         else:
             values_dict = OrderedDict({})
             for attr in ensure_list(attrs):
                 this_attr = []
-                for node in self._input_nodes(nodes):
+                for node in self.devices(nodes):
                     this_attr.append(self[node].Get(attr))
                 values_dict.update({attr: this_attr})
         return self._return_by_type(values_dict, return_type, name)
@@ -1648,7 +1682,7 @@ class DeviceSet(pd.Series):
                     dout[key] = val
             return dout
 
-        for i_n, node in enumerate(self._input_nodes(nodes)):
+        for i_n, node in enumerate(self.devices(nodes)):
             try:
                 # Good for spike times and weights of spike generator
                 value_dict_i_n = get_scalar_dict1(value_dict, i_n)
