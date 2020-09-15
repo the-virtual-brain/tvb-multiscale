@@ -41,17 +41,17 @@ class Config(ConfigBase):
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"synapse_model": "static_synapse", "weight": 1.0, "delay": 0.01, 'receptor_type': 0,
                           "source_inds": None, "target_inds": None,
-                          "conn_spec": {"autapses": True, 'multapses': True, 'rule': "all_to_all",
+                          "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
                                         "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
     DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
 
     # Available NEST output devices for the interface and their default properties
-    NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter":{"record_from": ["V_m"]},
-                                      "voltimeter": {},
-                                      "spike_detector": {'precise_times': True},
-                                      "spike_multimeter": {'record_from': ["spike"]}}
+    NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"record_from": ["V_m"], "record_to": "memory"},
+                                      "voltimeter": {"record_to": "memory"},
+                                      "spike_detector": {"record_to": "memory"},
+                                      "spike_multimeter": {'record_from': ["spike"], "record_to": "memory"}}
 
     NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"allow_offgrid_times": False},
                                      "poisson_generator": {},
