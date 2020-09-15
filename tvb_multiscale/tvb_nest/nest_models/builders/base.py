@@ -132,6 +132,8 @@ class NESTModelBuilder(SpikingModelBuilder):
         return self._get_minmax_delay(delay, "high")
 
     def _assert_synapse_model(self, synapse_model, delay):
+        if synapse_model is None:
+            synapse_model = "static_synapse"
         if synapse_model.find("rate") > -1:
             if synapse_model == "rate_connection_instantaneous" and delay != 0.0:
                 raise_value_error("Coupling neurons with rate_connection_instantaneous synapse "
@@ -162,8 +164,10 @@ class NESTModelBuilder(SpikingModelBuilder):
         return delay
 
     def connect_two_populations(self, source, target, conn_spec, syn_spec):
-        syn_spec["model"] = self._assert_synapse_model(syn_spec["model"], syn_spec["delay"])
-        if syn_spec["model"] == "rate_connection_instantaneous":
+        syn_spec["synapse_model"] = self._assert_synapse_model(syn_spec.get("synapse_model",
+                                                                            syn_spec.get("model", "static_synapse")),
+                                                               syn_spec["delay"])
+        if syn_spec["synapse_model"] == "rate_connection_instantaneous":
             del syn_spec["delay"]  # For instantaneous rate connections
         else:
             syn_spec["delay"] = self._assert_delay(syn_spec["delay"])

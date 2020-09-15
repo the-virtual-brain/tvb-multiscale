@@ -71,7 +71,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
              "scale": 1.0}
         ]
 
-        synapse_model = self.default_populations_connection["model"]  # "static_synapse"
+        synapse_model = self.default_populations_connection["synapse_model"]  # "static_synapse"
         # default connectivity spec:
         # conn_spec = {"autapses": True, 'multapses': True, 'rule': "all_to_all",
         #              "indegree": None, "outdegree": None, "N": None, "p": 0.1}
@@ -84,7 +84,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
             if pop["label"][0] == "I":
                 self.populations_connections.append(
                     {"source": pop["label"], "target": pop["label"],
-                     "model": synapse_model, "conn_spec": conn_spec,
+                     "synapse_model": synapse_model, "conn_spec": conn_spec,
                      "weight": -1.0, "delay": self.default_min_delay,  # 0.001
                      "receptor_type": 0, "nodes": pop["nodes"]})
 
@@ -108,7 +108,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                 sign = 1
             self.nodes_connections.append(
                     {"source": src_pop, "target": trg_pop,
-                     "model": self.default_nodes_connection["model"],
+                     "synapse_model": self.default_nodes_connection["synapse_model"],
                      "conn_spec": self.default_nodes_connection["conn_spec"],
                      "weight": TVBWeightFun(self.tvb_weights, self.global_coupling_scaling, sign),
                      "delay": lambda source_node, target_node: self.tvb_delay_fun(source_node, target_node),

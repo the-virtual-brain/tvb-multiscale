@@ -185,7 +185,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
     def set_nodes_connections(self):
         self.nodes_connections = [
             {"source": "E", "target": ["E"],
-             "model": self.default_nodes_connection["model"],
+             "synapse_model": self.default_nodes_connection["synapse_model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
              "weight": 1.0,
              "delay": self.tvb_delay_fun,
@@ -198,7 +198,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         if self.lamda:
             self.nodes_connections.append(
                 {"source": "E", "target": ["I"],
-                 "model": self.default_nodes_connection["model"],
+                 "synapse_model": self.default_nodes_connection["synapse_model"],
                  "conn_spec": self.default_nodes_connection["conn_spec"],
                  "weight": 1.0,
                  "delay": self.tvb_delay_fun,
