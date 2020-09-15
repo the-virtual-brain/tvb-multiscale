@@ -56,21 +56,18 @@ RUN mkdir libneurosim; \
     ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
-ARG NEST_VER=2.18.0
-ARG NEST=nest-simulator-$NEST_VER
+ARG NEST_VER=dev
+ARG NEST=nest-simulator
 ARG NEST_SRC=$HOME/packages/$NEST
 ARG NEST_INSTALL_DIR=$VENV/nest_build
 ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
-RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz; \
-    tar xzf $NEST.tar.gz; rm $NEST.tar.gz; \
+RUN git clone --depth 1 https://github.com/nest/nest-simulator.git; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
-#          -Dwith-mpi=ON  \
-          -Dwith-python=3 \
-          ###-Dwith-music=ON \
+          -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
           -DPYTHON_INCLUDE_DIR=/usr/include/python3.7m \
