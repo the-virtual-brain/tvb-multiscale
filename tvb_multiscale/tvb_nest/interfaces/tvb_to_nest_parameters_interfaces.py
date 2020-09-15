@@ -29,4 +29,4 @@ class TVBtoNESTParameterInterface(TVBtoSpikeNetParameterInterface):
             raise ValueError("Values' number %d is neither equal to 1 "
                              "nor equal to nodes' number %d!" % (n_vals, self.n_nodes))
         for node, value in zip(self.nodes, cycle(values)):
-            self.nest_instance.SetStatus(self[node].neurons, {self.parameter: value})
+            self.nest_instance.NodeCollection(self[node].neurons).set({self.parameter: value})
