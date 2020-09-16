@@ -11,7 +11,7 @@ LOG = initialize_logger(__name__)
 
 class ANNarchyNetwork(SpikingNetwork):
 
-    nest_instance = None
+    annarchy_instance = None
 
     def __init__(self, nest_instance=None,
                  brain_regions=None,
