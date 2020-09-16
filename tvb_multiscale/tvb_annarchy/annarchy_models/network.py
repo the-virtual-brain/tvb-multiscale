@@ -9,7 +9,7 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 LOG = initialize_logger(__name__)
 
 
-class NESTNetwork(SpikingNetwork):
+class ANNarchyNetwork(SpikingNetwork):
 
     nest_instance = None
 
