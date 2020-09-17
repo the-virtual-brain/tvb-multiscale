@@ -182,8 +182,10 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
         return nest_device
 
 
-def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0, config=CONFIGURED,
+def connect_device(nest_device, node_collection, weight=1.0, delay=0.0, receptor_type=0, config=CONFIGURED,
                    nest_instance=None):
+    if receptor_type is None:
+        receptor_type = 0
     if nest_instance is None:
         raise_value_error("There is no NEST instance!")
     resolution = nest_instance.GetKernelStatus("resolution")
@@ -202,8 +204,7 @@ def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0,
     syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
     if nest_device.model == "spike_detector":
         #                     source  ->  target
-        nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)
+        nest_instance.Connect(node_collection, nest_device.device, syn_spec=syn_spec)
     else:
-        nest_instance.Connect(nest_device.device, neurons, syn_spec=syn_spec)
-    # nest_device.update_number_of_connections()
+        nest_instance.Connect(nest_device.device, node_collection, syn_spec=syn_spec)
     return nest_device
