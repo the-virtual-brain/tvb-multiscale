@@ -113,23 +113,18 @@ class NESTDevice(Device):
         else:
             return connections.get(ensure_list(attrs))
 
-    def GetConnections(self, neurons=None, exclude_neurons=[]):
-        """Method to get connections of the device from neurons.
-           Arguments:
-            neurons: collection (list, tuple, array) of neurons which should be included in the output.
-                     Default = None, corresponds to all neurons the device is connected to.
-            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
+    def GetConnections(self):
+        """Method to get all connections of the device from neurons.
            Returns:
-            connections' objects.
+            SynapseCollection.
         """
-        return self._GetConnections(source=self.device,
-                                    target=self.filter_neurons(neurons, exclude_neurons))
+        return self._GetConnections(source=self.device)
 
     @property
     def connections(self):
         """Method to get all connections of the device from neurons.
            Returns:
-            connections' objects.
+            SynapseCollection..
         """
         return self._GetConnections(source=self.device)
 
@@ -318,17 +313,12 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
 
     # Only SpikeDetector is the target of connections with neurons in NEST:
 
-    def GetConnections(self, neurons=None, exclude_neurons=[]):
+    def GetConnections(self):
         """Method to get connections of the device from neurons.
-           Arguments:
-            neurons: collection (list, tuple, array) of neurons which should be included in the output.
-                     Default = None, corresponds to all neurons the device is connected to.
-            exclude_neurons: collection (list, tuple, array) of neurons which should be excluded. Default = [].
            Returns:
             connections' objects.
         """
-        return self._GetConnections(source=self.filter_neurons(neurons, exclude_neurons), 
-                                    target=self.device)
+        return self._GetConnections(target=self.device)
 
     @property
     def connections(self):
