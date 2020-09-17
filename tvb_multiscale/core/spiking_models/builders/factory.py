@@ -19,44 +19,10 @@ def log_path(name, logger=LOG):
     logger.info("%s: %s" % (name, os.environ.get(name, "")))
 
 
-def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
-    if isinstance(device, string_types) or isinstance(device, dict):
-        if isinstance(device, string_types):
-            try:
-                return create_device_fun(None, device, config=config, **kwargs)
-            except:
-                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
-        else:
-            try:
-                return create_device_fun(device.get("model", None), device,
-                                         params=device.get("params", None), config=config, **kwargs)
-            except Exception as e:
-                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
-    else:
-        raise ValueError("Failed to set device%s!\n "
-                         "Device has to be a device model or dict!" % str(device))
-
-
-def build_and_connect_device(device, create_device_fun, connect_device_fun, neurons,
-                             weight=1.0, delay=0.0, receptor_type=0,
-                             config=CONFIGURED, **kwargs):
-    device = connect_device_fun(build_device(device, create_device_fun, config=config, **kwargs),
-                                 neurons, weight, delay, receptor_type, config=config, **kwargs)
-    device._number_of_connections = device.number_of_connections
-    return device
-
-
-def _get_connections(device, spiking_nodes):
-    # Determine the connections from variables to measure/stimulate to Spiking node populations
-    connections = device["connections"]  # either a variable model or a dict
-    if isinstance(connections, string_types):
-        connections = {connections: slice(None)}  # return all population types
-    device_target_nodes = device.get("nodes", None)
-    if device_target_nodes is None:
-        device_target_nodes = spiking_nodes
-    else:
-        device_target_nodes = spiking_nodes[device_target_nodes]
-    return connections, device_target_nodes
+def get_populations_neurons(population, inds_fun=None):
+    if inds_fun is None:
+        return population._population
+    return inds_fun(population._population)
 
 
 def _get_device_props_with_correct_shape(device, shape):
@@ -76,16 +42,50 @@ def _get_device_props_with_correct_shape(device, shape):
 
     return _assert_conn_params_shape(device.get("weights", 1.0), "weights", shape), \
            _assert_conn_params_shape(device.get("delays", 0.0), "delays", shape), \
-           _assert_conn_params_shape(device.get("receptor_type", 0), "receptor_type", shape), \
-           _assert_conn_params_shape(device.get("neurons_inds", 0), "neurons_inds", shape)
+           _assert_conn_params_shape(device.get("receptor_type", None), "receptor_type", shape), \
+           _assert_conn_params_shape(device.get("neurons_fun", None), "neurons_fun", shape)
 
 
-def get_node_populations_neurons(node, populations, inds_fun=None):
-    # return tuples of neurons of specific neural populations of a Spiking Node
-    neurons = flatten_tuple([node[pop].neurons for pop in ensure_list(populations)])
-    if inds_fun is None:
-        return neurons
-    return inds_fun(neurons)
+def _get_connections(device, spiking_nodes):
+    # Determine the connections from variables to measure/stimulate to Spiking node populations
+    connections = device["connections"]  # either a variable model or a dict
+    if isinstance(connections, string_types):
+        connections = {connections: slice(None)}  # return all population types
+    device_target_nodes = device.get("nodes", None)
+    if device_target_nodes is None:
+        device_target_nodes = spiking_nodes
+    else:
+        device_target_nodes = spiking_nodes[device_target_nodes]
+    return connections, device_target_nodes
+
+
+def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
+    if isinstance(device, string_types) or isinstance(device, dict):
+        if isinstance(device, string_types):
+            try:
+                return create_device_fun(None, device, config=config, **kwargs)
+            except:
+                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
+        else:
+            try:
+                return create_device_fun(device.get("model", None), device,
+                                         params=device.get("params", None), config=config, **kwargs)
+            except Exception as e:
+                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
+    else:
+        raise ValueError("Failed to set device%s!\n "
+                         "Device has to be a device model or dict!" % str(device))
+
+
+def build_and_connect_device(device, create_device_fun, connect_device_fun, node, populations, inds_fun,
+                             weight=1.0, delay=0.0, receptor_type=None,
+                             config=CONFIGURED, **kwargs):
+    device = build_device(device, create_device_fun, config=config, **kwargs)
+    for pop in ensure_list(populations):
+        device = connect_device_fun(device, get_populations_neurons(node[pop], inds_fun),
+                                    weight, delay, receptor_type, config=config, **kwargs)
+    device._number_of_connections = device.number_of_connections
+    return device
 
 
 def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect_device_fun, spiking_nodes,
@@ -98,7 +98,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types, neurons_inds_funs = \
+    weights, delays, receptor_types, neurons_funs = \
         _get_device_props_with_correct_shape(device_dict, (len(device_target_nodes),))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
@@ -110,7 +110,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
             # create a device
             devices[pop_var][node.label] = \
                 build_and_connect_device(device_dict, create_device_fun, connect_device_fun,
-                                         get_node_populations_neurons(node, populations, neurons_inds_funs[i_node]),
+                                         node, populations, neurons_funs[i_node],
                                          weights[i_node], delays[i_node], receptor_types[i_node],
                                          config=config, **kwargs)
         devices[pop_var].update()
@@ -127,7 +127,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types, neurons_inds_funs = \
+    weights, delays, receptor_types, neurons_funs = \
         _get_device_props_with_correct_shape(device_dict, (len(names), len(device_target_nodes)))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
@@ -140,11 +140,12 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
             devices[pop_var][dev_name] = build_device(device_dict, create_device_fun,
                                                       config=config, **kwargs)
             for i_node, node in enumerate(device_target_nodes):
-                devices[pop_var][dev_name] = \
-                   connect_device_fun(devices[pop_var][dev_name],
-                                      get_node_populations_neurons(node, populations, neurons_inds_funs[i_dev, i_node]),
-                                      weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
-                                      config=config, **kwargs)
+                for pop in populations:
+                    devices[pop_var][dev_name] = \
+                       connect_device_fun(devices[pop_var][dev_name],
+                                          get_populations_neurons(node[pop], neurons_funs[i_dev, i_node]),
+                                          weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
+                                          config=config, **kwargs)
         devices[pop_var].update()
     return devices
 
@@ -168,7 +169,3 @@ def build_and_connect_devices(devices_input_dicts, create_device_fun, connect_de
                                                                   spiking_nodes, dev_names, config=config, **kwargs)
                                               )
     return devices
-
-
-
-
