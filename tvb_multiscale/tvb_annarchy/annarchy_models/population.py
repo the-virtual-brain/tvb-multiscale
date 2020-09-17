@@ -11,7 +11,9 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of
 class ANNarchyPopulation(SpikingPopulation):
 
     annarchy_instance = None
-    population_neurons = None
+    population_neurons = None # A population object
+    projections_pre = []
+    projections_post = []
     _weight_attr = "weight"
     _delay_attr = "delay"
     _receptor_attr = "receptor"
@@ -23,23 +25,27 @@ class ANNarchyPopulation(SpikingPopulation):
 
     @property
     def spiking_simulator_module(self):
-        return self.population_neurons
+        return self.annarchy_instance
 
     @property
     def neurons(self):  # tuple of populations' neurons
         """Method to get all neurons' indices of this population.
            Returns:
             tuple of neurons'indices.
+            In ANNarchy: So far we get only local indices.
         """
-        return tuple(self.node_collection.tolist())
+        return tuple(self.population_neurons.ranks)
 
-    def _assert_nest(self):
-        if self.nest_instance is None:
-            raise ValueError("No NEST instance associated to this %s of model %s with label %s!" %
+    def _assert_annarchy(self):
+        if self.annarchy_instance is None:
+            raise ValueError("No ANNarchy instance associated to this %s of model %s with label %s!" %
                              (self.__class__.__name__, self.model, self.label))
 
     def _print_neurons(self):
-        return "\n%s" % str(self.node_collection)
+        """ Prints indices of neurons in this population.
+            Currently we get only local indices.
+        """
+        return "\n%s" % str(self.population_neurons.ranks)
 
     def _Set(self, neurons, values_dict):
         """Method to set attributes of the SpikingPopulation's neurons.
@@ -47,8 +53,8 @@ class ANNarchyPopulation(SpikingPopulation):
             neurons: tuple of neurons the attributes of which should be set.
             values_dict: dictionary of attributes names' and values.
         """
-        self._assert_nest()
-        self.nest_instance.NodeCollection(neurons).set(values_dict)
+        self._assert_annarchy()
+        self.population_neurons[neurons].set(values_dict)
 
     def _Get(self, neurons, attrs=None):
         """Method to get attributes of the SpikingPopulation's neurons.
@@ -58,11 +64,16 @@ class ANNarchyPopulation(SpikingPopulation):
            Returns:
             Dictionary of lists of neurons' attributes.
         """
-        self._assert_nest()
+        self._assert_annarchy()
+        dictionary = {}
         if attrs is None:
-            return self.nest_instance.NodeCollection(neurons).get()
+            # If no attribute is specified, return all of them
+            for attribute in self.population_neurons[neurons].attributes:
+                dictionary[attribute] = self.population_neurons[neurons].get(attribute).tolist()
         else:
-            return self.nest_instance.NodeCollection(neurons).get(ensure_list(attrs))
+            for attribute in attrs:
+                dictionary[attribute] = self.population_neurons[neurons].get(attribute).tolist()
+        return dictionary
 
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
@@ -73,20 +84,20 @@ class ANNarchyPopulation(SpikingPopulation):
            Returns:
             synapses' collections.
         """
-        self._assert_nest()
+        self._assert_annarchy()
         if neurons is not None:
             if len(neurons) == 0:
                 neurons = None
         else:
-            neurons = self.node_collection
-        if neurons is not None and not isinstance(neurons, self.nest_instance.NodeCollection):
-            neurons = self.nest_instance.NodeCollection(neurons)
+            neurons = self.population_neurons.ranks
+        if neurons is not None and not isinstance(neurons, self.annarchy_instance.NodeCollection):
+            neurons = self.annarchy_instance.NodeCollection(neurons)
         if source_or_target not in ["source", "target"]:
-            return self.nest_instance.GetConnections(source=neurons), \
-                   self.nest_instance.GetConnections(target=neurons)
+            return self.annarchy_instance.GetConnections(source=neurons), \
+                   self.annarchy_instance.GetConnections(target=neurons)
         else:
             kwargs = {source_or_target: neurons}
-            return self.nest_instance.GetConnections(**kwargs)
+            return self.annarchy_instance.GetConnections(**kwargs)
 
     def _SetToConnections(self, connections, values_dict):
         """Method to set attributes of the connections from/to the SpikingPopulation's neurons.
@@ -94,7 +105,7 @@ class ANNarchyPopulation(SpikingPopulation):
              connections: connections' objects.
              values_dict: dictionary of attributes names' and values.
         """
-        self._assert_nest()
+        self._assert_annarchy()
         connections.set(values_dict)
 
     def _GetFromConnections(self, connections, attrs=None):
@@ -106,7 +117,7 @@ class ANNarchyPopulation(SpikingPopulation):
              Dictionary of arrays of connections' attributes.
 
         """
-        self._assert_nest()
+        self._assert_annarchy()
         if attrs is None:
             return connections.get()
         else:
