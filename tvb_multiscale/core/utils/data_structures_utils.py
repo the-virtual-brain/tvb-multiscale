@@ -21,39 +21,16 @@ def flatten_neurons_inds_in_DataArray(data_array, neurons_dim_label="Neuron"):
     return data_array
 
 
-def filter_neurons(neurons, exclude_neurons=[]):
-    """This method will select/exclude the connected neurons, depending on user inputs
-       Arguments:
-        neurons: collection (list, tuple, array) of neurons which should be included in the output.
-                 Default = None, corresponds to all neurons the device is connected to.
-        exclude_neurons: collection (list, tuple, array) of neurons
-                         which should be excluded from the output. Default = [].
-       Returns:
-        numpy.array of neurons.
-    """
-    # Method to select or exclude some of the connected neurons to the device:
-    temp_neurons = ensure_list(neurons)
-    for neuron in exclude_neurons:
-        if neuron in temp_neurons:
-            temp_neurons.remove(neuron)
-    return tuple(temp_neurons)
-
-
-def filter_events(events, variables=None, neurons=None, times=None,
-                  exclude_neurons=[], exclude_times=[]):
+def filter_events(events, variables=None, times=None, exclude_times=[]):
     """This method will select/exclude part of the measured events, depending on user inputs
         Arguments:
             events: dictionary of events
-            variables: collection (list, tuple, array) of variables to be included in the output,
+            variables: sequence (list, tuple, array) of variables to be included in the output,
                        assumed to correspond to keys of the events dict.
                        Default=None, corresponds to all keys of events.
-            neurons: collection (list, tuple, array) of neurons the events of which should be included in the output.
-                     Default = None, corresponds to all neurons found as senders of events.
-            times: collection (list, tuple, array) of times the events of which should be included in the output.
+            times: sequence (list, tuple, array) of times the events of which should be included in the output.
                      Default = None, corresponds to all events' times.
-            exclude_neurons: collection (list, tuple, array) of neurons
-                             the events of which should be excluded from the output. Default = [].
-            exclude_times: collection (list, tuple, array) of times
+            exclude_times: sequence (list, tuple, array) of times
                              the events of which should be excluded from the output. Default = [].
         Returns:
               the filtered dictionary (of arrays per attribute) of events
@@ -61,7 +38,7 @@ def filter_events(events, variables=None, neurons=None, times=None,
 
     def in_fun(values):
         # Function to return a boolean about whether a value is
-        # within a collection or an interval (len(values) == 2) of values:
+        # within a sequence or an interval (len(values) == 2) of values:
         if len(values) == 2:
             if values[0] is not None:
                 if values[1] is not None:
@@ -83,7 +60,6 @@ def filter_events(events, variables=None, neurons=None, times=None,
     output_events = OrderedDict()
 
     events_times = np.array(events["times"])
-    senders = np.array(events["senders"])
 
     n_events = len(events["times"])
     if n_events > 0:
@@ -97,19 +73,9 @@ def filter_events(events, variables=None, neurons=None, times=None,
             not_in_exclude_times = lambda x: not in_fun(flatten_list(exclude_times))(x)
         else:
             not_in_exclude_times = lambda x: True
-        # If we (un)select times...
-        if neurons is not None and len(neurons) > 0:
-            in_neurons = in_fun(flatten_list(neurons))
-        else:
-            in_neurons = lambda x: True
-        if exclude_neurons is not None and len(exclude_neurons) > 0:
-            not_in_exclude_neurons = lambda x: not in_fun(flatten_list(exclude_neurons))(x)
-        else:
-            not_in_exclude_neurons = lambda x: True
         inds = np.logical_and(np.ones((n_events,)),
-                              [in_times(time) and not_in_exclude_times(time) and
-                               in_neurons(sender) and not_in_exclude_neurons(sender)
-                               for time, sender in zip(events_times, senders)])
+                              [in_times(time) and not_in_exclude_times(time)
+                               for time in events_times])
         for var in ensure_list(variables):
             output_events[var] = events[var][inds]
     else:

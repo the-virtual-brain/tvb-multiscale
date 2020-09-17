@@ -169,7 +169,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         connections["E"] = "E"
         connections["I"] = "I"
         device = {"model": "spike_detector", "params": {},
-                  "neurons_inds": lambda node_id, neurons_inds:
+                  "neurons_fun": lambda node_id, neurons_inds:
                                             tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
                   "connections": connections, "nodes": None}  # None means all here
         device.update(self.spike_detector)
@@ -183,8 +183,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         device = {"model": "multimeter", "params": params,
-                  "neurons_inds": lambda node_id, neurons_inds:
-                        tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
+                  "neurons_fun": lambda node_id, population: population[:np.minimum(100, len(population))],
                   "connections": connections, "nodes": None}  # None means all here
         device.update(self.multimeter)
         return device

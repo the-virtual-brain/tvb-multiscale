@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from pandas import Series
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
@@ -107,10 +106,6 @@ class NESTModelBuilder(SpikingModelBuilder):
         except:
             return self.default_min_delay
 
-    def _prepare_populations_connection_params(self, pop_src, pop_trg, conn_spec, syn_spec):
-        return create_conn_spec(n_src=len(pop_src), n_trg=len(pop_trg),
-                                src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
-
     def _get_minmax_delay(self, delay, minmax):
         if isinstance(delay, dict):
             if "distribution" in delay.keys():
@@ -163,15 +158,37 @@ class NESTModelBuilder(SpikingModelBuilder):
                               "\n" % (str(delay), self.spiking_dt))
         return delay
 
-    def connect_two_populations(self, source, target, conn_spec, syn_spec):
+    def _prepare_conn_spec(self, pop_src, pop_trg, conn_spec, syn_spec):
+        return create_conn_spec(n_src=len(pop_src), n_trg=len(pop_trg),
+                                src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
+
+    def set_synapse(self, syn_model, weight, delay, receptor_type):
+        return {'synapse_model': syn_model,  'weight': weight,
+                'delay': delay, 'receptor_type': receptor_type}
+
+    def _prepare_syn_spec(self, syn_spec, n_cons=None):
+        # Prepare the parameters of synapses:
         syn_spec["synapse_model"] = self._assert_synapse_model(syn_spec.get("synapse_model",
                                                                             syn_spec.get("model", "static_synapse")),
                                                                syn_spec["delay"])
+        # Scale the synaptic weight with respect to the total number of connections between the two populations:
+        syn_spec["weight"] = self._synaptic_weight_scaling(syn_spec["weight"], n_cons)
         if syn_spec["synapse_model"] == "rate_connection_instantaneous":
             del syn_spec["delay"]  # For instantaneous rate connections
         else:
             syn_spec["delay"] = self._assert_delay(syn_spec["delay"])
-        self.nest_instance.Connect(source, target, conn_spec, syn_spec)
+        return syn_spec
+
+    def connect_two_populations(self, pop_src, pop_trg, conn_spec, syn_spec):
+        # Prepare the parameters of connectivity:
+        conn_spec, n_cons = self._prepare_conn_spec(pop_src, pop_trg, conn_spec, syn_spec)
+        # Prepare the parameters of the synapse:
+        syn_spec = self._prepare_syn_spec(syn_spec, n_cons)
+        # We might create the same connection multiple times with different synaptic receptors...
+        receptors = ensure_list(syn_spec["receptor_type"])
+        for receptor in receptors:
+            syn_spec["receptor_type"] = receptor
+            self.nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
 
     def build_spiking_population(self, label, model, size, params, *args, **kwargs):
         return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
