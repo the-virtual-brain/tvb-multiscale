@@ -46,6 +46,7 @@ class ANNarchyPopulation(SpikingPopulation):
             name: name of the projection
             method: name of an ANNarchy connection method
             **connection_args: depend on the chosen ANNarchy connection method
+        Returns: the projection
         """
         proj = self.annarchy_instance.Projection(self._population, target_pop._population, target, synapse, name)
         self.projections_in.append(proj)  # is there a faster way than using .append()?
@@ -118,7 +119,17 @@ class ANNarchyPopulation(SpikingPopulation):
              values_dict: dictionary of attributes names' and values.
         """
         self._assert_annarchy()
-        connections.set(values_dict)
+        if connections in self.projections_in or connections in self.projections_out:
+            # connections.set(values_dict) <- this would be straightforward, but can generate
+            # arbitrary attributes that get ignored by the projection but are readable with get()
+            for attr, value in values_dict.items():
+                if hasattr(connections, attr):
+                    connections.set({attr: value})
+                else:
+                    raise AttributeError("Projection %s has no attribute named %s." %(connections.name, attr))
+        else:
+            raise AttributeError("No incoming projection %s associated to this %s of model %s with label %s." %
+                             (connections.name, self.__class__.__name__, self.model, self.label))
 
     def _GetFromConnections(self, connections, attrs=None):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
@@ -130,7 +141,11 @@ class ANNarchyPopulation(SpikingPopulation):
 
         """
         self._assert_annarchy()
+        dictionary = {}
         if attrs is None:
-            return connections.get()
+            for attribute in connections.attributes:
+                dictionary[attribute] = connections.get(attribute)
         else:
-            return connections.get(attrs)
+            for attribute in attrs:
+                dictionary[attribute] = connections.get(attribute)
+        return dictionary
