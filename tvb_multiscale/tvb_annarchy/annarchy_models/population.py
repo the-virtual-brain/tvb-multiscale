@@ -35,6 +35,10 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         return tuple(self._population.ranks)
 
+    @property
+    def population(self):
+        return self._population
+
     def connect(self, target_pop, target, synapse=None, name=None,
                 method="connect_all_to_all", **connection_args):
         """
@@ -49,8 +53,26 @@ class ANNarchyPopulation(SpikingPopulation):
         Returns: the projection
         """
         proj = self.annarchy_instance.Projection(self._population, target_pop._population, target, synapse, name)
+        self.projections_out.append(proj)  # is there a faster way than using .append()?
+        target_pop.projections_in.append(proj)
+        return getattr(proj, method)(**connection_args)
+
+    def connect_from(self, source_pop, target, synapse=None, name=None,
+                method="connect_all_to_all", **connection_args):
+        """
+        Method to set up and connect a projection between two ANNarchyPopulations.
+        Arguments:
+            source_pop: The ANNarchyPopulation we want to connect from.
+            target: type of the connection. Needs to be set, or weights are zero.
+            synapse: a ``Synapse`` instance.
+            name: name of the projection
+            method: name of an ANNarchy connection method
+            **connection_args: depend on the chosen ANNarchy connection method
+        Returns: the projection
+        """
+        proj = self.annarchy_instance.Projection(source_pop.population, self._population, target, synapse, name)
         self.projections_in.append(proj)  # is there a faster way than using .append()?
-        target_pop.projections_out.append(proj)
+        source_pop.projections_out.append(proj)
         return getattr(proj, method)(**connection_args)
 
     def _assert_annarchy(self):
