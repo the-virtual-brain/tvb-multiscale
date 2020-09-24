@@ -9,6 +9,7 @@ from tvb_multiscale.core.spiking_models.devices import \
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
 
+
 # These classes wrap around NEST commands.
 
 
@@ -22,17 +23,17 @@ class ANNarchyDevice(Device):
 
     def __init__(self, device, annarchy_instance):
         self.annarchy_instance = annarchy_instance
-        super(NESTDevice, self).__init__(device)
+        super(ANNarchyDevice, self).__init__(device)
         self.model = "device"
 
-    def _assert_nest(self):
+    def _assert_annarchy(self):
         if self.annarchy_instance is None:
-            raise ValueError("No NEST instance associated to this %s of model %s!" %
+            raise ValueError("No ANNarchy instance associated to this %s of model %s!" %
                              (self.__class__.__name__, self.model))
 
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
-        self._assert_nest()
+        self._assert_annarchy()
         try:
             self.device.get("element_type")
         except:
@@ -43,8 +44,8 @@ class ANNarchyDevice(Device):
         return self.annarchy_instance
 
     @property
-    def nest_model(self):
-        self._assert_nest()
+    def annarchy_model(self):
+        self._assert_annarchy()
         return str(self.device.get("model"))
 
     def Set(self, values_dict):
@@ -152,12 +153,77 @@ class ANNarchyDevice(Device):
         return self.get_neurons("target")
 
 
-class NESTInputDevice(NESTDevice, InputDevice):
+class ANNarchyInputDevice(ANNarchyDevice, InputDevice):
     model = "input_device"
 
     def __init__(self, device, annarchy_instance):
-        super(NESTInputDevice, self).__init__(device, annarchy_instance)
+        super(ANNarchyInputDevice, self).__init__(device, annarchy_instance)
         self.model = "input_device"
+
+
+class ANNarchyStaticCurrentInjector(ANNarchyDevice, InputDevice):
+    '''
+    Inject a fixed current into a population.
+    '''
+
+    model = "static_current_injector"
+    target_population = None
+    input_spikes = None
+
+    def __init__(self, population, input_spikes):
+        self.model = "static_current_injector"
+        self.target_population = population
+        self.input_spikes = input_spikes
+        self.target_population._population.i_offset = self.input_spikes
+        self._number_of_connections = self.target_population._population.size
+        self._number_of_neurons = self.target_population._population.size
+
+
+class ANNarchyCurrentInjector(ANNarchyDevice, InputDevice):
+    '''
+    Inject a time-varying current into a population.
+    '''
+    model = "current_injector"
+    target_population = None
+    _population = None
+    _projection = None
+
+    def __init__(self, population, equations, target='exc'):
+        self.model = "current_injector"
+        self.target_population = population.population
+
+        self._number_of_connections = self.target_population.size
+        self._number_of_neurons = self.target_population.size
+
+        self._population = self.annarchy_instance.Population(self._number_of_neurons,
+                                                             self.annarchy_instance.Neuron(equations=equations))
+        self._projection = self.annarchy_instance.CurrentInjection(self._population, self.target_population, target)
+        self._projection.connect_current()
+
+class ANNarchySpikeSourceArray(ANNarchyDevice, InputDevice):
+    '''
+    Feed pre-defined spiking patterns into a target ANNarchyPopulation.
+    '''
+    model = "spike_source_array"
+    target_population = None
+    population = None
+    projections_out = []
+
+    def __init__(self, target_pop, spike_times, target='exc', synapse=None, name=None,
+                 method="connect_one_to_one", **connection_args):
+        self.model = "spike_source_array"
+        self.target_population = target_pop.population
+
+        self._number_of_connections = self.target_population.size
+        self._number_of_neurons = self.target_population.size
+
+        self.population = self.annarchy_instance.SpikeSourceArray(spike_times=spike_times)
+        # maybe better: a connect_to method in here, makes several projections possible
+        target_pop.connect_from(self, method, synapse, name, **connection_args)
+
+
+
+
 
 
 class NESTPoissonGenerator(NESTInputDevice):
@@ -300,7 +366,7 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def n_events(self):
         return self.number_of_events
-    
+
     @property
     def reset(self):
         # TODO: find how to reset recorders!
@@ -327,7 +393,7 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
            Returns:
             connections' objects.
         """
-        return self._GetConnections(source=self.filter_neurons(neurons, exclude_neurons), 
+        return self._GetConnections(source=self.filter_neurons(neurons, exclude_neurons),
                                     target=self.device)
 
     @property
@@ -355,8 +421,8 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
     def record_from(self):
         self._assert_nest()
         return [str(name) for name in self.device.get('record_from')]
-    
-    
+
+
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
     model = "voltmeter"
 
@@ -364,20 +430,20 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
         super(NESTVoltmeter, self).__init__(device, annarchy_instance)
         self.model = "voltmeter"
         assert self.var in self.record_from
-        
+
     @property
     def var(self):
         return "V_m"
-    
+
     @property
     def get_V_m(self):
         return self.get_var()
-    
+
     @property
     def V_m(self):
         return self.get_var()
-    
-    
+
+
 class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector, SpikeMultimeter):
     model = "spike_multimeter"
     spike_var = "spikes"
@@ -392,7 +458,5 @@ NESTOutputDeviceDict = {"spike_detector": NESTSpikeDetector,
                         "spike_multimeter": NESTSpikeMultimeter,
                         "voltmeter": NESTVoltmeter}
 
-
 NESTOutputSpikeDeviceDict = {"spike_detector": NESTSpikeDetector,
                              "spike_multimeter": NESTSpikeMultimeter}
-
