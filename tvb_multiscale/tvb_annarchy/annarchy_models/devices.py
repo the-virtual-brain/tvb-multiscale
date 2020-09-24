@@ -53,7 +53,7 @@ class ANNarchyDevice(Device):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        self._assert_nest()
+        self._assert_annarchy()
         self.device.get(values_dict)
 
     def Get(self, attrs=None):
@@ -155,91 +155,130 @@ class ANNarchyDevice(Device):
 
 class ANNarchyInputDevice(ANNarchyDevice, InputDevice):
     model = "input_device"
+    projections_out = []
+    _population = None
 
     def __init__(self, device, annarchy_instance):
         super(ANNarchyInputDevice, self).__init__(device, annarchy_instance)
         self.model = "input_device"
 
+    def connect(self, target_pop, target='exc', synapse=None, name=None,
+                method="connect_one_to_one", **connection_args):
+        """
+        Method to set up and connect a projection between an ANNarchyInputDevice
+         and an ANNarchyPopulation.
+        Arguments:
+            target_pop: The ANNarchyPopulation we want to connect to.
+            target: type of the connection.
+            synapse: a ``Synapse`` instance.
+            name: name of the projection
+            method: name of an ANNarchy connection method
+            **connection_args: depend on the chosen ANNarchy connection method
+        Returns: the projection
+        """
+        proj = self.annarchy_instance.Projection(self._population, target_pop.population, target, synapse, name)
+        self.projections_out.append(proj)
+        target_pop.projections_in.append(proj)
+        proj = getattr(proj, method)(**connection_args)
+        self._number_of_connections += proj.size
+
+        # if there are two projections to the same population / popview, len(proj.post_ranks
+        # counts them twice. since there are no global neuron coordinates avoiding this needs some thinking
+        self._number_of_neurons += len(proj.post_ranks)
+
+        return proj
+
+
+"""
+Input devices for spiking populations
+Not yet implemented: Input devices for rate-coded populations
+"""
+
 
 class ANNarchyStaticCurrentInjector(ANNarchyDevice, InputDevice):
-    '''
+    """
     Inject a fixed current into a population.
-    '''
+    Maybe better: make this into a method inside spiking populations?
+    """
 
     model = "static_current_injector"
     target_population = None
-    input_spikes = None
+    input_current = None
 
-    def __init__(self, population, input_spikes):
+    def __init__(self, population, input_current, device, annarchy_instance):
+        super().__init__(device, annarchy_instance)
         self.model = "static_current_injector"
         self.target_population = population
-        self.input_spikes = input_spikes
-        self.target_population._population.i_offset = self.input_spikes
-        self._number_of_connections = self.target_population._population.size
-        self._number_of_neurons = self.target_population._population.size
+        self.input_current = input_current
+        self.target_population.population.i_offset = self.input_current
+        self._number_of_connections += self.target_population.population.size
+        self._number_of_neurons += self.target_population.population.size
 
 
-class ANNarchyCurrentInjector(ANNarchyDevice, InputDevice):
-    '''
-    Inject a time-varying current into a population.
-    '''
+class ANNarchyCurrentInjector(ANNarchyInputDevice, InputDevice):
+    """
+    Inject a time-varying current into a spiking population.
+    """
     model = "current_injector"
-    target_population = None
-    _population = None
-    _projection = None
 
-    def __init__(self, population, equations, target='exc'):
+    def __init__(self, equations, device, annarchy_instance):
+        super().__init__(device, annarchy_instance)
         self.model = "current_injector"
-        self.target_population = population.population
-
-        self._number_of_connections = self.target_population.size
-        self._number_of_neurons = self.target_population.size
-
         self._population = self.annarchy_instance.Population(self._number_of_neurons,
                                                              self.annarchy_instance.Neuron(equations=equations))
-        self._projection = self.annarchy_instance.CurrentInjection(self._population, self.target_population, target)
-        self._projection.connect_current()
 
-class ANNarchySpikeSourceArray(ANNarchyDevice, InputDevice):
-    '''
+    def connect(self, target_pop, target='exc', synapse=None, name=None):
+        """
+        Method to set up and connect a projection between an ANNarchyCurrentInjector
+         and an ANNarchyPopulation.
+        Arguments:
+            target_pop: The ANNarchyPopulation we want to connect to.
+            target: type of the connection.
+            synapse: a ``Synapse`` instance.
+            name: name of the projection
+        Returns: the projection
+        """
+        proj = self.annarchy_instance.CurrentInjection(self._population, target_pop.population, target, synapse, name)
+        proj.connect_current()
+        self.projections_out.append(proj)
+        target_pop.projections_in.append(proj)
+        return proj
+
+
+class ANNarchySpikeSourceArray(ANNarchyInputDevice, InputDevice):
+    """
     Feed pre-defined spiking patterns into a target ANNarchyPopulation.
-    '''
+    """
     model = "spike_source_array"
-    target_population = None
-    population = None
-    projections_out = []
 
-    def __init__(self, target_pop, spike_times, target='exc', synapse=None, name=None,
-                 method="connect_one_to_one", **connection_args):
+    def __init__(self, spike_times, device, annarchy_instance):
+        super().__init__(device, annarchy_instance)
         self.model = "spike_source_array"
-        self.target_population = target_pop.population
-
-        self._number_of_connections = self.target_population.size
-        self._number_of_neurons = self.target_population.size
-
-        self.population = self.annarchy_instance.SpikeSourceArray(spike_times=spike_times)
-        # maybe better: a connect_to method in here, makes several projections possible
-        target_pop.connect_from(self, method, synapse, name, **connection_args)
+        self._population = self.annarchy_instance.SpikeSourceArray(spike_times=spike_times)
 
 
-
-
-
-
-class NESTPoissonGenerator(NESTInputDevice):
+class ANNarchyPoissonGenerator(ANNarchyInputDevice, InputDevice):
     model = "poisson_generator"
+    _population = None
 
-    def __init__(self, device, annarchy_instance):
-        super(NESTPoissonGenerator, self).__init__(device, annarchy_instance)
+    def __init__(self, annarchy_instance, geometry, rates, device, parameters=None):
+        # super(NESTPoissonGenerator, self).__init__(device, annarchy_instance)
+        super().__init__(device, annarchy_instance)
         self.model = "poisson_generator"
+        if parameters is None:
+            self._population = annarchy_instance.PoissonPopulation(geometry, rates)
+        else:
+            self._population = annarchy_instance.PoissonPopulation(geometry, parameters, rates)
 
 
-class NESTSinusoidalPoissonGenerator(NESTInputDevice):
-    model = "sinusoidal_poisson_generator"
+class ANNarchyHomogenousCorrelatedSpikeTrains(ANNarchyInputDevice, InputDevice):
+    model = "homogenous_correlated_spike_trains"
+    _population = None
 
-    def __init__(self, device, annarchy_instance):
-        super(NESTSinusoidalPoissonGenerator, self).__init__(device, annarchy_instance)
-        self.model = "sinusoidal_poisson_generator"
+    def __init__(self, annarchy_instance, geometry, rates, corr, tau, device):
+        super().__init__(device, annarchy_instance)
+        self.model = "homogenous_correlated_spike_trains"
+        self._population = annarchy_instance.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau)
 
 
 class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
