@@ -110,7 +110,8 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+# TODO: use master once this migration is done
+RUN git clone --depth 1 --branch nest3 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
