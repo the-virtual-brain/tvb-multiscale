@@ -6,13 +6,13 @@ import shutil
 from six import string_types
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict
+from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_annarchy.annarchy_models.devices import ANNARCHYInputDeviceDict, ANNARCHYOutputDeviceDict
 from tvb_multiscale.core.spiking_models.builders.factory import log_path
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-from tvb.contrib.scripts.utils.file_utils import safe_makedirs
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs, delete_folder_safely
 
 
 LOG = initialize_logger(__name__)
@@ -24,56 +24,21 @@ LOG = initialize_logger(__name__)
 # Helper functions with NEST
 
 
-def load_nest(config=CONFIGURED, logger=LOG):
-
-    logger.info("Loading a NEST instance...")
-    nest_path = config.NEST_PATH
-    os.environ['NEST_INSTALL_DIR'] = nest_path
-    log_path('NEST_INSTALL_DIR', logger)
-    os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-    log_path('NEST_DATA_DIR', logger)
-    os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-    log_path('NEST_DOC_DIR', logger)
-    os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-    log_path('NEST_MODULE_PATH', logger)
-    os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-    log_path('PATH', logger)
-    LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-    if len(LD_LIBRARY_PATH) > 0:
-        LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-    os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-    log_path('LD_LIBRARY_PATH', logger)
-    os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
-    log_path('SLI_PATH', logger)
-
-    os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
-    log_path('NEST_PYTHON_PREFIX', logger)
-    sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-    logger.info("%s: %s" % ("system path", sys.path))
-
-    import nest
-    return nest
+def load_annarchy(config=CONFIGURED, logger=LOG, clean_compilation_directory=True, **kwargs):
+    logger.info("Loading an ANNarchy instance...")
+    if clean_compilation_directory:
+        logger.info("Cleaning ANNarchy compilation directory, if any...")
+        delete_folder_safely(os.path.join(os.getcwd(), "annarchy"))
+    import ANNarchy as annarchy_instance
+    annarchy_instance.clear()
+    if len(kwargs):
+        logger.info("Configuring ANNarchy with properties:\n%s" % str(kwargs))
+        annarchy_instance.setup(**kwargs)
+    return annarchy_instance
 
 
-def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
-    # ...unless we need to first compile it:
-    from pynestml.frontend.pynestml_frontend import install_nest
-    logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
-    safe_makedirs(config.MYMODULES_BLD_DIR)
-    for module in ensure_list(modules):
-        logger.info("Compiling %s..." % module)
-        module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
-        logger.info("in build directory %s..." % module_bld_dir)
-        if not os.path.exists(module_bld_dir) or recompile:
-            source_path = os.path.join(config.MYMODULES_DIR, module)
-            logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
-            shutil.copytree(source_path, module_bld_dir)
-        logger.info("Running compilation...")
-        install_nest(module_bld_dir, config.NEST_PATH)
-        if os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, "lib" + module + "module.so")):
-            logger.info("DONE compiling %s!" % module)
-        else:
-            logger.warn("Something seems to have gone wrong with compiling %s!" % module)
+def compile(modules, recompile=False, config=CONFIGURED, logger=LOG):
+    pass
 
 
 def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
@@ -137,6 +102,25 @@ def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kw
             return conn_spec, Nall
 
 
+def connect(source_pop, target_pop, target, synapse=None, name=None,
+            method="connect_all_to_all", annarchy_instance=None, **connection_args):
+    """
+    Method to set up and connect a projection between two ANNarchyPopulations.
+    Arguments:
+      - target_pop: The ANNarchyPopulation we want to connect to.
+      - target: type of the connection. Needs to be set, or weights are zero.
+      - synapse: a ``Synapse`` instance.
+      - name: name of the projection
+      - method: name of an ANNarchy connection method
+      - **connection_args: depend on the chosen ANNarchy connection method
+      Returns: the projection
+      """
+    proj = annarchy_instance.Projection(source_pop, target_pop, target, synapse, name)
+    source_pop._projections_pre.append(proj)  # is there a faster way than using .append()?
+    target_pop._projections_post.append(proj)
+    return getattr(proj, method)(**connection_args)
+
+
 def device_to_dev_model(device):
     if device == "spike_multimeter":
         return "multimeter"
@@ -144,42 +128,42 @@ def device_to_dev_model(device):
         return device
 
 
-def create_device(device_model, device_name=None, params=None, config=CONFIGURED, nest_instance=None):
-    if nest_instance is None:
-        nest_instance = load_nest(config=config)
-        return_nest = True
+def create_device(device_model, device_name=None, params=None, config=CONFIGURED, annarchy_instance=None):
+    if annarchy_instance is None:
+        annarchy_instance = load_annarchy(config=config)
+        return_annarchy = True
     else:
-        return_nest = False
+        return_annarchy = False
     if not isinstance(device_name, string_types):
         device_name = device_model
     else:
         # ...assert the type...
         device_model = device_to_dev_model(device_name)
-    if device_model in NESTInputDeviceDict.keys():
-        devices_dict = NESTInputDeviceDict
-        default_params_dict = config.NEST_INPUT_DEVICES_PARAMS_DEF
-    elif device_model in NESTOutputDeviceDict.keys():
-        devices_dict = NESTOutputDeviceDict
-        default_params_dict = config.NEST_OUTPUT_DEVICES_PARAMS_DEF
+    if device_model in ANNARCHYInputDeviceDict.keys():
+        devices_dict = ANNARCHYInputDeviceDict
+        default_params_dict = config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF
+    elif device_model in ANNARCHYOutputDeviceDict.keys():
+        devices_dict = ANNARCHYOutputDeviceDict
+        default_params_dict = config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
-                          (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
-                           str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
+                          (device_model, str(config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF),
+                           str(config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF)))
     default_params = dict(default_params_dict.get(device_name, {}))
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
-        nest_device_id = nest_instance.Create(device_model, params=default_params)
+        annarchy_device_id = annarchy_instance.Create(device_model, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
-        nest_device_id = nest_instance.Create(device_model, params=default_params)
-    nest_device = devices_dict[device_name](nest_device_id, nest_instance)
-    if return_nest:
-        return nest_device, nest_instance
+        annarchy_device_id = annarchy_instance.Create(device_model, params=default_params)
+    annarchy_device = devices_dict[device_name](annarchy_device_id, annarchy_instance)
+    if return_annarchy:
+        return annarchy_device, annarchy_instance
     else:
-        return nest_device
+        return annarchy_device
 
 
 def connect_device(nest_device, neurons, weight=1.0, delay=0.0, receptor_type=0, config=CONFIGURED,
