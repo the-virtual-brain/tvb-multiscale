@@ -134,7 +134,8 @@ class NESTPopulation(SpikingPopulation):
             # for source and target connections
             connections = self._GetConnections()
         else:
-            connections = ensure_list(connections)
+            if not isinstance(connections, list):
+                connections = [connections]
         outputs = []
         if attrs is None:
             for conn in connections:  # possibly for source and/or target connections
