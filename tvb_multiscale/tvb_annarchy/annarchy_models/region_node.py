@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
-from pandas import Series
-
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 
 
-class NESTRegionNode(SpikingRegionNode):
+class ANNArchyRegionNode(SpikingRegionNode):
 
-    nest_instance = None
+    annarchy_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"
-    _receptor_attr = "receptor"
+    _receptor_attr = "target"
 
-    def __init__(self, label="", input_nodes=None, nest_instance=None, **kwargs):
-        self.nest_instance = nest_instance
-        super(NESTRegionNode, self).__init__(label, input_nodes, **kwargs)
+    def __init__(self, label="", input_nodes=None, annarchy_instance=None, **kwargs):
+        self.annarchy_instance = annarchy_instance
+        super(ANNArchyRegionNode, self).__init__(label, input_nodes, **kwargs)
 
     @property
     def spiking_simulator_module(self):
-        if self.nest_instance is None:
+        if self.annarchy_instance is None:
             for i_pop, pop_lbl, pop in self._loop_generator():
-                self.nest_instance = pop.nest_instance
-                if self.nest_instance is not None:
+                self.annarchy_instance = pop.annarchy_instance
+                if self.annarchy_instance is not None:
                     break
-        return self.nest_instance
+        return self.annarchy_instance
