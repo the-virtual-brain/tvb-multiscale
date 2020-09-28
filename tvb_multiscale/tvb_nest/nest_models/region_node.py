@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from pandas import Series
-
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 
 

@@ -30,8 +30,19 @@ class NESTPopulation(SpikingPopulation):
         return self._population
 
     @property
+    def population(self):
+        return self._population
+
+    @property
     def neurons(self):
         return self._population.global_id
+
+    def _assert_neurons(self, neurons=None):
+        if neurons is None:
+            neurons = self._population
+        elif not isinstance(neurons, self.nest_instance.NodeCollection):
+            neurons = self.nest_instance.NodeCollection(neurons)
+        return neurons
 
     def summarize_neurons_indices(self, print=False):
         """Method to summarize neurons' indices' intervals.
@@ -44,27 +55,25 @@ class NESTPopulation(SpikingPopulation):
     def _print_neurons(self):
         return "\n%d neurons: %s" % (self.number_of_neurons, self.summarize_neurons_indices(print=True))
 
-    def _assert_neurons(self, neurons=None):
-        if neurons is None:
-            neurons = self._population
-        elif not isinstance(neurons, self.nest_instance.NodeCollection):
-            neurons = self.nest_instance.NodeCollection(neurons)
-        return neurons
-
-    def _Set(self, neurons, values_dict):
+    def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
-            neurons: tuple of neurons the attributes of which should be set.
             values_dict: dictionary of attributes names' and values.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
+                     Default = None, corresponds to all neurons of the population.
         """
         self._assert_nest()
         self._assert_neurons(neurons).set(values_dict)
 
-    def _Get(self, neurons, attrs=None):
+    def _Get(self, attrs=None, neurons=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
-            neurons: tuple of neurons which should be included in the output.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
+                   Default = None, corresponding to all attributes
+            neurons: instance of a NodeCollection class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
+                     Default = None, corresponds to all neurons of the population.
            Returns:
             Dictionary of tuples of neurons' attributes.
         """
@@ -93,26 +102,51 @@ class NESTPopulation(SpikingPopulation):
             kwargs = {source_or_target: neurons}
             return self.nest_instance.GetConnections(**kwargs)
 
-    def _SetToConnections(self, connections, values_dict):
+    def _SetToConnections(self, values_dict, connections=None):
         """Method to set attributes of the connections from/to the SpikingPopulation's neurons.
            Arguments:
-             connections: nest.SynapseCollection.
              values_dict: dictionary of attributes names' and values.
+             connections: nest.SynapseCollection.
+                          Default = None, corresponding to all connections to/from the present population.
         """
         self._assert_nest()
-        connections.set(values_dict)
+        if connections is None:
+            # for source and target connections
+            connections = self._GetConnections()
+        else:
+            connections = ensure_list(connections)
+        for conn in connections:  # possibly for source and/or target connections
+            conn.set(values_dict)
 
-    def _GetFromConnections(self, connections, attrs=None):
+    def _GetFromConnections(self, attrs=None, connections=None):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
             Arguments:
+             attrs: collection (list, tuple, array) of the attributes to be included in the output.
+                    Default = None, corresponds to all attributes
              connections: nest.SynapseCollection.
-            attrs: collection (list, tuple, array) of the attributes to be included in the output.
+                          Default = None, corresponding to all connections to/from the present population.
             Returns:
              Dictionary of tuples of connections' attributes.
 
         """
         self._assert_nest()
-        if attrs is None:
-            return connections.get()
+        if connections is None:
+            # for source and target connections
+            connections = self._GetConnections()
         else:
-            return connections.get(attrs)
+            connections = ensure_list(connections)
+        outputs = []
+        if attrs is None:
+            for conn in connections:  # possibly for source and/or target connections
+                outputs.append(conn.get())
+        else:
+            for conn in connections:  # possibly for source and/or target connections
+                outputs.append(conn.get())
+        if len(outputs) == 0:
+            return {}
+        elif len(outputs) == 1:
+            # for source or target connections
+            return outputs[0]
+        else:
+            # for source and target connections
+            return tuple(outputs)
