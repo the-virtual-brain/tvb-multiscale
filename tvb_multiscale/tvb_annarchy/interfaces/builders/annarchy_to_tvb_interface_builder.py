@@ -11,7 +11,7 @@ class NESTtoTVBInterfaceBuilder(SpikeNetToTVBInterfaceBuilder):
 
     @property
     def nest_instance(self):
-        return self.spiking_network.nest_instance
+        return self.spiking_network.annarchy_instance
 
     def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
         return build_and_connect_devices(devices, create_device, connect_device,

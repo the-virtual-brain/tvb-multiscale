@@ -39,7 +39,7 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
 
     @property
     def nest_instance(self):
-        return self.spiking_network.nest_instance
+        return self.spiking_network.annarchy_instance
 
     @property
     def config(self):

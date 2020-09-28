@@ -20,7 +20,7 @@ class TVBtoNESTParameterInterface(TVBtoSpikeNetParameterInterface):
 
     @property
     def nest_instance(self):
-        return self.spiking_network.nest_instance
+        return self.spiking_network.annarchy_instance
 
     def set(self, values):
         values = ensure_list(values)

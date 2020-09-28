@@ -12,7 +12,7 @@ class TVBtoNESTDeviceInterface(TVBtoSpikeNetDeviceInterface):
 
     @property
     def nest_instance(self):
-        return self.spiking_network.nest_instance
+        return self.spiking_network.annarchy_instance
 
 
 class TVBtoNESTDCGeneratorInterface(TVBtoNESTDeviceInterface):
