@@ -89,7 +89,7 @@ class Device(object):
     def Get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
-            attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
+            attrs: names of attributes to be returned. Default = None, corresponds to all device's attributes.
            Returns:
             Dictionary of attributes.
         """
@@ -104,20 +104,21 @@ class Device(object):
         pass
 
     @abstractmethod
-    def _SetToConnections(self, connections, values_dict):
+    def _SetToConnections(self, values_dict, connections=None):
         """Method to set attributes of the connections from/to the device
             Arguments:
-             connections: connections' objects.
              values_dict: dictionary of attributes names' and values.
+             connections: connections' objects. Default = None, corresponding to all device's connections
         """
         pass
 
     @abstractmethod
-    def _GetFromConnections(self, connections, attrs=None):
+    def _GetFromConnections(self, attrs=None, connections=None):
         """Method to get attributes of the connections from/to the device
            Arguments:
-            connections: connections' objects.
             attrs: sequence (list, tuple, array) of the attributes to be included in the output.
+                   Default = None, corresponding to all device's attributes
+            connections: connections' objects. Default = None, corresponding to all device's connections
            Returns:
             Dictionary of sequences (tuples, lists, arrays) of connections' attributes.
         """
@@ -149,7 +150,7 @@ class Device(object):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        self.SetToConnections(values_dict, self.GetConnections())
+        self.SetToConnections(values_dict)
 
     def GetFromConnections(self, attrs=None, summary=None):
         """Method to get attributes of the connections from/to the device.
@@ -164,7 +165,7 @@ class Device(object):
            Returns:
             Dictionary of sequences (tuples, lists, arrays) of connections' attributes.
         """
-        attributes = self._GetFromConnections(self.GetConnections(), attrs)
+        attributes = self._GetFromConnections(attrs)
         if summary:
             return summarize(attributes, summary)
         else:
@@ -918,11 +919,18 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         a positive or negative spike weight, where there is a spike.
     """
     model = "spike_multimeter"
-    spike_var = "spikes"
 
     def __init__(self, device, *args, **kwargs):
         super(SpikeMultimeter, self).__init__(device)
         self.model = "spike_multimeter"
+
+    @property
+    def spikes_vars(self):
+        return self.record_from
+
+    @property
+    def number_of_spikes_var(self):
+        return len(self.spikes_vars)
 
     def get_spikes(self, name=None, dims_names=["Variable", "Neuron", "Time"]):
         """This method returns time series' data of spike weights recorded by the spike multimeter.
@@ -933,14 +941,17 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
            Returns:
             a xarray DataArray with the output data
         """
-        return self.get_data([self.spike_var], name, dims_names)
+        return self.get_data(self.spikes_vars, name, dims_names)
 
     def get_spikes_inds(self):
         """This method returns all events' indices for which there is a spike, i.e., the spike weight is not zero.
            Returns:
             a numpy array with the output indices
         """
-        return np.where(np.array(self.events[self.spike_var]))[0]
+        spikes_inds = []
+        for spike_var in self.spikes_vars:
+            spikes_inds += np.where(np.array(self.events[spike_var]))[0].tolist()
+        return spikes_inds
 
     def get_spikes_events(self, events_inds=None, **filter_kwargs):
         """This method will select/exclude part of the detected spikes' events, depending on user inputs
@@ -952,13 +963,13 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
              the filtered dictionary of spikes' events
         """
         events = deepcopy(self.events)
-        events["weights"] = np.array(events[self.spike_var])
         if events_inds:
+            spike_var = self.spikes_vars[0]
             if (hasattr(events_inds, "__len__") and len(events_inds) > 0) or isinstance(events_inds, slice):
                 # events_inds are numerical or boolean indices, or a slice:
-                events_inds = np.arange(len(events["weight"])).astype("i")[events_inds]
+                events_inds = np.arange(len(events[spike_var])).astype("i")[events_inds]
             else:  # events_inds is a scalar to start indexing from:
-                events_inds = np.arange(len(events["weight"])).astype("i")[events_inds:]
+                events_inds = np.arange(len(events[spike_var])).astype("i")[events_inds:]
             events_inds = np.intersect1d(self.get_spikes_inds(), events_inds)
         else:
             events_inds = self.get_spikes_inds()
@@ -974,7 +985,11 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
             Returns:
              the spikes' weights in a list
         """
-        return self.get_spikes_events(events_inds=events_inds, variables="weights", **filter_kwargs)["weights"]
+        outputs = []
+        for spike_var in self.spikes_vars:
+            outputs.append(self.get_spikes_events(events_inds=events_inds,
+                                                  variables=spike_var, **filter_kwargs)[spike_var])
+        return outputs
 
     def get_spikes_times(self, events_inds=None, **filter_kwargs):
         """This method will return spikes' times
@@ -1015,7 +1030,13 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
            Returns:
             float: total spikes' activity
         """
-        return np.sum(self.get_spikes_weights(events_inds=events_inds, **filter_kwargs))
+        spikes_sum = []
+        for spike_var_spikes in self.get_spikes_weights(events_inds=events_inds, **filter_kwargs):
+            spikes_sum.append(np.sum(spike_var_spikes))
+        if len(spikes_sum) == 1:
+            return spikes_sum[0]
+        else:
+            return spikes_sum
 
     def get_mean_spikes_activity(self, events_inds=None, **filter_kwargs):
         """This method returns the mean spike activity by adding spike weights
@@ -1030,9 +1051,18 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         """
         n_neurons = self.get_number_of_connections()
         if n_neurons > 0:
-            return self.get_total_spikes_activity(events_inds=events_inds, **filter_kwargs) / n_neurons
+            spikes_sum = ensure_list(self.get_total_spikes_activity(events_inds=events_inds, **filter_kwargs))
+            for ii in range(len(spikes_sum)):
+                spikes_sum[ii] /= n_neurons
+            if len(spikes_sum) == 1:
+                return spikes_sum[0]
+            else:
+                return spikes_sum
         else:
-            return 0.0
+            if self.number_of_spikes_var > 1:
+                return np.array([0.0]*self.number_of_spikes_var)
+            else:
+                return 0.0
 
     @property
     def spikes(self):
@@ -1122,13 +1152,9 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         """
         if name is None:
             name = self.model + " - Total spike activity accross time"
-        spikes = self.get_spikes(**kwargs).values
-        if rate_mode == "rate":
-            for i_spike, spike in spikes:
-                spikes[i_spike] = np.heaviside(spike, 0.0)
 
         if spikes_kernel is None:
-            spikes_kernel = np.ones((spikes_kernel_width_in_points, ))
+            spikes_kernel = np.ones((spikes_kernel_width_in_points,))
             if rate_mode.find("rate") > -1:
                 # For spike rate computation we have to normalize with the kernel width in time units
                 spikes_kernel /= spikes_kernel_width
@@ -1136,23 +1162,45 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                 # For "activity" computation we have to normalize with the kernel width in time steps
                 spikes_kernel /= spikes_kernel_width_in_points
 
-        if mode == "per_neuron":
-            # Returning output per neuron
-            activity = []
-            for spike in spikes:
-                activity.append(spikes_rate_convolution(spike, spikes_kernel))
-            activity = np.array(activity)
-            if flatten_neurons_inds:
-                neurons = np.arange(activity.shape[0])
-            else:
-                neurons = spikes.coords[spikes.dims[0]].item()
-            return xr.DataArray(np.array(activity), dims=["Neuron", "Time"], coords={"Neuron": neurons, "Time": time})
-        else:
-            # Returning output as for all neurons together
-            spikes = np.sum(spikes, axis=0).squeeze()
-            activity = spikes_rate_convolution(spikes, spikes_kernel)
+        spikes_data = self.get_spikes(**kwargs)
 
-        return xr.DataArray(activity, dims=["Time"], coords={"Time": time}, name=name)
+        spikes_vars = ensure_list(self.spikes_vars)
+        if mode == "per_neuron":
+
+            outputs = xr.DataArray(np.empty(len(spikes_vars), 1, 1),
+                                   dims=["Variable", "Neuron", "Time"],
+                                   coords={"Variable": spikes_vars})
+
+            for spike_var in spikes_vars:
+                spikes = spikes_data.loc[:, spike_var].values
+                if rate_mode == "rate":
+                    for i_spike, spike in spikes:
+                        spikes[i_spike] = np.heaviside(spike, 0.0)
+                # Returning output per neuron
+                activity = []
+                for spike in spikes:
+                    activity.append(spikes_rate_convolution(spike, spikes_kernel))
+                activity = np.array(activity)
+                if flatten_neurons_inds:
+                    neurons = np.arange(activity.shape[0])
+                else:
+                    neurons = spikes.coords[spikes.dims[0]].item()
+                outputs = xr.combine_by_coords([outputs,
+                                                xr.DataArray(np.array(activity), dims=["Neuron", "Time"],
+                                                             coords={"Neuron": neurons, "Time": time})], fill_value=0.0)
+        else:
+            outputs = xr.DataArray(np.empty(len(spikes_vars), 1),
+                                   dims=["Variable", "Time"],
+                                   coords={"Variable": spikes_vars})
+            for spike_var in spikes_vars:
+                spikes = spikes_data.loc[:, spike_var].values
+                # Returning output as for all neurons together
+                spikes = np.sum(spikes, axis=0).squeeze()
+                activity = spikes_rate_convolution(spikes, spikes_kernel)
+                outputs = xr.combine_by_coords([outputs,
+                                                xr.DataArray(activity,
+                                                             dims=["Time"], coords={"Time": time}, name=name)])
+        return outputs
 
     def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
                                         spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
@@ -1196,7 +1244,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
                                                             spikes_kernel=spikes_kernel, mode="total",
                                                             name=name, **kwargs) / n_neurons
         else:
-            return 0.0 * time
+            return np.array([0.0 *time]*self.number_of_spikes_var)
 
 
 OutputDeviceDict = {"spike_detector": SpikeDetector,
