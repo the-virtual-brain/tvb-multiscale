@@ -80,20 +80,25 @@ class SpikingPopulation(object):
         pass
 
     @abstractmethod
-    def _Set(self, neurons, values_dict):
+    def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
-            neurons: tuple of neurons the attributes of which should be set.
             values_dict: dictionary of attributes names' and values.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
+                     Default = None, corresponds to all neurons of the population.
         """
         pass
 
     @abstractmethod
-    def _Get(self, neurons, attr=None):
+    def _Get(self, attr=None, neurons=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
-            neurons: tuple of neurons which should be included in the output.
             attrs: sequence (list, tuple, array) of the attributes to be included in the output.
+                   Default = None, corresponding to all attributes
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
+                     Default = None, corresponds to all neurons of the population.
            Returns:
             Dictionary of sequences (lists, tuples, or arrays) of neurons' attributes.
         """
@@ -103,7 +108,9 @@ class SpikingPopulation(object):
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
            Arguments:
-            neurons: tuple of neurons the connections of which should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
+                     Default = None, corresponds to all neurons of the population.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
            Returns:
@@ -112,20 +119,23 @@ class SpikingPopulation(object):
         pass
 
     @abstractmethod
-    def _SetToConnections(self, connections, values_dict):
+    def _SetToConnections(self, values_dict, connections=None):
         """Method to set attributes of the connections from/to the SpikingPopulation's neurons.
            Arguments:
-             connections: connections' objects.
              values_dict: dictionary of attributes names' and values.
+             connections: connections' objects.
+                          Default = None, corresponding to all connections to/from the present population.
         """
         pass
 
     @abstractmethod
-    def _GetFromConnections(self, connections, attr=None):
+    def _GetFromConnections(self, attr=None, connections=None):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
             Arguments:
+             attrs: sequence (list, tuple, array) of the attributes to be included in the output.
+                    Default = None, corresponding to all attributes
              connections: connections' objects.
-            attrs: sequence (list, tuple, array) of the attributes to be included in the output.
+                          Default = None, corresponding to all connections to/from the present population.
             Returns:
              Dictionary of sequences (lists, tuples, or arrays) of connections' attributes.
 
@@ -143,19 +153,18 @@ class SpikingPopulation(object):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
             values_dict: dictionary of attributes names' and values.
-            neurons: sequence (list, tuple, array) of neurons the attributes of which should be set.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
         """
-        if neurons:
-            self._Set(self._population[neurons], values_dict)
-        else:
-            self._Set(self._population, values_dict)
+        self._Set(values_dict, neurons)
 
     def Get(self, attrs=None, neurons=None, summary=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
-            neurons: sequence (list, tuple, array) of neurons' indices which should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             summary: if integer, return a summary of unique output values
                                  within accuracy of the specified number of decimal digits
@@ -166,10 +175,7 @@ class SpikingPopulation(object):
            Returns:
             Dictionary of sequences (lists, tuples, or arrays) of neurons' attributes.
         """
-        if neurons:
-            attributes = self._Get(self._population[neurons], attrs)
-        else:
-            attributes = self._Get(self._population, attrs)
+        attributes = self._Get(attrs, neurons)
         if summary:
             return summarize(attributes, summary)
         else:
@@ -178,8 +184,8 @@ class SpikingPopulation(object):
     def get_attributes(self, neurons=None, summary=False):
         """Method to get all attributes of the SpikingPopulation's neurons.
            Arguments:
-            attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
-            neurons: sequence (list, tuple, array) of neurons' inds which should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             summary: if integer, return a summary of unique output values
                                  within accuracy of the specified number of decimal digits
@@ -195,32 +201,33 @@ class SpikingPopulation(object):
     def GetConnections(self, neurons=None,  source_or_target=None):
         """Method to get all connections of the device to/from neurons.
            Arguments:
-            neurons: sequence (list, tuple, array) of neurons' indswhich should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             Returns:
                 connections' objects.
         """
-        if neurons:
-            return self._GetConnections(self._population[neurons], source_or_target)
-        else:
-            return self._GetConnections(self._population, source_or_target)
+        return self._GetConnections(neurons, source_or_target)
 
     def SetToConnections(self, values_dict, neurons=None, source_or_target=None):
         """Method to set attributes of the connections from/to the SpikingPopulation's neurons.
            Arguments:
             values_dict: dictionary of attributes names' and values.
-            neurons: sequence (list, tuple, array) of neurons' inds the attribute of which should be set.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
         """
-        self._SetToConnections(self.GetConnections(neurons, source_or_target), values_dict)
+        self._SetToConnections(values_dict, self.GetConnections(neurons, source_or_target))
 
     def GetFromConnections(self, attrs=None, neurons=None, source_or_target=None, summary=None):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
            Arguments:
             attrs: sequence (list, tuple, array) of the attributes to be included in the output.
-            neurons: sequence (list, tuple, array) of neurons' inds which should be included in the output.
+                   Default = None, correspondingn to all attributes
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
@@ -237,15 +244,16 @@ class SpikingPopulation(object):
         output = []
         for conn in connections:
             if summary is not None:
-                output.append(summarize(self._GetFromConnections(conn, attrs), summary))
+                output.append(summarize(self._GetFromConnections(attrs, conn), summary))
             else:
-                output.append(self._GetFromConnections(conn, attrs))
+                output.append(self._GetFromConnections(attrs, conn))
         return list_of_dicts_to_dict_of_lists(output)
 
     def get_weights(self, neurons=None, source_or_target=None, summary=None):
         """Method to get the connections' weights of the SpikingPopulations's neurons.
            Arguments:
-            neurons: sequence (list, tuple, array) of neurons' indswhich should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
@@ -263,7 +271,8 @@ class SpikingPopulation(object):
     def get_delays(self, neurons=None, source_or_target=None, summary=None):
         """Method to get the connections' delays of the SpikingPopulations's neurons.
            Arguments:
-            neurons: sequence (list, tuple, array) of neurons' indswhich should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
@@ -280,7 +289,8 @@ class SpikingPopulation(object):
 
     def get_receptors(self, neurons=None, source_or_target=None, summary=None):
         """Method to get the connections' receptors of the SpikingPopulations's neurons.
-            neurons: sequence (list, tuple, array) of neurons' inds which should be included in the output.
+            neurons: instance of a population class,
+                     or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
