@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.devices import \
-    Device, InputDevice, OutputDevice, SpikeDetector, Multimeter, Voltmeter, SpikeMultimeter
+    Device, InputDevice, OutputDevice, SpikeDetector, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
 
@@ -334,6 +334,14 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
         return self.get_neurons("source")
 
 
+class NESTSpikeRecorder(NESTSpikeDetector, SpikeRecorder):
+    model = "spike_recorder"
+
+    def __init__(self, device, nest_instance):
+        super(NESTSpikeRecorder, self).__init__(device, nest_instance)
+        self.model = "spike_recorder"
+
+
 class NESTMultimeter(NESTOutputDevice, Multimeter):
     model = "multimeter"
 
@@ -378,11 +386,13 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector, SpikeMultimeter):
 
 
 NESTOutputDeviceDict = {"spike_detector": NESTSpikeDetector,
+                        "spike_recorder": NESTSpikeRecorder,
                         "multimeter": NESTMultimeter,
                         "spike_multimeter": NESTSpikeMultimeter,
                         "voltmeter": NESTVoltmeter}
 
 
 NESTOutputSpikeDeviceDict = {"spike_detector": NESTSpikeDetector,
+                             "spike_recorder": NESTSpikeRecorder,
                              "spike_multimeter": NESTSpikeMultimeter}
 

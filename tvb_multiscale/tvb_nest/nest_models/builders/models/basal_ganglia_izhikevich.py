@@ -121,7 +121,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
             connections = OrderedDict({})
             connections[pop["label"] + "_spikes"] = pop["label"]
             self.output_devices.append(
-                {"model": "spike_detector", "params": {},
+                {"model": "spike_recorder", "params": {},
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
         # Labels have to be different for every connection to every distinct population
