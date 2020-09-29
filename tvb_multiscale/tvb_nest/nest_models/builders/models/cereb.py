@@ -202,13 +202,13 @@ class CerebBuilder(NESTModelBuilder):
         else:
             return population
 
-    def set_spike_detector(self):
+    def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
         for pop in self.populations:
             connections[pop["label"] + "_spikes"] = pop["label"]
-        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
-        device = {"model": "spike_detector", "params": params,
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
+        device = {"model": "spike_recorder", "params": params,
                   # "neurons_fun": lambda node, population: self.neurons_fun(population),
                   "connections": connections, "nodes": None}  # None means all here
         return device
@@ -229,7 +229,7 @@ class CerebBuilder(NESTModelBuilder):
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_detector()]
+        self.output_devices = [self.set_spike_recorder()]
         if self.RECORD_VM:
             self.output_devices.append(self.set_multimeter())
 

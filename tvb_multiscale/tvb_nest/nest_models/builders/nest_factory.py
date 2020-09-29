@@ -202,7 +202,7 @@ def connect_device(nest_device, node_collection, weight=1.0, delay=0.0, receptor
             warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
                     "Setting minimum delay equal to resolution!" % (delay, resolution))
     syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
-    if nest_device.model == "spike_detector":
+    if nest_device.model in ["spike_detector", "spike_recorder"]:
         #                     source  ->  target
         nest_instance.Connect(node_collection, nest_device.device, syn_spec=syn_spec)
     else:

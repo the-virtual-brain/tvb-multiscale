@@ -649,6 +649,14 @@ class SpikeDetector(OutputDevice):
             return xr.DataArray(0.0 * time, dims=["Time"], coords={"Time": time}, name=name)
 
 
+class SpikeRecorder(SpikeDetector):
+    model = "spike_recorder"
+
+    def __init__(self, device, *args, **kwargs):
+        super(SpikeRecorder, self).__init__(device, *args, **kwargs)
+        self.model = "spike_recorder"
+
+
 class Multimeter(OutputDevice):
     model = "multimeter"
 
@@ -1254,6 +1262,7 @@ OutputDeviceDict = {"spike_detector": SpikeDetector,
 
 
 OutputSpikeDeviceDict = {"spike_detector": SpikeDetector,
+                         "spike_recorder": SpikeRecorder,
                          "spike_multimeter": SpikeMultimeter}
 
 
