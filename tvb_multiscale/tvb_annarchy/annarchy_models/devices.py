@@ -202,19 +202,6 @@ class ANNarchyStepRateGenerator(ANNarchyInputDevice):
         self.model = "step_rate_generator"
 
 
-class ANNarchyStaticCurrentInjector(InputDevice):
-    """
-    Inject a fixed current into a population.
-    """
-
-    model = "static_current_injector"
-    current_injectors = OrderedDict()
-
-    def __init__(self, device,  label="", model="", annarchy_instance=None, **kwargs):
-        super(ANNarchyStaticCurrentInjector, self).__init__(device, annarchy_instance)
-        self.model = "static_current_injector"
-
-
 class ANNarchyCurrentInjector(InputDevice):
     """
     Inject a time-varying current into a spiking population.
