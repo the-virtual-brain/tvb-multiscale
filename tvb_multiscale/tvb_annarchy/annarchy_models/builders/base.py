@@ -173,16 +173,16 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         self.annarchy_instance.Connect(source, target, conn_spec, syn_spec)
 
     def build_spiking_population(self, label, model, size, params, *args, **kwargs):
-        return NESTPopulation(self.annarchy_instance.Create(model, int(np.round(size)), params=params),
+        return ANNarchyPopulation(self.annarchy_instance.Create(model, int(np.round(size)), params=params),
                               label, model, self.annarchy_instance)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
-        return NESTRegionNode(label, input_node, self.annarchy_instance)
+        return ANNarchyRegionNode(label, input_node, self.annarchy_instance)
 
     def build_and_connect_devices(self, devices):
         return build_and_connect_devices(devices, create_device, connect_device,
                                          self._spiking_brain, self.config, nest_instance=self.annarchy_instance)
 
     def build(self):
-        return NESTNetwork(self.annarchy_instance, self._spiking_brain,
+        return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,
                            self._output_devices, self._input_devices, config=self.config)
