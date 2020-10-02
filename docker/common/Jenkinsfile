@@ -29,8 +29,7 @@ pipeline {
                     pytest --cov-config .coveragerc --cov=tvb tests --cov-branch --cov-report xml:tvb_multiscale_coverage.xml --junitxml=tvb_multiscale_test_results.xml
                     exit 0
                 '''
-                zip -r test_docker_results 'tvb_multiscale_coverage.xml, tvb_multiscale_test_results.xml'
-                archiveArtifacts artifacts: 'test_docker_results.zip'
+                zip archive: true, dir: '', glob: '*.xml', zipFile: 'test_docker_results.zip'
             }
         }
     }
