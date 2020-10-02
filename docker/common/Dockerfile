@@ -81,7 +81,7 @@ RUN git clone --depth 1 --branch $BRANCH $NEST_REPO_URL; \
           -Dwith-libneurosim=$WITH_LIBNEUROSIM \
           ${NEST_SRC}; \
     make; make install
-RUN cp -r $NEST_SRC/nestkernel/spatial $NEST_INSTALL_DIR/include/nest
+RUN if [ "x$BRANCH" = "master" ] ; then cp -r $NEST_SRC/nestkernel/spatial $NEST_INSTALL_DIR/include/nest ; fi
 
 # Install nestml
 RUN $VENV/bin/pip3 install setuptools; \
