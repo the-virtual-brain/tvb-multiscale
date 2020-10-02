@@ -1,4 +1,3 @@
-
 # iaf_cond_ww_decomodule/CMakeLists.txt
 #
 # This file is part of NEST.
@@ -20,7 +19,7 @@
 
 cmake_minimum_required( VERSION 2.8.12 )
 
-# This CMakeLists.txt is configured to build_interface your external module for NEST. For
+# This CMakeLists.txt is configured to build your external module for NEST. For
 # illustrative reasons this module is called 'my' (change SHORT_NAME to your
 # preferred module name). NEST requires you to extend the 'SLIModule' (see
 # mymodule.h and mymodule.cpp as an example) and provide a module header
@@ -41,9 +40,7 @@ set( MODULE_NAME ${SHORT_NAME} )
 # 2) Add all your sources here
 set( MODULE_SOURCES
     iaf_cond_ww_decomodule.h iaf_cond_ww_decomodule.cpp
-    
-      iaf_cond_ww_deco.cpp iaf_cond_ww_deco.h
-    
+    iaf_cond_ww_deco.cpp iaf_cond_ww_deco.h
     )
 
 # 3) We require a header name like this:
@@ -97,16 +94,29 @@ set( CMAKE_CXX_COMPILER "${NEST_COMPILER}" )
 
 project( ${MODULE_NAME} CXX )
 
+# Get the Python executable (for help generation).
+execute_process(
+    COMMAND ${NEST_CONFIG} --python-executable
+    RESULT_VARIABLE RES_VAR
+    OUTPUT_VARIABLE PYTHON_EXECUTABLE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the Python executable (for help generation).
+execute_process(
+    COMMAND ${NEST_CONFIG} --python-version
+    RESULT_VARIABLE RES_VAR
+    OUTPUT_VARIABLE PYTHON_VERSION_STRING
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 # Get the install prefix.
 execute_process(
     COMMAND ${NEST_CONFIG} --prefix
     RESULT_VARIABLE RES_VAR
-    OUTPUT_VARIABLE NEST_PREFIX
+    OUTPUT_VARIABLE NEST_INSTALL_PREFIX
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-
-# Use the `NEST_PREFIX` as `CMAKE_INSTALL_PREFIX`.
-set( CMAKE_INSTALL_PREFIX "${NEST_PREFIX}" CACHE STRING "Install path prefix, prepended onto install directories." FORCE )
 
 # Get the CXXFLAGS.
 execute_process(
@@ -139,7 +149,7 @@ if ( NEST_INCLUDES )
   endforeach ()
 endif ()
 
-# Get, if NEST is build_interface as a (mostly) static application. If yes, also only build_interface
+# Get, if NEST is build as a (mostly) static application. If yes, also only build
 # static library.
 execute_process(
     COMMAND ${NEST_CONFIG} --static-libraries
@@ -165,7 +175,7 @@ execute_process(
 execute_process(
     COMMAND ${NEST_CONFIG} --datadir
     RESULT_VARIABLE RES_VAR
-    OUTPUT_VARIABLE NEST_DATADIR
+    OUTPUT_VARIABLE NEST_INSTALL_DATADIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
@@ -173,7 +183,7 @@ execute_process(
 execute_process(
     COMMAND ${NEST_CONFIG} --docdir
     RESULT_VARIABLE RES_VAR
-    OUTPUT_VARIABLE NEST_DOCDIR
+    OUTPUT_VARIABLE NEST_INSTALL_DOCDIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
@@ -188,10 +198,13 @@ execute_process(
 # on OS X
 set( CMAKE_MACOSX_RPATH ON )
 
-# Install all stuff to NEST's install directories.
-set( CMAKE_INSTALL_LIBDIR ${NEST_LIBDIR}/nest CACHE STRING "object code libraries (lib/nest or lib64/nest or lib/<multiarch-tuple>/nest on Debian)" FORCE )
-set( CMAKE_INSTALL_DOCDIR ${NEST_DOCDIR} CACHE STRING "documentation root (DATAROOTDIR/doc/nest)" FORCE )
-set( CMAKE_INSTALL_DATADIR ${NEST_DATADIR} CACHE STRING "read-only architecture-independent data (DATAROOTDIR/nest)" FORCE )
+# Use the NEST_INSTALL_* variables as CMAKE_INSTALL_*, if not set explicitly.
+if ( "${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local" )
+  set( CMAKE_INSTALL_PREFIX "${NEST_INSTALL_PREFIX}" CACHE STRING "Install path prefix, prepended onto install directories." FORCE )
+  set( CMAKE_INSTALL_LIBDIR "${NEST_LIBDIR}/nest" CACHE STRING "object code libraries (lib/nest or lib64/nest or lib/<multiarch-tuple>/nest on Debian)" FORCE )
+  set( CMAKE_INSTALL_DOCDIR "${NEST_INSTALL_DOCDIR}" CACHE STRING "documentation root (DATAROOTDIR/doc/nest)" FORCE )
+  set( CMAKE_INSTALL_DATADIR "${NEST_INSTALL_DATADIR}" CACHE STRING "read-only architecture-independent data (DATAROOTDIR/nest)" FORCE )
+endif ()
 
 include( GNUInstallDirs )
 
@@ -200,7 +213,7 @@ set( CPACK_GENERATOR TGZ )
 set( CPACK_SOURCE_GENERATOR TGZ )
 
 set( CPACK_PACKAGE_DESCRIPTION_SUMMARY "NEST Module ${MODULE_NAME}" )
-set( CPACK_PACKAGE_VENDOR "NEST Initiative (http://www.nest-initiative.org/)" )
+set( CPACK_PACKAGE_VENDOR "NEST Initiative (https://www.nest-initiative.org/)" )
 
 set( CPACK_PACKAGE_VERSION_MAJOR ${MODULE_VERSION_MAJOR} )
 set( CPACK_PACKAGE_VERSION_MINOR ${MODULE_VERSION_MINOR} )
@@ -212,7 +225,7 @@ set( CPACK_SOURCE_IGNORE_FILES
     "\\\\.travis\\\\.yml"
 
     # if we have in source builds
-    "/build_interface/"
+    "/build/"
     "/_CPack_Packages/"
     "CMakeFiles/"
     "cmake_install\\\\.cmake"
@@ -265,35 +278,45 @@ set_target_properties( ${MODULE_NAME}_lib
 
 # Install library, header and sli init files.
 install( TARGETS ${MODULE_NAME}_lib DESTINATION ${CMAKE_INSTALL_LIBDIR} )
-install( FILES ${MODULE_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} )
+install( FILES ${MODULE_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${MODULE_NAME} )
 install( DIRECTORY sli DESTINATION ${CMAKE_INSTALL_DATADIR} )
 
-# Install help.
-if ( NOT CMAKE_CROSSCOMPILING )
-  add_custom_target( generate_help ALL )
-  # Extract help from all source files in the source code, put them in
-  # doc/help and generate a local help index in the build_interface directory containing
-  # links to the help files.
-  add_custom_command( TARGET generate_help POST_BUILD
-    COMMAND python -B generate_help.py "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}"
-    COMMAND python -B generate_helpindex.py "${PROJECT_BINARY_DIR}/doc"
-    WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}/${NEST_DATADIR}/help_generator"
-    COMMENT "Extracting help information; this may take a little while."
-    )
-  # Copy the local doc/help directory to the global installation
-  # directory for documentation.
-  install( DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/help"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}"
-    )
-  # Update the global help index to contain all help files that are
-  # located in the global installation directory for documentation.
-  install( CODE
-    "execute_process(
-      COMMAND python -B generate_helpindex.py \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}\"
-      WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}/${NEST_DATADIR}/help_generator\"
-    )"
-    )
+# Install help --- based on doc/CMakeLists.txt
+# Install only if Py >= 2.7.8 and NEST was installed with help
+if ( ( NOT CMAKE_CROSSCOMPILING )
+     AND PYTHON_EXECUTABLE
+     AND ( ${PYTHON_VERSION_STRING} VERSION_GREATER "2.7.7" )
+     AND ( IS_DIRECTORY ${NEST_INSTALL_PREFIX}/${NEST_INSTALL_DOCDIR}/help )
+   )
+
+    # Extract help from all source files in the source code, put
+    # them in doc/help and generate a local help index in the
+    # build directory containing links to the help files.
+    install( CODE
+      "execute_process(
+         COMMAND ${PYTHON_EXECUTABLE} -B generate_help.py \"${PROJECT_SOURCE_DIR}\" \"${PROJECT_BINARY_DIR}\"
+         WORKING_DIRECTORY \"${NEST_INSTALL_PREFIX}/${NEST_INSTALL_DATADIR}/help_generator\"
+         )"
+      )
+
+    # Copy the local doc/help directory to the global installation
+    # directory for documentation.
+    install( DIRECTORY "${PROJECT_BINARY_DIR}/doc/help"
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}"
+      OPTIONAL
+      )
+
+    # Update the global help index to include all help files in
+    # the global installation directory for documentation.
+    install( CODE
+      "execute_process(
+         COMMAND ${PYTHON_EXECUTABLE} -B generate_helpindex.py \"${NEST_INSTALL_PREFIX}/${NEST_INSTALL_DOCDIR}\"
+         WORKING_DIRECTORY \"${NEST_INSTALL_PREFIX}/${NEST_INSTALL_DATADIR}/help_generator\"
+         )"
+      )
+
 endif ()
+
 
 message( "" )
 message( "-------------------------------------------------------" )
@@ -309,7 +332,7 @@ message( "NEST libraries flags : ${NEST_LIBS}" )
 message( "" )
 message( "-------------------------------------------------------" )
 message( "" )
-message( "You can now build_interface and install '${MODULE_NAME}' using" )
+message( "You can now build and install '${MODULE_NAME}' using" )
 message( "  make" )
 message( "  make install" )
 message( "" )
@@ -319,6 +342,14 @@ message( "Help files will be installed to" )
 message( "  ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}" )
 message( "" )
 message( "The module can be loaded into NEST using" )
-message( "  (${MODULE_NAME}) Install       (in SLI)" )
-message( "  nest.Install(${MODULE_NAME})   (in PyNEST)" )
+message( "  (${MODULE_NAME}) Install        (in SLI)" )
+message( "  nest.Install('${MODULE_NAME}')  (in PyNEST)" )
 message( "" )
+
+if( NOT "${CMAKE_INSTALL_PREFIX}" EQUAL "${NEST_INSTALL_PREFIX}" )
+  message( "The module will be installed into a non-default location!" )
+  message( "Make sure to set the environment variables:" )
+  message( "  export NEST_MODULE_PATH=${CMAKE_INSTALL_FULL_LIBDIR}:$NEST_MODULE_PATH" )
+  message( "  export SLI_PATH=${CMAKE_INSTALL_FULL_DATADIR}/sli:$SLI_PATH" )
+  message( "" )
+endif ()
