@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    environment {
+        FULL_DOCKER_IMAGE_NAME = 'docker-repository.codemart.ro/tvb-nest'
+        VERSION_TAG = 'charite'
+    }
+
+    stages {
+        stage('Build docker image'){
+            steps {
+                script {
+                    def dockerfile = 'docker/common/Dockerfile'
+                    def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}", "-f ${dockerfile} .")
+                    dockerImage.push('${VERSION_TAG}')
+                }
+            }
+        }
+        stage ('Run tests in Python 3') {
+            agent {
+                docker {
+                    image '${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}'
+                }
+            }
+            steps {
+                sh '''#!/bin/bash
+                    source /home/docker/env/neurosci/bin/activate
+                    python setup.py develop
+                    pytest --cov-config .coveragerc --cov=tvb tests --cov-branch --cov-report xml:tvb_multiscale_coverage.xml --junitxml=tvb_multiscale_test_results.xml
+                    exit 0
+                '''
+                zip archive: true, dir: '', glob: '*.xml', zipFile: 'test_docker_results.zip'
+            }
+        }
+    }
+
+    post {
+        changed {
+            mail to: 'paula.popa@codemart.ro',
+            subject: "Jenkins Pipeline ${currentBuild.fullDisplayName} changed status",
+            body: """
+                Result: ${currentBuild.result}
+                Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'
+                Check console output at ${env.BUILD_URL}"""
+        }
+
+        success {
+            echo 'Build finished successfully'
+        }
+    }
+}
