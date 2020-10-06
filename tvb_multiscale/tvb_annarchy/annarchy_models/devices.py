@@ -18,12 +18,9 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
 
     model = "input_device"
 
-    params = {}
-
     def __init__(self, device,  label="", model="", annarchy_instance=None, **kwargs):
         if len(model) == 0:
             model = "input_device"
-        self.params = kwargs.pop("params", {})
         ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance, **kwargs)
         InputDevice.__init__(self, device, model=model, label=label)
 
@@ -115,6 +112,32 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
             if neuron is not None and neuron not in neurons:
                 neurons.append(neuron)
         return tuple(neurons)
+
+    @property
+    def neurons(self):
+        return self.get_neurons()
+
+    def get_number_of_neurons(self):
+        """Method to compute the total number of ANNarchyPopulation's neurons.
+            Returns:
+                int: number of neurons.
+        """
+        return InputDevice.get_number_of_neurons(self)
+
+    @property
+    def number_of_neurons(self):
+        """Method to get the number of all neurons connected from/to the device."""
+        if not self._number_of_neurons:
+            self._number_of_neurons = self.get_number_of_neurons()
+        return self._number_of_neurons
+
+    @property
+    def number_of_connected_neurons(self):
+        return self.number_of_neurons
+
+    @property
+    def number_of_devices_neurons(self):
+        return self._population.size
 
 
 """
