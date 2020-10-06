@@ -39,7 +39,7 @@ RUN mkdir $HOME/env; mkdir $HOME/packages
 ENV VENV=$HOME/env/neurosci
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
-    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio html; \
+    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba; \
     $VENV/bin/pip3 install --upgrade nose ipython
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
@@ -110,7 +110,7 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch nest3 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
@@ -142,6 +142,7 @@ RUN echo "source ${VENV}/bin/activate" >> .bashrc
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
+RUN cp -r $NEST_SRC/nestkernel/spatial $NEST_INSTALL_DIR/include/nest
 #ARG MYMODULES_LIST="izhikevich_hamker iaf_cond_ww_deco"
 #ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config

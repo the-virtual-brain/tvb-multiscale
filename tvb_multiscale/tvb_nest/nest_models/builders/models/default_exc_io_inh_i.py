@@ -42,7 +42,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
 
         self.nodes_conns = {}
 
-        self.spike_detector = {}
+        self.spike_recorder = {}
         self.multimeter = {}
 
         self.spike_stimulus = {}
@@ -163,16 +163,16 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         ]
         self.nodes_connections[0].update(self.nodes_conns)
 
-    def set_spike_detector(self):
+    def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
         connections["E"] = "E"
         connections["I"] = "I"
-        device = {"model": "spike_detector", "params": {},
+        device = {"model": "spike_recorder", "params": {},
                   "neurons_fun": lambda node_id, neurons_inds:
                                             tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
                   "connections": connections, "nodes": None}  # None means all here
-        device.update(self.spike_detector)
+        device.update(self.spike_recorder)
         return device
 
     def set_multimeter(self):
@@ -191,7 +191,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_detector(), self.set_multimeter()]
+        self.output_devices = [self.set_spike_recorder(), self.set_multimeter()]
 
     def set_spike_stimulus(self):
         connections = OrderedDict()
