@@ -36,6 +36,7 @@ class Device(object):
 
     device = None  # a device object, depending on its simulator implementation
     model = "device"  # the device model name
+    label = ""
     _number_of_connections = 0  # total number of device's connections
     _number_of_neurons = 0  # total number of neurons connected to this device
 
@@ -46,12 +47,16 @@ class Device(object):
 
     def __init__(self, device, *args, **kwargs):
         self.device = device   # a device object, depending on its simulator implementation
-        self.model = "device"  # the device model name
+        self.model = kwargs.pop("model", "device")  # the device model name
+        self.label = kwargs.pop("label", "")
         self._number_of_connections = self.number_of_connections
         self._number_of_neurons = self.number_of_neurons
 
     def __repr__(self):
-        return "%s - Model: %s\n%s" % (self.__class__.__name__, self.model, self.device.__str__())
+        output = "%s - Model: %s\n%s" % (self.__class__.__name__, self.model, self.device.__str__())
+        if len(self.label):
+            output = "%s: %s" % (self.label, output)
+        return output
 
     def __str__(self):
         return self.print_str()
@@ -661,7 +666,7 @@ class Multimeter(OutputDevice):
     model = "multimeter"
 
     def __init__(self, device, *args, **kwargs):
-        super(Multimeter, self).__init__(device)
+        super(Multimeter, self).__init__(device, *args, **kwargs)
         self.model = "multimeter"
 
     @property
@@ -836,7 +841,7 @@ class Voltmeter(Multimeter):
     model = "voltmeter"
 
     def __init__(self, device, *args, **kwargs):
-        super(Voltmeter, self).__init__(device)
+        super(Voltmeter, self).__init__(device, *args, **kwargs)
         self.model = "voltmeter"
 
     @property
@@ -929,7 +934,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
     model = "spike_multimeter"
 
     def __init__(self, device, *args, **kwargs):
-        super(SpikeMultimeter, self).__init__(device)
+        super(SpikeMultimeter, self).__init__(device, *args, **kwargs)
         self.model = "spike_multimeter"
 
     @property
