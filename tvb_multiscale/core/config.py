@@ -105,27 +105,6 @@ class Config(object):
         self.TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
 
-        # TODO: confirm if the following is correct:
-        # We assume that all quantities of
-        # current, membrane voltage or spike rate
-        # that are communicated between nodes
-        # are mean field quantities, i.e., averages,
-        # and therefore must have the same order of magnitude,
-        # at all of the region-population-single neuron levels
-        # So, the default behavior is for NO scaling
-        # among TVB regions (1 to 1 coupling) and
-        # between TVB and Spiking Network regions (1 to all, and all to 1) coupling,
-        # where average quantities will be computed in the respective interface functions
-        # However, within and among Spiking Network nodes' coupling
-        # will need such a weight scaling, so that a neuron receives spikes
-        # weighted by the possible spikes it could have received,
-        # according to its total number of connections (indegree)
-
-    def DEFAULT_SPIKING_SYNAPTIC_WEIGHT_SCALING(self, weight, number_of_connections=1):
-        if isinstance(weight, dict):
-            return weight
-        return weight  # / number_of_connections
-
 
 CONFIGURED = Config()
 
