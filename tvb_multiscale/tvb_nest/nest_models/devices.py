@@ -20,9 +20,9 @@ class NESTDevice(Device):
     _delay_attr = "delay"
     _receptor_attr = "receptor"
 
-    def __init__(self, device, nest_instance):
+    def __init__(self, device, nest_instance, *args, **kwargs):
         self.nest_instance = nest_instance
-        super(NESTDevice, self).__init__(device)
+        super(NESTDevice, self).__init__(device, *args, **kwargs)
         self.model = "device"
 
     def _assert_nest(self):
@@ -150,112 +150,112 @@ class NESTDevice(Device):
 class NESTInputDevice(NESTDevice, InputDevice):
     model = "input_device"
 
-    def __init__(self, device, nest_instance):
-        super(NESTInputDevice, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTInputDevice, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "input_device"
 
 
 class NESTPoissonGenerator(NESTInputDevice):
     model = "poisson_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTPoissonGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTPoissonGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "poisson_generator"
 
 
 class NESTSinusoidalPoissonGenerator(NESTInputDevice):
     model = "sinusoidal_poisson_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTSinusoidalPoissonGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTSinusoidalPoissonGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "sinusoidal_poisson_generator"
 
 
 class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
     model = "inhomogeneous_poisson_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTInhomogeneousPoissonGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTInhomogeneousPoissonGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "inhomogeneous_poisson_generator"
 
 
 class NESTMIPGenerator(NESTInputDevice):
     model = "mip_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTMIPGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTMIPGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "mip_generator"
 
 
 class NESTGammaSupGenerator(NESTInputDevice):
     model = "gamma_sup_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTGammaSupGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTGammaSupGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "gamma_sup_generator"
 
 
 class NESTDPPDSupGenerator(NESTInputDevice):
     model = "ppd_sup_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTDPPDSupGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTDPPDSupGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "ppd_sup_generator"
 
 
 class NESTSpikeGenerator(NESTInputDevice):
     model = "spike_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTSpikeGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTSpikeGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "spike_generator"
 
 
 class NESTPulsePacketGenerator(NESTInputDevice):
     model = "pulse_packet_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTPulsePacketGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTPulsePacketGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "pulse_packet_generator"
 
 
 class NESTDCGenerator(NESTInputDevice):
     model = "dc_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTDCGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTDCGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "dc_generator"
 
 
 class NESTStepCurrentGenerator(NESTInputDevice):
     model = "step_current_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTStepCurrentGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTStepCurrentGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "step_current_generator"
 
 
 class NESTACGenerator(NESTInputDevice):
     model = "ac_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTACGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTACGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "ac_generator"
 
 
 class NESTStepRateGenerator(NESTInputDevice):
     model = "step_rate_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTStepRateGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTStepRateGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "step_rate_generator"
 
 
 class NESTNoiseGenerator(NESTInputDevice):
     model = "noise_generator"
 
-    def __init__(self, device, nest_instance):
-        super(NESTNoiseGenerator, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTNoiseGenerator, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "noise_generator"
 
 
@@ -278,8 +278,8 @@ NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
 class NESTOutputDevice(NESTDevice, OutputDevice):
     model = "output_device"
 
-    def __init__(self, device, nest_instance):
-        super(NESTOutputDevice, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTOutputDevice, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "output_device"
 
     @property
@@ -307,8 +307,8 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
     model = "spike_detector"
 
-    def __init__(self, device, nest_instance):
-        super(NESTSpikeDetector, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTSpikeDetector, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "spike_detector"
 
     # Only SpikeDetector is the target of connections with neurons in NEST:
@@ -345,8 +345,8 @@ class NESTSpikeRecorder(NESTSpikeDetector, SpikeRecorder):
 class NESTMultimeter(NESTOutputDevice, Multimeter):
     model = "multimeter"
 
-    def __init__(self, device, nest_instance):
-        super(NESTMultimeter, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTMultimeter, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "multimeter"
 
     @property
@@ -358,8 +358,8 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
     model = "voltmeter"
 
-    def __init__(self, device, nest_instance):
-        super(NESTVoltmeter, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTVoltmeter, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "voltmeter"
         assert self.var in self.record_from
         
@@ -380,8 +380,8 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector, SpikeMultimeter):
     model = "spike_multimeter"
     spike_var = "spikes"
 
-    def __init__(self, device, nest_instance):
-        super(NESTSpikeMultimeter, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTSpikeMultimeter, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "spike_multimeter"
 
 
