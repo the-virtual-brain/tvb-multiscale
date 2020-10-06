@@ -7,7 +7,7 @@ from tvb_multiscale.tvb_nest.nest_models.region_node import NESTRegionNode
 from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import \
-    load_nest, compile_modules, create_conn_spec, create_device, connect_device
+    load_nest, compile_modules, get_populations_neurons, create_conn_spec, create_device, connect_device
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
 
@@ -52,6 +52,10 @@ class NESTModelBuilder(SpikingModelBuilder):
         self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_nodes_connection["delay"] = self.default_populations_connection["delay"]
         self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
+
+        self.default_devices_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_devices_connection["delay"] = self.default_min_delay
+        self.default_devices_connection["nodes"] = None
 
     def _configure_nest_kernel(self):
         self.nest_instance.ResetKernel()  # This will restart NEST!
@@ -158,39 +162,41 @@ class NESTModelBuilder(SpikingModelBuilder):
                               "\n" % (str(delay), self.spiking_dt))
         return delay
 
-    def _prepare_conn_spec(self, pop_src, pop_trg, conn_spec, syn_spec):
+    def _prepare_conn_spec(self, pop_src, pop_trg, conn_spec):
         return create_conn_spec(n_src=len(pop_src), n_trg=len(pop_trg),
                                 src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
 
-    def set_synapse(self, syn_model, weight, delay, receptor_type):
-        return {'synapse_model': syn_model,  'weight': weight,
-                'delay': delay, 'receptor_type': receptor_type}
+    def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
+        syn_spec = {'synapse_model': syn_model, 'weight': weight, 'delay': delay, 'receptor_type': receptor_type}
+        syn_spec.update(params)
+        return syn_spec
 
-    def _prepare_syn_spec(self, syn_spec, n_cons=None):
+    def _prepare_syn_spec(self, syn_spec):
         # Prepare the parameters of synapses:
         syn_spec["synapse_model"] = self._assert_synapse_model(syn_spec.get("synapse_model",
                                                                             syn_spec.get("model", "static_synapse")),
                                                                syn_spec["delay"])
         # Scale the synaptic weight with respect to the total number of connections between the two populations:
-        syn_spec["weight"] = self._synaptic_weight_scaling(syn_spec["weight"], n_cons)
         if syn_spec["synapse_model"] == "rate_connection_instantaneous":
             del syn_spec["delay"]  # For instantaneous rate connections
         else:
             syn_spec["delay"] = self._assert_delay(syn_spec["delay"])
         return syn_spec
 
-    def connect_two_populations(self, pop_src, pop_trg, conn_spec, syn_spec):
+    def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
         # Prepare the parameters of connectivity:
-        conn_spec, n_cons = self._prepare_conn_spec(pop_src, pop_trg, conn_spec, syn_spec)
+        conn_spec = self._prepare_conn_spec(pop_src, pop_trg, conn_spec)
         # Prepare the parameters of the synapse:
-        syn_spec = self._prepare_syn_spec(syn_spec, n_cons)
+        syn_spec = self._prepare_syn_spec(syn_spec)
         # We might create the same connection multiple times with different synaptic receptors...
         receptors = ensure_list(syn_spec["receptor_type"])
         for receptor in receptors:
             syn_spec["receptor_type"] = receptor
-            self.nest_instance.Connect(pop_src, pop_trg, conn_spec, syn_spec)
+            self.nest_instance.Connect(get_populations_neurons(pop_src, src_inds_fun),
+                                       get_populations_neurons(pop_trg, trg_inds_fun),
+                                       conn_spec, syn_spec)
 
-    def build_spiking_population(self, label, model, size, params, *args, **kwargs):
+    def build_spiking_population(self, label, model, size, params):
         return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
                               label, model, self.nest_instance)
 
