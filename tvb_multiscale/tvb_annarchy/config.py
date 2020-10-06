@@ -36,7 +36,7 @@ class Config(ConfigBase):
     # Available ANNARCHY output devices for the interface and their default properties
     ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"spike_monitor": {"record_from": "spike"},
                                           "spike_multimeter": {"record_from": "spike"},
-                                          "monitor": {"record_from": ["v", 'g_exc', 'g_inh']},}
+                                          "monitor": {"record_from": ["v", 'g_exc', 'g_inh']}}
 
     ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"spike_source_array": {},
                                          "poisson_population": {},

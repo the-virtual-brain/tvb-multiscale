@@ -257,3 +257,10 @@ class ANNarchyPopulation(SpikingPopulation):
         else:
             # for source and target connections
             return tuple(outputs)
+
+    def get_number_of_neurons(self):
+        """Method to compute the total number of ANNarchyPopulation's neurons.
+            Returns:
+                int: number of neurons.
+        """
+        return self._population.size
