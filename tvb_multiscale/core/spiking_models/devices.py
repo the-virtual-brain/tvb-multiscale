@@ -478,7 +478,7 @@ class SpikeDetector(OutputDevice):
             Returns:
              float: total number of spikes divided by the total number of connected neurons
         """
-        n_neurons = self.get_number_of_connections()
+        n_neurons = self.get_number_of_neurons()
         if n_neurons > 0:
             return len(self.get_spikes_times(events_inds=events_inds, **filter_kwargs)) / n_neurons
         else:
@@ -645,7 +645,7 @@ class SpikeDetector(OutputDevice):
         """
         if name is None:
             name = self.model + " - Mean spike rate accross time"
-        n_neurons = self.get_number_of_connections()
+        n_neurons = self.get_number_of_neurons()
         if n_neurons > 0:
             return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
                                                         spikes_kernel=spikes_kernel, mode="total",
@@ -1054,7 +1054,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
            Returns:
             float: mean spikes' activity
         """
-        n_neurons = self.get_number_of_connections()
+        n_neurons = self.get_number_of_neurons()
         if n_neurons > 0:
             spikes_sum = ensure_list(self.get_total_spikes_activity(events_inds=events_inds, **filter_kwargs))
             for ii in range(len(spikes_sum)):
@@ -1243,7 +1243,7 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
         """
         if name is None:
             name = self.model + " - Mean spike activity accross time"
-        n_neurons = self.get_number_of_connections()
+        n_neurons = self.get_number_of_neurons()
         if n_neurons > 0:
             return self.compute_spikes_activity_across_time(time, spike_kernel_width,
                                                             spikes_kernel=spikes_kernel, mode="total",
@@ -1493,8 +1493,8 @@ class DeviceSet(pd.Series):
         if device_set:
             super(DeviceSet, self).update(device_set)
         self.update_model()
-        self._number_of_connections = self.number_of_connections
-        self._number_of_neurons = self.number_of_neurons
+        self._number_of_connections = self.get_number_of_connections()
+        self._number_of_neurons = self.get_number_of_neurons()
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DevoceSet.
