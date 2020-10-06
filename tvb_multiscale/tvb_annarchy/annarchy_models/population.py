@@ -15,8 +15,8 @@ class ANNarchyPopulation(SpikingPopulation):
     _population_ind = None
     _projections_pre = OrderedDict()   # outgoing projections
     _projections_post = OrderedDict()  # incoming projections
-    _weight_attr = "weight"
-    _delay_attr = "delay"
+    _weight_attr = "weights"
+    _delay_attr = "delays"
     _receptor_attr = "target"
     _default_connection_attrs = ["pre", "post", _weight_attr, _delay_attr, _receptor_attr]
 

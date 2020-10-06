@@ -41,7 +41,7 @@ class ANNarchyNetwork(SpikingNetwork):
 
     def configure(self, *args, **kwargs):
         # Run last configurations before simulation. Maybe compile()?
-        pass
+        self.annarchy_instance.compile(*args, **kwargs)
 
     def Run(self, *args, **kwargs):
         measure_time = kwargs.pop("measure_time", True)

@@ -2,16 +2,16 @@
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 
 
-class ANNArchyRegionNode(SpikingRegionNode):
+class ANNarchyRegionNode(SpikingRegionNode):
 
     annarchy_instance = None
-    _weight_attr = "weight"
-    _delay_attr = "delay"
+    _weight_attr = "weights"
+    _delay_attr = "delays"
     _receptor_attr = "target"
 
     def __init__(self, label="", input_nodes=None, annarchy_instance=None, **kwargs):
         self.annarchy_instance = annarchy_instance
-        super(ANNArchyRegionNode, self).__init__(label, input_nodes, **kwargs)
+        super(ANNarchyRegionNode, self).__init__(label, input_nodes, **kwargs)
 
     @property
     def spiking_simulator_module(self):
