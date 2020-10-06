@@ -8,7 +8,7 @@ from six import string_types
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple, ensure_list
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 
 
@@ -17,12 +17,6 @@ LOG = initialize_logger(__name__)
 
 def log_path(name, logger=LOG):
     logger.info("%s: %s" % (name, os.environ.get(name, "")))
-
-
-def get_populations_neurons(population, inds_fun=None):
-    if inds_fun is None:
-        return population._population
-    return inds_fun(population._population)
 
 
 def _get_device_props_with_correct_shape(device, shape):
@@ -82,7 +76,7 @@ def build_and_connect_device(device, create_device_fun, connect_device_fun, node
                              config=CONFIGURED, **kwargs):
     device = build_device(device, create_device_fun, config=config, **kwargs)
     for pop in ensure_list(populations):
-        device = connect_device_fun(device, get_populations_neurons(node[pop], inds_fun),
+        device = connect_device_fun(device, node[pop], inds_fun,
                                     weight, delay, receptor_type, config=config, **kwargs)
     device._number_of_connections = device.number_of_connections
     return device
@@ -142,8 +136,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
             for i_node, node in enumerate(device_target_nodes):
                 for pop in populations:
                     devices[pop_var][dev_name] = \
-                       connect_device_fun(devices[pop_var][dev_name],
-                                          get_populations_neurons(node[pop], neurons_funs[i_dev, i_node]),
+                       connect_device_fun(devices[pop_var][dev_name], node[pop], neurons_funs[i_dev, i_node],
                                           weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
                                           config=config, **kwargs)
         devices[pop_var].update()
