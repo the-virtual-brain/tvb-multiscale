@@ -76,6 +76,12 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             logger.warn("Something seems to have gone wrong with compiling %s!" % module)
 
 
+def get_populations_neurons(population, inds_fun=None):
+    if inds_fun is None:
+        return population._population
+    return inds_fun(population._population)
+
+
 def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
     # This function returns a conn_spec dictionary
     # and the expected/accurate number of total connections
@@ -170,20 +176,21 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
+    label = default_params.pop("label", "")
     try:
         nest_device_id = nest_instance.Create(device_model, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
         nest_device_id = nest_instance.Create(device_model, params=default_params)
-    nest_device = devices_dict[device_name](nest_device_id, nest_instance)
+    nest_device = devices_dict[device_name](nest_device_id, nest_instance, label=label)
     if return_nest:
         return nest_device, nest_instance
     else:
         return nest_device
 
 
-def connect_device(nest_device, node_collection, weight=1.0, delay=0.0, receptor_type=0, config=CONFIGURED,
-                   nest_instance=None):
+def connect_device(nest_device, node_collection, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
+                   nest_instance=None, config=CONFIGURED):
     if receptor_type is None:
         receptor_type = 0
     if nest_instance is None:
@@ -202,9 +209,10 @@ def connect_device(nest_device, node_collection, weight=1.0, delay=0.0, receptor
             warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
                     "Setting minimum delay equal to resolution!" % (delay, resolution))
     syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
-    if nest_device.model in ["spike_detector", "spike_recorder"]:
+    neurons = get_populations_neurons(node_collection, neurons_inds_fun)
+    if nest_device.model == "spike_detector":
         #                     source  ->  target
-        nest_instance.Connect(node_collection, nest_device.device, syn_spec=syn_spec)
+        nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)
     else:
-        nest_instance.Connect(nest_device.device, node_collection, syn_spec=syn_spec)
+        nest_instance.Connect(nest_device.device, neurons, syn_spec=syn_spec)
     return nest_device
