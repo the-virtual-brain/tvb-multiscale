@@ -150,17 +150,14 @@ def device_to_dev_model(device):
         return device
 
 
-def create_device(device_model, device_name=None, params=None, config=CONFIGURED, nest_instance=None):
+def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None):
     if nest_instance is None:
         nest_instance = load_nest(config=config)
         return_nest = True
     else:
         return_nest = False
-    if not isinstance(device_name, string_types):
-        device_name = device_model
-    else:
-        # ...assert the type...
-        device_model = device_to_dev_model(device_name)
+    # Assert the model name...
+    device_model = device_to_dev_model(device_model)
     if device_model in NESTInputDeviceDict.keys():
         devices_dict = NESTInputDeviceDict
         default_params_dict = config.NEST_INPUT_DEVICES_PARAMS_DEF
@@ -172,7 +169,7 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
                           "nor of the output ones: %s!" %
                           (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
-    default_params = dict(default_params_dict.get(device_name, {}))
+    default_params = dict(default_params_dict.get(device_model, {}))
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
@@ -182,14 +179,14 @@ def create_device(device_model, device_name=None, params=None, config=CONFIGURED
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
         nest_device_id = nest_instance.Create(device_model, params=default_params)
-    nest_device = devices_dict[device_name](nest_device_id, nest_instance, label=label)
+    nest_device = devices_dict[device_model](nest_device_id, nest_instance, label=label)
     if return_nest:
         return nest_device, nest_instance
     else:
         return nest_device
 
 
-def connect_device(nest_device, node_collection, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
+def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
                    nest_instance=None, config=CONFIGURED):
     if receptor_type is None:
         receptor_type = 0
@@ -209,7 +206,7 @@ def connect_device(nest_device, node_collection, neurons_inds_fun, weight=1.0, d
             warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
                     "Setting minimum delay equal to resolution!" % (delay, resolution))
     syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
-    neurons = get_populations_neurons(node_collection, neurons_inds_fun)
+    neurons = get_populations_neurons(population, neurons_inds_fun)
     if nest_device.model == "spike_detector":
         #                     source  ->  target
         nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)

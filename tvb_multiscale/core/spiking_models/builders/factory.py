@@ -57,13 +57,13 @@ def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
     if isinstance(device, string_types) or isinstance(device, dict):
         if isinstance(device, string_types):
             try:
-                return create_device_fun(None, device, config=config, **kwargs)
-            except:
+                return create_device_fun(device, config=config, **kwargs)
+            except Exception as e:
                 raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
         else:
             try:
-                return create_device_fun(device.get("model", None), device,
-                                         params=device.get("params", None), config=config, **kwargs)
+                device_model = device.get("model", None)
+                return create_device_fun(device_model, params=device.get("params", None), config=config, **kwargs)
             except Exception as e:
                 raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
     else:
