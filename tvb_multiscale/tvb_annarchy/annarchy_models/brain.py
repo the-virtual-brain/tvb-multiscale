@@ -6,8 +6,8 @@ from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 class ANNarchyBrain(SpikingBrain):
 
     annarchy_instance = None
-    _weight_attr = "weight"
-    _delay_attr = "delay"
+    _weight_attr = "weights"
+    _delay_attr = "delays"
     _receptor_attr = "target"
 
     def __init__(self, input_brain=None, annarchy_instance=None, **kwargs):
