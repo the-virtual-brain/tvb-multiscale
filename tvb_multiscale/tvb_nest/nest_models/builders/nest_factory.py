@@ -207,7 +207,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
                     "Setting minimum delay equal to resolution!" % (delay, resolution))
     syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
     neurons = get_populations_neurons(population, neurons_inds_fun)
-    if nest_device.model == "spike_detector":
+    if nest_device.model == "spike_recorder":
         #                     source  ->  target
         nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)
     else:

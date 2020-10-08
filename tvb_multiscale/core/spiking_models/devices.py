@@ -1502,8 +1502,8 @@ class DeviceSet(pd.Series):
         if device_set:
             super(DeviceSet, self).update(device_set)
         self.update_model()
-        self._number_of_connections = self.get_number_of_connections()
-        self._number_of_neurons = self.get_number_of_neurons()
+        self._number_of_connections = self.do_for_all_devices("get_number_of_connections")
+        self._number_of_neurons = self.do_for_all_devices("get_number_of_neurons")
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DevoceSet.

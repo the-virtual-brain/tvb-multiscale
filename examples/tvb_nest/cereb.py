@@ -54,8 +54,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder = \
         nest_model_builder(simulator, nest_nodes_ids,
                            os.path.join(os.getcwd().split("tvb_nest")[0],
-                                        "tvb_nest", "data", "cerebellar_cortex_scaffold_dcn.hdf5"),
-                          config=config, set_defaults=True)
+                                        "tvb_nest", "../data", "cerebellar_cortex_scaffold_dcn.hdf5"),
+                           config=config, set_defaults=True)
     nest_model_builder.modules_to_install = ["cereb"]
     if tvb_nest_builder is not None:
         nest_model_builder.STIMULUS = False
