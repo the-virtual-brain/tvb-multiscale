@@ -388,6 +388,14 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         return self.get_neurons("source")
 
 
+class NESTSpikeRecorder(NESTSpikeDetector, SpikeRecorder):
+    model = "spike_recorder"
+
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTSpikeRecorder, self).__init__(device, nest_instance, *args, **kwargs)
+        self.model = "spike_recorder"
+
+
 class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     """NESTMultimeter class to wrap around a NEST multimeter device"""
