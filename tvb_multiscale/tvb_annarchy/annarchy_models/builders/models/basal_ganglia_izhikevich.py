@@ -26,22 +26,23 @@ class TVBWeightFun(object):
 
 class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, annarchy_instance, config)
         self.default_population["model"] = Hybrid_neuron
 
         # Common order of neurons' number per population:
         self.population_order = 200
 
         self.params_common = {"tau_syn": 1.0, "tau_ampa": 10.0, "tau_gaba": 10.0,
-                              "E_ampa": 0.0, "E_gaba": -90.0, "V_th": 30.0, "c": -65.0,
+                              "E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -65.0,
                               "C": 1.0, "I": 0.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04}
         self._paramsI = deepcopy(self.params_common)
         self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
         self._paramsE = deepcopy(self.params_common)
         self.paramsStr = deepcopy(self.params_common)
-        self.paramsStr.update({"Vr": -80.0, "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
+        self.paramsStr.update({"Vr": -80.0,  "v_th": 40.0,
+                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
                                "n0": 61.65119, "n1":  2.594639, "n2": 0.022799, "C": 50.0})
 
         self.Igpe_nodes_ids = [0, 1]
@@ -85,7 +86,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                 self.populations_connections.append(
                     {"source": pop["label"], "target": pop["label"],
                      "synapse_model": synapse_model, "conn_spec": conn_spec,
-                     "weight": -1.0, "delay": self.default_min_delay,  # 0.001
+                     "weight": 1.0, "delay": self.default_min_delay,  # 0.001
                      "receptor_type": "inh", "nodes": pop["nodes"]})
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
@@ -116,9 +117,9 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Creating  devices to be able to observe NEST activity:
         self.output_devices = []
-        #          label <- target population
         for pop in self.populations:
             connections = OrderedDict({})
+            #                               label <- target population
             connections[pop["label"] + "_spikes"] = pop["label"]
             self.output_devices.append(
                 {"model": "spike_monitor", "params": {},
@@ -137,12 +138,12 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Create a spike stimulus input device
         self.input_devices = [
-            {"model": "poisson_population",
+            {"model": "PoissonPopulation",
              "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
              "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": 1},
-            {"model": "poisson_population",
+            {"model": "PoissonPopulation",
              "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
@@ -152,7 +153,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
              "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
-            # {"model": "ac_current_injector",
+            # {"model": "ACCurrentInjector",
             #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0},
             #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
             #  "nodes": self.Estn_nodes_ids,  # None means apply to all
