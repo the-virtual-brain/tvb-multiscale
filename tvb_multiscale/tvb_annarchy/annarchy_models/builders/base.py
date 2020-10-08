@@ -92,7 +92,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                                 annarchy_instance=self.annarchy_instance, **conn_spec)
 
     def build_spiking_population(self, label, model, size, params):
-        geometry = params.pop("geometry", int(np.round(size)))
+        geometry = params.pop("geometry", size)
         model, model_name = self._assert_model(model)
         annarchy_population = self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label)
         annarchy_population = set_model_parameters(annarchy_population, params)

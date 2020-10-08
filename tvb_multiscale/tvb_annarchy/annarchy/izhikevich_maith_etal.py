@@ -25,6 +25,7 @@ parameters="""
     baseline = 0.0
     tau_noise=200.
     C = 1.0
+    v_th = 30.0
 """,
 equations="""
     dg_ampa/dt = -g_ampa/tau_ampa : init = 0
@@ -35,7 +36,7 @@ equations="""
     tau_syn*dsyn/dt = -syn 
 """,
 spike = """
-    v>=30
+    v>=v_th
 """,
 reset = """
     v = c
@@ -65,6 +66,7 @@ parameters="""
     SteadyStateNoise = 0.0
     tau_noise=200.
     baseline=0.0
+    v_th = 40.0
 """,
 equations="""
     dg_ampa/dt = -g_ampa/tau_ampa : init = 0
@@ -75,7 +77,7 @@ equations="""
     tau_syn*dsyn/dt = -syn 
 """,
 spike = """
-    v>=40
+    v>=v_th
 """,
 reset = """
     v = c

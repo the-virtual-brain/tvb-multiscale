@@ -25,7 +25,7 @@ equations="""
     r = amplitude * sin(omega*t + phase) + offset
 """,
 parameters="""
-    frequency = 0.0
+    omega = 0.0
     amplitude = 1.0
     phase = 0.0
     offset = 0.0
