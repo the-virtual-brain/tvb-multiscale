@@ -163,8 +163,9 @@ class NESTModelBuilder(SpikingModelBuilder):
         return delay
 
     def _prepare_conn_spec(self, pop_src, pop_trg, conn_spec):
-        return create_conn_spec(n_src=len(pop_src), n_trg=len(pop_trg),
-                                src_is_trg=(pop_src == pop_trg), config=self.config, **conn_spec)
+        return create_conn_spec(n_src=pop_src.number_of_neurons, n_trg=pop_trg.number_of_neurons,
+                                src_is_trg=(pop_src.population == pop_trg.population),
+                                config=self.config, **conn_spec)[0]
 
     def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
         syn_spec = {'synapse_model': syn_model, 'weight': weight, 'delay': delay, 'receptor_type': receptor_type}
