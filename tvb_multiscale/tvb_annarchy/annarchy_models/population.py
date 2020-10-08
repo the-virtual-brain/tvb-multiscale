@@ -28,7 +28,7 @@ class ANNarchyPopulation(SpikingPopulation):
         else:
             label = self._population.name
         if annarchy_instance is not None:
-            self._population = self._get_population_ind()
+            self._population_ind = self._get_population_ind()
         super(ANNarchyPopulation, self).__init__(label, model, **kwargs)
 
     @property
