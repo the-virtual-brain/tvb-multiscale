@@ -87,7 +87,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                     {"source": pop["label"], "target": pop["label"],
                      "synapse_model": synapse_model, "conn_spec": conn_spec,
                      "weight": 1.0, "delay": self.default_min_delay,  # 0.001
-                     "receptor_type": "inh", "nodes": pop["nodes"]})
+                     "receptor_type": "gaba", "nodes": pop["nodes"]})
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
@@ -104,9 +104,9 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                 [[6, 7],       [6, 7],       [0, 1],       [2, 3],      [0, 1],       [8, 9],              [4, 5]],  # source nodes
                 [[2, 3],       [0, 1],       [2, 3],       [8, 9],      [4, 5],       [6, 7],              [0, 1, 2, 3]]):  # target nodes
             if src_pop[0] == "I":
-                target = "inh"
+                target = "gaba"
             else:
-                target = "exc"
+                target = "ampa"
             self.nodes_connections.append(
                     {"source": src_pop, "target": trg_pop,
                      "synapse_model": self.default_nodes_connection["synapse_model"],
@@ -127,7 +127,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Labels have to be different for every connection to every distinct population
         params = {"period": 1.0,
-                  'record_from': ["v", "u", "syn", "g_baseline", "g_ampa", "g_gaba"]}
+                  'record_from': ["v", "u", "syn", "g_base", "g_ampa", "g_gaba"]}
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
@@ -142,17 +142,17 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
              "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
-             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": 1},
+             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
-             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": 1},
+             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "poisson_population",
              "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
+             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             # {"model": "ACCurrentInjector",
             #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0},
             #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
