@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ANNarchy import *
-from ANNarchy.extensions.bold import *  # importing NormProjection, ACCProjection and BoldMonitor
+from ANNarchy.extensions.bold import NormProjection, AccProjection, BoldMonitor
 
 
 ####################################################   NEURON MODELS   #################################################

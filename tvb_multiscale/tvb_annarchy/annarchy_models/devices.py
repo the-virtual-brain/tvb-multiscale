@@ -18,9 +18,12 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
 
     model = "input_device"
 
+    params = {}
+
     def __init__(self, device,  label="", model="", annarchy_instance=None, **kwargs):
         if len(model) == 0:
             model = "input_device"
+        self.params = kwargs.get("params", {})
         ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance, **kwargs)
         InputDevice.__init__(self, device, model=model, label=label)
 

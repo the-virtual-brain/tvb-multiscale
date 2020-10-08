@@ -24,7 +24,7 @@ class Config(ConfigBase):
     DEFAULT_MODEL = "izhikevich"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"model": "DefaultSpikingSynapse", "params": {},
+    DEFAULT_CONNECTION = {"synapse_model": "DefaultSpikingSynapse", "params": {},
                           "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
                           "source_inds": None, "target_inds": None,
                           "conn_spec": {'method': "all_to_all", "allow_self_connections": True,
