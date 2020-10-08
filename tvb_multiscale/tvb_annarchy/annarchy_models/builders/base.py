@@ -78,9 +78,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     def _prepare_syn_spec(self, syn_spec):
         # Prepare the parameters of synapses:
-        syn_spec["synapse_model"] = set_model_parameters(
-                                        self._assert_model(syn_spec["synapse_model"])[0],
-                                        syn_spec.pop("params", {}))
+        syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])[0]
         return syn_spec
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
@@ -88,7 +86,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         syn_spec = self._prepare_syn_spec(syn_spec)
         # Prepare the parameters of the synapse:
         connect_two_populations(pop_src, pop_trg, syn_spec["weights"], syn_spec["delays"], syn_spec["target"],
-                                source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
+                                params=syn_spec["params"], source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
                                 synapse=syn_spec["synapse_model"], method=conn_spec.pop("method"),
                                 name="%s -> %s" % (pop_src.name, pop_trg.name),
                                 annarchy_instance=self.annarchy_instance, **conn_spec)
@@ -96,9 +94,9 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     def build_spiking_population(self, label, model, size, params):
         geometry = params.pop("geometry", int(np.round(size)))
         model, model_name = self._assert_model(model)
-        model = set_model_parameters(model, params)
-        return ANNarchyPopulation(self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label),
-                                  label, model_name, self.annarchy_instance)
+        annarchy_population = self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label)
+        annarchy_population = set_model_parameters(annarchy_population, params)
+        return ANNarchyPopulation(annarchy_population, label, model_name, self.annarchy_instance)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         return ANNarchyRegionNode(label, input_node, self.annarchy_instance)
