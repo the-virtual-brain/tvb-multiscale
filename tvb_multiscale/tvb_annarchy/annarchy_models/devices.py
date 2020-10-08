@@ -218,7 +218,7 @@ class ANNarchyTimedArray(InputDevice):
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
-                                                annarchy_instance, **kwargs)
+                                                 annarchy_instance, **kwargs)
 
 
 class ANNarchyPoissonNeuron(ANNarchyInputDevice):
@@ -226,7 +226,7 @@ class ANNarchyPoissonNeuron(ANNarchyInputDevice):
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
         super(ANNarchyPoissonNeuron, self).__init__(device,  label, "Poisson_neuron",
-                                                        annarchy_instance, **kwargs)
+                                                    annarchy_instance, **kwargs)
 
 
 ANNarchyInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
