@@ -7,7 +7,7 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.region_node import ANNarchyRegi
 from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
-    load_annarchy, assert_model, connect_two_populations, create_device, connect_device
+    load_annarchy, assert_model, set_model_parameters, connect_two_populations, create_device, connect_device
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
 
@@ -78,10 +78,9 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     def _prepare_syn_spec(self, syn_spec):
         # Prepare the parameters of synapses:
-        syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])[0]
-        # Set possible parameters of the synapse model:
-        for key, val in syn_spec["params"].items():
-            setattr(syn_spec["synapse_model"], key, val)
+        syn_spec["synapse_model"] = set_model_parameters(
+                                        self._assert_model(syn_spec["synapse_model"])[0],
+                                        syn_spec.pop("params", {}))
         return syn_spec
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
@@ -95,10 +94,9 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                                 annarchy_instance=self.annarchy_instance, **conn_spec)
 
     def build_spiking_population(self, label, model, size, params):
-        model, model_name = self._assert_model(model)
-        for key, val in params.items():
-            setattr(model, key, val)
         geometry = params.pop("geometry", int(np.round(size)))
+        model, model_name = self._assert_model(model)
+        model = set_model_parameters(model, params)
         return ANNarchyPopulation(self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label),
                                   label, model_name, self.annarchy_instance)
 
@@ -107,7 +105,8 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     def build_and_connect_devices(self, devices):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         self._spiking_brain, self.config, annarchy_instance=self.annarchy_instance)
+                                         self._spiking_brain, self.config, annarchy_instance=self.annarchy_instance,
+                                         import_path=self._models_import_path)
 
     def build(self):
         return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,

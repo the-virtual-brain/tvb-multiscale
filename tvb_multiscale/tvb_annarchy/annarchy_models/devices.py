@@ -207,12 +207,24 @@ class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
                                                         annarchy_instance, **kwargs)
 
 
+class ANNarchyTimeArray(InputDevice):
+    """
+        Stimulate with rates' values.
+    """
+    model = "timed_array"
+
+    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyTimeArray, self).__init__(device,  label, "timed_array",
+                                                annarchy_instance, **kwargs)
+
+
 ANNarchyInputDeviceDict = {"poisson_population": ANNarchyPoissonPopulation,
                            "homogeneous_correlated_spike_trains": ANNarchyHomogeneousCorrelatedSpikeTrains,
                            "spike_source_array": ANNarchySpikeSourceArray,
                            "current_injector": ANNarchyCurrentInjector,
                            "dc_current_injector": ANNarchyDCCurrentInjector,
-                           "ac_current_injector": ANNarchyACCurrentInjector}
+                           "ac_current_injector": ANNarchyACCurrentInjector,
+                           "timed_array": ANNarchyTimeArray}
 
 
 class ANNarchyOutputDeviceConnection(object):
