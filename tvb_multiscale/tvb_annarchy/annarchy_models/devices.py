@@ -18,9 +18,12 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
 
     model = "input_device"
 
+    params = {}
+
     def __init__(self, device,  label="", model="", annarchy_instance=None, **kwargs):
         if len(model) == 0:
             model = "input_device"
+        self.params = kwargs.get("params", {})
         ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance, **kwargs)
         InputDevice.__init__(self, device, model=model, label=label)
 
@@ -150,27 +153,27 @@ class ANNarchySpikeSourceArray(ANNarchyInputDevice, InputDevice):
     """
     Feed pre-defined spiking patterns into a target ANNarchyPopulation.
     """
-    model = "spike_source_array"
+    model = "SpikeSourceArray"
 
     def __init__(self, device, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchySpikeSourceArray, self).__init__(device, label, "spike_source_array",
+        super(ANNarchySpikeSourceArray, self).__init__(device, label, "SpikeSourceArray",
                                                        annarchy_instance, **kwargs)
 
 
 class ANNarchyPoissonPopulation(ANNarchyInputDevice):
-    model = "poisson_population"
+    model = "PoissonPopulation"
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyPoissonPopulation, self).__init__(device,  label, "poisson_population",
+        super(ANNarchyPoissonPopulation, self).__init__(device,  label, "PoissonPopulation",
                                                         annarchy_instance, **kwargs)
 
 
 class ANNarchyHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
-    model = "homogeneous_correlated_spike_trains"
+    model = "HomogeneousCorrelatedSpikeTrains"
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
         super(ANNarchyHomogeneousCorrelatedSpikeTrains, self).__init__(device,  label,
-                                                                       "homogeneous_correlated_spike_trains",
+                                                                       "HomogeneousCorrelatedSpikeTrains",
                                                                        annarchy_instance, **kwargs)
 
 
@@ -178,10 +181,10 @@ class ANNarchyCurrentInjector(InputDevice):
     """
     Inject a time-varying current into a spiking population.
     """
-    model = "current_injector"
+    model = "CurrentInjector"
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyCurrentInjector, self).__init__(device,  label, "current_injector",
+        super(ANNarchyCurrentInjector, self).__init__(device,  label, "CurrentInjector",
                                                       annarchy_instance, **kwargs)
 
 
@@ -189,10 +192,10 @@ class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
     """
     Inject a time-varying current into a spiking population.
     """
-    model = "dc_current_injector"
+    model = "DCCurrentInjector"
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "dc_current_injector",
+        super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "DCCurrentInjector",
                                                         annarchy_instance, **kwargs)
 
 
@@ -200,19 +203,42 @@ class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
     """
     Inject a time-varying current into a spiking population.
     """
-    model = "ac_current_injector"
+    model = "ACCurrentInjector"
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ac_current_injector",
+        super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ACCurrentInjector",
                                                         annarchy_instance, **kwargs)
 
 
-ANNarchyInputDeviceDict = {"poisson_population": ANNarchyPoissonPopulation,
-                           "homogeneous_correlated_spike_trains": ANNarchyHomogeneousCorrelatedSpikeTrains,
-                           "spike_source_array": ANNarchySpikeSourceArray,
-                           "current_injector": ANNarchyCurrentInjector,
-                           "dc_current_injector": ANNarchyDCCurrentInjector,
-                           "ac_current_injector": ANNarchyACCurrentInjector}
+class ANNarchyTimedArray(InputDevice):
+    """
+        Stimulate with rates' values.
+    """
+    model = "TimedArray"
+
+    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
+                                                annarchy_instance, **kwargs)
+
+
+class ANNarchyPoissonNeuron(ANNarchyInputDevice):
+    model = "Poisson_neuron"
+
+    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyPoissonNeuron, self).__init__(device,  label, "Poisson_neuron",
+                                                        annarchy_instance, **kwargs)
+
+
+ANNarchyInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
+                           "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
+                           "SpikeSourceArray": ANNarchySpikeSourceArray,
+                           "CurrentInjector": ANNarchyCurrentInjector,
+                           "DCCurrentInjector": ANNarchyDCCurrentInjector,
+                           "ACCurrentInjector": ANNarchyACCurrentInjector,
+                           "TimedArray": ANNarchyTimedArray,
+                           # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
+                           "Poisson_neuron": ANNarchyPoissonNeuron
+                           }
 
 
 class ANNarchyOutputDeviceConnection(object):
