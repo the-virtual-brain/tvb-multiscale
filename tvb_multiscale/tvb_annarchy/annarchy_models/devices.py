@@ -5,9 +5,10 @@ from xarray import DataArray, combine_by_coords
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.devices import \
-    InputDevice, OutputDevice, SpikeDetector, Multimeter, Voltmeter, SpikeMultimeter
-from tvb_annarchy.annarchy_models.population import ANNarchyPopulation
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_list
+    InputDevice, OutputDevice, SpikeDetector, Multimeter, SpikeMultimeter
+from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
+
+from tvb.contrib.scripts.utils.data_structures_utils import flatten_list
 
 
 # These classes wrap around ANNarchy commands.
@@ -218,7 +219,7 @@ class ANNarchyTimedArray(InputDevice):
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
-                                                annarchy_instance, **kwargs)
+                                                 annarchy_instance, **kwargs)
 
 
 class ANNarchyPoissonNeuron(ANNarchyInputDevice):
@@ -226,7 +227,7 @@ class ANNarchyPoissonNeuron(ANNarchyInputDevice):
 
     def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
         super(ANNarchyPoissonNeuron, self).__init__(device,  label, "Poisson_neuron",
-                                                        annarchy_instance, **kwargs)
+                                                    annarchy_instance, **kwargs)
 
 
 ANNarchyInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,

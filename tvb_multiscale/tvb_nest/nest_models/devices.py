@@ -341,8 +341,8 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
 class NESTSpikeRecorder(NESTSpikeDetector, SpikeRecorder):
     model = "spike_recorder"
 
-    def __init__(self, device, nest_instance):
-        super(NESTSpikeRecorder, self).__init__(device, nest_instance)
+    def __init__(self, device, nest_instance, *args, **kwargs):
+        super(NESTSpikeRecorder, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "spike_recorder"
 
 

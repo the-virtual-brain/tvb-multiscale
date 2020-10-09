@@ -388,7 +388,7 @@ class SpikingModelBuilder(object):
                 neurons_fun = property_to_fun(neurons_fun)
             # Defaults in arrays:
             shape = (len(spiking_nodes),)
-            receptor_type = np.tile(self.default_devices_connection["receptor_type"])
+            receptor_type = np.tile(self.default_devices_connection["receptor_type"], shape)
             # weights and delays might be dictionaries for distributions:
             weights = np.ones(shape).astype("O")
             delays = np.zeros(shape).astype("O")
@@ -448,7 +448,7 @@ class SpikingModelBuilder(object):
                                             conn['weight'](node_index),
                                             self._assert_delay(conn['delay'](node_index)),
                                             conn['receptor_type'](node_index),
-                                            conn["params"]
+                                            conn["params"](node_index)
                                             )
                 syn_spec.update()
                 for pop_src in ensure_list(conn["source"]):
