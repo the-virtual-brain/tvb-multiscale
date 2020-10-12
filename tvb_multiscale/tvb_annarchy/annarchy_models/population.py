@@ -20,7 +20,7 @@ class ANNarchyPopulation(SpikingPopulation):
     _population = None
     _population_ind = None
     # ANNarchy.Population or PopulationView instances as keys, outgoing projections as values:
-    _projections_pre = OrderedDict()   # outgoing pojections
+    _projections_pre = OrderedDict()   # outgoing projections
     _projections_post = OrderedDict()  # incoming projections
     _weight_attr = "weights"
     _delay_attr = "delays"
