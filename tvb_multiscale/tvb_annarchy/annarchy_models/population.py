@@ -19,7 +19,8 @@ class ANNarchyPopulation(SpikingPopulation):
     annarchy_instance = None
     _population = None
     _population_ind = None
-    _projections_pre = OrderedDict()   # outgoing projections
+    # ANNarchy.Population or PopulationView instances as keys, outgoing projections as values:
+    _projections_pre = OrderedDict()   # outgoing pojections
     _projections_post = OrderedDict()  # incoming projections
     _weight_attr = "weights"
     _delay_attr = "delays"
@@ -161,10 +162,17 @@ class ANNarchyPopulation(SpikingPopulation):
         return dictionary
 
     def _get_projections(self, pre_or_post, neurons):
+        """Get the projections of this populations.
+           Arguments:
+            pre_or_post: "pre" or "post" to choose the corresponding connections
+            neurons: an ANNarchy.Population or ANNarchy.PopulationView to filter the connections returned
+           Return:
+            a list of ANNarchy.Projection instances
+        """
         neurons = self._assert_neurons(neurons)
         projections = []
-        for nn, proj in getattr(self, "_projections_%s" % pre_or_post):
-            if nn.ranks in neurons.ranks:
+        for proj_neurons, proj in getattr(self, "_projections_%s" % pre_or_post).items():
+            if proj_neurons.ranks == neurons.ranks:
                 projections.append(proj)
         return projections
 
@@ -179,8 +187,7 @@ class ANNarchyPopulation(SpikingPopulation):
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
         Arguments:
-            neurons: not implemented yet.
-                     was in nest: nest.NodeCollection or sequence (tuple, list, array) of neurons
+            neurons: ANNarchy.Population or ANNarchy.PopulationView or sequence (tuple, list, array) of neurons
                      the connections of which should be included in the output.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
@@ -204,7 +211,7 @@ class ANNarchyPopulation(SpikingPopulation):
                           Default = None, corresponding to all connections to/from the present population.
         """
         self._assert_annarchy()
-        projections_pre = self.projections_pre
+        projections_pre = self._projections_pre
         projections_post = self._projections_post
         if connections is None:
             connections = self._GetConnections()
