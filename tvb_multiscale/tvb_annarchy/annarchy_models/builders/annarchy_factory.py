@@ -123,8 +123,8 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
       """
     # Create the projection first
     proj = annarchy_instance.Projection(
-                get_populations_neurons(source_pop._population, source_view_fun),
-                get_populations_neurons(target_pop._population, target_view_fun),
+                get_populations_neurons(source_pop, source_view_fun),
+                get_populations_neurons(target_pop, target_view_fun),
                 target=target, synapse=synapse, name=name)
     proj = set_model_parameters(proj, **params)
     # Add this projection to the source and target population inventories:

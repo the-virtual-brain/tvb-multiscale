@@ -88,14 +88,14 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         connect_two_populations(pop_src, pop_trg, syn_spec["weights"], syn_spec["delays"], syn_spec["target"],
                                 params=syn_spec["params"], source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
                                 synapse=syn_spec["synapse_model"], method=conn_spec.pop("method"),
-                                name="%s -> %s" % (pop_src.name, pop_trg.name),
+                                name="%s -> %s" % (pop_src._population.name, pop_trg._population.name),
                                 annarchy_instance=self.annarchy_instance, **conn_spec)
 
     def build_spiking_population(self, label, model, size, params):
         geometry = params.pop("geometry", size)
         model, model_name = self._assert_model(model)
         annarchy_population = self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label)
-        annarchy_population = set_model_parameters(annarchy_population, params)
+        annarchy_population = set_model_parameters(annarchy_population, **params)
         return ANNarchyPopulation(annarchy_population, label, model_name, self.annarchy_instance)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
