@@ -4,7 +4,7 @@ from abc import ABCMeta
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.devices import \
-    Device, InputDevice, OutputDevice, SpikeDetector, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
+    Device, InputDevice, OutputDevice, SpikeRecorder, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
 
@@ -13,6 +13,8 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of
 
 class NESTDevice(Device):
     __metaclass__ = ABCMeta
+
+    """NESTDevice class to wrap around a NEST output (recording) or input (stimulating) device"""
 
     nest_instance = None
     _weight_attr = "weight"
@@ -152,6 +154,9 @@ class NESTDevice(Device):
 
 
 class NESTInputDevice(NESTDevice, InputDevice):
+
+    """NESTInputDevice class to wrap around a NEST input (stimulating) device"""
+
     model = "input_device"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -160,6 +165,9 @@ class NESTInputDevice(NESTDevice, InputDevice):
 
 
 class NESTPoissonGenerator(NESTInputDevice):
+
+    """NESTPoissonGenerator class to wrap around a NEST poisson_generator device"""
+
     model = "poisson_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -168,6 +176,9 @@ class NESTPoissonGenerator(NESTInputDevice):
 
 
 class NESTSinusoidalPoissonGenerator(NESTInputDevice):
+
+    """NESTSinusoidalPoissonGenerator class to wrap around a NEST sinusoidal_poisson_generator device"""
+
     model = "sinusoidal_poisson_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -176,6 +187,9 @@ class NESTSinusoidalPoissonGenerator(NESTInputDevice):
 
 
 class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
+
+    """NESTInhomogeneousPoissonGenerator class to wrap around a NEST inhomogeneous_poisson_generator device"""
+
     model = "inhomogeneous_poisson_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -184,6 +198,9 @@ class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
 
 
 class NESTMIPGenerator(NESTInputDevice):
+
+    """NESTMIPGenerator class to wrap around a NEST mip_generator device"""
+
     model = "mip_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -192,6 +209,9 @@ class NESTMIPGenerator(NESTInputDevice):
 
 
 class NESTGammaSupGenerator(NESTInputDevice):
+
+    """NESTGammaSupGenerator class to wrap around a NEST gamma_sup_generator device"""
+
     model = "gamma_sup_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -200,6 +220,9 @@ class NESTGammaSupGenerator(NESTInputDevice):
 
 
 class NESTDPPDSupGenerator(NESTInputDevice):
+
+    """NESTDPPDSupGenerator class to wrap around a NEST ppd_sup_generator device"""
+
     model = "ppd_sup_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -208,6 +231,9 @@ class NESTDPPDSupGenerator(NESTInputDevice):
 
 
 class NESTSpikeGenerator(NESTInputDevice):
+
+    """NESTSpikeGenerator class to wrap around a NEST spike_generator device"""
+
     model = "spike_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -216,6 +242,9 @@ class NESTSpikeGenerator(NESTInputDevice):
 
 
 class NESTPulsePacketGenerator(NESTInputDevice):
+
+    """NESTPulsePacketGenerator class to wrap around a NEST pulse_packet_generator device"""
+
     model = "pulse_packet_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -224,6 +253,9 @@ class NESTPulsePacketGenerator(NESTInputDevice):
 
 
 class NESTDCGenerator(NESTInputDevice):
+
+    """NESTDCGenerator class to wrap around a NEST dc_generator device"""
+
     model = "dc_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -232,6 +264,9 @@ class NESTDCGenerator(NESTInputDevice):
 
 
 class NESTStepCurrentGenerator(NESTInputDevice):
+
+    """NESTStepCurrentGenerator class to wrap around a NEST step_current_generator device"""
+
     model = "step_current_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -240,6 +275,9 @@ class NESTStepCurrentGenerator(NESTInputDevice):
 
 
 class NESTACGenerator(NESTInputDevice):
+
+    """NESTACGenerator class to wrap around a NEST ac_generator device"""
+
     model = "ac_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -248,6 +286,9 @@ class NESTACGenerator(NESTInputDevice):
 
 
 class NESTStepRateGenerator(NESTInputDevice):
+
+    """NESTStepRateGenerator class to wrap around a NEST step_rate_generator device"""
+
     model = "step_rate_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -256,6 +297,9 @@ class NESTStepRateGenerator(NESTInputDevice):
 
 
 class NESTNoiseGenerator(NESTInputDevice):
+
+    """NESTNoiseGenerator class to wrap around a NEST noise_generator device"""
+
     model = "noise_generator"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -280,6 +324,9 @@ NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
 
 
 class NESTOutputDevice(NESTDevice, OutputDevice):
+
+    """NESTOutputDevice class to wrap around a NEST output (recording) device"""
+
     model = "output_device"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -308,14 +355,17 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
         # self.device.n_events = 0
 
 
-class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
+class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
+
+    """NESTSpikeRecorder class to wrap around a NEST spike_detector device"""
+
     model = "spike_detector"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
-        super(NESTSpikeDetector, self).__init__(device, nest_instance, *args, **kwargs)
+        super(NESTSpikeRecorder, self).__init__(device, nest_instance, *args, **kwargs)
         self.model = "spike_detector"
 
-    # Only SpikeDetector is the target of connections with neurons in NEST:
+    # Only SpikeRecorder is the target of connections with neurons in NEST:
 
     def GetConnections(self):
         """Method to get connections of the device from neurons.
@@ -338,15 +388,10 @@ class NESTSpikeDetector(NESTOutputDevice, SpikeDetector):
         return self.get_neurons("source")
 
 
-class NESTSpikeRecorder(NESTSpikeDetector, SpikeRecorder):
-    model = "spike_recorder"
-
-    def __init__(self, device, nest_instance, *args, **kwargs):
-        super(NESTSpikeRecorder, self).__init__(device, nest_instance, *args, **kwargs)
-        self.model = "spike_recorder"
-
-
 class NESTMultimeter(NESTOutputDevice, Multimeter):
+
+    """NESTMultimeter class to wrap around a NEST multimeter device"""
+
     model = "multimeter"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -360,6 +405,9 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
     
     
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
+
+    """NESTVoltmeter class to wrap around a NEST voltmeter device"""
+
     model = "voltmeter"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
@@ -380,7 +428,11 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
         return self.var
     
     
-class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector, SpikeMultimeter):
+class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
+
+    """NESTSpikeMultimeter class to wrap around a NEST multimeter device
+       that records only from continuous time spike weights variable."""
+
     model = "spike_multimeter"
     spike_vars = "spikes"
 
@@ -389,14 +441,12 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeDetector, SpikeMultimeter):
         self.model = "spike_multimeter"
 
 
-NESTOutputDeviceDict = {"spike_detector": NESTSpikeDetector,
-                        "spike_recorder": NESTSpikeRecorder,
+NESTOutputDeviceDict = {"spike_recorder": NESTSpikeRecorder,
                         "multimeter": NESTMultimeter,
                         "spike_multimeter": NESTSpikeMultimeter,
                         "voltmeter": NESTVoltmeter}
 
 
-NESTOutputSpikeDeviceDict = {"spike_detector": NESTSpikeDetector,
-                             "spike_recorder": NESTSpikeRecorder,
+NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder,
                              "spike_multimeter": NESTSpikeMultimeter}
 

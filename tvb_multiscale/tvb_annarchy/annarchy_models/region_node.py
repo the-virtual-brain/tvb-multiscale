@@ -4,6 +4,12 @@ from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 
 class ANNarchyRegionNode(SpikingRegionNode):
 
+    """ANNarchyRegionNode class is an indexed mapping
+       (based on inheriting from pandas.Series class)
+       between populations labels and ANNarchy.Population instances,
+       residing at a specific brain region node.
+    """
+
     annarchy_instance = None
     _weight_attr = "weights"
     _delay_attr = "delays"
