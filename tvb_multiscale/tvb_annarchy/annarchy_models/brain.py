@@ -5,6 +5,11 @@ from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 
 class ANNarchyBrain(SpikingBrain):
 
+    """ANNarchyBrain is an indexed mapping (based on inheriting from pandas.Series class)
+       between brain regions' labels and
+       the respective ANNarchyRegionNode instances.
+    """
+
     annarchy_instance = None
     _weight_attr = "weights"
     _delay_attr = "delays"

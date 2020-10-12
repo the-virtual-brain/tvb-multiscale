@@ -89,7 +89,7 @@ def get_populations_neurons(population, inds_fun=None):
        of the ANNarchyPopulation._population, if inds_fun argument is a function
        Arguments:
         population: an ANNarchyPopulation class instance
-        inds_fun: a function that takes an ANNarchy Population as argument and returns an ANNarchy PopulationView
+        inds_fun: a function that takes an ANNarchy.Population as argument and returns an ANNarchy.PopulationView
        Returns:
         ANNarchy Population ANNarchyPopulation._population instance or an ANNarchy PopulationView thereof
     """
@@ -360,7 +360,7 @@ def connect_device(annarchy_device, population, neurons_inds_fun=None,
         The arguments weight, delay and receptor_type are ignored for output devices
         (i.e., that are based on ANNarchy Monitors)
            Arguments:
-            annarchy_device: the ANNarchyInputDevice instance
+            annarchy_device: the ANNarchy Device instance
             population: the ANNarchyPopulation instance
             neurons_inds_fun: a function to return an ANNarchy PopulationView of the target population. Default = None.
             weight: the weights of the connection. Default = 1.0

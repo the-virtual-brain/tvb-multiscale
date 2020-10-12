@@ -10,6 +10,12 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, extract
 
 class ANNarchyPopulation(SpikingPopulation):
 
+    """ANNarchyPopulation class
+       Wraps around an ANNarchy.Population class and
+       represents a population of neurons of the same neural model,
+       residing at the same brain region.
+    """
+
     annarchy_instance = None
     _population = None
     _population_ind = None
