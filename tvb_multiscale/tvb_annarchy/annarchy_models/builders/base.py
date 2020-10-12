@@ -27,14 +27,14 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
-        super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
-        # Setting or loading a nest instance:
-        if nest_instance is not None:
-            self.annarchy_instance = nest_instance
+    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=LOG):
+        # Setting or loading an annarchy instance:
+        if annarchy_instance is not None:
+            self.annarchy_instance = annarchy_instance
         else:
-            self.annarchy_instance = load_annarchy(self.config, self.logger)
+            self.annarchy_instance = load_annarchy(self.config, logger)
 
+        super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
         # Setting NEST defaults from config
