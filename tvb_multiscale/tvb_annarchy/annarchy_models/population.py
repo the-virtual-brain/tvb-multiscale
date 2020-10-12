@@ -19,9 +19,8 @@ class ANNarchyPopulation(SpikingPopulation):
     annarchy_instance = None
     _population = None
     _population_ind = None
-    # ANNarchy.Population or PopulationView instances as keys, outgoing projections as values:
-    _projections_pre = OrderedDict()   # outgoing projections
-    _projections_post = OrderedDict()  # incoming projections
+    _projections_pre = []   # outgoing projections
+    _projections_post = [] # incoming projections
     _weight_attr = "weights"
     _delay_attr = "delays"
     _receptor_attr = "target"
@@ -171,18 +170,18 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         neurons = self._assert_neurons(neurons)
         projections = []
-        for proj_neurons, proj in getattr(self, "_projections_%s" % pre_or_post).items():
-            if proj_neurons.ranks == neurons.ranks:
+        for proj in getattr(self, "_projections_%s" % pre_or_post):
+            if getattr(proj, pre_or_post) == neurons.ranks:
                 projections.append(proj)
         return projections
 
     @property
     def projections_pre(self):
-        return self._projections_pre.keys()
+        return self._projections_pre
 
     @property
     def projections_post(self):
-        return self._projections_post.keys()
+        return self._projections_post
 
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
@@ -211,12 +210,10 @@ class ANNarchyPopulation(SpikingPopulation):
                           Default = None, corresponding to all connections to/from the present population.
         """
         self._assert_annarchy()
-        projections_pre = self._projections_pre
-        projections_post = self._projections_post
         if connections is None:
             connections = self._GetConnections()
         for connection in ensure_list(connections):
-            if connection in projections_pre or connection in projections_post:
+            if connection in self.projections_pre or connection in self.projections_post:
                 # connection.set(values_dict) <- this would be straightforward, but can generate
                 # arbitrary attributes that get ignored by the projection but are readable with get()
                 # TODO: figure out why this is bad, if it doesn't cause an error/Exception!
@@ -248,12 +245,10 @@ class ANNarchyPopulation(SpikingPopulation):
         self._assert_annarchy()
         if connections is None:
             connections = self._GetConnections()
-        projections_pre = self.projections_pre
-        projections_post = self._projections_post
         outputs = []
         for connection in ensure_list(connections):
             dictionary = {}
-            if connection in projections_pre or connection in projections_post:
+            if connection in self.projections_pre or connection in self.projections_post:
                 if attrs is None:
                     for attribute in np.union1d(self._default_connection_attrs,
                                                 connection.attributes):

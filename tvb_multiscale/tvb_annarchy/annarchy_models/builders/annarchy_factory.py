@@ -128,8 +128,8 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
                                         target=target, synapse=synapse, name=name)
     proj = set_model_parameters(proj, **params)
     # Add this projection to the source and target population inventories:
-    source_pop._projections_post[source_neurons] = proj
-    target_pop._projections_pre[target_neurons] = proj
+    source_pop._projections_post.append(proj)
+    target_pop._projections_pre.append(proj)
     # Build the connection:
     method = method.lower()
     if method == "current":
