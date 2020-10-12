@@ -353,13 +353,13 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
 class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
 
-    """NESTSpikeRecorder class to wrap around a NEST spike_detector device"""
+    """NESTSpikeRecorder class to wrap around a NEST spike_recorder device"""
 
-    model = "spike_detector"
+    model = "spike_recorder"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
         super(NESTSpikeRecorder, self).__init__(device, nest_instance, *args, **kwargs)
-        self.model = "spike_detector"
+        self.model = "spike_recorder"
 
     # Only SpikeRecorder is the target of connections with neurons in NEST:
 
