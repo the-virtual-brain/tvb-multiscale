@@ -22,17 +22,14 @@ from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution
 LOG = initialize_logger(__name__)
 
 
-"""Classes for creating:
-    - output devices that can measure and summarize the activity of a whole neuronal population
-    - input devices that induce some activity by stimulation to a whole neuronal population.
-Output devices assume that data is structured in discrete events tagged by time and sender neuron.
-"""
-
-
 class Device(object):
     __metaclass__ = ABCMeta
 
-    """Class to wrap around a measuring or stimulating device"""
+    """Device class to wrap around an 
+       output (recording/measuring/monitoring) or input (stimulating) device.
+       The abstract methods have to be implemented by 
+       spiking simulator specific classes that will inherit this class.
+    """
 
     device = None  # a device object, depending on its simulator implementation
     model = "device"  # the device model name
@@ -283,6 +280,9 @@ class Device(object):
 
 
 class InputDevice(Device):
+
+    """InputDevice class to wrap around an input (stimulating) device"""
+
     model = "input_device"
 
     def __init__(self, device, *args, **kwargs):
@@ -309,6 +309,9 @@ InputDeviceDict = {}
 
 
 class OutputDevice(Device):
+
+    """OutputDevice class to wrap around an output (recording/measuring/monitoring) device"""
+
     model = "output_device"
     
     def __init__(self, device, *args, **kwargs):
@@ -412,11 +415,14 @@ class OutputDevice(Device):
         return self.events['times']
 
 
-class SpikeDetector(OutputDevice):
-    model = "spike_detector"
+class SpikeRecorder(OutputDevice):
+
+    """OutputDevice class to wrap around a spike recording device"""
+
+    model = "spike_recorder"
 
     def __init__(self, device, *args, **kwargs):
-        super(SpikeDetector, self).__init__(device, *args, **kwargs)
+        super(SpikeRecorder, self).__init__(device, *args, **kwargs)
         self.model = "spike_detector"
 
     def get_spikes_events(self, events_inds=None, **filter_kwargs):
@@ -654,15 +660,11 @@ class SpikeDetector(OutputDevice):
             return xr.DataArray(0.0 * time, dims=["Time"], coords={"Time": time}, name=name)
 
 
-class SpikeRecorder(SpikeDetector):
-    model = "spike_recorder"
-
-    def __init__(self, device, *args, **kwargs):
-        super(SpikeRecorder, self).__init__(device, *args, **kwargs)
-        self.model = "spike_recorder"
-
-
 class Multimeter(OutputDevice):
+
+    """OutputDevice class to wrap around an output device
+       that records continuous time data only."""
+
     model = "multimeter"
 
     def __init__(self, device, *args, **kwargs):
@@ -837,7 +839,11 @@ class Multimeter(OutputDevice):
 
 
 class Voltmeter(Multimeter):
-    # The Voltmer is just a Mutlimeter measuring only a voltage quantity
+
+    """OutputDevice class to wrap around an output device
+      that records continuous time membrane potential data only."""
+
+    # The Voltmeter is just a Mutlimeter measuring only a voltage quantity
     model = "voltmeter"
 
     def __init__(self, device, *args, **kwargs):
@@ -926,11 +932,13 @@ class Voltmeter(Multimeter):
         return self.current_data_mean(name, dim_name).values.tolist()
 
 
-class SpikeMultimeter(Multimeter, SpikeDetector):
-    """This is a multimeter device that measures a continuous spike variable,
-       i.e., a variable that equals zero for every time moment when there is no spike emitted/received, and
-        a positive or negative spike weight, where there is a spike.
+class SpikeMultimeter(Multimeter, SpikeRecorder):
+
+    """This is a SpikeMultimeter device that records continuous time spike weights' variables,
+       i.e., variables that equal zero for every time moment when there is no spike emitted/received, and
+       a positive or negative spike floating value, where there is a spike.
     """
+
     model = "spike_multimeter"
 
     def __init__(self, device, *args, **kwargs):
@@ -1260,18 +1268,25 @@ class SpikeMultimeter(Multimeter, SpikeDetector):
             return np.array([0.0 *time]*self.number_of_spikes_var)
 
 
-OutputDeviceDict = {"spike_detector": SpikeDetector,
+OutputDeviceDict = {"spike_recorder": SpikeRecorder,
                     "multimeter": Multimeter,
                     "spike_multimeter": SpikeMultimeter,
                     "voltmeter": Voltmeter}
 
 
-OutputSpikeDeviceDict = {"spike_detector": SpikeDetector,
-                         "spike_recorder": SpikeRecorder,
+OutputSpikeDeviceDict = {"spike_recorder": SpikeRecorder,
                          "spike_multimeter": SpikeMultimeter}
 
 
 class DeviceSet(pd.Series):
+
+    """DeviceSet class is a indexed mapping (based on inheritance from a pandas.Series)
+       of a set of Device instances, that correspond to input or output devices referencing
+       a quantity to be recorded or stimulated from/to a set of neural populations,
+       and distributed across brain regions' nodes.
+       Therefore, the DeviceSet is labelled according to the quantity and/or population,
+       it measrues/stimulates from/to, and indexed by regions' nodes' integer and/or label index,
+       e.g. device_set["rh_insula"]."""
 
     _number_of_connections = 0
 
@@ -1529,7 +1544,7 @@ class DeviceSet(pd.Series):
         return self._return_by_type(values_dict, return_type, name)
 
     def Set(self, value_dict, nodes=None):
-        """A method to set attributes to (a subset of) all Devices of the DevoceSet.
+        """A method to set attributes to (a subset of) all Devices of the DeviceSet.
             value_dict: dict of attributes and values to be set
             nodes: a subselection of Device nodes of the DeviceSet the action should be performed upon
         """

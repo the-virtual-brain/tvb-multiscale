@@ -3,7 +3,7 @@
 import os
 import sys
 import shutil
-from six import string_types
+
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
@@ -25,7 +25,13 @@ LOG = initialize_logger(__name__)
 
 
 def load_nest(config=CONFIGURED, logger=LOG):
-
+    """This method will load a NEST instance and return it, after reading the NEST environment constants.
+        Arguments:
+         config: configuration class instance. Default: imported default CONFIGURED object.
+         logger: logger object. Default: local LOG object.
+        Returns:
+         the imported NEST instance
+    """
     logger.info("Loading a NEST instance...")
     nest_path = config.NEST_PATH
     os.environ['NEST_INSTALL_DIR'] = nest_path
@@ -56,6 +62,13 @@ def load_nest(config=CONFIGURED, logger=LOG):
 
 
 def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
+    """Function to compile NEST modules.
+       Arguments:
+        modules: a sequence (list, tuple) of NEST modules' names (strings).
+        recompile: (bool) flag to recompile a module that is already compiled. Default = False.
+        config: configuration class instance. Default: imported default CONFIGURED object.
+        logger: logger object. Default: local LOG object.
+    """
     # ...unless we need to first compile it:
     from pynestml.frontend.pynestml_frontend import install_nest
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
@@ -77,14 +90,27 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
 
 
 def get_populations_neurons(population, inds_fun=None):
+    """This method will return a subset NEST.NodeCollection instance
+       of the NESTPopulation._population, if inds_fun argument is a function
+       Arguments:
+        population: a NESTPopulation class instance
+        inds_fun: a function that takes a NEST.NodeCollection as argument and returns another NEST.NodeCollection
+       Returns:
+        NEST.NodeCollection NESTPopulation._population instance
+    """
     if inds_fun is None:
         return population._population
     return inds_fun(population._population)
 
 
 def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
-    # This function returns a conn_spec dictionary
-    # and the expected/accurate number of total connections
+    """This function returns a conn_spec dictionary and the expected/accurate number of total connections.
+       Arguments:
+        n_src: number (int) of source neurons. Default = 1.
+        n_trg: number (int) of target neurons. Default = 1.
+        src_is_trg: a (bool) flag to determine if the source and target populations are the same one. Default = False.
+        config: configuration class instance. Default: imported default CONFIGURED object.
+    """
     conn_spec = dict(config.DEFAULT_CONNECTION["conn_spec"])
     P_DEF = conn_spec["p"]
     conn_spec.update(kwargs)
@@ -144,6 +170,7 @@ def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kw
 
 
 def device_to_dev_model(device):
+    """Method to return a multimeter device for a spike_multimeter model name."""
     if device == "spike_multimeter":
         return "multimeter"
     else:
@@ -151,6 +178,16 @@ def device_to_dev_model(device):
 
 
 def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None):
+    """Method to create a NESTDevice.
+       Arguments:
+        device_model: name (string) of the device model
+        params: dictionary of parameters of device and/or its synapse. Default = None
+        config: configuration class instance. Default: imported default CONFIGURED object.
+        nest_instance: the NEST instance.
+                       Default = None, in which case we are going to load one, and also return it in the output
+       Returns:
+        the NESTDevice class, and optionally, the NEST instance if it is loaded here.
+    """
     if nest_instance is None:
         nest_instance = load_nest(config=config)
         return_nest = True
@@ -188,6 +225,20 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
 
 def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
                    nest_instance=None, config=CONFIGURED):
+    """This method connects a NESTDevice to a NESTPopulation instance.
+       Arguments:
+        nest_device: the NESTDevice instance
+        population: the NESTPopulation instance
+        neurons_inds_fun: a function to return a NESTPopulation or a subset thereof of the target population.
+                          Default = None.
+        weight: the weights of the connection. Default = 1.0.
+        delay: the delays of the connection. Default = 0.0.
+        receptor_type: type of the synaptic receptor. Default = 0.
+        config: configuration class instance. Default: imported default CONFIGURED object.
+        nest_instance: instance of NEST. Default = None, in which case the one of the nest_device is used.
+       Returns:
+        the connected NESTDevice
+    """
     if receptor_type is None:
         receptor_type = 0
     if nest_instance is None:

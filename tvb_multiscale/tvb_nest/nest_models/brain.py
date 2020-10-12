@@ -4,6 +4,12 @@ from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 
 
 class NESTBrain(SpikingBrain):
+
+    """"NESTBrain is an indexed mapping (based on inheriting from pandas.Series class)
+       between brain regions' labels and
+       the respective NESTRegionNode instances.
+    """
+
     nest_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"

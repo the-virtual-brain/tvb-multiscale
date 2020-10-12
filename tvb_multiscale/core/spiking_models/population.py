@@ -14,7 +14,12 @@ LOG = initialize_logger(__name__)
 class SpikingPopulation(object):
     __metaclass__ = ABCMeta
 
-    """This is a class wraping around the neurons of a spiking population."""
+    """SpikingPopulation is a class that 
+       represents a population of spiking neurons of the same neural model, 
+       residing at the same brain region.
+       The abstract methods have to be implemented by 
+       spiking simulator specific classes that will inherit this class.
+    """
 
     _population = None  # Class instance of a sequence of neurons, that depends on its spiking simulator
     label = ""    # label of population
