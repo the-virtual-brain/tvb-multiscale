@@ -89,7 +89,7 @@ def get_populations_neurons(population, inds_fun=None):
        of the ANNarchyPopulation._population, if inds_fun argument is a function
        Arguments:
         population: an ANNarchyPopulation class instance
-        inds_fun: a function that takes an ANNarchy.Population as argument and returns an ANNarchy.PopulationView
+        inds_fun: a function that takes an ANNarchy Population as argument and returns an ANNarchy PopulationView
        Returns:
         ANNarchy Population ANNarchyPopulation._population instance or an ANNarchy PopulationView thereof
     """
@@ -122,14 +122,14 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
       Returns: the projection
       """
     # Create the projection first
-    source_neurons = get_populations_neurons(source_pop._population, source_view_fun)
-    target_neurons = get_populations_neurons(target_pop._population, target_view_fun)
-    proj = annarchy_instance.Projection(source_neurons, target_neurons,
-                                        target=target, synapse=synapse, name=name)
+    proj = annarchy_instance.Projection(
+                get_populations_neurons(source_pop, source_view_fun),
+                get_populations_neurons(target_pop, target_view_fun),
+                target=target, synapse=synapse, name=name)
     proj = set_model_parameters(proj, **params)
     # Add this projection to the source and target population inventories:
-    source_pop._projections_post[source_neurons] = proj
-    target_pop._projections_pre[target_neurons] = proj
+    source_pop._projections_pre.append(proj)
+    target_pop._projections_post.append(proj)
     # Build the connection:
     method = method.lower()
     if method == "current":
@@ -360,7 +360,7 @@ def connect_device(annarchy_device, population, neurons_inds_fun=None,
         The arguments weight, delay and receptor_type are ignored for output devices
         (i.e., that are based on ANNarchy Monitors)
            Arguments:
-            annarchy_device: the ANNarchy Device instance
+            annarchy_device: the ANNarchyInputDevice instance
             population: the ANNarchyPopulation instance
             neurons_inds_fun: a function to return an ANNarchy PopulationView of the target population. Default = None.
             weight: the weights of the connection. Default = 1.0

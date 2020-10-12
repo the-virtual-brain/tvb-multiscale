@@ -36,7 +36,7 @@ class ANNarchyPopulation(SpikingPopulation):
             label = self._population.name
         if annarchy_instance is not None:
             self._population_ind = self._get_population_ind()
-        super(ANNarchyPopulation, self).__init__(label, model, **kwargs)
+        super(ANNarchyPopulation, self).__init__(population_neurons, label, model, **kwargs)
 
     @property
     def spiking_simulator_module(self):
