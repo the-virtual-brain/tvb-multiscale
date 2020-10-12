@@ -12,8 +12,10 @@ LOG = initialize_logger(__name__)
 
 class SpikingBrain(Series):
 
-    """This is an indexed mapping between brain regions' labels and
-       the respective SpikingRegionNode objects"""
+    """SpikingBrain is an indexed mapping (based on inheriting from pandas.Series class)
+       between brain regions' labels and
+       the respective SpikingRegionNode instances.
+    """
 
     _number_of_neurons = 0  # total number of brain's neurons
 

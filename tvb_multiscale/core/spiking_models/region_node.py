@@ -12,9 +12,11 @@ LOG = initialize_logger(__name__)
 
 class SpikingRegionNode(Series):
 
-    """This is an indexed mapping between populations labels and
-       the neuronal populations residing at a specific brain region node,
-       based on inheriting pandas.Series class"""
+    """SpikingRegionNode class is an indexed mapping
+       (based on inheriting from pandas.Series class)
+       between populations labels and the neuronal populations
+       residing at a specific brain region node.
+    """
 
     _number_of_neurons = 0
 
@@ -43,6 +45,10 @@ class SpikingRegionNode(Series):
         return super(SpikingRegionNode, self).__len__()
 
     def __getitem__(self, items):
+        """If the argument is a sequence, a new SpikingRegionNode instance is returned.
+           If the argument is an integer index or a string label index,
+           the corresponding SpikingPopulation is returned.
+        """
         if isinstance(items, string_types) or is_integer(items):
             return super(SpikingRegionNode, self).__getitem__(items)
         return SpikingRegionNode(label=self.label, input_nodes=super(SpikingRegionNode, self).__getitem__(items))

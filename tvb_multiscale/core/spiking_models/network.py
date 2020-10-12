@@ -14,16 +14,24 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 LOG = initialize_logger(__name__)
 
 
-# A SpikingNetwork consists of Region Nodes holding Spiking Populations,
-# and Input & Output devices connected to them
-# spiking_brain is a pandas.Series of RegionNodes, indexed by population,
-# e.g., nodes['rh-insula']['E']
-# output_devices/input_devices is a pandas.Series per population measured quantity of DevicesSet per Region Node,
-# e.g., output_devices['Excitatory']['rh-insula']
-
-
 class SpikingNetwork(object):
     __metaclass__ = ABCMeta
+
+    """
+        SpikingNetwork is a class representing a spiking network comprising of:
+        - a SpikingBrain class, i.e., neural populations organized per brain region they reside and neural model,
+        - a pandas.Series of DeviceSet classes of output (measuring/recording/monitor) devices,
+        - a pandas.Series of DeviceSet classes of input (stimulating) devices,
+        all of which are implemented as indexed mappings by inheriting from pandas.Series class.
+        The class also includes methods to return measurements (mean, sum/total data, spikes, spikes rates etc)
+        from output devices, as xarray.DataArrays.
+        e.g. SpikingPopulations can be indexed as:
+        spiking_network.brain_regions['rh-insula']['E'] for population "E" residing in region node "rh-insula",
+        and similarly for an output device:
+        spiking_network.output_devices['Excitatory']['rh-insula'], 
+        which measures a quantity labelled following the target population ("Excitatory"),
+        residing in region node "rh-insula".
+    """
 
     brain_regions = None  # spiking_brain['rh-insula']['E']
     # These devices are distinct from the ones for the TVB-Spiking Network interface
@@ -87,10 +95,13 @@ class SpikingNetwork(object):
 
     @abstractmethod
     def configure(self, *args, **kwargs):
+        """Method to configure a simulation just before execution.
+        """
         pass
 
     @abstractmethod
-    def Run(self, *args, **kwargs):
+    def Run(self, simulation_length, *args, **kwargs):
+        """Method to simulate the spiking network for a specific simulation_length (in ms)."""
         pass
 
     @property
@@ -106,28 +117,47 @@ class SpikingNetwork(object):
     def number_of_nodes(self):
         return len(self.brain_regions)
 
-    def get_devices_by_model(self, model, nodes=None):
+    def get_devices_by_model(self, model, regions=None):
+        """This method will loop though all network's devices to return all devices of a given model.
+           Arguments:
+            - model: the model name (string),
+            - regions: an optional sequence (list, tuple, array) of regions' nodes' indices to be selected.
+                       Default = None, corresponding to returning the devices of all regions' nodes.
+           Returns:
+            - a Series of selected DeviceSet instances
+        """
         # Get all devices set of a given model
         devices = pd.Series()
-        if nodes is None:
-            get_device = lambda device, nodes: device
+        if regions is None:
+            get_device = lambda device, regions: device
         else:
-            nodes = ensure_list(nodes)
-            get_device = lambda device, nodes: device[nodes]
-
+            nodes = ensure_list(regions)
+            get_device = lambda device, regions: device[nodes]
         for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.iteritems()):
             if pop_device.model == model:
-                devices[pop_label] = get_device(pop_device, nodes)
+                devices[pop_label] = get_device(pop_device, regions)
         return devices
 
-    def get_spike_devices(self, mode="spikes", regions=None, populations_devices=None):
-        # This method will get spike measuing devices and prepare for computing rate
+    def get_spike_devices(self, mode="events", regions=None, populations_devices=None):
+        """This method will loop though all network's devices to return all devices of a given model.
+           Arguments:
+            - mode: if "activity",
+                     the method looks for "multimeter" devices that record spikes' weights continuously in time.
+                    Default = "events", looking for devices that record spikes' events.
+            - regions: an optional sequence (list, tuple, array) of regions' nodes' indices to be selected.
+                       Default = None, corresponding to returning the devices of all regions' nodes.
+            - populations_devices: an optional sequence (list, tuple, array) of
+                                   populations' devices' labels to be selected.
+                                   Default = None, corresponding to returning the devices of all populations.
+           Returns:
+            - a Series of selected DeviceSet instances
+        """
         spike_devices = []
         if mode.find("activity") > -1:
-            spike_devices = self.get_devices_by_model("spike_multimeter", nodes=regions)
+            spike_devices = self.get_devices_by_model("spike_multimeter", regions=regions)
         else:
             for device_name in OutputSpikeDeviceDict.keys():
-                spike_devices = self.get_devices_by_model(device_name, nodes=regions)
+                spike_devices = self.get_devices_by_model(device_name, regions=regions)
                 if len(spike_devices) > 0:
                     break  # If this is not an empty dict of devices
         if len(spike_devices) == 0:
@@ -142,8 +172,21 @@ class SpikingNetwork(object):
             spike_devices = spike_devices[populations_devices]
         return spike_devices
 
-    def get_spikes(self, mode="events", regions=None, populations=None, **kwargs):
-        spike_devices = self.get_spike_devices(mode, regions, populations)
+    def get_spikes(self, mode="events", regions=None, populations_devices=None, **kwargs):
+        """This method returns all spikes' events from any kind of spikes' recording devices.
+           Arguments:
+            - mode: if "activity",
+                     the method looks for "multimeter" devices that record spikes' weights continuously in time.
+                    Default = "events", looking for devices that record spikes' events.
+            - regions: an optional sequence (list, tuple, array) of regions' nodes' indices to be selected.
+                       Default = None, corresponding to returning the devices of all regions' nodes.
+            - populations_devices: an optional sequence (list, tuple, array) of
+                                   populations' devices' labels to be selected.
+                                   Default = None, corresponding to returning the devices of all populations.
+           Returns:
+            - a Series of spikes' events per region and population.
+        """
+        spike_devices = self.get_spike_devices(mode, regions, populations_devices)
         spikes = pd.Series()
         for i_pop, (pop_label, pop_spike_device) in enumerate(spike_devices.iteritems()):
             spikes[pop_label] = \
@@ -153,6 +196,10 @@ class SpikingNetwork(object):
     def _prepare_to_compute_spike_rates(self, populations_devices=None, regions=None, mode="rate",
                                         spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                         spikes_kernel_overlap=0.5, min_spike_interval=None, time=None):
+        """This method gets spikes recording devices and
+           precomputes parameters necessary for the computation of spikes' rates,
+           based on user inputs.
+        """
         spike_devices = self.get_spike_devices(mode, regions, populations_devices)
 
         if regions is not None:
@@ -217,6 +264,11 @@ class SpikingNetwork(object):
                              spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                              spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                              spikes_kernel=None, flatten_neurons_inds=True):
+        """This method computes spikes rates, or activities, from spikes recording devices,
+           and optionally the mean or total (sum) rate across neurons.
+           The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+           depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         spike_devices, time, spikes_kernel_width, spikes_kernel_width_in_points = \
             self._prepare_to_compute_spike_rates(populations_devices, regions, mode,
                                                  spikes_kernel_width, spikes_kernel_n_intervals,
@@ -300,6 +352,10 @@ class SpikingNetwork(object):
                                   spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                   spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                   spikes_kernel=None):
+        """This method computes spikes activities from spikes weights' recording devices.
+           The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+           depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         return self.compute_spikes_rates(mode + "_activity", populations_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
@@ -312,6 +368,10 @@ class SpikingNetwork(object):
                                   spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                   spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                   spikes_kernel=None):
+        """This method computes mean spikes rates across neurons from spikes recording devices.
+           The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+           depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         return self.compute_spikes_rates(mode + "_mean", populations_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
@@ -324,6 +384,10 @@ class SpikingNetwork(object):
                                        spikes_kernel_width=None, spikes_kernel_n_intervals=10,
                                        spikes_kernel_overlap=0.5, min_spike_interval=None, time=None,
                                        spikes_kernel=None):
+        """This method computes mean spikes activities across neurons from spikes recording devices.
+            The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+            depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         return self.compute_spikes_rates("mean_activity", populations_devices, regions,
                                          devices_dim_name, name,
                                          spikes_kernel_width, spikes_kernel_n_intervals,
@@ -333,6 +397,11 @@ class SpikingNetwork(object):
     def get_data_from_multimeter(self, mode="total", populations_devices=None, variables=None, regions=None,
                                  devices_dim_name="Population Device", name="Data from Spiking Network multimeter",
                                  flatten_neurons_inds=True, **kwargs):
+        """This method returns data, from devices recording continuous variables in time,
+           and optionally computes the mean or total sum across neurons.
+           The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+           depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         if mode == "mean":
             # Mean quantities across neurons
             fun = "get_mean_data"
@@ -343,7 +412,7 @@ class SpikingNetwork(object):
             fun = "get_data"
             mode = "per_neuron"
             kwargs["flatten_neurons_inds"] = flatten_neurons_inds
-        multimeters = self.get_devices_by_model("multimeter", nodes=regions)
+        multimeters = self.get_devices_by_model("multimeter", regions=regions)
         if len(multimeters) == 0:
             LOG.warning("No multimeter device in this Spiking Network!")
             return None, None
@@ -408,6 +477,10 @@ class SpikingNetwork(object):
                                       devices_dim_name="Population device",
                                       name="Mean data from Spiking Network multimeter",
                                       **kwargs):
+        """This method computes the mean data across neurons, from devices recording continuous variables in time.
+           The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+           depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         data = self.get_data_from_multimeter("mean", populations_devices, variables, regions,
                                              devices_dim_name, **kwargs)
         data.name = name
@@ -417,6 +490,10 @@ class SpikingNetwork(object):
                                        devices_dim_name="Population device",
                                        name="Mean data from Spiking Network multimeter",
                                        **kwargs):
+        """This method computes the mean data across neurons, from devices recording continuous variables in time.
+           The output is returned either as a xarray.DataArray, or as a pandas.Series of xarray.DataArrays,
+           depending on the homo/hetero-geneity of the distribution of populations per region, respectively.
+        """
         data = self.get_data_from_multimeter("total", populations_devices, variables, regions,
                                              devices_dim_name, **kwargs)
         data.name = name

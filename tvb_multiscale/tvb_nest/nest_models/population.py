@@ -7,6 +7,12 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, extract
 
 class NESTPopulation(SpikingPopulation):
 
+    """NESTPopulation class
+       Wraps around a nest.NodeCollection and
+       represents a population of neurons of the same neural model,
+       residing at the same brain region.
+    """
+
     nest_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"
