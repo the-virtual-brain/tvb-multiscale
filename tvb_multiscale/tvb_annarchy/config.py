@@ -27,8 +27,7 @@ class Config(ConfigBase):
     DEFAULT_CONNECTION = {"synapse_model": "DefaultSpikingSynapse", "params": {},
                           "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
                           "source_inds": None, "target_inds": None,
-                          "conn_spec": {"method": "all_to_all", "allow_self_connections": True,
-                                        "force_multiple_weights": False}}
+                          "conn_spec": {"method": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "poisson_population"
     DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
