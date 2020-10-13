@@ -122,8 +122,8 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
       Returns: the projection
       """
     # Create the projection first
-    source_neurons = get_populations_neurons(source_pop._population, source_view_fun)
-    target_neurons = get_populations_neurons(target_pop._population, target_view_fun)
+    source_neurons = get_populations_neurons(source_pop, source_view_fun)
+    target_neurons = get_populations_neurons(target_pop, target_view_fun)
     proj = annarchy_instance.Projection(source_neurons, target_neurons,
                                         target=target, synapse=synapse, name=name)
     proj = set_model_parameters(proj, **params)
@@ -137,7 +137,7 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
                 % (source_pop.label, target_pop.label))
         getattr(proj, "connect_" % method)(**connection_args)
     else:
-        getattr(proj, "connect_" % method)(weights=weights, delays=delays, **connection_args)
+        getattr(proj, "connect_" + method)(weights=weights, delays=delays, **connection_args)
 
 
 def params_dict_to_parameters_string(params):

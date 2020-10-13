@@ -23,11 +23,11 @@ class Config(ConfigBase):
 
     DEFAULT_MODEL = "izhikevich"
 
-    # Delays should be at least equal to NEST time resolution
+    # Delays should be at least equal to ANNarchy time resolution
     DEFAULT_CONNECTION = {"synapse_model": "DefaultSpikingSynapse", "params": {},
                           "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
                           "source_inds": None, "target_inds": None,
-                          "conn_spec": {'method': "all_to_all", "allow_self_connections": True,
+                          "conn_spec": {"method": "all_to_all", "allow_self_connections": True,
                                         "force_multiple_weights": False}}
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "poisson_population"
@@ -51,10 +51,10 @@ class Config(ConfigBase):
 
     def __init__(self, output_base=None, separate_by_run=False):
         super(Config, self).__init__(output_base, separate_by_run)
-        self.TVB_NEST_DIR = TVB_ANNARCHY_DIR
+        self.TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
         self.WORKING_DIR = WORKING_DIR
         self.MYMODELS_DIR = MYMODELS_DIR
-        self.MYMODELS_IMPORT_PATH = self.MYMODELS_DIR.split("tvb-multicale")[-1].replace("/", ".")
+        self.MYMODELS_IMPORT_PATH = self.MYMODELS_DIR.split("tvb-multiscale")[-1].replace("/", ".")
 
 
 CONFIGURED = Config()
