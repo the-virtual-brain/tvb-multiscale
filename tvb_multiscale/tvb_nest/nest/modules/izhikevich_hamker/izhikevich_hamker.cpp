@@ -305,9 +305,10 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
   for ( long lag = from; lag < to; ++lag )
   {
-    //TODO: confirm the adjustment of the two integration methods!
 
-    // neuron is never refractory
+    // Check if the neuron is in refractory period:
+    const bool is_refractory = S_.r_ > 0 ;
+
     // use standard forward Euler numerics in this case
     if ( P_.consistent_integration_ )
     {
@@ -316,10 +317,12 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       v_old = S_.v_;
       u_old = S_.u_;
 
-      // Integrate V_m and U_m using old values at time t
-      S_.v_ +=
-        h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old / P_.C_m_+ S_.I_ + P_.I_e_ + S_.I_syn_ );
-      S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
+      if ~is_refractory {  // If the neuron is NOT refractory...
+        // ...integrate V_m and U_m using old values at time t
+        S_.v_ +=
+            h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old / P_.C_m_+ S_.I_ + P_.I_e_ + S_.I_syn_ );
+        S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
+      }
 
       // Add the spikes:
       S_.g_L_ += B_.spikes_base_.get_value( lag );
@@ -366,19 +369,21 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
       S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
 
-      // Integrate U_m, V_m using new values (t+1)
-      S_.v_ += h * 0.5 * (
-                     P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
-      S_.v_ += h * 0.5 * (
-                     P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
-      S_.u_ += h * P_.a_ * ( P_.b_ * S_.v_ - S_.u_ );
+      if ~is_refractory {  // If the neuron is NOT refractory...
+          // ...integrate U_m, V_m using new values (t+1)
+          S_.v_ += h * 0.5 * (
+                         P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
+          S_.v_ += h * 0.5 * (
+                         P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
+          S_.u_ += h * P_.a_ * ( P_.b_ * S_.v_ - S_.u_ );
+      }
     }
 
     // lower bound of membrane potential
     S_.v_ = ( S_.v_ < P_.V_min_ ? P_.V_min_ : S_.v_ );
 
     // threshold crossing
-    if ( S_.r_ > 0 ) // if neuron is still in refractory period
+    if is_refractory // if neuron is still in refractory period
     {
       --S_.r_;
     }
