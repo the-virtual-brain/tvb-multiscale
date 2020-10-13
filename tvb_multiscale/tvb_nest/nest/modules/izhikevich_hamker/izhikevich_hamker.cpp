@@ -317,7 +317,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       v_old = S_.v_;
       u_old = S_.u_;
 
-      if ~is_refractory {  // If the neuron is NOT refractory...
+      if ( !is_refractory ) {  // If the neuron is NOT refractory...
         // ...integrate V_m and U_m using old values at time t
         S_.v_ +=
             h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old / P_.C_m_+ S_.I_ + P_.I_e_ + S_.I_syn_ );
@@ -369,7 +369,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
       S_.I_syn_in_ = - S_.g_GABA_A_ * ( S_.v_ - P_.E_rev_GABA_A_ );
       S_.I_syn_ = S_.I_syn_ex_ + S_.I_syn_in_  - S_.g_L_ * S_.v_;
 
-      if ~is_refractory {  // If the neuron is NOT refractory...
+      if ( !is_refractory ) {  // If the neuron is NOT refractory...
           // ...integrate U_m, V_m using new values (t+1)
           S_.v_ += h * 0.5 * (
                          P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
@@ -383,7 +383,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     S_.v_ = ( S_.v_ < P_.V_min_ ? P_.V_min_ : S_.v_ );
 
     // threshold crossing
-    if is_refractory // if neuron is still in refractory period
+    if ( !is_refractory ) // if neuron is still in refractory period
     {
       --S_.r_;
     }
