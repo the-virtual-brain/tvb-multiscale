@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
@@ -117,10 +116,10 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
             src_inds_fun: a function that selects a subset of the souce population neurons
             target: the target ANNarchyPopulation of the connection
             trg_inds_fun: a function that selects a subset of the target population neurons
-            conn_params: a dict of parameters of the connectivity pattern among the neurons of the two populations,
-                         excluding weight and delay ones
-            synapse_params: a dict of parameters of the synapses among the neurons of the two populations,
-                            including weight, delay and synaptic target ones
+            conn_spec: a dict of parameters of the connectivity pattern among the neurons of the two populations,
+                       excluding weight and delay ones
+            syn_spec: a dict of parameters of the synapses among the neurons of the two populations,
+                      including weight, delay and synaptic target ones
         """
         # Prepare the synaptic model:
         syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])[0]
