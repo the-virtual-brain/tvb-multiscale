@@ -71,22 +71,23 @@ RecordablesMap< izhikevich_hamker >::create()
  * Default constructors defining default parameters and state
  * ---------------------------------------------------------------- */
 nest::izhikevich_hamker::Parameters_::Parameters_()
-  : a_( 0.02 )                                      // a
-  , b_( 0.2 )                                       // b
-  , c_( -72.0 )                                     // c without unit
-  , d_( 6.0 )                                       // d
-  , n0_( 140.0 )                                    // n0
-  , n1_( 5.0 )                                      // n1
-  , n2_( 0.04 )                                     // n2
+  : E_rev_AMPA_( 0.0 )                              // mV
+  , E_rev_GABA_A_( -90.0 )                          // mV
+  , V_th_( 30.0 )                                   // mV
+  , V_min_( -std::numeric_limits< double >::max() ) // mV
+  , C_m_( 1.0 )                                     // real
+  , I_e_( 0.0 )                                     // pA
+  , t_ref_( 10.0 )                                // ms
   , tau_rise_( 1.0 )                                // ms
   , tau_rise_AMPA_( 10.0 )                          // ms
   , tau_rise_GABA_A_( 10.0 )                        // ms
-  , V_th_( 30.0 )                                   // mV
-  , E_rev_AMPA_( 0.0 )                              // mV
-  , E_rev_GABA_A_( -90.0 )                          // mV
-  , V_min_( -std::numeric_limits< double >::max() ) // mV
-  , I_e_( 0.0 )                                     // pA
-  , C_m_( 1.0 )                                     // real
+  , n0_( 140.0 )                                    // n0
+  , n1_( 5.0 )                                      // n1
+  , n2_( 0.04 )                                     // n2
+  , a_( 0.02 )                                      // a
+  , b_( 0.2 )                                       // b
+  , c_( -72.0 )                                     // c without unit
+  , d_( 6.0 )                                       // d
   , consistent_integration_( true )
 {
 }
@@ -101,6 +102,7 @@ nest::izhikevich_hamker::State_::State_()
   , I_syn_in_( 0.0 ) // total GABA current
   , I_syn_( 0.0 )    // total synaptic current
   , I_( 0.0 )        // input current
+  , r_( 0 )          // number of refractory steps remaining
 {
 }
 
@@ -111,50 +113,55 @@ nest::izhikevich_hamker::State_::State_()
 void
 nest::izhikevich_hamker::Parameters_::get( DictionaryDatum& d ) const
 {
+  def< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
+  def< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
+  def< double >( d, names::V_th, V_th_ ); // threshold value
+  def< double >( d, names::V_min, V_min_ );
+  def< double >( d, names::C_m, C_m_ );
+  def< double >( d, names::I_e, I_e_ );
+  def< double >( d, names::t_ref, t_ref_ );
   def< double >( d, names::tau_rise, tau_rise_ );
   def< double >( d, names::tau_rise_AMPA, tau_rise_AMPA_ );
   def< double >( d, names::tau_rise_GABA_A, tau_rise_GABA_A_ );
-  def< double >( d, names::I_e, I_e_ );
-  def< double >( d, names::C_m, C_m_ );
-  def< double >( d, names::V_th, V_th_ ); // threshold value
-  def< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
-  def< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
-  def< double >( d, names::V_min, V_min_ );
+  def< double >( d, "n0", n0_ );
+  def< double >( d, "n1", n1_ );
+  def< double >( d, "n2", n2_ );
   def< double >( d, names::a, a_ );
   def< double >( d, names::b, b_ );
   def< double >( d, names::c, c_ );
   def< double >( d, names::d, d_ );
-  def< double >( d, "n0", n0_ );
-  def< double >( d, "n1", n1_ );
-  def< double >( d, "n2", n2_ );
   def< bool >( d, names::consistent_integration, consistent_integration_ );
 }
 
 void
 nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
 {
-
+  updateValue< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
+  updateValue< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
+  updateValue< double >( d, names::V_th, V_th_ );
+  updateValue< double >( d, names::V_min, V_min_ );
+  updateValue< double >( d, names::C_m, C_m_ );
+  updateValue< double >( d, names::I_e, I_e_ );
+  updateValue< double >( d, names::t_ref, t_ref_ );
   updateValue< double >( d, names::tau_rise, tau_rise_ );
   updateValue< double >( d, names::tau_rise_AMPA, tau_rise_AMPA_ );
   updateValue< double >( d, names::tau_rise_GABA_A, tau_rise_GABA_A_ );
-  updateValue< double >( d, names::I_e, I_e_ );
-  updateValue< double >( d, names::C_m, C_m_ );
-  updateValue< double >( d, names::V_th, V_th_ );
-  updateValue< double >( d, names::E_rev_AMPA, E_rev_AMPA_ );
-  updateValue< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
-  updateValue< double >( d, names::V_min, V_min_ );
+  updateValue< double >( d, "n0", n0_ );
+  updateValue< double >( d, "n1", n1_ );
+  updateValue< double >( d, "n2", n2_ );
   updateValue< double >( d, names::a, a_ );
   updateValue< double >( d, names::b, b_ );
   updateValue< double >( d, names::c, c_ );
   updateValue< double >( d, names::d, d_ );
-  updateValue< double >( d, "n0", n0_ );
-  updateValue< double >( d, "n1", n1_ );
-  updateValue< double >( d, "n2", n2_ );
   updateValue< bool >( d, names::consistent_integration, consistent_integration_ );
   const double h = Time::get_resolution().get_ms();
   if ( not consistent_integration_ && h != 1.0 )
   {
     LOG( M_INFO, "Parameters_::set", "Use 1.0 ms as resolution for consistency." );
+  }
+  if ( t_ref_ <= 0.0 )
+  {
+    throw BadProperty( "tau_ref has to be positive!" );
   }
   if ( tau_rise_ <= 0.0 )
   {
@@ -186,6 +193,7 @@ nest::izhikevich_hamker::State_::get( DictionaryDatum& d, const Parameters_& ) c
   def< double >( d, names::I_syn_in, I_syn_in_ ); // GABA current
   def< double >( d, names::I_syn, I_syn_ );       // Total synaptic current
   def< double >( d, names::I, I_ );               // Input current
+  def< double >( d, "r", r_ );               // number of refractory steps remaining
 }
 
 void
@@ -200,17 +208,22 @@ nest::izhikevich_hamker::State_::set( const DictionaryDatum& d, const Parameters
   updateValue< double >( d, names::I_syn_in, I_syn_in_ );
   updateValue< double >( d, names::I_syn, I_syn_ );
   updateValue< double >( d, names::I, I_ );
+  updateValue< double >( d, "r", r_ );
   if ( g_L_ < 0.0 )
   {
-    throw BadProperty( "g_L has to be positive!" );
+    throw BadProperty( "g_L can not be negative!" );
   }
   if ( g_AMPA_ < 0.0 )
   {
-    throw BadProperty( "g_AMPA has to be positive!" );
+    throw BadProperty( "g_AMPA can not be negative!" );
   }
   if ( g_GABA_A_ < 0.0 )
   {
-    throw BadProperty( "g_GABA_A has to be positive!" );
+    throw BadProperty( "g_GABA_A can not be negative!" );
+  }
+  if ( r_ < 0.0 )
+  {
+    throw BadProperty( "r can not be negative!" );
   }
 }
 
@@ -254,6 +267,8 @@ nest::izhikevich_hamker::init_state_( const Node& proto )
 {
   const izhikevich_hamker& pr = downcast< izhikevich_hamker >( proto );
   S_ = pr.S_;
+  S_.v_ = P_.c_;
+  S_.u_ = P_.b_ * P_.c_;
 }
 
 void
@@ -271,6 +286,8 @@ void
 nest::izhikevich_hamker::calibrate()
 {
   B_.logger_.init();
+  V_.refractory_counts_ = Time( Time::ms( P_.t_ref_ ) ).get_steps();
+  assert( V_.refractory_counts_ >= 0 ); // since t_ref >= 0, this can only fail in error
 }
 
 /* ----------------------------------------------------------------
@@ -361,16 +378,34 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     S_.v_ = ( S_.v_ < P_.V_min_ ? P_.V_min_ : S_.v_ );
 
     // threshold crossing
-    if ( S_.v_ >= P_.V_th_ )
+    if ( S_.r_ > 0 ) // if neuron is still in refractory period
     {
+      --S_.r_;
+    }
+    else if ( S_.v_ >= P_.V_th_ )
+    {
+
+      // Spike!
+
+      // Clamp v and u
       S_.v_ = P_.c_;
-      S_.u_ = S_.u_ + P_.d_;
+      S_.u_ += P_.d_;
 
       // compute spike time
       set_spiketime( Time::step( origin.get_steps() + lag + 1 ) );
 
+      // Apply spike
       SpikeEvent se;
       kernel().event_delivery_manager.send( *this, se, lag );
+
+      /* Initialize refractory step counter.
+       * - We need to add 1 to compensate for count-down immediately after
+       *   while loop.
+       * - If neuron has no refractory time, set to 0 to avoid refractory
+       *   artifact inside while loop.
+       */
+      S_.r_ = V_.refractory_counts_ > 0 ? V_.refractory_counts_ + 1 : 0;
+
     }
 
     // set new input current
