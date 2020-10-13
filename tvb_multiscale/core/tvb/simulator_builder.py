@@ -16,7 +16,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 class SimulatorBuilder(object):
 
-    """SimulatorBuilder is an opionated builder for a TVB Simulator, adjusted for cosimulation.
+    """SimulatorBuilder is an opinionated builder for a TVB Simulator, adjusted for cosimulation.
        Depending on its properties set, the builder may
        - scale/normalize the connectivity weights,
        - remove time delays or not,
