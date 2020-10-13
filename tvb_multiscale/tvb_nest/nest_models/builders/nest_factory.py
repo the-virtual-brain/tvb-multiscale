@@ -75,18 +75,43 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     safe_makedirs(config.MYMODULES_BLD_DIR)
     for module in ensure_list(modules):
         logger.info("Compiling %s..." % module)
+        modulemodule = module + "module"
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
         logger.info("in build directory %s..." % module_bld_dir)
-        if not os.path.exists(module_bld_dir) or recompile:
-            source_path = os.path.join(config.MYMODULES_DIR, module)
-            logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
-            shutil.copytree(source_path, module_bld_dir)
-        logger.info("Running compilation...")
-        install_nest(module_bld_dir, config.NEST_PATH)
-        if os.path.isfile(os.path.join(config.MYMODULES_BLD_DIR, "lib" + module + "module.so")):
-            logger.info("DONE compiling %s!" % module)
+        solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
+        dylib_file = os.path.join(module_bld_dir, "lib" + modulemodule + ".dylib")
+        if not os.path.isfile(solib_file) or not os.path.isfile(dylib_file) or recompile:
+            # If the .so file or the .dylib file don't exist, or if the user requires recompilation,
+            # proceed with recompilation:
+            if not os.path.exists(module_bld_dir):
+                # If there is no module build directory at all,
+                # create one and copy there the source files:
+                source_path = os.path.join(config.MYMODULES_DIR, module)
+                logger.info("copying sources from %s\ninto %s..." % (source_path, module_bld_dir))
+                shutil.copytree(source_path, module_bld_dir)
+            # Now compile:
+            logger.info("Running compilation...")
+            success_message = "DONE compiling and installing %s!" % module
+            install_nest(module_bld_dir, config.NEST_PATH)
+            solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
         else:
-            logger.warn("Something seems to have gone wrong with compiling %s!" % module)
+            logger.info("Installing precompiled module...")
+            success_message = "DONE installing precompiled module %s!" % module
+            # Just copy the .h, .so, and .dylib files to the appropriate NEST build paths:
+            lib_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "lib", "nest")
+            installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
+            shutil.copyfile(solib_file, installed_solib_file)
+            installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
+            shutil.copyfile(solib_file, installed_dylib_file)
+            include_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "include", modulemodule)
+            safe_makedirs(include_path)
+            shutil.copyfile(os.path.join(module_bld_dir, modulemodule + ".h"),
+                            os.path.join(include_path, modulemodule + ".h"))
+        if os.path.isfile(installed_solib_file) and os.path.isfile(installed_dylib_file):
+            logger.info(success_message)
+        else:
+            logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
+                        "\n No %s or %s file found!" % (module, solib_file))
 
 
 def get_populations_neurons(population, inds_fun=None):
