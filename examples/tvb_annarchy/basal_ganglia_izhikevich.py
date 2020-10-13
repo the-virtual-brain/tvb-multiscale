@@ -20,18 +20,18 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
-def results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode="rate", nest_to_tvb=True, config=None):
+def results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True, config=None):
     if config is None:
-        if tvb_nest_builder is not None:
-            tvb_nest_builder_str = "_" + tvb_nest_builder.__name__.split("Builder")[0] + \
-                                   np.where(isinstance(tvb_to_nest_mode, string_types),
-                                             "_" + str(tvb_to_nest_mode), "").item()
+        if tvb_annarchy_builder is not None:
+            tvb_annarchy_builder_str = "_" + tvb_annarchy_builder.__name__.split("Builder")[0] + \
+                                   np.where(isinstance(tvb_to_annarchy_mode, string_types),
+                                             "_" + str(tvb_to_annarchy_mode), "").item()
         else:
-            tvb_nest_builder_str = ""
+            tvb_annarchy_builder_str = ""
         return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
-                            nest_model_builder.__name__.split("Builder")[0] +
-                            tvb_nest_builder_str +
-                            np.where(nest_to_tvb, "_bidir", "").item()
+                            annarchy_model_builder.__name__.split("Builder")[0] +
+                            tvb_annarchy_builder_str +
+                            np.where(annarchy_to_tvb, "_bidir", "").item()
                             )
     else:
         return config.out.FOLDER_RES

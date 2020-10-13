@@ -37,6 +37,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         else:
             self.annarchy_instance = load_annarchy(self.config, logger)
 
+        super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
         # Setting NEST defaults from config

@@ -90,9 +90,9 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                      "receptor_type": "gaba", "nodes": pop["nodes"]})
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
+        self.global_coupling_scaling = tvb_simulator.coupling.a[0].item()
         # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
-        self.global_coupling_scaling *= self.tvb_simulator.model.G[0].item()
+        self.global_coupling_scaling *= tvb_simulator.model.G[0].item()
 
         # Inter-regions'-nodes' connections
         self.nodes_connections = []
