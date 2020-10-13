@@ -75,8 +75,10 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         synapse_model = self.default_populations_connection["synapse_model"]  # "DefaultSpikingSynapse"
         # default connectivity spec:
-        # conn_spec= {'method': "all_to_all", "allow_self_connections": True, "force_multiple_weights": False}
+        # conn_spec= {'method': "all_to_all"}
         conn_spec = self.default_populations_connection["conn_spec"]
+        conn_spec["allow_self_connections"] = True
+        conn_spec["force_multiple_weights"] = False
 
         # Intra-regions'-nodes' connections
         self.populations_connections = []
