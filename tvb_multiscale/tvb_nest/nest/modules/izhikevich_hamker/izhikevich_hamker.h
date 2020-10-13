@@ -81,18 +81,19 @@ The following parameters can be set in the status dictionary.
 ======================= =======  ==============================================
  V_m                    mV       Membrane potential
  U_m                    mV       Membrane potential recovery variable
+ E_rev_AMPA             mV       AMPA reversal potential
+ E_rev_GABA_A           mV       GABA reversal potential
+ V_th                   mV       Spike threshold
+ V_min                  mV       Absolute lower value for the membrane potential
+ C_m                    real     Membrane capacitance
  g_L                    nS       Baseline conductance variable
  g_AMPA                 nS       AMPA conductance variable
  g_GABA_A               nS       GABA conductance variable
  I_syn_ex               pA       AMPA synaptic current
  I_syn_in               pA       GABA synaptic current
  I_syn                  pA       Total synaptic current
- V_th                   mV       Spike threshold
- E_rev_AMPA             mV       AMPA reversal potential
- E_rev_GABA_A           mV       GABA reversal potential
- V_min                  mV       Absolute lower value for the membrane potential
- C_m                    real     Membrane capacitance
  I_e                    pA       Constant input current (R=1)
+ t_ref                  ms       Duration of refractory period in ms.
  tau_rise               ms       Time constant of baseline conductance
  tau_rise_AMPA          ms       Time constant of AMPA synapse
  tau_rise_GABA_A        ms       Time constant of GABA synapse
@@ -197,32 +198,33 @@ private:
    */
   struct Parameters_
   {
-    double a_;
-    double b_;
-    double c_;
-    double d_;
-    double n0_;
-    double n1_;
-    double n2_;
-
-    /** Synaptic time constants */
-    double tau_rise_;
-    double tau_rise_AMPA_;
-    double tau_rise_GABA_A_;
-
+    /** Membrane potential */
     /** Threshold */
-    double V_th_;
     double E_rev_AMPA_;
     double E_rev_GABA_A_;
-
+    double V_th_;
     /** Lower bound */
     double V_min_;
+
+     /** Membrane capacitance */
+    double C_m_;
 
     /** External DC current */
     double I_e_;
 
-    /** External DC current */
-    double C_m_;
+    /** Synaptic time constants */
+    double t_ref_;
+    double tau_rise_;
+    double tau_rise_AMPA_;
+    double tau_rise_GABA_A_;
+
+    double n0_;
+    double n1_;
+    double n2_;
+    double a_;
+    double b_;
+    double c_;
+    double d_;
 
     /** Use standard integration numerics **/
     bool consistent_integration_;
@@ -244,12 +246,13 @@ private:
     double u_;         // membrane recovery variable
     double g_L_;       // Membrane conductance
     double g_AMPA_;    // AMPA conductance
-    double g_GABA_A_;    // GABA conductance
+    double g_GABA_A_;  // GABA conductance
     double I_syn_ex_;  // total AMPA synaptic current
     double I_syn_in_;  // total GABA synaptic current
     double I_syn_;     // total synaptic current
     double I_;         // input current
 
+    int r_;            // number of refractory steps remaining
 
     /** Accumulate spikes arriving during refractory period, discounted for
         decay until end of refractory period.
@@ -289,6 +292,7 @@ private:
    */
   struct Variables_
   {
+    unsigned int refractory_counts_;
   };
 
   // Access functions for UniversalDataLogger -----------------------
