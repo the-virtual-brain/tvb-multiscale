@@ -20,7 +20,8 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
-def results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True, config=None):
+def results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True,
+                     config=None):
     if config is None:
         if tvb_annarchy_builder is not None:
             tvb_annarchy_builder_str = "_" + tvb_annarchy_builder.__name__.split("Builder")[0] + \
@@ -46,8 +47,8 @@ def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
 
     if config is None:
         config = Config(
-                    output_base=results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode, annarchy_to_tvb,
-                                                 config))
+                    output_base=results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode,
+                                                 annarchy_to_tvb, config))
 
     plotter = Plotter(config)
 
