@@ -525,7 +525,7 @@ class SpikingModelBuilder(object):
                         self.connect_two_populations(
                             self._spiking_brain[i_node][pop_src], conn["source_inds"],
                             self._spiking_brain[i_node][pop_trg], conn["target_inds"],
-                            conn['conn_spec'], syn_spec
+                            conn["conn_spec"], syn_spec
                         )
 
     def connect_spiking_region_nodes(self):

@@ -123,11 +123,13 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         """
         # Prepare the synaptic model:
         syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])[0]
+        # Get connection arguments by copying conn_spec, leaving out "method" entry:
+        conn_args = {x: conn_spec[x] for x in conn_spec if x != "method"}
         connect_two_populations(pop_src, pop_trg, syn_spec["weights"], syn_spec["delays"], syn_spec["target"],
                                 params=syn_spec["params"], source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
-                                synapse=syn_spec["synapse_model"], method=conn_spec.pop("method"),
+                                synapse=syn_spec["synapse_model"], method=conn_spec["method"],
                                 name="%s -> %s" % (pop_src._population.name, pop_trg._population.name),
-                                annarchy_instance=self.annarchy_instance, **conn_spec)
+                                annarchy_instance=self.annarchy_instance, **conn_args)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a ANNarchyRegionNode instance,
