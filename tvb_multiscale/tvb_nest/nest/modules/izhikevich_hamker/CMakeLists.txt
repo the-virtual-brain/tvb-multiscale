@@ -1,4 +1,3 @@
-
 # izhikevich_hamkermodule/CMakeLists.txt
 #
 # This file is part of NEST.
@@ -41,7 +40,6 @@ set( MODULE_NAME ${SHORT_NAME} )
 # 2) Add all your sources here
 set( MODULE_SOURCES
     izhikevich_hamkermodule.h izhikevich_hamkermodule.cpp
-    
       izhikevich_hamker.cpp izhikevich_hamker.h
     
     )
