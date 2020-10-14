@@ -33,17 +33,17 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         # Common order of neurons' number per population:
         self.population_order = 200
 
-        self.params_common = {"tau_syn": 1.0, "tau_ampa": 10.0, "tau_gaba": 10.0,
-                              "E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -65.0,
+        self.params_common = {"E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -65.0,
                               "C": 1.0, "I": 0.0,
+                              "tau_refrac": 10.0, "tau_syn": 1.0, "tau_ampa": 10.0, "tau_gaba": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04}
         self._paramsI = deepcopy(self.params_common)
         self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
         self._paramsE = deepcopy(self.params_common)
         self.paramsStr = deepcopy(self.params_common)
-        self.paramsStr.update({"Vr": -80.0,  "v_th": 40.0,
-                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
-                               "n0": 61.65119, "n1":  2.594639, "n2": 0.022799, "C": 50.0})
+        self.paramsStr.update({"v_th": 40.0, "C": 50.0,
+                               "n0": 61.65119, "n1": 2.594639, "n2": 0.022799,
+                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]

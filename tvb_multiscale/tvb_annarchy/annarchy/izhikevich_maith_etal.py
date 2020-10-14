@@ -16,8 +16,9 @@ parameters="""
     n1 = 5.0
     n2 = 0.04
     I = 0.0
-    tau_ampa = 10
-    tau_gaba = 10
+    tau_refrac = 10.0
+    tau_ampa = 10.0
+    tau_gaba = 10.0
     E_ampa = 0.0
     E_gaba = -90.0
     tau_syn = 1.0
@@ -42,7 +43,7 @@ reset = """
     v = c
     u = u+d
 """,
-refractory = 10.0
+refractory = """tau_refrac"""
 )
 
 
