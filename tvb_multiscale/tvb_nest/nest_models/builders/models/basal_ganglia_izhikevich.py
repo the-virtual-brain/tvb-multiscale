@@ -34,9 +34,9 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         # Common order of neurons' number per population:
         self.population_order = 200
 
-        self.params_common = {"t_ref": 1.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
-                              "E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
+        self.params_common = {"E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
                               "C_m": 1.0, "I_e": 0.0,
+                              "t_ref": 10.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04}
         self._paramsI = deepcopy(self.params_common)
         self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
