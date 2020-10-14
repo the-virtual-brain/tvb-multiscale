@@ -143,7 +143,6 @@ RUN echo "source ${VENV}/bin/activate" >> .bashrc
 ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
-RUN cp -r $NEST_SRC/nestkernel/spatial $NEST_INSTALL_DIR/include/nest
 #ARG MYMODULES_LIST="izhikevich_hamker iaf_cond_ww_deco"
 #ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
