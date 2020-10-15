@@ -106,10 +106,11 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
             a ANNarchyPopulation class instance
         """
         geometry = params.pop("geometry", size)
-        model, model_name = self._assert_model(model)
+        model = self._assert_model(model)
         annarchy_population = self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label)
         annarchy_population = set_model_parameters(annarchy_population, **params)
-        return ANNarchyPopulation(annarchy_population, label, model_name, self.annarchy_instance)
+        return ANNarchyPopulation(annarchy_population, label,
+                                  annarchy_population.neuron_type.name, self.annarchy_instance)
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
         """Method to connect two ANNarchyPopulation instances in the SpikingNetwork.
@@ -124,7 +125,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                       including weight, delay and synaptic target ones
         """
         # Prepare the synaptic model:
-        syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])[0]
+        syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])
         # Get connection arguments by copying conn_spec. Make sure to pop out the "method" entry:
         conn_args = deepcopy(conn_spec)
         connect_two_populations(pop_src, pop_trg, syn_spec["weights"], syn_spec["delays"], syn_spec["target"],

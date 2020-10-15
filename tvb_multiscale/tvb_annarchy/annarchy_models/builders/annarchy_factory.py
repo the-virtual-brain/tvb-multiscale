@@ -75,7 +75,7 @@ def assert_model(model, import_path, annarchy_instance):
     else:
         model_name = model.name
     # Return the model class and name:
-    return model, model_name
+    return model
 
 
 def set_model_parameters(model_instance, **params):
