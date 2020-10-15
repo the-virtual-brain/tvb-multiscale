@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
+from abc import ABCMeta
 
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.devices import \
-    Device, InputDevice, OutputDevice, SpikeRecorder, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
+    Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
 
@@ -90,26 +89,31 @@ class NESTDevice(Device):
         else:
             return connections
 
-    def _SetToConnections(self, connections, values_dict):
+    def _SetToConnections(self, values_dict, connections=None):
         """Method to set attributes of the connections from/to the device
             Arguments:
-             connections: connections' objects.
              values_dict: dictionary of attributes names' and values.
+             connections: A SynapseCollection. Default = None, corresponding to all device's connections
             Returns:
              Dictionary of lists of connections' attributes.
         """
         self._assert_nest()
+        if connections is None:
+            connections = self._GetConnections()
         connections.set(values_dict)
 
-    def _GetFromConnections(self, connections, attrs=None):
+    def _GetFromConnections(self, attrs=None, connections=None):
         """Method to get attributes of the connections from/to the device
            Arguments:
-            connections: connections' objects.
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
+                   Default = None, correspondingn to all devices' attributes
+            connections: A SynapseCollection. Default = None, corresponding to all device's connections
            Returns:
             Dictionary of lists of connections' attributes.
         """
         self._assert_nest()
+        if connections is None:
+            connections = self._GetConnections()
         if attrs is None:
             return connections.get()
         else:
@@ -417,11 +421,11 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
     
     @property
     def get_V_m(self):
-        return self.get_var()
-    
+        return self.var
+
     @property
     def V_m(self):
-        return self.get_var()
+        return self.var
     
     
 class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
@@ -430,7 +434,7 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
        that records only from continuous time spike weights variable."""
 
     model = "spike_multimeter"
-    spike_var = "spikes"
+    spike_vars = "spikes"
 
     def __init__(self, device, nest_instance, *args, **kwargs):
         super(NESTSpikeMultimeter, self).__init__(device, nest_instance, *args, **kwargs)
