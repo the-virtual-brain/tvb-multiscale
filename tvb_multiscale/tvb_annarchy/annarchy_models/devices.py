@@ -339,7 +339,7 @@ class ANNarchyOutputDevice(OutputDevice):
     def populations(self):
         """Method to get the ANNarchy.Population instances this device records from."""
         populations = list(self.monitors.values())
-        if len(populations) == 0:
+        if len(populations) == 1:
             populations = populations[0]
         return populations
 
@@ -387,7 +387,7 @@ class ANNarchyOutputDevice(OutputDevice):
             ANNarchyOutputDeviceConnection' objects
         """
         connections = []
-        for monitor, population in self.monitors:
+        for monitor, population in self.monitors.items():
             connections.append(ANNarchyOutputDeviceConnection(pre=population, post=monitor))
         return connections
 
@@ -502,14 +502,14 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
     """ANNarchySpikeMonitor class to wrap around ANNarchy.Monitor instances,
        acting as an output device of spike discrete events."""
 
-    model = "spike_monitor"
+    model = "spike_detector"
 
     _data = []
 
     def __init__(self, monitors, label="", model="", annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
         ANNarchyOutputDevice.__init__(self, monitors, label, model, annarchy_instance,
                                       run_tvb_multiscale_init=False, **kwargs)
-        self.model = "spike_monitor"
+        self.model = "spike_detector"
         if run_tvb_multiscale_init:
             SpikeRecorder.__init__(self, monitors, model=self.model, label=self.label)
 
@@ -550,7 +550,7 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
                                  run_tvb_multiscale_init=False, **kwargs)
         ANNarchySpikeMonitor.__init__(self, monitors, label, model, annarchy_instance,
                                       run_tvb_multiscale_init=False, **kwargs)
-        self.model = "spike_monitor"
+        self.model = "spike_detector"
         SpikeMultimeter.__init__(self, monitors, model=self.model, label=self.label)
 
     @property
@@ -574,8 +574,8 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
 
 
 ANNarchyOutputDeviceDict = {"monitor": ANNarchyMonitor,
-                            "spike_monitor": ANNarchySpikeMonitor,
+                            "spike_detector": ANNarchySpikeMonitor,
                             "spike_multimeter": ANNarchySpikeMultimeter}
 
-ANNarchyOutputSpikeDeviceDict = {"spike_monitor": ANNarchySpikeMonitor,
+ANNarchyOutputSpikeDeviceDict = {"spike_detector": ANNarchySpikeMonitor,
                                  "spike_multimeter": ANNarchySpikeMultimeter}

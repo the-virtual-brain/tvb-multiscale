@@ -346,7 +346,7 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None, an
     params = deepcopy(annarchy_device.params)
     record_from = ensure_list(params.pop("record_from"))
     # Create a connection by adding an ANNarchy Monitor targeting the specific neurons of this population:
-    annarchy_device.monitors[neurons] = annarchy_instance.Monitor(neurons, record_from, **annarchy_device.params)
+    annarchy_device.monitors[annarchy_instance.Monitor(neurons, record_from, **params)] = neurons
     # Update the number of connections and connected neurons to the device:
     annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
     annarchy_device._number_of_neurons = annarchy_device.get_number_of_neurons()

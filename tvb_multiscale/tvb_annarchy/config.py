@@ -30,10 +30,10 @@ class Config(ConfigBase):
                           "conn_spec": {"method": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "poisson_population"
-    DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
+    DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_detector"
 
     # Available ANNARCHY output devices for the interface and their default properties
-    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"spike_monitor": {"record_from": "spike"},
+    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"spike_detector": {"record_from": "spike"},
                                           "spike_multimeter": {"record_from": "spike"},
                                           "monitor": {"record_from": ["v", 'g_exc', 'g_inh']}}
 

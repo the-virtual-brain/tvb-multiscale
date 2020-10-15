@@ -124,7 +124,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
             #                               label <- target population
             connections[pop["label"] + "_spikes"] = pop["label"]
             self.output_devices.append(
-                {"model": "spike_monitor", "params": {},
+                {"model": "spike_detector", "params": {},
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
         # Labels have to be different for every connection to every distinct population
