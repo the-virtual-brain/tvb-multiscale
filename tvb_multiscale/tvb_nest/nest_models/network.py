@@ -10,6 +10,21 @@ LOG = initialize_logger(__name__)
 
 
 class NESTNetwork(SpikingNetwork):
+    """
+        NESTNetwork is a class representing a NEST spiking network comprising of:
+        - a NESTBrain class, i.e., neural populations organized per brain region they reside and neural model,
+        - a pandas.Series of DeviceSet classes of output (measuring/recording/monitor) NEST devices,
+        - a pandas.Series of DeviceSet classes of input (stimulating) NEST devices,
+        all of which are implemented as indexed mappings by inheriting from pandas.Series class.
+        The class also includes methods to return measurements (mean, sum/total data, spikes, spikes rates etc)
+        from output devices, as xarray.DataArrays.
+        e.g. NESTPopulations can be indexed as:
+        nest_network.brain_regions['rh-insula']['E'] for population "E" residing in region node "rh-insula",
+        and similarly for an output device:
+        nest_network.output_devices['Excitatory']['rh-insula'],
+        which measures a quantity labelled following the target population ("Excitatory"),
+        residing in region node "rh-insula".
+    """
 
     nest_instance = None
 
@@ -32,7 +47,13 @@ class NESTNetwork(SpikingNetwork):
         return self.nest_instance.GetKernelStatus("min_delay")
 
     def configure(self, *args, **kwargs):
+        """Method to configure NEST network simulation.
+           It will run nest.Prepare(*args, **kwargs)
+        """
         self.nest_instance.Prepare(*args, **kwargs)
 
-    def Run(self, *args, **kwargs):
-        self.nest_instance.Run(*args, **kwargs)
+    def Run(self, simulation_length, *args, **kwargs):
+        """Method to simulate the NEST network for a specific simulation_length (in ms).
+           It will run nest.Run(simulation_length, *args, **kwarg)
+        """
+        self.nest_instance.Run(simulation_length, *args, **kwargs)

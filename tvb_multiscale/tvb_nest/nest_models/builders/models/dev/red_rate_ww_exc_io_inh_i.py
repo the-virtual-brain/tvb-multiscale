@@ -41,22 +41,22 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         # Choosing the values resulting from J_N = 150 pA and J_i = 1000 pA [1]
         self.populations_connections = [
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
-             "model": self.default_populations_connection["model"],
+             "synapse_model": self.default_populations_connection["model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.J_N, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
             {"source": "E", "target": "I",  # E -> I
-             "model": self.default_populations_connection["model"],
+             "synapse_model": self.default_populations_connection["model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.J_N, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
             {"source": "I", "target": "E",  # I -> E
-             "model": self.default_populations_connection["model"],
+             "synapse_model": self.default_populations_connection["model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
             {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
-             "model": self.default_populations_connection["model"],
+             "synapse_model": self.default_populations_connection["model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": -self.J_i, "delay": self.default_populations_connection["delay"],
              "receptor_type": 0, "nodes": None},  # None means "all"
@@ -68,7 +68,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         # we need only one connection type
         self.node_connections = \
             [{"source": "E", "target": ["E"],
-              "model": self.default_nodes_connection["model"],
+              "synapse_model": self.default_nodes_connection["model"],
               "conn_spec": self.default_nodes_connection["conn_spec"],
               "weight": self.J_N_G_scale_tvb_weight_exc,
               "delay": self.tvb_delay,
@@ -77,7 +77,7 @@ class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
         if self.tvb_model.lamda[0] > 0:
             self.node_connections.append(
                 {"source": "E", "target": ["I"],
-                 "model": self.default_nodes_connection["model"],
+                 "synapse_model": self.default_nodes_connection["model"],
                  "conn_spec": self.default_nodes_connection["conn_spec"],
                  "weight": self.J_N_G_scale_tvb_weight_inh,
                  "delay": self.tvb_delay,

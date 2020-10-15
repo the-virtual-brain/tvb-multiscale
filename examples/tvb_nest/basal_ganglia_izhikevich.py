@@ -58,7 +58,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
         populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Common order of neurons' number per population:
     nest_network = nest_model_builder.build_spiking_network()
-    print(nest_network.print_str(connectivity=True))
+    print(nest_network.print_str(connectivity=False))
     print("Done! in %f min" % ((time.time() - tic) / 60))
 
     # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
     import os
     home_path = os.path.join(os.getcwd().split("tvb-multiscale")[0], "tvb-multiscale")
-    DATA_PATH = os.path.join(home_path, "examples/tvb_nest/data")
+    DATA_PATH = os.path.join(home_path, "examples/data")
 
     w = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/conn_denis_weights.txt"))
 

@@ -39,7 +39,7 @@ RUN mkdir $HOME/env; mkdir $HOME/packages
 ENV VENV=$HOME/env/neurosci
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
-    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio; \
+    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba; \
     $VENV/bin/pip3 install --upgrade nose ipython
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
@@ -56,21 +56,18 @@ RUN mkdir libneurosim; \
     ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
-ARG NEST_VER=2.18.0
-ARG NEST=nest-simulator-$NEST_VER
+ARG NEST_VER=dev
+ARG NEST=nest-simulator
 ARG NEST_SRC=$HOME/packages/$NEST
 ARG NEST_INSTALL_DIR=$VENV/nest_build
 ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
-RUN wget  https://github.com/nest/nest-simulator/archive/v$NEST_VER.tar.gz -O $HOME/packages/$NEST.tar.gz; \
-    tar xzf $NEST.tar.gz; rm $NEST.tar.gz; \
+RUN git clone --depth 1 https://github.com/nest/nest-simulator.git; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
-#          -Dwith-mpi=ON  \
-          -Dwith-python=3 \
-          ###-Dwith-music=ON \
+          -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
           -DPYTHON_INCLUDE_DIR=/usr/include/python3.7m \
@@ -94,7 +91,7 @@ RUN $VENV/bin/pip3 install setuptools; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy; \
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy numba; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \

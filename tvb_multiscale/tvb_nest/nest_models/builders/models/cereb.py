@@ -9,7 +9,7 @@ from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 
 
-class NeuronsIndsFun(object):
+class NeuronsFun(object):
     conns = np.array([])
     start_id_scaffold = 0
 
@@ -17,9 +17,9 @@ class NeuronsIndsFun(object):
         self.start_id_scaffold = start_id_scaffold
         self.conns = conns
 
-    def __call__(self, neurons_inds):
-        return [int(x - self.start_id_scaffold + neurons_inds[0])
-                for x in self.conns]
+    def __call__(self, population):
+        return population.nest_instance.NodeCollection[[int(x - self.start_id_scaffold + population.tolist()[0])
+                                                        for x in self.conns]]
 
 
 class CerebBuilder(NESTModelBuilder):
@@ -180,12 +180,12 @@ class CerebBuilder(NESTModelBuilder):
             self.populations_connections.append(
                 {"source": self.conn_pre_post[conn_name]["pre"],
                  "target": self.conn_pre_post[conn_name]["post"],
-                 "source_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
-                                               conn[:, 0].flatten()),
+                 "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
+                                                  conn[:, 0].flatten()),
 
-                 "target_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
-                                               conn[:, 1].flatten()),
-                 "model": 'static_synapse',
+                 "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
+                                                  conn[:, 1].flatten()),
+                 "synapse_model": 'static_synapse',
                  "conn_spec": self.default_populations_connection["conn_spec"],
                  "weight": self.conn_weights[conn_name],
                  "delay": self.conn_delays[conn_name],
@@ -194,22 +194,22 @@ class CerebBuilder(NESTModelBuilder):
                  }
             )
 
-    def neurons_inds_fun(self, neurons_inds, n_neurons=100):
+    def neurons_fun(self, population, total_neurons=100):
         # We use this in order to measure up to n_neurons neurons from every population
-        n_neurons_inds = len(neurons_inds)
-        if n_neurons_inds > n_neurons:
-            return tuple(np.array(neurons_inds)[0:-1:int(np.ceil(1.0*n_neurons_inds/n_neurons))])
+        n_neurons = len(population)
+        if n_neurons > total_neurons:
+            return population[0:-1:int(np.ceil(1.0 * n_neurons / total_neurons))]
         else:
-            return neurons_inds
+            return population
 
-    def set_spike_detector(self):
+    def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
         for pop in self.populations:
             connections[pop["label"] + "_spikes"] = pop["label"]
-        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
-        device = {"model": "spike_detector", "params": params,
-                  # "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
+        device = {"model": "spike_recorder", "params": params,
+                  # "neurons_fun": lambda node, population: self.neurons_fun(population),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
@@ -222,14 +222,14 @@ class CerebBuilder(NESTModelBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         device = {"model": "multimeter", "params": params,
-                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
+                  "neurons_fun": lambda node, population: self.neurons_fun(population),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_detector()]
+        self.output_devices = [self.set_spike_recorder()]
         if self.RECORD_VM:
             self.output_devices.append(self.set_multimeter())
 

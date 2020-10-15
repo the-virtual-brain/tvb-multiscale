@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-from pandas import Series
-
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 
 
 class NESTRegionNode(SpikingRegionNode):
+
+    """NESTRegionNode class is an indexed mapping
+       (based on inheriting from pandas.Series class)
+       between populations labels and nest.NodeCollection instances,
+       residing at a specific brain region node.
+    """
 
     nest_instance = None
     _weight_attr = "weight"

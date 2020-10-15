@@ -73,7 +73,7 @@ class LinearCerebBuilder(TVBNESTInterfaceBuilder):
     def _build_default_nest_to_tvb_interfaces(self, connections, **kwargs):
         # NEST -> TVB:
         interface = \
-            {"model": "spike_detector", "params": {},
+            {"model": "spike_recorder", "params": {},
              # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
              "weights": 5.0, "delays": 0.0,
              # --------------------------------------------------------------------------------------------------------------

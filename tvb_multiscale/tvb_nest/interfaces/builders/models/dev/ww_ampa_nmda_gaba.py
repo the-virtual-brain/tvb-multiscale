@@ -55,7 +55,7 @@ class WWAMPANMDAGABABuilder(TVBNESTInterfaceBuilder):
             connections["R_e"] = ["AMPA", "NMDA"]
             connections["R_i"] = "GABA"
             nest_to_tvb_interfaces = \
-                [{"model": "spike_detector", "params": {},
+                [{"model": "spike_recorder", "params": {},
     # ------------------Properties potentially set as function handles with args (nest_node_id=None)--------------------
                   "weights": 1.0, "delays": 0.0,
     # -----------------------------------------------------------------------------------------------------------------

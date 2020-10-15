@@ -22,11 +22,15 @@
 *  2019-11-14 14:51:07.526268
 */
 
+// Generated includes:
+#include "config.h"
+
 // Includes from nestkernel:
 #include "connection_manager_impl.h"
 #include "connector_model_impl.h"
 #include "dynamicloader.h"
 #include "exceptions.h"
+#include "genericmodel.h"
 #include "genericmodel_impl.h"
 #include "kernel_manager.h"
 #include "model.h"

@@ -8,7 +8,7 @@ from six import string_types
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_tuple, ensure_list
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 
 
@@ -19,57 +19,8 @@ def log_path(name, logger=LOG):
     logger.info("%s: %s" % (name, os.environ.get(name, "")))
 
 
-def get_neurons_from_populations(population, index=None):
-    try:
-        # In case this is a list, tuple or dictionary (in which case index is a key)...
-        return flatten_tuple(population[index])
-    except:
-        # Otherwise, if index is None, return the whole tuple of neurons' indices...
-        return flatten_tuple(population)
-
-
-def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
-    if isinstance(device, string_types) or isinstance(device, dict):
-        if isinstance(device, string_types):
-            try:
-                return create_device_fun(None, device, config=config, **kwargs)
-            except:
-                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
-        else:
-            try:
-                return create_device_fun(device.get("model", None), device,
-                                         params=device.get("params", None), config=config, **kwargs)
-            except Exception as e:
-                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
-    else:
-        raise ValueError("Failed to set device%s!\n "
-                         "Device has to be a device model or dict!" % str(device))
-
-
-def build_and_connect_device(device, create_device_fun, connect_device_fun, neurons,
-                             weight=1.0, delay=0.0, receptor_type=0,
-                             config=CONFIGURED, **kwargs):
-    device = connect_device_fun(build_device(device, create_device_fun, config=config, **kwargs),
-                                 neurons, weight, delay, receptor_type, config=config, **kwargs)
-    device._number_of_connections = device.number_of_connections
-    return device
-
-
-def _get_connections(device, spiking_nodes):
-    # Determine the connections from variables to measure/stimulate to Spiking node populations
-    connections = device["connections"]  # either a variable model or a dict
-    if isinstance(connections, string_types):
-        connections = {connections: slice(None)}  # return all population types
-    device_target_nodes = device.get("nodes", None)
-    if device_target_nodes is None:
-        device_target_nodes = spiking_nodes
-    else:
-        device_target_nodes = spiking_nodes[device_target_nodes]
-    return connections, device_target_nodes
-
-
 def _get_device_props_with_correct_shape(device, shape):
-
+    # This function sets device connectivity properties to the desired shape.
     def _assert_conn_params_shape(p, p_name, shape):
         if isinstance(p, dict):
             return np.tile(p, shape)
@@ -85,29 +36,93 @@ def _get_device_props_with_correct_shape(device, shape):
 
     return _assert_conn_params_shape(device.get("weights", 1.0), "weights", shape), \
            _assert_conn_params_shape(device.get("delays", 0.0), "delays", shape), \
-           _assert_conn_params_shape(device.get("receptor_type", 0), "receptor_type", shape), \
-           _assert_conn_params_shape(device.get("neurons_inds", 0), "neurons_inds", shape)
+           _assert_conn_params_shape(device.get("receptor_type", None), "receptor_type", shape), \
+           _assert_conn_params_shape(device.get("neurons_fun", None), "neurons_fun", shape)
 
 
-def get_node_populations_neurons(node, populations, inds_fun=None):
-    # return tuples of neurons of specific neural populations of a Spiking Node
-    neurons = flatten_tuple([node[pop].neurons for pop in ensure_list(populations)])
-    if inds_fun is None:
-        return neurons
-    return inds_fun(neurons)
+def _get_connections(device, spiking_nodes):
+    # Determine the connections
+    # from variables to measure/stimulate
+    # to Spiking node populations
+    connections = device["connections"]
+    if isinstance(connections, string_types):
+        connections = {connections: slice(None)}  # return all population types
+    device_target_nodes = device.get("nodes", None)
+    if device_target_nodes is None:
+        device_target_nodes = spiking_nodes
+    else:
+        device_target_nodes = spiking_nodes[device_target_nodes]
+    return connections, device_target_nodes
+
+
+def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
+    """This method will only build a device based on the input create_device_fun function,
+       which is specific to every spiking simulator.
+       Arguments:
+        device: either a name (string) of a device model, or a dictionary of properties for the device to build
+        create_device_fun: a function to build the device
+        config: a configuration class instance. Default = CONFIGURED (default configuration)
+        **kwargs: other possible keyword arguments, to be passed to the device builder.
+       Returns:
+        the built Device class instance
+    """
+    if isinstance(device, string_types) or isinstance(device, dict):
+        if isinstance(device, string_types):
+            try:
+                return create_device_fun(device, config=config, **kwargs)
+            except Exception as e:
+                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
+        else:
+            try:
+                device_model = device.get("model", None)
+                return create_device_fun(device_model, params=device.get("params", None), config=config, **kwargs)
+            except Exception as e:
+                raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
+    else:
+        raise ValueError("Failed to set device%s!\n "
+                         "Device has to be a device model or dict!" % str(device))
+
+
+def build_and_connect_device(device, create_device_fun, connect_device_fun, node, populations, inds_fun,
+                             weight=1.0, delay=0.0, receptor_type=None,
+                             config=CONFIGURED, **kwargs):
+    """This method will build a device and connect it to the spiking network
+       based on the input create_device_fun, and connect_device_fun functions,
+       which are specific to every spiking simulator.
+       Arguments:
+        device: either a name (string) of a device model, or a dictionary of properties for the device to build
+        create_device_fun: a function to build the device
+        connect_device_fun: a function to connect the device
+        node: the target SpikingRegionNode class instance
+        populations: target populations' labels:
+        inds_fun: a function to select a subset of each population's neurons
+        weight: the weight of the connection. Default = 1.0
+        delay: the delay of the connection. Default = 0.0
+        receptor_type: the synaptic receptor type of the connection. Default = None,
+                       which will default in a way specific to each spiking simulator.
+        config: a configuration class instance. Default = CONFIGURED (default configuration)
+        **kwargs: other possible keyword arguments, to be passed to the device builder.
+       Returns:
+        the built and connected Device class instance
+    """
+    device = build_device(device, create_device_fun, config=config, **kwargs)
+    for pop in ensure_list(populations):
+        device = connect_device_fun(device, node[pop], inds_fun,
+                                    weight, delay, receptor_type, config=config, **kwargs)
+    device._number_of_connections = device.number_of_connections
+    return device
 
 
 def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect_device_fun, spiking_nodes,
                                          config=CONFIGURED, **kwargs):
-    # This function is mostly used when a measuring (output) device targets one and only Spiking node,
-    # as it is the case for measuring Spiking populations from specific TVB nodes
-    # Build devices by their population (Series)
-    # and target nodes (Series) for faster reading
+    """This function will create a DeviceSet for a measuring (output) or input (stimulating) quantity,
+       whereby each device will target one and only SpikingRegionNode,
+       e.g. as it is the case for measuring Spiking populations from specific TVB nodes."""
     devices = Series()
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types, neurons_inds_funs = \
+    weights, delays, receptor_types, neurons_funs = \
         _get_device_props_with_correct_shape(device_dict, (len(device_target_nodes),))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
@@ -115,11 +130,11 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
         devices[pop_var] = DeviceSet(pop_var, device_dict["model"])
         # and for every target region node...
         for i_node, node in enumerate(device_target_nodes):
-            # and for every target node and population group...
-            # create a device
+            # ...and population group...
+            # ...create a device and connect it:
             devices[pop_var][node.label] = \
                 build_and_connect_device(device_dict, create_device_fun, connect_device_fun,
-                                         get_node_populations_neurons(node, populations, neurons_inds_funs[i_node]),
+                                         node, populations, neurons_funs[i_node],
                                          weights[i_node], delays[i_node], receptor_types[i_node],
                                          config=config, **kwargs)
         devices[pop_var].update()
@@ -128,15 +143,15 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
 
 def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connect_device_fun, spiking_nodes,
                                           names, config=CONFIGURED, **kwargs):
-    # This function is mostly used when a stimulation (input) device targets more than one Spiking node,
-    # as it is the case for TVB state variables-per-node proxies
-    # Build devices by their population (Series)
-    # and target nodes (Series) for faster reading
+    """This function will create a DeviceSet for a measuring (output) or input (stimulating) quantity,
+       whereby each device will target more than one SpikingRegionNode instances,
+       e.g. as it is the case a TVB "proxy" node,
+       stimulating several of the SpikingRegionNodes in the spiking network."""
     devices = Series()
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types, neurons_inds_funs = \
+    weights, delays, receptor_types, neurons_funs = \
         _get_device_props_with_correct_shape(device_dict, (len(names), len(device_target_nodes)))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
@@ -144,24 +159,29 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
         devices[pop_var] = DeviceSet(pop_var, device_dict["model"])
         # and for every target region node...
         for i_dev, dev_name in enumerate(names):
-            # and for every target node and population group...
+            # ...and populations' group...
             # create a device
-            devices[pop_var][dev_name] = build_device(device_dict, create_device_fun,
-                                                      config=config, **kwargs)
+            devices[pop_var][dev_name] = build_device(device_dict, create_device_fun, config=config, **kwargs)
+            # ...and loop through the target region nodes...
             for i_node, node in enumerate(device_target_nodes):
-                devices[pop_var][dev_name] = \
-                   connect_device_fun(devices[pop_var][dev_name],
-                                      get_node_populations_neurons(node, populations, neurons_inds_funs[i_dev, i_node]),
-                                      weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
-                                      config=config, **kwargs)
+                # ...and populations' groups...
+                # ...to connect it:
+                for pop in populations:
+                    devices[pop_var][dev_name] = \
+                       connect_device_fun(devices[pop_var][dev_name], node[pop], neurons_funs[i_dev, i_node],
+                                          weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
+                                          config=config, **kwargs)
         devices[pop_var].update()
     return devices
 
 
 def build_and_connect_devices(devices_input_dicts, create_device_fun, connect_device_fun, spiking_nodes,
                               config=CONFIGURED, **kwargs):
-    # Build devices by their population (Series)
-    # and target nodes (Series) for faster reading
+    """A method to build the final ANNarchyNetwork class based on the already created constituents.
+       Build and connect devices by
+       the variable they measure or stimulate, and population(s) they target (pandas.Series)
+       and target node (pandas.Series) where they refer to.
+    """
     devices = Series()
     for device_dict in ensure_list(devices_input_dicts):
         # For every distinct quantity to be measured from Spiking or stimulated towards Spiking nodes...
@@ -177,7 +197,3 @@ def build_and_connect_devices(devices_input_dicts, create_device_fun, connect_de
                                                                   spiking_nodes, dev_names, config=config, **kwargs)
                                               )
     return devices
-
-
-
-

@@ -12,9 +12,11 @@ LOG = initialize_logger(__name__)
 
 class SpikingRegionNode(Series):
 
-    """This is an indexed mapping between populations labels and
-       the neuronal populations residing at a specific brain region node,
-       based on inheriting pandas.Series class"""
+    """SpikingRegionNode class is an indexed mapping
+       (based on inheriting from pandas.Series class)
+       between populations labels and the neuronal populations
+       residing at a specific brain region node.
+    """
 
     _number_of_neurons = 0
 
@@ -43,6 +45,10 @@ class SpikingRegionNode(Series):
         return super(SpikingRegionNode, self).__len__()
 
     def __getitem__(self, items):
+        """If the argument is a sequence, a new SpikingRegionNode instance is returned.
+           If the argument is an integer index or a string label index,
+           the corresponding SpikingPopulation is returned.
+        """
         if isinstance(items, string_types) or is_integer(items):
             return super(SpikingRegionNode, self).__getitem__(items)
         return SpikingRegionNode(label=self.label, input_nodes=super(SpikingRegionNode, self).__getitem__(items))
@@ -66,7 +72,7 @@ class SpikingRegionNode(Series):
         return series_loop_generator(self, pop_inds_or_lbls)
 
     def get_neurons(self, pop_inds_or_lbls=None):
-        """Method to get the neurons of the SpikingRegionNode's populations.
+        """Method to get the neurons indices of the SpikingRegionNode's populations.
            Argument:
             pop_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
                               Default = None, corresponds to all populations of the SpikingRegionNode.
@@ -103,7 +109,7 @@ class SpikingRegionNode(Series):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Series of arrays of populations' neurons' attributes.
+            Series of populations' neurons' attributes.
         """
         output = Series()
         for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
@@ -122,7 +128,7 @@ class SpikingRegionNode(Series):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Series of arrays of populations' neurons' attributes.
+            Series of populations' neurons' attributes.
         """
         return self.Get(pop_inds_or_lbls=pop_inds_or_lbls, summary=summary)
 
@@ -168,7 +174,7 @@ class SpikingRegionNode(Series):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Series of arrays of connections' attributes.
+            Series of connections' attributes.
         """
         output = Series()
         for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):

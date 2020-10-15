@@ -15,6 +15,16 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class SimulatorBuilder(object):
+
+    """SimulatorBuilder is an opinionated builder for a TVB Simulator, adjusted for cosimulation.
+       Depending on its properties set, the builder may
+       - scale/normalize the connectivity weights,
+       - remove time delays or not,
+       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
+       - set integrator (including noise and integration step),
+       - set monitor (including model's variables of interest and period)
+    """
+
     cosimulation = True
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
@@ -48,6 +58,12 @@ class SimulatorBuilder(object):
         self.monitor_period = 1.0
 
     def build(self, **model_params):
+        """This method will build the TVB simulator, based on the builder's properties.
+           Arguments:
+            - **model_params: keyword arguments to modify the default model parameters
+           Returns:
+            - the TVB simulator built, but not yet configured.
+        """
         # Load, normalize and configure connectivity
         if isinstance(self.connectivity, string_types):
             connectivity = Connectivity.from_file(self.connectivity)
