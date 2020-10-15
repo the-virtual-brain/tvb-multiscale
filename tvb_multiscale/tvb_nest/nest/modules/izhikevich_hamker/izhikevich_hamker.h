@@ -47,9 +47,9 @@ The dynamics are given by:
   @f[
   dv/dt = n2*v^2 + n1*v + n0 - u/C_m + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
   du/dt = a*(b*v - u)]
-  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)      (positively weighted spikes at port 0)
-  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)  (negatively weighted spikes at port 0)
-  tau_rise*dg_L/dt = -g_L + spikes_baseline(t)            (only positively -error otherwise- weighted spikes at port 1)
+  tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)      (positively weighted spikes at port 1)
+  tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)  (negatively weighted spikes at port 1)
+  tau_rise*dg_L/dt = -g_L + spikes_baseline(t)            (only positively -error otherwise- weighted spikes at port 0)
   @f]
 
     if  \f$ v >= V_{th} \f$:
@@ -81,18 +81,19 @@ The following parameters can be set in the status dictionary.
 ======================= =======  ==============================================
  V_m                    mV       Membrane potential
  U_m                    mV       Membrane potential recovery variable
+ E_rev_AMPA             mV       AMPA reversal potential
+ E_rev_GABA_A           mV       GABA reversal potential
+ V_th                   mV       Spike threshold
+ V_min                  mV       Absolute lower value for the membrane potential
+ C_m                    real     Membrane capacitance
  g_L                    nS       Baseline conductance variable
  g_AMPA                 nS       AMPA conductance variable
  g_GABA_A               nS       GABA conductance variable
  I_syn_ex               pA       AMPA synaptic current
  I_syn_in               pA       GABA synaptic current
  I_syn                  pA       Total synaptic current
- V_th                   mV       Spike threshold
- E_rev_AMPA             mV       AMPA reversal potential
- E_rev_GABA_A           mV       GABA reversal potential
- V_min                  mV       Absolute lower value for the membrane potential
- C_m                    real     Membrane capacitance
  I_e                    pA       Constant input current (R=1)
+ t_ref                  ms       Duration of refractory period in ms.
  tau_rise               ms       Time constant of baseline conductance
  tau_rise_AMPA          ms       Time constant of AMPA synapse
  tau_rise_GABA_A        ms       Time constant of GABA synapse
@@ -171,6 +172,25 @@ private:
 
   void update( Time const&, const long, const long );
 
+  /**
+   * Minimal spike receptor type.
+   * @note Start with 1 so we can forbid port 0 to avoid accidental
+   *       creation of connections with no receptor type set.
+   */
+  static const port MIN_SPIKE_RECEPTOR = 0;
+
+  /**
+   * Spike receptors.
+   */
+  enum SpikeSynapseTypes
+  {
+    ACTIVITY = MIN_SPIKE_RECEPTOR,
+    NOISE,
+    SUP_SPIKE_RECEPTOR
+  };
+
+  static const size_t NUM_SPIKE_RECEPTORS = SUP_SPIKE_RECEPTOR - MIN_SPIKE_RECEPTOR;
+
   // ----------------------------------------------------------------
 
   /**
@@ -178,32 +198,33 @@ private:
    */
   struct Parameters_
   {
-    double a_;
-    double b_;
-    double c_;
-    double d_;
-    double n0_;
-    double n1_;
-    double n2_;
-
-    /** Synaptic time constants */
-    double tau_rise_;
-    double tau_rise_AMPA_;
-    double tau_rise_GABA_A_;
-
+    /** Membrane potential */
     /** Threshold */
-    double V_th_;
     double E_rev_AMPA_;
     double E_rev_GABA_A_;
-
+    double V_th_;
     /** Lower bound */
     double V_min_;
+
+     /** Membrane capacitance */
+    double C_m_;
 
     /** External DC current */
     double I_e_;
 
-    /** External DC current */
-    double C_m_;
+    /** Synaptic time constants */
+    double t_ref_;
+    double tau_rise_;
+    double tau_rise_AMPA_;
+    double tau_rise_GABA_A_;
+
+    double n0_;
+    double n1_;
+    double n2_;
+    double a_;
+    double b_;
+    double c_;
+    double d_;
 
     /** Use standard integration numerics **/
     bool consistent_integration_;
@@ -225,12 +246,13 @@ private:
     double u_;         // membrane recovery variable
     double g_L_;       // Membrane conductance
     double g_AMPA_;    // AMPA conductance
-    double g_GABA_A_;    // GABA conductance
+    double g_GABA_A_;  // GABA conductance
     double I_syn_ex_;  // total AMPA synaptic current
     double I_syn_in_;  // total GABA synaptic current
     double I_syn_;     // total synaptic current
     double I_;         // input current
 
+    int r_;            // number of refractory steps remaining
 
     /** Accumulate spikes arriving during refractory period, discounted for
         decay until end of refractory period.
@@ -270,6 +292,7 @@ private:
    */
   struct Variables_
   {
+    unsigned int refractory_counts_;
   };
 
   // Access functions for UniversalDataLogger -----------------------
@@ -353,11 +376,11 @@ izhikevich_hamker::send_test_event( Node& target, rport receptor_type, synindex,
 inline port
 izhikevich_hamker::handles_test_event( SpikeEvent&, rport receptor_type )
 {
-  if ( receptor_type > 1 )
+  if ( receptor_type < MIN_SPIKE_RECEPTOR || receptor_type > SUP_SPIKE_RECEPTOR )
   {
-    throw UnknownReceptorType( receptor_type, get_name() );
+    throw IncompatibleReceptorType( receptor_type, get_name(), "SpikeEvent" );
   }
-  return 0;
+  return receptor_type - MIN_SPIKE_RECEPTOR;
 }
 
 inline port
@@ -387,6 +410,17 @@ izhikevich_hamker::get_status( DictionaryDatum& d ) const
   S_.get( d, P_ );
   Archiving_Node::get_status( d );
   ( *d )[ names::recordables ] = recordablesMap_.get_list();
+
+  /**
+   * @todo dictionary construction should be done only once for
+   * static member in default c'tor, but this leads to
+   * a seg fault on exit, see #328
+   */
+  DictionaryDatum receptor_dict_ = new Dictionary();
+  ( *receptor_dict_ )[ names::activity ] = ACTIVITY;
+  ( *receptor_dict_ )[ names::noise ] = NOISE;
+
+  ( *d )[ names::receptor_types ] = receptor_dict_;
 }
 
 inline void

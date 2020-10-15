@@ -9,6 +9,19 @@ from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 
 
+class NeuronsIndsFun(object):
+    conns = np.array([])
+    start_id_scaffold = 0
+
+    def __init__(self, start_id_scaffold, conns):
+        self.start_id_scaffold = start_id_scaffold
+        self.conns = conns
+
+    def __call__(self, neurons_inds):
+        return [int(x - self.start_id_scaffold + neurons_inds[0])
+                for x in self.conns]
+
+
 class CerebBuilder(NESTModelBuilder):
 
     path_to_network_source_file = ""
@@ -60,7 +73,13 @@ class CerebBuilder(NESTModelBuilder):
                           'lambda_0': 1.8, 'tau_V': 1.1, 'I_e': 3.711, 'kadap': 2.025, 'k1': 1.887, 'k2': 1.096,
                           'A1': 5.953, 'A2': 5.863,
                           'E_rev1': Erev_exc, 'E_rev2': Erev_inh, 'E_rev3': Erev_exc, 'tau_syn1': tau_exc['basket'],
-                          'tau_syn2': tau_inh['basket'], 'tau_syn3': tau_exc_cfmli}}
+                          'tau_syn2': tau_inh['basket'], 'tau_syn3': tau_exc_cfmli},
+        'dcn_cell': {'t_ref': 0.8, 'C_m': 142.0, 'tau_m': 33.0, 'V_th': -36.0, 'V_reset': -55.0, 'Vinit': -45.0,
+                     'E_L': -45.0,
+                     'lambda_0': 3.5, 'tau_V': 3.0, 'I_e': 75.385, 'kadap': 0.408, 'k1': 0.697, 'k2': 0.047,
+                     'A1': 13.857, 'A2': 3.477,
+                     'E_rev1': Erev_exc, 'E_rev2': Erev_inh, 'E_rev3': Erev_exc, 'tau_syn1': tau_exc['dcn'],
+                     'tau_syn2': tau_inh['dcn']}}
 
     # Connection weights
     conn_weights = {'mossy_to_glomerulus': 1.0, 'ascending_axon_to_golgi': 0.05, 'ascending_axon_to_purkinje': 0.175,
@@ -68,20 +87,23 @@ class CerebBuilder(NESTModelBuilder):
                     'glomerulus_to_golgi': 0.0125, 'glomerulus_to_granule': 0.361, 'golgi_to_granule': 0.338,
                     'parallel_fiber_to_basket': 0.002, 'parallel_fiber_to_golgi': 0.008,
                     'parallel_fiber_to_purkinje': 0.044,
-                    'parallel_fiber_to_stellate': 0.003, 'stellate_to_purkinje': 1.213}
+                    'parallel_fiber_to_stellate': 0.003, 'stellate_to_purkinje': 1.213,
+                    'mossy_to_dcn': 0.5, 'purkinje_to_dcn': 0.45}
 
     # Connection delays
     conn_delays = {'mossy_to_glomerulus': 1.0, 'ascending_axon_to_golgi': 2.0, 'ascending_axon_to_purkinje': 2.0,
                    'basket_to_purkinje': 4.0,
                    'glomerulus_to_golgi': 4.0, 'glomerulus_to_granule': 4.0, 'golgi_to_granule': 2.0,
                    'parallel_fiber_to_basket': 5.0, 'parallel_fiber_to_golgi': 5.0, 'parallel_fiber_to_purkinje': 5.0,
-                   'parallel_fiber_to_stellate': 5.0, 'stellate_to_purkinje': 5.0}
+                   'parallel_fiber_to_stellate': 5.0, 'stellate_to_purkinje': 5.0,
+                   'mossy_to_dcn': 4.0, 'purkinje_to_dcn': 4.0}
 
     # Connection receptors
     conn_receptors = {'ascending_axon_to_golgi': 3, 'ascending_axon_to_purkinje': 1, 'basket_to_purkinje': 2,
                       'glomerulus_to_golgi': 1, 'glomerulus_to_granule': 1, 'golgi_to_granule': 2,
                       'parallel_fiber_to_basket': 1, 'parallel_fiber_to_golgi': 3, 'parallel_fiber_to_purkinje': 1,
-                      'parallel_fiber_to_stellate': 1, 'stellate_to_purkinje': 2}
+                      'parallel_fiber_to_stellate': 1, 'stellate_to_purkinje': 2,
+                      'mossy_to_dcn': 1, 'purkinje_to_dcn': 2}
 
     # Connection pre and post-synaptic neurons
     conn_pre_post = {'mossy_to_glomerulus': {'pre': 'mossy_fibers', 'post': 'glomerulus'},
@@ -95,15 +117,20 @@ class CerebBuilder(NESTModelBuilder):
                      'parallel_fiber_to_golgi': {'pre': 'granule_cell', 'post': 'golgi_cell'},
                      'parallel_fiber_to_purkinje': {'pre': 'granule_cell', 'post': 'purkinje_cell'},
                      'parallel_fiber_to_stellate': {'pre': 'granule_cell', 'post': 'stellate_cell'},
-                     'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'}}
+                     'stellate_to_purkinje': {'pre': 'stellate_cell', 'post': 'purkinje_cell'},
+                     'mossy_to_dcn': {'pre': 'mossy_fibers', 'post': 'dcn_cell'},
+                     'purkinje_to_dcn': {'pre': 'purkinje_cell', 'post': 'dcn_cell'}}
 
-    RECORD_VM = False
-    TOT_DURATION = 300.  # mseconds
-    STIM_START = 100.  # beginning of stimulation
-    STIM_END = 200.  # end of stimulation
+    RECORD_VM = True
+    STIMULUS = True
+    TOT_DURATION = 350.  # mseconds
+    STIM_START = 150.  # beginning of stimulation
+    STIM_END = 250.  # end of stimulation
     STIM_FREQ = 100.  # Frequency in Hz
     BACKGROUND_FREQ = 4.
 
+    ordered_neuron_types = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
+                            "basket_cell", "stellate_cell", "purkinje_cell", 'dcn_cell']
     neuron_types = []
     start_id_scaffold = []
 
@@ -121,6 +148,11 @@ class CerebBuilder(NESTModelBuilder):
     def set_populations(self):
         # Populations' configurations
         self.neuron_types = list(self.net_src_file['cells/placement'].keys())
+        ordered_neuron_types = []
+        for neuron_type in self.ordered_neuron_types:
+            ordered_neuron_types.append(self.neuron_types.pop(self.neuron_types.index(neuron_type)))
+        ordered_neuron_types += self.neuron_types
+        self.neuron_types = ordered_neuron_types
         self.populations = []
         self.start_id_scaffold = {}
         # All cells are modelled as E-GLIF models;
@@ -145,15 +177,14 @@ class CerebBuilder(NESTModelBuilder):
         self.populations_connections = []
         for conn_name in self.conn_weights.keys():
             conn = np.array(self.net_src_file['cells/connections/'+conn_name])
-            pre_name = self.conn_pre_post[conn_name]["pre"]
-            post_name = self.conn_pre_post[conn_name]["post"]
-            pre_fun = lambda neurons_inds: [int(x-self.start_id_scaffold[pre_name]+neurons_inds[0])
-                                            for x in conn[:, 0].flatten()]
-            post_fun = lambda neurons_inds: [int(x-self.start_id_scaffold[post_name]+neurons_inds[0])
-                                             for x in conn[:, 1].flatten()]
             self.populations_connections.append(
-                {"source": pre_name, "target": post_name,
-                 "source_inds": pre_fun, "target_inds": post_fun,
+                {"source": self.conn_pre_post[conn_name]["pre"],
+                 "target": self.conn_pre_post[conn_name]["post"],
+                 "source_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
+                                               conn[:, 0].flatten()),
+
+                 "target_inds": NeuronsIndsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
+                                               conn[:, 1].flatten()),
                  "model": 'static_synapse',
                  "conn_spec": self.default_populations_connection["conn_spec"],
                  "weight": self.conn_weights[conn_name],
@@ -178,7 +209,7 @@ class CerebBuilder(NESTModelBuilder):
             connections[pop["label"] + "_spikes"] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_detector"])
         device = {"model": "spike_detector", "params": params,
-                  "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
+                  # "neurons_inds": lambda node, neurons_inds: self.neurons_inds_fun(neurons_inds),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
@@ -198,7 +229,9 @@ class CerebBuilder(NESTModelBuilder):
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_detector(), self.set_multimeter()]
+        self.output_devices = [self.set_spike_detector()]
+        if self.RECORD_VM:
+            self.output_devices.append(self.set_multimeter())
 
     def set_spike_stimulus(self):
         connections = OrderedDict()
@@ -227,7 +260,8 @@ class CerebBuilder(NESTModelBuilder):
         return device
 
     def set_input_devices(self):
-        self.input_devices = [self.set_spike_stimulus(), self.set_spike_stimulus_background()]
+        if self.STIMULUS:
+            self.input_devices = [self.set_spike_stimulus(), self.set_spike_stimulus_background()]
 
     def set_defaults(self):
         self.net_src_file = h5py.File(self.path_to_network_source_file, 'r+')

@@ -101,17 +101,14 @@ class SpikesPlotter(BasePlotter):
         if xticks is not None:
             axes.set_xticks(xticks)
 
+        axes.set_yticklabels([])
         if rate_ytick_labels is not None:
             if i_pop == 0:
                 axes.set_yticklabels(rate_ytick_labels)
-                # axes.set_ylabel("%s (spikes/s)" % reg_label)
-            else:
-                axes.set_yticklabels([])
-        # else:
-        #     if i_pop == 0:
-        axes.set_ylabel("%s neurons" % reg_label)
 
-        # if i_region == 0:
+        if i_pop == 0:
+            axes.set_ylabel("%s neurons" % reg_label)
+
         axes.set_title(pop_label)
 
         if i_region == n_regions - 1:

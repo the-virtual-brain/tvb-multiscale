@@ -53,13 +53,13 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
             {"model": "inhomogeneous_poisson_generator",
              "params": {"allow_offgrid_times": False},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)---------
-              "interface_weights": 50.0,
+              "interface_weights": 1.0,
         # Applied outside NEST for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
         #                                  Function of TVB connectivity delay:
               "delays": self.tvb_delay_fun,
-              "receptor_type": 0.0,
+              "receptor_type": 0,
         # --------------------------------------------------------------------------------------------------------------
         #                           TVB sv or param -> NEST population
               "connections": connections,
@@ -79,7 +79,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         interface = \
             {"model": "spike_detector", "params": {},
              # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
-             "weights": 1.0, "delays": 0.0,
+             "interface_weights": 1.0, "delays": 0.0,
              # --------------------------------------------------------------------------------------------------------------
              "connections": connections, "nodes": None}  # None means all here
         interface.update(kwargs)

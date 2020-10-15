@@ -14,14 +14,14 @@ class NESTNetwork(SpikingNetwork):
     nest_instance = None
 
     def __init__(self, nest_instance=None,
-                 brain_nodes=None,
+                 brain_regions=None,
                  output_devices=None,
                  input_devices=None,
                  config=CONFIGURED):
         if nest_instance is None:
             nest_instance = load_nest(self.config, LOG)
         self.nest_instance = nest_instance
-        super(NESTNetwork, self).__init__(brain_nodes, output_devices, input_devices, config)
+        super(NESTNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
 
     @property
     def spiking_simulator_module(self):

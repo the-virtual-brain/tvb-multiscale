@@ -115,7 +115,7 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
         interface = \
             {"model": "spike_detector", "params": {},
              # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
-             "weights": 1.0, "delays": 0.0,
+             "interface_weights": 1.0, "delays": 0.0,
              "neurons_inds": lambda node_id, neurons_inds:
                                  tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
              # --------------------------------------------------------------------------------------------------------------
