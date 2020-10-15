@@ -72,8 +72,8 @@ def assert_model(model, import_path, annarchy_instance):
         except:
             # ...or otherwise import it from the users models' directory:
             model = importlib.import_module(model_name, import_path)
-    else:
-        model_name = model.name
+    #else:
+        #model_name = model.name
     # Return the model class
     return model
 
@@ -220,7 +220,8 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         default_params.update(params)
     label = default_params.pop("label", "")
     # Create the ANNarchy Device class:
-    annarchy_device = devices_dict[device_model](None, label=label, anarchy_instance=annarchy_instance)
+    annarchy_device = devices_dict[device_model](None, label=label, model=device_model,
+                                                 annarchy_instance=annarchy_instance)
     if isinstance(annarchy_device, ANNarchyInputDevice):
         # If it is an input device, populate it:
         annarchy_device = create_input_device(annarchy_device, kwargs.get("import_path", config.MYMODELS_IMPORT_PATH))
