@@ -74,7 +74,7 @@ def assert_model(model, import_path, annarchy_instance):
             model = importlib.import_module(model_name, import_path)
     else:
         model_name = model.name
-    # Return the model class and name:
+    # Return the model class
     return model
 
 
