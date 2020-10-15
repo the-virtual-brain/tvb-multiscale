@@ -303,6 +303,8 @@ class ANNarchyOutputDevice(OutputDevice):
                  run_tvb_multiscale_init=True, **kwargs):
         if isinstance(monitors, dict):
             self.monitors = OrderedDict(monitors)
+        else:
+            self.monitors = OrderedDict()
         self.params = kwargs.pop("params", {})
         if len(model) > 0:
             self.model = model
