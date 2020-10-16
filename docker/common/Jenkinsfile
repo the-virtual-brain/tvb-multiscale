@@ -29,7 +29,8 @@ pipeline {
                     pytest --cov-config .coveragerc --cov=tvb tests --cov-branch --cov-report xml:tvb_multiscale_coverage.xml --junitxml=tvb_multiscale_test_results.xml
                     exit 0
                 '''
-                zip archive: true, dir: '', glob: '*.xml', zipFile: 'test_docker_results.zip'
+                junit 'tvb_multiscale_test_results.xml'
+                step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'tvb_multiscale_coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
             }
         }
     }
