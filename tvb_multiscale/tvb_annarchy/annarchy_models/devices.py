@@ -497,6 +497,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                       run_tvb_multiscale_init=False, **kwargs)
         if run_tvb_multiscale_init:
             Multimeter.__init__(self, monitors, model=self.model, label=self.label)
+            self.model = model
 
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):

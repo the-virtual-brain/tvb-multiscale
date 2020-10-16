@@ -117,7 +117,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                      "delay": lambda source_node, target_node: self.tvb_delay_fun(source_node, target_node),
                      "receptor_type": target, "source_nodes": src_nodes, "target_nodes": trg_nodes})
 
-        # Creating  devices to be able to observe NEST activity:
+        # Creating  devices to be able to observe ANNarchy activity:
         self.output_devices = []
         for pop in self.populations:
             connections = OrderedDict({})
@@ -128,8 +128,12 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
         # Labels have to be different for every connection to every distinct population
+        # params for baladron implementation commented out for the moment
+        # TODO: use baladron neurons
+        #params = {"period": 1.0,
+        #          'record_from': ["v", "u", "syn", "g_base", "g_ampa", "g_gaba"]}
         params = {"period": 1.0,
-                  'record_from': ["v", "u", "syn", "g_base", "g_ampa", "g_gaba"]}
+                  'record_from': ["v", "u", "syn", "g_ampa", "g_gaba"]}
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
