@@ -26,7 +26,7 @@ pipeline {
                 sh '''#!/bin/bash
                     source /home/docker/env/neurosci/bin/activate
                     python setup.py develop
-                    cp -r /home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules /home/docker/packages/nest_modules_builds
+                    cp -r /home/docker/packages/tvb-nest/tvb_multiscale/tvb_nest/nest/modules /home/docker/packages/nest_modules_builds
                     pytest --cov-config .coveragerc --cov=tvb tests --cov-branch --cov-report xml:tvb_multiscale_coverage.xml --junitxml=tvb_multiscale_test_results.xml
                     exit 0
                 '''
