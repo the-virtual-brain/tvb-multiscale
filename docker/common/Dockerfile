@@ -68,8 +68,8 @@ ARG WITH_LIBNEUROSIM=$VENV
 WORKDIR $PACKAGES_DIR
 # For Lionel it will be a Forked repo
 ARG NEST_REPO_URL=https://github.com/nest/nest-simulator.git
-ARG BRANCH=master
-RUN git clone --depth 1 --branch $BRANCH $NEST_REPO_URL; \
+ARG NEST_BRANCH=master
+RUN git clone --depth 1 --branch $NEST_BRANCH $NEST_REPO_URL; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
@@ -81,7 +81,6 @@ RUN git clone --depth 1 --branch $BRANCH $NEST_REPO_URL; \
           -Dwith-libneurosim=$WITH_LIBNEUROSIM \
           ${NEST_SRC}; \
     make; make install
-RUN if [ "x$BRANCH" = "master" ] ; then cp -r $NEST_SRC/nestkernel/spatial $NEST_INSTALL_DIR/include/nest ; fi
 
 # Install nestml
 RUN $VENV/bin/pip3 install setuptools; \
