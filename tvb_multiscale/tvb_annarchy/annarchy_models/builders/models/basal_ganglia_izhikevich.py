@@ -144,18 +144,18 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Create a spike stimulus input device
         self.input_devices = [
-            {"model": "PoissonPopulation",
-             "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
+            {"model": "poisson_population",
+             "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "label": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
              "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-            {"model": "PoissonPopulation",
-             "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
+            {"model": "poisson_population",
+             "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "label": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
              "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "poisson_population",
-             "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
+             "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "label": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
              "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},

@@ -28,13 +28,14 @@ class ANNarchyPopulation(SpikingPopulation):
 
     def __init__(self, population_neurons, label="", model="", annarchy_instance=None, **kwargs):
         self.annarchy_instance = annarchy_instance
-        self._population = population_neurons
-        if len(label):
-            self._population.name = label
-        else:
-            label = self._population.name
-        if annarchy_instance is not None:
-            self._population_ind = self._get_population_ind()
+        if population_neurons is not None:
+            self._population = population_neurons
+            if len(label):
+                self._population.name = label
+            else:
+                label = self._population.name
+            if annarchy_instance is not None:
+                self._population_ind = self._get_population_ind()
         super(ANNarchyPopulation, self).__init__(population_neurons, label, model, **kwargs)
 
     @property
@@ -170,9 +171,12 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         neurons = self._assert_neurons(neurons)
         projections = []
-        for proj in getattr(self, "_projections_%s" % pre_or_post):
-            if getattr(proj, pre_or_post) == neurons.ranks:
-                projections.append(proj)
+        if neurons is not None:
+            for proj in getattr(self, "_projections_%s" % pre_or_post):
+                if getattr(proj, pre_or_post) == neurons.ranks:
+                    projections.append(proj)
+        else:
+            projections = getattr(self, "_projections_%s" % pre_or_post)
         return projections
 
     @property
