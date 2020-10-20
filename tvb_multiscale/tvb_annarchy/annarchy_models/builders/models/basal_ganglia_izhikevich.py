@@ -124,7 +124,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
             #                               label <- target population
             connections[pop["label"] + "_spikes"] = pop["label"]
             self.output_devices.append(
-                {"model": "spike_detector", "params": {},
+                {"model": "SpikeMonitor", "params": {},
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
         # Labels have to be different for every connection to every distinct population
@@ -139,23 +139,23 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
             #               label    <- target population
             connections[pop["label"]] = pop["label"]
             self.output_devices.append(
-                {"model": "monitor", "params": params,
+                {"model": "Monitor", "params": params,
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
 
         # Create a spike stimulus input device
         self.input_devices = [
-            {"model": "poisson_population",
-             "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "label": "BaselineEstn"},
+            {"model": "PoissonPopulation",
+             "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
              "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-            {"model": "poisson_population",
-             "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "label": "BaselineIgpe"},
+            {"model": "PoissonPopulation",
+             "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
              "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "poisson_population",
-             "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "label": "BaselineIgpi"},
+             "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
              "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
