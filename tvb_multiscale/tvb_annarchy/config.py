@@ -29,23 +29,23 @@ class Config(ConfigBase):
                           "source_inds": None, "target_inds": None,
                           "conn_spec": {"method": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
-    DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "poisson_population"
-    DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_detector"
+    DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
+    DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
 
     # Available ANNARCHY output devices for the interface and their default properties
-    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"spike_detector": {"record_from": "spike"},
+    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"record_from": "spike"},
                                           "spike_multimeter": {"record_from": "spike"},
-                                          "monitor": {"record_from": ["v", 'g_exc', 'g_inh']}}
+                                          "Monitor": {"record_from": ["v", 'g_exc', 'g_inh']}}
 
-    ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"spike_source_array": {"spike_times": []},
-                                         "poisson_population": {"rates": 0.0},
-                                         "homogeneous_correlated_spike_trains":
+    ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": []},
+                                         "PoissonPopulation": {"rates": 0.0},
+                                         "HomogeneousCorrelatedSpikeTrains":
                                              {"rates": 0.0, "corr": 0.0, "tau": 1.0},
-                                         "current_injector": {"amplitude": 0.0},
-                                         "dc_current_injector": {"amplitude": 0.0},
-                                         "ac_current_injector": {"frequency": 0.0, "amplitude": 1.0,
-                                                                 "phase": 0.0, "offset": 0.0},
-                                         "timed_array": {"rates": 0.0, "schedule": 0.0, "period": -1.0},
+                                         "CurrentInjector": {"amplitude": 0.0},
+                                         "DCCurrentInjector": {"amplitude": 0.0},
+                                         "ACCurrentInjector": {"frequency": 0.0, "amplitude": 1.0,
+                                                               "phase": 0.0, "offset": 0.0},
+                                         "TimedArray": {"rates": 0.0, "schedule": 0.0, "period": -1.0},
                                          }
 
     def __init__(self, output_base=None, separate_by_run=False):
