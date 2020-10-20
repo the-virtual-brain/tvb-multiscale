@@ -154,7 +154,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
              "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-            {"model": "poisson_population",
+            {"model": "PoissonPopulation",
              "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
