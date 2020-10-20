@@ -286,8 +286,8 @@ class InputDevice(Device):
     model = "input_device"
 
     def __init__(self, device, *args, **kwargs):
+        kwargs["model"] = kwargs.pop("model", "input_device")
         super(InputDevice, self).__init__(device, *args, **kwargs)
-        self.model = "input_device"
 
     def GetConnections(self):
         """Method to get connections of the device to neurons.
@@ -315,8 +315,8 @@ class OutputDevice(Device):
     model = "output_device"
     
     def __init__(self, device, *args, **kwargs):
+        kwargs["model"] = kwargs.pop("model", "output_device")
         super(OutputDevice, self).__init__(device, *args, **kwargs)
-        self.model = "output_device"
 
     def GetConnections(self):
         """Method to get connections of the device from neurons.
@@ -422,8 +422,8 @@ class SpikeRecorder(OutputDevice):
     model = "spike_recorder"
 
     def __init__(self, device, *args, **kwargs):
+        kwargs["model"] = kwargs.pop("model", "spike_detector")
         super(SpikeRecorder, self).__init__(device, *args, **kwargs)
-        self.model = "spike_detector"
 
     def get_spikes_events(self, events_inds=None, **filter_kwargs):
         """This method will select/exclude part of the detected spikes' events, depending on user inputs
@@ -668,8 +668,8 @@ class Multimeter(OutputDevice):
     model = "multimeter"
 
     def __init__(self, device, *args, **kwargs):
+        kwargs["model"] = kwargs.pop("model", "multimeter")
         super(Multimeter, self).__init__(device, *args, **kwargs)
-        self.model = "multimeter"
 
     @property
     @abstractmethod
@@ -847,8 +847,8 @@ class Voltmeter(Multimeter):
     model = "voltmeter"
 
     def __init__(self, device, *args, **kwargs):
+        kwargs["model"] = kwargs.pop("model", "voltmeter")
         super(Voltmeter, self).__init__(device, *args, **kwargs)
-        self.model = "voltmeter"
 
     @property
     @abstractmethod
@@ -942,8 +942,8 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
     model = "spike_multimeter"
 
     def __init__(self, device, *args, **kwargs):
+        kwargs["model"] = kwargs.pop("model", "spike_multimeter")
         super(SpikeMultimeter, self).__init__(device, *args, **kwargs)
-        self.model = "spike_multimeter"
 
     @property
     def spikes_vars(self):
