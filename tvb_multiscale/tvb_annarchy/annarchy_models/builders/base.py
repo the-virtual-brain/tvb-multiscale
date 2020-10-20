@@ -8,7 +8,7 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.region_node import ANNarchyRegi
 from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
-    load_annarchy, assert_model, set_model_parameters, connect_two_populations, create_device, connect_device
+    load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
 
@@ -91,7 +91,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                 'delays': delays, 'target': target, 'params': params}
 
     def _assert_model(self, model):
-        return assert_model(model, self._models_import_path, self.annarchy_instance)
+        return assert_model(model, self.annarchy_instance, self._models_import_path)
 
     def build_spiking_population(self, label, model, size, params):
         """This methods builds an  ANNarchyPopulation instance,
@@ -105,10 +105,9 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
            Returns:
             a ANNarchyPopulation class instance
         """
-        geometry = params.pop("geometry", size)
-        model = self._assert_model(model)
-        annarchy_population = self.annarchy_instance.Population(geometry=geometry, neuron=model, name=label)
-        annarchy_population = set_model_parameters(annarchy_population, **params)
+        params["name"] = label
+        annarchy_population = create_population(model, self.annarchy_instance, size=size,
+                                                params=params, import_path=self._models_import_path)
         return ANNarchyPopulation(annarchy_population, label,
                                   annarchy_population.neuron_type.name, self.annarchy_instance)
 
