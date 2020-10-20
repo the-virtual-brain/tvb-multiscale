@@ -9,14 +9,13 @@ import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyACCurrentInjector, \
-    ANNarchySpikeSourceArray, ANNarchyPoissonPopulation, ANNarchyHomogeneousCorrelatedSpikeTrains, ANNarchyTimedArray
+    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyACCurrentInjector
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs, delete_folder_safely
 
-from ANNarchy import Neuron
+from ANNarchy import Population
 
 
 LOG = initialize_logger(__name__)
@@ -54,7 +53,8 @@ def load_annarchy(config=CONFIGURED, logger=LOG, clean_compilation_directory=Tru
 def assert_model(model, import_path, annarchy_instance):
     """This method will confirm an ANNarchy model:
        Arguments:
-        model: either a model name (string) or an ANNarchy.Neuron or ANNarchy Synapse model.
+        model: either a model name (string) or an ANNarchy.Neuron or ANNarchy Synapse model, or, even,
+               a SpecificPopulation or SpecificProjection name
         import_path: the path to be possibly searched to import the model
         annarchy_instance: the ANNarchy instance.
        Returns:
@@ -66,15 +66,14 @@ def assert_model(model, import_path, annarchy_instance):
     """
     if isinstance(model, string_types):
         # If the model is actually a model name:
-        model_name = model
         try:
             # ...try to load it from ANNarchy if it ships with its main distribution:
-            model = getattr(annarchy_instance, model_name)
+            model = getattr(annarchy_instance, model)
         except:
             # ...or otherwise import it from the users models' directory:
-            model = importlib.import_module(model_name, import_path)
-    #else:
-        #model_name = model.name
+            model = importlib.import_module(model, import_path)
+    if isinstance(model, Population):
+        model = model.neuron_type
     # Return the model class
     return model
 
@@ -164,37 +163,21 @@ def create_input_device(annarchy_device, import_path, params={}):
        Returns:
         annarchy_device: the same ANNarchyInputDevice instance populated
     """
-    # Check which sort of input device is to be populated.
-    if annarchy_device.population is None:
-        if isinstance(annarchy_device, ANNarchySpikeSourceArray):
-            annarchy_device._population = annarchy_device.annarchy_instance.SpikeSourceArray(**params)
-        elif isinstance(annarchy_device, ANNarchyPoissonPopulation):
-            annarchy_device._population = annarchy_device.annarchy_instance.PoissonPopulation(**params)
-        elif isinstance(annarchy_device, ANNarchyHomogeneousCorrelatedSpikeTrains):
-            annarchy_device._population = annarchy_device.annarchy_instance.HomogeneousCorrelatedSpikeTrains(**params)
-        elif isinstance(annarchy_device, ANNarchyTimedArray):
-            annarchy_device._population = annarchy_device.annarchy_instance.TimedArray(**params)
-        else:
-            # If the input device has no special class in ANNarchy, give it a nonspecific Population.
-            if isinstance(annarchy_device, ANNarchyACCurrentInjector):
-                # For the special case of ANNarchyACCurrentInjector convert a possible frequency argument f,
-                # to an angular frequency parameters omega = 2*pi*fi
-                f = params.pop("frequency", annarchy_device.annarchy_instance.Neuron)
-                if f:
-                    params["omega"] = 2 * np.pi * f
-            neuron = assert_model(params.pop("neuron_model", None), import_path, annarchy_device.annarchy_instance)
-            neuron_params = params.pop("neuron_params", None)
-            if neuron_params is not None:
-                neuron = set_model_parameters(neuron, **neuron_params)
-            params["neuron"] = neuron
-            annarchy_device._population = annarchy_device.annarchy_instance.Population(**params)
-
-        if len(annarchy_device._population.name) > 0:
-            annarchy_device._population.name = annarchy_device.label
-
-    else:
-        warning("Input device with label %s already has a population, create_input_device() is not altering it."
-                %(annarchy_device.label))
+    if isinstance(annarchy_device, ANNarchyACCurrentInjector):
+        # For the special case of ANNarchyACCurrentInjector convert a possible frequency parameter f,
+        # to an angular frequency parameters omega = 2*pi*f
+        f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
+        if f:
+            params["omega"] = 2 * np.pi * f
+    annarchy_device._population = \
+            annarchy_device.annarchy_instance.Population(
+                                geometry=params.pop("geometry", 1),
+                                neuron=assert_model(annarchy_device.model,
+                                                    import_path, annarchy_device.annarchy_instance),
+                                name=annarchy_device.label)
+    annarchy_device._population = set_model_parameters(annarchy_device._population, **params)
+    if len(annarchy_device._population.label) > 0:
+        annarchy_device._population.label = annarchy_device.label
     return annarchy_device
 
 
@@ -234,13 +217,14 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         default_params.update(params)
     label = default_params.pop("label", "")
     # Create the ANNarchy Device class:
-    annarchy_device = devices_dict[device_model](None, label=label, model=device_model,
-                                                 annarchy_instance=annarchy_instance)
+    annarchy_device = devices_dict[device_model](None, label=label, annarchy_instance=annarchy_instance)
     if isinstance(annarchy_device, ANNarchyInputDevice):
         # If it is an input device, populate it:
-        annarchy_device = create_input_device(annarchy_device, kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
-                                              default_params)
-    annarchy_device.params = default_params
+        annarchy_device = create_input_device(annarchy_device,
+                                              kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
+                                              deepcopy(default_params))
+    else:
+        annarchy_device.params = default_params
     if return_annarchy:
         return annarchy_device, annarchy_instance
     else:
@@ -249,7 +233,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
 
 def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
                          weight=1.0, delay=0.0, receptor_type="exc",
-                         synapse=None, synapse_params={}, import_path=CONFIGURED.MYMODELS_IMPORT_PATH,
+                         import_path=CONFIGURED.MYMODELS_IMPORT_PATH,
                          annarchy_instance=None):
     """This method connect an ANNarchyInputDevice to an ANNarchyPopulation instance.
        Arguments:
@@ -328,10 +312,10 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
                                         _population[annarchy_device.number_of_connected_neurons :
                                                     annarchy_device.number_of_connected_neurons + neurons.size]
 
-    #synapse = annarchy_instance.params.get("synapse", None)
+    synapse = annarchy_instance.params.get("synapse", None)
     if synapse is not None:
         synapse = assert_model(synapse, import_path, annarchy_instance)
-    #synapse_params = annarchy_instance.params.get("synapse_params", {})
+    synapse_params = annarchy_instance.params.get("synapse_params", {})
     connect_two_populations(annarchy_device, population, weight, delay, receptor_type, synapse_params,
                             source_view_fun=source_view_fun, target_view_fun=neurons_inds_fun,
                             synapse=synapse, method=connect_method, annarchy_instance=annarchy_instance,
@@ -389,8 +373,7 @@ def connect_device(annarchy_device, population, neurons_inds_fun=None,
         """
     if isinstance(annarchy_device, ANNarchyInputDevice):
         return connect_input_device(annarchy_device, population, neurons_inds_fun,
-                                    weight, delay, receptor_type, synapse=None, synapse_params={},
-                                    import_path=kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
-                                    annarchy_instance=annarchy_instance)
+                                    weight, delay, receptor_type, annarchy_instance,
+                                    import_path=kwargs.get("import_path", config.MYMODELS_IMPORT_PATH))
     else:
         return connect_output_device(annarchy_device, population, neurons_inds_fun, annarchy_instance)
