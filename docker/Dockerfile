@@ -64,6 +64,7 @@ ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
+ARG LAST_SHA_NEST=LATEST
 RUN git clone --depth 1 https://github.com/nest/nest-simulator.git; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
@@ -100,7 +101,7 @@ RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_
     $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
-ARG LAST_SHA_ROOT=LATEST
+ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
