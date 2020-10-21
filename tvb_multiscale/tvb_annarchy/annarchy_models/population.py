@@ -166,7 +166,7 @@ class ANNarchyPopulation(SpikingPopulation):
         projections = []
         if neurons is not None:
             for proj in getattr(self, "projections_%s" % pre_or_post):
-                if getattr(proj, pre_or_post) == neurons.ranks:
+                if getattr(proj, pre_or_post) == neurons:
                     projections.append(proj)
         else:
             projections = getattr(self, "projections_%s" % pre_or_post)
