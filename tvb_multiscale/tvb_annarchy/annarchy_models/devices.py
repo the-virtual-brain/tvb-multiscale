@@ -25,8 +25,8 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
 
     def __init__(self, device,  label="", model="input_device", annarchy_instance=None, **kwargs):
         self.params = kwargs.get("params", {})
-        ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance, **kwargs)
         InputDevice.__init__(self, device, model=model, label=label)
+        ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance, **kwargs)
 
     @property
     def spiking_simulator_module(self):
@@ -34,7 +34,6 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
 
     @property
     def annarchy_model(self):
-        self._assert_annarchy()
         return str(self.device.get("model"))
 
     @property
@@ -62,7 +61,6 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
            Return:
             Projections' objects
         """
-        self._assert_annarchy()
         connections = ANNarchyPopulation._GetConnections(self, neurons=None, source_or_target="source")
         return connections
 
@@ -305,14 +303,14 @@ class ANNarchyOutputDevice(OutputDevice):
             self.monitors = OrderedDict(monitors)
         else:
             self.monitors = OrderedDict()
+        if run_tvb_multiscale_init:
+            OutputDevice.__init__(self, monitors, model=self.model, label=label)
         self.model = model
         self.params = kwargs.pop("params", {})
         self.label = label
         self.annarchy_instance = annarchy_instance
         self._data = DataArray(np.empty((0, 0, 0, 0)),
                                dims=["Time", "Variable", "Population", "Neuron"])
-        if run_tvb_multiscale_init:
-            OutputDevice.__init__(self, monitors, model=self.model, label=label)
         if self.annarchy_instance is not None:
             self._monitors_inds = self._get_monitors_inds()
 
@@ -494,10 +492,10 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
     def __init__(self, monitors, label="", model="Monitor",
                  annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
         self.model = model
-        ANNarchyOutputDevice.__init__(self, monitors, label, self.model, annarchy_instance,
-                                      run_tvb_multiscale_init=False, **kwargs)
         if run_tvb_multiscale_init:
             Multimeter.__init__(self, monitors, model=self.model, label=self.label)
+        ANNarchyOutputDevice.__init__(self, monitors, label, self.model, annarchy_instance,
+                                      run_tvb_multiscale_init=False, **kwargs)
 
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
@@ -511,10 +509,10 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
 
     def __init__(self, monitors, label="", annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
         self.model = "SpikeMonitor"
-        ANNarchyOutputDevice.__init__(self, monitors, label, self.model, annarchy_instance,
-                                      run_tvb_multiscale_init=False, **kwargs)
         if run_tvb_multiscale_init:
             SpikeRecorder.__init__(self, monitors, model=self.model, label=self.label)
+        ANNarchyOutputDevice.__init__(self, monitors, label, self.model, annarchy_instance,
+                                      run_tvb_multiscale_init=False, **kwargs)
 
     def _record(self):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,
@@ -550,11 +548,11 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
 
     def __init__(self, monitors, label="", annarchy_instance=None, **kwargs):
         self.model = "spike_multimeter"
+        SpikeMultimeter.__init__(self, monitors, model=self.model, label=self.label)
         ANNarchyMonitor.__init__(self, monitors, label, self.model, annarchy_instance,
                                  run_tvb_multiscale_init=False, **kwargs)
         ANNarchySpikeMonitor.__init__(self, monitors, label, self.model, annarchy_instance,
                                       run_tvb_multiscale_init=False, **kwargs)
-        SpikeMultimeter.__init__(self, monitors, model=self.model, label=self.label)
 
     @property
     def events(self):
