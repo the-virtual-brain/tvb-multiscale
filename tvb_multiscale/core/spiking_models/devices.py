@@ -58,15 +58,20 @@ class Device(object):
     def __str__(self):
         return self.print_str()
 
+    @property
+    def _print_from_to(self):
+        return "from/to"
+
     def print_str(self, connectivity=False):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
             neurons = ensure_list(self.neurons)
-            output += ",\nconnections to %d neurons: %s," \
+            output += ",\nconnections %s %d neurons: %s," \
                       "\nweights: %s," \
                       "\ndelays: %s," \
                       "\nreceptors: %s" % \
-                      (len(neurons), extract_integer_intervals(neurons, print=True),
+                      (self._print_from_to,
+                       len(neurons), extract_integer_intervals(neurons, print=True),
                        str(self.get_weights(summary="stats")),
                        str(self.get_delays(summary="stats")),
                        str(self.get_receptors(summary=1)))
@@ -304,6 +309,10 @@ class InputDevice(Device):
         """
         return self.GetConnections(source=self.device)
 
+    @property
+    def _print_from_to(self):
+        return "to"
+
 
 InputDeviceDict = {}
 
@@ -332,6 +341,10 @@ class OutputDevice(Device):
             connections' objects.
         """
         return self.GetConnections(target=self.device)
+
+    @property
+    def _print_from_to(self):
+        return "from"
 
     def filter_events(self, events, variables=None, times=None, exclude_times=[]):
         """This method will select/exclude part of the measured events, depending on user inputs
