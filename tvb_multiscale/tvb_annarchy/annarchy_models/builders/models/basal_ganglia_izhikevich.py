@@ -119,27 +119,28 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Creating  devices to be able to observe ANNarchy activity:
         self.output_devices = []
+        params = self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["SpikeMonitor"]
         for pop in self.populations:
             connections = OrderedDict({})
-            #                               label <- target population
-            connections[pop["label"] + "_spikes"] = pop["label"]
+            #                      label <- target population
+            params["label"] = pop["label"] + "_spikes"
+            connections[params["label"]] = pop["label"]
             self.output_devices.append(
-                {"model": "SpikeMonitor", "params": {},
+                {"model": "SpikeMonitor", "params": deepcopy(params),
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
         # Labels have to be different for every connection to every distinct population
         # params for baladron implementation commented out for the moment
         # TODO: use baladron neurons
-        #params = {"period": 1.0,
-        #          'record_from': ["v", "u", "syn", "g_base", "g_ampa", "g_gaba"]}
-        params = {"period": 1.0,
-                  'record_from': ["v", "u", "syn", "g_ampa", "g_gaba"]}
+        params = self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"]
+        params.update({"period": 1.0,  'record_from': ["v", "u", "syn", "g_ampa", "g_gaba"]})
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
             connections[pop["label"]] = pop["label"]
+            params["label"] = pop["label"]
             self.output_devices.append(
-                {"model": "Monitor", "params": params,
+                {"model": "Monitor", "params": deepcopy(params),
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
 
         # Create a spike stimulus input device
