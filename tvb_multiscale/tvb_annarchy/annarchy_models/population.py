@@ -114,7 +114,7 @@ class ANNarchyPopulation(SpikingPopulation):
         """ Prints indices of neurons in this population.
             Currently we get only local indices.
         """
-        return "\n%d neurons" % self.number_of_neurons
+        return "%d neurons in population with index: %d" % (self.number_of_neurons, self._population_ind)
 
     def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
