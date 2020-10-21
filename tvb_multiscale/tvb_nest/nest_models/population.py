@@ -116,12 +116,11 @@ class NESTPopulation(SpikingPopulation):
                           Default = None, corresponding to all connections to/from the present population.
         """
         if connections is None:
-            # for source and target connections
-            connections = self._GetConnections()
+            # In case we deal with both source and target connections, treat them separately:
+            for source_or_target in ["source", "target"]:
+                self._SetToConnections(values_dict, self._GetConnections(source_or_target=source_or_target))
         else:
-            connections = ensure_list(connections)
-        for conn in connections:  # possibly for source and/or target connections
-            conn.set(values_dict)
+            connections.set(values_dict)
 
     def _GetFromConnections(self, attrs=None, connections=None):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
@@ -135,23 +134,11 @@ class NESTPopulation(SpikingPopulation):
 
         """
         if connections is None:
-            # for source and target connections
-            connections = self._GetConnections()
+            # In case we deal with both source and target connections, treat them separately:
+            for source_or_target in ["source", "target"]:
+                self._GetFromConnections(attrs, connections=self._GetConnections(source_or_target=source_or_target))
         else:
-            if not isinstance(connections, list):
-                connections = [connections]
-        outputs = []
-        if attrs is None:
-            for conn in connections:  # possibly for source and/or target connections
-                outputs.append(conn.get())
-        else:
-            for conn in connections:  # possibly for source and/or target connections
-                outputs.append(conn.get())
-        if len(outputs) == 0:
-            return {}
-        elif len(outputs) == 1:
-            # for source or target connections
-            return outputs[0]
-        else:
-            # for source and target connections
-            return tuple(outputs)
+            if attrs is None:
+                return connections.get()
+            else:
+                return connections.get(ensure_list(attrs))
