@@ -232,6 +232,7 @@ class SpikingPopulation(object):
                               "source", "target" or None (Default; corresponds to both source and target)
         """
         if source_or_target is None:
+            # In case we deal with both source and target connections, treat them separately:
             for source_or_target in ["source", "target"]:
                 self.SetToConnections(values_dict, neurons, source_or_target)
         self._SetToConnections(values_dict, self.GetConnections(neurons, source_or_target))
