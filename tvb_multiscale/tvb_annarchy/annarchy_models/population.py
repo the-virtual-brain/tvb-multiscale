@@ -199,6 +199,14 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         if connections is None:
             connections = self._GetConnections()
+        if isinstance(connections, tuple):
+            if len(connections) == 1:
+                connections = connections[0]
+            else:
+                # In case we deal with both pre and post connections, treat them separately:
+                for connection in connections:
+                    self._SetToConnections(values_dict, connection)
+                return
         for connection in ensure_list(connections):
             if connection in self.projections_pre or connection in self.projections_post:
                 # connection.set(values_dict) <- this would be straightforward, but can generate
@@ -231,26 +239,26 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         if connections is None:
             connections = self._GetConnections()
-        outputs = []
+        if isinstance(connections, tuple):
+            if len(connections) == 1:
+                connections = connections[0]
+            else:
+                # In case we deal with both pre and post connections, treat them separately:
+                outputs = []
+                for connection in connections:
+                    outputs.append(self._GetFromConnections(attrs, connection))
+                return tuple(outputs)
+        dictionary = {}
         for connection in ensure_list(connections):
             dictionary = {}
             if connection in self.projections_pre or connection in self.projections_post:
                 if attrs is None:
-                    for attribute in np.union1d(self._default_connection_attrs,
-                                                connection.attributes):
-                        self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
+                    attrs = np.union1d(self._default_connection_attrs, connection.attributes)
                 else:
-                    for attribute in attrs:
-                        self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
-            outputs.append(dictionary)
-        if len(outputs) == 0:
-            return {}
-        elif len(outputs) == 1:
-            # for source or target connections
-            return outputs[0]
-        else:
-            # for source and target connections
-            return tuple(outputs)
+                    attrs = np.intersect1d(attrs, connection.attributes)
+                for attribute in attrs:
+                    self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
+        return dictionary
 
     def get_number_of_neurons(self):
         """Method to compute the total number of ANNarchyPopulation's neurons.

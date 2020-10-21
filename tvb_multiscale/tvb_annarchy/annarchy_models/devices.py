@@ -8,7 +8,7 @@ from tvb_multiscale.core.spiking_models.devices import \
     InputDevice, OutputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_list
+from tvb.contrib.scripts.utils.data_structures_utils import flatten_list, ensure_list
 
 
 # These classes wrap around ANNarchy commands.
@@ -277,6 +277,10 @@ class ANNarchyOutputDeviceConnection(object):
         self.pre = pre
         self.post = post
 
+    @property
+    def attributes(self):
+        return ["pre", "post"]
+
 
 class ANNarchyOutputDevice(OutputDevice):
 
@@ -393,8 +397,36 @@ class ANNarchyOutputDevice(OutputDevice):
     def _SetToConnections(self, values_dict, connections=None):
         pass
 
+    def _set_attributes_of_connection_to_dict(self, dictionary, connection, attribute):
+        if attribute in dictionary.keys():
+            dictionary[attribute].append(connection.get(attribute))
+        else:
+            dictionary[attribute] = [connection.get(attribute)]
+
     def _GetFromConnections(self, attrs=None, connections=None):
-        pass
+        """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
+            Arguments:
+             connections: a Projection object or a collection (list, tuple, array) thereof.
+                          Default = None, corresponding to all connections to/from the present population.
+             attrs: collection (list, tuple, array) of the attributes to be included in the output.
+                    Default = None, corresponds to all attributes
+            Returns:
+             Dictionary of lists (for the possible different Projection objects) of arrays of connections' attributes.
+        """
+        if connections is None:
+            connections = self._GetConnections()
+        own_connections = self._GetConnections()
+        dictionary = {}
+        for connection in ensure_list(connections):
+            dictionary = {}
+            if connection in own_connections:
+                if attrs is None:
+                    attrs = self._default_connection_attrs
+                else:
+                    attrs = np.intersect1d(attrs, connection.attributes)
+                for attribute in attrs:
+                   self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
+        return dictionary
 
     def GetConnections(self):
         """Method to get connections of the device from neurons.
