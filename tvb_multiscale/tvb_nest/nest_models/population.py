@@ -46,8 +46,10 @@ class NESTPopulation(SpikingPopulation):
     def _assert_neurons(self, neurons=None):
         if neurons is None:
             neurons = self._population
-        elif not isinstance(neurons, self.nest_instance.NodeCollection):
-            neurons = self.nest_instance.NodeCollection(neurons)
+        else:
+            self._assert_nest()
+            if not isinstance(neurons, self.nest_instance.NodeCollection):
+                neurons = self.nest_instance.NodeCollection(neurons)
         return neurons
 
     def summarize_neurons_indices(self, print=False):
@@ -69,7 +71,6 @@ class NESTPopulation(SpikingPopulation):
                      or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
         """
-        self._assert_nest()
         self._assert_neurons(neurons).set(values_dict)
 
     def _Get(self, attrs=None, neurons=None):
@@ -83,7 +84,6 @@ class NESTPopulation(SpikingPopulation):
            Returns:
             Dictionary of tuples of neurons' attributes.
         """
-        self._assert_nest()
         if attrs is None:
             return self._assert_neurons(neurons).get()
         else:
@@ -115,7 +115,6 @@ class NESTPopulation(SpikingPopulation):
              connections: nest.SynapseCollection.
                           Default = None, corresponding to all connections to/from the present population.
         """
-        self._assert_nest()
         if connections is None:
             # for source and target connections
             connections = self._GetConnections()
@@ -135,7 +134,6 @@ class NESTPopulation(SpikingPopulation):
              Dictionary of tuples of connections' attributes.
 
         """
-        self._assert_nest()
         if connections is None:
             # for source and target connections
             connections = self._GetConnections()

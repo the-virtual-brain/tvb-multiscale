@@ -33,7 +33,6 @@ class NESTDevice(Device):
 
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
-        self._assert_nest()
         try:
             self.device.get("element_type")
         except:
@@ -45,7 +44,6 @@ class NESTDevice(Device):
 
     @property
     def nest_model(self):
-        self._assert_nest()
         return str(self.device.get("model"))
 
     def Set(self, values_dict):
@@ -53,7 +51,6 @@ class NESTDevice(Device):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        self._assert_nest()
         self.device.get(values_dict)
 
     def Get(self, attrs=None):
@@ -63,7 +60,6 @@ class NESTDevice(Device):
            Returns:
             Dictionary of attributes.
         """
-        self._assert_nest()
         if attrs is None:
             return self.device.get()
         else:
@@ -97,7 +93,6 @@ class NESTDevice(Device):
             Returns:
              Dictionary of lists of connections' attributes.
         """
-        self._assert_nest()
         if connections is None:
             connections = self._GetConnections()
         connections.set(values_dict)
@@ -111,7 +106,6 @@ class NESTDevice(Device):
            Returns:
             Dictionary of lists of connections' attributes.
         """
-        self._assert_nest()
         if connections is None:
             connections = self._GetConnections()
         if attrs is None:
@@ -335,12 +329,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     @property
     def events(self):
-        self._assert_nest()
         return self.device.get("events")
 
     @property
     def number_of_events(self):
-        self._assert_nest()
         return self.device.get("n_events")
 
     @property
@@ -350,7 +342,6 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def reset(self):
         # TODO: find how to reset recorders!
-        self._assert_nest()
         pass
         # self.device.n_events = 0
 
@@ -400,7 +391,6 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     @property
     def record_from(self):
-        self._assert_nest()
         return [str(name) for name in self.device.get('record_from')]
     
     
