@@ -149,24 +149,24 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
     # Create the projection first
     source_neurons = get_populations_neurons(source_pop, source_view_fun)
     target_neurons = get_populations_neurons(target_pop, target_view_fun)
+    if name is None:
+        name = "%s -> %s" % (source_pop.label, target_pop.label)
     if isinstance(synapse, string_types):
         # If this is a SpecificProjection, create it directly:
         proj = getattr(annarchy_instance, synapse)(source_neurons, target_neurons, target=target, name=name, **params)
     else:
-        # Otherwise, create it via th Projection creator:
+        # Otherwise, create it via the Projection creator:
         proj = annarchy_instance.Projection(source_neurons, target_neurons, target=target, synapse=synapse, name=name)
         proj = set_model_parameters(proj, **params)
-    # Add this projection to the source and target population inventories:
-    source_pop._projections_post.append(proj)
-    target_pop._projections_pre.append(proj)
     # Build the connection:
     method = method.lower()
     if method == "current":
         warning("Ignoring weight and delay for connect_current method, for the connection %s -> %s!"
                 % (source_pop.label, target_pop.label))
-        getattr(proj, "connect_" % method)(**connection_args)
+        proj = getattr(proj, "connect_" % method)(**connection_args)
     else:
-        getattr(proj, "connect_" + method)(weights=weights, delays=delays, **connection_args)
+        proj = getattr(proj, "connect_" + method)(weights=weights, delays=delays, **connection_args)
+    return proj
 
 
 def params_dict_to_parameters_string(params):
@@ -238,7 +238,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     # ...and update them with any user provided parameters
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
-    label = default_params.pop("label", "")
+    label = default_params.pop("label", default_params.pop("name", ""))
     # Create the ANNarchy Device class:
     annarchy_device = devices_dict[device_model](None, label=label, annarchy_instance=annarchy_instance)
     if isinstance(annarchy_device, ANNarchyInputDevice):
@@ -333,15 +333,16 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
     if synapse is not None:
         synapse = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
     synapse_params = annarchy_device.params.get("synapse_params", {})
-    connect_two_populations(annarchy_device, population, weight, delay, receptor_type, synapse_params,
-                            source_view_fun=source_view_fun, target_view_fun=neurons_inds_fun,
-                            synapse=synapse, method=connect_method, annarchy_instance=annarchy_device.annarchy_instance,
-                            **connection_args)
-
+    proj = connect_two_populations(annarchy_device, population, weight, delay, receptor_type, synapse_params,
+                                  source_view_fun=source_view_fun, target_view_fun=neurons_inds_fun,
+                                  synapse=synapse, method=connect_method,
+                                   annarchy_instance=annarchy_device.annarchy_instance, **connection_args)
+    # Add this projection to the source device's and target population's inventories:
+    annarchy_device.projections_pre.append(proj)
+    population.projections_post.append(proj)
     # Update the number of connected neurons to the device:
     annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
     annarchy_device._number_of_neurons = annarchy_device.get_number_of_neurons()
-
     return annarchy_device
 
 
