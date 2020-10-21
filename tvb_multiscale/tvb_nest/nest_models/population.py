@@ -112,33 +112,44 @@ class NESTPopulation(SpikingPopulation):
         """Method to set attributes of the connections from/to the SpikingPopulation's neurons.
            Arguments:
              values_dict: dictionary of attributes names' and values.
-             connections: nest.SynapseCollection.
+             connections: nest.SynapseCollection, or a tuple of outgoing and incoming nest.SynapseCollection instances
                           Default = None, corresponding to all connections to/from the present population.
         """
         if connections is None:
-            # In case we deal with both source and target connections, treat them separately:
-            for source_or_target in ["source", "target"]:
-                self._SetToConnections(values_dict, self._GetConnections(source_or_target=source_or_target))
-        else:
-            connections.set(values_dict)
+            connections = self._GetConnections()
+        if isinstance(connections, tuple):
+           if len(connections) == 1:
+               connections = connections[0]
+           else:
+               # In case we deal with both pre and post connections, treat them separately:
+               for connection in connections:
+                   self._SetToConnections(values_dict, connection)
+               return
+        connections.set(values_dict)
 
     def _GetFromConnections(self, attrs=None, connections=None):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
             Arguments:
              attrs: collection (list, tuple, array) of the attributes to be included in the output.
                     Default = None, corresponds to all attributes
-             connections: nest.SynapseCollection.
+             connections: nest.SynapseCollection, or a tuple of outgoing and incoming nest.SynapseCollection instances
                           Default = None, corresponding to all connections to/from the present population.
             Returns:
              Dictionary of tuples of connections' attributes.
 
         """
         if connections is None:
-            # In case we deal with both source and target connections, treat them separately:
-            for source_or_target in ["source", "target"]:
-                self._GetFromConnections(attrs, connections=self._GetConnections(source_or_target=source_or_target))
-        else:
-            if attrs is None:
-                return connections.get()
+            connections = self._GetConnections()
+        if isinstance(connections, tuple):
+            if len(connections) == 1:
+                connections = connections[0]
             else:
-                return connections.get(ensure_list(attrs))
+                # In case we deal with both pre and post connections, treat them separately:
+                outputs = []
+                for connection in connections:
+                    outputs.append(self._GetFromConnections(attrs, connection))
+                return tuple(outputs)
+        if attrs is None:
+            return connections.get()
+        else:
+            return connections.get(ensure_list(attrs))
