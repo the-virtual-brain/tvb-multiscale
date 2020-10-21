@@ -144,7 +144,7 @@ class NESTPopulation(SpikingPopulation):
             if len(connections) == 1:
                 connections = connections[0]
             else:
-                # In case we deal with both pre and post connections, treat them separately:
+                # In case we deal with both source and target connections, treat them separately:
                 outputs = []
                 for connection in connections:
                     outputs.append(self._GetFromConnections(attrs, connection))

@@ -5,8 +5,6 @@ from tvb_multiscale.core.config import initialize_logger
 
 from tvb_multiscale.core.utils.data_structures_utils import summarize
 
-from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dict_of_lists
-
 
 LOG = initialize_logger(__name__)
 
@@ -70,14 +68,14 @@ class SpikingPopulation(object):
         if connectivity is True:
             conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
                                                  source_or_target="source", summary=3)
-            output += "\n%s -> connections' weights: %s, \nconnections' delays: %s,\nconnections' receptors: %s" % \
+            output += "\nconnections from %s:\nweights: %s,\ndelays: %s,\nreceptors: %s" % \
                       (self.label,
                        str(conn_attrs.get(self._weight_attr, "")),
                        str(conn_attrs.get(self._delay_attr, "")),
                        str(conn_attrs.get(self._receptor_attr, "")))
             conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
                                                  source_or_target="target", summary=3)
-            output += "\n%s <- connections' weights: %s, \nconnections' delays: %s,\nconnections' receptors: %s" % \
+            output += "\nconnections to %s:\nweights: %s,\ndelays: %s,\nreceptors: %s" % \
                       (self.label,
                        str(conn_attrs.get(self._weight_attr, "")),
                        str(conn_attrs.get(self._delay_attr, "")),
@@ -263,14 +261,10 @@ class SpikingPopulation(object):
             for source_or_target in ["source", "target"]:
                 output.append(self.GetFromConnections(attrs, neurons, source_or_target, summary))
             return tuple(output)
-        connections = self.GetConnections(neurons, source_or_target)
-        output = []
-        for conn in connections:
-            if summary is not None:
-                output.append(summarize(self._GetFromConnections(attrs, conn), summary))
-            else:
-                output.append(self._GetFromConnections(attrs, conn))
-        return list_of_dicts_to_dict_of_lists(output)
+        outputs = self._GetFromConnections(attrs, self.GetConnections(neurons, source_or_target))
+        if summary is not None:
+            outputs = summarize(outputs, summary)
+        return outputs
 
     def get_weights(self, neurons=None, source_or_target=None, summary=None):
         """Method to get the connections' weights of the SpikingPopulations's neurons.
