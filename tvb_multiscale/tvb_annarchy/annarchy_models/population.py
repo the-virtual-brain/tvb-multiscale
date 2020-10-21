@@ -18,23 +18,27 @@ class ANNarchyPopulation(SpikingPopulation):
     annarchy_instance = None
     _population = None
     _population_ind = None
-    _projections_pre = []   # outgoing projections
-    _projections_post = [] # incoming projections
-    _weight_attr = "weights"
-    _delay_attr = "delays"
+    projections_pre = []   # outgoing projections
+    projections_post = []  # incoming projections
+    _weight_attr = "w"
+    _delay_attr = "delay"
     _receptor_attr = "target"
     _default_connection_attrs = ["pre", "post", _weight_attr, _delay_attr, _receptor_attr]
 
     def __init__(self, population_neurons, label="", model="", annarchy_instance=None, **kwargs):
         self.annarchy_instance = annarchy_instance
-        if population_neurons is not None:
-            self._population = population_neurons
+        self._population = population_neurons
+        if self._population is not None:
             if len(label):
                 self._population.name = label
             else:
                 label = self._population.name
             if annarchy_instance is not None:
                 self._population_ind = self._get_population_ind()
+        else:
+            self._population_ind = None
+        self.projections_pre = []
+        self.projections_post = []
         super(ANNarchyPopulation, self).__init__(population_neurons, label, model, **kwargs)
 
     @property
@@ -82,6 +86,7 @@ class ANNarchyPopulation(SpikingPopulation):
         if neurons is None:
             neurons = self._population
         else:
+            self._assert_annarchy()
             if isinstance(neurons, self.annarchy_instance.Population):
                 # Assert that we refer to this object's Population
                 assert self._population == neurons
@@ -125,7 +130,6 @@ class ANNarchyPopulation(SpikingPopulation):
                      (i.e., tuples of (population_inds, neuron_ind),
                      of the present instance of ANNarchy.Population class, or of local indices thereof,
         """
-        self._assert_annarchy()
         self._assert_neurons(neurons).set(values_dict)
 
     def _Get(self, attrs=None, neurons=None):
@@ -140,7 +144,6 @@ class ANNarchyPopulation(SpikingPopulation):
            Returns:
             Dictionary of numpy.arrays of neurons' attributes.
         """
-        self._assert_annarchy()
         dictionary = {}
         neurons = self._assert_neurons(neurons)
         if attrs is None:
@@ -160,23 +163,14 @@ class ANNarchyPopulation(SpikingPopulation):
            Return:
             a list of ANNarchy.Projection instances
         """
-        neurons = self._assert_neurons(neurons)
         projections = []
         if neurons is not None:
-            for proj in getattr(self, "_projections_%s" % pre_or_post):
+            for proj in getattr(self, "projections_%s" % pre_or_post):
                 if getattr(proj, pre_or_post) == neurons.ranks:
                     projections.append(proj)
         else:
-            projections = getattr(self, "_projections_%s" % pre_or_post)
+            projections = getattr(self, "projections_%s" % pre_or_post)
         return projections
-
-    @property
-    def projections_pre(self):
-        return self._projections_pre
-
-    @property
-    def projections_post(self):
-        return self._projections_post
 
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
@@ -188,7 +182,6 @@ class ANNarchyPopulation(SpikingPopulation):
            Returns:
             A list of Projections' objects.
         """
-        self._assert_annarchy()
         neurons = self._assert_neurons(neurons)
         if source_or_target not in ["source", "target"]:
             return self._get_projections("pre", neurons), self._get_projections("post", neurons)
@@ -204,7 +197,6 @@ class ANNarchyPopulation(SpikingPopulation):
              connections: a Projection object or a collection (list, tuple, array) thereof.
                           Default = None, corresponding to all connections to/from the present population.
         """
-        self._assert_annarchy()
         if connections is None:
             connections = self._GetConnections()
         for connection in ensure_list(connections):
@@ -237,7 +229,6 @@ class ANNarchyPopulation(SpikingPopulation):
             Returns:
              Dictionary of lists (for the possible different Projection objects) of arrays of connections' attributes.
         """
-        self._assert_annarchy()
         if connections is None:
             connections = self._GetConnections()
         outputs = []
