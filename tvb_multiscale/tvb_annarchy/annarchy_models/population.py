@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
 
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, extract_integer_intervals, is_integer
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer
 
 
 class ANNarchyPopulation(SpikingPopulation):
@@ -111,19 +110,11 @@ class ANNarchyPopulation(SpikingPopulation):
                         neurons = self._population[neurons]
         return neurons
 
-    def summarize_neurons_indices(self, print=False):
-        """Method to summarize neurons' indices' intervals.
-        Arguments:
-         print: if True, a string is returned, Default = False
-        Returns:
-         a list of intervals' limits, or of single indices, or a string of the list if print = True"""
-        return extract_integer_intervals([neuron[1] for neuron in self.neurons], print=print)
-
     def _print_neurons(self):
         """ Prints indices of neurons in this population.
             Currently we get only local indices.
         """
-        return "\n%d neurons: %s" % (self.number_of_neurons, self.summarize_neurons_indices(print=True))
+        return "\n%d neurons" % self.number_of_neurons
 
     def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
