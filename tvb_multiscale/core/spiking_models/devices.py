@@ -70,15 +70,17 @@ class Device(object):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
             neurons = ensure_list(self.neurons)
+            conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
+                                                 summary=3)
             output += ",\nconnections %s %d neurons: %s," \
                       "\nweights: %s," \
                       "\ndelays: %s," \
                       "\nreceptors: %s" % \
                       (self._print_from_to,
                        len(neurons), self._print_neurons(neurons),
-                       str(self.get_weights(summary="stats")),
-                       str(self.get_delays(summary="stats")),
-                       str(self.get_receptors(summary=1)))
+                       str(conn_attrs.get(self._weight_attr, "")),
+                       str(conn_attrs.get(self._delay_attr, "")),
+                       str(conn_attrs.get(self._receptor_attr, "")))
         return output
 
     @abstractmethod
