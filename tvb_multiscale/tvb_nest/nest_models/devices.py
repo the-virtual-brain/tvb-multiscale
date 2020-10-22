@@ -6,7 +6,9 @@ import numpy as np
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
+from tvb.contrib.scripts.utils.data_structures_utils \
+    import ensure_list, extract_integer_intervals, list_of_dicts_to_dicts_of_ndarrays
+
 
 # These classes wrap around NEST commands.
 
@@ -145,6 +147,9 @@ class NESTDevice(Device):
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected to."""
         return self.get_neurons("target")
+
+    def _print_neurons(self, neurons):
+        return extract_integer_intervals(neurons, print=True)
 
 
 class NESTInputDevice(NESTDevice, InputDevice):

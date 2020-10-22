@@ -15,7 +15,7 @@ from tvb_multiscale.core.utils.data_structures_utils import filter_events, summa
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
-    sort_events_by_x_and_y, data_xarray_from_continuous_events, extract_integer_intervals, is_integer
+    sort_events_by_x_and_y, data_xarray_from_continuous_events, is_integer
 from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
 
@@ -62,6 +62,10 @@ class Device(object):
     def _print_from_to(self):
         return "from/to"
 
+    @abstractmethod
+    def _print_neurons(self):
+        pass
+
     def print_str(self, connectivity=False):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
@@ -71,7 +75,7 @@ class Device(object):
                       "\ndelays: %s," \
                       "\nreceptors: %s" % \
                       (self._print_from_to,
-                       len(neurons), extract_integer_intervals(neurons, print=True),
+                       len(neurons), self._print_neurons(neurons),
                        str(self.get_weights(summary="stats")),
                        str(self.get_delays(summary="stats")),
                        str(self.get_receptors(summary=1)))
