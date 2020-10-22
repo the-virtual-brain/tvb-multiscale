@@ -6,7 +6,9 @@ import numpy as np
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, list_of_dicts_to_dicts_of_ndarrays
+from tvb.contrib.scripts.utils.data_structures_utils \
+    import ensure_list, extract_integer_intervals, list_of_dicts_to_dicts_of_ndarrays
+
 
 # These classes wrap around NEST commands.
 
@@ -33,7 +35,6 @@ class NESTDevice(Device):
 
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
-        self._assert_nest()
         try:
             self.device.get("element_type")
         except:
@@ -45,7 +46,6 @@ class NESTDevice(Device):
 
     @property
     def nest_model(self):
-        self._assert_nest()
         return str(self.device.get("model"))
 
     def Set(self, values_dict):
@@ -53,7 +53,6 @@ class NESTDevice(Device):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        self._assert_nest()
         self.device.get(values_dict)
 
     def Get(self, attrs=None):
@@ -63,7 +62,6 @@ class NESTDevice(Device):
            Returns:
             Dictionary of attributes.
         """
-        self._assert_nest()
         if attrs is None:
             return self.device.get()
         else:
@@ -97,7 +95,6 @@ class NESTDevice(Device):
             Returns:
              Dictionary of lists of connections' attributes.
         """
-        self._assert_nest()
         if connections is None:
             connections = self._GetConnections()
         connections.set(values_dict)
@@ -111,7 +108,6 @@ class NESTDevice(Device):
            Returns:
             Dictionary of lists of connections' attributes.
         """
-        self._assert_nest()
         if connections is None:
             connections = self._GetConnections()
         if attrs is None:
@@ -151,6 +147,9 @@ class NESTDevice(Device):
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected to."""
         return self.get_neurons("target")
+
+    def _print_neurons(self, neurons):
+        return extract_integer_intervals(neurons, print=True)
 
 
 class NESTInputDevice(NESTDevice, InputDevice):
@@ -335,12 +334,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     @property
     def events(self):
-        self._assert_nest()
         return self.device.get("events")
 
     @property
     def number_of_events(self):
-        self._assert_nest()
         return self.device.get("n_events")
 
     @property
@@ -350,7 +347,6 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def reset(self):
         # TODO: find how to reset recorders!
-        self._assert_nest()
         pass
         # self.device.n_events = 0
 
@@ -400,7 +396,6 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     @property
     def record_from(self):
-        self._assert_nest()
         return [str(name) for name in self.device.get('record_from')]
     
     

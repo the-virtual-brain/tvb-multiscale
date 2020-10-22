@@ -5,8 +5,6 @@ from tvb_multiscale.core.config import initialize_logger
 
 from tvb_multiscale.core.utils.data_structures_utils import summarize
 
-from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dict_of_lists
-
 
 LOG = initialize_logger(__name__)
 
@@ -69,9 +67,17 @@ class SpikingPopulation(object):
         output = self.__str__()
         if connectivity is True:
             conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
-                                                 summary=3)
-            output += "\nconnections' weights: %s, \nconnections' delays: %s,\nconnections' receptors: %s" % \
-                      (str(conn_attrs.get(self._weight_attr, "")),
+                                                 source_or_target="source", summary=3)
+            output += "\nconnections from %s:\nweights: %s,\ndelays: %s,\nreceptors: %s" % \
+                      (self.label,
+                       str(conn_attrs.get(self._weight_attr, "")),
+                       str(conn_attrs.get(self._delay_attr, "")),
+                       str(conn_attrs.get(self._receptor_attr, "")))
+            conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
+                                                 source_or_target="target", summary=3)
+            output += "\nconnections to %s:\nweights: %s,\ndelays: %s,\nreceptors: %s" % \
+                      (self.label,
+                       str(conn_attrs.get(self._weight_attr, "")),
                        str(conn_attrs.get(self._delay_attr, "")),
                        str(conn_attrs.get(self._receptor_attr, "")))
         return output
@@ -224,6 +230,10 @@ class SpikingPopulation(object):
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
         """
+        if source_or_target is None:
+            # In case we deal with both source and target connections, treat them separately:
+            for source_or_target in ["source", "target"]:
+                self.SetToConnections(values_dict, neurons, source_or_target)
         self._SetToConnections(values_dict, self.GetConnections(neurons, source_or_target))
 
     def GetFromConnections(self, attrs=None, neurons=None, source_or_target=None, summary=None):
@@ -245,14 +255,16 @@ class SpikingPopulation(object):
            Returns:
             Dictionary of lists of connections' attributes.
         """
-        connections = self.GetConnections(neurons, source_or_target)
-        output = []
-        for conn in connections:
-            if summary is not None:
-                output.append(summarize(self._GetFromConnections(attrs, conn), summary))
-            else:
-                output.append(self._GetFromConnections(attrs, conn))
-        return list_of_dicts_to_dict_of_lists(output)
+        if source_or_target is None:
+            # In case we deal with both source and target connections, treat them separately:
+            output = []
+            for source_or_target in ["source", "target"]:
+                output.append(self.GetFromConnections(attrs, neurons, source_or_target, summary))
+            return tuple(output)
+        outputs = self._GetFromConnections(attrs, self.GetConnections(neurons, source_or_target))
+        if summary is not None:
+            outputs = summarize(outputs, summary)
+        return outputs
 
     def get_weights(self, neurons=None, source_or_target=None, summary=None):
         """Method to get the connections' weights of the SpikingPopulations's neurons.
@@ -271,6 +283,12 @@ class SpikingPopulation(object):
            Returns:
             Sequence (list, tuple, or array) of population's connections' weights.
         """
+        if source_or_target is None:
+            # In case we deal with both source and target connections, treat them separately:
+            outputs = []
+            for source_or_target in ["source", "target"]:
+                outputs.append(self.get_weights(neurons, source_or_target, summary))
+            return tuple(outputs)
         return self.GetFromConnections(self._weight_attr, neurons, source_or_target, summary)[self._weight_attr]
 
     def get_delays(self, neurons=None, source_or_target=None, summary=None):
@@ -290,6 +308,12 @@ class SpikingPopulation(object):
            Returns:
             Sequence (list, tuple, or array) of population's connections' delays.
         """
+        if source_or_target is None:
+            # In case we deal with both source and target connections, treat them separately:
+            outputs = []
+            for source_or_target in ["source", "target"]:
+                outputs.append(self.get_delays(neurons, source_or_target, summary))
+            return tuple(outputs)
         return self.GetFromConnections(self._delay_attr, neurons, source_or_target, summary)[self._delay_attr]
 
     def get_receptors(self, neurons=None, source_or_target=None, summary=None):
@@ -308,6 +332,12 @@ class SpikingPopulation(object):
            Returns:
             Sequence (list, tuple, or array) of population's connections' receptors.
         """
+        if source_or_target is None:
+            # In case we deal with both source and target connections, treat them separately:
+            outputs = []
+            for source_or_target in ["source", "target"]:
+                outputs.append(self.get_receptors(neurons, source_or_target, summary))
+            return tuple(outputs)
         return self.GetFromConnections(self._receptor_attr, neurons, source_or_target, summary)[self._receptor_str]
 
     @property

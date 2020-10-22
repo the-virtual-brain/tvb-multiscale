@@ -15,7 +15,7 @@ from tvb_multiscale.core.utils.data_structures_utils import filter_events, summa
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
-    sort_events_by_x_and_y, data_xarray_from_continuous_events, extract_integer_intervals, is_integer
+    sort_events_by_x_and_y, data_xarray_from_continuous_events, is_integer
 from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
 
 
@@ -58,15 +58,24 @@ class Device(object):
     def __str__(self):
         return self.print_str()
 
+    @property
+    def _print_from_to(self):
+        return "from/to"
+
+    @abstractmethod
+    def _print_neurons(self):
+        pass
+
     def print_str(self, connectivity=False):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
             neurons = ensure_list(self.neurons)
-            output += ",\nconnections to %d neurons: %s," \
+            output += ",\nconnections %s %d neurons: %s," \
                       "\nweights: %s," \
                       "\ndelays: %s," \
                       "\nreceptors: %s" % \
-                      (len(neurons), extract_integer_intervals(neurons, print=True),
+                      (self._print_from_to,
+                       len(neurons), self._print_neurons(neurons),
                        str(self.get_weights(summary="stats")),
                        str(self.get_delays(summary="stats")),
                        str(self.get_receptors(summary=1)))
@@ -304,6 +313,10 @@ class InputDevice(Device):
         """
         return self.GetConnections(source=self.device)
 
+    @property
+    def _print_from_to(self):
+        return "to"
+
 
 InputDeviceDict = {}
 
@@ -332,6 +345,10 @@ class OutputDevice(Device):
             connections' objects.
         """
         return self.GetConnections(target=self.device)
+
+    @property
+    def _print_from_to(self):
+        return "from"
 
     def filter_events(self, events, variables=None, times=None, exclude_times=[]):
         """This method will select/exclude part of the measured events, depending on user inputs
