@@ -24,10 +24,10 @@ class SpikingPopulation(object):
     model = ""    # label of neuronal model
     _number_of_neurons = 0  # total number of populations' neurons
 
-    # Default attributes' labels:
-    _weight_attr = "weight"
-    _delay_attr = "delay"
-    _receptor_attr = "receptor"
+    # Modify accordingly for other simulators than NEST, by settin in the inheriting class:
+    # _weight_attr = "weight"
+    # _delay_attr = "delay"
+    # _receptor_attr = "receptor"
 
     def __init__(self, population=None, label="", model=""):
         """Constructor of a population class.

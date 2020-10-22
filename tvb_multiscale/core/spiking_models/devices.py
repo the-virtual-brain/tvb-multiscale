@@ -37,10 +37,10 @@ class Device(object):
     _number_of_connections = 0  # total number of device's connections
     _number_of_neurons = 0  # total number of neurons connected to this device
 
-    # Modify accordingly for other simulators than NEST, by overwriting to the inheriting class:
-    _weight_attr = "weight"
-    _delay_attr = "delay"
-    _receptor_attr = "receptor"
+    # Modify accordingly for other simulators than NEST, by settin in the inheriting class:
+    # _weight_attr = "weight"
+    # _delay_attr = "delay"
+    # _receptor_attr = "receptor"
 
     def __init__(self, device, *args, **kwargs):
         self.device = device   # a device object, depending on its simulator implementation
