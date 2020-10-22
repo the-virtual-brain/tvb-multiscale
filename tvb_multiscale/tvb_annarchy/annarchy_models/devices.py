@@ -88,7 +88,7 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
         """
         if connections is None:
             connections = ANNarchyPopulation._GetConnections(self, neurons=None, source_or_target="source")
-        return ANNarchyPopulation._GetFromConnections(self, connections, attrs)
+        return ANNarchyPopulation._GetFromConnections(self, attrs, connections)
 
     def GetConnections(self):
         """Method to get connections of the device to neurons.
