@@ -23,7 +23,7 @@ class ANNarchyPopulation(SpikingPopulation):
     _weight_attr = "w"
     _delay_attr = "delay"
     _receptor_attr = "target"
-    _default_connection_attrs = ["pre", "post", _weight_attr, _delay_attr, _receptor_attr]
+    _default_connection_attrs = [_weight_attr, _delay_attr, _receptor_attr]
 
     def __init__(self, population_neurons, label="", model="", annarchy_instance=None, **kwargs):
         self.annarchy_instance = annarchy_instance
@@ -256,7 +256,7 @@ class ANNarchyPopulation(SpikingPopulation):
                 if attrs is None:
                     attrs = np.union1d(self._default_connection_attrs, connection.attributes)
                 else:
-                    attrs = np.intersect1d(attrs, connection.attributes)
+                    attrs = np.union1d(attrs, self._default_connection_attrs)
                 for attribute in attrs:
                     self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
         return dictionary

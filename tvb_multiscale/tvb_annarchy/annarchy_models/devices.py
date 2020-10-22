@@ -105,6 +105,13 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
         """
         return self._GetConnections()
 
+    @property
+    def populations(self):
+        populations = []
+        for conn in self.connections:
+            populations.append(conn.post)
+        return populations
+
     def get_neurons(self):
         """Method to get the indices of all the neurons the device is connected to.
         """
@@ -310,7 +317,10 @@ class ANNarchyOutputDevice(OutputDevice):
 
     params = {}
 
-    _default_connection_attrs = ["pre", "post"]
+    _weight_attr = "w"
+    _delay_attr = "delay"
+    _receptor_attr = "target"
+
     _default_attrs = ["variables", "period", "period_offset", "start"]
 
     _dt = None
@@ -351,14 +361,6 @@ class ANNarchyOutputDevice(OutputDevice):
         if self._monitors_inds is None:
             self._monitors_inds = self._get_monitors_inds()
         return self._monitors_inds
-
-    @property
-    def populations(self):
-        """Method to get the ANNarchy.Population instances this device records from."""
-        populations = list(self.monitors.values())
-        if len(populations) == 1:
-            populations = populations[0]
-        return populations
 
     @property
     def dt(self):
@@ -427,20 +429,20 @@ class ANNarchyOutputDevice(OutputDevice):
             Returns:
              Dictionary of lists (for the possible different Projection objects) of arrays of connections' attributes.
         """
-        if connections is None:
-            connections = self._GetConnections()
-        own_connections = self._GetConnections()
-        dictionary = {}
-        for connection in ensure_list(connections):
-            dictionary = {}
-            if connection in own_connections:
-                if attrs is None:
-                    attrs = self._default_connection_attrs
-                else:
-                    attrs = np.intersect1d(attrs, connection.attributes)
-                for attribute in attrs:
-                   self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
-        return dictionary
+        # if connections is None:
+        #     connections = self._GetConnections()
+        # own_connections = self._GetConnections()
+        # dictionary = {}
+        # for connection in ensure_list(connections):
+        #     dictionary = {}
+        #     if connection in own_connections:
+        #         if attrs is None:
+        #             attrs = self._default_connection_attrs
+        #         else:
+        #             attrs = np.intersect1d(attrs, connection.attributes)
+        #         for attribute in attrs:
+        #            self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
+        return {}
 
     def GetConnections(self):
         """Method to get connections of the device from neurons.
@@ -456,6 +458,12 @@ class ANNarchyOutputDevice(OutputDevice):
             ANNarchyOutputDeviceConnection objects.
         """
         return self._GetConnections()
+
+    @property
+    def populations(self):
+        """Method to get the ANNarchy.Population instances this device records from."""
+        populations = list(self.monitors.values())
+        return populations
 
     def get_neurons(self):
         """Method to get the indices of all the neurons the device monitors.
