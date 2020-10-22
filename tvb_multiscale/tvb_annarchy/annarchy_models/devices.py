@@ -379,9 +379,9 @@ class ANNarchyOutputDevice(OutputDevice):
 
     def _set_attributes_to_dict(self, dictionary, monitor, attribute):
         if attribute in dictionary.keys():
-            dictionary[attribute].append(monitor.get(attribute))
+            dictionary[attribute].append(getattr(monitor, attribute))
         else:
-            dictionary[attribute] = [monitor.get(attribute)]
+            dictionary[attribute] = [getattr(monitor, attribute)]
 
     def Get(self, attrs=None):
         """Method to get attributes of the device.
