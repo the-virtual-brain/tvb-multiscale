@@ -8,7 +8,7 @@ from tvb_multiscale.core.spiking_models.devices import \
     InputDevice, OutputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_list, ensure_list
+from tvb.contrib.scripts.utils.data_structures_utils import flatten_list, ensure_list, extract_integer_intervals
 
 
 # These classes wrap around ANNarchy commands.
@@ -118,6 +118,20 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
     @property
     def neurons(self):
         return self.get_neurons()
+
+    def _print_neurons(self, neurons):
+        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
+        output = "["
+        for neuron in neurons:
+            if isinstance(neuron, self.annarchy_instance.Population):
+                pop = neuron
+            elif isinstance(neuron.population, self.annarchy_instance.Population):
+                pop = neuron.population
+            output += "(%s, %d, %s)" % \
+                      (neuron.name, get_population_ind(pop, self.annarchy_instance),
+                       extract_integer_intervals(neuron.ranks, print=True))
+        output += "]"
+        return output
 
     def get_number_of_neurons(self):
         """Method to compute the total number of ANNarchyPopulation's neurons.
@@ -456,6 +470,20 @@ class ANNarchyOutputDevice(OutputDevice):
     def neurons(self):
         """Method to get the indices of all the neurons the device monitors."""
         return self.get_neurons()
+
+    def _print_neurons(self, neurons):
+        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
+        output = "["
+        for neuron in neurons:
+            if isinstance(neuron, self.annarchy_instance.Population):
+                pop = neuron
+            elif isinstance(neuron.population, self.annarchy_instance.Population):
+                pop = neuron.population
+            output += "(%s, %d, %s)" % \
+                      (neuron.name, get_population_ind(pop, self.annarchy_instance),
+                       extract_integer_intervals(neuron.ranks, print=True))
+        output += "]"
+        return output
 
     @property
     def record_from(self):
