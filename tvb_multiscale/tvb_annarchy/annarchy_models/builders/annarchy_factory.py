@@ -109,6 +109,10 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
     return population
 
 
+def get_population_ind(annarchy_population, annarchy_instance):
+    return annarchy_instance.Global._network[0]["populations"].index(annarchy_population)
+
+
 def get_populations_neurons(population, inds_fun=None):
     """This function will return a ANNarchy Population or PopulationView instance
        of the ANNarchyPopulation._population, if inds_fun argument is a function

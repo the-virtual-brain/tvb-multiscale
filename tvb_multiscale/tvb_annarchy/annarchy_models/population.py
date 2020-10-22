@@ -55,7 +55,8 @@ class ANNarchyPopulation(SpikingPopulation):
         return self._population
 
     def _get_population_ind(self):
-        return self.annarchy_instance.Global._network[0]["populations"].index(self._population)
+        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
+        return get_population_ind(self._population, self.annarchy_instance)
 
     @property
     def population_ind(self):
