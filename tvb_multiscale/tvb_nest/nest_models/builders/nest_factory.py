@@ -98,7 +98,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             logger.info("in build directory %s..." % module_bld_dir)
             success_message = "DONE compiling and installing %s!" % module
             install_nest(module_bld_dir, config.NEST_PATH)
-            solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
+            logger.info("Compiling finished without errors...")
         else:
             logger.info("Installing precompiled module %s..." % module)
             success_message = "DONE installing precompiled module %s!" % module
