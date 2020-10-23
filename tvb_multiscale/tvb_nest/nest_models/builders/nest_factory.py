@@ -70,7 +70,6 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         logger: logger object. Default: local LOG object.
     """
     # ...unless we need to first compile it:
-    from pynestml.frontend.pynestml_frontend import install_nest
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
     lib_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "lib", "nest")
@@ -97,6 +96,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             logger.info("Compiling %s..." % module)
             logger.info("in build directory %s..." % module_bld_dir)
             success_message = "DONE compiling and installing %s!" % module
+            from pynestml.frontend.pynestml_frontend import install_nest
             install_nest(module_bld_dir, config.NEST_PATH)
             logger.info("Compiling finished without errors...")
         else:
