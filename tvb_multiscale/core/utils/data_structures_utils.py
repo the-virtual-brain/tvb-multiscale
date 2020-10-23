@@ -119,7 +119,10 @@ def summarize(results, digits=None):
                     for unique_val in unique_vals:
                         output[attr][unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
                 else:
-                    output[attr] = unique_vals
+                    if val_type[0] == "i":
+                        output[attr] = extract_integer_intervals(vals)
+                    else:
+                        output[attr] = unique_vals
             else:  # Assuming floats or arbitrary objects...
                 unique_vals = unique(vals)
                 if len(unique_vals) > 3:
