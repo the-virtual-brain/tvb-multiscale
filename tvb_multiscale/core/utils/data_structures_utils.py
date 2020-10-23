@@ -100,11 +100,6 @@ def summarize(results, digits=None):
         summary["var"] = d.variance
         return summary
 
-    if is_integer(digits):
-        fun = unique_floats_fun
-    else:
-        fun = stats_fun
-
     output = {}
     for attr, val in results.items():
         vals = ensure_list(val)
@@ -113,22 +108,29 @@ def summarize(results, digits=None):
             if isinstance(vals[0], string_types) or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o":
                 # String, integer or boolean values
                 unique_vals = list(unique(vals).astype(val_type))
-                if len(unique_vals) < 2:
+                n_unique_vals = len(unique_vals)
+                if n_unique_vals < 2:
                     # If they are all of the same value, just set this value:
                     output[attr] = unique_vals[0]
-                else:
+                elif n_unique_vals <= 10:
                     # Otherwise, return a summary dictionary with the indices of each value:
                     output[attr] = OrderedDict()
                     vals = np.array(vals)
                     for unique_val in unique_vals:
                         output[attr][unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
-            else:  # Assuming floats...
+                else:
+                    output[attr] = unique_vals
+            else:  # Assuming floats or arbitrary objects...
                 unique_vals = unique(vals)
                 if len(unique_vals) > 3:
                     # If there are more than three different values, try to summarize them...
-                    output[attr] = fun(np.array(vals))
-                    if isinstance(output[attr], np.ndarray):
-                        output[attr] = output[attr].astype(val_type)
+                    try:
+                        if is_integer(digits):
+                            output = unique_floats_fun(unique_vals)
+                        else:
+                            output[attr] = stats_fun(np.array(vals))
+                    except:
+                        output[attr] = unique_vals
                 else:
                     if len(unique_vals) == 1:
                         output[attr] = unique_vals[0]
