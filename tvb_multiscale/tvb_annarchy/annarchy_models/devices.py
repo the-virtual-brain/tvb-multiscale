@@ -129,6 +129,7 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
     def _print_neurons(self, neurons):
         from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
         output = "["
+        number_of_neurons = 0
         for neuron in neurons:
             if isinstance(neuron, self.annarchy_instance.Population):
                 pop = neuron
@@ -137,7 +138,9 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
             output += "(%s, %d, %s)" % \
                       (neuron.name, get_population_ind(pop, self.annarchy_instance),
                        extract_integer_intervals(neuron.ranks, print=True))
+            number_of_neurons += neuron.size
         output += "]"
+        output = "%d neurons: " % number_of_neurons
         return output
 
     def get_number_of_neurons(self):
