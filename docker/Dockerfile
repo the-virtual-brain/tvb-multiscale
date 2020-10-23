@@ -64,7 +64,7 @@ ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
-ARG LAST_SHA_NEST=LATEST
+# ARG LAST_SHA_NEST=LATEST
 RUN git clone --depth 1 https://github.com/nest/nest-simulator.git; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
