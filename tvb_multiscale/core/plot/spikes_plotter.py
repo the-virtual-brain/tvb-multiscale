@@ -11,6 +11,8 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 class SpikesPlotter(BasePlotter):
 
+    _y_axes_labels = {}
+
     def __init__(self, config=CONFIGURED.figures):
         if isinstance(config, Config) or issubclass(config.__class__, Config):
             super(SpikesPlotter, self).__init__(config.figures)
@@ -106,7 +108,12 @@ class SpikesPlotter(BasePlotter):
             if i_pop == 0:
                 axes.set_yticklabels(rate_ytick_labels)
 
-        if i_pop == 0:
+        if i_region not in self._y_axes_labels.keys():
+            self._y_axes_labels[i_region] = []
+        if reg_label not in self._y_axes_labels[i_region]:
+            self._y_axes_labels[i_region].append(reg_label)
+            axes.set_ylabel("%s neurons" % reg_label)
+        elif i_pop == 0:
             axes.set_ylabel("%s neurons" % reg_label)
 
         axes.set_title(pop_label)
