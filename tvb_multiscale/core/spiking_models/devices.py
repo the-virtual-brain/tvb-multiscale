@@ -72,12 +72,12 @@ class Device(object):
             neurons = ensure_list(self.neurons)
             conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
                                                  summary=3)
-            output += ",\nconnections %s %d neurons: %s," \
+            output += ",\nconnections %s\n%s," \
                       "\nweights: %s," \
                       "\ndelays: %s," \
                       "\nreceptors: %s" % \
                       (self._print_from_to,
-                       len(neurons), self._print_neurons(neurons),
+                       self._print_neurons(neurons),
                        str(conn_attrs.get(self._weight_attr, "")),
                        str(conn_attrs.get(self._delay_attr, "")),
                        str(conn_attrs.get(self._receptor_attr, "")))

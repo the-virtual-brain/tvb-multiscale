@@ -55,7 +55,8 @@ class SpikingPopulation(object):
         pass
 
     def __repr__(self):
-        return "%s - Label: %s \n%s" % (self.__class__.__name__, self.label, self._print_neurons())
+        return "%s - Label: %s \nmodel: %s\n%s" % \
+               (self.__class__.__name__, self.label, self.model, self._print_neurons())
 
     def __str__(self):
         return "\n%s" \
