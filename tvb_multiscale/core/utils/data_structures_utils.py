@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
+from six import string_types
 
 import numpy as np
 from scipy.stats import describe
@@ -84,10 +85,11 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
     return output_events
 
 
-def summarize(results, decimals=None):
+def summarize(results, digits=None):
 
-    def unique_fun(vals):
-        return unique(np.around(vals, decimals=decimals))
+    def unique_floats_fun(vals):
+        scale = 10 ** np.floor(np.log10(np.percentile(np.abs(vals), 95)))
+        return scale * unique(np.around(vals / scale, decimals=digits))
 
     def stats_fun(vals):
         d = describe(vals)
@@ -98,42 +100,40 @@ def summarize(results, decimals=None):
         summary["var"] = d.variance
         return summary
 
-    if is_integer(decimals):
-        fun = unique_fun
+    if is_integer(digits):
+        fun = unique_floats_fun
     else:
         fun = stats_fun
 
     output = {}
     for attr, val in results.items():
         vals = ensure_list(val)
-        if len(vals) > 3:
-            try:
-                val_type = np.array(vals).dtype
-                if str(val_type)[0] == "i":
-                    output[attr] = extract_integer_intervals(vals)
+        try:
+            val_type = str(np.array(vals).dtype)
+            if isinstance(vals[0], string_types) or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o":
+                # String, integer or boolean values
+                unique_vals = list(unique(vals).astype(val_type))
+                if len(unique_vals) < 2:
+                    # If they are all of the same value, just set this value:
+                    output[attr] = unique_vals[0]
                 else:
-                    output[attr] = fun(vals)
+                    # Otherwise, return a summary dictionary with the indices of each value:
+                    output[attr] = OrderedDict()
+                    vals = np.array(vals)
+                    for unique_val in unique_vals:
+                        output[attr][unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
+            else:  # Assuming floats...
+                unique_vals = unique(vals)
+                if len(unique_vals) > 3:
+                    # If there are more than three different values, try to summarize them...
+                    output[attr] = fun(np.array(vals))
                     if isinstance(output[attr], np.ndarray):
                         output[attr] = output[attr].astype(val_type)
-            except:
-                try:
-                    val_type = np.array(vals).dtype
-                    # Try boolean
-                    unique_vals = list(unique(vals).astype(val_type))
-                    if len(unique_vals) < 2:
-                        # If they are all True or all False
-                        output[attr] = unique_vals
-                    else:
-                        output[attr] = {"True": extract_integer_intervals(np.where(val)[0]),
-                                        "False": extract_integer_intervals(np.where(np.invert(vals))[0])}
-                except:
-                    try:
-                        val_type = np.array(vals).dtype
-                        # treat the rest as strings
-                        output[attr] = list(unique([str(v) for v in vals]).astype(val_type).tolist())
-                    except:
-                        output[attr] = list(vals)
-        else:
-            output[attr] = vals
-
+                else:
+                    if len(unique_vals) == 1:
+                        output[attr] = unique_vals[0]
+                    output[attr] = unique_vals
+        except:
+            # Something went wrong, return the original propety
+            output[attr] = list(vals)
     return output

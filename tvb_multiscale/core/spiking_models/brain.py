@@ -40,7 +40,7 @@ class SpikingBrain(Series):
     def print_str(self, connectivity=False):
         output = self.__repr__() + "\nRegions' nodes:\n"
         for region in self.regions:
-            output += LINE + self[region].print_str(connectivity)
+            output += "\n" + LINE + self[region].print_str(connectivity)
         return output
 
     def __getitem__(self, items):
