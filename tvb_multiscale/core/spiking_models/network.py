@@ -152,7 +152,7 @@ class SpikingNetwork(object):
            Returns:
             - a Series of selected DeviceSet instances
         """
-        spike_devices = []
+        spike_devices = pd.Series()
         if mode.find("activity") > -1:
             spike_devices = self.get_devices_by_model("spike_multimeter", regions=regions)
         else:
@@ -162,13 +162,13 @@ class SpikingNetwork(object):
                     break  # If this is not an empty dict of devices
         if len(spike_devices) == 0:
             LOG.warning("No spike measuring device in this Spiking Network network!")
-            return None, None, None
+            return spike_devices
         if populations_devices is not None:
             populations_devices = np.intersect1d(list(spike_devices.index),
                                                  ensure_list(populations_devices)).tolist()
             if len(populations_devices) == 0:
                 LOG.warning("No spike measuring device left after user selection!")
-                return None, None, None
+                return spike_devices
             spike_devices = spike_devices[populations_devices]
         return spike_devices
 
