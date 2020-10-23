@@ -149,7 +149,7 @@ class NESTDevice(Device):
         return self.get_neurons("target")
 
     def _print_neurons(self, neurons):
-        return extract_integer_intervals(neurons, print=True)
+        return "%d neurons: %s" %(self.number_of_neurons, extract_integer_intervals(neurons, print=True))
 
 
 class NESTInputDevice(NESTDevice, InputDevice):

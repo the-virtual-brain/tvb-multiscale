@@ -61,7 +61,7 @@ class NESTPopulation(SpikingPopulation):
         return extract_integer_intervals(self.neurons, print=print)
 
     def _print_neurons(self):
-        return "\n%d neurons: %s" % (self.number_of_neurons, self.summarize_neurons_indices(print=True))
+        return "%d neurons: %s" % (self.number_of_neurons, self.summarize_neurons_indices(print=True))
 
     def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
