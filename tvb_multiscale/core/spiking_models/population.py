@@ -2,14 +2,15 @@
 from abc import ABCMeta, abstractmethod
 
 from tvb_multiscale.core.config import initialize_logger
-
 from tvb_multiscale.core.utils.data_structures_utils import summarize
+
+from tvb.basic.neotraits.api import HasTraits, Attr, Int
 
 
 LOG = initialize_logger(__name__)
 
 
-class SpikingPopulation(object):
+class SpikingPopulation(HasTraits):
     __metaclass__ = ABCMeta
 
     """SpikingPopulation is a class that 
@@ -20,9 +21,15 @@ class SpikingPopulation(object):
     """
 
     _population = None  # Class instance of a sequence of neurons, that depends on its spiking simulator
-    label = ""    # label of population
-    model = ""    # label of neuronal model
-    _number_of_neurons = 0  # total number of populations' neurons
+
+    label = Attr(field_type=str, default="", required=True,
+                 label="Population label", doc="""Label of SpikingPopulation""")
+
+    model = Attr(field_type=str, default="", required=True, label="Population model",
+                 doc="""Label of neuronal model of SpikingPopulation's neurons""")
+
+    _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
+                             doc="""The number of neurons of SpikingPopulation """)
 
     # Modify accordingly for other simulators than NEST, by settin in the inheriting class:
     # _weight_attr = "weight"
@@ -37,9 +44,10 @@ class SpikingPopulation(object):
             model: a string with the name of the model of the population
         """
         self._population = population
+        super(SpikingPopulation, self).__init__()
         self.label = str(label)
         self.model = str(model)
-        self._number_of_neurons = self.number_of_neurons
+        self._number_of_neurons = self.get_number_of_neurons()
 
     def __getitem__(self, keys):
         """Slice specific neurons (keys) of this SpikingPopulation.

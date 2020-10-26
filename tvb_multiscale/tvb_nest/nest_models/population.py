@@ -18,9 +18,9 @@ class NESTPopulation(SpikingPopulation):
     _delay_attr = "delay"
     _receptor_attr = "receptor"
 
-    def __init__(self, node_collection, label="", model="", nest_instance=None, **kwargs):
+    def __init__(self, node_collection, label="", model="", nest_instance=None):
         self.nest_instance = nest_instance
-        super(NESTPopulation, self).__init__(node_collection, label, model, **kwargs)
+        super(NESTPopulation, self).__init__(node_collection, label, model)
 
     @property
     def spiking_simulator_module(self):

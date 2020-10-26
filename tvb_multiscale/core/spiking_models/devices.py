@@ -9,8 +9,9 @@ import xarray as xr
 import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger, LINE
-
 from tvb_multiscale.core.utils.data_structures_utils import filter_events, summarize, flatten_neurons_inds_in_DataArray
+
+from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import \
@@ -22,7 +23,7 @@ from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution
 LOG = initialize_logger(__name__)
 
 
-class Device(object):
+class Device(HasTraits):
     __metaclass__ = ABCMeta
 
     """Device class to wrap around an 
@@ -32,10 +33,18 @@ class Device(object):
     """
 
     device = None  # a device object, depending on its simulator implementation
-    model = "device"  # the device model name
-    label = ""
-    _number_of_connections = 0  # total number of device's connections
-    _number_of_neurons = 0  # total number of neurons connected to this device
+
+    model = Attr(field_type=str, default="device", required=True,
+                 label="Device model", doc="""Label of Device model""")
+
+    label = Attr(field_type=str, default="", required=True,
+                 label="Device label", doc="""Label of Device""")
+
+    _number_of_connections = Int(field_type=int, default=0, required=True, label="Number of connections",
+                                 doc="""The number of total device's connections""")
+
+    _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
+                             doc="""The number of total neurons connected to the device""")
 
     # Modify accordingly for other simulators than NEST, by settin in the inheriting class:
     # _weight_attr = "weight"
@@ -44,10 +53,11 @@ class Device(object):
 
     def __init__(self, device, *args, **kwargs):
         self.device = device   # a device object, depending on its simulator implementation
-        self.model = kwargs.pop("model", "device")  # the device model name
+        super(Device, self).__init__()
         self.label = kwargs.pop("label", "")
-        self._number_of_connections = self.number_of_connections
-        self._number_of_neurons = self.number_of_neurons
+        self.model = kwargs.pop("model", "device")
+        self._number_of_connections = self.get_number_of_connections()
+        self._number_of_neurons = self.get_number_of_neurons()
 
     def __repr__(self):
         output = "%s - Model: %s\n%s" % (self.__class__.__name__, self.model, self.device.__str__())
@@ -294,8 +304,6 @@ class InputDevice(Device):
 
     """InputDevice class to wrap around an input (stimulating) device"""
 
-    model = "input_device"
-
     def __init__(self, device, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "input_device")
         super(InputDevice, self).__init__(device, *args, **kwargs)
@@ -327,8 +335,6 @@ class OutputDevice(Device):
 
     """OutputDevice class to wrap around an output (recording/measuring/monitoring) device"""
 
-    model = "output_device"
-    
     def __init__(self, device, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "output_device")
         super(OutputDevice, self).__init__(device, *args, **kwargs)
@@ -438,10 +444,8 @@ class SpikeRecorder(OutputDevice):
 
     """OutputDevice class to wrap around a spike recording device"""
 
-    model = "spike_recorder"
-
     def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "spike_detector")
+        kwargs["model"] = kwargs.pop("model", "spike_recorder")
         super(SpikeRecorder, self).__init__(device, *args, **kwargs)
 
     def get_spikes_events(self, events_inds=None, **filter_kwargs):
@@ -684,8 +688,6 @@ class Multimeter(OutputDevice):
     """OutputDevice class to wrap around an output device
        that records continuous time data only."""
 
-    model = "multimeter"
-
     def __init__(self, device, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "multimeter")
         super(Multimeter, self).__init__(device, *args, **kwargs)
@@ -863,7 +865,6 @@ class Voltmeter(Multimeter):
       that records continuous time membrane potential data only."""
 
     # The Voltmeter is just a Mutlimeter measuring only a voltage quantity
-    model = "voltmeter"
 
     def __init__(self, device, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "voltmeter")
@@ -872,7 +873,7 @@ class Voltmeter(Multimeter):
     @property
     @abstractmethod
     def var(self):
-        """A method to return the string of the voltage variable's name, e.g, "V_m" for membrane potential in NEST"""
+        """A method to return the string of the voltage variable's label, e.g, "V_m" for membrane potential in NEST"""
         pass
 
     def get_data(self, name=None, dims_names=["Variable", "Neuron", "Time"]):
@@ -957,8 +958,6 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
        i.e., variables that equal zero for every time moment when there is no spike emitted/received, and
        a positive or negative spike floating value, where there is a spike.
     """
-
-    model = "spike_multimeter"
 
     def __init__(self, device, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "spike_multimeter")
@@ -1185,7 +1184,7 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
             spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
             mode: if "per_neuron" the output is returned for each neuron separetely.
                   Otherwise, it is computed across all neurons. Default = "per_neuron"
-            name: name of the data to be computed. Default = None,
+            name: label of the data to be computed. Default = None,
                   which defaults to device_model_name + " - Total spike rate across time"
            Returns:
             xarray.DataArray with spike rates' time series
@@ -1297,7 +1296,7 @@ OutputSpikeDeviceDict = {"spike_recorder": SpikeRecorder,
                          "spike_multimeter": SpikeMultimeter}
 
 
-class DeviceSet(pd.Series):
+class DeviceSet(pd.Series, HasTraits):
 
     """DeviceSet class is a indexed mapping (based on inheritance from a pandas.Series)
        of a set of Device instances, that correspond to input or output devices referencing
@@ -1307,24 +1306,34 @@ class DeviceSet(pd.Series):
        it measrues/stimulates from/to, and indexed by regions' nodes' integer and/or label index,
        e.g. device_set["rh_insula"]."""
 
-    _number_of_connections = 0
+    model = Attr(field_type=str, default="", required=True,
+                 label="DeviceSet's model", doc="""Label of DeviceSet's devices' model""")
 
-    def __init__(self, name="", model="", device_set=None, **kwargs):
-        super(DeviceSet, self).__init__(device_set, **kwargs)
+    _number_of_connections = List(of=int, default=(),
+                                  label="Number of connections",
+                                  doc="""The number of total connections of the DeviceSet""")
+
+    def __init__(self, label="", model="", device_set=None, **kwargs):
+        pd.Series.__init__(self, device_set, name=str(label), **kwargs)
+        HasTraits.__init__(self)
+        self.model = str(model)
         if np.any([not isinstance(device, Device) for device in self]):
             raise ValueError("Input device_set is not a Series of Device objects!:\n%s" %
                              str(device_set))
-        self.name = str(name)
-        self.model = str(model)
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+
+    @property
+    def label(self):
+        """The region node label."""
+        return self.name
 
     def __getitem__(self, items):
         """This method will return a subset of the DeviceSet if the argument is a sequence,
         or a single Device if the argument is an integer indice or a string label."""
         if isinstance(items, string_types) or is_integer(items):
             return super(DeviceSet, self).__getitem__(items)
-        return DeviceSet(name=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
+        return DeviceSet(label=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
 
     def _repr(self):
         return "%s - Name: %s, Model: %s" % \

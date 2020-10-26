@@ -4,13 +4,15 @@ from pandas import Series
 
 from tvb_multiscale.core.config import initialize_logger, LINE
 
+from tvb.basic.neotraits.api import HasTraits, Attr, Int
+
 from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
 
 
 LOG = initialize_logger(__name__)
 
 
-class SpikingRegionNode(Series):
+class SpikingRegionNode(Series, HasTraits):
 
     """SpikingRegionNode class is an indexed mapping
        (based on inheriting from pandas.Series class)
@@ -18,16 +20,18 @@ class SpikingRegionNode(Series):
        residing at a specific brain region node.
     """
 
-    _number_of_neurons = 0
+    _number_of_neurons = Int(field_type=int, default=0,  required=True, label="Number of neurons",
+                             doc="""The number of neurons of SpikingRegionNode """)
 
-    # Default attributes' labels:
-    _weight_attr = "weight"
-    _delay_attr = "delay"
-    _receptor_attr = "receptor"
+    # # Default attributes' labels:
+    # _weight_attr = "weight"
+    # _delay_attr = "delay"
+    # _receptor_attr = "receptor"
 
     def __init__(self, label="", input_nodes=None, **kwargs):
-        super(SpikingRegionNode, self).__init__(input_nodes, name=label, **kwargs)
-        self._number_of_neurons = self.number_of_neurons
+        Series.__init__(self, input_nodes, name=str(label), **kwargs)
+        HasTraits.__init__(self)
+        self._number_of_neurons = self.get_number_of_neurons()
 
     def __repr__(self):
         return "%s - Label: %s\nPopulations %s" % (self.__class__.__name__, self.label, str(self.populations))

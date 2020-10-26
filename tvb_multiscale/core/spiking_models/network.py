@@ -6,7 +6,10 @@ import numpy as np
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger, LINE
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
+from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb_multiscale.core.spiking_models.devices import DeviceSet, OutputSpikeDeviceDict
+
+from tvb.basic.neotraits.api import HasTraits, Attr
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -14,7 +17,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 LOG = initialize_logger(__name__)
 
 
-class SpikingNetwork(object):
+class SpikingNetwork(HasTraits):
     __metaclass__ = ABCMeta
 
     """
@@ -33,11 +36,32 @@ class SpikingNetwork(object):
         residing in region node "rh-insula".
     """
 
-    brain_regions = None  # spiking_brain['rh-insula']['E']
+    brain_regions = Attr(
+        field_type=SpikingBrain,
+        label="Spiking brain regions",
+        default=None,
+        required=True,
+        doc="""A SpikingBrain instance holding all neural populations 
+               organized per brain region they reside and neural model""")  # spiking_brain['rh-insula']['E']
+
     # These devices are distinct from the ones for the TVB-Spiking Network interface
-    output_devices = None  # output_devices['Excitatory']['rh-insula']
-    #
-    input_devices = None  # input_devices['Inhibitory']['rh-insula']
+    output_devices = Attr(
+        field_type=pd.Series,
+        label="Output devices of the SpikingNetwork.",
+        default=None,
+        required=True,
+        doc="""A pandas.Series of output (recording) devices of the SpikingNetwork, 
+               organized by brain region and population.""")
+    # output_devices['Excitatory']['rh-insula']
+
+    input_devices = Attr(
+        field_type=pd.Series,
+        label="Intput devices of the SpikingNetwork.",
+        default=None,
+        required=True,
+        doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
+               organized by brain region and population.""")
+    # input_devices['Inhibitory']['rh-insula']
 
     def __init__(self,
                  brain_regions=None,
@@ -70,6 +94,8 @@ class SpikingNetwork(object):
                 raise ValueError("Input input_devices is not a pandas.Series of input DeviceSet objects!:\n %s" %
                                  str(input_devices))
             self.input_devices = input_devices
+
+        super(SpikingNetwork, self).__init__()
 
         LOG.info("%s created!" % self.__class__)
 
