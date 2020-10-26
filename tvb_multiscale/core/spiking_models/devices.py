@@ -51,7 +51,7 @@ class Device(HasTraits):
     # _delay_attr = "delay"
     # _receptor_attr = "receptor"
 
-    def __init__(self, device, *args, **kwargs):
+    def __init__(self, device=None, *args, **kwargs):
         self.device = device   # a device object, depending on its simulator implementation
         super(Device, self).__init__()
         self.label = kwargs.pop("label", "")
