@@ -8,6 +8,8 @@ from tvb_multiscale.core.spiking_models.devices import \
     InputDevice, OutputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 
+from tvb.basic.neotraits.api import HasTraits, Attr, Float, List
+
 from tvb.contrib.scripts.utils.data_structures_utils import flatten_list, ensure_list, extract_integer_intervals
 
 
@@ -19,14 +21,17 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
 
     """ANNarchyInputDevice class to wrap around an ANNarchy.Population, acting as an input (stimulating) device"""
 
-    model = "input_device"
-
     params = {}
 
-    def __init__(self, device,  label="", model="input_device", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None,  label="", model="input_device", annarchy_instance=None, **kwargs):
         self.params = kwargs.get("params", {})
         InputDevice.__init__(self, device, model=model, label=label)
-        ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance, **kwargs)
+        ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance)
+
+    def _assert_device(self):
+        if self.annarchy_instance is not None and self._population is not None:
+            from ANNarchy import Population
+            assert isinstance(self._population, Population)
 
     @property
     def spiking_simulator_module(self):
@@ -179,9 +184,7 @@ class ANNarchySpikeSourceArray(ANNarchyInputDevice, InputDevice):
     """ANNarchySpikeSourceArray class to wrap around an ANNarchy.SpikeSourceArray,
        acting as an input (stimulating) device, by sending spikes to target neurons."""
 
-    model = "SpikeSourceArray"
-
-    def __init__(self, device, label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchySpikeSourceArray, self).__init__(device, label, "SpikeSourceArray",
                                                        annarchy_instance, **kwargs)
 
@@ -192,9 +195,7 @@ class ANNarchyPoissonPopulation(ANNarchyInputDevice):
        acting as an input (stimulating) device, by generating and sending
        uncorrelated Poisson spikes to target neurons."""
 
-    model = "PoissonPopulation"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyPoissonPopulation, self).__init__(device,  label, "PoissonPopulation",
                                                         annarchy_instance, **kwargs)
 
@@ -206,9 +207,7 @@ class ANNarchyHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
        acting as an input (stimulating) device, by generating and sending
        correlated Poisson spikes to target neurons."""
 
-    model = "HomogeneousCorrelatedSpikeTrains"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyHomogeneousCorrelatedSpikeTrains, self).__init__(device,  label,
                                                                        "HomogeneousCorrelatedSpikeTrains",
                                                                        annarchy_instance, **kwargs)
@@ -220,9 +219,7 @@ class ANNarchyCurrentInjector(InputDevice):
        acting as an input (stimulating) device, by generating and sending
        a continuous quantity interpreted as a current (or potentially rate)."""
 
-    model = "CurrentInjector"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyCurrentInjector, self).__init__(device,  label, "CurrentInjector",
                                                       annarchy_instance, **kwargs)
 
@@ -233,9 +230,7 @@ class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
        acting as an input (stimulating) device, by generating and sending
        a constant continuous quantity interpreted as a DC current (or potentially rate)."""
 
-    model = "DCCurrentInjector"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "DCCurrentInjector",
                                                         annarchy_instance, **kwargs)
 
@@ -246,9 +241,7 @@ class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
        acting as an input (stimulating) device, by generating and sending
        a sinusoidaly varying continuous quantity interpreted as a AC current (or potentially rate)."""
 
-    model = "ACCurrentInjector"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ACCurrentInjector",
                                                         annarchy_instance, **kwargs)
 
@@ -259,9 +252,7 @@ class ANNarchyTimedArray(InputDevice):
        acting as an input (stimulating) device, by generating and sending
        a set of continuous quantities interpreted as a current or rate values."""
 
-    model = "TimedArray"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
                                                  annarchy_instance, **kwargs)
 
@@ -273,9 +264,7 @@ class ANNarchyPoissonNeuron(ANNarchyInputDevice):
        acting as an input (stimulating) device, by generating and sending
        uncorrelated Poisson spikes to target neurons."""
 
-    model = "Poisson_neuron"
-
-    def __init__(self, device,  label="", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyPoissonNeuron, self).__init__(device,  label, "Poisson_neuron",
                                                     annarchy_instance, **kwargs)
 
@@ -292,14 +281,18 @@ ANNarchyInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
                            }
 
 
-class ANNarchyOutputDeviceConnection(object):
+class ANNarchyOutputDeviceConnection(HasTraits):
 
     """ANNarchyOutputDeviceConnection class holds properties of connections
        between ANNarchyOutputDevice instances and ANNarchyPopulation ones"""
 
-    def __init__(self, pre=None, post=None):
-        self.pre = pre
-        self.post = post
+    from ANNarchy import Population, Monitor
+
+    pre = Attr(field_type=Population, default=None, required=True,
+               label="Population connection source ", doc="""The ANNarchy.Population as the connection's source.""")
+
+    post = Attr(field_type=Monitor, default=None, required=True,
+                label="Monitor connection target", doc="""The ANNarchy.Monitor as the connection's target.""")
 
     @property
     def attributes(self):
@@ -310,12 +303,15 @@ class ANNarchyOutputDevice(OutputDevice):
 
     """ANNarchyOutputDevice class to wrap around ANNarchy.Monitor instances, acting as an output device"""
 
-    _data = DataArray(np.empty((0, 0, 0, 0)),
-                      dims=["Time", "Variable", "Population", "Neuron"])
-    monitors = OrderedDict()
-    _monitors_inds = None
-    model = "output_device"
-    label = ""
+    _data = None
+
+    monitors = Attr(field_type=dict, default=lambda: OrderedDict(), required=True,
+                    label="Device's Monitors' dictionary",
+                    doc="""A dictionary of the ANNarchy.Monitor instances of the ANNarchyOutputDevice""")
+
+    _monitors_inds = List(of=int, label="Device's Monitors' indices", default=(),
+                          doc="""A list of the indices of the ANNarchy.Monitor instances of the ANNarchyOutputDevice""")
+
     annarchy_instance = None
 
     params = {}
@@ -326,22 +322,22 @@ class ANNarchyOutputDevice(OutputDevice):
 
     _default_attrs = ["variables", "period", "period_offset", "start"]
 
-    _dt = None
+    _dt = Float(label="Output device period", default=1.0,  required=True,
+                doc="""Output device period in ms""")
 
-    def __init__(self, monitors, label="", model="output_device", annarchy_instance=None,
+    def __init__(self, monitors=None, label="", model="output_device", annarchy_instance=None,
                  run_tvb_multiscale_init=True, **kwargs):
         if isinstance(monitors, dict):
-            self.monitors = OrderedDict(monitors)
+            monitors = OrderedDict(monitors)
         else:
-            self.monitors = OrderedDict()
+            monitors = OrderedDict()
         if run_tvb_multiscale_init:
-            OutputDevice.__init__(self, monitors, model=self.model, label=label)
-        self.model = model
+            OutputDevice.__init__(self, monitors, model=str(model), label=str(label))
+        self.model = str(model)
         self.params = kwargs.pop("params", {})
-        self.label = label
+        self.label = str(label)
         self.annarchy_instance = annarchy_instance
-        self._data = DataArray(np.empty((0, 0, 0, 0)),
-                               dims=["Time", "Variable", "Population", "Neuron"])
+        self._dt = kwargs.get("dt", self.dt)
         if self.annarchy_instance is not None:
             self._monitors_inds = self._get_monitors_inds()
 
@@ -349,6 +345,14 @@ class ANNarchyOutputDevice(OutputDevice):
         if self.annarchy_instance is None:
             raise ValueError("No ANNarchy instance associated to this %s of model %s with label %s!" %
                              (self.__class__.__name__, self.model, self.label))
+
+    def _assert_device(self):
+        if self.annarchy_instance is not None and self.monitors is not None:
+            assert isinstance(self.monitors, dict)
+            from ANNarchy import Monitor, Population, PopulationView
+            for monitor, pop in self.monitors.items():
+                assert isinstance(monitor, Monitor)
+                assert isinstance(pop, (Population, PopulationView))
 
     def _get_monitors_inds(self):
         """Method to get the indices of the devices' Monitors from list of all Monitors of the ANNarchy network."""
@@ -558,15 +562,19 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
     """ANNarchyMonitor class to wrap around ANNarchy.Monitor instances,
        acting as an output device of continuous time quantities."""
 
-    model = "Monitor"
+    _data = Attr(field_type=DataArray, label="Data buffer",
+                 default=DataArray(np.empty((0, 0, 0, 0)),
+                                   dims=["Time", "Variable", "Population", "Neuron"]),
+                 required=True,
+                 doc="""A DataArray buffer holding the data read from the Monitors""")
 
-    def __init__(self, monitors, label="", model="Monitor",
+    def __init__(self, monitors=None, label="", model="Monitor",
                  annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
-        self.model = model
         if run_tvb_multiscale_init:
-            Multimeter.__init__(self, monitors, model=self.model, label=self.label)
+            Multimeter.__init__(self, monitors, model=str(model), label=str(label))
         ANNarchyOutputDevice.__init__(self, monitors, label, self.model, annarchy_instance,
                                       run_tvb_multiscale_init=False, **kwargs)
+        self.model = str(model)
 
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
@@ -574,16 +582,16 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
     """ANNarchySpikeMonitor class to wrap around ANNarchy.Monitor instances,
        acting as an output device of spike discrete events."""
 
-    model = "SpikeMonitor"
+    _data = List(of=dict, label="SpikeMonitor data buffer", default=(),
+                 doc="""A list of dictionaries (one per Monitor) for holding the spike events
+                       read from the Monitors""")
 
-    _data = []
-
-    def __init__(self, monitors, label="", annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
-        self.model = "SpikeMonitor"
+    def __init__(self, monitors=None, label="", annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
         if run_tvb_multiscale_init:
-            SpikeRecorder.__init__(self, monitors, model=self.model, label=self.label)
-        ANNarchyOutputDevice.__init__(self, monitors, label, self.model, annarchy_instance,
+            SpikeRecorder.__init__(self, monitors, label=self.label)
+        ANNarchyOutputDevice.__init__(self, monitors, label, "SpikeMonitor", annarchy_instance,
                                       run_tvb_multiscale_init=False, **kwargs)
+        self.model = "SpikeMonitor"
 
     def _record(self):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,
@@ -615,15 +623,19 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
     """ANNarchySpikeMultimeter class to wrap around ANNarchy.Monitor instances,
        acting as an output device of continuous time spike weights' variables."""
 
-    model = "spike_multimeter"
+    _data = Attr(field_type=DataArray, label="Data buffer",
+                 default=DataArray(np.empty((0, 0, 0, 0)),
+                                   dims=["Time", "Variable", "Population", "Neuron"]),
+                 required=True,
+                 doc="""A DataArray buffer holding the data read from the Monitors""")
 
     def __init__(self, monitors, label="", annarchy_instance=None, **kwargs):
-        self.model = "spike_multimeter"
-        SpikeMultimeter.__init__(self, monitors, model=self.model, label=self.label)
-        ANNarchyMonitor.__init__(self, monitors, label, self.model, annarchy_instance,
+        SpikeMultimeter.__init__(self, monitors, model="spike_multimeter", label=self.label)
+        ANNarchyMonitor.__init__(self, monitors, label, "spike_multimeter", annarchy_instance,
                                  run_tvb_multiscale_init=False, **kwargs)
-        ANNarchySpikeMonitor.__init__(self, monitors, label, self.model, annarchy_instance,
+        ANNarchySpikeMonitor.__init__(self, monitors, label, "spike_multimeter", annarchy_instance,
                                       run_tvb_multiscale_init=False, **kwargs)
+        self.model = "spike_multimeter"
 
     @property
     def events(self):

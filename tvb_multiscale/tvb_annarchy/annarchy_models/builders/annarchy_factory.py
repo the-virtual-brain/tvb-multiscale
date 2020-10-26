@@ -67,7 +67,7 @@ def assert_model(model, annarchy_instance=None, import_path=""):
         try:
             module = str(annarchy_instance.__dict__[model])
             if "Population" in module or "Projection" in module:
-                # If this model is a SpecificPopulation or SpecificProjection, retun its name:
+                # If this model is a SpecificPopulation or SpecificProjection, return its name:
                 return model
             # ...try to load it from ANNarchy if it ships with its main distribution:
             model = getattr(annarchy_instance, model)

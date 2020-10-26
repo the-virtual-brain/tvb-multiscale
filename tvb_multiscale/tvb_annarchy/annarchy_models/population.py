@@ -4,7 +4,10 @@ import numpy as np
 
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
+from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer
+
 
 
 class ANNarchyPopulation(SpikingPopulation):
@@ -15,17 +18,27 @@ class ANNarchyPopulation(SpikingPopulation):
        residing at the same brain region.
     """
 
+    from ANNarchy import Population, Projection
+
     annarchy_instance = None
-    _population = None
-    _population_ind = None
-    projections_pre = []   # outgoing projections
-    projections_post = []  # incoming projections
+
+    _population = Attr(field_type=Population, default=None, required=False,
+                       label="ANNarchy.Population", doc="""Instance of ANNarchy.Population""")
+
+    _population_ind = Int(field_type=int, default=-1, required=True, label="Population indice",
+                          doc="""The indice of the population in the ANNarchy network""")
+
+    projections_pre = List(of=Projection, default=(), label="Outgoing projections",
+                           doc="""A list of population's outgoing ANNarchy.Projection instances""")
+
+    projections_post = List(of=Projection, default=(), label="Incoming projections",
+                            doc="""A list of population's incoming ANNarchy.Projection instances""")
     _weight_attr = "w"
     _delay_attr = "delay"
     _receptor_attr = "target"
     _default_connection_attrs = [_weight_attr, _delay_attr, _receptor_attr]
 
-    def __init__(self, population_neurons, label="", model="", annarchy_instance=None, **kwargs):
+    def __init__(self, population_neurons=None, label="", model="", annarchy_instance=None):
         self.annarchy_instance = annarchy_instance
         self._population = population_neurons
         if self._population is not None:
@@ -35,11 +48,9 @@ class ANNarchyPopulation(SpikingPopulation):
                 label = self._population.name
             if annarchy_instance is not None:
                 self._population_ind = self._get_population_ind()
-        else:
-            self._population_ind = None
         self.projections_pre = []
         self.projections_post = []
-        super(ANNarchyPopulation, self).__init__(population_neurons, label, model, **kwargs)
+        super(ANNarchyPopulation, self).__init__(population_neurons, label, model)
 
     @property
     def spiking_simulator_module(self):
