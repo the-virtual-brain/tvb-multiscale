@@ -129,7 +129,7 @@ def summarize(results, digits=None):
                     # If there are more than three different values, try to summarize them...
                     try:
                         if is_integer(digits):
-                            output = unique_floats_fun(unique_vals)
+                            output[attr] = unique_floats_fun(unique_vals)
                         else:
                             output[attr] = stats_fun(np.array(vals))
                     except:
