@@ -15,7 +15,6 @@ pipeline {
                     withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
                         def dockerfile = 'docker/Dockerfile'
                         def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'", "--build-arg LAST_SHA_TVB='${LAST_SHA_TVB}' --build-arg LAST_SHA_MULTISCALE='${LAST_SHA_MULTISCALE}' -f ${dockerfile} .")
-                        dockerImage.push('${VERSION_TAG}')
                         dockerImage.push('latest')
                     }
                 }
