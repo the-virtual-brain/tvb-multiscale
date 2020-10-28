@@ -67,4 +67,4 @@ class ANNarchyNetwork(SpikingNetwork):
            It will run annarchy_instance.simulate(simulation_length, *args, **kwargs)
         """
         measure_time = kwargs.pop("measure_time", True)
-        raise self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
+        self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
