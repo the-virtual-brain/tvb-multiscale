@@ -19,6 +19,7 @@ except:
     H5Writer = None
 
 from tvb_multiscale.core.plot.plotter import Plotter
+from tvb_multiscale.core.utils.data_structures_utils import combine_DataArray_dims
 from tvb_multiscale.tvb_elephant.spiking_network_analyser import SpikingNetworkAnalyser
 
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
@@ -140,6 +141,21 @@ def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_
     return time, time_with_transient
 
 
+def plot_correlations(corrs):
+    from xarray import DataArray
+    from matplotlib import pyplot
+    data, dims, coords = combine_DataArray_dims(corrs, [(0, 2), (1, 3)], join_string=", ", return_array=False)
+    DataArray(data, dims=dims, name=corrs.name). \
+        plot(x=dims[0], y=dims[1], cmap="jet",
+             xticks=np.arange(data.shape[0]), yticks=np.arange(data.shape[1]))
+    ax = pyplot.gca()
+    ax.set_xticklabels(coords[dims[0]], rotation=45, ha="right")
+    ax.set_yticklabels(coords[dims[1]])
+    ax.set_aspect(1./ax.get_data_ratio())
+    pyplot.tight_layout()
+    return pyplot.gcf(), ax
+
+
 def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                        time=None, transient=0.0, monitor_period=1.0,
                                        plot_per_neuron=False, plotter=None, writer=None, config=CONFIGURED):
@@ -185,6 +201,11 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         # Mean rates
         print(spikes_res["mean_rate"])
 
+        # Correlations
+        print(spikes_res["spikes_correlation_coefficient"])
+        fig, ax = plot_correlations(spikes_res["spikes_correlation_coefficient"])
+        plotter.base._save_figure(figure_name="Populations' Spikes' Correlation Coefficient")
+
         # Write results to file:
         if writer is not None:
             writer.write_object(spikes_res["spikes"].to_dict(),
@@ -192,10 +213,13 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
             writer.write_object(spikes_res["mean_rate"].to_dict(),
                                 path=os.path.join(config.out.FOLDER_RES,
                                                   spikes_res["mean_rate"].name) + ".h5")
-            writer.write_object(spikes_res["spikes_correlation_coefficient"],
+            writer.write_object(spikes_res["spikes_correlation_coefficient"].to_dict(),
                                 path=os.path.join(config.out.FOLDER_RES,
                                                   spikes_res["spikes_correlation_coefficient"].name) + ".h5")
-            writer.write_tvb_to_h5(spikes_res["mean_rate_time_series"],
+            writer.write_tvb_to_h5(
+                                   TimeSeriesRegion().from_xarray_DataArray(
+                                       spikes_res["mean_rate_time_series"]._data,
+                                       connectivity=spikes_res["mean_rate_time_series"].connectivity),
                                    os.path.join(config.out.FOLDER_RES,
                                                 spikes_res["mean_rate_time_series"].title) + ".h5",
                                    recursive=False)
@@ -247,9 +271,11 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                 # Populations in cols
                 col = spikeNet_ts.dims[3] if spikeNet_ts.shape[3] > 1 else None
             for var in spikeNet_ts.coords[spikeNet_ts.dims[1]]:
-                spikeNet_ts.loc[:, var, :, :, :].plot(y=spikeNet_ts.dims[4],
-                                                      row=row, col=col, cmap="jet", figsize=figsize)
-                plotter.base._save_figure(figure_name="Spiking Network variables' time series per neuron: %s" % var)
+                this_var_ts = spikeNet_ts.loc[:, var, :, :, :]
+                this_var_ts.name = var.item()
+                this_var_ts.plot(y=spikeNet_ts.dims[4], row=row, col=col, cmap="jet", figsize=figsize)
+                plotter.base._save_figure(
+                    figure_name="Spiking Network variables' time series per neuron: %s" % this_var_ts.name)
         else:
             mean_field_ts = spikeNet_ts
         del spikeNet_ts
@@ -262,8 +288,11 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
 
         # Write results to file:
         if writer is not None:
-            writer.write_tvb_to_h5(mean_field_ts,
-                                    os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".h5", recursive=False)
+            writer.write_tvb_to_h5(
+                                   TimeSeriesRegion().from_xarray_DataArray(
+                                       mean_field_ts._data,
+                                       connectivity=mean_field_ts.connectivity),
+                                   os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".h5", recursive=False)
         del mean_field_ts
 
 
