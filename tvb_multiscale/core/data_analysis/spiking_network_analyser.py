@@ -115,54 +115,48 @@ class SpikingNetworkAnalyser(HasTraits):
     def _get_data_name(self, method=None):
         return self._get_method_name(method, caller_id=3).split("get_")[-1].split("_from")[0]
 
-    def get_spikes_from_device(self, device, name="", **kwargs):
+    def get_spikes_from_device(self, device, **kwargs):
         data_name = self._get_data_name()
-        return {data_name: Series(device.get_spikes_events(**kwargs), name=name),
+        return {data_name: Series(device.get_spikes_events(**kwargs)),
                 "number_of_neurons": device.number_of_neurons,
                 "data_name": data_name}
 
-    def get_spikes_times_from_device(self, device, name="", **kwargs):
+    def get_spikes_times_from_device(self, device, **kwargs):
         data_name = self._get_data_name()
-        return {data_name: Series(np.array(np.sort(device.get_spikes_times(**kwargs)), name=name)),
+        return {data_name: Series(np.array(np.sort(device.get_spikes_times(**kwargs)))),
                 "number_of_neurons": device.number_of_neurons,
                 "data_name": data_name}
 
-    def get_spikes_times_by_neuron_from_device(self, device, name="", **kwargs):
+    def get_spikes_times_by_neuron_from_device(self, device, **kwargs):
         kwargs["full_senders"] = True
         spikes_times_by_neuron = device.get_spikes_times_by_neurons(**kwargs)
         number_of_neurons = len(spikes_times_by_neuron)
         if self.flatten_neurons_inds:
             spikes_times_by_neuron = OrderedDict(zip(range(number_of_neurons), spikes_times_by_neuron.values()))
         data_name = self._get_data_name()
-        return {data_name: Series(spikes_times_by_neuron, name=name),
+        return {data_name: Series(spikes_times_by_neuron),
                 "number_of_neurons": number_of_neurons,
                 "data_name": data_name}
 
-    def get_data_by_neuron_from_device(self, device, name="", **kwargs):
+    def get_data_by_neuron_from_device(self, device, **kwargs):
         this_kwargs = deepcopy(kwargs)
         this_kwargs["flatten_neurons_inds"] = this_kwargs.get("flatten_neurons_inds", self.flatten_neurons_inds)
         data = device.get_data(**kwargs)
         data_name = self._get_data_name()
-        if name:
-            data.name = name
         return {data_name: data,
                 "number_of_neurons": data.shape[-2],
                 "data_name": data_name}
 
-    def get_mean_data_from_device(self, device, name="", **kwargs):
+    def get_mean_data_from_device(self, device, **kwargs):
         data_name = self._get_data_name()
         data = device.get_mean_data(**kwargs)
-        if name:
-            data.name = name
         return {data_name: data,
                 "number_of_neurons": device.number_of_neurons,
                 "data_name": data_name}
 
-    def get_total_data_from_device(self, device, name="", **kwargs):
+    def get_total_data_from_device(self, device,**kwargs):
         data_name = self._get_data_name()
         data = device.get_total_data(**kwargs)
-        if name:
-            data.name = name
         return {data_name: data,
                 "number_of_neurons": device.number_of_neurons,
                 "data_name": data_name}
@@ -238,7 +232,7 @@ class SpikingNetworkAnalyser(HasTraits):
     def assert_binned_spikes_trains(self, spikes_trains, binsize=None, num_bins=None):
         pass
 
-    def compute_rate(self, spikes, number_of_neurons=1, name="", duration=None, **kwargs):
+    def compute_rate(self, spikes, number_of_neurons=1, duration=None, **kwargs):
         res_type = self._get_comput_res_type()
         spikes_times = self._get_spikes_times_from_spikes_events(spikes)
         if not duration:
@@ -248,28 +242,28 @@ class SpikingNetworkAnalyser(HasTraits):
                 raise ValueError("start_time (=%g) cannot be smaller than end_time (=%g)!" % (start_time, end_time))
             elif duration == 0.0:
                 duration = 1.0
-        return {res_type: DataArray(len(spikes_times) / duration * 1000, name=name).squeeze()}
+        return {res_type: DataArray(len(spikes_times) / duration * 1000,).squeeze()}
 
-    def compute_mean_rate(self, spikes, number_of_neurons=1, name="", duration=None, **kwargs):
+    def compute_mean_rate(self, spikes, number_of_neurons=1, duration=None, **kwargs):
         res_type = self._get_comput_res_type()
         res2_type = self._get_comput_res_type(self.compute_rate)
-        results = self.compute_rate(spikes, name=name, duration=duration, **kwargs)
+        results = self.compute_rate(spikes, duration=duration, **kwargs)
         results[res_type] = results[res2_type] / number_of_neurons
         del results[res2_type]
         return results
 
-    def compute_rate_time_series(self, spikes_times, name="", **elephant_kwargs):
+    def compute_rate_time_series(self, spikes_times, **elephant_kwargs):
         pass
 
-    def compute_mean_rate_time_series(self, spikes_times, number_of_neurons=1, name="", **elephant_kwargs):
+    def compute_mean_rate_time_series(self, spikes_times, number_of_neurons=1, **elephant_kwargs):
         res_type = self._get_comput_res_type()
         res2_type = self._get_comput_res_type(self.compute_rate_time_series)
-        results = self.compute_rate_time_series(spikes_times, name=name, **elephant_kwargs)
+        results = self.compute_rate_time_series(spikes_times, **elephant_kwargs)
         results[res_type] = results[res2_type] / number_of_neurons
         del results[res2_type]
         return results
 
-    def compute_spikes_rates_by_neuron(self, spikes, number_of_neurons=1, name="", rate_method=None, **kwargs):
+    def compute_spikes_rates_by_neuron(self, spikes, number_of_neurons=1, rate_method=None, **kwargs):
         if rate_method is None:
             rate_method = self.compute_rate_time_series
         res_type = self._get_comput_res_type(rate_method) + "_by_neuron"
@@ -289,7 +283,7 @@ class SpikingNetworkAnalyser(HasTraits):
                 spikes_times = []
             rates[neuron] = \
                     list(rate_method(spikes_times, number_of_neurons=number_of_neurons, **kwargs).values())[0]
-        rates = concatenate_heterogeneous_DataArrays(rates, "Neuron", name=name, fill_value=0.0)
+        rates = concatenate_heterogeneous_DataArrays(rates, "Neuron", fill_value=0.0)
         return {res_type: rates}
 
     def compute_spikes_correlation_coefficient(self, spikes, binsize=None, num_bins=None, **kwargs):
@@ -312,44 +306,33 @@ class SpikingNetworkAnalyser(HasTraits):
                     return data.loc[t_start:]
         return data
 
-    def compute_activity(self, data, name="", **kwargs):
+    def compute_activity(self, data, **kwargs):
         data = self._apply_transient_to_data(DataArray(data)).mean(dim="Time")
-        if name:
-            data.name = name
         return {self._get_comput_res_type(): data}
 
-    def compute_mean_field(self, data, name="", **kwargs):
+    def compute_mean_field(self, data, **kwargs):
         data = self._apply_transient_to_data(DataArray(data)).mean(dim="Time")
         if data.ndim > 1:
             data = data.mean(dim="Neuron")
-        if name:
-            data.name = name
         return {self._get_comput_res_type(): data}
 
-    def compute_total_activity(self, data, name="", **kwargs):
+    def compute_total_activity(self, data, **kwargs):
         data = self._apply_transient_to_data(DataArray(data)).mean(dim="Time")
         if data.ndim > 1:
             data = data.sum(dim="Neuron")
-        if name:
-            data.name = name
         return {self._get_comput_res_type(): data}
 
-    def compute_activity_time_series(self, data, name="", **kwargs):
+    def compute_activity_time_series(self, data, **kwargs):
         data = self._apply_transient_to_data(DataArray(data))
-        if name:
-            data.name = name
+
         return {self._get_comput_res_type(): data}
 
-    def compute_mean_field_time_series(self, data, name="", **kwargs):
+    def compute_mean_field_time_series(self, data, **kwargs):
         data = self._apply_transient_to_data(DataArray(data)).mean(dim="Neuron")
-        if name:
-            data.name = name
         return {self._get_comput_res_type(): data}
 
-    def compute_total_activity_time_series(self, data, name="", **kwargs):
+    def compute_total_activity_time_series(self, data, **kwargs):
         data = self._apply_transient_to_data(DataArray(data)).sum(dim="Neuron")
-        if name:
-            data.name = name
         return {self._get_comput_res_type(): data}
 
     def prepare_results(self, results_names, computations_methods):
@@ -378,7 +361,7 @@ class SpikingNetworkAnalyser(HasTraits):
         computation_methods = ensure_list(computation_methods)
         computations_kwargs = ensure_list(computations_kwargs)
         for reg_label, reg_data in reg_device_or_data.iteritems():
-            data = data_method(reg_data, name=reg_label, **data_kwargs)
+            data = data_method(reg_data, **data_kwargs)
             population_size = data.get("number_of_neurons", population_size)
             outputs = OrderedDict()
             if self.return_data:
@@ -388,9 +371,9 @@ class SpikingNetworkAnalyser(HasTraits):
                 this_data = data[data["data_name"]]
                 if computation_method.__name__.find("rate") > -1:
                     this_data = outputs.get(self.spikes_train_name, this_data)
-                outputs.update(computation_method(this_data, number_of_neurons=population_size, name=reg_label,
+                outputs.update(computation_method(this_data, number_of_neurons=population_size,
                                                   **self._get_safe_computation_kwargs(i_comput, computations_kwargs)))
-            yield outputs
+            yield reg_label, outputs
 
     def populations_generator(self, pop_device_or_data, populations_sizes=[],
                               computation_methods=[lambda x, **kwargs: x], computation_kwargs=[{}],
@@ -402,7 +385,7 @@ class SpikingNetworkAnalyser(HasTraits):
                 population_size = populations_sizes[i_pop]
             except:
                 population_size = 1
-            for reg_results in \
+            for reg_label, reg_results in \
                     self.regions_generator(pop_data, population_size,
                                            computation_methods, computation_kwargs,
                                            data_method, data_kwargs):
@@ -411,7 +394,7 @@ class SpikingNetworkAnalyser(HasTraits):
                     for res_type in reg_results.keys():
                         pop_results[res_type] = Series(name=pop_label)
                 for res_type, res in reg_results.items():
-                    pop_results[res_type][res.name] = res
+                    pop_results[res_type][reg_label] = res
             if self.force_homogeneous_results:
                 for res_type, res in pop_results.items():
                     if isinstance(res[0], DataArray):
@@ -420,16 +403,16 @@ class SpikingNetworkAnalyser(HasTraits):
                                                                  name=pop_label, fill_value=np.nan)
             if data_name is not None:
                 pop_results["data_name"] = data_name
-            yield pop_results
+            yield pop_label, pop_results
 
     def compute_results_from_population_generator(self, results, population_generator):
         data_name = None
-        for pop_results in population_generator:
+        for pop_label, pop_results in population_generator:
             data_name = pop_results.pop("data_name", data_name)
             for res_name in pop_results.keys():
                 if res_name not in results.keys():
                     results[res_name] = Series(name=res_name)
-                results[res_name][pop_results[res_name].name] = pop_results[res_name]
+                results[res_name][pop_label] = pop_results[res_name]
         if data_name is not None:
             results["data_name"] = data_name
         return results
@@ -592,7 +575,7 @@ class SpikingNetworkAnalyser(HasTraits):
                     pop_reg_labels.append((pop_label, reg_label))
                     if reg_label not in all_regions_labels:
                         all_regions_labels.append(reg_label)
-                    spikes = data_method(reg_spikes, name=reg_label, **data_kwargs)
+                    spikes = data_method(reg_spikes, **data_kwargs)
                     data_name = spikes["data_name"]
                     spikes_trains.append(self._compute_spikes_train(spikes[data_name]))
                     if self.return_data:

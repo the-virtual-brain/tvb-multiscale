@@ -63,13 +63,13 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         from quantities import ms
         from elephant.conversion import BinnedSpikeTrain
         for i_spike_train, spikes_train, in enumerate(spikes_trains):
-            spikes_train = self.assert_spike_train(spikes_train)
+            spikes_trains[i_spike_train] = self.assert_spike_train(spikes_train)
         if binsize or num_bins:
             if binsize:
                 binsize = binsize * ms
-            return BinnedSpikeTrain(spikes_train, binsize=binsize, num_bins=num_bins)
+            return BinnedSpikeTrain(spikes_trains, binsize=binsize, num_bins=num_bins)
         else:
-            return BinnedSpikeTrain(spikes_train, binsize=self.period * ms)
+            return BinnedSpikeTrain(spikes_trains, binsize=self.period * ms)
 
     def assert_binned_spikes_trains(self, spikes_trains, binsize=None, num_bins=None):
         from elephant.conversion import BinnedSpikeTrain
@@ -90,17 +90,16 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         else:
             return 0.0, spikes_train
 
-    def compute_rate(self, spikes, number_of_neurons=1, name="", duration=None, **kwargs):
+    def compute_rate(self, spikes, number_of_neurons=1, duration=None, **kwargs):
         if self.elephant_mean_firing_rate:
             res_type = self._get_comput_res_type()
             spikes_times = self._get_spikes_times_from_spikes_events(spikes)
             result, spikes_train = \
                     self.compute_elephant_mean_firing_rate(spikes_times, **kwargs)
-            return {res_type: DataArray([float(result)], name=name).squeeze(),
+            return {res_type: DataArray([float(result)]).squeeze(),
                     self.spikes_train_name: spikes_train}
         else:
-            return super(SpikingNetworkAnalyser, self).compute_rate(spikes, number_of_neurons,
-                                                                    name, duration, **kwargs)
+            return super(SpikingNetworkAnalyser, self).compute_rate(spikes, number_of_neurons, duration, **kwargs)
 
     def _compute_delta_rate(self, time, spikes_times):
         result = np.zeros(time.shape)
@@ -109,7 +108,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                 np.sum(spikes_times == spike_time) / self.period
         return result
 
-    def compute_rate_time_series(self, spikes_train, number_of_neurons=1, name="", **elephant_kwargs):
+    def compute_rate_time_series(self, spikes_train, number_of_neurons=1, **elephant_kwargs):
         res_type = self._get_comput_res_type()
         t_start, t_stop = self.assert_start_end_times_from_spikes_times(spikes_train)
         time = np.arange(t_start, t_stop+self.period, self.period)
@@ -143,7 +142,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                 rates = self._compute_delta_rate(time, spikes_train.__array__())
         else:
             rates = 0.0 * time
-        return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time}, name=name),
+        return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time}),
                 self.spikes_train_name: spikes_train}
 
     def compute_spikes_correlation_coefficient(self, binned_spikes_trains, binsize=None, num_bins=None, **kwargs):
