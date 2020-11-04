@@ -180,20 +180,19 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
     spikes_res = \
         spikeNet_analyzer.\
             compute_spikeNet_spikes_rates_and_correlations(
-                                                   populations_devices=None, regions=None,
-                                                   populations_sizes=[],
-                                                   rates_methods=[spikeNet_analyzer.compute_mean_rate,
-                                                                  spikeNet_analyzer.compute_mean_rate_time_series],
-                                                   rates_kwargs=[{}],
-                                                   rate_results_names=["Mean Populations' Spikes' Rates",
-                                                                       "Mean Populations' Spikes' Rates' Time Series"],
-                                                   corrs_methods=[spikeNet_analyzer.compute_spikes_correlation_coefficient],
-                                                   corrs_kwargs=[{}],
-                                                   corrs_results_names=["Populations' Spikes' Correlation Coefficient"],
-                                                   bin_kwargs={},
-                                                   data_method=spikeNet_analyzer.get_spikes_from_device,
-                                                   data_kwargs={},
-                                                   return_devices=False
+                                               populations_devices=None, regions=None,
+                                               rates_methods=[spikeNet_analyzer.compute_mean_rate,
+                                                              spikeNet_analyzer.compute_mean_rate_time_series],
+                                               rates_kwargs=[{}],
+                                               rate_results_names=["Mean Populations' Spikes' Rates",
+                                                                   "Mean Populations' Spikes' Rates' Time Series"],
+                                               corrs_methods=[spikeNet_analyzer.compute_spikes_correlation_coefficient],
+                                               corrs_kwargs=[{}],
+                                               corrs_results_names=["Populations' Spikes' Correlation Coefficient"],
+                                               bin_kwargs={},
+                                               data_method=spikeNet_analyzer.get_spikes_from_device,
+                                               data_kwargs={},
+                                               return_devices=False
             )
 
     if spikes_res is not None:
@@ -231,8 +230,8 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
             spikeNet_analyzer.return_data = False
             rates_ts_per_neuron = \
                 spikeNet_analyzer. \
-                    compute_spikeNet_rates_time_series(populations_devices=None, regions=None, populations_sizes=[],
-                                                       computations_kwargs={}, data_method=None, data_kwargs={},
+                    compute_spikeNet_rates_time_series(populations_devices=None, regions=None,
+                                                       computations_kwargs={}, data_kwargs={},
                                                        return_spikes_trains=False, return_devices=False)
             if rates_ts_per_neuron is not None and rates_ts_per_neuron.size:
                 # Regions in rows
@@ -258,8 +257,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
     # Continuous time variables' data of spiking neurons
     spikeNet_ts = \
         spikeNet_analyzer. \
-            compute_spikeNet_mean_field_time_series(populations_devices=None, regions=None,
-                                                    variables=None, populations_sizes=[],
+            compute_spikeNet_mean_field_time_series(populations_devices=None, regions=None, variables=None,
                                                     computations_kwargs={}, data_kwargs={}, return_devices=False)
     if spikeNet_ts is not None:
         if plot_per_neuron:
