@@ -142,13 +142,13 @@ projGPi_Thal_Right = ann.Projection(popGPi_Right_I, popThal_Right_E, 'gaba', nam
     allow_self_connections=True,
     force_multiple_weights=False)
 # Projection 0 -> 4
-projGPe_STN_Left = ann.Projection(popGPe_Left_I, popThal_Left_E, 'gaba', name="I -> E").connect_all_to_all(
+projGPe_STN_Left = ann.Projection(popGPe_Left_I, popSTN_Left_E, 'gaba', name="I -> E").connect_all_to_all(
     weights=0.078125, delays=11.202326146081633,
     allow_self_connections=True,
     force_multiple_weights=False)
 # Projection 0 -> 5, 1 -> 4 left out (weight = 0)
 # Projection 1 -> 5
-projGPe_STN_Right = ann.Projection(popGPe_Right_I, popThal_Right_E, 'gaba', name="I -> E").connect_all_to_all(
+projGPe_STN_Right = ann.Projection(popGPe_Right_I, popSTN_Right_E, 'gaba', name="I -> E").connect_all_to_all(
     weights=0.078125, delays=5.1992490412363335,
     allow_self_connections=True,
     force_multiple_weights=False)
@@ -232,6 +232,11 @@ mStr_Right_I2 = ann.Monitor(popStr_Right_I2, ["v", "u", "syn", "g_ampa", "g_gaba
 
 # Inputs
 
+inpEstn = ann.PoissonPopulation(geometry=200, name="BaselineEstn", rates=500.0)
+projInpEstnLeft = ann.Projection(inpEstn, popSTN_Left_E, 'exc')
+#projInpEstnLeft.connect_one_to_one(weights=0.009, delays=0) #this produces segmentation fault!
+projInpEstnLeft.connect_one_to_one(weights=0.009)
+#projInpEstnRight = ann.Projection(inpEstn, popSTN_Left_E, 'exc')
 
 ann.compile()
 ann.simulate(100)
