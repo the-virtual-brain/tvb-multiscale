@@ -6,7 +6,6 @@ import numpy as np
 from pandas import Series
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun

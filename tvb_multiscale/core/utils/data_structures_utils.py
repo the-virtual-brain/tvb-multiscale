@@ -1,13 +1,30 @@
 # -*- coding: utf-8 -*-
+
+from inspect import stack
+from itertools import product
 from collections import OrderedDict
 from six import string_types
 
 import numpy as np
 from scipy.stats import describe
 from pandas import unique
+from xarray import DataArray
+
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_list, is_integer, extract_integer_intervals
+
+
+def get_caller_fun_name(caller_id=1):
+    return str(stack()[caller_id][3])
+
+
+def get_ordered_dimensions(dims, dims_order):
+    out_dims = []
+    for dim in dims_order:
+        if dim in dims:
+            out_dims.append(dim)
+    return out_dims
 
 
 def flatten_neurons_inds_in_DataArray(data_array, neurons_dim_label="Neuron"):
@@ -142,3 +159,33 @@ def summarize(results, digits=None):
             # Something went wrong, return the original propety
             output[attr] = list(vals)
     return output
+
+
+def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
+    from pandas import MultiIndex
+    stacked_dims = "-".join(dims)
+    names = []
+    new_dims = []
+    for d in ["i", "j"]:
+        names.append([dim + "_" + d for dim in dims])
+        new_dims.append(stacked_dims + "_" + d)
+    new_coords = {new_dims[0]: MultiIndex.from_product([pop_labels, all_regions_lbls], names=names[0]),
+                  new_dims[1]: MultiIndex.from_product([pop_labels, all_regions_lbls], names=names[1])}
+    return new_dims, new_coords
+
+
+def combine_DataArray_dims(arr, dims_combinations, join_string=", ", return_array=True):
+    new_dims = []
+    new_coords = {}
+    stacked_dims = {}
+    for dim_combin in dims_combinations:
+        new_dim = join_string.join(["%s" % arr.dims[i_dim] for i_dim in dim_combin])
+        new_dims.append(new_dim)
+        stacked_dims[new_dim] =[arr.dims[i_dim] for i_dim in dim_combin]
+        new_coords[new_dim] = [join_string.join(coord_combin)
+                               for coord_combin in product(*[arr.coords[arr.dims[i_dim]].data for i_dim in dim_combin])]
+    if return_array:
+        return DataArray(arr.stack(**stacked_dims).data, dims=new_dims, coords=new_coords, name=arr.name)
+    else:
+        return arr.stack(**stacked_dims).data, new_dims, new_coords
+

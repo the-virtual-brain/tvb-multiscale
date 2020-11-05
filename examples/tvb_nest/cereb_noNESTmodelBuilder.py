@@ -411,7 +411,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
                                populations=populations, populations_sizes=populations_sizes,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
-                               plotter=plotter, config=config)
+                               plot_per_neuron=False, plotter=plotter, config=config)
         except Exception as e:
             print("Error in plotting or writing to files!:\n%s" % str(e))
 

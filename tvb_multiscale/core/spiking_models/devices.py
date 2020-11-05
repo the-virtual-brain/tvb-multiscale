@@ -15,9 +15,7 @@ from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, flatten_list, list_of_dicts_to_dict_of_lists, \
-    sort_events_by_x_and_y, data_xarray_from_continuous_events, is_integer
-from tvb.contrib.scripts.utils.computations_utils import spikes_rate_convolution, compute_spikes_counts
+    ensure_list, list_of_dicts_to_dict_of_lists, sort_events_by_x_and_y, data_xarray_from_continuous_events, is_integer
 
 
 LOG = initialize_logger(__name__)
@@ -598,90 +596,6 @@ class SpikeRecorder(OutputDevice):
         """
         return self.get_spikes_rate()
 
-    # The following attributes are computed across time:
-
-    def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                        spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
-                                        name=None, **kwargs):
-        """This method computes spike rate across time.
-           Arguments:
-            time: the time vector
-            spikes_kernel_width: float: the width of the sliding window kernel in ms
-            spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points,
-                                           Default=None, and computed using the time vector
-            spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
-            mode: if "per_neuron" the output is returned for each neuron separetely.
-                  Otherwise, it is computed across all neurons. Default = "per_neuron"
-            name: name of the data to be computed. Default = None,
-                  which defaults to device_model_name + " - Total spike rate across time"
-           Returns:
-            xarray.DataArray with spike rates' time series
-        """
-        if spikes_kernel is None:
-            if spikes_kernel_width_in_points is None:
-                spikes_kernel_width_in_points = np.maximum(1, int(np.ceil(spikes_kernel_width / np.diff(time))))
-            # Default spikes' kernel is just a rectangular one, normalized with its width.
-            spikes_kernel = np.ones((spikes_kernel_width_in_points, )) / spikes_kernel_width
-
-        if name is None:
-            name = self.model + " - Total spike rate across time"
-
-        if mode == "per_neuron":
-            senders_neurons = []
-            rates = []
-            # Computing separately per neuron
-            for neuron, spikes_times in self.get_spikes_times_by_neurons(full_senders=True, **kwargs).items():
-                senders_neurons.append(neuron)
-                if len(spikes_times) > 0:
-                    # Getting spikes counts per time interval
-                    spikes_counts = compute_spikes_counts(spikes_times, time)
-                    # Computing rate as a convolution with spikes_kernel
-                    rates.append(spikes_rate_convolution(spikes_counts, spikes_kernel))
-                else:
-                    rates.append(np.zeros(time.shape))
-            if flatten_neurons_inds:
-                senders_neurons = np.arange(len(senders_neurons))
-            return xr.DataArray(rates, dims=["Neuron", "Time"], coords={"Neuron": senders_neurons,
-                                                                        "Time": time})
-        else:
-            # Computing for the whole population(s) alltogether
-            spikes_times = self.get_spikes_times(**kwargs)
-            if len(spikes_times) > 0:
-                # Getting spikes counts per time interval
-                spikes_counts = compute_spikes_counts(spikes_times, time)
-                # Computing rate as some kind of convolution with spikes_kernel
-                rates = spikes_rate_convolution(spikes_counts, spikes_kernel)
-            else:
-                rates = np.zeros(time.shape)
-            return xr.DataArray(rates, dims=["Time"], coords={"Time": time}, name=name)
-
-    def compute_mean_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points,
-                                             spikes_kernel=None, name=None, **kwargs):
-        """This method computes mean spike rate across time
-           by dividing the total spike rate with the total number of neurons.
-           Arguments:
-            time: the time vector
-            spikes_kernel_width: float: the width of the sliding window kernel in ms
-            spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points,
-                                           Default=None, and computed using the time vector
-            spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
-            mode: if "per_neuron" the output is returned for each neuron separetely.
-                  Otherwise, it is computed across all neurons. Default = "per_neuron"
-            name: name of the data to be computed. Default = None,
-                  which defaults to device_model_name + " - Mean spike rate accross time"
-           Returns:
-            xarray.DataArray with spike rates' time series
-        """
-        if name is None:
-            name = self.model + " - Mean spike rate accross time"
-        n_neurons = self.get_number_of_neurons()
-        if n_neurons > 0:
-            return self.compute_spikes_rate_across_time(time, spikes_kernel_width, spikes_kernel_width_in_points,
-                                                        spikes_kernel=spikes_kernel, mode="total",
-                                                        name=name, **kwargs) / n_neurons
-        else:
-            return xr.DataArray(0.0 * time, dims=["Time"], coords={"Time": time}, name=name)
-
 
 class Multimeter(OutputDevice):
 
@@ -719,14 +633,14 @@ class Multimeter(OutputDevice):
             variables = self.record_from
         return variables
 
-    def get_data(self, variables=None, name=None, dims_names=["Variable", "Neuron", "Time"], flatten_neurons_inds=True):
+    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
                        Default = None, corresponds to all variables the multimeter records from.
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
-                        Default = ["Variable", "Neuron", "Time"]
+                        Default = ["Time", "Variable", "Neuron"]
            Returns:
             a xarray DataArray with the output data
         """
@@ -741,38 +655,38 @@ class Multimeter(OutputDevice):
                                                   variables=self._determine_variables(variables),
                                                   name=name, dims_names=dims_names)
         if flatten_neurons_inds:
-            data = flatten_neurons_inds_in_DataArray(data, data.dims[1])
+            data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
         return data
 
-    def get_mean_data(self, variables=None, name=None, dims_names=["Variable", "Time"]):
+    def get_mean_data(self, variables=None, name=None, dims_names=["Time", "Variable"]):
         """This method returns time series' data recorded by the multimeter, averaged across the neurons' dimension.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
                        Default = None, corresponds to all variables the multimeter records from.
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
-                        Default = ["Variable", "Time"]
+                        Default = ["Time", "Variable"]
            Returns:
             a xarray DataArray with the output data
         """
-        dims_names = [dims_names[0], "Neuron", dims_names[1]]
+        dims_names = [dims_names[0], dims_names[1], "Neuron"]
         data = self.get_data(variables, name, dims_names)
         return data.mean(dim="Neuron")
 
-    def get_total_data(self, variables=None, name=None, dims_names=["Variable", "Time"]):
+    def get_total_data(self, variables=None, name=None, dims_names=["Time", "Variable"]):
         """This method returns time series' data recorded by the multimeter, summed across the neurons' dimension.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
                        Default = None, corresponds to all variables the multimeter records from.
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
-                        Default = ["Variable", "Time"]
+                        Default = ["Time", "Variable"]
            flatten_neurons_inds: if true, neurons coordinates are arranged from 1 to number of neurons,
                                   instead for neurons_inds
            Returns:
             a xarray DataArray with the output data
         """
-        dims_names = [dims_names[0], "Neuron", dims_names[1]]
+        dims_names = [dims_names[0], dims_names[1], "Neuron"]
         data = self.get_data(variables, name, dims_names)
         return data.sum(dim="Neuron")
 
@@ -876,24 +790,24 @@ class Voltmeter(Multimeter):
         """A method to return the string of the voltage variable's label, e.g, "V_m" for membrane potential in NEST"""
         pass
 
-    def get_data(self, name=None, dims_names=["Variable", "Neuron", "Time"]):
+    def get_data(self, name=None, dims_names=["Time", "Variable", "Neuron"]):
         """This method returns time series' data of the membrane potential recorded by the voltmeter.
            Arguments:
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
-                        Default = ["Variable", "Neuron", "Time"]
+                        Default = ["Time", "Variable", "Neuron"]
            Returns:
             a xarray DataArray with the output data
         """
         return super(Voltmeter, self).get_data(self.var, name, dims_names)
 
-    def get_mean_data(self, name=None, dims_names=["Variable", "Time"]):
+    def get_mean_data(self, name=None, dims_names=["Time", "Variable"]):
         """This method returns time series' data of the membrane potential recorded by the voltmeter,
            averaged across neurons.
            Arguments:
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
-                        Default = ["Variable", "Time"]
+                        Default = ["Time", "Variable"]
            Returns:
             a xarray DataArray with the output data
         """
@@ -971,12 +885,12 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
     def number_of_spikes_var(self):
         return len(self.spikes_vars)
 
-    def get_spikes(self, name=None, dims_names=["Variable", "Neuron", "Time"]):
+    def get_spikes(self, name=None, dims_names=["Time", "Variable", "Neuron"]):
         """This method returns time series' data of spike weights recorded by the spike multimeter.
            Arguments:
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
-                        Default = ["Variable", "Neuron", "Time"]
+                        Default = ["Time", "Variable", "Neuron"]
            Returns:
             a xarray DataArray with the output data
         """
@@ -1170,127 +1084,15 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
         """
         return self.get_mean_spikes_activity()
 
-    # The following attributes are computed across time:
-
-    def compute_spikes_activity_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                            spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
-                                            name=None, rate_mode="activity", **kwargs):
-        """This method computes spike activity (i.e., weights) across time.
-           Arguments:
-            time: the time vector
-            spikes_kernel_width: float: the width of the sliding window kernel in ms
-            spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points,
-                                           Default=None, and computed using the time vector
-            spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
-            mode: if "per_neuron" the output is returned for each neuron separetely.
-                  Otherwise, it is computed across all neurons. Default = "per_neuron"
-            name: label of the data to be computed. Default = None,
-                  which defaults to device_model_name + " - Total spike rate across time"
-           Returns:
-            xarray.DataArray with spike rates' time series
-        """
-        if name is None:
-            name = self.model + " - Total spike activity accross time"
-
-        if spikes_kernel is None:
-            spikes_kernel = np.ones((spikes_kernel_width_in_points,))
-            if rate_mode.find("rate") > -1:
-                # For spike rate computation we have to normalize with the kernel width in time units
-                spikes_kernel /= spikes_kernel_width
-            else:
-                # For "activity" computation we have to normalize with the kernel width in time steps
-                spikes_kernel /= spikes_kernel_width_in_points
-
-        spikes_data = self.get_spikes(**kwargs)
-
-        spikes_vars = ensure_list(self.spikes_vars)
-        if mode == "per_neuron":
-
-            outputs = xr.DataArray(np.empty(len(spikes_vars), 1, 1),
-                                   dims=["Variable", "Neuron", "Time"],
-                                   coords={"Variable": spikes_vars})
-
-            for spike_var in spikes_vars:
-                spikes = spikes_data.loc[:, spike_var].values
-                if rate_mode == "rate":
-                    for i_spike, spike in spikes:
-                        spikes[i_spike] = np.heaviside(spike, 0.0)
-                # Returning output per neuron
-                activity = []
-                for spike in spikes:
-                    activity.append(spikes_rate_convolution(spike, spikes_kernel))
-                activity = np.array(activity)
-                if flatten_neurons_inds:
-                    neurons = np.arange(activity.shape[0])
-                else:
-                    neurons = spikes.coords[spikes.dims[0]].item()
-                outputs = xr.combine_by_coords([outputs,
-                                                xr.DataArray(np.array(activity), dims=["Neuron", "Time"],
-                                                             coords={"Neuron": neurons, "Time": time})], fill_value=0.0)
-        else:
-            outputs = xr.DataArray(np.empty(len(spikes_vars), 1),
-                                   dims=["Variable", "Time"],
-                                   coords={"Variable": spikes_vars})
-            for spike_var in spikes_vars:
-                spikes = spikes_data.loc[:, spike_var].values
-                # Returning output as for all neurons together
-                spikes = np.sum(spikes, axis=0).squeeze()
-                activity = spikes_rate_convolution(spikes, spikes_kernel)
-                outputs = xr.combine_by_coords([outputs,
-                                                xr.DataArray(activity,
-                                                             dims=["Time"], coords={"Time": time}, name=name)])
-        return outputs
-
-    def compute_spikes_rate_across_time(self, time, spikes_kernel_width, spikes_kernel_width_in_points=None,
-                                        spikes_kernel=None, mode="per_neuron", flatten_neurons_inds=True,
-                                        name=None, **kwargs):
-        """This method computes spike rate across time.
-           Arguments:
-            time: the time vector
-            spikes_kernel_width: float: the width of the sliding window kernel in ms
-            spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points,
-                                           Default=None, and computed using the time vector
-            spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
-            name: name of the data to be computed. Default = None,
-                  which defaults to device_model_name + " - Total spike rate across time"
-           Returns:
-            xarray.DataArray with spike rates' time series
-        """
-        return self.compute_spikes_activity_across_time(time, spikes_kernel_width,
-                                                        spikes_kernel_width_in_points=None, spikes_kernel=spikes_kernel,
-                                                        mode=mode, flatten_neurons_inds=flatten_neurons_inds,
-                                                        name=name, rate_mode="rate",  **kwargs)
-
-    def compute_mean_spikes_activity_across_time(self, time, spike_kernel_width,
-                                                 spikes_kernel=None, name=None, **kwargs):
-        """This method computes spike activity (i.e., weights) across time, averaged across neurons.
-           Arguments:
-            time: the time vector
-            spikes_kernel_width: float: the width of the sliding window kernel in ms
-            spikes_kernel_width_in_points: int: the width of the sliding window kernel in time points,
-                                           Default=None, and computed using the time vector
-            spikes_kernel: an array of a sliding window. Default=None, in which case a rectangular kernel is formed
-            name: name of the data to be computed. Default = None,
-                  which defaults to device_model_name + " - Total spike rate across time"
-           Returns:
-            xarray.DataArray with spike rates' time series
-        """
-        if name is None:
-            name = self.model + " - Mean spike activity accross time"
-        n_neurons = self.get_number_of_neurons()
-        if n_neurons > 0:
-            return self.compute_spikes_activity_across_time(time, spike_kernel_width,
-                                                            spikes_kernel=spikes_kernel, mode="total",
-                                                            name=name, **kwargs) / n_neurons
-        else:
-            return np.array([0.0 *time]*self.number_of_spikes_var)
-
 
 OutputDeviceDict = {"spike_recorder": SpikeRecorder,
                     "multimeter": Multimeter,
                     "spike_multimeter": SpikeMultimeter,
                     "voltmeter": Voltmeter}
 
+OutputContinuousTimeDeviceDict = {"multimeter": Multimeter,
+                                  "spike_multimeter": SpikeMultimeter,
+                                  "voltmeter": Voltmeter}
 
 OutputSpikeDeviceDict = {"spike_recorder": SpikeRecorder,
                          "spike_multimeter": SpikeMultimeter}
