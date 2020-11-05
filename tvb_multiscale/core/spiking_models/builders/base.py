@@ -6,7 +6,6 @@ import numpy as np
 from pandas import Series
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
@@ -451,7 +450,7 @@ class SpikingModelBuilder(object):
                 neurons_fun = property_to_fun(neurons_fun)
             # Defaults in arrays:
             shape = (len(spiking_nodes),)
-            receptor_type = np.tile(self.default_devices_connection["receptor_type"], shape)
+            receptor_type = np.tile(self.default_devices_connection["receptor_type"], shape).astype("O")
             # weights and delays might be dictionaries for distributions:
             weights = np.ones(shape).astype("O")
             delays = np.zeros(shape).astype("O")
