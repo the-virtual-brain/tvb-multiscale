@@ -111,7 +111,7 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch tvb_annarchy https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
