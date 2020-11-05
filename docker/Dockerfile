@@ -15,7 +15,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential git vim 
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion cmake zip unzip; \
+                       subversion cmake zip unzip make; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
@@ -116,6 +116,8 @@ ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
+
+RUN $VENV/bin/pip3 install ANNarchy;
 
 WORKDIR /home/docker/
 # Activate the right python env.
