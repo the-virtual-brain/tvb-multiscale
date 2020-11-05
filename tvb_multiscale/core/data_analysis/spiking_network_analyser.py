@@ -78,19 +78,20 @@ class SpikingNetworkAnalyser(HasTraits):
                the start_time of computations is set as the maximum(start_time, transient).
                In all other cases, the start_time of computations is given as start_time + transient.""")
 
-    output_type = Attr(field_type=str, default="array", required=True,
-                       label="Output type option for the results.",
-                       doc="""The output type of the results, which can be either 'array' (Default), 
-                             in which case a DataArray or a Series of DataArrays 
-                             for unmerged heterogeneous results is returned, 
-                             or "TVB", in which case a TVB TimeSeries instance is returned.""")
+    time_series_output_type = Attr(field_type=str, default="array", required=True,
+                                   label="Output type option for time series results.",
+                                   doc="""The output type of the results, which can be either 'array' (Default), 
+                                          in which case a DataArray or a Series of DataArrays 
+                                          for unmerged heterogeneous results is returned, 
+                                          or "TVB", in which case a TVB TimeSeries instance is returned.""")
 
     force_homogeneous_results = Attr(field_type=bool, default=True, required=True,
                                      label="Flag to merge heteregoneous results.",
                                      doc="""If force_homogeneous_results is True, 
                                             DataArrays from different regions and or populations " \
                                            "are merged to a single DataArray. It defaults to True and "
-                                           "it is also forced to True, if the output_type = 'TVB' TimeSeries.""")
+                                           "it is also forced to True, 
+                                           if the time_series_output_type = 'TVB' TimeSeries.""")
 
     connectivity = Attr(
         field_type=connectivity.Connectivity,
@@ -102,7 +103,7 @@ class SpikingNetworkAnalyser(HasTraits):
          combination with the ``Long-range coupling function`` it defines the inter-regional
          connections. These couplings undergo a time delay via signal propagation
          with a propagation speed of ``Conduction Speed``.
-         \nIt is necessary if the output_type="TVB" for TimeSeriesRegion class instance.""")
+         \nIt is necessary if the time_series_output_type="TVB" for TimeSeriesRegion class instance.""")
 
     flatten_neurons_inds = Attr(field_type=bool, default=True, required=False,
                                 label="Flag to flatten neurons indices",
@@ -935,7 +936,7 @@ class SpikingNetworkAnalyser(HasTraits):
     def convert_results_to_output_type(self, results, dims_order):
         """This method converts the results' output pandas.Series of xarray.DataArray instances to
            a homogeneous xarray.DataArray via concatenation or even to a TVB TimeSeries instance for time series data,
-           according to the flag force_homogeneous_results and the output_type attribute.
+           according to the flag force_homogeneous_results and the time_series_output_type attribute.
            Arguments:
             - results: collections.OrderedDict of all populations' Devices' results pandas.Series
             - dims_order: the desired order of dimensions for the output arrays
@@ -953,7 +954,7 @@ class SpikingNetworkAnalyser(HasTraits):
                 transpose_dims = \
                     get_ordered_dimensions(list(results[res_name][0].dims) + ["Population"], dims_order)
                 # ...if the the output type for time series data is TVB TimeSeries instances...
-                if self.output_type.upper() == "TVB" \
+                if self.time_series_output_type.upper() == "TVB" \
                         and results[res_name][0].ndim <= 3 \
                             and "Time" in results[res_name][0].dims:
                     # ...put them in a TVB TimeSeries instance...:
