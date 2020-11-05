@@ -229,8 +229,8 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                 rates = instantaneous_rate(spikes_train, self.period * ms, **kwargs).flatten().__array__()
             except:
                 # If it fails, compute a delta spike instantaneous rate with any kernel smoothing:
-                LOG.warning("Failed to compute instantaneous rate with a sliding timing window!\n"
-                            "Computing instantaneous rate without any smoothing...")
+                # LOG.warning("Failed to compute instantaneous rate with a sliding timing window!\n"
+                #             "Computing instantaneous rate without any smoothing...")
                 rates = self._compute_delta_rate(time, spikes_train.__array__())
         else:
             rates = 0.0 * time
