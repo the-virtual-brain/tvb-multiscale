@@ -383,7 +383,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     S_.v_ = ( S_.v_ < P_.V_min_ ? P_.V_min_ : S_.v_ );
 
     // threshold crossing
-    if ( !is_refractory ) // if neuron is still in refractory period
+    if ( is_refractory ) // if neuron is still in refractory period
     {
       --S_.r_;
     }
