@@ -79,19 +79,25 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
         solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
         dylib_file = os.path.join(module_bld_dir, "lib" + modulemodule + ".dylib")
+        include_file = os.path.join(module_bld_dir, modulemodule + ".h")
         installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
         installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
         module_include_path = os.path.join(include_path, modulemodule)
         installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
-        if not os.path.isfile(solib_file) or not os.path.isfile(dylib_file) or recompile:
-            # If the .so file or the .dylib file don't exist, or if the user requires recompilation,
+        if not os.path.isfile(solib_file) \
+                or not os.path.isfile(dylib_file) \
+                    or not os.path.isfile(include_file) \
+                        or recompile:
+            # If any of the .so, .dylib or .h files don't exist,
+            # or if the user requires recompilation,
             # proceed with recompilation:
-            if not os.path.exists(module_bld_dir):
-                # If there is no module build directory at all,
-                # create one and copy there the source files:
-                source_path = os.path.join(config.MYMODULES_DIR, module)
-                logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
-                shutil.copytree(source_path, module_bld_dir)
+            if os.path.exists(module_bld_dir):
+                # Delete any pre-compiled built files:
+                shutil.rmtree(module_bld_dir)
+            # Create a  module build directory and copy there the source files:
+            source_path = os.path.join(config.MYMODULES_DIR, module)
+            logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
+            shutil.copytree(source_path, module_bld_dir)
             # Now compile:
             logger.info("Compiling %s..." % module)
             logger.info("in build directory %s..." % module_bld_dir)
@@ -107,14 +113,15 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             shutil.copyfile(solib_file, installed_dylib_file)
             safe_makedirs(include_path)
             shutil.copyfile(os.path.join(module_bld_dir, modulemodule + ".h"), installed_h_file)
-        if os.path.isfile(installed_solib_file) and \
-                os.path.isfile(installed_dylib_file) and \
-                    os.path.isfile(installed_h_file):
+        installed_files = {}
+        for file in [installed_solib_file, installed_dylib_file, installed_h_file]:
+            installed_files[file] = os.path.isfile(file)
+        if all(installed_files.values()):
             logger.info(success_message)
         else:
             logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
-                        "\n No %s, %s or %s file found!"
-                        % (module, installed_solib_file, installed_dylib_file, installed_h_file))
+                        "\n Installed files (not) found (True (False) respectively)!:\n%s"
+                        % (module, str(installed_files)))
 
 
 def get_populations_neurons(population, inds_fun=None):
