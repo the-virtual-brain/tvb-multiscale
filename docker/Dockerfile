@@ -117,7 +117,6 @@ RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
 
-WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install sympy;
 RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     cd annarchy; \
