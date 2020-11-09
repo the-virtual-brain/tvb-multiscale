@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED
-from tvb_multiscale.tvb_annarchy.annarchy.models import Hybrid_neuron, Striatum_neuron
+from tvb_multiscale.tvb_annarchy.annarchy.models import Izhikevich_Hamker
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyModelBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
@@ -28,12 +28,12 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED):
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, annarchy_instance, config)
-        self.default_population["model"] = Hybrid_neuron
+        self.default_population["model"] = Izhikevich_Hamker
 
         # Common order of neurons' number per population:
         self.population_order = 200
 
-        self.params_common = {"E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -65.0,
+        self.params_common = {"E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -72.0,
                               "C": 1.0, "I": 0.0,
                               "tau_refrac": 10.0, "tau_syn": 1.0, "tau_ampa": 10.0, "tau_gaba": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04}
@@ -62,10 +62,10 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
             {"label": "I", "model": self.default_population["model"],  # Igpe in [0, 1], Igpi in [2, 3]
              "params": self.paramsI, "nodes": self.Igpe_nodes_ids + self.Igpi_nodes_ids,  # None means "all"
              "scale": 1.0},
-            {"label": "I1", "model": Striatum_neuron,  # Isd1 in [6, 7]
+            {"label": "I1", "model": Izhikevich_Hamker,  # Isd1 in [6, 7]
              "params": self.paramsStr, "nodes": self.Istr_nodes_ids,  # None means "all"
              "scale": 1.0},
-            {"label": "I2", "model": Striatum_neuron,  # Isd2 in [6, 7]
+            {"label": "I2", "model": Izhikevich_Hamker,  # Isd2 in [6, 7]
              "params": self.paramsStr, "nodes": self.Istr_nodes_ids,  # None means "all"
              "scale": 1.0}
         ]
