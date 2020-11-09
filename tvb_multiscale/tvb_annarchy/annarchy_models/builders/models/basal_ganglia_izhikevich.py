@@ -33,7 +33,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         # Common order of neurons' number per population:
         self.population_order = 200
 
-        self.params_common = {"E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -72.0,
+        self.params_common = {"E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -65.0,
                               "C": 1.0, "I": 0.0,
                               "tau_refrac": 10.0, "tau_syn": 1.0, "tau_ampa": 10.0, "tau_gaba": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04}
