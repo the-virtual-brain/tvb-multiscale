@@ -29,6 +29,10 @@ from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
 
+MAX_VARS_IN_COLS = 3
+MAX_REGIONS_IN_ROWS = 10
+
+
 def _initialize(config, plotter, writer):
     if plotter is None:
         plotter = Plotter(config)
@@ -65,7 +69,8 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
     from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesXarray
 
     mean_field_xr = mean_field.get_subspace(spiking_regions_inds)
-    mean_field_xr.plot_timeseries(per_variable=True, plotter_config=plotter.config, figsize=(10, 5))
+    mean_field_xr.plot_timeseries(per_variable=mean_field_xr.shape[1] > MAX_VARS_IN_COLS,
+                                  plotter_config=plotter.config, figsize=(10, 5))
     rates_xr = TimeSeriesXarray(rates)
     rates_xr.plot_timeseries(plotter_config=plotter.config, figsize=(10, 5))
 
@@ -103,12 +108,15 @@ def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_
 
     if isinstance(simulator.model, SpikingWongWangExcIOInhI):
         mean_field = tvb_mean_field_per_population(source_ts, populations, populations_sizes)
-        # Plot time_series
-        mean_field.plot_timeseries(plotter_config=plotter.config, per_variable=True,
-                                   figsize=figsize, add_legend=False)
-        if mean_field.number_of_labels > 9:
-            mean_field.plot_raster(plotter_config=plotter.config, per_variable=True,
-                                   figsize=figsize, add_legend=False)
+        # Plot raster
+        mean_field.plot_raster(plotter_config=plotter.config,
+                               per_variable=mean_field.shape[1] > MAX_VARS_IN_COLS,
+                               figsize=figsize, add_legend=False)
+        if mean_field.shape[2] <= MAX_REGIONS_IN_ROWS:
+            # Plot time_series
+            mean_field.plot_timeseries(plotter_config=plotter.config,
+                                       per_variable=mean_field.shape[1] > MAX_VARS_IN_COLS,
+                                       figsize=figsize, add_legend=False)
 
         tvb_spikes, tvb_rates = \
             plot_tvb_results_with_spikes_and_rates(source_ts, simulator, source_ts.time[-1] - source_ts.time[0],
@@ -123,22 +131,26 @@ def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_
                                    recursive=False)
             writer.write_object(tvb_corrs, path=os.path.join(config.out.FOLDER_RES, "TVB_corrs") + ".h5")
     else:
-        # Plot time_series
-        source_ts.plot_timeseries(plotter_config=plotter.config, per_variable=True,
-                                  figsize=figsize, add_legend=False)
-        if source_ts.number_of_labels > 9:
-            source_ts.plot_raster(plotter_config=plotter.config, per_variable=True,
-                                  figsize=figsize, add_legend=False)
-
+        # Plot raster
+        source_ts.plot_raster(plotter_config=plotter.config,
+                              per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
+                              figsize=figsize, add_legend=False)
+        if source_ts.shape[2] <= MAX_REGIONS_IN_ROWS:
+            # Plot time_series
+            source_ts.plot_timeseries(plotter_config=plotter.config,
+                                      per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
+                                      figsize=figsize, add_legend=False)
     n_spiking_nodes = len(spiking_nodes_ids)
     if n_spiking_nodes > 0:
         # Focus on the nodes modelled in the Spiking Network
         source_ts_nest = source_ts[:, :, spiking_nodes_ids]
-        source_ts_nest.plot_timeseries(plotter_config=plotter.config, per_variable=True, figsize=figsize,
-                                       figname="Spiking nodes TVB Time Series")
-        if n_spiking_nodes > 3:
-            source_ts_nest.plot_raster(plotter_config=plotter.config, per_variable=True, figsize=figsize,
-                                       figname="Spiking nodes TVB Time Series Raster")
+        source_ts_nest.plot_raster(plotter_config=plotter.config,
+                                   per_variable=source_ts_nest.shape[1] > MAX_VARS_IN_COLS,
+                                   figsize=figsize, figname="Spiking nodes TVB Time Series Raster")
+        if n_spiking_nodes <= MAX_REGIONS_IN_ROWS:
+            source_ts_nest.plot_timeseries(plotter_config=plotter.config,
+                                           per_variable=source_ts_nest.shape[1] > MAX_VARS_IN_COLS,
+                                           figsize=figsize, figname="Spiking nodes TVB Time Series")
     return time, time_with_transient
 
 
@@ -271,10 +283,12 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         del spikeNet_ts
 
         if mean_field_ts.size > 0:
-            mean_field_ts.plot_timeseries(plotter_config=plotter.config, per_variable=True)
-            if mean_field_ts.shape[2] > 3:
-                mean_field_ts.plot_raster(plotter_config=plotter.config, per_variable=True,
-                                          linestyle="--", alpha=0.5, linewidth=0.5)
+            mean_field_ts.plot_raster(plotter_config=plotter.config,
+                                      per_variable=mean_field_ts.shape[1] > MAX_VARS_IN_COLS,
+                                      linestyle="--", alpha=0.5, linewidth=0.5)
+            if mean_field_ts.shape[2] <= MAX_REGIONS_IN_ROWS:
+                mean_field_ts.plot_timeseries(plotter_config=plotter.config,
+                                              per_variable=mean_field_ts.shape[1] > MAX_VARS_IN_COLS)
 
         # Write results to file:
         if writer:
