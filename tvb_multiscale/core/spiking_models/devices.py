@@ -1135,7 +1135,7 @@ class DeviceSet(pd.Series, HasTraits):
         or a single Device if the argument is an integer indice or a string label."""
         if isinstance(items, string_types) or is_integer(items):
             return super(DeviceSet, self).__getitem__(items)
-        return DeviceSet(label=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
+        return DeviceSet(name=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
 
     def _repr(self):
         return "%s - Name: %s, Model: %s" % \
