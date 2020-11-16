@@ -132,6 +132,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
         for i_node, node in enumerate(device_target_nodes):
             # ...and population group...
             # ...create a device and connect it:
+            kwargs.update({"label": "%s_%s" % (pop_var, node.label)})
             devices[pop_var][node.label] = \
                 build_and_connect_device(device_dict, create_device_fun, connect_device_fun,
                                          node, populations, neurons_funs[i_node],
@@ -161,6 +162,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
         for i_dev, dev_name in enumerate(names):
             # ...and populations' group...
             # create a device
+            kwargs.update({"label": "%s_%s" % (pop_var, dev_name)})
             devices[pop_var][dev_name] = build_device(device_dict, create_device_fun, config=config, **kwargs)
             # ...and loop through the target region nodes...
             for i_node, node in enumerate(device_target_nodes):
