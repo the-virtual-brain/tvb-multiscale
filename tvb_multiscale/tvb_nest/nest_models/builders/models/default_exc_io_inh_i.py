@@ -168,8 +168,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
-        connections["E"] = "E"
-        connections["I"] = "I"
+        connections["E_spikes"] = "E"
+        connections["I spikes"] = "I"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
         params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
@@ -182,8 +182,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def set_multimeter(self):
         connections = OrderedDict()
         #               label    <- target population
-        connections["Excitatory"] = "E"
-        connections["Inhibitory"] = "I"
+        connections["E"] = "E"
+        connections["I"] = "I"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         params["record_to"] = self.output_devices_record_to
