@@ -18,7 +18,7 @@ class Config(ConfigBase):
     # WORKING DIRECTORY:
     TVB_NEST_DIR = TVB_NEST_DIR
     WORKING_DIR = WORKING_DIR
-    RECORDINGS_DIR = os.path.join(WORKING_DIR, "/nest_recordings")
+    RECORDINGS_DIR = os.path.join(WORKING_DIR, "nest_recordings")
     MYMODULES_DIR = MYMODULES_DIR
     MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
@@ -77,7 +77,7 @@ class Config(ConfigBase):
         self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
-        self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "/nest_recordings")
+        self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
         self.DEFAULT_NEST_KERNEL_CONFIG["data_path"] = self.RECORDINGS_DIR
         self.MYMODULES_DIR = MYMODULES_DIR
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
