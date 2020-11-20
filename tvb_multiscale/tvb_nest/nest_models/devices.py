@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+import os
 from abc import ABCMeta
 import glob
 
@@ -307,7 +309,7 @@ NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
                        }
 
 
-def read_output_device_data_from_ascii_to_dict(filepath):
+def read_nest_output_device_data_from_ascii_to_dict(filepath):
     """This function reads data from a NEST recording device ascii file into an events dictionary
        Arguments:
         - filepath: absolute or relative path to the file (string)
@@ -316,7 +318,7 @@ def read_output_device_data_from_ascii_to_dict(filepath):
     """
     recarray = rename_fields(np.genfromtxt(filepath, names=True, skip_header=2),
                              {"sender": "senders", "time_ms": "times"})
-    return {name: recarray[name] for name in recarray.dtype.names}
+    return {name: ensure_list(recarray[name]) for name in recarray.dtype.names}
 
 
 class NESTOutputDevice(NESTDevice, OutputDevice):
@@ -333,19 +335,25 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
             self._reset = self._delete_events_in_memory
         self.model = "nest_output_device"
 
+    @property
+    def record_from(self):
+        return []
+
     def _get_filenames(self):
-        data_path, data_prefix = self.nest_instance.GetKernelStatus(["data_path", "data_prefix"])
-        return glob.glob("%s-%s-%s*" % (data_path, data_prefix, self.label))
+        return glob.glob(os.path.join(self.nest_instance.GetKernelStatus("data_path"), "%s*" % self.label))
+
+    @property
+    def _empty_events(self):
+        keys = ["times", "senders"] + self.record_from
+        return dict(zip(keys, [[]]*len(keys)))
 
     def _get_events_from_ascii(self):
-        events = dict()
-        for filepath in self._get_filenames():
-            this_file_events = read_output_device_data_from_ascii_to_dict(filepath)
-            if len(events):
-                for key in events.keys():
-                    events[key] += this_file_events[key]
-            else:
-                events.update(this_file_events)
+        events = self._empty_events
+        filenames = self._get_filenames()
+        for filepath in filenames:
+            this_file_events = read_nest_output_device_data_from_ascii_to_dict(filepath)
+            for key in events.keys():
+                events[key] = events[key] + this_file_events[key]
         return events
 
     def _get_events_from_memory(self):
@@ -353,7 +361,7 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     @property
     def events(self):
-        self._get_events()
+        return self._get_events()
 
     @property
     def number_of_events(self):
