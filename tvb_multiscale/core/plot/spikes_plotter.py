@@ -199,6 +199,9 @@ class SpikesPlotter(BasePlotter):
         if len(neurons) > 0:
             max_n_neurons = np.max(neurons)
             min_n_neurons = np.min(neurons)
+            if max_n_neurons == min_n_neurons:
+                max_n_neurons = min_n_neurons + 1
+                min_n_neurons = np.maximum(0, min_n_neurons - 1)
         else:
             max_n_neurons = 1.0
             min_n_neurons = 0.0
@@ -283,7 +286,6 @@ class SpikesPlotter(BasePlotter):
             for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.iteritems()):
                 # Define spike senders and rates' axis
                 neurons = region_spikes_events["senders"]
-
                 ylims, yticks, max_n_neurons, min_n_neurons = self._neurons_axis_from_indices(neurons)
 
                 axes[i_pop].append(pyplot.subplot(n_regions, n_pops, i_region * n_pops + i_pop + 1))
