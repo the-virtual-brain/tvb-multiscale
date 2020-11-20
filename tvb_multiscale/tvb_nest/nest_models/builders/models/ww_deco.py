@@ -153,6 +153,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
             record_from.append("spikes_exc_ext_%d" % i_node)
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["record_from"] = record_from
+        params["record_to"] = self.output_devices_record_to
         self.multimeter["params"] = params
         self.spike_stimulus = {"params": {"rate": stimulus_spike_rate, "origin": 0.0, "start": 0.1},
                                "connections": {"Stimulus": ["E", "I"]},

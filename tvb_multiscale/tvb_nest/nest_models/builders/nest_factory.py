@@ -51,13 +51,13 @@ def load_nest(config=CONFIGURED, logger=LOG):
     log_path('LD_LIBRARY_PATH', logger)
     os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
     log_path('SLI_PATH', logger)
-
     os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
     log_path('NEST_PYTHON_PREFIX', logger)
     sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
     logger.info("%s: %s" % ("system path", sys.path))
 
     import nest
+    nest.ResetKernel()
     return nest
 
 
@@ -212,7 +212,7 @@ def device_to_dev_model(device):
         return device
 
 
-def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None):
+def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None, **kwargs):
     """Method to create a NESTDevice.
        Arguments:
         device_model: name (string) of the device model
@@ -230,22 +230,25 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
         return_nest = False
     # Assert the model name...
     device_model = device_to_dev_model(device_model)
+    label = kwargs.get("label", "")
+    default_params = {}
     if device_model in NESTInputDeviceDict.keys():
         devices_dict = NESTInputDeviceDict
         default_params_dict = config.NEST_INPUT_DEVICES_PARAMS_DEF
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
         default_params_dict = config.NEST_OUTPUT_DEVICES_PARAMS_DEF
+        if len(label):
+            default_params["label"] = label
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
                           (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
-    default_params = dict(default_params_dict.get(device_model, {}))
-    if isinstance(params, dict) and len(params) > 0:
+    default_params.update(default_params_dict.get(device_model, {}))
+    if isinstance(params, dict):
         default_params.update(params)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
-    label = default_params.pop("label", "")
     try:
         nest_device_id = nest_instance.Create(device_model, params=default_params)
     except:
@@ -259,7 +262,7 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
 
 
 def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
-                   nest_instance=None, config=CONFIGURED):
+                   nest_instance=None, config=CONFIGURED, **kwargs):
     """This method connects a NESTDevice to a NESTPopulation instance.
        Arguments:
         nest_device: the NESTDevice instance

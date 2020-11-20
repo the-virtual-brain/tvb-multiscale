@@ -12,6 +12,8 @@ from tvb_multiscale.core.spiking_models.builders.templates import random_normal_
 
 class DefaultExcIOInhIBuilder(NESTModelBuilder):
 
+    output_devices_record_to = "ascii"
+
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True):
         super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
@@ -166,9 +168,11 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
-        connections["E"] = "E"
-        connections["I"] = "I"
-        device = {"model": "spike_recorder", "params": {},
+        connections["E_spikes"] = "E"
+        connections["I spikes"] = "I"
+        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
+        params["record_to"] = self.output_devices_record_to
+        device = {"model": "spike_recorder", "params": params,
                   "neurons_fun": lambda node_id, neurons_inds:
                                             tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
                   "connections": connections, "nodes": None}  # None means all here
@@ -178,10 +182,11 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     def set_multimeter(self):
         connections = OrderedDict()
         #               label    <- target population
-        connections["Excitatory"] = "E"
-        connections["Inhibitory"] = "I"
+        connections["E"] = "E"
+        connections["I"] = "I"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
+        params["record_to"] = self.output_devices_record_to
         device = {"model": "multimeter", "params": params,
                   "neurons_fun": lambda node_id, population: population[:np.minimum(100, len(population))],
                   "connections": connections, "nodes": None}  # None means all here

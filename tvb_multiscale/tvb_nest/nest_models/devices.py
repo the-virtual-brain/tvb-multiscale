@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+
+import os
 from abc import ABCMeta
+import glob
 
 import numpy as np
+from numpy.lib.recfunctions import rename_fields
 
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
@@ -10,6 +14,7 @@ from tvb.basic.neotraits.api import List
 
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, list_of_dicts_to_dicts_of_ndarrays
+from tvb.contrib.scripts.utils.file_utils import truncate_ascii_file_after_header
 
 
 # These classes wrap around NEST commands.
@@ -41,6 +46,14 @@ class NESTDevice(Device):
             self.device.get("element_type")
         except:
             raise ValueError("Failed to Get device %s!" % str(self.device))
+
+    @property
+    def global_id(self):
+        return self.device.get("global_id")
+
+    @property
+    def virtual_process_id(self):
+        return self.device.get("vp")
 
     @property
     def spiking_simulator_module(self):
@@ -296,17 +309,59 @@ NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
                        }
 
 
+def read_nest_output_device_data_from_ascii_to_dict(filepath):
+    """This function reads data from a NEST recording device ascii file into an events dictionary
+       Arguments:
+        - filepath: absolute or relative path to the file (string)
+       Returns:
+        the events dictionary of the recorded data
+    """
+    recarray = rename_fields(np.genfromtxt(filepath, names=True, skip_header=2),
+                             {"sender": "senders", "time_ms": "times"})
+    return {name: ensure_list(recarray[name]) for name in recarray.dtype.names}
+
+
 class NESTOutputDevice(NESTDevice, OutputDevice):
 
     """NESTOutputDevice class to wrap around a NEST output (recording) device"""
 
     def __init__(self, device, nest_instance, *args, **kwargs):
         super(NESTOutputDevice, self).__init__(device, nest_instance, *args, **kwargs)
+        if kwargs.get("record_to", "ascii"):
+            self._get_events = self._get_events_from_ascii
+            self._reset = self._delete_events_in_ascii_files
+        else:
+            self._get_events = self._get_events_from_memory
+            self._reset = self._delete_events_in_memory
         self.model = "nest_output_device"
 
     @property
-    def events(self):
+    def record_from(self):
+        return []
+
+    def _get_filenames(self):
+        return glob.glob(os.path.join(self.nest_instance.GetKernelStatus("data_path"), "%s*" % self.label))
+
+    @property
+    def _empty_events(self):
+        keys = ["times", "senders"] + self.record_from
+        return dict(zip(keys, [[]]*len(keys)))
+
+    def _get_events_from_ascii(self):
+        events = self._empty_events
+        filenames = self._get_filenames()
+        for filepath in filenames:
+            this_file_events = read_nest_output_device_data_from_ascii_to_dict(filepath)
+            for key in events.keys():
+                events[key] = events[key] + this_file_events[key]
+        return events
+
+    def _get_events_from_memory(self):
         return self.device.get("events")
+
+    @property
+    def events(self):
+        return self._get_events()
 
     @property
     def number_of_events(self):
@@ -315,12 +370,19 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def n_events(self):
         return self.number_of_events
-    
-    @property
-    def reset(self):
+
+    def _delete_events_in_ascii_files(self):
+        for filepath in self._get_filenames():
+            truncate_ascii_file_after_header(filepath, header_chars="#")
+
+    def _delete_events_in_memory(self):
         # TODO: find how to reset recorders!
         pass
         # self.device.n_events = 0
+
+    @property
+    def reset(self):
+        self._reset()
 
 
 class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):

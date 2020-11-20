@@ -646,16 +646,21 @@ class Multimeter(OutputDevice):
         """
         if name is None:
             name = self.model
-        events = dict(self.events)
+        events = self.events
         times = events.pop("times")
         senders = events.pop("senders")
-        # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
-        # Therefore, we have to re-arrange the output to get all variables separated following time order.
-        data = data_xarray_from_continuous_events(events, times, senders,
-                                                  variables=self._determine_variables(variables),
-                                                  name=name, dims_names=dims_names)
-        if flatten_neurons_inds:
-            data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
+        if len(times) + len(senders):
+            # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
+            # Therefore, we have to re-arrange the output to get all variables separated following time order.
+            data = data_xarray_from_continuous_events(events, times, senders,
+                                                      variables=self._determine_variables(variables),
+                                                      name=name, dims_names=dims_names)
+            if flatten_neurons_inds:
+                data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
+        else:
+            vars = self._determine_variables(variables)
+            data = xr.DataArray(np.empty((len(times), len(vars), len(senders))), dims=dims_names,
+                                coords={dims_names[0]: times, dims_names[1]: vars, dims_names[2]: senders})
         return data
 
     def get_mean_data(self, variables=None, name=None, dims_names=["Time", "Variable"]):
@@ -1135,7 +1140,7 @@ class DeviceSet(pd.Series, HasTraits):
         or a single Device if the argument is an integer indice or a string label."""
         if isinstance(items, string_types) or is_integer(items):
             return super(DeviceSet, self).__getitem__(items)
-        return DeviceSet(label=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
+        return DeviceSet(name=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
 
     def _repr(self):
         return "%s - Name: %s, Model: %s" % \
