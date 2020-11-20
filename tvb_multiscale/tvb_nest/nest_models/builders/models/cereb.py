@@ -24,6 +24,8 @@ class NeuronsFun(object):
 
 class CerebBuilder(NESTModelBuilder):
 
+    output_devices_record_to = "ascii"
+
     path_to_network_source_file = ""
 
     # Synapse parameters: in E-GLIF, 3 synaptic receptors are present:
@@ -208,6 +210,7 @@ class CerebBuilder(NESTModelBuilder):
         for pop in self.populations:
             connections[pop["label"] + "_spikes"] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
+        params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
                   # "neurons_fun": lambda node, population: self.neurons_fun(population),
                   "connections": connections, "nodes": None}  # None means all here
@@ -220,6 +223,7 @@ class CerebBuilder(NESTModelBuilder):
             if pop["label"] != 'glomerulus' and pop["label"] != 'mossy_fibers':
                 connections[pop["label"]] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
+        params["record_to"] = self.output_devices_record_to
         params["interval"] = self.monitor_period
         device = {"model": "multimeter", "params": params,
                   "neurons_fun": lambda node, population: self.neurons_fun(population),
