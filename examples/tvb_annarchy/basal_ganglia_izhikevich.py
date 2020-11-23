@@ -82,7 +82,7 @@ def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
     print("Done! in %f min" % ((time.time() - tic) / 60))
 
     # -----------------------------------3. Build the TVB-annarchy interface model -----------------------------------------
-
+    results = None
     if tvb_annarchy_builder:
         print("Building TVB-annarchy interface...")
         tic = time.time()
@@ -153,8 +153,8 @@ if __name__ == "__main__":
 
     main_example(tvb_model, BasalGangliaIzhikevichBuilder, None,
                  annarchy_nodes_ids,  annarchy_populations_order=200,
-                 tvb_to_annarchy_mode=None, annarchy_to_tvb=False, exclusive_nodes=True,  # "rate"
+                 tvb_to_annarchy_mode=None, annarchy_to_tvb=True, exclusive_nodes=True,  # "rate"
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=0.0,
                  variables_of_interest=None,
-                 config=None, **model_params)
+                 config=None, plot_write=False, **model_params)

@@ -133,7 +133,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         # params for baladron implementation commented out for the moment
         # TODO: use baladron neurons
         params = self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"]
-        params.update({"period": 1.0,  'record_from': ["v", "u", "syn", "g_ampa", "g_gaba"]})
+        params.update({"period": 1.0,  'record_from': ["v", "u", "I_syn", "g_ampa", "g_gaba"]})
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
@@ -149,17 +149,17 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
              "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
-             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "ampa"},
+             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
-             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "ampa"},
+             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "ampa"},
+             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             # {"model": "ACCurrentInjector",
             #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0},
             #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
