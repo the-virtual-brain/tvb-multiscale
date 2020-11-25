@@ -58,7 +58,6 @@ class Config(ConfigBase):
     # Available NEST output devices for the interface and their default properties
     NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"record_from": ["V_m"], "record_to": "memory"},
                                       "voltmeter": {"record_to": "memory"},
-                                      "spike_detector": {"record_to": "memory"},
                                       "spike_recorder": {"record_to": "memory"},
                                       "spike_multimeter": {'record_from': ["spike"], "record_to": "memory"}}
 

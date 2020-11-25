@@ -471,6 +471,8 @@ NESTOutputDeviceDict = {"spike_recorder": NESTSpikeRecorder,
                         "voltmeter": NESTVoltmeter}
 
 
-NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder,
-                             "spike_multimeter": NESTSpikeMultimeter}
+NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder}
 
+NESTOutputContinuousTimeDeviceDict = {"multimeter": Multimeter,
+                                      "spike_multimeter": SpikeMultimeter,
+                                      "voltmeter": Voltmeter}
