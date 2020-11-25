@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+
 from abc import ABCMeta, abstractmethod
+
 import pandas as pd
-import xarray as xr
 import numpy as np
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger, LINE
@@ -62,6 +63,9 @@ class SpikingNetwork(HasTraits):
         doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
                organized by brain region and population.""")
     # input_devices['Inhibitory']['rh-insula']
+
+    _OutputSpikeDeviceDict = OutputSpikeDeviceDict
+    _OutputContinuousTimeDeviceDict = OutputContinuousTimeDeviceDict
 
     def __init__(self,
                  brain_regions=None,
@@ -212,7 +216,7 @@ class SpikingNetwork(HasTraits):
            Returns:
             - a Series of selected DeviceSet instances
         """
-        return self._get_devices(OutputSpikeDeviceDict, "spikes'",
+        return self._get_devices(self._OutputSpikeDeviceDict, "spikes'",
                                  regions, populations_devices, mode=mode)
 
     def get_continuous_time_devices(self, regions=None, populations_devices=None):
@@ -226,7 +230,7 @@ class SpikingNetwork(HasTraits):
            Returns:
             - a Series of selected DeviceSet instances
         """
-        return self._get_devices(OutputContinuousTimeDeviceDict, "continuous_time_data",
+        return self._get_devices(self._OutputContinuousTimeDeviceDict, "continuous_time_data",
                                  regions, populations_devices)
 
     def get_spikes(self, mode="events", regions=None, populations_devices=None, **kwargs):

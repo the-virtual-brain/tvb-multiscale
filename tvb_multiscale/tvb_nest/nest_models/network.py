@@ -2,7 +2,7 @@
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
-
+from tvb_multiscale.tvb_nest.nest_models.devices import NESTOutputSpikeDeviceDict, NESTOutputContinuousTimeDeviceDict
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -27,6 +27,9 @@ class NESTNetwork(SpikingNetwork):
     """
 
     nest_instance = None
+
+    _OutputSpikeDeviceDict = NESTOutputSpikeDeviceDict
+    _OutputContinuousTimeDeviceDict = NESTOutputContinuousTimeDeviceDict
 
     def __init__(self, nest_instance=None,
                  brain_regions=None,
