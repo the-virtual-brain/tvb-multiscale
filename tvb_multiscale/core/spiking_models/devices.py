@@ -421,7 +421,6 @@ class OutputDevice(Device):
         """This method returns the number (integer) of events"""
         pass
 
-    @property
     @abstractmethod
     def reset(self):
         """This method resets the device by deleting all events"""
