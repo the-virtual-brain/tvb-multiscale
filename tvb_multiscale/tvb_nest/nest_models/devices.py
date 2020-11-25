@@ -380,7 +380,6 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
         pass
         # self.device.n_events = 0
 
-    @property
     def reset(self):
         self._reset()
 
