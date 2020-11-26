@@ -632,6 +632,7 @@ class Multimeter(OutputDevice):
             variables = self.record_from
         return variables
 
+    @abstractmethod
     def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
@@ -643,31 +644,14 @@ class Multimeter(OutputDevice):
            Returns:
             a xarray DataArray with the output data
         """
-        if name is None:
-            name = self.model
-        events = self.events
-        times = events.pop("times")
-        senders = events.pop("senders")
-        if len(times) + len(senders):
-            # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
-            # Therefore, we have to re-arrange the output to get all variables separated following time order.
-            data = data_xarray_from_continuous_events(events, times, senders,
-                                                      variables=self._determine_variables(variables),
-                                                      name=name, dims_names=dims_names)
-            if flatten_neurons_inds:
-                data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
-        else:
-            vars = self._determine_variables(variables)
-            data = xr.DataArray(np.empty((len(times), len(vars), len(senders))), dims=dims_names,
-                                coords={dims_names[0]: times, dims_names[1]: vars, dims_names[2]: senders})
-        return data
+        pass
 
     def get_mean_data(self, variables=None, name=None, dims_names=["Time", "Variable"]):
         """This method returns time series' data recorded by the multimeter, averaged across the neurons' dimension.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
                        Default = None, corresponds to all variables the multimeter records from.
-            name: label of output. Default = None
+            name: label of output. Default = None, which defaults to the label of the Device
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable"]
            Returns:
