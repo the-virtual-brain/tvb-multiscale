@@ -289,12 +289,12 @@ class SpikingNetworkAnalyser(HasTraits):
             # If start_time is not set:
             if len(spikes):
                 # ...and there are spikes, set start_time equal to the first spike in time:
-                start_time = np.min(spikes)
+                start_time = float(np.min(spikes))
             else:
                 # ...otheriwse, set start_time to 0.0
                 start_time = 0.0
             # Modify start_time to be the maximum of start_time and the transient attribute of the class.
-            start_time = np.maximum(start_time, self.transient)
+            start_time = float(np.maximum(start_time, self.transient))
         else:
             # Add to the start time the transient to be removed from any computations.
             start_time = self.start_time + self.transient
@@ -302,7 +302,7 @@ class SpikingNetworkAnalyser(HasTraits):
             # If end_time is not set:
             if len(spikes):
                 # ...and there are spikes, set end_time equal to the last spike in time:
-                end_time = np.max(spikes)
+                end_time = float(np.max(spikes))
             else:
                 # ...otheriwse, set end_time equal to start_time plus the sampling period attribute of the class.
                 end_time = start_time + self.period
@@ -328,7 +328,7 @@ class SpikingNetworkAnalyser(HasTraits):
             if len(time):
                 # ...and the time vector is not empty, i.e., there are some data,
                 # set the start_time equal to the first time point
-                start_time = np.min(time)
+                start_time = float(np.min(time))
             else:
                 # ...otheriwse, set start_time to 0.0
                 start_time = 0.0
@@ -338,7 +338,7 @@ class SpikingNetworkAnalyser(HasTraits):
             if len(time):
                 # ...and the time vector is not empty, i.e., there are some data,
                 # set the end_time equal to the last time point
-                end_time = np.max(time)
+                end_time = float(np.max(time))
             else:
                 # ...otheriwse, set end_time equal to start_time plus the sampling period attribute of the class.
                 end_time = start_time + self.period

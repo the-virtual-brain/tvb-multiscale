@@ -128,7 +128,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         from quantities import ms
         from elephant.statistics import mean_firing_rate
         spikes_train = self._assert_spike_train(spikes_times)
-        t_start, t_stop = self._assert_start_end_times_from_data_time(spikes_train)
+        t_start, t_stop = self._assert_start_end_times_from_spikes_times(spikes_train)
         elephant_kwargs["t_start"] = elephant_kwargs.get("t_start", t_start)*ms
         elephant_kwargs["t_stop"] = elephant_kwargs.get("t_stop", t_stop)*ms
         if len(spikes_train):
@@ -234,8 +234,16 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                 rates = self._compute_delta_rate(time, spikes_train.__array__())
         else:
             rates = 0.0 * time
-        return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time}),
-                self.spikes_train_name: spikes_train}
+        # TODO: A better solution for handling the last time point with elephant!
+        try:
+            return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time}),
+                    self.spikes_train_name: spikes_train}
+        except Exception as e:
+            LOG.warning("Failed with exception %s!\n"
+                        "Length of time is %d and of rates is %d.\n"
+                        "Removing last time point and retrying!" % (str(e), len(time), len(rates)))
+            return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time[:-1]}),
+                    self.spikes_train_name: spikes_train}
 
     def compute_spikes_correlation_coefficient(self, binned_spikes_trains, binsize=None, num_bins=None, **kwargs):
         """A method to compute the correlation coefficients
