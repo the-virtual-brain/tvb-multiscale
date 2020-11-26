@@ -20,19 +20,15 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
-def results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True,
-                     config=None):
+def results_path_fun(annarchy_model_builder, tvb_annarchy_builder, config=None):
     if config is None:
         if tvb_annarchy_builder is not None:
-            tvb_annarchy_builder_str = "_" + tvb_annarchy_builder.__name__.split("Builder")[0] + \
-                                   np.where(isinstance(tvb_to_annarchy_mode, string_types),
-                                             "_" + str(tvb_to_annarchy_mode), "").item()
+            tvb_annarchy_builder_str = "_" + tvb_annarchy_builder.__name__.split("Builder")[0]
         else:
             tvb_annarchy_builder_str = ""
         return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
                             annarchy_model_builder.__name__.split("Builder")[0] +
-                            tvb_annarchy_builder_str +
-                            np.where(annarchy_to_tvb, "_bidir", "").item()
+                            tvb_annarchy_builder_str
                             )
     else:
         return config.out.FOLDER_RES
@@ -40,15 +36,13 @@ def results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarc
 
 def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
                  annarchy_nodes_ids, annarchy_populations_order=100,
-                 tvb_to_annarchy_mode="rate", annarchy_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0, variables_of_interest=None,
                  config=None, plot_write=True, **model_params):
 
     if config is None:
         config = Config(
-                    output_base=results_path_fun(annarchy_model_builder, tvb_annarchy_builder, tvb_to_annarchy_mode,
-                                                 annarchy_to_tvb, config))
+                    output_base=results_path_fun(annarchy_model_builder, tvb_annarchy_builder, config))
 
     plotter = Plotter(config)
 
@@ -77,56 +71,30 @@ def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
         populations_sizes.append(int(np.round(pop["scale"] * annarchy_model_builder.population_order)))
     # Common order of neurons' number per population:
     annarchy_network = annarchy_model_builder.build_spiking_network()
-    annarchy_network.configure()
-    print(annarchy_network.print_str(connectivity=True))
     print("Done! in %f min" % ((time.time() - tic) / 60))
 
-    # -----------------------------------3. Build the TVB-annarchy interface model -----------------------------------------
-    results = None
-    if tvb_annarchy_builder:
-        print("Building TVB-annarchy interface...")
-        tic = time.time()
-        # Build a TVB-annarchy interface with all the appropriate connections between the
-        # TVB and annarchy modelled regions
-        # Using all default parameters for this example
-        tvb_annarchy_builder = tvb_annarchy_builder(simulator, annarchy_network, annarchy_nodes_ids, exclusive_nodes,
-                                                    populations_sizes=populations_sizes[0])
-        tvb_annarchy_model = tvb_annarchy_builder.build_interface(tvb_to_annarchy_mode=tvb_to_annarchy_mode, annarchy_to_tvb=annarchy_to_tvb)
-        print(tvb_annarchy_model.print_str(detailed_output=True, connectivity=False))
-        print("Done! in %f min" % ((time.time() - tic)/60))
+    # -----------------------------------4. Compile network ---------------------------------------------------------
+    tic_compile = time.time()
+    annarchy_network.configure()
+    print("Compiled! in %f min" % ((time.time() - tic_compile) / 60))
+    print(annarchy_network.print_str(connectivity=True))
 
-        # -----------------------------------4. Simulate and gather results-------------------------------------------------
+    # -----------------------------------4. Simulate and gather results---------------------------------------------
+    print("Simulating ANNarchy only...")
+    annarchy_network.Run(simulation_length)
 
-        # Configure the simulator with the TVB-annarchy interface...
-        simulator.configure(tvb_annarchy_model)
-        # ...and simulate!
-        t_start = time.time()
-        results = simulator.run(simulation_length=simulation_length)
-        # Integrate annarchy one more annarchy time step so that multimeters get the last time point
-        # unless you plan to continue simulation later
-        simulator.run_spiking_simulator(simulator.tvb_spikeNet_interface.annarchy_instance.GetKernelStatus("resolution"))
-        # Clean-up annarchy simulation
-        simulator.tvb_spikeNet_interface.annarchy_instance.Cleanup()
-        print("\nSimulated in %f secs!" % (time.time() - t_start))
-
-    else:
-        # -----------------------------------4. Simulate and gather results---------------------------------------------
-        print("Simulating ANNarchy only...")
-        t_start = time.time()
-        annarchy_network.Run(simulation_length)
-        print("\nSimulated in %f secs!" % (time.time() - t_start))
-
-        # -------------------------------------------5. Plot results--------------------------------------------------------
+    # -------------------------------------------5. Plot results--------------------------------------------------------
     if plot_write:
         try:
-            plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
-                               transient=transient, tvb_state_variable_type_label="State Variables",
-                               tvb_state_variables_labels=simulator.model.variables_of_interest,
-                               plotter=plotter, config=config)
+            plot_write_results([], simulator, annarchy_network, spiking_nodes_ids=annarchy_nodes_ids,
+                                   populations=populations, populations_sizes=populations_sizes,
+                                   transient=transient, tvb_state_variable_type_label="State Variables",
+                                   tvb_state_variables_labels=simulator.model.variables_of_interest,
+                                   plotter=plotter, config=config)
         except Exception as e:
             print("Error in plotting or writing to files!:\n%s" % str(e))
 
-    return results, simulator
+    return [], simulator
 
 
 if __name__ == "__main__":
@@ -153,8 +121,7 @@ if __name__ == "__main__":
 
     main_example(tvb_model, BasalGangliaIzhikevichBuilder, None,
                  annarchy_nodes_ids,  annarchy_populations_order=200,
-                 tvb_to_annarchy_mode=None, annarchy_to_tvb=True, exclusive_nodes=True,  # "rate"
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=0.0,
                  variables_of_interest=None,
-                 config=None, plot_write=False, **model_params)
+                 config=None, plot_write=True, **model_params)
