@@ -33,9 +33,9 @@ class Config(ConfigBase):
     DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
 
     # Available ANNARCHY output devices for the interface and their default properties
-    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"record_from": "spike"},
-                                          "spike_multimeter": {"record_from": "spike"},
-                                          "Monitor": {"record_from": ["v", 'g_exc', 'g_inh']}}
+    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"record_from": "spike", "period": 1.0},
+                                          "spike_multimeter": {"record_from": "spike", "period": 1.0},
+                                          "Monitor": {"record_from": ["v", 'g_exc', 'g_inh'], "period": 1.0}}
 
     ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": []},
                                          "PoissonPopulation": {"rates": 0.0},
