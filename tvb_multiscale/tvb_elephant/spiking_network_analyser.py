@@ -222,7 +222,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                         spikes_kernel_width = optimal_kernel_bandwidth(np.sort(spikes_train.__array__()))["optw"]*ms
                     spikes_kernel = spikes_kernel(spikes_kernel_width*ms)
             kwargs["t_start"] = elephant_kwargs.get("t_start", t_start)*ms
-            kwargs["t_stop"] = (elephant_kwargs.get("t_stop", t_stop) + 0.1)*ms
+            kwargs["t_stop"] = (elephant_kwargs.get("t_stop", t_stop) + self.period)*ms
             kwargs["kernel"] = spikes_kernel
             try:
                 # Call the elephant method for the actual computation
