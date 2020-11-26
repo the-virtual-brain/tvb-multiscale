@@ -2,6 +2,8 @@
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import load_annarchy
+from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
+    ANNarchyOutputSpikeDeviceDict, ANNarchyOutputContinuousTimeDeviceDict
 
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
@@ -31,6 +33,9 @@ class ANNarchyNetwork(SpikingNetwork):
 
     _dt = None
 
+    _OutputSpikeDeviceDict = ANNarchyOutputSpikeDeviceDict
+    _OutputContinuousTimeDeviceDict = ANNarchyOutputContinuousTimeDeviceDict
+
     def __init__(self, annarchy_instance=None,
                  brain_regions=None,
                  output_devices=None,
@@ -40,6 +45,8 @@ class ANNarchyNetwork(SpikingNetwork):
             annarchy_instance = load_annarchy(self.config, LOG)
         self.annarchy_instance = annarchy_instance
         super(ANNarchyNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
+        self._OutputSpikeDeviceDict = ANNarchyOutputSpikeDeviceDict
+        self._OutputContinuousTimeDeviceDict = ANNarchyOutputContinuousTimeDeviceDict
 
     @property
     def spiking_simulator_module(self):
@@ -67,4 +74,8 @@ class ANNarchyNetwork(SpikingNetwork):
            It will run annarchy_instance.simulate(simulation_length, *args, **kwargs)
         """
         measure_time = kwargs.pop("measure_time", True)
+        for dev_name, out_dev_set in self.output_devices.iteritems():
+            out_dev_set.do_for_all_devices("resume")
         self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
+        for dev_name, out_dev_set in self.output_devices.iteritems():
+            out_dev_set.do_for_all_devices("pause")
