@@ -156,6 +156,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
         _get_device_props_with_correct_shape(device_dict, (len(names), len(device_target_nodes)))
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
+        populations = ensure_list(populations)
         # This set of devices will be for variable pop_var...
         devices[pop_var] = DeviceSet(pop_var, device_dict["model"])
         # and for every target region node...
@@ -170,9 +171,9 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
                 # ...to connect it:
                 for pop in populations:
                     devices[pop_var][dev_name] = \
-                       connect_device_fun(devices[pop_var][dev_name], node[pop], neurons_funs[i_dev, i_node],
-                                          weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
-                                          config=config, **kwargs)
+                        connect_device_fun(devices[pop_var][dev_name], node[pop], neurons_funs[i_dev, i_node],
+                                           weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
+                                           config=config, **kwargs)
         devices[pop_var].update()
     return devices
 
