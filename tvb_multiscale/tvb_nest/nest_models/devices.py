@@ -6,14 +6,16 @@ import glob
 
 import numpy as np
 from numpy.lib.recfunctions import rename_fields
+import xarray as xr
 
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
+from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 
 from tvb.basic.neotraits.api import List
 
 from tvb.contrib.scripts.utils.data_structures_utils \
-    import ensure_list, extract_integer_intervals, list_of_dicts_to_dicts_of_ndarrays
+    import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
 from tvb.contrib.scripts.utils.file_utils import truncate_ascii_file_after_header
 
 
@@ -426,6 +428,36 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
     @property
     def record_from(self):
         return [str(name) for name in self.device.get('record_from')]
+
+    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+        """This method returns time series' data recorded by the multimeter.
+           Arguments:
+            variables: a sequence of variables' names (strings) to be selected.
+                       Default = None, corresponds to all variables the multimeter records from.
+            name: label of output. Default = None, which defaults to the label of the Device
+            dims_names: sequence of dimensions' labels (strings) for the output array.
+                        Default = ["Time", "Variable", "Neuron"]
+           Returns:
+            a xarray DataArray with the output data
+        """
+        if name is None:
+            name = self.label
+        events = self.events
+        times = events.pop("times")
+        senders = events.pop("senders")
+        if len(times) + len(senders):
+            # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
+            # Therefore, we have to re-arrange the output to get all variables separated following time order.
+            data = data_xarray_from_continuous_events(events, times, senders,
+                                                      variables=self._determine_variables(variables),
+                                                      name=name, dims_names=dims_names)
+            if flatten_neurons_inds:
+                data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
+        else:
+            vars = self._determine_variables(variables)
+            data = xr.DataArray(np.empty((len(times), len(vars), len(senders))), name=name, dims=dims_names,
+                                coords={dims_names[0]: times, dims_names[1]: vars, dims_names[2]: senders})
+        return data
     
     
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
