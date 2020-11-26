@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import load_annarchy
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
@@ -31,6 +33,8 @@ class ANNarchyNetwork(SpikingNetwork):
 
     annarchy_instance = None
 
+    _network = None
+
     _dt = None
 
     _OutputSpikeDeviceDict = ANNarchyOutputSpikeDeviceDict
@@ -53,6 +57,12 @@ class ANNarchyNetwork(SpikingNetwork):
         return self.annarchy_instance
 
     @property
+    def network(self):
+        if self._network is None:
+            self._network = self.annarchy_instance.Network(everything=True)
+        return self._network
+
+    @property
     def dt(self):
         if self._dt is None:
             self._dt = self.annarchy_instance.Global.dt()
@@ -67,7 +77,12 @@ class ANNarchyNetwork(SpikingNetwork):
            It will compile the ANNarchy network by running
            annarchy_instance.compile(*args, **kwargs)
         """
-        self.annarchy_instance.compile(*args, **kwargs)
+        directory = kwargs.pop("directory",
+                               os.path.join(self.config.out._out_base, self.__class__.__name__))
+        cwd = os.getcwd()
+        if directory.find(cwd) > -1:
+            directory = directory.split(os.getcwd())[-1]
+        self.network.compile(directory=directory, *args, **kwargs)
 
     def Run(self, simulation_length, *args, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
@@ -76,6 +91,6 @@ class ANNarchyNetwork(SpikingNetwork):
         measure_time = kwargs.pop("measure_time", True)
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all_devices("resume")
-        self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
+        self.network.simulate(simulation_length, measure_time=measure_time, **kwargs)
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all_devices("pause")
