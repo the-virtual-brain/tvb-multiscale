@@ -331,8 +331,10 @@ def plot_write_results(tvb_results, simulator, spiking_network=None, spiking_nod
 
     try:
         tvb_spikeNet_interface = simulator.tvb_spikeNet_interface
-        spiking_network = tvb_spikeNet_interface.spiking_network
-        spiking_nodes_ids = tvb_spikeNet_interface.spiking_nodes_ids
+        if spiking_network is None:
+            spiking_network = tvb_spikeNet_interface.spiking_network
+        if len(spiking_nodes_ids) == 0:
+            spiking_nodes_ids = tvb_spikeNet_interface.spiking_nodes_ids
     except:
         pass
 
