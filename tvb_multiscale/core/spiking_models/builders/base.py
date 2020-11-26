@@ -370,11 +370,10 @@ class SpikingModelBuilder(object):
         # and that every source/target population is already among the populations to be generated.
         for pop in ["source", "target"]:
             pops_labels = connection.get(pop, None)
-        if pops_labels is None:
-            raise_value_error("No %s population in connection!:\n%s" % (pop, str(connection)))
-        for pop_lbl in ensure_list(pops_labels):
-            assert pop_lbl in self.populations_labels
-        return pops_labels
+            if pops_labels is None:
+                raise_value_error("No %s population in connection!:\n%s" % (pop, str(connection)))
+            for pop_lbl in ensure_list(pops_labels):
+                assert pop_lbl in self.populations_labels
 
     def _configure_connections(self, connections, default_connection):
         # This method sets "weight", "delay" and "receptor_type" synapse properties,
