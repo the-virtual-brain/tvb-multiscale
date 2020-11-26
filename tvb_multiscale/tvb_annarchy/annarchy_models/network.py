@@ -82,7 +82,8 @@ class ANNarchyNetwork(SpikingNetwork):
         cwd = os.getcwd()
         if directory.find(cwd) > -1:
             directory = directory.split(os.getcwd())[-1]
-        self.network.compile(directory=directory, *args, **kwargs)
+        kwargs.pop("clean", None)
+        self.annarchy_instance.compile(clean=True, directory=directory, *args, **kwargs)
 
     def Run(self, simulation_length, *args, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
@@ -91,6 +92,6 @@ class ANNarchyNetwork(SpikingNetwork):
         measure_time = kwargs.pop("measure_time", True)
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all_devices("resume")
-        self.network.simulate(simulation_length, measure_time=measure_time, **kwargs)
+        self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all_devices("pause")
