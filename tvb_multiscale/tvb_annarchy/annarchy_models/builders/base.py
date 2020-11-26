@@ -33,11 +33,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=LOG):
         # Setting or loading an annarchy instance:
-        if annarchy_instance is not None:
-            self.annarchy_instance = annarchy_instance
-        else:
-            self.annarchy_instance = load_annarchy(self.config, logger)
-
+        self.annarchy_instance = annarchy_instance
         super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
@@ -60,6 +56,8 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         self.default_devices_connection["nodes"] = None
 
     def _configure_annarchy(self, **kwargs):
+        if self.annarchy_instance is None:
+            self.annarchy_instance = load_annarchy(self.config, self.logger)
         self.annarchy_instance.clear()  # This will restart ANNarchy!
         self._update_spiking_dt()
         self._update_default_min_delay()
@@ -72,7 +70,10 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     @property
     def min_delay(self):
-        return self.annarchy_instance.dt()
+        if self.annarchy_instance:
+            return self.annarchy_instance.dt()
+        else:
+            return self.config.ANNARCHY_MIN_DT
 
     def set_synapse(self, syn_model, weights, delays, target, params={}):
         """Method to set the synaptic model, the weight, the delay,
