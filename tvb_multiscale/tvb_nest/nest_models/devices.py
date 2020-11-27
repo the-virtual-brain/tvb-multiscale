@@ -70,7 +70,7 @@ class NESTDevice(Device):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        self.device.get(values_dict)
+        self.device.set(values_dict)
 
     def Get(self, attrs=None):
         """Method to get attributes of the device.
