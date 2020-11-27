@@ -127,6 +127,6 @@ if __name__ == "__main__":
                  nest_nodes_ids,  nest_populations_order=200,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,  # "rate"
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=0.0,
+                 simulation_length=110.0, transient=10.0,
                  variables_of_interest=None,
                  config=None, **model_params)
