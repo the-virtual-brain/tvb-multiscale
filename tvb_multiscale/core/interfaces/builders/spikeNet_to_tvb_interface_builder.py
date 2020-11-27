@@ -80,11 +80,12 @@ class SpikeNetToTVBInterfaceBuilder(object):
                 # The index of the TVB state variable that is targeted
                 tvb_sv_id = self.tvb_model.state_variables.index(name)
             except:
-                tvb_sv_id = None  # DEPRECATED!: it might be a TVB parameter, not a state variable
+                # tvb_sv_id = None  # DEPRECATED!: it might be a TVB parameter, not a state variable
                 raise ValueError("tvb_sv_id=%s doesn't correspond "
                                  "to the index of a TVB state variable for interface %s!\n"
                                  % (str(interface.tvb_sv_id), str(name)))
-            spikeNet_to_tvb_interface["%s_%d" % (name, interface_id)] = \
+            interface_index = "%d_%s<%s" % (interface_id, name, str(list(interface["connections"].values())[0]))
+            spikeNet_to_tvb_interface[interface_index] = \
                 self._build_target_class(self.spiking_network, tvb_sv_id, nodes_ids=spiking_nodes,
                                          scale=interface_weights).from_device_set(device_set, name)
         return spikeNet_to_tvb_interface
