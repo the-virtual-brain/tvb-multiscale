@@ -7,6 +7,8 @@ from tvb_multiscale.tvb_nest.interfaces.builders.base import TVBNESTInterfaceBui
 from tvb_multiscale.tvb_nest.interfaces.models import RedWWexcIO
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
 
 class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
     _tvb_nest_interface = RedWWexcIO
@@ -61,7 +63,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
             {"model": "inhomogeneous_poisson_generator",
              "params": {"allow_offgrid_times": False},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)---------
-              "interface_weights": 1.0,
+              "interface_weights": 5.0,  # Assuming a connectome of ~120 cortical regions, for a total of ~600 neurons
         # Applied outside NEST for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
@@ -76,28 +78,27 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         self.tvb_to_spikeNet_interfaces.append(interface)
 
     def build_default_rate_tvb_to_nest_interfaces(self):
-        for trg_pop, target_nodes in zip(["I",          "IdSN",             "IiSN",              "E"],
-                                         [self.I_nodes, self.Istr_nodes_ids, self.Istr_nodes_ids, self.E_nodes]):
+        for trg_pop, target_nodes in zip([["IdSN", "IiSN"],   "E"],
+                                          [self.Istr_nodes_ids, self.E_nodes]):
 
-            connections = {"R": [trg_pop]}
+            connections = {"R": ensure_list(trg_pop)}
             self._build_default_rate_tvb_to_nest_interfaces(connections, target_nodes=target_nodes)
 
     def _build_default_nest_to_tvb_interfaces(self, connections, **kwargs):
         # NEST -> TVB:
         interface = \
             {"model": "spike_recorder", "params": {},
-             # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
+             # ------------------Properties potentially set as function handles with args (nest_node_id=None)-----------
              "interface_weights": 1.0, "delays": 0.0,
-             # --------------------------------------------------------------------------------------------------------------
+             # ---------------------------------------------------------------------------------------------------------
              "connections": connections, "nodes": None}  # None means all here
         interface.update(kwargs)
         self.spikeNet_to_tvb_interfaces.append(interface)
 
     def build_default_nest_to_tvb_interfaces(self):
-        for src_pop, nodes in zip(["I",          "E"],
-                                  [self.I_nodes, self.E_nodes]):
-            self._build_default_nest_to_tvb_interfaces({"Rin": [src_pop]}, nodes=nodes)
-        self._build_default_nest_to_tvb_interfaces({"Rin": ["IdSN", "IiSN"]}, nodes=self.Istr_nodes_ids)
+        for src_pop, nodes in zip(["I",          "E",          ["IdSN", "IiSN"]],
+                                  [self.I_nodes, self.E_nodes, self.Istr_nodes_ids]):
+            self._build_default_nest_to_tvb_interfaces({"Rin": ensure_list(src_pop)}, nodes=nodes)
 
     def default_build(self, tvb_to_nest_mode="rate", nest_to_tvb=True):
         if tvb_to_nest_mode and \
