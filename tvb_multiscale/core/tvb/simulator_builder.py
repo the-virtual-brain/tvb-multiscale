@@ -28,7 +28,6 @@ class SimulatorBuilder(object):
     cosimulation = True
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
-    scale_connectivity_normalize = "region"
     scale_connectivity_weights_by_percentile = 95
     ceil_connectivity = 1.0
     symmetric_connectome = False
@@ -46,7 +45,7 @@ class SimulatorBuilder(object):
     def __init__(self):
         self.config = CONFIGURED
         self.connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
-        self.scale_connectivity_normalize = "region"
+        self.scale_connectivity_weights = "region"
         self.scale_connectivity_weights_by_percentile = 95
         self.ceil_connectivity = 1.0
         self.symmetric_connectome = False
