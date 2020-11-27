@@ -113,7 +113,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
                 interface_builder = self._available_input_device_interfaces[device.model]
             except:
                 raise_value_error("Interface model %s is not supported yet!" % device.model)
-            interface_index = "%s_%d" % (name, interface_id)
+            interface_index = "%d_%s->%s" % (interface_id, name, str(list(interface["connections"].values())[0]))
             tvb_to_spikeNet_interface[interface_index] = \
                 interface_builder(self.spiking_network,
                                   nodes_ids=source_tvb_nodes,

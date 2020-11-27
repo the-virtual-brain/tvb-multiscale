@@ -67,7 +67,7 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
                     self.tvb_model.state_variables.index(name))
             except:
                 raise_value_error("Failed to compute the coupling index of TVB state variable %s!" % name)
-            interface_index = "%s_%d" % (name, interface_id)
+            interface_index = "%d_%s->%s" % (interface_id, name, str(populations))
             tvb_to_spikeNet_interfaces[interface_index] = \
                 self._build_target_class(self.spiking_network, name, interface["model"],
                                          interface.get("parameter", default_parameter),
