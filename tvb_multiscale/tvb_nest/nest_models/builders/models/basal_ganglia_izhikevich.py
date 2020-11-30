@@ -37,7 +37,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.population_order = 200
 
         self.params_common = {"E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
-                              "C_m": 1.0, "I_e": 0.0,
+                              "C_m": 1.0, "I_e": 0.0, "current_stimulus_scale": 1.0, "current_stimulus_mode": 0,
                               "t_ref": 10.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04}
         self._paramsI = deepcopy(self.params_common)
@@ -145,7 +145,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         # Labels have to be different for every connection to every distinct population
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params.update({"interval": 1.0, "record_to": self.output_devices_record_to,
-                       'record_from': ["V_m", "U_m", "I_syn", "I_syn_ex", "I_syn_in", "g_AMPA", "g_GABA_A", "g_L"]})
+                       'record_from': ["V_m", "U_m", "I", "I_syn", "I_syn_ex", "I_syn_in", "g_AMPA", "g_GABA_A", "g_L"]})
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
@@ -172,12 +172,12 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
             #  "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
             #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
             #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
-            # {"model": "ac_generator",
-            #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0,
-            #             "start": 1.0},  # "stop": 100.0  "origin": 0.0,
-            #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
-            #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-            #  "weights": 1.0, "delays": 0.0}
+            {"model": "ac_generator",
+             "params": {"frequency": 100.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0,
+                        "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
+             "connections": {"DBS_Estn": ["E"]},  # "Estn"
+             "nodes": self.Estn_nodes_ids,  # None means apply to all
+             "weights": 1.0, "delays": 0.0}
         ]  #
 
     def paramsE(self, node_id):

@@ -104,6 +104,11 @@ The following parameters can be set in the status dictionary.
  b                      real     Sensitivity of recovery variable
  c                      mV       After-spike reset value of V_m
  d                      mV       After-spike reset value of U_m
+ current_stimulus_scale real     Float coefficient scaling input current stimuli.
+ current_stimulus_mode  long     Transformation of input current stimuli:
+                                  If 0 (default), do nothing
+                                  if 1, rectification, e.g., std::abs(current),
+                                  if 2, square pulse current, 1 if current > 0.0 else 0.0
  consistent_integration boolean  Use standard integration technique
 ======================= =======  ==============================================
 \endverbatim
@@ -225,6 +230,10 @@ private:
     double b_;
     double c_;
     double d_;
+
+    /** Current stimuli **/
+    double current_stimulus_scale_;
+    long current_stimulus_mode_;
 
     /** Use standard integration numerics **/
     bool consistent_integration_;
