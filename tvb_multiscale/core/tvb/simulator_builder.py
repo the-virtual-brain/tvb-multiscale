@@ -38,6 +38,7 @@ class SimulatorBuilder(object):
     integrator = HeunStochastic
     dt = 0.1
     noise_strength = 0.001
+    initial_conditions = None
     monitors = (Raw, )
     monitor_period = 1.0
     config = CONFIGURED
@@ -111,6 +112,14 @@ class SimulatorBuilder(object):
         simulator.connectivity = connectivity
         simulator.model = model
         simulator.integrator = integrator
+        if self.initial_conditions is not None:
+            simulator.connectivity.set_idelays(simulator.integrator.dt)
+            simulator.horizon = simulator.connectivity.idelays.max() + 1
+            simulator.initial_conditions = \
+                self.initial_conditions * np.ones((simulator.horizon,
+                                                   simulator.model.nvar,
+                                                   simulator.connectivity.number_of_regions,
+                                                   simulator.model.number_of_modes))
         simulator.monitors = monitors
         simulator.log.setLevel(20)
 
