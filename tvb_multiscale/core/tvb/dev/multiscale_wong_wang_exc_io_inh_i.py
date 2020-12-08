@@ -127,6 +127,7 @@ class MultiscaleWongWangExcIOInhI(ReducedWongWangExcIOInhI, SpikingWongWangExcIO
 
     state_variables = ["s_AMPA", "x_NMDA", "s_NMDA", "s_GABA", "V_m",  "t_ref",  # state variables
                        "spikes_ext",  "spikes", "rate", "I_syn", "I_L", "I_AMPA", "I_NMDA", "I_GABA", "I_AMPA_ext"]  # non-state variables
+    integration_variables = ["s_AMPA", "x_NMDA", "s_NMDA", "s_GABA", "V_m", "t_ref"]  # non-state variables
     _nvar = 16
     cvar = numpy.array([0], dtype=numpy.int32)
     number_of_modes = 200  # assuming that 0...N_E-1 are excitatory and N_E ... number_of_modes-1 are inhibitory
@@ -186,7 +187,8 @@ class MultiscaleWongWangExcIOInhI(ReducedWongWangExcIOInhI, SpikingWongWangExcIO
         self.__I = __I
         return state_variables
 
-    def update_non_state_variables(self, state_variables, coupling, local_coupling=0.0, use_numba=False):
+    def update_state_variables_before_integration(self, state_variables, coupling, local_coupling=0.0, stimulus=0.0,
+                                                  use_numba=False):
 
         for ii in range(state_variables[0].shape[0]):
             _E = self._E(ii)  # excitatory neurons'/modes' indices
@@ -400,7 +402,7 @@ class MultiscaleWongWangExcIOInhI(ReducedWongWangExcIOInhI, SpikingWongWangExcIO
 
         return state_variables
 
-    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0, update_non_state_variables=False):
+    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0):
         r"""
         Equations taken from [DPA_2013]_ , page 11242
 
@@ -414,10 +416,6 @@ class MultiscaleWongWangExcIOInhI(ReducedWongWangExcIOInhI, SpikingWongWangExcIO
                  \dot{S}_{ik} &= -\dfrac{S_{ik}}{\tau_i} + \gamma_iH(x_{ik}) \,
 
         """
-
-        if update_non_state_variables:
-            state_variables = \
-                self.update_non_state_variables(state_variables, coupling, local_coupling, use_numba=False)
 
         derivative = 0.0 * state_variables
 
@@ -529,5 +527,5 @@ class MultiscaleWongWangExcIOInhI(ReducedWongWangExcIOInhI, SpikingWongWangExcIO
 
         return derivative
 
-    def dfun(self, x, c, local_coupling=0.0, update_non_state_variables=True):
-        return self._numpy_dfun(x, c, local_coupling, update_non_state_variables)
+    def dfun(self, x, c, local_coupling=0.0):
+        return self._numpy_dfun(x, c, local_coupling)
