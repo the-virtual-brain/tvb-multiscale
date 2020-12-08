@@ -6,11 +6,10 @@ from datetime import datetime
 
 import numpy
 from tvb.basic.profile import TvbProfile
-from tvb.simulator.plot.config import FiguresConfig
-
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb.datatypes import cortex, connectivity
+from tvb.simulator.plot.config import FiguresConfig
 
 import tvb_data
 
