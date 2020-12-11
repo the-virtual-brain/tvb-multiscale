@@ -9,7 +9,7 @@ import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyACCurrentInjector
+    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice # , ANNarchyACCurrentInjector
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -196,12 +196,12 @@ def create_input_device(annarchy_device, import_path, params={}):
        Returns:
         annarchy_device: the same ANNarchyInputDevice instance populated
     """
-    if isinstance(annarchy_device, ANNarchyACCurrentInjector):
-        # For the special case of ANNarchyACCurrentInjector convert a possible frequency parameter f,
-        # to an angular frequency parameters omega = 2*pi*f
-        f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
-        if f:
-            params["omega"] = 2 * np.pi * f
+    # if isinstance(annarchy_device, ANNarchyACCurrentInjector):
+    #     # For the special case of ANNarchyACCurrentInjector convert a possible frequency parameter f,
+    #     # to an angular frequency parameters omega = 2*pi*f
+    #     f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
+    #     if f:
+    #         params["omega"] = 2 * np.pi * f
     annarchy_device._population = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
                                                     params=params, import_path=import_path)
     annarchy_device._population.name = annarchy_device.label

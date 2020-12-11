@@ -217,39 +217,39 @@ class ANNarchyHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
                                                                        annarchy_instance, **kwargs)
 
 
-class ANNarchyCurrentInjector(InputDevice):
-
-    """ANNarchyCurrentInjector class to wrap around a rate ANNarchy.Population,
-       acting as an input (stimulating) device, by generating and sending
-       a continuous quantity interpreted as a current (or potentially rate)."""
-
-    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyCurrentInjector, self).__init__(device,  label, "CurrentInjector",
-                                                      annarchy_instance, **kwargs)
-
-
-class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
-
-    """ANNarchyDCCurrentInjector class to wrap around a rate ANNarchy.Population,
-       acting as an input (stimulating) device, by generating and sending
-       a constant continuous quantity interpreted as a DC current (or potentially rate)."""
-
-    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "DCCurrentInjector",
-                                                        annarchy_instance, **kwargs)
-
-
-class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
-
-    """ANNarchyACCurrentInjector class to wrap around a rate ANNarchy.Population,
-       acting as an input (stimulating) device, by generating and sending
-       a sinusoidaly varying continuous quantity interpreted as a AC current (or potentially rate)."""
-
-    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ACCurrentInjector",
-                                                        annarchy_instance, **kwargs)
-
-
+# class ANNarchyCurrentInjector(InputDevice):
+#
+#     """ANNarchyCurrentInjector class to wrap around a rate ANNarchy.Population,
+#        acting as an input (stimulating) device, by generating and sending
+#        a continuous quantity interpreted as a current (or potentially rate)."""
+#
+#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+#         super(ANNarchyCurrentInjector, self).__init__(device,  label, "CurrentInjector",
+#                                                       annarchy_instance, **kwargs)
+#
+#
+# class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
+#
+#     """ANNarchyDCCurrentInjector class to wrap around a rate ANNarchy.Population,
+#        acting as an input (stimulating) device, by generating and sending
+#        a constant continuous quantity interpreted as a DC current (or potentially rate)."""
+#
+#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+#         super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "DCCurrentInjector",
+#                                                         annarchy_instance, **kwargs)
+#
+#
+# class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
+#
+#     """ANNarchyACCurrentInjector class to wrap around a rate ANNarchy.Population,
+#        acting as an input (stimulating) device, by generating and sending
+#        a sinusoidaly varying continuous quantity interpreted as a AC current (or potentially rate)."""
+#
+#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+#         super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ACCurrentInjector",
+#                                                         annarchy_instance, **kwargs)
+#
+#
 class ANNarchyTimedArray(InputDevice):
 
     """ANNarchyTimedArray class to wrap around a rate ANNarchy.TimedArray,
@@ -276,9 +276,9 @@ class ANNarchyPoissonNeuron(ANNarchyInputDevice):
 ANNarchyInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
                            "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
                            "SpikeSourceArray": ANNarchySpikeSourceArray,
-                           "CurrentInjector": ANNarchyCurrentInjector,
-                           "DCCurrentInjector": ANNarchyDCCurrentInjector,
-                           "ACCurrentInjector": ANNarchyACCurrentInjector,
+                           # "CurrentInjector": ANNarchyCurrentInjector,
+                           # "DCCurrentInjector": ANNarchyDCCurrentInjector,
+                           # "ACCurrentInjector": ANNarchyACCurrentInjector,
                            "TimedArray": ANNarchyTimedArray,
                            # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
                            "Poisson_neuron": ANNarchyPoissonNeuron

@@ -53,10 +53,6 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         self.E_nodes = self.Estn_nodes_ids + self.Eth_nodes_ids
         self.Istr_nodes_ids = [6, 7]
 
-        self.Estn_stim = {"rate": 500.0, "weight": 0.009}
-        self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
-        self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
-
         self.populations = [
             {"label": "E", "model": self.default_population["model"],  # Estn in [4, 5], Eth in [8, 9]
              "params": self.paramsE, "nodes": self.E_nodes,  # None means "all"
@@ -82,6 +78,8 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         conn_spec["allow_self_connections"] = True
         conn_spec["force_multiple_weights"] = False
 
+        scaleBGoptTOtvb = 0.00205875
+
         # Intra-regions'-nodes' connections
         self.populations_connections = []
         for pop in self.populations:
@@ -90,13 +88,14 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                 self.populations_connections.append(
                     {"source": pop["label"], "target": pop["label"],
                      "synapse_model": synapse_model, "conn_spec": conn_spec,
-                     "weight": 1.0, "delay": self.default_min_delay,
+                     "weight": scaleBGoptTOtvb, "delay": self.default_min_delay,
                      "receptor_type": "gaba", "nodes": pop["nodes"]})
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = tvb_simulator.coupling.a[0].item()
-        # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
-        self.global_coupling_scaling *= tvb_simulator.model.G[0].item()
+        self.global_coupling_scaling = scaleBGoptTOtvb
+        # self.global_coupling_scaling = tvb_simulator.coupling.a[0].item()
+        # # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
+        # self.global_coupling_scaling *= tvb_simulator.model.G[0].item()
 
         # Inter-regions'-nodes' connections
         self.nodes_connections = []
@@ -148,7 +147,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         # params for baladron implementation commented out for the moment
         # TODO: use baladron neurons
         params = self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"]
-        params.update({"period": 1.0,  'record_from': ["v", "u", "I_syn", "I_syn_ex", "I_syn_in",
+        params.update({"period": 1.0,  'record_from': ["v", "u", "I", "I_syn", "I_syn_ex", "I_syn_in",
                                                        "g_ampa", "g_gaba", "g_base"]})
         for pop in self.populations:
             connections = OrderedDict({})
@@ -161,27 +160,25 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Create a spike stimulus input device
         # When TVB is connected, we don't need any baseline stimulus
+        self.Estn_stim = {"rate": 500.0, "weight": 0.009}
+        self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
+        self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
         self.input_devices = [
-            # {"model": "PoissonPopulation",
-            #  "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
-            #  "connections": {"BaselineEstn": ["E"]},  # "Estn"
-            #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-            #  "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-            # {"model": "PoissonPopulation",
-            #  "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
-            #  "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
-            #  "nodes": self.Igpe_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-            # {"model": "PoissonPopulation",
-            #  "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
-            #  "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
-            #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-            # {"model": "ACCurrentInjector",
-            #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0},
-            #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
-            #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-            #  "weights": 1.0, "delays": 0.0}
+            {"model": "PoissonPopulation",
+             "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
+             "connections": {"BaselineEstn": ["E"]},  # "Estn"
+             "nodes": self.Estn_nodes_ids,  # None means apply to all
+             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+            {"model": "PoissonPopulation",
+             "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
+             "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
+             "nodes": self.Igpe_nodes_ids,  # None means apply to all
+             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+            {"model": "PoissonPopulation",
+             "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
+             "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
+             "nodes": self.Igpi_nodes_ids,  # None means apply to all
+             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
         ]
 
     def paramsI(self, node_id):

@@ -41,10 +41,10 @@ class Config(ConfigBase):
                                          "PoissonPopulation": {"rates": 0.0},
                                          "HomogeneousCorrelatedSpikeTrains":
                                              {"rates": 0.0, "corr": 0.0, "tau": 1.0},
-                                         "CurrentInjector": {"amplitude": 0.0},
-                                         "DCCurrentInjector": {"amplitude": 0.0},
-                                         "ACCurrentInjector": {"frequency": 0.0, "amplitude": 1.0,
-                                                               "phase": 0.0, "offset": 0.0},
+                                         # "CurrentInjector": {"amplitude": 0.0},
+                                         # "DCCurrentInjector": {"amplitude": 0.0},
+                                         # "ACCurrentInjector": {"frequency": 0.0, "amplitude": 1.0,
+                                         #                       "phase": 0.0, "offset": 0.0},
                                          "TimedArray": {"rates": 0.0, "schedule": 0.0, "period": -1.0},
                                          }
 

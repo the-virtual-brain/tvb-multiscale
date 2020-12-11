@@ -431,11 +431,6 @@ self.input_devices = [
      "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
      "nodes": self.Igpi_nodes_ids,  # None means apply to all
      "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
-    # {"model": "ACCurrentInjector",
-    #  "params": {"frequency": 30.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0},
-    #  "connections": {"DBS_Estn": ["E"]},  # "Estn"
-    #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-    #  "weights": 1.0, "delays": 0.0}
 ]
 
 populations = []
