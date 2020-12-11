@@ -25,7 +25,7 @@ def results_path_fun(tvb_sim_model, config=None):
 
 
 def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
-                 simulation_length=110.0, transient=10.0, config=None, plot_write=True, **model_params):
+                 simulation_length=110.0, transient=10.0, use_numba=True, config=None, plot_write=True, **model_params):
 
     if config is None:
         config = Config(output_base=results_path_fun(tvb_sim_model, config))
@@ -34,6 +34,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
     simulator_builder = SimulatorBuilder()
+    simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
     simulator_builder.connectivity = connectivity

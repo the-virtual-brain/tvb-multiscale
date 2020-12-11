@@ -26,6 +26,7 @@ class SimulatorBuilder(object):
     """
 
     cosimulation = True
+    use_numba = True
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
     scale_connectivity_weights_by_percentile = 95
@@ -45,6 +46,7 @@ class SimulatorBuilder(object):
 
     def __init__(self):
         self.config = CONFIGURED
+        self.use_numba = True
         self.connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
         self.scale_connectivity_weights = "region"
         self.scale_connectivity_weights_by_percentile = 95
@@ -109,6 +111,8 @@ class SimulatorBuilder(object):
         simulator = CoSimulator()
 
         simulator._config = self.config
+        simulator.use_numba = self.use_numba
+
         simulator.connectivity = connectivity
         simulator.model = model
         simulator.integrator = integrator
