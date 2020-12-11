@@ -41,7 +41,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
                  nest_nodes_ids, nest_populations_order=100,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=110.0, transient=10.0, variables_of_interest=None,
+                 simulation_length=110.0, transient=10.0, use_numba=True, variables_of_interest=None,
                  config=None, plot_write=True, **model_params):
 
     if config is None:
@@ -53,6 +53,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
     simulator_builder = SimulatorBuilder()
+    simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
     simulator_builder.variables_of_interest = variables_of_interest

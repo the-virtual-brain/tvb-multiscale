@@ -66,6 +66,7 @@ model_params_sp = {
 
 
 class TestModel(object):
+    use_numba = True
     simulation_length = 55.0
     transient = 5.0
     model = None
@@ -85,7 +86,7 @@ class TestModel(object):
         delete_folder_safely(self.results_path)
         return main_example(tvb_sim_model=self.model,
                             simulation_length=self.simulation_length, transient=self.transient,
-                            plot_write=self.plot_write,
+                            use_numba=self.use_numba, plot_write=self.plot_write,
                             **self.model_params)
 
 
@@ -118,14 +119,17 @@ class TestSpikingWongWangExcIOInhI(TestModel):
 
 
 # @pytest.mark.skip(reason="These tests are taking too much time") # only TestSpikingWongWangExcIOInhI takes time
-def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO,
-                                TestReducedWongWangExcIOInhI]):  # , TestSpikingWongWangExcIOInhI
+def test_models(models_to_test=[TestWilsonCowan,
+                                TestReducedWongWangExcIO,
+                                TestReducedWongWangExcIOInhI], # , TestSpikingWongWangExcIOInhI
+                use_numba=True):
     import time
     import numpy as np
     from collections import OrderedDict
     success = OrderedDict()
     for test_model_class in models_to_test:
         test_model = test_model_class()
+        test_model.use_numba = use_numba
         print("\n******************************************************")
         print("******************************************************")
         print(test_model_class.__name__)
@@ -149,7 +153,7 @@ def test_models(models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO,
     else:
         print(success)
     print("******************************************************\n")
-
+    return success
 
 def teardown_function():
     output_folder = Config().out._out_base
@@ -158,4 +162,7 @@ def teardown_function():
 
 
 if __name__ == "__main__":
-    test_models()
+    print("************Testing with use_numba=False!*************\n")
+    test_models(use_numba=False)
+    print("************Testing with use_numba=True!**************\n")
+    test_models(use_numba=True)
