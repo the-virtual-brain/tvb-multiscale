@@ -54,8 +54,8 @@ class Device(HasTraits):
         super(Device, self).__init__()
         self.label = kwargs.pop("label", "")
         self.model = kwargs.pop("model", "device")
-        self._number_of_connections = self.get_number_of_connections()
-        self._number_of_neurons = self.get_number_of_neurons()
+        self._number_of_connections = 0
+        self._number_of_neurons = 0
 
     def __repr__(self):
         output = "%s - Model: %s\n%s" % (self.__class__.__name__, self.model, self.device.__str__())
