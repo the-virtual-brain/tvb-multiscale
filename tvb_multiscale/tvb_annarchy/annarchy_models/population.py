@@ -83,8 +83,8 @@ class ANNarchyPopulation(SpikingPopulation):
             In ANNarchy: So far we get only local indices.
             We form global indices by zipping local indices with the global population indice.
         """
-        local_ids = self._population.ranks
-        return tuple(zip([self.population_ind] * len(local_ids), local_ids))
+        local_inds = self._population.ranks
+        return tuple(zip([self.population_ind] * len(local_inds), local_inds))
 
     def _assert_neurons(self, neurons=None):
         """Method to assert an input set of neurons either as:
