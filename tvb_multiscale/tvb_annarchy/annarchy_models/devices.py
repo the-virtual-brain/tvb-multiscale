@@ -7,7 +7,7 @@ from xarray import DataArray, combine_by_coords
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.devices import \
-    InputDevice, OutputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
+   Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
@@ -19,27 +19,101 @@ from tvb.contrib.scripts.utils.data_structures_utils import flatten_list, ensure
 
 # These classes wrap around ANNarchy commands.
 
+class ANNarchyDevice(Device):
 
-class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
+    __metaclass__ = ABCMeta
+
+    """Abstract ANNarchyDevice class"""
+
+    annarchy_instance = None
+
+    def __init__(self, device=None, label="", model="annarchy_device", annarchy_instance=None):
+        super(ANNarchyDevice, self).__init__(device=device, label=label, model=model)
+        self.annarchy_instance = annarchy_instance
+
+    @property
+    def spiking_simulator_module(self):
+        return self.annarchy_instance
+
+    @abstractmethod
+    def _assert_annarchy(self):
+        pass
+
+    @abstractmethod
+    def _GetConnections(self):
+        """Method to get connections of the device from/to populations.
+            Returns:
+             connections' objects.
+        """
+        pass
+
+    def GetConnections(self):
+        """Method to get connections of the device from/to populations.
+            Returns:
+             connections' objects.
+        """
+        return self._GetConnections()
+
+    @property
+    def connections(self):
+        """Method to get all connections of the device from/to populations.
+           Returns:
+            connections' objects.
+        """
+        return self._GetConnections()
+
+    @property
+    @abstractmethod
+    def populations(self):
+        pass
+
+    def get_neurons(self):
+        """Method to get the indices of all the neurons the device connects to/from."""
+        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
+        neurons = []
+        for pop in self.populations:
+            population_ind = get_population_ind(pop, self.annarchy_instance)
+            local_inds = pop.ranks
+            neurons += list(zip([population_ind] * len(local_inds), local_inds))
+        return tuple(np.unique(neurons, axis=0).tolist())
+
+    @property
+    def neurons(self):
+        """Method to get the indices of all the neurons the device connects from/to."""
+        return self.get_neurons()
+
+    def _print_neurons(self, neurons):
+        neurons = np.array(neurons)
+        number_of_neurons = len(neurons)
+        output = "%d neurons: [" % number_of_neurons
+        populations_inds = np.unique(neurons[:, 0])
+        for pop_ind in populations_inds:
+            pop_neurons = neurons[neurons[:, 0] == pop_ind, 1]
+        output += "(%d, %s)" % (pop_ind, extract_integer_intervals(pop_neurons, print=True))
+        output += "]"
+        return output
+
+
+class ANNarchyInputDevice(ANNarchyDevice, InputDevice, ANNarchyPopulation):
     __metaclass__ = ABCMeta
 
     """ANNarchyInputDevice class to wrap around an ANNarchy.Population, acting as an input (stimulating) device"""
 
     params = {}
 
-    def __init__(self, device=None,  label="", model="input_device", annarchy_instance=None, **kwargs):
+    def __init__(self, device=None,  label="", model="annarchy_input_device", annarchy_instance=None, **kwargs):
         self.params = kwargs.get("params", {})
+        ANNarchyDevice.__init__(self, device, label=label, model=model, annarchy_instance=annarchy_instance)
         InputDevice.__init__(self, device, model=model, label=label)
         ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance)
+
+    def _assert_annarchy(self):
+        ANNarchyPopulation._assert_annarchy(self)
 
     def _assert_device(self):
         if self.annarchy_instance is not None and self._population is not None:
             from ANNarchy import Population
             assert isinstance(self._population, Population)
-
-    @property
-    def spiking_simulator_module(self):
-        return self.annarchy_instance
 
     @property
     def annarchy_model(self):
@@ -70,7 +144,7 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
            Return:
             Projections' objects
         """
-        connections = ANNarchyPopulation._GetConnections(self, neurons=None, source_or_target="source")
+        connections = ANNarchyPopulation._GetConnections(self, source_or_target="source")
         return connections
 
     def _SetToConnections(self, values_dict, connections=None):
@@ -99,78 +173,22 @@ class ANNarchyInputDevice(InputDevice, ANNarchyPopulation):
             connections = ANNarchyPopulation._GetConnections(self, neurons=None, source_or_target="source")
         return ANNarchyPopulation._GetFromConnections(self, attrs, connections)
 
-    def GetConnections(self):
-        """Method to get connections of the device to neurons.
-           Returns:
-            list of Projection objects.
-        """
-        return self._GetConnections()
-
-    @property
-    def connections(self):
-        """Method to get all connections of the device to neurons.
-           Returns:
-            connections' objects.
-        """
-        return self._GetConnections()
-
     @property
     def populations(self):
         populations = []
         for conn in self.connections:
-            populations.append(conn.post)
+            if conn.post not in populations:
+                populations.append(conn.post)
         return populations
 
-    def get_neurons(self):
-        """Method to get the indices of all the neurons the device is connected to.
-        """
-        neurons = []
-        for conn in self.connections:
-            neuron = conn.post
-            if neuron is not None and neuron not in neurons:
-                neurons.append(neuron)
-        return tuple(neurons)
-
-    @property
-    def neurons(self):
-        return self.get_neurons()
-
-    def _print_neurons(self, neurons):
-        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
-        output = "["
-        number_of_neurons = 0
-        for neuron in neurons:
-            if isinstance(neuron, self.annarchy_instance.Population):
-                pop = neuron
-            elif isinstance(neuron.population, self.annarchy_instance.Population):
-                pop = neuron.population
-            output += "(%s, %d, %s)" % \
-                      (neuron.name, get_population_ind(pop, self.annarchy_instance),
-                       extract_integer_intervals(neuron.ranks, print=True))
-            number_of_neurons += neuron.size
-        output += "]"
-        output = "%d neurons: " % number_of_neurons
-        return output
-
     def get_number_of_neurons(self):
-        """Method to compute the total number of ANNarchyPopulation's neurons.
+        """Method to compute the total number of ANNarchyDevice's connected neurons.
             Returns:
                 int: number of neurons.
         """
         if self._population is None:
             return 0
         return InputDevice.get_number_of_neurons(self)
-
-    @property
-    def number_of_neurons(self):
-        """Method to get the number of all neurons connected from/to the device."""
-        if not self._number_of_neurons:
-            self._number_of_neurons = self.get_number_of_neurons()
-        return self._number_of_neurons
-
-    @property
-    def number_of_connected_neurons(self):
-        return self.number_of_neurons
 
     @property
     def number_of_devices_neurons(self):
@@ -303,7 +321,7 @@ class ANNarchyOutputDeviceConnection(HasTraits):
         return ["pre", "post"]
 
 
-class ANNarchyOutputDevice(OutputDevice):
+class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
     __metaclass__ = ABCMeta
 
     """ANNarchyOutputDevice class to wrap around ANNarchy.Monitor instances, acting as an output device"""
@@ -333,17 +351,16 @@ class ANNarchyOutputDevice(OutputDevice):
 
     _period = None
 
-    def __init__(self, monitors=None, label="", model="output_device", annarchy_instance=None,
+    def __init__(self, monitors=None, label="", model="annarchy_output_device", annarchy_instance=None,
                  run_tvb_multiscale_init=True, **kwargs):
         if isinstance(monitors, dict):
             monitors = OrderedDict(monitors)
         else:
             monitors = OrderedDict()
+        ANNarchyDevice.__init__(self, monitors, label, model, annarchy_instance)
         if run_tvb_multiscale_init:
-            OutputDevice.__init__(self, monitors, model=str(model), label=str(label))
-        self.model = str(model)
+            OutputDevice.__init__(self, monitors, model=model, label=label)
         self.params = kwargs.pop("params", {})
-        self.label = str(label)
         self.annarchy_instance = annarchy_instance
         if self.annarchy_instance is not None:
             self._monitors_inds = self._get_monitors_inds()
@@ -471,54 +488,14 @@ class ANNarchyOutputDevice(OutputDevice):
         #            self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
         return {}
 
-    def GetConnections(self):
-        """Method to get connections of the device from neurons.
-           Returns:
-            list of ANNarchyOutputDeviceConnection objects.
-        """
-        return self._GetConnections()
-
-    @property
-    def connections(self):
-        """Method to get all connections of the device from neurons.
-           Returns:
-            ANNarchyOutputDeviceConnection objects.
-        """
-        return self._GetConnections()
-
     @property
     def populations(self):
         """Method to get the ANNarchy.Population instances this device records from."""
-        populations = list(self.monitors.values())
+        populations = []
+        for pop in self.monitors.values():
+            if pop not in populations:
+                populations.append(pop)
         return populations
-
-    def get_neurons(self):
-        """Method to get the indices of all the neurons the device monitors.
-        """
-        neurons = []
-        for pop in self.populations:
-            if pop is not None and pop not in neurons:
-                neurons.append(pop)
-        return tuple(neurons)
-
-    @property
-    def neurons(self):
-        """Method to get the indices of all the neurons the device monitors."""
-        return self.get_neurons()
-
-    def _print_neurons(self, neurons):
-        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
-        output = "["
-        for neuron in neurons:
-            if isinstance(neuron, self.annarchy_instance.Population):
-                pop = neuron
-            elif isinstance(neuron.population, self.annarchy_instance.Population):
-                pop = neuron.population
-            output += "(%s, %d, %s)" % \
-                      (neuron.name, get_population_ind(pop, self.annarchy_instance),
-                       extract_integer_intervals(neuron.ranks, print=True))
-        output += "]"
-        return output
 
     @property
     def record_from(self):
