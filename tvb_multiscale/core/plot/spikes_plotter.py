@@ -122,7 +122,7 @@ class SpikesPlotter(BasePlotter):
             if xticklabels is not None:
                 axes.set_xticklabels(xticklabels)
             axes.set_xlabel("Time (ms)")
-        else:
+        elif time_lims is not None:
             axes.set_xticklabels([])
         return axes
 
