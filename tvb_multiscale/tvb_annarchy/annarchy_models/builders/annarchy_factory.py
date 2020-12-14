@@ -5,8 +5,6 @@ import importlib
 from six import string_types
 from copy import deepcopy
 
-import numpy as np
-
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice # , ANNarchyACCurrentInjector
@@ -338,8 +336,8 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
         synapse = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
     synapse_params = annarchy_device.params.get("synapse_params", {})
     proj = connect_two_populations(annarchy_device, population, weight, delay, receptor_type, synapse_params,
-                                  source_view_fun=source_view_fun, target_view_fun=neurons_inds_fun,
-                                  synapse=synapse, method=connect_method,
+                                   source_view_fun=source_view_fun, target_view_fun=neurons_inds_fun,
+                                   synapse=synapse, method=connect_method,
                                    annarchy_instance=annarchy_device.annarchy_instance, **connection_args)
     # Add this projection to the source device's and target population's inventories:
     annarchy_device.projections_pre.append(proj)
