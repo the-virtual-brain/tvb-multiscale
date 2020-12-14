@@ -51,12 +51,13 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         """
         from neo.core import SpikeTrain
         from quantities import ms
-        t_stop = self.period*ms
         if len(spikes):
-            t_stop = np.max(spikes)
-            if self.end_time:
-                t_stop = np.maximum(t_stop, self.end_time)
-        return SpikeTrain(spikes*ms, t_stop=t_stop)
+            t_stop = np.max(spikes) + self._fmin_resolution
+        elif self.end_time:
+            t_stop = self.end_time
+        else:
+            t_stop = self.period
+        return SpikeTrain(spikes*ms, t_stop=t_stop*ms)
 
     def _assert_spike_train(self, spikes):
         """A method to assert that an argument is of neo.core.SpikesTrain data type.
@@ -127,10 +128,10 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         """
         from quantities import ms
         from elephant.statistics import mean_firing_rate
+        t_start, t_stop = self._assert_start_end_times_from_spikes_times(spikes_times)
         spikes_train = self._assert_spike_train(spikes_times)
-        t_start, t_stop = self._assert_start_end_times_from_spikes_times(spikes_train)
-        elephant_kwargs["t_start"] = elephant_kwargs.get("t_start", t_start)*ms
-        elephant_kwargs["t_stop"] = elephant_kwargs.get("t_stop", t_stop)*ms
+        elephant_kwargs["t_start"] = elephant_kwargs.get("t_start", t_start-self._fmin_resolution) * ms
+        elephant_kwargs["t_stop"] = elephant_kwargs.get("t_stop", t_stop+self._fmin_resolution) * ms
         if len(spikes_train):
             return mean_firing_rate(spikes_train, **elephant_kwargs), spikes_train
         else:
@@ -156,28 +157,10 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
             spikes_times = self._get_spikes_times_from_spikes_events(spikes)
             result, spikes_train = \
                     self.compute_elephant_mean_firing_rate(spikes_times, **kwargs)
-            return {res_type: DataArray([float(result)]).squeeze(),
+            return {res_type: DataArray([1000*float(result)]).squeeze(),
                     self.spikes_train_name: spikes_train}
         else:
             return super(SpikingNetworkAnalyser, self).compute_rate(spikes, number_of_neurons, duration, **kwargs)
-
-    def _compute_delta_rate(self, time, spikes_times):
-        """A method to compute instantaneous spiking rate when the kernel method fails
-           because there are not enough distinct bins, as when there are not enough spikes,
-           and/or all the spikes are concentrated in only one time bin.
-           The spikes contribute an equal weight of 1 / sampling period,
-           to the corresponding sampling period time bin.
-           Arguments:
-            - time: the array of the time vector
-            - spikes_times: an array of spikes' times
-            Returns:
-             - an array of instantaneous rate time series
-        """
-        result = np.zeros(time.shape)
-        for spike_time in np.unique(spikes_times):
-            result[int(np.floor((spike_time - time[0]) / self.period))] += \
-                np.sum(spikes_times == spike_time) / self.period
-        return result
 
     def compute_rate_time_series(self, spikes_train, number_of_neurons=1, **elephant_kwargs):
         """A method to compute instantaneous spiking rate time series,
@@ -194,10 +177,9 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
              "spikes_train": the neo.core.SpikeTrain used for the computation
         """
         res_type = self._get_comput_res_type()
-        # Assert/compute the computations' start time, end time...
         t_start, t_stop = self._assert_start_end_times_from_spikes_times(spikes_train)
         # ...the time vector
-        time = np.arange(t_start, t_stop+self.period, self.period)
+        time = np.arange(t_start, t_stop+self._fmin_resolution, self.period)
         # ...and that the input spikes are in a neo.core.SpikeTrain instance
         spikes_train = self._assert_spike_train(spikes_train)
         if len(spikes_train) > 0:
@@ -221,8 +203,8 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                     else:
                         spikes_kernel_width = optimal_kernel_bandwidth(np.sort(spikes_train.__array__()))["optw"]*ms
                     spikes_kernel = spikes_kernel(spikes_kernel_width*ms)
-            kwargs["t_start"] = elephant_kwargs.get("t_start", t_start)*ms
-            kwargs["t_stop"] = (elephant_kwargs.get("t_stop", t_stop) + self.period)*ms
+            kwargs["t_start"] = elephant_kwargs.get("t_start", t_start-self._fmin_resolution)
+            kwargs["t_stop"] = elephant_kwargs.get("t_stop", t_stop+self._fmin_resolution)
             kwargs["kernel"] = spikes_kernel
             try:
                 # Call the elephant method for the actual computation
@@ -231,7 +213,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                 # If it fails, compute a delta spike instantaneous rate with any kernel smoothing:
                 # LOG.warning("Failed to compute instantaneous rate with a sliding timing window!\n"
                 #             "Computing instantaneous rate without any smoothing...")
-                rates = self._compute_delta_rate(time, spikes_train.__array__())
+                rates = 1000 * self._compute_delta_rate(time, spikes_train.__array__(), t_start, t_stop)
         else:
             rates = 0.0 * time
         # TODO: A better solution for handling the last time point with elephant!
