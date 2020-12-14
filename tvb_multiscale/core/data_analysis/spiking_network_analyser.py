@@ -119,6 +119,8 @@ class SpikingNetworkAnalyser(HasTraits):
 
     _binned_spikes_trains_name = None
 
+    _fmin_resolution = np.finfo(dtype="f").resolution
+
     def _get_method_name(self, method=None, caller_id=2):
         """A method to return the name of an input method.
            Argument:
@@ -291,7 +293,7 @@ class SpikingNetworkAnalyser(HasTraits):
                 # ...and there are spikes, set start_time equal to the first spike in time:
                 start_time = float(np.min(spikes))
             else:
-                # ...otheriwse, set start_time to 0.0
+                # ...otherwise, set start_time to 0.0
                 start_time = 0.0
             # Modify start_time to be the maximum of start_time and the transient attribute of the class.
             start_time = float(np.maximum(start_time, self.transient))
@@ -448,7 +450,7 @@ class SpikingNetworkAnalyser(HasTraits):
              "rate": xarray.DataArray(rate).squeeze()
         """
         res_type = self._get_comput_res_type()
-        spikes_times = self._get_spikes_times_from_spikes_events(spikes)
+        spikes_times = np.array(self._get_spikes_times_from_spikes_events(spikes))
         if not duration:
             start_time, end_time = self._assert_start_end_times_from_spikes_times(spikes_times)
             duration = end_time - start_time
@@ -456,7 +458,9 @@ class SpikingNetworkAnalyser(HasTraits):
                 raise ValueError("start_time (=%g) cannot be smaller than end_time (=%g)!" % (start_time, end_time))
             elif duration == 0.0:
                 duration = 1.0
-        return {res_type: DataArray(len(spikes_times) / duration * 1000,).squeeze()}
+        return {res_type: DataArray(
+                            np.sum(np.logical_and(spikes_times >= start_time, spikes_times <= end_time)).astype("f")
+                            / duration * 1000).squeeze()}
 
     def compute_mean_rate(self, spikes, number_of_neurons=1, duration=None, **kwargs):
         """A method to compute mean rate from an input of spikes' events or spikes' times as:
@@ -477,6 +481,25 @@ class SpikingNetworkAnalyser(HasTraits):
         results[res_type] = results[res2_type] / number_of_neurons
         del results[res2_type]
         return results
+
+    def _compute_delta_rate(self, time, spikes_times, t_start, t_stop):
+        """A method to compute instantaneous spiking rate when the kernel method fails
+           because there are not enough distinct bins, as when there are not enough spikes,
+           and/or all the spikes are concentrated in only one time bin.
+           The spikes contribute an equal weight of 1 / sampling period,
+           to the corresponding sampling period time bin.
+           Arguments:
+            - time: the array of the time vector
+            - spikes_times: an array of spikes' times
+            Returns:
+             - an array of instantaneous rate time series
+        """
+        result = np.zeros(time.shape)
+        for spike_time in np.unique(spikes_times):
+            if spike_time >= t_start and spike_time <= t_stop:
+                result[int(np.floor((spike_time - time[0]) / self.period))] += \
+                    np.sum(spikes_times == spike_time) / self.period
+        return result
 
     def compute_rate_time_series(self, spikes, **kwargs):
         """A method to compute instantaneous spiking rate time series,
