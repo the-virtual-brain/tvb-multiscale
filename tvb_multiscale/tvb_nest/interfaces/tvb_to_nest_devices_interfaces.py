@@ -18,7 +18,7 @@ class TVBtoNESTDeviceInterface(TVBtoSpikeNetDeviceInterface):
 class TVBtoNESTDCGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
-        self.Set({"amplitude": values,
+        self.Set({"amplitude": self._assert_input_size(values),
                   "origin": self.nest_instance.GetKernelStatus("time"),
                   "start": self.nest_instance.GetKernelStatus("min_delay"),
                   "stop": self.dt})
@@ -27,7 +27,7 @@ class TVBtoNESTDCGeneratorInterface(TVBtoNESTDeviceInterface):
 class TVBtoNESTPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
-        self.Set({"rate": np.maximum([0], values),
+        self.Set({"rate": np.maximum([0], self._assert_input_size(values)),
                   "origin": self.nest_instance.GetKernelStatus("time"),
                   "start": self.nest_instance.GetKernelStatus("min_delay"),
                   "stop": self.dt})
@@ -36,7 +36,7 @@ class TVBtoNESTPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
 class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
-        values = np.maximum([0], values).tolist()
+        values = np.maximum([0], self._assert_input_size(values)).tolist()
         for i_val, val in enumerate(values):
             values[i_val] = [val]
         self.Set({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
@@ -47,6 +47,7 @@ class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
 class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
+        values = self._assert_input_size(values)
         # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
         self.Set({"spikes_times": np.ones((len(values),)) *
                                   self.nest_instance.GetKernelStatus("min_delay"),
@@ -57,7 +58,7 @@ class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
 class TVBtoNESTMIPGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
-        self.Set({"rate": np.maximum(0, values)})
+        self.Set({"rate": np.maximum(0, self._assert_input_size(values))})
 
 
 INPUT_INTERFACES_DICT = {"dc_generator": TVBtoNESTDCGeneratorInterface,

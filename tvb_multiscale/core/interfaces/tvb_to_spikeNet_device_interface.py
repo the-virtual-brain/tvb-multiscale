@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from six import string_types
-from pandas import Series, unique
+from pandas import unique
 import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
+from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals, ensure_list
 
 
 LOG = initialize_logger(__name__)
@@ -61,3 +61,13 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
             self.name = name
         self.update_model()
         return self
+
+    def _assert_input_size(self, values):
+        values = ensure_list(values)
+        n_vals = len(values)
+        if n_vals not in [1, self.n_nodes]:
+            raise ValueError("Values' number %d is neither equal to 1 "
+                             "nor equal to nodes' number %d!" % (n_vals, self.n_nodes))
+        elif n_vals == 1:
+            values *= self.n_nodes
+        return values
