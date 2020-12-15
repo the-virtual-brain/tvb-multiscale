@@ -40,7 +40,7 @@ class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
         for i_val, val in enumerate(values):
             values[i_val] = [val]
         self.Set({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
-                                  self.nest_instance.GetKernelStatus("resolution")]] * len(values),
+                                  self.nest_instance.GetKernelStatus("resolution")]] * self.number_of_nodes,
                   "rate_values": values})
 
 
@@ -49,7 +49,7 @@ class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
     def set(self, values):
         values = self._assert_input_size(values)
         # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
-        self.Set({"spikes_times": np.ones((len(values),)) *
+        self.Set({"spikes_times": np.ones((self.number_of_nodes,)) *
                                   self.nest_instance.GetKernelStatus("min_delay"),
                   "origin": self.nest_instance.GetKernelStatus("time"),
                   "spike_weights": values})
