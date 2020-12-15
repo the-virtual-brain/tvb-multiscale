@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 from pandas import Series, unique
@@ -6,6 +7,7 @@ import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 LOG = initialize_logger(__name__)
@@ -69,3 +71,13 @@ class TVBtoSpikeNetParameterInterface(Series):
     @abstractmethod
     def set(self, values):
         pass
+
+    def _assert_input_size(self, values):
+        values = ensure_list(values)
+        n_vals = len(values)
+        if n_vals not in [1, self.n_nodes]:
+            raise ValueError("Values' number %d is neither equal to 1 "
+                             "nor equal to nodes' number %d!" % (n_vals, self.n_nodes))
+        elif n_vals == 1:
+            values *= self.n_nodes
+        return values
