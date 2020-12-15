@@ -65,7 +65,7 @@ class TVBtoSpikeNetParameterInterface(Series):
         return list(self.index)
 
     @property
-    def n_nodes(self):
+    def number_of_nodes(self):
         return len(self.nodes)
 
     @abstractmethod
@@ -75,9 +75,9 @@ class TVBtoSpikeNetParameterInterface(Series):
     def _assert_input_size(self, values):
         values = ensure_list(values)
         n_vals = len(values)
-        if n_vals not in [1, self.n_nodes]:
+        if n_vals not in [1, self.number_of_nodes]:
             raise ValueError("Values' number %d is neither equal to 1 "
-                             "nor equal to nodes' number %d!" % (n_vals, self.n_nodes))
+                             "nor equal to nodes' number %d!" % (n_vals, self.number_of_nodes))
         elif n_vals == 1:
-            values *= self.n_nodes
+            values *= self.number_of_nodes
         return values
