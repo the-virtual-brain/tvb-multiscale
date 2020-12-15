@@ -295,20 +295,28 @@ class NESTNoiseGenerator(NESTInputDevice):
         super(NESTNoiseGenerator, self).__init__(device, nest_instance, *args, **kwargs)
 
 
-NESTInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
-                       "sinusoidal_poisson_generator": NESTSinusoidalPoissonGenerator,
-                       "inhomogeneous_poisson_generator": NESTInhomogeneousPoissonGenerator,
-                       "mip_generator": NESTMIPGenerator,
-                       "gamma_sup_generator": NESTGammaSupGenerator,
-                       "ppd_sup_generator": NESTDPPDSupGenerator,
-                       "spike_generator": NESTSpikeGenerator,
-                       "pulse_packet_generator": NESTPulsePacketGenerator,
-                       "dc_generator": NESTDCGenerator,
-                       "step_current_generator": NESTStepCurrentGenerator,
-                       "ac_generator": NESTACGenerator,
-                       "step_rate_generator": NESTStepRateGenerator,
-                       "noise_generator": NESTNoiseGenerator
-                       }
+NESTSpikeInputDeviceDict = {"poisson_generator": NESTPoissonGenerator,
+                            "sinusoidal_poisson_generator": NESTSinusoidalPoissonGenerator,
+                            "inhomogeneous_poisson_generator": NESTInhomogeneousPoissonGenerator,
+                            "mip_generator": NESTMIPGenerator,
+                            "gamma_sup_generator": NESTGammaSupGenerator,
+                            "ppd_sup_generator": NESTDPPDSupGenerator,
+                            "spike_generator": NESTSpikeGenerator,
+                            "pulse_packet_generator": NESTPulsePacketGenerator
+                            }
+
+
+NESTCurrentInputDeviceDict = {"dc_generator": NESTDCGenerator,
+                              "step_current_generator": NESTStepCurrentGenerator,
+                              "ac_generator": NESTACGenerator,
+                              "step_rate_generator": NESTStepRateGenerator,
+                              "noise_generator": NESTNoiseGenerator
+                              }
+
+
+NESTInputDeviceDict = {}
+NESTInputDeviceDict.update(NESTSpikeInputDeviceDict)
+NESTInputDeviceDict.update(NESTCurrentInputDeviceDict)
 
 
 def read_nest_output_device_data_from_ascii_to_dict(filepath):
@@ -496,14 +504,14 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
         super(NESTSpikeMultimeter, self).__init__(device, nest_instance, *args, **kwargs)
 
 
-NESTOutputDeviceDict = {"spike_recorder": NESTSpikeRecorder,
-                        "multimeter": NESTMultimeter,
-                        "spike_multimeter": NESTSpikeMultimeter,
-                        "voltmeter": NESTVoltmeter}
-
-
 NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder}
+
 
 NESTOutputContinuousTimeDeviceDict = {"multimeter": Multimeter,
                                       "spike_multimeter": SpikeMultimeter,
                                       "voltmeter": Voltmeter}
+
+
+NESTOutputDeviceDict = {}
+NESTOutputDeviceDict.update(NESTOutputSpikeDeviceDict)
+NESTOutputDeviceDict.update(NESTOutputContinuousTimeDeviceDict)
