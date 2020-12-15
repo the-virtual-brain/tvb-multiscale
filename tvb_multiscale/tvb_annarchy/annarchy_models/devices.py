@@ -210,6 +210,9 @@ class ANNarchySpikeSourceArray(ANNarchyInputDevice, InputDevice):
         super(ANNarchySpikeSourceArray, self).__init__(device, label, "SpikeSourceArray",
                                                        annarchy_instance, **kwargs)
 
+    def reset(self):
+        self._population.reset()
+
 
 class ANNarchyPoissonPopulation(ANNarchyInputDevice):
 
@@ -291,16 +294,25 @@ class ANNarchyPoissonNeuron(ANNarchyInputDevice):
                                                     annarchy_instance, **kwargs)
 
 
-ANNarchyInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
-                           "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
-                           "SpikeSourceArray": ANNarchySpikeSourceArray,
-                           # "CurrentInjector": ANNarchyCurrentInjector,
-                           # "DCCurrentInjector": ANNarchyDCCurrentInjector,
-                           # "ACCurrentInjector": ANNarchyACCurrentInjector,
-                           "TimedArray": ANNarchyTimedArray,
-                           # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
-                           "Poisson_neuron": ANNarchyPoissonNeuron
-                           }
+ANNarchyInputDeviceDict = {}
+
+
+ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
+                                 "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
+                                 "SpikeSourceArray": ANNarchySpikeSourceArray,
+                                 # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
+                                 "Poisson_neuron": ANNarchyPoissonNeuron
+                               }
+
+
+ANNarchyCurrentInputDeviceDict = {"TimedArray": ANNarchyTimedArray
+                                  # "CurrentInjector": ANNarchyCurrentInjector,
+                                  # "DCCurrentInjector": ANNarchyDCCurrentInjector,
+                                  # "ACCurrentInjector": ANNarchyACCurrentInjector,
+                                  }
+
+ANNarchyInputDeviceDict.update(ANNarchySpikeInputDeviceDict)
+ANNarchyInputDeviceDict.update(ANNarchyCurrentInputDeviceDict)
 
 
 class ANNarchyOutputDeviceConnection(HasTraits):
@@ -755,11 +767,15 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
         ANNarchyMonitor.reset(self)
 
 
-ANNarchyOutputDeviceDict = {"Monitor": ANNarchyMonitor,
-                            "SpikeMonitor": ANNarchySpikeMonitor,
-                            "spike_multimeter": ANNarchySpikeMultimeter}
+ANNarchyOutputDeviceDict = {}
+
 
 ANNarchyOutputSpikeDeviceDict = {"SpikeMonitor": ANNarchySpikeMonitor}
 
+
 ANNarchyOutputContinuousTimeDeviceDict = {"Monitor": ANNarchyMonitor,
                                           "spike_multimeter": ANNarchySpikeMultimeter}
+
+
+ANNarchyOutputDeviceDict.update(ANNarchyOutputSpikeDeviceDict)
+ANNarchyOutputDeviceDict.update(ANNarchyOutputContinuousTimeDeviceDict)

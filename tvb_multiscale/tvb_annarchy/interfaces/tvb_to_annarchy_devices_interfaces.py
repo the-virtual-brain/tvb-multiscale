@@ -8,60 +8,49 @@ from tvb_multiscale.core.interfaces.tvb_to_spikeNet_device_interface import TVBt
 # Each interface has its own set(values) method, depending on the underlying device:
 
 
-class TVBtoNESTDeviceInterface(TVBtoSpikeNetDeviceInterface):
+class TVBtoANNarchyDeviceInterface(TVBtoSpikeNetDeviceInterface):
 
     @property
-    def nest_instance(self):
+    def annarchy_instance(self):
         return self.spiking_network.annarchy_instance
 
 
-class TVBtoNESTDCGeneratorInterface(TVBtoNESTDeviceInterface):
+# class TVBtoANNarchyDCCurrentInjectorInterface(TVBtoANNarchyDeviceInterface):
+#
+#     def set(self, values):
+#         self.Set({"amplitude": values})
+
+
+class TVBtoANNarchyPoissonPopulationInterface(TVBtoANNarchyDeviceInterface):
 
     def set(self, values):
-        self.Set({"amplitude": values,
-                  "origin": self.nest_instance.GetKernelStatus("time"),
-                  "start": self.nest_instance.GetKernelStatus("min_delay"),
-                  "stop": self.dt})
+        self.Set({"rates": np.maximum([0], self._assert_input_size(values))})
 
 
-class TVBtoNESTPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
-
-    def set(self, values):
-        self.Set({"rate": np.maximum([0], values),
-                  "origin": self.nest_instance.GetKernelStatus("time"),
-                  "start": self.nest_instance.GetKernelStatus("min_delay"),
-                  "stop": self.dt})
+class TVBtoANNarchyPoissonNeuronInterface(TVBtoANNarchyPoissonPopulationInterface):
+   pass
 
 
-class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
-
-    def set(self, values):
-        values = np.maximum([0], values).tolist()
-        for i_val, val in enumerate(values):
-            values[i_val] = [val]
-        self.Set({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
-                                  self.nest_instance.GetKernelStatus("resolution")]] * len(values),
-                  "rate_values": values})
+class TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface(TVBtoANNarchyPoissonPopulationInterface):
+    pass
 
 
-class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
-
-    def set(self, values):
-        # TODO: change this so that rate corresponds to number of spikes instead of spikes' weights
-        self.Set({"spikes_times": np.ones((len(values),)) *
-                                  self.nest_instance.GetKernelStatus("min_delay"),
-                  "origin": self.nest_instance.GetKernelStatus("time"),
-                  "spike_weights": values})
+# class TVBtoANNarchySpikeSourceArrayInterface(TVBtoANNarchyDeviceInterface):
+#
+#     def set(self, values):
+#         self.do_for_all_devices("reset")  # Reset time to current time, for all devices
+#         self.Set({"spikes_times": np.ones((len(values),))})
 
 
-class TVBtoNESTMIPGeneratorInterface(TVBtoNESTDeviceInterface):
+class TVBtoNESTMIPGeneratorInterface(TVBtoANNarchyDeviceInterface):
 
     def set(self, values):
         self.Set({"rate": np.maximum(0, values)})
 
 
-INPUT_INTERFACES_DICT = {"dc_generator": TVBtoNESTDCGeneratorInterface,
-                         "poisson_generator": TVBtoNESTPoissonGeneratorInterface,
-                         "inhomogeneous_poisson_generator": TVBtoNESTInhomogeneousPoissonGeneratorInterface,
-                         "spike_generator": TVBtoNESTSpikeGeneratorInterface,
-                         "mip_generator": TVBtoNESTMIPGeneratorInterface}
+INPUT_INTERFACES_DICT = {# "DCCurrentInjector": TVBtoANNarchyDCCurrentInjectorInterface,
+                         "PoissonPopulation": TVBtoANNarchyPoissonPopulationInterface,
+                         "Poisson_neuron": TVBtoANNarchyPoissonNeuronInterface,
+                         "HomogeneousCorrelatedSpikeTrains": TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface,
+                         # "SpikeSourceArray": TVBtoANNarchySpikeSourceArrayInterface
+                        }

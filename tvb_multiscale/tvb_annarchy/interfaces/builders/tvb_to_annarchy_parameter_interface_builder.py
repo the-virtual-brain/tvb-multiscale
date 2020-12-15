@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from tvb_multiscale.tvb_nest.interfaces.tvb_to_nest_parameters_interfaces import TVBtoNESTParameterInterface
+from tvb_multiscale.tvb_annarchy.interfaces.tvb_to_annarchy_parameters_interfaces import TVBtoANNarchyParameterInterface
+
 from tvb_multiscale.core.interfaces.builders.tvb_to_spikeNet_parameter_interface_builder import \
     TVBtoSpikeNetParameterInterfaceBuilder
 
 
-class TVBtoNESTParameterInterfaceBuilder(TVBtoSpikeNetParameterInterfaceBuilder):
-    _build_target_class = TVBtoNESTParameterInterface
+class TVBtoANNarchyParameterInterfaceBuilder(TVBtoSpikeNetParameterInterfaceBuilder):
+    _build_target_class = TVBtoANNarchyParameterInterface
 
     @property
-    def nest_instance(self):
+    def annarchy_instance(self):
         return self.spiking_network.annarchy_instance

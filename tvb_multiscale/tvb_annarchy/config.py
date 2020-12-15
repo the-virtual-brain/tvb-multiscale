@@ -19,6 +19,8 @@ class Config(ConfigBase):
 
     # TVB_ANNARCHY_DIR_VERBOCITY = ??
 
+    ANNARCHY_SEED = 0
+
     ANNARCHY_MIN_DT = 0.001
 
     DEFAULT_MODEL = "izhikevich"

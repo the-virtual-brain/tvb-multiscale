@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from tvb_multiscale.tvb_nest.nest_models.devices import NESTInputDeviceDict
-from tvb_multiscale.tvb_nest.interfaces.builders.tvb_to_nest_devices_interface_builder import TVBtoNESTDeviceInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.tvb_to_nest_parameter_interface_builder import TVBtoNESTParameterInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.nest_to_tvb_interface_builder import NESTtoTVBInterfaceBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.devices import ANNarchyInputDeviceDict
+from tvb_multiscale.tvb_annarchy.interfaces.builders.tvb_to_annarchy_devices_interface_builder import \
+    TVBtoANNarchyDeviceInterfaceBuilder
+from tvb_multiscale.tvb_annarchy.interfaces.builders.tvb_to_annarchy_parameter_interface_builder import \
+    TVBtoANNarchyParameterInterfaceBuilder
+from tvb_multiscale.tvb_annarchy.interfaces.builders.annarchy_to_tvb_interface_builder import \
+    ANNarchytoTVBInterfaceBuilder
+
 from tvb_multiscale.core.interfaces.builders.base import TVBSpikeNetInterfaceBuilder
 
 
-class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
-    _tvb_to_spikNet_device_interface_builder = TVBtoNESTDeviceInterfaceBuilder
-    _tvb_to_spikeNet_parameter_interface_builder = TVBtoNESTParameterInterfaceBuilder
-    _spikeNet_to_tvb_interface_builder = NESTtoTVBInterfaceBuilder
-    _input_device_dict = NESTInputDeviceDict
+class TVBANNarchyInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
+    _tvb_to_spikNet_device_interface_builder = TVBtoANNarchyDeviceInterfaceBuilder
+    _tvb_to_spikeNet_parameter_interface_builder = TVBtoANNarchyParameterInterfaceBuilder
+    _spikeNet_to_tvb_interface_builder = ANNarchytoTVBInterfaceBuilder
+    _input_device_dict = ANNarchyInputDeviceDict
 
     # TVB <-> Spiking Network transformations' weights/funs
     # If set as weights, they will become a transformation function of
@@ -24,7 +28,7 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
     w_tvb_to_potential = 1.0  # assuming mV in both Spiking Network and TVB
     # TVB <- Spiking Network
-    # We return from a Spiking Network spike_detector the ratio number_of_population_spikes / number_of_population_neurons
+    # We return from a Spiking Network spike_monitor the ratio number_of_population_spikes / number_of_population_neurons
     # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
     # as long as a neuron cannot fire twice during a TVB time step, i.e.,
     # as long as the TVB time step (usually 0.001 to 0.1 ms)
@@ -38,7 +42,7 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     w_potential_to_tvb = 1.0
 
     @property
-    def nest_instance(self):
+    def annarchy_instance(self):
         return self.spiking_network.annarchy_instance
 
     @property
@@ -47,11 +51,11 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
 
     @property
     def spikeNet_min_delay(self):
-        return self.nest_instance.GetKernelStatus("min_delay")
+        return self.annarchy_instance.dt()
 
     @property
-    def nest_min_delay(self):
-        return self.nest_instance.GetKernelStatus("min_delay")
+    def annarchy_min_delay(self):
+        return self.annarchy_instance.dt()
 
     def assert_delay(self, delay):
         return np.maximum(self.spikeNet_min_delay, delay)
