@@ -1155,6 +1155,10 @@ class DeviceSet(pd.Series, HasTraits):
                 # input nodes is a sequence of indices or labels
                 return list(input_devices)
 
+    @property
+    def number_of_nodes(self):
+        return self.size
+
     def _return_by_type(self, values_dict, return_type="dict", concatenation_index_name="Region", name=None):
         """This method returns data collected from the Devices of the DeviceSet in a desired output format, among
            dict (Default), pandas.Series, xarray.DataArray or a list of values, depending on user input.

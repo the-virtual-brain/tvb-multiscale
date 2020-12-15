@@ -507,9 +507,9 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
 NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder}
 
 
-NESTOutputContinuousTimeDeviceDict = {"multimeter": Multimeter,
-                                      "spike_multimeter": SpikeMultimeter,
-                                      "voltmeter": Voltmeter}
+NESTOutputContinuousTimeDeviceDict = {"multimeter": NESTMultimeter,
+                                      "spike_multimeter": NESTSpikeMultimeter,
+                                      "voltmeter": NESTVoltmeter}
 
 
 NESTOutputDeviceDict = {}

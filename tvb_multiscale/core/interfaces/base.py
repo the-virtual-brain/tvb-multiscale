@@ -4,7 +4,8 @@ from collections import OrderedDict
 
 import numpy as np
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger, LINE
-from tvb_multiscale.core.spiking_models.devices import InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict
+from tvb_multiscale.core.spiking_models.devices import \
+    InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
 
 from tvb.contrib.scripts.utils.data_structures_utils \
     import is_integer, concatenate_heterogeneous_DataArrays
@@ -25,7 +26,7 @@ class TVBSpikeNetInterface(object):
     _spike_rate_input_devices = []
     _available_output_devices = OutputDeviceDict.keys()
     _spike_rate_output_devices = OutputSpikeDeviceDict.keys()
-    _multimeter_output_devices = ["multimeter"]
+    _multimeter_output_devices = OutputContinuousTimeDeviceDict.keys()
     _voltmeter_output_devices = ["voltmeter"]
 
     tvb_model = None
