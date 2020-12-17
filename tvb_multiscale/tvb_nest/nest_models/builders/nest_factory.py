@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+from copy import deepcopy
 
 import numpy as np
 
@@ -230,14 +231,13 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
         return_nest = False
     # Assert the model name...
     device_model = device_to_dev_model(device_model)
-    label = kwargs.get("label", "")
-    default_params = {}
+    label = kwargs.pop("label", "")
     if device_model in NESTInputDeviceDict.keys():
         devices_dict = NESTInputDeviceDict
-        default_params_dict = config.NEST_INPUT_DEVICES_PARAMS_DEF
+        default_params = deepcopy(config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params_dict = config.NEST_OUTPUT_DEVICES_PARAMS_DEF
+        default_params = deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
         if len(label):
             default_params["label"] = label
     else:
@@ -245,10 +245,10 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
                           "nor of the output ones: %s!" %
                           (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
-    default_params.update(default_params_dict.get(device_model, {}))
-    if isinstance(params, dict):
+    if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
-    # TODO: a better solution for the strange error with inhomogeneous poisson generator
+        label = default_params.get("label", default_params.pop("name", label))
+        # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
         nest_device_id = nest_instance.Create(device_model, params=default_params)
     except:
