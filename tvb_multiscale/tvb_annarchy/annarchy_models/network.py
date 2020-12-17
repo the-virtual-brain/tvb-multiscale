@@ -77,13 +77,11 @@ class ANNarchyNetwork(SpikingNetwork):
            It will compile the ANNarchy network by running
            annarchy_instance.compile(*args, **kwargs)
         """
-        directory = kwargs.pop("directory",
-                               os.path.join(self.config.out._out_base, self.__class__.__name__))
+        directory = kwargs.pop("directory", self.config.out.FOLDER_RES)
         cwd = os.getcwd()
         if directory.find(cwd) > -1:
-            directory = directory.split(os.getcwd())[-1]
-        kwargs.pop("clean", None)
-        self.annarchy_instance.compile(clean=True, directory=directory, *args, **kwargs)
+            directory = os.path.join(directory.split(os.getcwd())[-1][1:].split("res")[0], self.__class__.__name__)
+        self.annarchy_instance.compile(directory=directory, *args, **kwargs)
 
     def Run(self, simulation_length, *args, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
