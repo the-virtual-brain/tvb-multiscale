@@ -224,23 +224,25 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     else:
         return_annarchy = False
     # Figure out if this is an input or an output device:
+    label = kwargs.pop("label", "")
+    # Get the default parameters for this device...
     if device_model in ANNarchyInputDeviceDict.keys():
         devices_dict = ANNarchyInputDeviceDict
-        default_params_dict = config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF
+        default_params = deepcopy(config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
+        if len(label):
+            default_params["name"] = label
     elif device_model in ANNarchyOutputDeviceDict.keys():
         devices_dict = ANNarchyOutputDeviceDict
-        default_params_dict = config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF
+        default_params = deepcopy(config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
                           (device_model, str(config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF),
                            str(config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF)))
-    # Get the default parameters for this device...
-    default_params = dict(default_params_dict.get(device_model, {}))
     # ...and update them with any user provided parameters
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
-    label = default_params.pop("label", default_params.pop("name", ""))
+        label = default_params.get("name", default_params.pop("label", label))
     # Create the ANNarchy Device class:
     annarchy_device = devices_dict[device_model](None, label=label, annarchy_instance=annarchy_instance)
     if isinstance(annarchy_device, ANNarchyInputDevice):
@@ -362,7 +364,9 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
     params = deepcopy(annarchy_device.params)
     record_from = ensure_list(params.pop("record_from"))
     # Create a connection by adding an ANNarchy Monitor targeting the specific neurons of this population:
-    annarchy_device.monitors[annarchy_device.annarchy_instance.Monitor(neurons, record_from, **params)] = neurons
+    monitor = annarchy_device.annarchy_instance.Monitor(neurons, record_from, **params)
+    monitor.name = "%s_%d" % (annarchy_device.label, len(annarchy_device.monitors) + 1)
+    annarchy_device.monitors[monitor] = neurons
     # Update the number of connections and connected neurons to the device:
     annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
     annarchy_device._number_of_neurons = annarchy_device.get_number_of_neurons()
