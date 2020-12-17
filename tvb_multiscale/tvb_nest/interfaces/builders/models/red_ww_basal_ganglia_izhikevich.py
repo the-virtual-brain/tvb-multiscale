@@ -80,7 +80,6 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
     def build_default_rate_tvb_to_nest_interfaces(self):
         for trg_pop, target_nodes in zip([["IdSN", "IiSN"],   "E"],
                                           [self.Istr_nodes_ids, self.E_nodes]):
-
             connections = {"R": ensure_list(trg_pop)}
             self._build_default_rate_tvb_to_nest_interfaces(connections, target_nodes=target_nodes)
 
