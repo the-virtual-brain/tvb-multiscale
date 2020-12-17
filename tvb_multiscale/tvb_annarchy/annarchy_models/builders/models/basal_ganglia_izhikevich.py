@@ -26,7 +26,7 @@ class TVBWeightFun(object):
 
 class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED):
+    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, annarchy_instance, config)
         self.default_population["model"] = Izhikevich_Hamker
 
@@ -53,6 +53,37 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         self.E_nodes = self.Estn_nodes_ids + self.Eth_nodes_ids
         self.Istr_nodes_ids = [6, 7]
 
+        # Create a spike stimulus input device
+        # When TVB is connected, we don't need any baseline stimulus
+        self.Estn_stim = {"rate": 500.0, "weight": 0.009}
+        self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
+        self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
+
+        if set_defaults:
+            self.set_defaults()
+
+    def paramsI(self, node_id):
+        # For the moment they are identical, unless you differentiate the noise parameters
+        params = deepcopy(self._paramsI)
+        if node_id in self.Igpe_nodes_ids:
+            params.update({"I": 12.0})
+        elif node_id in self.Igpi_nodes_ids:
+            params.update({"I": 30.0})
+        return params
+
+    def paramsE(self, node_id):
+        # For the moment they are identical, unless you differentiate the noise parameters
+        params = deepcopy(self._paramsE)
+        if node_id in self.Estn_nodes_ids:
+            params.update({"a": 0.005, "b": 0.265, "d": 2.0, "I": 3.0})
+        elif node_id in self.Eth_nodes_ids:
+            params.update({"a": 0.02, "b": 0.25, "d": 0.05, "I": 3.5})
+        return params
+
+    def tvb_delay_fun(self, source_node, target_node):
+        return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
+
+    def set_populations(self):
         self.populations = [
             {"label": "E", "model": self.default_population["model"],  # Estn in [4, 5], Eth in [8, 9]
              "params": self.paramsE, "nodes": self.E_nodes,  # None means "all"
@@ -67,19 +98,12 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
              "params": self.paramsStr, "nodes": self.Istr_nodes_ids,  # None means "all"
              "scale": 1.0}
         ]
-        populations_sizes = OrderedDict()
+        self.population_sizes = OrderedDict()
         for pop in self.populations:
-            populations_sizes[pop["label"]] = int(np.round(pop["scale"] * self.population_order))
+            self.population_sizes[pop["label"]] = int(np.round(pop["scale"] * self.population_order))
 
-        synapse_model = self.default_populations_connection["synapse_model"]  # "DefaultSpikingSynapse"
-        # default connectivity spec:
-        # conn_spec= {'method': "all_to_all"}
-        conn_spec = self.default_populations_connection["conn_spec"]
-        conn_spec["allow_self_connections"] = True
-        conn_spec["force_multiple_weights"] = False
-
-        scaleBGoptTOtvb = 0.00205875
-
+    def set_populations_connections(self):
+        self.scaleBGoptTOtvb = 0.00205875
         # Intra-regions'-nodes' connections
         self.populations_connections = []
         for pop in self.populations:
@@ -87,12 +111,14 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
             if pop["label"][0] == "I":
                 self.populations_connections.append(
                     {"source": pop["label"], "target": pop["label"],
-                     "synapse_model": synapse_model, "conn_spec": conn_spec,
-                     "weight": scaleBGoptTOtvb, "delay": self.default_min_delay,
+                     "synapse_model": self.default_populations_connection["synapse_model"],
+                     "conn_spec": self.default_populations_connection["conn_spec"],
+                     "weight": self.scaleBGoptTOtvb, "delay": self.default_min_delay,
                      "receptor_type": "gaba", "nodes": pop["nodes"]})
 
+    def set_nodes_connections(self):
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = scaleBGoptTOtvb
+        self.global_coupling_scaling = self.scaleBGoptTOtvb
         # self.global_coupling_scaling = tvb_simulator.coupling.a[0].item()
         # # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
         # self.global_coupling_scaling *= tvb_simulator.model.G[0].item()
@@ -122,16 +148,15 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                      self.Istr_nodes_ids,
                      self.Estn_nodes_ids, self.I_nodes]):  # target nodes
             self.nodes_connections.append(
-                    {"source": src_pop, "target": trg_pop,
-                     "synapse_model": self.default_nodes_connection["synapse_model"],
-                     "conn_spec": self.default_nodes_connection["conn_spec"],
-                     "weight": TVBWeightFun(self.tvb_weights, self.global_coupling_scaling),
-                     "delay": lambda source_node, target_node: self.tvb_delay_fun(source_node, target_node),
-                     "receptor_type": "gaba" if src_pop[0] == "I" else "ampa",
-                     "source_nodes": src_nodes, "target_nodes": trg_nodes})
+                {"source": src_pop, "target": trg_pop,
+                 "synapse_model": self.default_nodes_connection["synapse_model"],
+                 "conn_spec": self.default_nodes_connection["conn_spec"],
+                 "weight": TVBWeightFun(self.tvb_weights, self.global_coupling_scaling),
+                 "delay": lambda source_node, target_node: self.tvb_delay_fun(source_node, target_node),
+                 "receptor_type": "gaba" if src_pop[0] == "I" else "ampa",
+                 "source_nodes": src_nodes, "target_nodes": trg_nodes})
 
-        # Creating  devices to be able to observe ANNarchy activity:
-        self.output_devices = []
+    def set_SpikeMonitors(self):
         params = deepcopy(self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["SpikeMonitor"])
         params["period"] = 1.0
         for pop in self.populations:
@@ -143,12 +168,13 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                 {"model": "SpikeMonitor", "params": deepcopy(params),
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
+    def set_Monitors(self):
         # Labels have to be different for every connection to every distinct population
         # params for baladron implementation commented out for the moment
         # TODO: use baladron neurons
         params = deepcopy(self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"])
-        params.update({"period": 1.0,  'record_from': ["v", "u", "I", "I_syn", "I_syn_ex", "I_syn_in",
-                                                       "g_ampa", "g_gaba", "g_base"]})
+        params.update({"period": 1.0, 'record_from': ["v", "u", "I", "I_syn", "I_syn_ex", "I_syn_in",
+                                                      "g_ampa", "g_gaba", "g_base"]})
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
@@ -158,46 +184,37 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                 {"model": "Monitor", "params": deepcopy(params),
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
 
-        # Create a spike stimulus input device
-        # When TVB is connected, we don't need any baseline stimulus
-        self.Estn_stim = {"rate": 500.0, "weight": 0.009}
-        self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
-        self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
+    def set_output_devices(self):
+        # Creating  devices to be able to observe ANNarchy activity:
+        self.output_devices = []
+        self.set_SpikeMonitors()
+        self.set_Monitors()
+
+    def set_input_devices(self):
         self.input_devices = [
             {"model": "PoissonPopulation",
-             "params": {"rates": self.Estn_stim["rate"], "geometry": populations_sizes["E"], "name": "BaselineEstn"},
+             "params": {"rates": self.Estn_stim["rate"],
+                        "geometry": self.population_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
              "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "PoissonPopulation",
-             "params": {"rates": self.Igpe_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpe"},
+             "params": {"rates": self.Igpe_stim["rate"],
+                        "geometry": self.population_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
              "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
             {"model": "PoissonPopulation",
-             "params": {"rates": self.Igpi_stim["rate"], "geometry": populations_sizes["I"], "name": "BaselineIgpi"},
+             "params": {"rates": self.Igpi_stim["rate"],
+                        "geometry": self.population_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
              "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
         ]
 
-    def paramsI(self, node_id):
-        # For the moment they are identical, unless you differentiate the noise parameters
-        params = deepcopy(self._paramsI)
-        if node_id in self.Igpe_nodes_ids:
-            params.update({"I": 12.0})
-        elif node_id in self.Igpi_nodes_ids:
-            params.update({"I": 30.0})
-        return params
-
-    def paramsE(self, node_id):
-        # For the moment they are identical, unless you differentiate the noise parameters
-        params = deepcopy(self._paramsE)
-        if node_id in self.Estn_nodes_ids:
-            params.update({"a": 0.005, "b": 0.265, "d": 2.0, "I": 3.0})
-        elif node_id in self.Eth_nodes_ids:
-            params.update({"a": 0.02, "b": 0.25, "d": 0.05, "I": 3.5})
-        return params
-
-    def tvb_delay_fun(self, source_node, target_node):
-        return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
+    def set_defaults(self):
+        self.set_populations()
+        self.set_populations_connections()
+        self.set_nodes_connections()
+        self.set_output_devices()
+        self.set_input_devices()
