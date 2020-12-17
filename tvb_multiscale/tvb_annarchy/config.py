@@ -21,7 +21,7 @@ class Config(ConfigBase):
 
     ANNARCHY_SEED = 0
 
-    ANNARCHY_MIN_DT = 0.001
+    MIN_SPIKING_DT = 0.001
 
     DEFAULT_MODEL = "izhikevich"
 
