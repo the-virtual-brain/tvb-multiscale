@@ -28,7 +28,8 @@ class SpikeNetToTVBinterface(DeviceSet):
         # (i.e., region i implemented in Spiking Network updates the region i in TVB):
         self.nodes_ids = nodes_ids
         self.scale = scale  # a scaling weight
-        LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+        if len(self.model):
+            LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     def __repr__(self):
         return self.__class__.__name__
