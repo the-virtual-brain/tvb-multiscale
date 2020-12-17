@@ -242,7 +242,7 @@ class TVBSpikeNetInterfaceBuilder(object):
                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
                         self._tvb_to_spikNet_device_interface_builder([],
-                                                                      self.spiking_network, self.spiking_nodes,
+                                                                      self.spiking_network,
                                                                       self.spiking_nodes_ids, self.tvb_nodes_ids,
                                                                       self.tvb_model, self.tvb_weights, self.tvb_delays,
                                                                       self.tvb_connectivity.region_labels, self.tvb_dt,
@@ -254,7 +254,7 @@ class TVBSpikeNetInterfaceBuilder(object):
                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
                             self._tvb_to_spikeNet_parameter_interface_builder([],
-                                                                              self.spiking_network, self.spiking_nodes,
+                                                                              self.spiking_network,
                                                                               self.spiking_nodes_ids, self.tvb_nodes_ids,
                                                                               self.tvb_model, self.exclusive_nodes,
                                                                               self.config).build_interface(interface,
@@ -263,7 +263,7 @@ class TVBSpikeNetInterfaceBuilder(object):
 
         tvb_spikeNet_interface.spikeNet_to_tvb_interfaces = \
             self._spikeNet_to_tvb_interface_builder(self.spikeNet_to_tvb_interfaces,
-                                                    self.spiking_network, self.spiking_nodes,
+                                                    self.spiking_network,
                                                     self.spiking_nodes_ids, self.tvb_nodes_ids,
                                                     self.tvb_model, self.exclusive_nodes,
                                                     self.config).build_interfaces()
