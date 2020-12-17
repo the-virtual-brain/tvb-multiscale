@@ -64,8 +64,9 @@ class SpikesPlotter(BasePlotter):
             yticks = np.arange(0, 1.1, 0.1)
         else:
             ylims = [min_n_neurons, max_n_neurons]
+            # We want 11 points of 10 equal steps:
             neurons_step = np.int(np.ceil(np.maximum(1.0 * max_n_neurons / 10, 1.0)))
-            yticks = np.arange(ylims[0], ylims[1], neurons_step)
+            yticks = np.arange(ylims[0], ylims[0] + 11*neurons_step, neurons_step)
         return ylims, yticks
 
     def _default_title(self, title, rates_flag, figure_name=None):
@@ -87,11 +88,17 @@ class SpikesPlotter(BasePlotter):
         return figure_name, figsize
 
     def _rate_ytick_labels(self, max_rate, yticks):
+        n_ticks = len(yticks)
         if max_rate == 0.0:
             max_rate = 1.0
-        rate_step = np.maximum(max_rate / len(yticks), 1.0/len(yticks))
-        yticklabels = np.arange(0.0, max_rate + rate_step, rate_step)
-        return ["%0.2f" % yticklabel for yticklabel in yticklabels]
+        if max_rate <= 10.0:
+            str_format = "%g"
+            rate_step = max_rate / n_ticks
+        else:
+            str_format = "%d"
+            rate_step = np.ceil(max_rate / n_ticks)
+        yticklabels = np.arange(0.0, n_ticks * rate_step, rate_step)
+        return [str_format % yticklabel for yticklabel in yticklabels]
 
     def _format_axes(self, axes, n_regions, i_pop, i_region, pop_label, reg_label,
                      time_lims, xticks, xticklabels,
