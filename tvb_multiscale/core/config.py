@@ -96,6 +96,15 @@ class CalculusConfig(object):
 class Config(object):
     calcul = CalculusConfig()
 
+    TVB_TO_SPIKING_DT_RATIO = 2
+    MIN_DELAY_RATIO = 1
+    MIN_SPIKING_DT = 0.001
+    MIN_DELAY = 0.001
+
+    # Delays should be at least equal to NEST time resolution
+    DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
+                          "source_inds": None, "target_inds": None, "params": {}}
+
     def __init__(self, output_base=None, separate_by_run=False):
         self.out = OutputConfig(output_base, separate_by_run)
         self.figures = FiguresConfig(output_base, separate_by_run)

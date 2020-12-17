@@ -36,8 +36,6 @@ class Config(ConfigBase):
     # M_QUIET=100, suppress all messages
     NEST_VERBOCITY = 40
 
-    NEST_MIN_DT = 0.001
-
     DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS = 1
 
     DEFAULT_NEST_KERNEL_CONFIG = {"data_path": RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
