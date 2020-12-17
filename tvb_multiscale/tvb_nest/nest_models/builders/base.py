@@ -31,38 +31,15 @@ class NESTModelBuilder(SpikingModelBuilder):
 
     config = CONFIGURED
     nest_instance = None
-    default_min_spiking_dt = CONFIGURED.NEST_MIN_DT
-    default_min_delay = CONFIGURED.NEST_MIN_DT
     modules_to_install = []
     _spiking_brain = NESTBrain()
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
         super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
-
         self.nest_instance = nest_instance
-
         self._spiking_brain = NESTBrain()
-
         # Setting NEST defaults from config
-
         self.default_kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG
-
-        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
-
-        self.default_synaptic_weight_scaling = \
-            lambda weight, n_cons: self.config.DEFAULT_SPIKING_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
-
-        self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
-        self.default_populations_connection["delay"] = self.default_min_delay
-        self.default_populations_connection["nodes"] = None
-
-        self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
-        self.default_nodes_connection["delay"] = self.default_populations_connection["delay"]
-        self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
-
-        self.default_devices_connection = dict(self.config.DEFAULT_CONNECTION)
-        self.default_devices_connection["delay"] = self.default_min_delay
-        self.default_devices_connection["nodes"] = None
 
     def _configure_nest_kernel(self):
         # Setting or loading a nest instance:
