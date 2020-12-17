@@ -8,6 +8,8 @@ from tvb_multiscale.tvb_annarchy.interfaces.builders.base import TVBANNarchyInte
 from tvb_multiscale.tvb_annarchy.interfaces.models import RedWWexcIO
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
 
 class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
 
@@ -21,8 +23,17 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
         self.G = self.tvb_simulator.model.G[0].item()
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item() * self.G
 
+        self.Igpe_nodes_ids = [0, 1]
+        self.Igpi_nodes_ids = [2, 3]
+        self.I_nodes = self.Igpe_nodes_ids + self.Igpi_nodes_ids
+        self.Estn_nodes_ids = [4, 5]
+        self.Eth_nodes_ids = [8, 9]
+        self.E_nodes = self.Estn_nodes_ids + self.Eth_nodes_ids
+        self.Istr_nodes_ids = [6, 7]
+
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in ANNarchy:
         self.w_tvb_to_spike_rate = 1.0
+        self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
         # We return from a ANNarchy SpikeMonitor the ratio number_of_population_spikes / number_of_population_neurons
         # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
         # as long as a neuron cannot fire twice during a TVB time step, i.e.,
@@ -49,13 +60,13 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
             {"model": "PoissonPopulation",
              "params": {},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, annarchy_node_id=None)---------
-              "interface_weights": 1.0,
+              "interface_weights": 5.0,
         # Applied outside ANNarchy for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
         #                                  Function of TVB connectivity delay:
               "delays": self.tvb_delay_fun,
-              "receptor_type": 0,
+              "receptor_type": "ampa",
         # --------------------------------------------------------------------------------------------------------------
         #                           TVB sv or param -> ANNarchy population
               "connections": connections,
@@ -64,11 +75,29 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
         self.tvb_to_spikeNet_interfaces.append(interface)
 
     def build_default_rate_tvb_to_annarchy_interfaces(self):
-        for trg_pop, target_nodes in zip(["I", "I1", "I2", "E"],
-                                         [[0, 1, 2, 3], [6, 7], [6, 7], [4, 5, 8, 9]]):
-
-            connections = {"R": [trg_pop]}
+        for trg_pop, target_nodes in zip([["IdSN", "IiSN"],   "E"],
+                                          [self.Istr_nodes_ids, self.E_nodes]):
+            connections = {"R": ensure_list(trg_pop)}
             self._build_default_rate_tvb_to_annarchy_interfaces(connections, target_nodes=target_nodes)
+
+    def _build_default_param_tvb_to_annarchy_interfaces(self, connections, **kwargs):
+        # For directly setting an external current parameter in ANNarchy neurons instantaneously:
+        interface = \
+            {"model": "current", "parameter": "I",
+            # ---------Properties potentially set as function handles with args (annarchy_node_id=None)----------------
+            "interface_weights": 200.0,
+            # ----------------------------------------------------------------------------------------------------------
+            #                                               TVB sv -> ANNarchy population
+            "connections": connections,
+            "nodes": None}  # None means all here
+        interface.update(kwargs)
+        self.tvb_to_spikeNet_interfaces.append(interface)
+
+    def build_default_param_tvb_to_annarchy_interfaces(self):
+        for trg_pop, nodes in zip([["IdSN", "IiSN"],   "E"],
+                                          [self.Istr_nodes_ids, self.E_nodes]):
+            connections = {"S": ensure_list(trg_pop)}
+            self._build_default_param_tvb_to_annarchy_interfaces(connections, nodes=nodes)
 
     def _build_default_annarchy_to_tvb_interfaces(self, connections, **kwargs):
         # ANNarchy -> TVB:
@@ -82,10 +111,9 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
         self.spikeNet_to_tvb_interfaces.append(interface)
 
     def build_default_annarchy_to_tvb_interfaces(self):
-        for src_pop, nodes in zip(["I",          "E"],
-                                  [[0, 1, 2, 3], [4, 5, 8, 9]]):
-            self._build_default_annarchy_to_tvb_interfaces({"Rin": [src_pop]}, nodes=nodes)
-        self._build_default_annarchy_to_tvb_interfaces({"Rin": ["I1", "I2"]}, nodes=[6, 7])
+        for src_pop, nodes in zip(["I", "E", ["IdSN", "IiSN"]],
+                                  [self.I_nodes, self.E_nodes, self.Istr_nodes_ids]):
+            self._build_default_annarchy_to_tvb_interfaces({"Rin": ensure_list(src_pop)}, nodes=nodes)
 
     def default_build(self, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True):
         if tvb_to_annarchy_mode and \
@@ -94,6 +122,9 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
             if tvb_to_annarchy_mode.lower() == "rate":
                 # For spike transmission from TVB to ANNarchy devices as TVB proxy nodes with TVB delays:
                 self.build_default_rate_tvb_to_annarchy_interfaces()
+            elif tvb_to_annarchy_mode.lower() == "param":
+                # For directly setting an external current parameter in ANNarchy neurons instantaneously:
+                self.build_default_param_tvb_to_annarchy_interfaces()
             else:
                 raise ValueError("No %s interface for this model! Only a 'rate' one is possible!")
 

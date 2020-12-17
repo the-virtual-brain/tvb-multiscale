@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
 from collections import OrderedDict
 
 import numpy as np
@@ -23,8 +24,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
 
         self.w_ee = self.weight_fun(1.0)
         self.w_ei = self.weight_fun(1.0)
-        self.w_ie = self.weight_fun(-1.0)
-        self.w_ii = self.weight_fun(-1.0)
+        self.w_ie = self.weight_fun(1.0)
+        self.w_ii = self.weight_fun(1.0)
         self.d_ee = self.within_node_delay()
         self.d_ei = self.within_node_delay()
         self.d_ie = self.within_node_delay()
@@ -42,8 +43,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
 
         self.nodes_conns = {}
 
-        self.spike_detector = {}
-        self.multimeter = {}
+        self.spike_monitor = {}
+        self.monitor = {}
 
         self.spike_stimulus = {}
 
@@ -81,10 +82,10 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         return self.delay_fun()
 
     def receptor_E_fun(self):
-        return 0
+        return "exc"
 
     def receptor_I_fun(self):
-        return 0
+        return "inh"
 
     def set_EE_populations_connections(self):
         connections = \
@@ -159,52 +160,52 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
              "weight": self.tvb_weight,
              "delay": self.tvb_delay_fun,
              # Each region emits spikes in its own port:
-             "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
+             "receptor_type": "exc", "source_nodes": None, "target_nodes": None}  # None means "all"
         ]
         self.nodes_connections[0].update(self.nodes_conns)
 
-    def set_spike_detector(self):
+    def set_SpikeMonitor(self):
         connections = OrderedDict()
         #          label <- target population
         connections["E"] = "E"
         connections["I"] = "I"
-        device = {"model": "spike_detector", "params": {},
+        device = {"model": "SpikeMonitor", "params": {},
                   "neurons_inds": lambda node_id, neurons_inds:
                                             tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
                   "connections": connections, "nodes": None}  # None means all here
-        device.update(self.spike_detector)
+        device.update(self.spike_monitor)
         return device
 
-    def set_multimeter(self):
+    def set_Monitor(self):
         connections = OrderedDict()
         #               label    <- target population
         connections["Excitatory"] = "E"
         connections["Inhibitory"] = "I"
-        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
-        params["interval"] = self.monitor_period
-        device = {"model": "multimeter", "params": params,
+        params = deepcopy(self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"])
+        params["period"] = self.monitor_period
+        device = {"model": "Monitor", "params": deepcopy(params),
                   "neurons_inds": lambda node_id, neurons_inds:
                         tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
                   "connections": connections, "nodes": None}  # None means all here
-        device.update(self.multimeter)
+        device.update(self.monitor)
         return device
 
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_detector(), self.set_multimeter()]
+        self.output_devices = [self.set_SpikeMonitor(), self.set_Monitor()]
 
     def set_spike_stimulus(self):
         connections = OrderedDict()
         #             label <- target population
         connections["Stimulus"] = ["E"]
         device = \
-            {"model": "poisson_generator",
-             "params": {"rate": 6000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+            {"model": "PoissonPopulation",
+             "params": {"rates": 6000.0},
              "connections": connections, "nodes": None,
              "weights": self.weight_fun(1.0),
              "delays": random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
-             "receptor_type": 0}
+             "receptor_type": "exc"}
         device.update(self.spike_stimulus)
         return device
 
@@ -217,47 +218,3 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
-
-
-class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
-
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
-                 **kwargs):
-
-        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(
-            tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults=False)
-
-        self.default_population["model"] = "aeif_cond_alpha_multisynapse"
-
-        self.w_ie = self.weight_fun(1.0)
-        self.w_ii = self.weight_fun(1.0)
-
-        E_ex = kwargs.get("E_ex", 0.0)
-        E_in = kwargs.get("E_ex", -85.0)
-        tau_syn_ex = kwargs.get("tau_syn_ex", 0.2)
-        tau_syn_in = kwargs.get("tau_syn_in", 2.0)
-        E_rev = np.array([E_ex] +  # exc local spikes
-                         [E_in] +  # inh local spikes
-                         self.number_of_nodes * [E_ex])  # ext, exc spikes
-        tau_syn = np.array([tau_syn_ex] +  # exc spikes
-                           [tau_syn_in] +  # inh spikes
-                           self.number_of_nodes * [tau_syn_ex])  # ext, exc spikes
-        self.params_E = {"E_rev": E_rev, "tau_syn": tau_syn}
-        self.params_I = self.params_E
-
-        self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
-
-        self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
-                               "receptor_type": lambda target_node: target_node + 3}
-
-        if set_defaults:
-            self.set_defaults()
-
-    def receptor_E_fun(self):
-        return 1
-
-    def receptor_I_fun(self):
-        return 2
-
-    def receptor_by_source_region_fun(self, source_node, target_node):
-        return receptor_by_source_region(source_node, target_node, start=3)

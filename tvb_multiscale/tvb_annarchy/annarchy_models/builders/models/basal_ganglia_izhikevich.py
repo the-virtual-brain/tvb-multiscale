@@ -132,7 +132,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
         # Creating  devices to be able to observe ANNarchy activity:
         self.output_devices = []
-        params = self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["SpikeMonitor"]
+        params = deepcopy(self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["SpikeMonitor"])
         params["period"] = 1.0
         for pop in self.populations:
             connections = OrderedDict({})
@@ -146,7 +146,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         # Labels have to be different for every connection to every distinct population
         # params for baladron implementation commented out for the moment
         # TODO: use baladron neurons
-        params = self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"]
+        params = deepcopy(self.config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF["Monitor"])
         params.update({"period": 1.0,  'record_from': ["v", "u", "I", "I_syn", "I_syn_ex", "I_syn_in",
                                                        "g_ampa", "g_gaba", "g_base"]})
         for pop in self.populations:

@@ -14,7 +14,7 @@ class ANNarchytoTVBinterface(SpikeNetToTVBinterface):
     @property
     def population_mean_spikes_number(self):
         values = []
-        for i_node, (node, n_events) in enumerate(zip(self.devices(), self.number_of_events)):
+        for i_node, node in enumerate(self.devices()):
             values.append(self[node].number_of_events / self[node].number_of_neurons)
         self.do_for_all_devices("reset")
         return np.array(values).flatten()
@@ -23,7 +23,7 @@ class ANNarchytoTVBinterface(SpikeNetToTVBinterface):
     def current_population_mean_values(self):
         values = self.do_for_all_devices("get_mean_data", return_type="values")
         self.do_for_all_devices("reset")
-        return np.array(values).flatten()
+        return np.array(values).mean(axis=1).flatten()
 
     @property
     def population_mean_spikes_activity(self):

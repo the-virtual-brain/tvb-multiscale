@@ -18,7 +18,3 @@ class TVBtoANNarchyParameterInterface(TVBtoSpikeNetParameterInterface):
     @property
     def annarchy_instance(self):
         return self.spiking_network.annarchy_instance
-
-    def set(self, values):
-        for node, value in zip(self.nodes, self._assert_input_size(values)):
-            setattr(self[node]._population, self.parameter, value)
