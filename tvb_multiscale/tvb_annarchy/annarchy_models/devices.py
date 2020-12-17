@@ -550,11 +550,6 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
         pass
 
     @property
-    def number_of_events(self):
-        self._record()
-        return self._data.size
-
-    @property
     def n_events(self):
         return self.number_of_events
 
@@ -589,37 +584,49 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                       run_tvb_multiscale_init=False, **kwargs)
         self.model = str(model)
 
-    def _compute_times(self, times):
+    def _compute_times(self, times, data_time_length=None):
         """Method to compute the time vector of ANNarchy.Monitor instances"""
-        output_times = []
+        times_lims = []
+        current_step = self.annarchy_instance.get_current_step()
         for var, var_times in times.items():
-            this_times = [var_times["start"][-1], var_times["stop"][-1]]
-            if len(output_times):
-                if np.any(this_times != output_times):
+            this_steps = [var_times["start"][0], var_times["stop"][-1]]
+            if this_steps[0] == this_steps[1]:
+                this_steps[1] = current_step
+            if len(times_lims):
+                if np.any(this_steps != times_lims):
                     raise ValueError("Start and stop times %s of variable %s\n"
                                      "are not equal to the ones previously set %s for Device %s!"
-                                     % (str(this_times), var, str(output_times), self.label))
+                                     % (str(this_steps), var, str(times_lims), self.label))
             else:
-                output_times = this_times
+                times_lims = this_steps
         dt = self.dt
         period = self.period
-        if len(output_times):
-            return np.arange(output_times[0] * dt + period, output_times[1] * dt + period, period)
+        if len(times_lims):
+            n_times = int(np.ceil((times_lims[1] - times_lims[0]) * dt / period))
+            if data_time_length:
+                if data_time_length > n_times:
+                    raise ValueError("Adding data of time length %d bigger than the time vector length %d!" %
+                                     (data_time_length, n_times))
+                else:
+                    n_times = data_time_length
+            stop_time = times_lims[1] * dt + period
+            start_time = stop_time - n_times * period
+            return np.arange(start_time, stop_time, period)
         else:
-            return np.array(output_times).astype("f")
+            return np.array(times_lims).astype("f")
 
     def _record(self):
         """Method to get data from ANNarchy.Monitor instances,
            and merge and store them to the _data buffer of xarray.DataArray type."""
         for monitor, population in self.monitors.items():
-            times = self._compute_times(monitor.times())
             data = monitor.get()
             variables = list(data.keys())
             data = np.array(list(data.values()))
             if data.size > 0:
-                data = DataArray(data.transpose((1, 0, 2)),
+                data = data.transpose((1, 0, 2))
+                data = DataArray(data,
                                  dims=["Time", "Variable", "Neuron"],
-                                 coords={"Time": times, "Variable": variables,
+                                 coords={"Time": self._compute_times(monitor.times(), data.shape[0]), "Variable": variables,
                                          "Neuron": self._get_senders(population, population.ranks)},
                                  name=self.label)
                 if self._data.size:
@@ -667,6 +674,13 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         for i_var, var in enumerate(variables):
             events[var] = data[i_var].values
         return events
+
+    @property
+    def number_of_events(self):
+        self._record()
+        if self._data is None:
+            return 0
+        return self._data.shape[0] * self._data.shape[-1]  # times x neurons
 
     def reset(self):
         self._record()
@@ -716,6 +730,15 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                 events["times"] += spikes_times
                 events["senders"] += [sender] * len(spikes_times)
         return events
+
+    @property
+    def number_of_events(self):
+        self._record()
+        n_events = 0
+        for i_m, monitor_data in enumerate(self._data):
+            for sender, spikes_times in monitor_data.items():
+                n_events += len(spikes_times)
+        return n_events
 
     def reset(self):
         self._record()
