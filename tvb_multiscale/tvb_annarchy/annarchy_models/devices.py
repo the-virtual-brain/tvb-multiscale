@@ -194,6 +194,10 @@ class ANNarchyInputDevice(ANNarchyDevice, InputDevice, ANNarchyPopulation):
     def number_of_devices_neurons(self):
         return self._population.size
 
+    @property
+    def number_of_connected_neurons(self):
+        return self.get_number_of_neurons()
+
 
 """
 Input devices for spiking populations
