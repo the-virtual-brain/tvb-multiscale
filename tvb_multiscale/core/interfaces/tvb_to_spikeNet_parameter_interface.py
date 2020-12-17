@@ -68,10 +68,6 @@ class TVBtoSpikeNetParameterInterface(Series):
     def number_of_nodes(self):
         return len(self.nodes)
 
-    @abstractmethod
-    def set(self, values):
-        pass
-
     def _assert_input_size(self, values):
         values = ensure_list(values)
         n_vals = len(values)
@@ -81,3 +77,7 @@ class TVBtoSpikeNetParameterInterface(Series):
         elif n_vals == 1:
             values *= self.number_of_nodes
         return values
+
+    def set(self, values):
+        for node, value in zip(self.nodes, self._assert_input_size(values)):
+            self[node].Set({self.parameter: value})
