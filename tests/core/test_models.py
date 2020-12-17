@@ -155,6 +155,7 @@ def test_models(models_to_test=[TestWilsonCowan,
     print("******************************************************\n")
     return success
 
+
 def teardown_function():
     output_folder = Config().out._out_base
     if os.path.exists(output_folder):
