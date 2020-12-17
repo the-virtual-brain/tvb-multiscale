@@ -27,7 +27,8 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
         self.nodes_ids = nodes_ids  # TVB region nodes' (proxies') indices
         self.target_nodes = target_nodes  # Spiking Network target region nodes' indices
         self.scale = scale  # a scaling weight
-        LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+        if len(self.model):
+            LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     def __repr__(self):
         return self.__class__.__name__
