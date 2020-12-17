@@ -8,8 +8,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.builders.base import TVBANNarchyInte
 from tvb_multiscale.tvb_annarchy.interfaces.base import TVBANNarchyInterface
 from tvb_multiscale.tvb_annarchy.interfaces.models import RedWWexcIOinhI
 
-from tvb_multiscale.core.spiking_models.builders.templates import \
-    random_normal_tvb_weight, random_uniform_tvb_delay, receptor_by_source_region
+from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
 class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
@@ -30,20 +29,16 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
 
     # By default we choose weights and delays with a random jitter around TVB ones!
 
-    def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
+    def tvb_weight_fun(self, source_node, target_node, scale=None):
         if scale is None:
             scale = self.global_coupling_scaling
-        return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale=scale, sigma=sigma)
+        return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale=scale)
 
-    def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
-        if low is None:
-            low = self.tvb_simulator.integrator.dt
-        if high is None:
-            high = 2*low
-        return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
+    def tvb_delay_fun(self, source_node, target_node):
+        return tvb_delay(source_node, target_node, self.tvb_delays)
 
     def receptor_fun(self, source_node, target_node, start=0):
-        return 0
+        return "exc"
 
     # Spike rates are applied in parallelto neurons...
 
@@ -166,26 +161,3 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
         if not isinstance(tvb_annarchy_interface, TVBANNarchyInterface):
             tvb_annarchy_interface = self._tvb_annarchy_interface()
         return super(DefaultInterfaceBuilder, self).build_interface(tvb_annarchy_interface)
-
-
-class DefaultMultiSynapseInterfaceBuilder(DefaultInterfaceBuilder):
-    __metaclass__ = ABCMeta
-
-    def receptor_fun(self, source_node, target_node, start=3):
-        return receptor_by_source_region(source_node, target_node, start)
-
-    @abstractmethod
-    def build_default_rate_tvb_to_annarchy_interfaces(self):
-        raise NotImplementedError
-
-    # @abstractmethod
-    # def build_default_current_tvb_to_annarchy_interfaces(self):
-    #     raise NotImplementedError
-
-    @abstractmethod
-    def build_default_param_tvb_to_annarchy_interfaces(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def build_default_annarchy_to_tvb_interfaces(self):
-        raise NotImplementedError

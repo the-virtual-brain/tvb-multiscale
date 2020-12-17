@@ -3,7 +3,7 @@
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.default import DefaultInterfaceBuilder
 from tvb_multiscale.tvb_annarchy.interfaces.models import WilsonCowan
 
-from tvb_multiscale.core.spiking_models.builders.templates import receptor_by_source_region
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
 
 class WilsonCowanBuilder(DefaultInterfaceBuilder):

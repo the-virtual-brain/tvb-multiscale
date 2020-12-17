@@ -5,16 +5,16 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
-from tvb_multiscale.core.spiking_models.builders.templates import random_normal_weight, random_uniform_delay, \
-    random_normal_tvb_weight, random_uniform_tvb_delay, receptor_by_source_region
+from tvb_multiscale.tvb_annarchy.config import CONFIGURED
+from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyModelBuilder
+
+from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
-class DefaultExcIOInhIBuilder(NESTModelBuilder):
+class DefaultExcIOInhIBuilder(ANNarchyModelBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+    def __init__(self, tvb_simulator, annarchy_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, annarchy_nodes_ids, annarchy_instance, config)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -22,14 +22,14 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.scale_e = 1
         self.scale_i = 1
 
-        self.w_ee = self.weight_fun(1.0)
-        self.w_ei = self.weight_fun(1.0)
-        self.w_ie = self.weight_fun(1.0)
-        self.w_ii = self.weight_fun(1.0)
-        self.d_ee = self.within_node_delay()
-        self.d_ei = self.within_node_delay()
-        self.d_ie = self.within_node_delay()
-        self.d_ii = self.within_node_delay()
+        self.w_ee = 1.0
+        self.w_ei = 1.0
+        self.w_ie = 1.0
+        self.w_ii = 1.0
+        self.d_ee = 1.0
+        self.d_ei = 1.0
+        self.d_ie = 1.0
+        self.d_ii = 1.0
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
@@ -66,20 +66,6 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.populations = [self.set_E_population(), self.set_I_population()]
 
     # Within region-node connections
-    # By default we choose random jitter on weights and delays
-
-    def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return random_normal_weight(w, scale, sigma)
-
-    def delay_fun(self, low=None, high=None):
-        if low is None:
-            low = self.spiking_dt
-        if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.spiking_dt)
-        return random_uniform_delay(low, low, high, sigma=None)
-
-    def within_node_delay(self):
-        return self.delay_fun()
 
     def receptor_E_fun(self):
         return "exc"
@@ -140,17 +126,13 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
 
-    def tvb_weight(self, source_node, target_node, scale=None, sigma=0.1):
+    def tvb_weight(self, source_node, target_node, scale=None):
         if scale is None:
             scale = self.global_coupling_scaling
-        return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
+        return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale)
 
-    def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
-        if low is None:
-            low = self.tvb_dt
-        if high is None:
-            high = 2 * self.tvb_dt
-        return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
+    def tvb_delay_fun(self, source_node, target_node):
+        return tvb_delay(source_node, target_node, self.tvb_delays)
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -191,7 +173,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         return device
 
     def set_output_devices(self):
-        # Creating  devices to be able to observe NEST activity:
+        # Creating  devices to be able to observe ANNarchy activity:
         # Labels have to be different
         self.output_devices = [self.set_SpikeMonitor(), self.set_Monitor()]
 
@@ -203,8 +185,8 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
             {"model": "PoissonPopulation",
              "params": {"rates": 6000.0},
              "connections": connections, "nodes": None,
-             "weights": self.weight_fun(1.0),
-             "delays": random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
+             "weights": 1.0,
+             "delays": 0.0,
              "receptor_type": "exc"}
         device.update(self.spike_stimulus)
         return device
