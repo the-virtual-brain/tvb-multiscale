@@ -18,7 +18,3 @@ class TVBtoNESTParameterInterface(TVBtoSpikeNetParameterInterface):
     @property
     def nest_instance(self):
         return self.spiking_network.nest_instance
-
-    def set(self, values):
-        for node, value in zip(self.nodes,  self._assert_input_size(values)):
-            self.nest_instance.NodeCollection(self[node].neurons).set({self.parameter: value})
