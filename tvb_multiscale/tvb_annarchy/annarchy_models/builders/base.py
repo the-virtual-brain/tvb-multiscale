@@ -43,6 +43,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         self._update_default_min_delay()
         kwargs["dt"] = self.spiking_dt
         kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
+        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
         self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
