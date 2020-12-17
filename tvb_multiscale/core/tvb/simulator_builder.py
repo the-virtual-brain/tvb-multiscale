@@ -87,6 +87,7 @@ class SimulatorBuilder(object):
             connectivity.weights /= np.percentile(connectivity.weights, self.scale_connectivity_weights_by_percentile)
         if self.ceil_connectivity and self.ceil_connectivity > 0.0:
             connectivity.weights[connectivity.weights > self.ceil_connectivity] = self.ceil_connectivity
+        connectivity.weights[np.isnan(connectivity.weights)] = 0.0
         if not self.delays_flag:
             connectivity.configure()  # to set speed
             connectivity.tract_lengths = minimum_tract_length * np.ones(connectivity.tract_lengths.shape)
