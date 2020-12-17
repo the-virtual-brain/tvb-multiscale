@@ -25,8 +25,6 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     config = CONFIGURED
     annarchy_instance = None
-    default_min_spiking_dt = CONFIGURED.ANNARCHY_MIN_DT
-    default_min_delay = CONFIGURED.ANNARCHY_MIN_DT
     modules_to_install = []
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
@@ -36,24 +34,6 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         self.annarchy_instance = annarchy_instance
         super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
         self._spiking_brain = ANNarchyBrain()
-
-        # Setting NEST defaults from config
-        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
-
-        self.default_synaptic_weight_scaling = \
-            lambda weight, n_cons: self.config.DEFAULT_SPIKING_SYNAPTIC_WEIGHT_SCALING(weight, n_cons)
-
-        self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
-        self.default_populations_connection["delay"] = self.default_min_delay
-        self.default_populations_connection["nodes"] = None
-
-        self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
-        self.default_nodes_connection["delay"] = self.default_populations_connection["delay"]
-        self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
-
-        self.default_devices_connection = dict(self.config.DEFAULT_CONNECTION)
-        self.default_devices_connection["delay"] = self.default_min_delay
-        self.default_devices_connection["nodes"] = None
 
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
@@ -74,7 +54,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         if self.annarchy_instance:
             return self.annarchy_instance.dt()
         else:
-            return self.config.ANNARCHY_MIN_DT
+            return self.config.MIN_SPIKING_DT
 
     def set_synapse(self, syn_model, weights, delays, target, params={}):
         """Method to set the synaptic model, the weight, the delay,
