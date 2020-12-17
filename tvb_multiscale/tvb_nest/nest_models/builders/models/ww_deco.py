@@ -4,7 +4,8 @@ import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.models.default_exc_io_inh_i import DefaultExcIOInhIMultisynapseBuilder
-from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, receptor_by_source_region
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
 
 class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
