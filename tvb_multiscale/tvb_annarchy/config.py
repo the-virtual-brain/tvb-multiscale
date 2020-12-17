@@ -21,9 +21,11 @@ class Config(ConfigBase):
 
     ANNARCHY_SEED = 0
 
+    VERBOSE = False
+
     MIN_SPIKING_DT = 0.001
 
-    DEFAULT_MODEL = "izhikevich"
+    DEFAULT_MODEL = "Izhikevich"
 
     # Delays should be at least equal to ANNarchy time resolution
     DEFAULT_CONNECTION = {"synapse_model": "DefaultSpikingSynapse", "params": {},
