@@ -169,12 +169,6 @@ class SpikesPlotter(BasePlotter):
               spikes_times, spikes_senders, kwargs):
         axes[i_pop].append(pyplot.subplot(self.n_regions, self.n_pops, i_region * self.n_pops + i_pop + 1))
 
-        print("pop=%d_%s, region=%d_%s" % (i_pop, pop_label, i_region, reg_label))
-
-        try:
-            print("spike_senders: [%s, %s]" % (str(np.min(spikes_senders)), str(np.max(spikes_senders))))
-        except:
-            print("spike_senders: %s" % (str(spikes_senders)))
         axes[i_pop][i_region].plot(spikes_times, spikes_senders,
                                    linestyle="None",
                                    marker=kwargs.get("spikes_marker", "o"),
@@ -200,7 +194,6 @@ class SpikesPlotter(BasePlotter):
 
         axes[i_pop][i_region] = self._format_axes(axes[i_pop][i_region], i_pop, i_region, pop_label, reg_label)
 
-        print("yticks: %s" % str(self.yticks))
         return axes
 
     def plot_spikes(self, pop_spikes, rates=None, title=None, figure_name=None, figsize=None, **kwargs):
