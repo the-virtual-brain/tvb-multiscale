@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
+import importlib.util
+
 import numpy as np
 
 from tvb.basic.profile import TvbProfile
@@ -10,7 +13,13 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_i
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
 
-from .example import main_example
+example_core_path = os.path.dirname(__file__)
+example_module = \
+    importlib.util.spec_from_file_location(".example",
+                                           os.path.join(example_core_path, "example.py"))
+example = importlib.util.module_from_spec(example_module)
+example_module.loader.exec_module(example)
+main_example = example.main_example
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
