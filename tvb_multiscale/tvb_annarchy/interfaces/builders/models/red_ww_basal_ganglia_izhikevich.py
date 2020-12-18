@@ -60,7 +60,7 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
             {"model": "PoissonPopulation",
              "params": {},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, annarchy_node_id=None)---------
-              "interface_weights": 5.0,
+              "interface_weights": 10.0,
         # Applied outside ANNarchy for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
