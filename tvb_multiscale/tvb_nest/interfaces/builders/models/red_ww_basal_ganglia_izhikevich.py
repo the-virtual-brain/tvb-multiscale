@@ -63,7 +63,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
             {"model": "inhomogeneous_poisson_generator",
              "params": {"allow_offgrid_times": False},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)---------
-              "interface_weights": 5.0,  # Assuming a connectome of ~120 cortical regions, for a total of ~600 neurons
+              "interface_weights": 10.0,  # Assuming a connectome of ~120 cortical regions, for a total of ~600 neurons
         # Applied outside NEST for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
