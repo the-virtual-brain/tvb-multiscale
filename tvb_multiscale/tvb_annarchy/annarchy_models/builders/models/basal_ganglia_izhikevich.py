@@ -53,6 +53,8 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         self.E_nodes = self.Estn_nodes_ids + self.Eth_nodes_ids
         self.Istr_nodes_ids = [6, 7]
 
+        self.scaleBGoptTOtvb = 0.00205875
+
         # Create a spike stimulus input device
         # When TVB is connected, we don't need any baseline stimulus
         self.Estn_stim = {"rate": 500.0, "weight": 0.009}
@@ -103,7 +105,6 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
             self.population_sizes[pop["label"]] = int(np.round(pop["scale"] * self.population_order))
 
     def set_populations_connections(self):
-        self.scaleBGoptTOtvb = 0.00205875
         # Intra-regions'-nodes' connections
         self.populations_connections = []
         for pop in self.populations:
