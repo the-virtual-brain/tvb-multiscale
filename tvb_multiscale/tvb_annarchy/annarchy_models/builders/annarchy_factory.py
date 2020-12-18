@@ -250,7 +250,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         annarchy_device = create_input_device(annarchy_device,
                                               kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
                                               deepcopy(default_params))
-    annarchy_device.params = default_params
+    annarchy_device.params = deepcopy(default_params)
     if return_annarchy:
         return annarchy_device, annarchy_instance
     else:
