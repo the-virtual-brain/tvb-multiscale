@@ -51,12 +51,13 @@ class SpikesPlotter(BasePlotter):
 
     def _get_rate_ytick_labels(self):
         n_ticks = len(self.yticks)
+        n_steps = n_ticks - 1
         if self.max_rate <= 10.0:
             str_format = "%g"
-            rate_step = self.max_rate / n_ticks
+            rate_step = self.max_rate / n_steps
         else:
             str_format = "%d"
-            rate_step = np.ceil(self.max_rate / n_ticks)
+            rate_step = np.ceil(self.max_rate / n_steps)
         yticklabels = np.arange(0.0, n_ticks * rate_step, rate_step)
         self._rate_ytick_labels = [str_format % yticklabel for yticklabel in yticklabels]
 
@@ -144,8 +145,8 @@ class SpikesPlotter(BasePlotter):
             axes.set_ylabel("%s neurons" % reg_label)
         return axes
 
-    def _scale_rate_to_axis(self, rate, min_n_neurons=0):
-        return rate / self.max_rate * self.max_n_neurons + min_n_neurons
+    def _scale_rate_to_axis(self, rate):
+        return rate / self.max_rate * self.max_n_neurons + self.min_n_neurons
 
     def _prepare_time_axes_adjustment(self):
         self._any_spikes = False
@@ -180,6 +181,7 @@ class SpikesPlotter(BasePlotter):
         if self.rates is not None:
             # Adjust rates values to neurons axis range
             rate_vals = self._scale_rate_to_axis(self.get_rate_fun(pop_label, reg_label))
+            print(np.unique(rate_vals))
             self._get_rate_ytick_labels()
             axes[i_pop][i_region].plot(self.time, rate_vals,
                                        linestyle=kwargs.get("rate_linestyle", "-"),
