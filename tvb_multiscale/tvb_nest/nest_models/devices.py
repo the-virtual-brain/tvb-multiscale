@@ -338,7 +338,7 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     def __init__(self, device, nest_instance, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "nest_output_device")
         super(NESTOutputDevice, self).__init__(device, nest_instance, *args, **kwargs)
-        if kwargs.get("record_to", "ascii"):
+        if kwargs.get("record_to", "ascii") == "ascii":
             self._get_events = self._get_events_from_ascii
             self._reset = self._delete_events_in_ascii_files
         else:

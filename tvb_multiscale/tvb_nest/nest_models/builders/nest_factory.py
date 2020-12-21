@@ -247,14 +247,14 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
-        label = default_params.get("label", default_params.pop("name", label))
+    label = default_params.pop("label", default_params.pop("name", label))
         # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
         nest_device_id = nest_instance.Create(device_model, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
         nest_device_id = nest_instance.Create(device_model, params=default_params)
-    nest_device = devices_dict[device_model](nest_device_id, nest_instance, label=label)
+    nest_device = devices_dict[device_model](nest_device_id, nest_instance, label=label, **default_params)
     if return_nest:
         return nest_device, nest_instance
     else:
