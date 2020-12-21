@@ -40,9 +40,11 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
         output = "\n" + self.__repr__() + \
                  "\nName: %s, TVB state variable indice: %d, " \
                  "\nInterface weights: %s"  \
-                 "\nTarget NEST Nodes indices:\n%s " % \
+                 "\nSource TVB nodes' indices:\n%s " \
+                 "\nTarget NEST nodes' indices:\n%s "% \
                  (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()),
-                  extract_integer_intervals(self.nodes_ids, print=True))
+                  extract_integer_intervals(self.nodes_ids, print=True),
+                  extract_integer_intervals(self.target_nodes, print=True))
         if detailed_output:
             output += super(TVBtoSpikeNetDeviceInterface, self).print_str(connectivity)
         return output
