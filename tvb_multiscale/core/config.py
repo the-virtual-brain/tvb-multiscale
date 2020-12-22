@@ -45,13 +45,15 @@ except:
 class OutputConfig(object):
     subfolder = None
 
-    def __init__(self, out_base=None, separate_by_run=False):
+    def __init__(self, out_base=None, separate_by_run=False, initialize_logger=True):
         """
         :param work_folder: Base folder where logs/figures/results should be kept
         :param separate_by_run: Set TRUE, when you want logs/results/figures to be in different files / each run
         """
         self._out_base = out_base or os.path.join(os.getcwd(), "outputs")
         self._separate_by_run = separate_by_run
+        if initialize_logger:
+            initialize_logger_base("logs", self.FOLDER_LOGS)
 
     def _folder(self, ftype=""):
         folder = os.path.join(self._out_base, ftype)
@@ -105,8 +107,8 @@ class Config(object):
     DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
                           "source_inds": None, "target_inds": None, "params": {}}
 
-    def __init__(self, output_base=None, separate_by_run=False):
-        self.out = OutputConfig(output_base, separate_by_run)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+        self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
@@ -114,10 +116,12 @@ class Config(object):
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
 
 
-CONFIGURED = Config()
+CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
+def initialize_logger(name, target_folder=None):
+    if target_folder is None:
+        target_folder = Config().out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
 
 
