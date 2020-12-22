@@ -64,8 +64,8 @@ class Config(ConfigBase):
                                      "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
                                      "inhomogeneous_poisson_generator": {"allow_offgrid_times": False}}
 
-    def __init__(self, output_base=None, separate_by_run=False):
-        super(Config, self).__init__(output_base, separate_by_run)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
         self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
         self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
         self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
@@ -80,8 +80,10 @@ class Config(ConfigBase):
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
 
-CONFIGURED = Config()
+CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
+def initialize_logger(name, target_folder=None):
+    if target_folder is None:
+        target_folder = Config().out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
