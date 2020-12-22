@@ -52,16 +52,18 @@ class Config(ConfigBase):
                                          "TimedArray": {"rates": 0.0, "schedule": 0.0, "period": -1.0},
                                          }
 
-    def __init__(self, output_base=None, separate_by_run=False):
-        super(Config, self).__init__(output_base, separate_by_run)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
         self.TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
         self.WORKING_DIR = WORKING_DIR
         self.MYMODELS_DIR = MYMODELS_DIR
         self.MYMODELS_IMPORT_PATH = self.MYMODELS_DIR.split("tvb-multiscale")[-1].replace("/", ".")
 
 
-CONFIGURED = Config()
+CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
+def initialize_logger(name, target_folder=None):
+    if target_folder is None:
+        target_folder = Config().out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
