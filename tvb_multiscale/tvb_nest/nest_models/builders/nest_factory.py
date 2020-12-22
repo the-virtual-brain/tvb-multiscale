@@ -238,23 +238,26 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
         default_params = deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
-        if len(label):
-            default_params["label"] = label
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
                           (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
+    default_params["label"] = label
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
-    label = default_params.pop("label", default_params.pop("name", label))
-        # TODO: a better solution for the strange error with inhomogeneous poisson generator
+    if device_model in NESTInputDeviceDict.keys():
+        label = default_params.pop("label", label)
+    else:
+        label = default_params.get("label", label)
+    # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
         nest_device_id = nest_instance.Create(device_model, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
         nest_device_id = nest_instance.Create(device_model, params=default_params)
-    nest_device = devices_dict[device_model](nest_device_id, nest_instance, label=label, **default_params)
+    default_params["label"] = label
+    nest_device = devices_dict[device_model](nest_device_id, nest_instance, **default_params)
     if return_nest:
         return nest_device, nest_instance
     else:
