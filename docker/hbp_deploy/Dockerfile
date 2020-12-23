@@ -53,7 +53,6 @@ ENV NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 WORKDIR $HOME/packages
 RUN git clone https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
-    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
     cmake -DCMAKE_INSTALL_PREFIX=$NEST_INSTALL_DIR \
     -Dwith-mpi=ON  \
 #    -Dwith-libneurosim=$VENV \
@@ -81,11 +80,10 @@ RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_
     python setup.py develop
 
 WORKDIR $HOME/packages
-RUN git clone https://github.com/the-virtual-brain/tvb-root.git
+RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
 #    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
-    git fetch origin && git checkout 39c858a2e471ea0d716402385a3cdd6675f275d4; \
     cd scientific_library; \
     python setup.py develop; \
     cd ../framework_tvb; \
@@ -99,7 +97,7 @@ RUN git clone --depth 1 https://github.com/nest/nestml.git; \
     cd nestml; \
     python setup.py install
 
-RUN git clone --depth 1  https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
@@ -138,9 +136,8 @@ ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-NEST-Examples
 
 RUN mkdir -m777 $WORK_DIR
 RUN mkdir -m777 $TVB_NEST_Examples
-RUN cp /home/jovyan/packages/tvb-multiscale/docs/documented_example_notebook/documentation_example_RedWongWang.ipynb $TVB_NEST_Examples
-RUN cp /home/jovyan/packages/tvb-multiscale/docs/documented_example_notebook/documentation_example_WilsonCowan.ipynb $TVB_NEST_Examples
-RUN cp -r /home/jovyan/packages/tvb-multiscale/docs/documented_example_notebook/pics $TVB_NEST_Examples
+RUN cp -r /home/jovyan/packages/tvb-multiscale/docs/documented_example_notebooks $TVB_NEST_Examples
+RUN cp -r /home/jovyan/packages/tvb-multiscale/examples $TVB_NEST_Examples
 RUN chmod -R 777 $WORK_DIR
 RUN chmod -R 777 $MYMODULES_BLD_DIR
 RUN chmod -R 777 $MYMODULES_DIR
