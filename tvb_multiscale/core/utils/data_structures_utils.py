@@ -1,12 +1,30 @@
 # -*- coding: utf-8 -*-
+
+from inspect import stack
+from itertools import product
 from collections import OrderedDict
+from six import string_types
 
 import numpy as np
 from scipy.stats import describe
 from pandas import unique
+from xarray import DataArray
+
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_list, is_integer, extract_integer_intervals
+
+
+def get_caller_fun_name(caller_id=1):
+    return str(stack()[caller_id][3])
+
+
+def get_ordered_dimensions(dims, dims_order):
+    out_dims = []
+    for dim in dims_order:
+        if dim in dims:
+            out_dims.append(dim)
+    return out_dims
 
 
 def flatten_neurons_inds_in_DataArray(data_array, neurons_dim_label="Neuron"):
@@ -84,10 +102,11 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
     return output_events
 
 
-def summarize(results, decimals=None):
+def summarize(results, digits=None):
 
-    def unique_fun(vals):
-        return unique(np.around(vals, decimals=decimals))
+    def unique_floats_fun(vals):
+        scale = 10 ** np.floor(np.log10(np.percentile(np.abs(vals), 95)))
+        return scale * unique(np.around(vals / scale, decimals=digits))
 
     def stats_fun(vals):
         d = describe(vals)
@@ -98,42 +117,75 @@ def summarize(results, decimals=None):
         summary["var"] = d.variance
         return summary
 
-    if is_integer(decimals):
-        fun = unique_fun
-    else:
-        fun = stats_fun
-
     output = {}
     for attr, val in results.items():
         vals = ensure_list(val)
-        if len(vals) > 3:
-            try:
-                val_type = np.array(vals).dtype
-                if str(val_type)[0] == "i":
-                    output[attr] = extract_integer_intervals(vals)
+        try:
+            val_type = str(np.array(vals).dtype)
+            if isinstance(vals[0], string_types) or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o":
+                # String, integer or boolean values
+                unique_vals = list(unique(vals).astype(val_type))
+                n_unique_vals = len(unique_vals)
+                if n_unique_vals < 2:
+                    # If they are all of the same value, just set this value:
+                    output[attr] = unique_vals[0]
+                elif n_unique_vals <= 10:
+                    # Otherwise, return a summary dictionary with the indices of each value:
+                    output[attr] = OrderedDict()
+                    vals = np.array(vals)
+                    for unique_val in unique_vals:
+                        output[attr][unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
                 else:
-                    output[attr] = fun(vals)
-                    if isinstance(output[attr], np.ndarray):
-                        output[attr] = output[attr].astype(val_type)
-            except:
-                try:
-                    val_type = np.array(vals).dtype
-                    # Try boolean
-                    unique_vals = list(unique(vals).astype(val_type))
-                    if len(unique_vals) < 2:
-                        # If they are all True or all False
-                        output[attr] = unique_vals
+                    if val_type[0] == "i":
+                        output[attr] = extract_integer_intervals(vals)
                     else:
-                        output[attr] = {"True": extract_integer_intervals(np.where(val)[0]),
-                                        "False": extract_integer_intervals(np.where(np.invert(vals))[0])}
-                except:
+                        output[attr] = unique_vals
+            else:  # Assuming floats or arbitrary objects...
+                unique_vals = unique(vals)
+                if len(unique_vals) > 3:
+                    # If there are more than three different values, try to summarize them...
                     try:
-                        val_type = np.array(vals).dtype
-                        # treat the rest as strings
-                        output[attr] = list(unique([str(v) for v in vals]).astype(val_type).tolist())
+                        if is_integer(digits):
+                            output[attr] = unique_floats_fun(unique_vals)
+                        else:
+                            output[attr] = stats_fun(np.array(vals))
                     except:
-                        output[attr] = list(vals)
-        else:
-            output[attr] = vals
-
+                        output[attr] = unique_vals
+                else:
+                    if len(unique_vals) == 1:
+                        output[attr] = unique_vals[0]
+                    output[attr] = unique_vals
+        except:
+            # Something went wrong, return the original propety
+            output[attr] = list(vals)
     return output
+
+
+def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
+    from pandas import MultiIndex
+    stacked_dims = "-".join(dims)
+    names = []
+    new_dims = []
+    for d in ["i", "j"]:
+        names.append([dim + "_" + d for dim in dims])
+        new_dims.append(stacked_dims + "_" + d)
+    new_coords = {new_dims[0]: MultiIndex.from_product([pop_labels, all_regions_lbls], names=names[0]),
+                  new_dims[1]: MultiIndex.from_product([pop_labels, all_regions_lbls], names=names[1])}
+    return new_dims, new_coords
+
+
+def combine_DataArray_dims(arr, dims_combinations, join_string=", ", return_array=True):
+    new_dims = []
+    new_coords = {}
+    stacked_dims = {}
+    for dim_combin in dims_combinations:
+        new_dim = join_string.join(["%s" % arr.dims[i_dim] for i_dim in dim_combin])
+        new_dims.append(new_dim)
+        stacked_dims[new_dim] =[arr.dims[i_dim] for i_dim in dim_combin]
+        new_coords[new_dim] = [join_string.join(coord_combin)
+                               for coord_combin in product(*[arr.coords[arr.dims[i_dim]].data for i_dim in dim_combin])]
+    if return_array:
+        return DataArray(arr.stack(**stacked_dims).data, dims=new_dims, coords=new_coords, name=arr.name)
+    else:
+        return arr.stack(**stacked_dims).data, new_dims, new_coords
+

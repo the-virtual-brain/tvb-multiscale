@@ -88,13 +88,15 @@ nest::izhikevich_hamker::Parameters_::Parameters_()
   , b_( 0.2 )                                       // b
   , c_( -72.0 )                                     // c without unit
   , d_( 6.0 )                                       // d
+  , current_stimulus_scale_( 1.0 )                  // current_stimulus_scale
+  , current_stimulus_mode_( 0 )                     // current_stimulus_mode
   , consistent_integration_( true )
 {
 }
 
 nest::izhikevich_hamker::State_::State_()
-  : v_( -65.0 )      // membrane potential
-  , u_( 0.0 )        // membrane recovery variable
+  : v_( -72.0 )      // membrane potential
+  , u_( -14.4 )        // membrane recovery variable
   , g_L_( 0.0 )      // baseline conductance
   , g_AMPA_( 0.0 )   // AMPA conductance
   , g_GABA_A_( 0.0 ) // GABA conductance
@@ -130,6 +132,8 @@ nest::izhikevich_hamker::Parameters_::get( DictionaryDatum& d ) const
   def< double >( d, names::b, b_ );
   def< double >( d, names::c, c_ );
   def< double >( d, names::d, d_ );
+  def< double >( d, "current_stimulus_scale", current_stimulus_scale_ );
+  def< long >( d, "current_stimulus_mode", current_stimulus_mode_ );
   def< bool >( d, names::consistent_integration, consistent_integration_ );
 }
 
@@ -153,6 +157,8 @@ nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
   updateValue< double >( d, names::b, b_ );
   updateValue< double >( d, names::c, c_ );
   updateValue< double >( d, names::d, d_ );
+  updateValue< double >( d, "current_stimulus_scale", current_stimulus_scale_ );
+  updateValue< long >( d, "current_stimulus_mode", current_stimulus_mode_ );
   updateValue< bool >( d, names::consistent_integration, consistent_integration_ );
   const double h = Time::get_resolution().get_ms();
   if ( not consistent_integration_ && h != 1.0 )
@@ -178,6 +184,10 @@ nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
   if ( C_m_ <= 0.0 )
   {
     throw BadProperty( "C_m has to be positive!" );
+  }
+  if ( ( current_stimulus_mode_ < 0 ) || ( current_stimulus_mode_ > 2 ) )
+  {
+    throw BadProperty( "current_stimulus_mode has to be an integer in the interval [0,2]!" );
   }
 }
 
@@ -383,7 +393,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
     S_.v_ = ( S_.v_ < P_.V_min_ ? P_.V_min_ : S_.v_ );
 
     // threshold crossing
-    if ( !is_refractory ) // if neuron is still in refractory period
+    if ( is_refractory ) // if neuron is still in refractory period
     {
       --S_.r_;
     }
@@ -415,6 +425,17 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
 
     // set new input current
     S_.I_ = B_.currents_.get_value( lag );
+
+    // optional transformation of input current
+    if ( P_.current_stimulus_mode_ == 1 )
+    {
+        S_.I_ = std::abs(S_.I_) ;
+    }
+    else if ( P_.current_stimulus_mode_ == 2 )
+    {
+        S_.I_ = ( S_.I_ > 0.0 ? 1.0 : 0.0 ) ;
+    }
+    S_.I_ *= P_.current_stimulus_scale_ ;
 
     // voltage logging
     B_.logger_.record_data( origin.get_steps() + lag );

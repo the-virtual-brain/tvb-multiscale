@@ -21,7 +21,7 @@ from tvb.simulator.models.linear_with_stimulus import Linear
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, stim_node_id=42,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 transient=0.0, variables_of_interest=None,
+                 transient=0.0, use_numba=True, variables_of_interest=None,
                  config=None, plot_write=True, **model_params):
 
     if config is None:
@@ -33,6 +33,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
     simulator_builder = SimulatorBuilder()
+    simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
     simulator_builder.variables_of_interest = variables_of_interest
@@ -126,7 +127,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
                                populations=populations, populations_sizes=populations_sizes,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
-                               plotter=plotter, config=config)
+                               plot_per_neuron=False, plotter=plotter, config=config)
         except Exception as e:
             print("Error in plotting or writing to files!:\n%s" % str(e))
 

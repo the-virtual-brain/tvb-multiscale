@@ -6,7 +6,6 @@ import numpy as np
 from pandas import Series
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
@@ -28,10 +27,10 @@ class SpikingModelBuilder(object):
     # Default configuratons modifiable by the user:
     config = CONFIGURED
 
-    tvb_to_spiking_dt_ratio = 4
-    default_min_spiking_dt = 0.001
-    default_min_delay_ratio = 2
-    default_min_delay = 0.001
+    tvb_to_spiking_dt_ratio = config.TVB_TO_SPIKING_DT_RATIO
+    default_min_spiking_dt = config.MIN_SPIKING_DT
+    default_min_delay_ratio = config.MIN_DELAY_RATIO
+    default_min_delay = config.MIN_SPIKING_DT
     default_population = {}
     default_populations_connection = {}
     default_nodes_connection = {}
@@ -65,8 +64,28 @@ class SpikingModelBuilder(object):
         self.logger = logger
         self.spiking_nodes_ids = np.unique(spiking_nodes_ids)
         self.tvb_simulator = tvb_simulator
+
+        self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
+        self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
+        self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
+        self.default_min_delay = self.config.MIN_SPIKING_DT
         self._update_spiking_dt()
         self._update_default_min_delay()
+
+        # Setting SpikingNetwork defaults from config
+        # to be further specified in the each Spiking simulator's specific builder class.
+        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
+
+        self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_populations_connection["nodes"] = None
+
+        self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
+
+        self.default_devices_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_devices_connection["delay"] = self.default_min_delay
+        self.default_devices_connection["nodes"] = None
+
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
         self.monitor_period = tvb_simulator.monitors[-1].period
@@ -338,7 +357,7 @@ class SpikingModelBuilder(object):
         # and an integer multiple of the spiking simulator dt
         self.default_min_delay = np.minimum(
             np.maximum(self.default_min_delay_ratio * self.spiking_dt, self.min_delay),
-            self.tvb_dt / 2)
+            self.tvb_dt / self.tvb_to_spiking_dt_ratio)
 
     def _configure_populations(self):
         # Every population must have its own model model, label.
@@ -371,11 +390,10 @@ class SpikingModelBuilder(object):
         # and that every source/target population is already among the populations to be generated.
         for pop in ["source", "target"]:
             pops_labels = connection.get(pop, None)
-        if pops_labels is None:
-            raise_value_error("No %s population in connection!:\n%s" % (pop, str(connection)))
-        for pop_lbl in ensure_list(pops_labels):
-            assert pop_lbl in self.populations_labels
-        return pops_labels
+            if pops_labels is None:
+                raise_value_error("No %s population in connection!:\n%s" % (pop, str(connection)))
+            for pop_lbl in ensure_list(pops_labels):
+                assert pop_lbl in self.populations_labels
 
     def _configure_connections(self, connections, default_connection):
         # This method sets "weight", "delay" and "receptor_type" synapse properties,
@@ -441,8 +459,10 @@ class SpikingModelBuilder(object):
                 spiking_nodes = self.spiking_nodes_ids
             # User inputs
             # ..set/converted to functions
-            weights_fun = property_to_fun(device.get("weights", 1.0))
-            delays_fun = property_to_fun(device.get("delays", 0.0))
+            weights_fun = property_to_fun(device.get("weights",
+                                                     self.default_devices_connection["weight"]))
+            delays_fun = property_to_fun(device.get("delays",
+                                                    self.default_devices_connection["delay"]))
             receptor_type_fun = property_to_fun(device.get("receptor_type",
                                                            self.default_devices_connection["receptor_type"]))
             # Default behavior for any region nodes is to target all of the populations' neurons:
@@ -451,10 +471,10 @@ class SpikingModelBuilder(object):
                 neurons_fun = property_to_fun(neurons_fun)
             # Defaults in arrays:
             shape = (len(spiking_nodes),)
-            receptor_type = np.tile(self.default_devices_connection["receptor_type"], shape)
+            receptor_type = np.tile(self.default_devices_connection["receptor_type"], shape).astype("O")
             # weights and delays might be dictionaries for distributions:
-            weights = np.ones(shape).astype("O")
-            delays = np.zeros(shape).astype("O")
+            weights = np.tile(self.default_devices_connection["weight"], shape).astype("O")
+            delays = np.tile(self.default_devices_connection["delay"], shape).astype("O")
             neurons = np.tile([None], shape).astype("O")
             # Set now the properties using the above defined functions:
             for i_trg, trg_node in enumerate(spiking_nodes):

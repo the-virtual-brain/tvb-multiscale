@@ -26,9 +26,9 @@ class SimulatorBuilder(object):
     """
 
     cosimulation = True
+    use_numba = True
     connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
     scale_connectivity_weights = "region"
-    scale_connectivity_normalize = "region"
     scale_connectivity_weights_by_percentile = 95
     ceil_connectivity = 1.0
     symmetric_connectome = False
@@ -39,14 +39,16 @@ class SimulatorBuilder(object):
     integrator = HeunStochastic
     dt = 0.1
     noise_strength = 0.001
+    initial_conditions = None
     monitors = (Raw, )
     monitor_period = 1.0
     config = CONFIGURED
 
     def __init__(self):
         self.config = CONFIGURED
+        self.use_numba = True
         self.connectivity = CONFIGURED.DEFAULT_CONNECTIVITY_ZIP
-        self.scale_connectivity_normalize = "region"
+        self.scale_connectivity_weights = "region"
         self.scale_connectivity_weights_by_percentile = 95
         self.ceil_connectivity = 1.0
         self.symmetric_connectome = False
@@ -85,6 +87,7 @@ class SimulatorBuilder(object):
             connectivity.weights /= np.percentile(connectivity.weights, self.scale_connectivity_weights_by_percentile)
         if self.ceil_connectivity and self.ceil_connectivity > 0.0:
             connectivity.weights[connectivity.weights > self.ceil_connectivity] = self.ceil_connectivity
+        connectivity.weights[np.isnan(connectivity.weights)] = 0.0
         if not self.delays_flag:
             connectivity.configure()  # to set speed
             connectivity.tract_lengths = minimum_tract_length * np.ones(connectivity.tract_lengths.shape)
@@ -109,9 +112,19 @@ class SimulatorBuilder(object):
         simulator = CoSimulator()
 
         simulator._config = self.config
+        simulator.use_numba = self.use_numba
+
         simulator.connectivity = connectivity
         simulator.model = model
         simulator.integrator = integrator
+        if self.initial_conditions is not None:
+            simulator.connectivity.set_idelays(simulator.integrator.dt)
+            simulator.horizon = simulator.connectivity.idelays.max() + 1
+            simulator.initial_conditions = \
+                self.initial_conditions * np.ones((simulator.horizon,
+                                                   simulator.model.nvar,
+                                                   simulator.connectivity.number_of_regions,
+                                                   simulator.model.number_of_modes))
         simulator.monitors = monitors
         simulator.log.setLevel(20)
 

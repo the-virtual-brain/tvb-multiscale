@@ -7,6 +7,8 @@ from tvb_multiscale.tvb_nest.interfaces.builders.base import TVBNESTInterfaceBui
 from tvb_multiscale.tvb_nest.interfaces.models import RedWWexcIO
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
 
 class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
     _tvb_nest_interface = RedWWexcIO
@@ -18,6 +20,14 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         self.populations_sizes = populations_sizes
         self.G = self.tvb_simulator.model.G[0].item()
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item() * self.G
+
+        self.Igpe_nodes_ids = [0, 1]
+        self.Igpi_nodes_ids = [2, 3]
+        self.I_nodes = self.Igpe_nodes_ids + self.Igpi_nodes_ids
+        self.Estn_nodes_ids = [4, 5]
+        self.Eth_nodes_ids = [8, 9]
+        self.E_nodes = self.Estn_nodes_ids + self.Eth_nodes_ids
+        self.Istr_nodes_ids = [6, 7]
 
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1.0
@@ -53,7 +63,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
             {"model": "inhomogeneous_poisson_generator",
              "params": {"allow_offgrid_times": False},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, nest_node_id=None)---------
-              "interface_weights": 1.0,
+              "interface_weights": 10.0,  # Assuming a connectome of ~120 cortical regions, for a total of ~600 neurons
         # Applied outside NEST for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
@@ -68,28 +78,26 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         self.tvb_to_spikeNet_interfaces.append(interface)
 
     def build_default_rate_tvb_to_nest_interfaces(self):
-        for trg_pop, target_nodes in zip(["I", "I1", "I2", "E"],
-                                         [[0, 1, 2, 3], [6, 7], [6, 7], [4, 5, 8, 9]]):
-
-            connections = {"R": [trg_pop]}
+        for trg_pop, target_nodes in zip([["IdSN", "IiSN"],   "E"],
+                                          [self.Istr_nodes_ids, self.E_nodes]):
+            connections = {"R": ensure_list(trg_pop)}
             self._build_default_rate_tvb_to_nest_interfaces(connections, target_nodes=target_nodes)
 
     def _build_default_nest_to_tvb_interfaces(self, connections, **kwargs):
         # NEST -> TVB:
         interface = \
             {"model": "spike_recorder", "params": {},
-             # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
+             # ------------------Properties potentially set as function handles with args (nest_node_id=None)-----------
              "interface_weights": 1.0, "delays": 0.0,
-             # --------------------------------------------------------------------------------------------------------------
+             # ---------------------------------------------------------------------------------------------------------
              "connections": connections, "nodes": None}  # None means all here
         interface.update(kwargs)
         self.spikeNet_to_tvb_interfaces.append(interface)
 
     def build_default_nest_to_tvb_interfaces(self):
-        for src_pop, nodes in zip(["I",          "E"],
-                                  [[0, 1, 2, 3], [4, 5, 8, 9]]):
-            self._build_default_nest_to_tvb_interfaces({"Rin": [src_pop]}, nodes=nodes)
-        self._build_default_nest_to_tvb_interfaces({"Rin": ["I1", "I2"]}, nodes=[6, 7])
+        for src_pop, nodes in zip(["I",          "E",          ["IdSN", "IiSN"]],
+                                  [self.I_nodes, self.E_nodes, self.Istr_nodes_ids]):
+            self._build_default_nest_to_tvb_interfaces({"Rin": ensure_list(src_pop)}, nodes=nodes)
 
     def default_build(self, tvb_to_nest_mode="rate", nest_to_tvb=True):
         if tvb_to_nest_mode and \

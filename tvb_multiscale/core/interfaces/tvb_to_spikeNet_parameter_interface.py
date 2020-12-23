@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 from pandas import Series, unique
@@ -6,6 +7,7 @@ import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 LOG = initialize_logger(__name__)
@@ -53,7 +55,7 @@ class TVBtoSpikeNetParameterInterface(Series):
                "\nName: %s, TVB coupling indice: %d, " \
                "\nspikeNet target parameter: %s " \
                "\nInterface weights: %s " \
-               "\nTarget NEST Nodes: %s" % \
+               "\nSource TVB / Target NEST nodes' indices: %s" % \
                 (self.name, self.tvb_coupling_id, self.parameter, str(unique(self.scale).tolist()),
                  str(["%d. %s" % (node_id, node_label)
                       for node_id, node_label in zip(self.nodes_ids, self.nodes)]))
@@ -63,9 +65,19 @@ class TVBtoSpikeNetParameterInterface(Series):
         return list(self.index)
 
     @property
-    def n_nodes(self):
+    def number_of_nodes(self):
         return len(self.nodes)
 
-    @abstractmethod
+    def _assert_input_size(self, values):
+        values = ensure_list(values)
+        n_vals = len(values)
+        if n_vals not in [1, self.number_of_nodes]:
+            raise ValueError("Values' number %d is neither equal to 1 "
+                             "nor equal to nodes' number %d!" % (n_vals, self.number_of_nodes))
+        elif n_vals == 1:
+            values *= self.number_of_nodes
+        return values
+
     def set(self, values):
-        pass
+        for node, value in zip(self.nodes, self._assert_input_size(values)):
+            self[node].Set({self.parameter: value})

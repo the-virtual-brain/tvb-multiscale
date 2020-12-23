@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from six import string_types
-from pandas import Series, unique
+from pandas import unique
 import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
+from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals, ensure_list
 
 
 LOG = initialize_logger(__name__)
@@ -27,7 +27,8 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
         self.nodes_ids = nodes_ids  # TVB region nodes' (proxies') indices
         self.target_nodes = target_nodes  # Spiking Network target region nodes' indices
         self.scale = scale  # a scaling weight
-        LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
+        if len(self.model):
+            LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
     def __repr__(self):
         return self.__class__.__name__
@@ -39,9 +40,11 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
         output = "\n" + self.__repr__() + \
                  "\nName: %s, TVB state variable indice: %d, " \
                  "\nInterface weights: %s"  \
-                 "\nTarget NEST Nodes indices:\n%s " % \
+                 "\nSource TVB nodes' indices:\n%s " \
+                 "\nTarget NEST nodes' indices:\n%s "% \
                  (self.name, self.tvb_sv_id, str(unique(self.scale).tolist()),
-                  extract_integer_intervals(self.nodes_ids, print=True))
+                  extract_integer_intervals(self.nodes_ids, print=True),
+                  extract_integer_intervals(self.target_nodes, print=True))
         if detailed_output:
             output += super(TVBtoSpikeNetDeviceInterface, self).print_str(connectivity)
         return output
@@ -61,3 +64,13 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
             self.name = name
         self.update_model()
         return self
+
+    def _assert_input_size(self, values):
+        values = ensure_list(values)
+        n_vals = len(values)
+        if n_vals not in [1, self.number_of_nodes]:
+            raise ValueError("Values' number %d is neither equal to 1 "
+                             "nor equal to nodes' number %d!" % (n_vals, self.number_of_nodes))
+        elif n_vals == 1:
+            values *= self.number_of_nodes
+        return values

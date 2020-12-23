@@ -15,7 +15,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential git vim 
                        wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
                        ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion cmake zip unzip; \
+                       subversion cmake zip unzip make; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
@@ -64,6 +64,7 @@ ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
+# ARG LAST_SHA_NEST=LATEST
 RUN git clone --depth 1 https://github.com/nest/nest-simulator.git; \
     cd $NEST; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
@@ -100,7 +101,7 @@ RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_
     $VENV/bin/python setup.py develop
 
 RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
-ARG LAST_SHA_ROOT=LATEST
+ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd scientific_library; \
@@ -110,11 +111,16 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch tvb_annarchy https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
+
+RUN $VENV/bin/pip3 install sympy;
+RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
+    cd annarchy; \
+    $VENV/bin/python3 setup.py install --user
 
 WORKDIR /home/docker/
 # Activate the right python env.

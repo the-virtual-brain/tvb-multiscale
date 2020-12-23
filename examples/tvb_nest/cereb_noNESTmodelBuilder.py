@@ -21,7 +21,7 @@ from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 transient=0.0, variables_of_interest=None,
+                 transient=0.0, use_numba=True, variables_of_interest=None,
                  config=None, plot_write=True, **model_params):
 
     if config is None:
@@ -33,6 +33,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
     simulator_builder = SimulatorBuilder()
+    simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
     simulator_builder.variables_of_interest = variables_of_interest
@@ -258,14 +259,14 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Connection to glomeruli
     nest.Connect(STIM, neuron_models['mossy_fibers'])
     # Set it in a TVB-NEST DeviceSet class instance for the specific brain region:
-    input_devices["Stimulus"] = DeviceSet(name="Stimulus", model="poisson_generator")
+    input_devices["Stimulus"] = DeviceSet(label="Stimulus", model="poisson_generator")
     input_devices["Stimulus"][nest_region_label] = NESTPoissonGenerator(STIM, nest)
 
     # Background as Poisson process
     background = nest.Create('poisson_generator', params={'rate': BACKGROUND_FREQ, 'start': 0.0})
     nest.Connect(background, neuron_models['mossy_fibers'])
     # Set it in a TVB-NEST DeviceSet class instance for the specific brain region:
-    input_devices["Background"] = DeviceSet(name="Background", model="poisson_generator")
+    input_devices["Background"] = DeviceSet(label="Background", model="poisson_generator")
     input_devices["Background"][nest_region_label] = NESTPoissonGenerator(background, nest)
 
     # ### Defining recording devices
@@ -319,7 +320,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     for device_id, label in zip([moss_fib_spikes, glom_spikes, grc_spikes, goc_spikes, bc_spikes, sc_spikes, pc_spikes],
                                 ['mossy_fibers', "glomerulus_spikes", "granule_spikes", "golgi_spikes", "basket_spikes",
                                  "stellate_spikes", "purkinje_spikes"]):
-        output_devices[label] = DeviceSet(name=label, model="spike_detector")
+        output_devices[label] = DeviceSet(label=label, model="spike_detector")
         output_devices[label][nest_region_label] = NESTSpikeDetector(device_id, nest)
 
     if RECORD_VM:
@@ -353,7 +354,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     # Set them in a TVB-NEST DeviceSet class instance for the specific brain region:
     for device_id, label in zip([grc_vm, goc_vm, bc_vm, sc_vm, pc_vm],
                                 ["granule_vm", "golgi_vm", "basket_vm", "stellate_vm", "purkinje_vm"]):
-        output_devices[label] = DeviceSet(name=label, model="multimeter")
+        output_devices[label] = DeviceSet(label=label, model="multimeter")
         output_devices[label][nest_region_label] = NESTMultimeter(device_id, nest)
 
     f.close()
@@ -411,7 +412,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
                                populations=populations, populations_sizes=populations_sizes,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
-                               plotter=plotter, config=config)
+                               plot_per_neuron=False, plotter=plotter, config=config)
         except Exception as e:
             print("Error in plotting or writing to files!:\n%s" % str(e))
 

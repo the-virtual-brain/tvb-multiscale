@@ -1,104 +1,27 @@
 # -*- coding: utf-8 -*-
-import time
+
+import os
+import importlib
 
 import numpy as np
 
 from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
 from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
-from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
-from tvb_multiscale.core.plot.plotter import Plotter
-from examples.tvb_nest.example import results_path_fun
-from examples.plot_write_results import plot_write_results
+
+example_core_path = os.path.dirname(__file__)
+example_module = \
+    importlib.util.spec_from_file_location(".example",
+                                           os.path.join(example_core_path, "example.py"))
+example = importlib.util.module_from_spec(example_module)
+example_module.loader.exec_module(example)
+main_example = example.main_example
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
-
-
-def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
-                 nest_nodes_ids, nest_populations_order=100,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
-                 connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=110.0, transient=10.0, variables_of_interest=None,
-                 config=None, plot_write=True, **model_params):
-
-    if config is None:
-        config = Config(
-                    output_base=results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode, nest_to_tvb,
-                                                 config))
-
-    plotter = Plotter(config)
-
-    # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
-    simulator_builder = SimulatorBuilder()
-    # Optionally modify the default configuration:
-    simulator_builder.model = tvb_sim_model
-    simulator_builder.variables_of_interest = variables_of_interest
-    simulator_builder.connectivity = connectivity
-    simulator_builder.delays_flag = delays_flag
-    simulator = simulator_builder.build(**model_params)
-
-    # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
-
-    print("Building NEST network...")
-    tic = time.time()
-
-    # Build a NEST network model with the corresponding builder
-    # Using all default parameters for this example
-    nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
-    nest_model_builder.population_order = nest_populations_order
-    populations = []
-    populations_sizes = []
-    for pop in nest_model_builder.populations:
-        populations.append(pop["label"])
-        populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
-    # Common order of neurons' number per population:
-    nest_network = nest_model_builder.build_spiking_network()
-    print(nest_network.print_str(connectivity=False))
-    print("Done! in %f min" % ((time.time() - tic) / 60))
-
-    # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
-
-    print("Building TVB-NEST interface...")
-    tic = time.time()
-    # Build a TVB-NEST interface with all the appropriate connections between the
-    # TVB and NEST modelled regions
-    # Using all default parameters for this example
-    tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                        populations_sizes=populations_sizes[0])
-    tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_nest_mode=tvb_to_nest_mode, nest_to_tvb=nest_to_tvb)
-    print(tvb_nest_model.print_str(detailed_output=True, connectivity=False))
-    print("Done! in %f min" % ((time.time() - tic)/60))
-
-    # -----------------------------------4. Simulate and gather results-------------------------------------------------
-
-    # Configure the simulator with the TVB-NEST interface...
-    simulator.configure(tvb_nest_model)
-    # ...and simulate!
-    t_start = time.time()
-    results = simulator.run(simulation_length=simulation_length)
-    # Integrate NEST one more NEST time step so that multimeters get the last time point
-    # unless you plan to continue simulation later
-    simulator.run_spiking_simulator(simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
-    # Clean-up NEST simulation
-    simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
-    print("\nSimulated in %f secs!" % (time.time() - t_start))
-
-    # -------------------------------------------5. Plot results--------------------------------------------------------
-    if plot_write:
-        try:
-            plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
-                               transient=transient, tvb_state_variable_type_label="State Variables",
-                               tvb_state_variables_labels=simulator.model.variables_of_interest,
-                               plotter=plotter, config=config)
-        except Exception as e:
-            print("Error in plotting or writing to files!:\n%s" % str(e))
-
-    return results, simulator
 
 
 if __name__ == "__main__":
@@ -106,18 +29,44 @@ if __name__ == "__main__":
     nest_nodes_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     import os
+
     home_path = os.path.join(os.getcwd().split("tvb-multiscale")[0], "tvb-multiscale")
-    DATA_PATH = os.path.join(home_path, "examples/data")
+    DATA_PATH = os.path.join(home_path, "examples/data/basal_ganglia_conn")
+    wTVB = np.loadtxt(os.path.join(DATA_PATH, "conn_denis_weights.txt"))
+    cTVB = np.loadtxt(os.path.join(DATA_PATH, "aal_plus_BG_centers.txt"), usecols=range(1, 3))
+    rlTVB = np.loadtxt(os.path.join(DATA_PATH, "aal_plus_BG_centers.txt"), dtype="str", usecols=(0,))
+    tlTVB = np.loadtxt(os.path.join(DATA_PATH, "BGplusAAL_tract_lengths.txt"))
 
-    w = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/conn_denis_weights.txt"))
+    # # ????Remove the second Thalamus????:
+    inds_Th = (rlTVB.tolist().index("Thalamus_L"), rlTVB.tolist().index("Thalamus_R"))
+    print("Connections between Thalami removed!:\n", wTVB[[8, 9], :][:, inds_Th] / wTVB.max())
+    wTVB = np.delete(wTVB, inds_Th, axis=0)
+    wTVB = np.delete(wTVB, inds_Th, axis=1)
+    tlTVB = np.delete(tlTVB, inds_Th, axis=0)
+    tlTVB = np.delete(tlTVB, inds_Th, axis=1)
+    rlTVB = np.delete(rlTVB, inds_Th, axis=0)
+    cTVB = np.delete(cTVB, inds_Th, axis=0)
 
-    c = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/aal_plus_BG_centers.txt"), usecols=range(1, 3))
-    rl = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/aal_plus_BG_centers.txt"), dtype="str", usecols=(0,))
-    t = np.loadtxt(os.path.join(DATA_PATH, "./basal_ganglia_conn/BGplusAAL_tract_lengths.txt"))
+    number_of_regions = len(rlTVB)
+    speed = 4.0
+    min_tt = speed * 0.1
+    sliceBG = [0, 1, 2, 3, 6, 7]
+    sliceCortex = slice(10, number_of_regions)
 
     # Remove BG -> Cortex connections
-    w[[0, 1, 2, 3, 6, 7], :][:, 10:] = 0.0
-    connectivity = Connectivity(region_labels=rl, weights=w, centres=c, tract_lengths=t)
+    print("Removing BG -> Cortex connections with max:")
+    print(wTVB[sliceBG, :][:, sliceCortex].max())
+    wTVB[sliceBG, sliceCortex] = 0.0
+    tlTVB[sliceBG, sliceCortex] = min_tt
+
+    # Remove GPe/i <- Cortex connections
+    sliceBG = [0, 1, 2, 3]
+    print("Removing BG <- Cortex connections with max:")
+    print(wTVB[sliceCortex, :][:, sliceBG].max())
+    wTVB[sliceCortex, sliceBG] = 0.0
+    tlTVB[sliceCortex, sliceBG] = min_tt
+
+    connectivity = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_lengths=tlTVB)
 
     tvb_model = ReducedWongWangExcIO  # ReducedWongWangExcIOInhI
 
@@ -127,6 +76,6 @@ if __name__ == "__main__":
                  nest_nodes_ids,  nest_populations_order=200,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,  # "rate"
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=0.0,
+                 simulation_length=110.0, transient=10.0,
                  variables_of_interest=None,
                  config=None, **model_params)

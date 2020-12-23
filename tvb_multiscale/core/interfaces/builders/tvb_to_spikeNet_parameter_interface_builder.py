@@ -7,7 +7,8 @@ from tvb_multiscale.core.config import CONFIGURED, initialize_logger
 from tvb_multiscale.core.interfaces.tvb_to_spikeNet_parameter_interface import TVBtoSpikeNetParameterInterface
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
+from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun, ensure_list
+
 
 
 LOG = initialize_logger(__name__)
@@ -22,12 +23,11 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
     exclusive_nodes = False
     config = CONFIGURED
 
-    def __init__(self, interfaces, spiking_network, spiking_nodes, spiking_nodes_ids,
+    def __init__(self, interfaces, spiking_network, spiking_nodes_ids,
                  tvb_nodes_ids, tvb_model, exclusive_nodes=False, config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
-        self.spiking_nodes = spiking_nodes
-        self.spiking_nodes_ids = spiking_nodes_ids
+        self.spiking_nodes_ids = ensure_list(spiking_nodes_ids)
         self.tvb_nodes_ids = tvb_nodes_ids
         self.tvb_model = tvb_model
         self.exclusive_nodes = exclusive_nodes
@@ -67,13 +67,14 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
                     self.tvb_model.state_variables.index(name))
             except:
                 raise_value_error("Failed to compute the coupling index of TVB state variable %s!" % name)
-            interface_index = "%s_%d" % (name, interface_id)
+            interface_index = "%d_%s->%s" % (interface_id, name, str(populations))
             tvb_to_spikeNet_interfaces[interface_index] = \
                 self._build_target_class(self.spiking_network, name, interface["model"],
                                          interface.get("parameter", default_parameter),
                                          tvb_coupling_id, spiking_nodes_ids, interface_weights)
-            for node in self.spiking_nodes:
-                tvb_to_spikeNet_interfaces[interface_index][node.label] = node[populations]
+            for i_node in spiking_nodes_ids:
+                node = self.spiking_network.brain_regions[self.spiking_nodes_ids.index(i_node)]
+                tvb_to_spikeNet_interfaces[interface_index][node.label] = node[ensure_list(populations)]
             return tvb_to_spikeNet_interfaces
 
     def build(self):

@@ -5,6 +5,7 @@ import os
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 
+
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
 WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
 MYMODULES_DIR = os.environ.get("MYMODULES_DIR",
@@ -17,8 +18,11 @@ class Config(ConfigBase):
     # WORKING DIRECTORY:
     TVB_NEST_DIR = TVB_NEST_DIR
     WORKING_DIR = WORKING_DIR
+    RECORDINGS_DIR = os.path.join(WORKING_DIR, "nest_recordings")
     MYMODULES_DIR = MYMODULES_DIR
     MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
+
+    MASTER_SEED = 0
 
     # NEST properties:
     # M_ALL=0,  display all messages
@@ -32,25 +36,26 @@ class Config(ConfigBase):
     # M_QUIET=100, suppress all messages
     NEST_VERBOCITY = 40
 
-    NEST_PRINT_TIME = False
+    DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS = 1
 
-    NEST_MIN_DT = 0.001
-
-    DEFAULT_MODEL = "iaf_cond_alpha"  # "iaf_cond_deco2014"
+    DEFAULT_NEST_KERNEL_CONFIG = {"data_path": RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
+                                  'grng_seed': MASTER_SEED + DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS,
+                                  'rng_seeds': range(MASTER_SEED + 1 + DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS,
+                                                     MASTER_SEED + 1 + (2 * DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS))}
+    DEFAULT_MODEL = "iaf_cond_alpha"
 
     # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"synapse_model": "static_synapse", "weight": 1.0, "delay": 0.01, 'receptor_type': 0,
+    DEFAULT_CONNECTION = {"synapse_model": "static_synapse", "weight": 1.0, "delay": 1.0, 'receptor_type': 0,
                           "source_inds": None, "target_inds": None, "params": {},
                           "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
                                         "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
-    DEFAULT_TVB_TO_NEST_INTERFACE = "poisson_generator"
-    DEFAULT_NEST_TO_TVB_INTERFACE = "spike_detector"
+    DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
+    DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
 
     # Available NEST output devices for the interface and their default properties
     NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"record_from": ["V_m"], "record_to": "memory"},
                                       "voltmeter": {"record_to": "memory"},
-                                      "spike_detector": {"record_to": "memory"},
                                       "spike_recorder": {"record_to": "memory"},
                                       "spike_multimeter": {'record_from': ["spike"], "record_to": "memory"}}
 
@@ -59,8 +64,8 @@ class Config(ConfigBase):
                                      "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
                                      "inhomogeneous_poisson_generator": {"allow_offgrid_times": False}}
 
-    def __init__(self, output_base=None, separate_by_run=False):
-        super(Config, self).__init__(output_base, separate_by_run)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
         self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
         self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
         self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
@@ -69,12 +74,16 @@ class Config(ConfigBase):
         self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
+        self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
+        self.DEFAULT_NEST_KERNEL_CONFIG["data_path"] = self.RECORDINGS_DIR
         self.MYMODULES_DIR = MYMODULES_DIR
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
 
-CONFIGURED = Config()
+CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=CONFIGURED.out.FOLDER_LOGS):
+def initialize_logger(name, target_folder=None):
+    if target_folder is None:
+        target_folder = Config().out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)

@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+from copy import deepcopy
 
 import numpy as np
 
@@ -51,13 +52,13 @@ def load_nest(config=CONFIGURED, logger=LOG):
     log_path('LD_LIBRARY_PATH', logger)
     os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
     log_path('SLI_PATH', logger)
-
     os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
     log_path('NEST_PYTHON_PREFIX', logger)
     sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
     logger.info("%s: %s" % ("system path", sys.path))
 
     import nest
+    nest.ResetKernel()
     return nest
 
 
@@ -70,7 +71,6 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         logger: logger object. Default: local LOG object.
     """
     # ...unless we need to first compile it:
-    from pynestml.frontend.pynestml_frontend import install_nest
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
     lib_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "lib", "nest")
@@ -80,25 +80,32 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
         solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
         dylib_file = os.path.join(module_bld_dir, "lib" + modulemodule + ".dylib")
+        include_file = os.path.join(module_bld_dir, modulemodule + ".h")
         installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
         installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
         module_include_path = os.path.join(include_path, modulemodule)
         installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
-        if not os.path.isfile(solib_file) or not os.path.isfile(dylib_file) or recompile:
-            # If the .so file or the .dylib file don't exist, or if the user requires recompilation,
+        if not os.path.isfile(solib_file) \
+                or not os.path.isfile(dylib_file) \
+                    or not os.path.isfile(include_file) \
+                        or recompile:
+            # If any of the .so, .dylib or .h files don't exist,
+            # or if the user requires recompilation,
             # proceed with recompilation:
-            if not os.path.exists(module_bld_dir):
-                # If there is no module build directory at all,
-                # create one and copy there the source files:
-                source_path = os.path.join(config.MYMODULES_DIR, module)
-                logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
-                shutil.copytree(source_path, module_bld_dir)
+            if os.path.exists(module_bld_dir):
+                # Delete any pre-compiled built files:
+                shutil.rmtree(module_bld_dir)
+            # Create a  module build directory and copy there the source files:
+            source_path = os.path.join(config.MYMODULES_DIR, module)
+            logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
+            shutil.copytree(source_path, module_bld_dir)
             # Now compile:
             logger.info("Compiling %s..." % module)
             logger.info("in build directory %s..." % module_bld_dir)
             success_message = "DONE compiling and installing %s!" % module
+            from pynestml.frontend.pynestml_frontend import install_nest
             install_nest(module_bld_dir, config.NEST_PATH)
-            solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
+            logger.info("Compiling finished without errors...")
         else:
             logger.info("Installing precompiled module %s..." % module)
             success_message = "DONE installing precompiled module %s!" % module
@@ -107,14 +114,15 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             shutil.copyfile(solib_file, installed_dylib_file)
             safe_makedirs(include_path)
             shutil.copyfile(os.path.join(module_bld_dir, modulemodule + ".h"), installed_h_file)
-        if os.path.isfile(installed_solib_file) and \
-                os.path.isfile(installed_dylib_file) and \
-                    os.path.isfile(installed_h_file):
+        installed_files = {}
+        for file in [installed_solib_file, installed_dylib_file, installed_h_file]:
+            installed_files[file] = os.path.isfile(file)
+        if all(installed_files.values()):
             logger.info(success_message)
         else:
             logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
-                        "\n No %s, %s or %s file found!"
-                        % (module, installed_solib_file, installed_dylib_file, installed_h_file))
+                        "\n Installed files (not) found (True (False) respectively)!:\n%s"
+                        % (module, str(installed_files)))
 
 
 def get_populations_neurons(population, inds_fun=None):
@@ -205,7 +213,7 @@ def device_to_dev_model(device):
         return device
 
 
-def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None):
+def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None, **kwargs):
     """Method to create a NESTDevice.
        Arguments:
         device_model: name (string) of the device model
@@ -223,28 +231,33 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
         return_nest = False
     # Assert the model name...
     device_model = device_to_dev_model(device_model)
+    label = kwargs.pop("label", "")
     if device_model in NESTInputDeviceDict.keys():
         devices_dict = NESTInputDeviceDict
-        default_params_dict = config.NEST_INPUT_DEVICES_PARAMS_DEF
+        default_params = deepcopy(config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params_dict = config.NEST_OUTPUT_DEVICES_PARAMS_DEF
+        default_params = deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
                           (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
-    default_params = dict(default_params_dict.get(device_model, {}))
+    default_params["label"] = label
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
+    if device_model in NESTInputDeviceDict.keys():
+        label = default_params.pop("label", label)
+    else:
+        label = default_params.get("label", label)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
-    label = default_params.pop("label", "")
     try:
         nest_device_id = nest_instance.Create(device_model, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
         nest_device_id = nest_instance.Create(device_model, params=default_params)
-    nest_device = devices_dict[device_model](nest_device_id, nest_instance, label=label)
+    default_params["label"] = label
+    nest_device = devices_dict[device_model](nest_device_id, nest_instance, **default_params)
     if return_nest:
         return nest_device, nest_instance
     else:
@@ -252,7 +265,7 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
 
 
 def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
-                   nest_instance=None, config=CONFIGURED):
+                   nest_instance=None, config=CONFIGURED, **kwargs):
     """This method connects a NESTDevice to a NESTPopulation instance.
        Arguments:
         nest_device: the NESTDevice instance
