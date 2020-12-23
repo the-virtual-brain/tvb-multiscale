@@ -86,14 +86,16 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         """
         from quantities import ms
         from elephant.conversion import BinnedSpikeTrain
+        from elephant.utils import get_common_start_stop_times
         for i_spike_train, spikes_train, in enumerate(spikes_trains):
             spikes_trains[i_spike_train] = self._assert_spike_train(spikes_train)
-        if binsize or num_bins:
-            if binsize:
-                binsize = binsize * ms
-            return BinnedSpikeTrain(spikes_trains, binsize=binsize, num_bins=num_bins)
-        else:
-            return BinnedSpikeTrain(spikes_trains, binsize=self.period * ms)
+        t_start, t_stop = get_common_start_stop_times(spikes_trains)
+        if binsize is not None:
+            binsize = float(binsize) * ms
+            num_bins = None
+        elif num_bins is None:
+            binsize = self.period * ms
+        return BinnedSpikeTrain(spikes_trains, binsize=binsize, num_bins=num_bins, t_start=t_start, t_stop=t_stop)
 
     def _assert_binned_spikes_trains(self, spikes_trains, binsize=None, num_bins=None):
         """Method to assert that the input is of a elephant.conversion.BinnedSpikeTrain data type.
