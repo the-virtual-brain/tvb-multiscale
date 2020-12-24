@@ -65,8 +65,9 @@ ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
-RUN git clone --depth 1 https://github.com/nest/nest-simulator.git; \
-    cd $NEST; \
+RUN git clone https://github.com/nest/nest-simulator.git
+RUN cd $NEST; \
+    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
