@@ -283,7 +283,7 @@ private:
 
     //! Return the number of receptor ports
     inline size_t
-    n_receptors() const
+    n_receptors()  const
     {
       return w_E_ext.size();
     }
@@ -323,47 +323,45 @@ private:
       S_GABA,
 
       // external AMPA synaptic gating variables
-      S_AMPA_EXT,
+      S_AMPA_EXT_0,
 
       STATE_VECTOR_MIN_SIZE
+
     };
 
-    static const size_t NUMBER_OF_FIXED_STATES_ELEMENTS = 5; // V_M, S_AMPA, S_GABA, X_NMDA, S_NMDA
+    static const size_t NUMBER_OF_FIXED_STATES_ELEMENTS = S_AMPA_EXT_0; // 5: V_M, S_AMPA, S_GABA, X_NMDA, S_NMDA
 
-    enum CurrentsElems
+    enum FixedCurrentsElems
     {
       // leak synaptic current
-      I_L = 0,  // current_index = 0
+      I_L = NUMBER_OF_FIXED_STATES_ELEMENTS,  // current_index = 5
 
       // external (stimulation) currents
-      I_E, // current_index = 1
+      I_E, // current_index = 6
 
       // recursive AMPA synaptic current
-      I_AMPA,  // current_index = 2
+      I_AMPA,  // current_index = 7
 
       // recursive NMDA synaptic current
-      I_NMDA, // current_index = 3
+      I_NMDA, // current_index = 8
 
       // recursive GABA synaptic current
-      I_GABA, // current_index = 4
+      I_GABA, // current_index = 9
 
-      // external AMPA synaptic current
-      I_AMPA_EXT // current_index = 5 + receptor
+      FIXED_CURRENTS_ELEMS_END  // 10
 
     };
 
-    static const size_t NUMBER_OF_FIXED_CURRENTS_ELEMENTS = 5;
+    static const size_t NUMBER_OF_FIXED_CURRENTS_ELEMENTS =
+        FIXED_CURRENTS_ELEMS_END - NUMBER_OF_FIXED_STATES_ELEMENTS; // 10 -5 = 5
 
-    enum SpikesElems
+    enum FixedSpikesElems
     {
       // recursive excitatory spikes
-      SPIKES_EXC = 0,  // spike_index = 0
+      SPIKES_EXC = FIXED_CURRENTS_ELEMS_END,  // spike_index = 10
 
       // recursive inhibitory spikes
-      SPIKES_INH,  // spike_index = 1
-
-      // external spikes
-      SPIKES_EXC_EXT // spike_index = 2 + receptor
+      SPIKES_INH  // spike_index = 11
 
     };
 
@@ -372,6 +370,34 @@ private:
     static const size_t NUMBER_OF_TOTAL_FIXED_ELEMENTS = NUMBER_OF_FIXED_STATES_ELEMENTS +
                                                          NUMBER_OF_FIXED_CURRENTS_ELEMENTS +
                                                          NUMBER_OF_FIXED_SPIKES_ELEMENTS; // = 5 + 5 + 2 = 12
+
+    static const size_t NUMBER_OF_ELEMENTS_PER_RECEPTOR = 3 ;
+
+    enum ReceptorElemsStartIndxs
+    {
+        // external AMPA synaptic gating variables
+        S_AMPA_EXT_START = NUMBER_OF_TOTAL_FIXED_ELEMENTS,  // external_index = 12
+
+        // external AMPA synaptic current
+        I_AMPA_EXT_START, // current_index = 13
+
+        // external spikes
+        SPIKES_EXC_EXT_START // spike_index = 14
+    };
+
+    enum ReceptorElemsTypes
+    {
+        // external AMPA synaptic gating variables
+        S_AMPA_EXT_TYP = 0,
+
+        // external AMPA synaptic current
+        I_AMPA_EXT_TYP, // 1
+
+        // external spikes
+        SPIKES_EXC_EXT_TYP //  2
+    };
+
+
 
     std::vector< double > y_; //!< neuron state
     int r_;                   //!< number of refractory steps remaining
@@ -511,52 +537,20 @@ private:
   void insert_external_recordables( size_t first = 0 );
 
   inline size_t recordables_end() {
-    return State_::NUMBER_OF_TOTAL_FIXED_ELEMENTS + 3 * P_.n_receptors();
+    return State_::NUMBER_OF_TOTAL_FIXED_ELEMENTS + State_::NUMBER_OF_ELEMENTS_PER_RECEPTOR * P_.n_receptors();
   }
 
-  inline size_t currents_start() {
-    return State_::NUMBER_OF_FIXED_STATES_ELEMENTS + P_.n_receptors();
-  }
-
-  inline size_t elem_I_L() {
-    return currents_start() + State_::I_L;
-  }
-
-  inline size_t elem_I_E() {
-    return currents_start() + State_::I_E;
-  }
-
-  inline size_t elem_I_AMPA() {
-    return currents_start() + State_::I_AMPA;
-  }
-
-  inline size_t elem_I_NMDA() {
-    return currents_start() + State_::I_NMDA;
-  }
-
-  inline size_t elem_I_GABA() {
-    return currents_start() + State_::I_GABA;
+  inline size_t elem_S_AMPA_EXT(size_t receptor) {
+    return State_::S_AMPA_EXT_START + receptor * State_::NUMBER_OF_ELEMENTS_PER_RECEPTOR ;
   }
 
   inline size_t elem_I_AMPA_EXT(size_t receptor) {
-    return currents_start() + State_::I_AMPA_EXT + receptor ;
+    return State_::I_AMPA_EXT_START + receptor * State_::NUMBER_OF_ELEMENTS_PER_RECEPTOR ;
   }
 
-  inline size_t spikes_start() {
-    return State_::NUMBER_OF_FIXED_STATES_ELEMENTS +
-           State_::NUMBER_OF_FIXED_CURRENTS_ELEMENTS + 2*P_.n_receptors();
-  }
-
-  inline size_t elem_SPIKES_EXC() {
-    return spikes_start() + State_::SPIKES_EXC;
-  }
-
-  inline size_t elem_SPIKES_INH() {
-    return spikes_start() + State_::SPIKES_INH;
-  }
 
   inline size_t elem_SPIKES_EXC_EXT(size_t receptor) {
-    return spikes_start() + State_::SPIKES_EXC_EXT + receptor ;
+    return State_::SPIKES_EXC_EXT_START + receptor * State_::NUMBER_OF_ELEMENTS_PER_RECEPTOR ;
   }
 
   inline double get_I_L() const {
@@ -582,8 +576,7 @@ private:
   }
 
   inline double get_I_AMPA_ext( size_t receptor ) const {
-    // TODO: perhaps add a check about the range of elem?
-    return V_.w_E_ext_g_AMPA_ext[ receptor ] * (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_AMPA_EXT + receptor];
+    return V_.w_E_ext_g_AMPA_ext[ receptor ] * (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_AMPA_EXT_0 + receptor];
   }
 
   inline double get_spikes_exc() {
@@ -608,31 +601,39 @@ private:
   get_state_element( size_t elem )
   {
 
-    if (elem < currents_start())
+    if (elem < State_::NUMBER_OF_FIXED_STATES_ELEMENTS)
     {
         return S_.y_[ elem ];
     }
-    else if (elem < spikes_start())
+    else if (elem < State_::SPIKES_EXC)
     {
-        size_t current_index = elem - currents_start();
-        switch(current_index){
+        switch(elem) {
             case State_::I_L: return get_I_L() ;
             case State_::I_E: return get_I_e() ;
             case State_::I_AMPA: return get_I_AMPA() ;
             case State_::I_NMDA: return get_I_NMDA() ;
             case State_::I_GABA: return get_I_GABA() ;
-                                           // receptor:
-            default: return get_I_AMPA_ext( current_index - State_::I_AMPA_EXT ) ;
+            default: throw nest::BadProperty("Non existent current index!");
+        }
+    }
+    else if (elem < State_::NUMBER_OF_TOTAL_FIXED_ELEMENTS)
+    {
+        switch(elem) {
+            case State_::SPIKES_EXC: return get_spikes_exc() ;
+            case State_::SPIKES_INH: return get_spikes_inh() ;
+            default: throw nest::BadProperty("Non existent spikes' current index!");
         }
     }
     else if (elem < recordables_end())
     {
-        size_t spikes_index = elem - spikes_start();
-        switch(spikes_index){
-            case State_::SPIKES_EXC: return get_spikes_exc() ;
-            case State_::SPIKES_INH: return get_spikes_inh() ;
-                                           // receptor:
-            default: return get_spikes_exc_ext( spikes_index - State_::SPIKES_EXC_EXT ) ;
+        size_t receptor_elem = elem - State_::NUMBER_OF_TOTAL_FIXED_ELEMENTS ;
+        size_t elem_type = receptor_elem % State_::NUMBER_OF_ELEMENTS_PER_RECEPTOR ;
+        size_t receptor = receptor_elem / State_::NUMBER_OF_ELEMENTS_PER_RECEPTOR ;
+        switch(elem_type) {
+            case State_::S_AMPA_EXT_TYP: return S_.y_[ State_::S_AMPA_EXT_0 + receptor ] ;
+            case State_::I_AMPA_EXT_TYP: return get_I_AMPA_ext( receptor ) ;
+            case State_::SPIKES_EXC_EXT_TYP: return get_spikes_exc_ext( receptor ) ;
+            default: throw nest::BadProperty("Non existent receptor element type!");
         }
     }
     else
@@ -662,7 +663,7 @@ iaf_cond_ww_deco::handles_test_event( SpikeEvent&,
 
 {
   if ( receptor_type < 0
-    || receptor_type > static_cast< port >( P_.n_receptors() ) )
+    || receptor_type > static_cast< port >(P_.n_receptors() ) )
   {
     throw IncompatibleReceptorType( receptor_type, get_name(), "SpikeEvent" );
   }
