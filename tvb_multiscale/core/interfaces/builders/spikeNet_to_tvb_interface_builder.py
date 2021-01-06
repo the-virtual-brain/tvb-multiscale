@@ -82,7 +82,7 @@ class SpikeNetToTVBInterfaceBuilder(object):
              raise ValueError("tvb_sv_id=%s doesn't correspond "
                               "to the index of a TVB state variable for interface %s!\n"
                               % (str(interface.tvb_sv_id), str(device_set.name)))
-        interface_index = "%d_%s<%s" % (interface_id, device_set.name, str(list(interface["connections"].values())[0]))
+        interface_index = "%d_%s<-%s" % (interface_id, device_set.name, str(list(interface["connections"].values())[0]))
         spikeNet_to_tvb_interface[interface_index] = \
             self._build_target_class(self.spiking_network, tvb_sv_id, nodes_ids=spiking_nodes,
                                      scale=interface_weights).from_device_set(device_set, device_set.name)

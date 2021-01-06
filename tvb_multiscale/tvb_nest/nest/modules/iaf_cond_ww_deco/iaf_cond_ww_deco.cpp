@@ -73,25 +73,25 @@ DynamicRecordablesMap< iaf_cond_ww_deco >::create(
     host.get_data_access_functor( iaf_cond_ww_deco::State_::S_NMDA ) );
 
   insert( "I_L",
-    host.get_data_access_functor( host.elem_I_L() ) );
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::I_L ) );
 
   insert( "I_e",
-    host.get_data_access_functor( host.elem_I_E() ) );
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::I_E ) );
 
   insert( "I_AMPA",
-    host.get_data_access_functor( host.elem_I_AMPA() ) );
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::I_AMPA ) );
 
   insert( "I_NMDA",
-    host.get_data_access_functor( host.elem_I_NMDA() ) );
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::I_NMDA ) );
 
   insert( "I_GABA",
-    host.get_data_access_functor( host.elem_I_GABA() ) );
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::I_GABA ) );
 
   insert( "spikes_exc",
-    host.get_data_access_functor( host.elem_SPIKES_EXC() ) );
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::SPIKES_EXC ) );
 
   insert( "spikes_inh",
-    host.get_data_access_functor( host.elem_SPIKES_INH() ) ) ;
+    host.get_data_access_functor( iaf_cond_ww_deco::State_::SPIKES_INH ) ) ;
 
   host.insert_external_recordables();
 }
@@ -123,18 +123,27 @@ iaf_cond_ww_deco::get_spikes_receptor_name( size_t receptor )
 void
 iaf_cond_ww_deco::insert_external_recordables( size_t first )
 {
-
-  for ( size_t receptor = first; receptor < P_.w_E_ext.size(); ++receptor )
+//  std::cout << "\nP_.w_E_ext.size()=" << P_.w_E_ext.size() ;
+//  std::cout << "\nthis->P_.w_E_ext.size()=" << this->P_.w_E_ext.size() ;
+//  std::cout << "\nP_.n_receptors()=" << P_.n_receptors() ;
+//  std::cout << "\nthis->P_.n_receptors()=" << this->P_.n_receptors() ;
+  for ( size_t receptor = first; receptor < P_.n_receptors(); ++receptor )
   {
     recordablesMap_.insert(
       get_s_receptor_name( receptor ), this->get_data_access_functor(
-                                                iaf_cond_ww_deco::State_::S_AMPA_EXT + receptor ) );
+                                                this->elem_S_AMPA_EXT(receptor) ) );
+//    std::cout << "\nInserted recordable " << get_s_receptor_name( receptor ) << " at position "
+//        << this->elem_S_AMPA_EXT(receptor) << "!";
     recordablesMap_.insert(
       get_I_receptor_name( receptor ), this->get_data_access_functor(
                                                 this->elem_I_AMPA_EXT( receptor ) ) );
+//    std::cout << "\nInserted recordable " << get_I_receptor_name( receptor ) << " at position "
+//        << this->elem_I_AMPA_EXT( receptor ) << "!";
     recordablesMap_.insert(
       get_spikes_receptor_name( receptor ), this->get_data_access_functor(
                                                 this->elem_SPIKES_EXC_EXT( receptor ) ) );
+//    std::cout << "\nInserted recordable " << get_spikes_receptor_name( receptor ) << " at position "
+//        << this->elem_SPIKES_EXC_EXT( receptor ) << "!";
   }
 }
 
@@ -182,8 +191,8 @@ iaf_cond_ww_deco_dynamics( double,
   double I_AMPA_ext = 0.0;
   for ( size_t receptor = 0; receptor < node.P_.n_receptors(); ++receptor )
   {
-    I_AMPA_ext += node.V_.w_E_ext_g_AMPA_ext[receptor] * V_m_minus_E_ex * y[S::S_AMPA_EXT + receptor];
-    f[S::S_AMPA_EXT + receptor] = y[S::S_AMPA_EXT + receptor] / node.V_.minus_tau_decay_AMPA;
+    I_AMPA_ext += node.V_.w_E_ext_g_AMPA_ext[receptor] * V_m_minus_E_ex * y[S::S_AMPA_EXT_0 + receptor];
+    f[S::S_AMPA_EXT_0 + receptor] = y[S::S_AMPA_EXT_0 + receptor] / node.V_.minus_tau_decay_AMPA;
   }
 
   // dv/dt
@@ -485,7 +494,7 @@ iaf_cond_ww_deco::State_::get( DictionaryDatum& d ) const
         i < ( y_.size() - State_::NUMBER_OF_FIXED_STATES_ELEMENTS );
         ++i )
   {
-    s_AMPA_ext->push_back( y_[ State_::S_AMPA_EXT + i ] );
+    s_AMPA_ext->push_back( y_[ State_::S_AMPA_EXT_0 + i ] );
   }
 
   ( *d )[ "s_AMPA_ext" ] = DoubleVectorDatum( s_AMPA_ext );
@@ -505,17 +514,6 @@ iaf_cond_ww_deco::State_::set( const DictionaryDatum& d )
   updateValue< double >( d, "s_GABA", y_[ S_GABA ] );
   updateValue< double >( d, "s_NMDA", y_[ S_NMDA ] );
   updateValue< double >( d, "x_NMDA", y_[ X_NMDA ] );
-
-// TODO: find out how to do this setting...
-//  std::vector< double >* s_AMPA_ext = new std::vector< double >();
-//
-//  for ( size_t i = 0;
-//        i < ( y_.size() - State_::NUMBER_OF_FIXED_STATES_ELEMENTS );
-//        ++i )
-//  {
-//    s_AMPA_ext->push_back( y_[ State_::S_AMPA_EXT + i  ] );
-//  }
-//  updateValue< double >( d, "s_AMPA_ext", DoubleVectorDatum( s_AMPA_ext ) );
 }
 
 iaf_cond_ww_deco::Buffers_::Buffers_(
@@ -763,10 +761,10 @@ iaf_cond_ww_deco::update( Time const& origin,
 
       for ( size_t i = 0; i < P_.n_receptors(); ++i )
       {
-        S_.y_[ State_::S_AMPA_EXT + i ] = ( S_.y_[ State_::S_AMPA_EXT + i ] < 0.0 )
-                                           ? 0.0 : S_.y_[ State_::S_AMPA_EXT + i ];
-        S_.y_[ State_::S_AMPA_EXT + i ] = ( S_.y_[ State_::S_AMPA_EXT + i ] > P_.s_AMPA_ext_max[ i ] )
-                                          ? P_.s_AMPA_ext_max[ i ] : S_.y_[ State_::S_AMPA_EXT + i ];
+        S_.y_[ State_::S_AMPA_EXT_0 + i ] = ( S_.y_[ State_::S_AMPA_EXT_0 + i ] < 0.0 )
+                                            ? 0.0 : S_.y_[ State_::S_AMPA_EXT_0 + i ];
+        S_.y_[ State_::S_AMPA_EXT_0 + i ] = ( S_.y_[ State_::S_AMPA_EXT_0 + i ] > P_.s_AMPA_ext_max[ i ] )
+                                            ? P_.s_AMPA_ext_max[ i ] : S_.y_[ State_::S_AMPA_EXT_0 + i ];
       }
 
       if ( S_.r_ > 0 ) // if neuron is still in refractory period
@@ -811,7 +809,7 @@ iaf_cond_ww_deco::update( Time const& origin,
        // add incoming spike:
       temp_spike = B_.spikesExc_ext[ i ].get_value( lag );
       B_.spikes_exc_ext[ i ] += temp_spike;
-      S_.y_[ State_::S_AMPA_EXT + i ] += temp_spike;
+      S_.y_[ State_::S_AMPA_EXT_0 + i ] += temp_spike;
     }
     // set new input current
     B_.I_e = B_.currents.get_value( lag );
@@ -832,13 +830,11 @@ iaf_cond_ww_deco::handle( SpikeEvent& e )
   // Ignore spikes if weight = 0
   if (e.get_rport() == 0) {  // these are excitatory and inhibitory spikes internal to the population
     if (weight > 0) {
-//        std::cout << "\nReceived spikesExc[" <<
-//            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ) << "]=" << weight << "!";
+//        std::cout << "\nReceived spikesExc = " << weight << "!";
         B_.spikesExc.add_value(
             e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), weight );
     } else if (weight < 0) {  // make sure that weight is always positive for conductance synapses
-//        std::cout << "\nReceived spikesInh[" <<
-//            e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ) << "]=" << weight << "!";
+//        std::cout << "\nReceived spikesInh = " << weight << "!";
         B_.spikesInh.add_value(
             e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), -weight );
     }
@@ -900,13 +896,19 @@ iaf_cond_ww_deco::set_status( const DictionaryDatum& d )
     {
       recordablesMap_.insert(
         get_s_receptor_name( receptor ), get_data_access_functor(
-                                            iaf_cond_ww_deco::State_::S_AMPA_EXT + receptor ) );
+                                            iaf_cond_ww_deco::elem_S_AMPA_EXT(receptor) ) );
+//      std::cout << "\nAdded recordable " << get_s_receptor_name( receptor ) << "!"" at position "
+//        << iaf_cond_ww_deco::elem_S_AMPA_EXT(receptor) << "!";
       recordablesMap_.insert(
         get_I_receptor_name( receptor ), get_data_access_functor(
-                                            elem_I_AMPA_EXT( receptor ) ) );
+                                            elem_I_AMPA_EXT(receptor) ) );
+//      std::cout << "\nAdded recordable " << get_I_receptor_name( receptor ) << " at position "
+//        << elem_I_AMPA_EXT(receptor) << "!";
       recordablesMap_.insert(
         get_spikes_receptor_name( receptor ), get_data_access_functor(
-                                                elem_SPIKES_EXC_EXT( receptor ) ) );
+                                             iaf_cond_ww_deco::elem_SPIKES_EXC_EXT(receptor) ) );
+//      std::cout << "\nAdded recordable " << get_spikes_receptor_name( receptor ) << " at position "
+//        << iaf_cond_ww_deco::elem_SPIKES_EXC_EXT(receptor) << "!";
     }
   }
   else if ( ptmp.w_E_ext.size() < P_.w_E_ext.size() )
