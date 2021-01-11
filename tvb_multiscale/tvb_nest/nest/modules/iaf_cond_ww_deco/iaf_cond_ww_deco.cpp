@@ -123,27 +123,17 @@ iaf_cond_ww_deco::get_spikes_receptor_name( size_t receptor )
 void
 iaf_cond_ww_deco::insert_external_recordables( size_t first )
 {
-//  std::cout << "\nP_.w_E_ext.size()=" << P_.w_E_ext.size() ;
-//  std::cout << "\nthis->P_.w_E_ext.size()=" << this->P_.w_E_ext.size() ;
-//  std::cout << "\nP_.n_receptors()=" << P_.n_receptors() ;
-//  std::cout << "\nthis->P_.n_receptors()=" << this->P_.n_receptors() ;
   for ( size_t receptor = first; receptor < P_.n_receptors(); ++receptor )
   {
     recordablesMap_.insert(
       get_s_receptor_name( receptor ), this->get_data_access_functor(
                                                 this->elem_S_AMPA_EXT(receptor) ) );
-//    std::cout << "\nInserted recordable " << get_s_receptor_name( receptor ) << " at position "
-//        << this->elem_S_AMPA_EXT(receptor) << "!";
     recordablesMap_.insert(
       get_I_receptor_name( receptor ), this->get_data_access_functor(
                                                 this->elem_I_AMPA_EXT( receptor ) ) );
-//    std::cout << "\nInserted recordable " << get_I_receptor_name( receptor ) << " at position "
-//        << this->elem_I_AMPA_EXT( receptor ) << "!";
     recordablesMap_.insert(
       get_spikes_receptor_name( receptor ), this->get_data_access_functor(
                                                 this->elem_SPIKES_EXC_EXT( receptor ) ) );
-//    std::cout << "\nInserted recordable " << get_spikes_receptor_name( receptor ) << " at position "
-//        << this->elem_SPIKES_EXC_EXT( receptor ) << "!";
   }
 }
 
@@ -205,7 +195,6 @@ iaf_cond_ww_deco_dynamics( double,
   f[S::X_NMDA] = y[S::X_NMDA] / node.V_.minus_tau_rise_NMDA ;
   f[S::S_NMDA] = y[S::S_NMDA] / node.V_.minus_tau_decay_NMDA +
                        node.P_.alpha * y[S::X_NMDA] * (1 - node.P_.epsilon * y[S::S_NMDA]);
-
 
   return GSL_SUCCESS;
 }
@@ -897,18 +886,12 @@ iaf_cond_ww_deco::set_status( const DictionaryDatum& d )
       recordablesMap_.insert(
         get_s_receptor_name( receptor ), get_data_access_functor(
                                             iaf_cond_ww_deco::elem_S_AMPA_EXT(receptor) ) );
-//      std::cout << "\nAdded recordable " << get_s_receptor_name( receptor ) << "!"" at position "
-//        << iaf_cond_ww_deco::elem_S_AMPA_EXT(receptor) << "!";
       recordablesMap_.insert(
         get_I_receptor_name( receptor ), get_data_access_functor(
                                             elem_I_AMPA_EXT(receptor) ) );
-//      std::cout << "\nAdded recordable " << get_I_receptor_name( receptor ) << " at position "
-//        << elem_I_AMPA_EXT(receptor) << "!";
       recordablesMap_.insert(
         get_spikes_receptor_name( receptor ), get_data_access_functor(
                                              iaf_cond_ww_deco::elem_SPIKES_EXC_EXT(receptor) ) );
-//      std::cout << "\nAdded recordable " << get_spikes_receptor_name( receptor ) << " at position "
-//        << iaf_cond_ww_deco::elem_SPIKES_EXC_EXT(receptor) << "!";
     }
   }
   else if ( ptmp.w_E_ext.size() < P_.w_E_ext.size() )
