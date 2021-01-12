@@ -174,7 +174,7 @@ iaf_cond_ww_deco_dynamics( double,
   const double I_L = node.P_.g_L * V_m - node.V_.g_L_E_L;
   const double I_AMPA = node.V_.w_E_g_AMPA * V_m_minus_E_ex * y[S::S_AMPA];
   const double I_GABA = node.V_.w_I_g_GABA_A * (V_m - node.P_.E_in) * y[S::S_GABA];
-  const double I_NMDA = node.V_.w_E_g_NMDA /
+  const double I_NMDA = node.V_.w_E_N_E_g_NMDA /
                             ( 1 + node.P_.lambda_NMDA * std::exp(node.V_.minus_beta * V_m ) )*
                              V_m_minus_E_ex * y[S::S_NMDA];
 
@@ -194,7 +194,7 @@ iaf_cond_ww_deco_dynamics( double,
   f[S::S_GABA] = y[S::S_GABA] / node.V_.minus_tau_decay_GABA_A ;
   f[S::X_NMDA] = y[S::X_NMDA] / node.V_.minus_tau_rise_NMDA ;
   f[S::S_NMDA] = y[S::S_NMDA] / node.V_.minus_tau_decay_NMDA +
-                       node.P_.alpha * y[S::X_NMDA] * (1 - node.P_.epsilon * y[S::S_NMDA]);
+                       node.V_.alpha_N_E * y[S::X_NMDA] * (1 - node.P_.epsilon * y[S::S_NMDA]);
 
   return GSL_SUCCESS;
 }
@@ -640,7 +640,8 @@ iaf_cond_ww_deco::calibrate()
   V_.minus_tau_decay_NMDA = - P_.tau_decay_NMDA;
 
   V_.w_E_g_AMPA = P_.w_E * P_.g_AMPA;
-  V_.w_E_g_NMDA = P_.w_E * P_.g_NMDA;
+  V_.w_E_N_E_g_NMDA = P_.w_E * P_.N_E * P_.g_NMDA;
+  V_.alpha_N_E = P_.alpha / P_.N_E;
   V_.w_I_g_GABA_A = P_.w_I * P_.g_GABA_A;
   // w_E_ext_g_AMPA_ext will be initialized in the loop below:
   V_.w_E_ext_g_AMPA_ext.resize(P_.n_receptors(), 0.0);
