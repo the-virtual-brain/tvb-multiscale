@@ -82,13 +82,14 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         # arguments (region_index=None) returning the corresponding property
         self.N_E = int(self.population_order * self.scale_e)
         self.N_I = int(self.population_order * self.scale_i)
+        self.epsilon = 1.0  # /self.N_E
 
         common_params = {
             "V_th": self.V_th, "V_reset": self.V_reset, "E_L": self.E_L, "E_ex": self.E_ex, "E_in": self.E_in,
             "tau_decay_AMPA": self.tau_decay_AMPA, "tau_decay_GABA_A": self.tau_decay_GABA,
             "tau_decay_NMDA": self.tau_decay_NMDA, "tau_rise_NMDA": self.tau_rise_NMDA,
             "s_AMPA_ext_max": self.N_E * np.ones((self.number_of_nodes,)).astype("f"),
-            "N_E": self.N_E, "N_I": self.N_I
+            "N_E": self.N_E, "N_I": self.N_I, "epsilon": self.epsilon
         }
         params_E = {
                     "C_m": self.C_m_ex, "g_L": self.g_L_ex, "t_ref": self.t_ref_ex,
@@ -112,14 +113,14 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.nodes_conns_EE = {"weight": 1.0}
         self.nodes_conns_EI = {"weight": 1.0}
 
-        record_from = ["V_m",
-                       "s_AMPA", "x_NMDA", "s_NMDA", "s_GABA",
-                       "I_AMPA", "I_NMDA", "I_GABA", "I_L", "I_e",
-                       "spikes_exc", "spikes_inh"]
+        record_from = ["V_m", "I_L", "I_e",
+                       "spikes_exc", "s_AMPA", "I_AMPA",
+                       "x_NMDA", "s_NMDA", "I_NMDA",
+                       "spikes_inh", "s_GABA", "I_GABA"]
         for i_node in range(self.number_of_nodes):
+            record_from.append("spikes_exc_ext_%d" % i_node)
             record_from.append("s_AMPA_ext_%d" % i_node)
             record_from.append("I_AMPA_ext_%d" % i_node)
-            record_from.append("spikes_exc_ext_%d" % i_node)
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["record_from"] = record_from
         params["record_to"] = self.output_devices_record_to
