@@ -128,24 +128,25 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         interface["neurons_inds"] = neurons_inds
         interface["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in target_nodes]
         # Generate the devices => "proxy TVB nodes":
-        device_set = self.build_and_connect_devices([interface], self.spiking_network.brain_regions)[0]
+        device_sets = self.build_and_connect_devices([interface], self.spiking_network.brain_regions)
         tvb_to_spikeNet_interface = Series()
-        try:
-            # The TVB state variable index linked to the interface to build
-            tvb_sv_id = self.tvb_model.state_variables.index(device_set.name)
-        except:
-            raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
-        try:
-            interface_builder = self._available_input_device_interfaces[device_set.model]
-        except:
-            raise_value_error("Interface model %s is not supported yet!" % device_set.model)
-        interface_index = "%d_%s->%s" % (interface_id, device_set.name, str(list(interface["connections"].values())[0]))
-        tvb_to_spikeNet_interface[interface_index] = \
-            interface_builder(self.spiking_network,
-                              nodes_ids=source_tvb_nodes,
-                              target_nodes=target_nodes,
-                              scale=interface_weights,
-                              dt=self.tvb_dt).from_device_set(device_set, tvb_sv_id, device_set.name)
+        for device_set, target_spiking_pops in zip(device_sets, list(interface["connections"].values())):
+            try:
+                # The TVB state variable index linked to the interface to build
+                tvb_sv_id = self.tvb_model.state_variables.index(device_set.name)
+            except:
+                raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
+            try:
+                interface_builder = self._available_input_device_interfaces[device_set.model]
+            except:
+                raise_value_error("Interface model %s is not supported yet!" % device_set.model)
+            interface_index = "%d_%s->%s" % (interface_id, device_set.name, str(target_spiking_pops))
+            tvb_to_spikeNet_interface[interface_index] = \
+                interface_builder(self.spiking_network,
+                                  nodes_ids=source_tvb_nodes,
+                                  target_nodes=target_nodes,
+                                  scale=interface_weights,
+                                  dt=self.tvb_dt).from_device_set(device_set, tvb_sv_id, device_set.name)
         return tvb_to_spikeNet_interface
 
     def build(self):
