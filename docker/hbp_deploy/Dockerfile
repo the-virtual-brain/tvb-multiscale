@@ -51,8 +51,15 @@ ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
 ENV NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
+
+RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
+    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
+    cd tvb_data; \
+    python setup.py develop
+
 RUN git clone https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
+    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
     cmake -DCMAKE_INSTALL_PREFIX=$NEST_INSTALL_DIR \
     -Dwith-mpi=ON  \
 #    -Dwith-libneurosim=$VENV \
@@ -64,6 +71,7 @@ RUN cd $NEST; \
 
 USER root
 RUN apt-get update; apt-get install -y gfortran # lvm-7-dev
+RUN chown $NB_UID:$NB_UID -R $HOME/packages
 USER $NB_UID
 
 # Install TVB specific packages
@@ -73,11 +81,6 @@ RUN pip install pandas xarray pytest pytest-cov pytest-benchmark oct2py elephant
     pip install scikit-learn scipy
 RUN conda install -y matplotlib==3.2.2
 RUN conda install -y numba
-
-RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
-    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
-    cd tvb_data; \
-    python setup.py develop
 
 WORKDIR $HOME/packages
 RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
@@ -137,6 +140,7 @@ ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-NEST-Examples
 RUN mkdir -m777 $WORK_DIR
 RUN mkdir -m777 $TVB_NEST_Examples
 RUN cp -r /home/jovyan/packages/tvb-multiscale/docs/documented_example_notebooks $TVB_NEST_Examples
+RUN cp -r /home/jovyan/packages/tvb-multiscale/docs/VirtualCourse_2021-01-07 $TVB_NEST_Examples
 RUN cp -r /home/jovyan/packages/tvb-multiscale/examples $TVB_NEST_Examples
 RUN chmod -R 777 $WORK_DIR
 RUN chmod -R 777 $MYMODULES_BLD_DIR
