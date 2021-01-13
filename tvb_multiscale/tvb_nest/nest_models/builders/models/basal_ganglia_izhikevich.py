@@ -57,6 +57,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.Istr_nodes_ids = [6, 7]
 
         self.scaleBGoptTOtvb = 0.00205875
+        self.global_coupling_scaling = self.scaleBGoptTOtvb
 
         self.Estn_stim = {"rate": 500.0, "weight": 0.009}
         self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
@@ -116,11 +117,6 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                      "receptor_type": 0, "nodes": pop["nodes"]})
 
     def set_nodes_connections(self):
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.scaleBGoptTOtvb  # self.tvb_simulator.coupling.a[0].item()
-        # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
-        # self.global_coupling_scaling *= self.tvb_simulator.model.G[0].item()
-
         # Inter-regions'-nodes' connections
         self.nodes_connections = []
         for src_pop, trg_pop, src_nodes, trg_nodes in \
