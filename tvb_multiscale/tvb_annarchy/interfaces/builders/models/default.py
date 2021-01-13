@@ -24,9 +24,6 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
         self.N_E = populations_sizes[0]
         self.N_I = populations_sizes[1]
 
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
-
     # By default we choose weights and delays with a random jitter around TVB ones!
 
     def tvb_weight_fun(self, source_node, target_node, scale=None):

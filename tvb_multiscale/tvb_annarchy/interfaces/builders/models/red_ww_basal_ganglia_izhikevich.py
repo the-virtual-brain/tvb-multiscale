@@ -20,8 +20,9 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
         super(RedWWexcIOBuilder, self).__init__(tvb_simulator, annarchy_network, annarchy_nodes_ids, exclusive_nodes,
                                                 tvb_to_annarchy_interfaces, annarchy_to_tvb_interfaces)
         self.populations_sizes = populations_sizes
-        self.G = self.tvb_simulator.model.G[0].item()
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item() * self.G
+        self.G = self.tvb_serial_sim["model.G"][0].item()
+        self.J_N = self.tvb_serial_sim["model.J_N"][0].item()
+        self.global_coupling_scaling *= self.G
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
@@ -33,7 +34,7 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
 
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in ANNarchy:
         self.w_tvb_to_spike_rate = 1.0
-        self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
+        self.w_tvb_to_current = 1000 * self.J_N  # (nA of TVB -> pA of NEST)
         # We return from a ANNarchy SpikeMonitor the ratio number_of_population_spikes / number_of_population_neurons
         # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
         # as long as a neuron cannot fire twice during a TVB time step, i.e.,
