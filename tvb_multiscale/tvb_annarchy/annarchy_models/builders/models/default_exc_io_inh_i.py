@@ -31,9 +31,6 @@ class DefaultExcIOInhIBuilder(ANNarchyModelBuilder):
         self.d_ie = 1.0
         self.d_ii = 1.0
 
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
-
         self.params_E = {}
         self.params_I = {}
         self.pop_conns_EE = {}
@@ -126,7 +123,7 @@ class DefaultExcIOInhIBuilder(ANNarchyModelBuilder):
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
 
-    def tvb_weight(self, source_node, target_node, scale=None):
+    def tvb_weight_fun(self, source_node, target_node, scale=None):
         if scale is None:
             scale = self.global_coupling_scaling
         return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale)
@@ -139,7 +136,7 @@ class DefaultExcIOInhIBuilder(ANNarchyModelBuilder):
             {"source": "E", "target": ["E", "I"],
              "synapse_model": self.default_nodes_connection["synapse_model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": self.tvb_weight,
+             "weight": self.tvb_weight_fun,
              "delay": self.tvb_delay_fun,
              # Each region emits spikes in its own port:
              "receptor_type": "exc", "source_nodes": None, "target_nodes": None}  # None means "all"

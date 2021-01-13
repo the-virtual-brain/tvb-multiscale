@@ -26,8 +26,9 @@ class TVBWeightFun(object):
 
 class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, annarchy_instance, config)
+    def __init__(self, tvb_simulator, annarchy_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, annarchy_nodes_ids,
+                                                            annarchy_instance, config)
         self.default_population["model"] = Izhikevich_Hamker
 
         # Common order of neurons' number per population:
@@ -54,6 +55,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
         self.Istr_nodes_ids = [6, 7]
 
         self.scaleBGoptTOtvb = 0.00205875
+        self.global_coupling_scaling = self.scaleBGoptTOtvb
 
         # Create a spike stimulus input device
         # When TVB is connected, we don't need any baseline stimulus
@@ -118,12 +120,6 @@ class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
                      "receptor_type": "gaba", "nodes": pop["nodes"]})
 
     def set_nodes_connections(self):
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.scaleBGoptTOtvb
-        # self.global_coupling_scaling = tvb_simulator.coupling.a[0].item()
-        # # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
-        # self.global_coupling_scaling *= tvb_simulator.model.G[0].item()
-
         # Inter-regions'-nodes' connections
         self.nodes_connections = []
         for src_pop, trg_pop, src_nodes, trg_nodes in \
