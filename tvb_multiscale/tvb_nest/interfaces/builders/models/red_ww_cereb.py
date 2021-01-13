@@ -16,8 +16,9 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         super(RedWWexcIOBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.populations_sizes = populations_sizes
-        self.G = self.tvb_simulator.model.G[0].item()
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item() * self.G
+
+        self.G = self.tvb_serial_sim["model.G"][0].item()
+        self.global_coupling_scaling *= self.G
 
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1.0

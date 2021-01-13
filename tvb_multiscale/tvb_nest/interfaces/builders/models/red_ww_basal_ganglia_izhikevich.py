@@ -18,8 +18,9 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         super(RedWWexcIOBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.populations_sizes = populations_sizes
-        self.G = self.tvb_simulator.model.G[0].item()
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item() * self.G
+
+        self.G = self.tvb_serial_sim["model.G"][0].item()
+        self.global_coupling_scaling *= self.G
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]

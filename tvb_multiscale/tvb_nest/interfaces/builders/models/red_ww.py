@@ -13,10 +13,11 @@ class RedWWexcIOBuilder(DefaultMultiSynapseInterfaceBuilder):
         super(RedWWexcIOBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces, populations_sizes)
 
-        self.G = self.tvb_simulator.model.G[0].item()
+        self.G = self.tvb_serial_sim["model.G"][0].item()
+        self.J_N = self.tvb_serial_sim["model.J_N"][0].item()
         self.global_coupling_scaling *= self.G
 
-        self.w_tvb_to_current = 1000 * self.tvb_model.J_N[0]  # (nA of TVB -> pA of NEST)
+        self.w_tvb_to_current = 1000 * self.J_N  # (nA of TVB -> pA of NEST)
         # WongWang model parameter r is in Hz, just like poisson_generator assumes in NEST:
         self.w_tvb_to_spike_rate = 1.0
         # We return from a NEST spike_detector the ratio number_of_population_spikes / number_of_population_neurons
@@ -68,7 +69,7 @@ class RedWWexcIOinhIBuilder(RedWWexcIOBuilder):
         super(RedWWexcIOinhIBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                     tvb_to_nest_interfaces, nest_to_tvb_interfaces, populations_sizes)
 
-        self.lamda = self.tvb_model.lamda[0].item()
+        self.lamda = self.tvb_serial_sim["model.lamda"][0].item()
 
     # No random jitter to weights and delays by default for this model
 

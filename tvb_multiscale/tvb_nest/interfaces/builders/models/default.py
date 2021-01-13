@@ -23,9 +23,6 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
         self.N_E = populations_sizes[0]
         self.N_I = populations_sizes[1]
 
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
-
     # By default we choose weights and delays with a random jitter around TVB ones!
 
     def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
@@ -35,7 +32,7 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         if low is None:
-            low = self.tvb_simulator.integrator.dt
+            low = self.tvb_dt
         if high is None:
             high = 2*low
         return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
