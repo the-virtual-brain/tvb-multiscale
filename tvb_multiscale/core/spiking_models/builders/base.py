@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+import os
 from abc import ABCMeta, abstractmethod
 from six import string_types
 from collections import OrderedDict
@@ -6,6 +8,7 @@ import numpy as np
 from pandas import Series
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
+from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
@@ -39,7 +42,7 @@ class SpikingModelBuilder(object):
     population_order = 100
 
     # User inputs:
-    tvb_simulator = None
+    tvb_serial_sim = None
     spiking_nodes_ids = []
     populations = []
     populations_connections = []
@@ -59,12 +62,14 @@ class SpikingModelBuilder(object):
     _spiking_brain = SpikingBrain()
     _models = []
 
-    def __init__(self, tvb_simulator, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
+    def __init__(self, tvb_serial_sim, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
+        if isinstance(tvb_serial_sim, os.PathLike):
+            self.tvb_serial_sim = load_serial_tvb_simulator(tvb_serial_sim)
+        elif not isinstance(tvb_serial_sim, dict):
+            self.tvb_serial_sim = serialize_tvb_simulator(tvb_serial_sim)
         self.config = config
         self.logger = logger
         self.spiking_nodes_ids = np.unique(spiking_nodes_ids)
-        self.tvb_simulator = tvb_simulator
-
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
@@ -86,9 +91,12 @@ class SpikingModelBuilder(object):
         self.default_devices_connection["delay"] = self.default_min_delay
         self.default_devices_connection["nodes"] = None
 
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+        self.global_coupling_scaling = self.tvb_serial_sim["coupling.a"][0].item()
+
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
-        self.monitor_period = tvb_simulator.monitors[-1].period
+        self.monitor_period = self.tvb_serial_sim["monitor.period"]
         self.population_order = 100
         self._models = []
         self._spiking_brain = SpikingBrain()
@@ -169,32 +177,32 @@ class SpikingModelBuilder(object):
         pass
 
     @property
-    def tvb_model(self):
-        return self.tvb_simulator.model
+    def tvb_dt(self):
+        return self.tvb_serial_sim["integrator.dt"]
 
     @property
-    def tvb_connectivity(self):
-        return self.tvb_simulator.connectivity
+    def tvb_model(self):
+        return self.tvb_serial_sim["model"]
+
+    @property
+    def number_of_regions(self):
+        return self.tvb_serial_sim["connectivity.number_of_regions"]
+
+    @property
+    def region_labels(self):
+        return self.tvb_serial_sim["connectivity.region_labels"]
 
     @property
     def tvb_weights(self):
-        return self.tvb_simulator.connectivity.weights
+        return self.tvb_serial_sim["connectivity.weights"]
 
     @property
     def tvb_delays(self):
-        return self.tvb_simulator.connectivity.delays
-
-    @property
-    def tvb_dt(self):
-        return self.tvb_simulator.integrator.dt
-
-    @property
-    def number_of_nodes(self):
-        return self.tvb_connectivity.number_of_regions
+        return self.tvb_serial_sim["connectivity.delays"]
 
     @property
     def number_of_spiking_nodes(self):
-        return np.maximum(len(self.spiking_nodes_ids), 1)
+        return len(self.spiking_nodes_ids)
 
     # The methods below are used in order to return the builder's properties
     # per spiking node or spiking nodes' connection
@@ -204,14 +212,14 @@ class SpikingModelBuilder(object):
         if len(self._spiking_nodes_labels) == self.number_of_spiking_nodes:
             return self._spiking_nodes_labels
         else:
-            return self.tvb_connectivity.region_labels[self.spiking_nodes_ids]
+            return self.region_labels[self.spiking_nodes_ids]
 
     def _population_property_per_node(self, property):
         output = OrderedDict()
         for population in self.populations:
             output[population["label"]] = property_per_node(population[property],
                                                             population.get("nodes", self.spiking_nodes_ids),
-                                                            self.tvb_connectivity.region_labels)
+                                                            self.region_labels)
         return output
 
     @property
@@ -254,7 +262,7 @@ class SpikingModelBuilder(object):
         for conn in connections:
             output[self._connection_label(conn)] = \
                 property_per_node(conn[property], conn.get("nodes", self.spiking_nodes_ids),
-                                  self.tvb_connectivity.region_labels)
+                                  self.region_labels)
         return output
 
     def _population_connection_property_per_node(self, property):
@@ -295,7 +303,7 @@ class SpikingModelBuilder(object):
                 property_per_nodes_connection(conn[property],
                                               conn.get("source_nodes", self.spiking_nodes_ids),
                                               conn.get("target_nodes", self.spiking_nodes_ids),
-                                              self.spiking_nodes_ids, self.tvb_connectivity.region_labels)
+                                              self.spiking_nodes_ids, self.region_labels)
         return output
 
     @property
@@ -442,7 +450,6 @@ class SpikingModelBuilder(object):
                 this_pop = "%s_nodes" % pop
                 if connections[this_pop] is None:
                     _nodes_connections[i_conn][this_pop] = self.spiking_nodes_ids
-        self.tvb_connectivity.configure()
         self._nodes_connections = _nodes_connections
         return self._nodes_connections
 
