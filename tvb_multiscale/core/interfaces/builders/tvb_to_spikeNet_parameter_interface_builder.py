@@ -19,17 +19,21 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
     interface = []
     spiking_nodes = Series()
     tvb_nodes_ids = []
+    tvb_model_state_variables = []
+    tvb_model_cvar = []
     spiking_nodes_ids = []
     exclusive_nodes = False
     config = CONFIGURED
 
     def __init__(self, interfaces, spiking_network, spiking_nodes_ids,
-                 tvb_nodes_ids, tvb_model, exclusive_nodes=False, config=CONFIGURED):
+                 tvb_nodes_ids, tvb_model_state_variables, tvb_model_cvar,
+                 exclusive_nodes=False, config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
         self.spiking_nodes_ids = ensure_list(spiking_nodes_ids)
         self.tvb_nodes_ids = tvb_nodes_ids
-        self.tvb_model = tvb_model
+        self.tvb_model_state_variables = tvb_model_state_variables
+        self.tvb_model_cvar = tvb_model_cvar
         self.exclusive_nodes = exclusive_nodes
         self.config = config
 
@@ -63,8 +67,8 @@ class TVBtoSpikeNetParameterInterfaceBuilder(object):
         tvb_to_spikeNet_interfaces = Series()
         for name, target_spiking_pops in connections.items():
             try:
-                tvb_coupling_id = self.tvb_model.cvar.tolist().index(
-                    self.tvb_model.state_variables.index(name))
+                tvb_coupling_id = self.tvb_model_cvar.index(
+                    self.tvb_model_state_variables.index(name))
             except:
                 raise_value_error("Failed to compute the coupling index of TVB state variable %s!" % name)
             interface_index = "%d_%s->%s" % (interface_id, name, str(target_spiking_pops))

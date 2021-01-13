@@ -20,17 +20,17 @@ class SpikeNetToTVBInterfaceBuilder(object):
     spiking_nodes = Series()
     spiking_nodes_ids = []
     tvb_nodes_ids = []
-    tvb_model = None
+    tvb_model_state_variables = []
     exclusive_nodes = False
     config = CONFIGURED
 
     def __init__(self, interfaces, spiking_network, spiking_nodes_ids,
-                 tvb_nodes_ids, tvb_model, exclusive_nodes=False, config=CONFIGURED):
+                 tvb_nodes_ids, tvb_model_state_variables, exclusive_nodes=False, config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
         self.spiking_nodes_ids = spiking_nodes_ids
         self.tvb_nodes_ids = tvb_nodes_ids
-        self.tvb_model = tvb_model
+        self.tvb_model_state_variables = tvb_model_state_variables
         self.exclusive_nodes = exclusive_nodes
         self.config = config
 
@@ -77,7 +77,7 @@ class SpikeNetToTVBInterfaceBuilder(object):
         for device_set, source_spiking_pops in zip(device_sets, list(interface["connections"].values())):
             try:
                 # The index of the TVB state variable that is targeted
-                tvb_sv_id = self.tvb_model.state_variables.index(device_set.name)
+                tvb_sv_id = self.tvb_model_state_variables.index(device_set.name)
             except:
                 # tvb_sv_id = None  # DEPRECATED!: it might be a TVB parameter, not a state variable
                  raise ValueError("tvb_sv_id=%s doesn't correspond "

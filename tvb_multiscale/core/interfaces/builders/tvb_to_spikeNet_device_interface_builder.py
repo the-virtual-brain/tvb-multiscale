@@ -20,7 +20,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
     spiking_nodes = Series()
     tvb_nodes_ids = []
     spiking_nodes_ids = []
-    tvb_model = None
+    tvb_model_state_variables = []
     tvb_weights = None
     tvb_delays = None
     tvb_dt = 0.1
@@ -36,13 +36,13 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
     default_connection = {}
 
     def __init__(self, interfaces, spiking_network, spiking_nodes_ids,
-                 tvb_nodes_ids, tvb_model, tvb_weights, tvb_delays, node_labels, tvb_dt, exclusive_nodes=False,
+                 tvb_nodes_ids, tvb_model_state_variables, tvb_weights, tvb_delays, node_labels, tvb_dt, exclusive_nodes=False,
                  config=CONFIGURED):
         self.interfaces = interfaces
         self.spiking_network = spiking_network
         self.spiking_nodes_ids = spiking_nodes_ids
         self.tvb_nodes_ids = tvb_nodes_ids
-        self.tvb_model = tvb_model
+        self.tvb_model_state_variables = tvb_model_state_variables
         self.tvb_weights = tvb_weights
         self.tvb_delays = tvb_delays
         self.node_labels = node_labels
@@ -133,7 +133,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         for device_set, target_spiking_pops in zip(device_sets, list(interface["connections"].values())):
             try:
                 # The TVB state variable index linked to the interface to build
-                tvb_sv_id = self.tvb_model.state_variables.index(device_set.name)
+                tvb_sv_id = self.tvb_model_state_variables.index(device_set.name)
             except:
                 raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
             try:
