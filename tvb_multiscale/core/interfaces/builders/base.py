@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from pandas import Series
 import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
+from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
 from tvb_multiscale.core.interfaces.builders.tvb_to_spikeNet_device_interface_builder import \
     TVBtoSpikeNetDeviceInterfaceBuilder
 from tvb_multiscale.core.interfaces.builders.tvb_to_spikeNet_parameter_interface_builder import \
@@ -13,7 +16,6 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.devices import InputDeviceDict
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-from tvb.simulator.simulator import Simulator
 
 
 LOG = initialize_logger(__name__)
@@ -61,34 +63,31 @@ class TVBSpikeNetInterfaceBuilder(object):
     # The Spiking Network nodes the activity of which is transformed to TVB state variables or parameters
     spikeNet_to_tvb_interfaces = []
 
-    def __init__(self, tvb_simulator, spiking_network, spiking_nodes_ids, exclusive_nodes=False,
+    def __init__(self, tvb_serial_sim, spiking_network, spiking_nodes_ids, exclusive_nodes=False,
                  tvb_to_spiking_interfaces=None, spiking_to_tvb_interfaces=None):
         if isinstance(spiking_network, SpikingNetwork):
             self.spiking_network = spiking_network
         else:
             raise ValueError("Input spiking_network is not a SpikingNetwork object!\n%s" % str(spiking_network))
         self.exclusive_nodes = exclusive_nodes
-        if isinstance(tvb_simulator, Simulator):
-            self.tvb_simulator = tvb_simulator
-            self.spiking_nodes_ids = np.array(ensure_list(spiking_nodes_ids))
-            self.tvb_nodes_ids = list(range(self.tvb_connectivity.weights.shape[0]))
-            if self.exclusive_nodes:
-                try:
-                    for i_n in self.spiking_nodes_ids:
-                        self.tvb_nodes_ids.remove(i_n)
-                except:
-                    raise ValueError("Failed to compute tvb_nodes_ids from nest_nodes_ids %s "
-                                     "and TVB connectivity of size %s!"
-                                     % (str(self.spiking_nodes_ids), self.tvb_connectivity.number_of_regions))
+        if isinstance(tvb_serial_sim, os.PathLike):
+            self.tvb_serial_sim = load_serial_tvb_simulator(tvb_serial_sim)
+        elif not isinstance(tvb_serial_sim, dict):
+            self.tvb_serial_sim = serialize_tvb_simulator(tvb_serial_sim)
+        self.spiking_nodes_ids = np.array(ensure_list(spiking_nodes_ids))
+        self.tvb_nodes_ids = list(range(self.number_of_regions))
+        if self.exclusive_nodes:
+            try:
+                for i_n in self.spiking_nodes_ids:
+                    self.tvb_nodes_ids.remove(i_n)
+            except:
+                raise ValueError("Failed to compute tvb_nodes_ids from nest_nodes_ids %s "
+                                 "and TVB connectivity of size %s!"
+                                 % (str(self.spiking_nodes_ids), self.number_of_regions))
             self.tvb_nodes_ids = np.array(self.tvb_nodes_ids)
-            if self.tvb_simulator.stimulus is not None:
-                if np.sum(self.tvb_simulator.stimulus[:, self.spiking_nodes_ids.tolist()]):
-                    raise ValueError("TVB-Spiking Network interface does not implement "
-                                     "TVB stimulus application to Spiking Network nodes!\n"
-                                     "The user has to configure such stimulus as part of the Spiking Network model, "
-                                     "via appropriate Spiking Network input devices!")
-        else:
-            raise ValueError("Input simulator_tvb is not a Simulator object!\n%s" % str(tvb_simulator))
+
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+        self.global_coupling_scaling = self.tvb_serial_sim["coupling.a"][0].item()
 
         # TVB <-> Spiking Network transformations' weights/funs
         # If set as weights, they will become a transformation function of
@@ -124,40 +123,44 @@ class TVBSpikeNetInterfaceBuilder(object):
         return self.spiking_network.config
 
     @property
+    def tvb_dt(self):
+        return self.tvb_serial_sim["integrator.dt"]
+
+    @property
+    def tvb_model(self):
+        return self.tvb_serial_sim["model"]
+
+    @property
+    def tvb_model_state_variables(self):
+        return self.tvb_serial_sim["model.state_variables"]
+
+    @property
+    def tvb_model_cvar(self):
+        return self.tvb_serial_sim["model.cvar"]
+
+    @property
+    def number_of_regions(self):
+        return self.tvb_serial_sim["connectivity.number_of_regions"]
+
+    @property
+    def region_labels(self):
+        return self.tvb_serial_sim["connectivity.region_labels"]
+
+    @property
+    def tvb_weights(self):
+        return self.tvb_serial_sim["connectivity.weights"]
+
+    @property
+    def tvb_delays(self):
+        return self.tvb_serial_sim["connectivity.delays"]
+
+    @property
     def spiking_nodes(self):
         return self.spiking_network.brain_regions
 
     @property
     def spikeNet_min_delay(self):
         return self.spiking_network.min_delay
-
-    @property
-    def tvb_weights(self):
-        return self.tvb_simulator.connectivity.weights
-
-    @property
-    def tvb_delays(self):
-        return self.tvb_simulator.connectivity.delays
-
-    @property
-    def tvb_connectivity(self):
-        return self.tvb_simulator.connectivity
-
-    @property
-    def tvb_integrator(self):
-        return self.tvb_simulator.integrator
-
-    @property
-    def tvb_model(self):
-        return self.tvb_simulator.model
-
-    @property
-    def tvb_dt(self):
-        return self.tvb_simulator.integrator.dt
-
-    @property
-    def number_of_nodes(self):
-        return self.tvb_connectivity.number_of_regions
 
     def assert_delay(self, delay):
         return np.maximum(0.0, delay)
@@ -197,7 +200,7 @@ class TVBSpikeNetInterfaceBuilder(object):
                             spikeNet_variable * weights[region_nodes_indices]}
 
     def generate_transforms(self):
-        dummy = np.ones((self.number_of_nodes, ))
+        dummy = np.ones((self.number_of_regions,))
         # Confirm good shape for TVB-Spiking Network interface model parameters
         # TODO: find a possible way to differentiate scalings between
         #  receiver (as in _tvb_state_to_nest_current),
@@ -223,7 +226,7 @@ class TVBSpikeNetInterfaceBuilder(object):
 
         tvb_spikeNet_interface.config = self.config
         # TODO: find out why the model instance is different in simulator and interface...
-        tvb_spikeNet_interface.tvb_model = self.tvb_model
+        tvb_spikeNet_interface.tvb_model_state_variables = self.tvb_model
         tvb_spikeNet_interface.dt = self.tvb_dt
         tvb_spikeNet_interface.tvb_nodes_ids = self.tvb_nodes_ids
         tvb_spikeNet_interface.spiking_nodes_ids = self.spiking_nodes_ids
@@ -244,8 +247,9 @@ class TVBSpikeNetInterfaceBuilder(object):
                         self._tvb_to_spikNet_device_interface_builder([],
                                                                       self.spiking_network,
                                                                       self.spiking_nodes_ids, self.tvb_nodes_ids,
-                                                                      self.tvb_model, self.tvb_weights, self.tvb_delays,
-                                                                      self.tvb_connectivity.region_labels, self.tvb_dt,
+                                                                      self.tvb_model_state_variables,
+                                                                      self.tvb_weights, self.tvb_delays,
+                                                                      self.region_labels, self.tvb_dt,
                                                                       self.exclusive_nodes,
                                                                       self.config).build_interface(interface, ids[0])
                                                                             )
@@ -256,7 +260,9 @@ class TVBSpikeNetInterfaceBuilder(object):
                             self._tvb_to_spikeNet_parameter_interface_builder([],
                                                                               self.spiking_network,
                                                                               self.spiking_nodes_ids, self.tvb_nodes_ids,
-                                                                              self.tvb_model, self.exclusive_nodes,
+                                                                              self.tvb_model_state_variables,
+                                                                              self.tvb_model_cvar.tolist(),
+                                                                              self.exclusive_nodes,
                                                                               self.config).build_interface(interface,
                                                                                                            ids[1])
                                                                             )
@@ -265,7 +271,8 @@ class TVBSpikeNetInterfaceBuilder(object):
             self._spikeNet_to_tvb_interface_builder(self.spikeNet_to_tvb_interfaces,
                                                     self.spiking_network,
                                                     self.spiking_nodes_ids, self.tvb_nodes_ids,
-                                                    self.tvb_model, self.exclusive_nodes,
+                                                    self.tvb_model_state_variables,
+                                                    self.exclusive_nodes,
                                                     self.config).build_interfaces()
 
         return tvb_spikeNet_interface
