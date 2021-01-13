@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
     DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
@@ -7,13 +9,18 @@ from tvb_multiscale.tvb_nest.nest_models.builders.models.default_exc_io_inh_i im
 
 class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True):
+    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
+                 **kwargs):
         super(WilsonCowanBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
 
-        self.w_ee = self.weight_fun(self.tvb_model.c_ee[0].item())
-        self.w_ei = self.weight_fun(self.tvb_model.c_ei[0].item())
-        self.w_ie = self.weight_fun(-self.tvb_model.c_ie[0].item())
-        self.w_ii = self.weight_fun(-self.tvb_model.c_ii[0].item())
+        self.w_ee = self.weight_fun(kwargs.get("c_ee",
+                                               kwargs.get("c_ee", self.tvb_serial_sim["model.c_ee"][0].item())))
+        self.w_ei = self.weight_fun(kwargs.get("c_ei",
+                                               kwargs.get("c_ei", self.tvb_serial_sim["model.c_ei"][0].item())))
+        self.w_ie = self.weight_fun(-np.abs(kwargs.get("c_ie",
+                                               kwargs.get("c_ie", self.tvb_serial_sim["model.c_ie"][0].item()))))
+        self.w_ii = self.weight_fun(-np.abs(kwargs.get("c_ii",
+                                               kwargs.get("c_ii", self.tvb_serial_sim["model.c_ii"][0].item()))))
 
         if set_defaults:
             self.set_defaults()
@@ -29,10 +36,14 @@ class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
 
         self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 
-        self.w_ee = self.weight_fun(self.tvb_model.c_ee[0].item())
-        self.w_ei = self.weight_fun(self.tvb_model.c_ei[0].item())
-        self.w_ie = self.weight_fun(self.tvb_model.c_ie[0].item())
-        self.w_ii = self.weight_fun(self.tvb_model.c_ii[0].item())
+        self.w_ee = self.weight_fun(kwargs.get("c_ee",
+                                               kwargs.get("c_ee", self.tvb_serial_sim["model.c_ee"][0].item())))
+        self.w_ei = self.weight_fun(kwargs.get("c_ei",
+                                               kwargs.get("c_ei", self.tvb_serial_sim["model.c_ei"][0].item())))
+        self.w_ie = self.weight_fun(kwargs.get("c_ie",
+                                               kwargs.get("c_ie", self.tvb_serial_sim["model.c_ie"][0].item())))
+        self.w_ii = self.weight_fun(kwargs.get("c_ii",
+                                               kwargs.get("c_ii", self.tvb_serial_sim["model.c_ii"][0].item())))
 
         if set_defaults:
             self.set_defaults()

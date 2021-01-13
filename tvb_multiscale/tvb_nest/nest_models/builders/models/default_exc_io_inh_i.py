@@ -33,9 +33,6 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.d_ie = self.within_node_delay()
         self.d_ii = self.within_node_delay()
 
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
-
         self.params_E = {}
         self.params_I = {}
         self.pop_conns_EE = {}
@@ -142,7 +139,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
 
-    def tvb_weight(self, source_node, target_node, scale=None, sigma=0.1):
+    def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
         if scale is None:
             scale = self.global_coupling_scaling
         return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
@@ -159,7 +156,7 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
             {"source": "E", "target": ["E", "I"],
              "synapse_model": self.default_nodes_connection["synapse_model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": self.tvb_weight,
+             "weight": self.tvb_weight_fun,
              "delay": self.tvb_delay_fun,
              # Each region emits spikes in its own port:
              "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
@@ -243,10 +240,10 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         tau_syn_in = kwargs.get("tau_syn_in", 2.0)
         E_rev = np.array([E_ex] +  # exc local spikes
                          [E_in] +  # inh local spikes
-                         self.number_of_nodes * [E_ex])  # ext, exc spikes
+                         self.number_of_regions * [E_ex])  # ext, exc spikes
         tau_syn = np.array([tau_syn_ex] +  # exc spikes
                            [tau_syn_in] +  # inh spikes
-                           self.number_of_nodes * [tau_syn_ex])  # ext, exc spikes
+                           self.number_of_regions * [tau_syn_ex])  # ext, exc spikes
         self.params_E = {"E_rev": E_rev, "tau_syn": tau_syn}
         self.params_I = self.params_E
 

@@ -67,7 +67,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.d_ei = self.spiking_dt
         self.d_ii = self.spiking_dt
 
-        self.global_coupling_scaling *= self.tvb_model.G[0].item()
+        self.global_coupling_scaling *= self.tvb_serial_sim["model.G"][0].item()
         self.lamda = 0.0
 
         if set_defaults:
@@ -88,7 +88,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
             "V_th": self.V_th, "V_reset": self.V_reset, "E_L": self.E_L, "E_ex": self.E_ex, "E_in": self.E_in,
             "tau_decay_AMPA": self.tau_decay_AMPA, "tau_decay_GABA_A": self.tau_decay_GABA,
             "tau_decay_NMDA": self.tau_decay_NMDA, "tau_rise_NMDA": self.tau_rise_NMDA,
-            "s_AMPA_ext_max": self.N_E * np.ones((self.number_of_nodes,)).astype("f"),
+            "s_AMPA_ext_max": self.N_E * np.ones((self.number_of_regions,)).astype("f"),
             "N_E": self.N_E, "N_I": self.N_I, "epsilon": self.epsilon
         }
         params_E = {
@@ -110,14 +110,13 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.params_I = lambda node_index: self.param_fun(node_index, params_I,
                                                           weight=self.lamda * self.global_coupling_scaling)
 
-        self.nodes_conns_EE = {"weight": 1.0}
-        self.nodes_conns_EI = {"weight": 1.0}
+        self.nodes_conns_EE = 1.0
 
         record_from = ["V_m", "I_L", "I_e",
                        "spikes_exc", "s_AMPA", "I_AMPA",
                        "x_NMDA", "s_NMDA", "I_NMDA",
                        "spikes_inh", "s_GABA", "I_GABA"]
-        for i_node in range(self.number_of_nodes):
+        for i_node in range(self.number_of_regions):
             record_from.append("spikes_exc_ext_%d" % i_node)
             record_from.append("s_AMPA_ext_%d" % i_node)
             record_from.append("I_AMPA_ext_%d" % i_node)
@@ -145,7 +144,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         return 0
 
     def tvb_weight_fun(self, source_node, target_node):
-        return 1.0
+        return self.nodes_conns_EE
 
     def tvb_delay_fun(self, source_node, target_node):
         return tvb_delay(source_node, target_node, self.tvb_delays)
@@ -158,26 +157,13 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
             {"source": "E", "target": ["E"],
              "synapse_model": self.default_nodes_connection["synapse_model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": 1.0,
+             "weight": self.tvb_weight_fun,
              "delay": self.tvb_delay_fun,
              # Each region emits spikes in its own port:
              "receptor_type": self.receptor_by_source_region_fun,
              "source_nodes": None, "target_nodes": None}
             # None means "all"
         ]
-        self.nodes_connections[0].update(self.nodes_conns_EE)
-        if self.lamda:
-            self.nodes_connections.append(
-                {"source": "E", "target": ["I"],
-                 "synapse_model": self.default_nodes_connection["synapse_model"],
-                 "conn_spec": self.default_nodes_connection["conn_spec"],
-                 "weight": 1.0,
-                 "delay": self.tvb_delay_fun,
-                 # Each region emits spikes in its own port:
-                 "receptor_type": self.receptor_by_source_region_fun,
-                 "source_nodes": None, "target_nodes": None}
-            )
-            self.nodes_connections[1].update(self.nodes_conns_EI)
 
 
 class WWDeco2014Builder(WWDeco2013Builder):
@@ -204,13 +190,27 @@ class WWDeco2014Builder(WWDeco2013Builder):
         self.g_GABA_in = 8.51  # nS
         self.stimulus_spike_rate = 2400.0  # Hz
 
-        self.lamda = self.tvb_model.lamda[0].item()
+        self.lamda = self.tvb_serial_sim["model.lamda"][0].item()
         self.w_EE = kwargs.get("w_EE",
-                          kwargs.get("w_p",
-                                     getattr(self.tvb_model, "w_p", np.array([1.4, ]))[0].item()))
+                          kwargs.get("w_p", self.tvb_serial_sim["model.w_p"][0].item()))
         self.w_IE = kwargs.get("w_IE",
-                          kwargs.get("J_i",
-                                     getattr(self.tvb_model, "J_i", np.array([1.0, ]))[0].item()))
+                          kwargs.get("J_i", self.tvb_serial_sim["model.J_i"][0].item()))
+
+        self.nodes_conns_EI = 1.0
 
         if set_defaults:
             WWDeco2013Builder.set_defaults(self)
+
+    def set_nodes_connections(self):
+        WWDeco2013Builder.set_nodes_connections(self)
+        if self.lamda:
+            self.nodes_connections.append(
+                {"source": "E", "target": ["I"],
+                 "synapse_model": self.default_nodes_connection["synapse_model"],
+                 "conn_spec": self.default_nodes_connection["conn_spec"],
+                 "weight": self.nodes_conns_EI,
+                 "delay": self.tvb_delay_fun,
+                 # Each region emits spikes in its own port:
+                 "receptor_type": self.receptor_by_source_region_fun,
+                 "source_nodes": None, "target_nodes": None}
+            )
