@@ -3,6 +3,7 @@ import os
 import numpy
 from tvb.basic.neotraits.api import HasTraits, Attr, NArray, List
 
+
 class CosimUpdate(HasTraits):
 
     """Base class to get update TVB states from data from co-simulator"""
