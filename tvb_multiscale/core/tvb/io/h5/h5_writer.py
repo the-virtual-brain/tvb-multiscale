@@ -14,7 +14,9 @@ from tvb.contrib.scripts.utils.data_structures_utils import is_numeric, ensure_l
 from tvb.contrib.scripts.utils.file_utils import change_filename_or_overwrite
 from tvb_multiscale.core.tvb.io import REGISTRY
 
+
 h5.REGISTRY = REGISTRY
+
 
 class H5Writer(object):
 
