@@ -15,7 +15,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.core.config import CONFIGURED
 try:
-    from tvb_multiscale.core.io.h5_writer import H5Writer
+    from tvb_multiscale.core.tvb.io import H5Writer
 except:
     H5Writer = None
 

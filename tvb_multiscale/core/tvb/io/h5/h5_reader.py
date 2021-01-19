@@ -5,7 +5,7 @@ import os
 import h5py
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.io.h5_writer import H5Writer
+from tvb_multiscale.core.tvb.io import H5Writer
 
 
 class H5Reader(object):

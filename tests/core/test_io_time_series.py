@@ -9,7 +9,7 @@ from tvb.datatypes.connectivity import Connectivity
 
 from tests.core.test_time_series import _prepare_dummy_time_series
 from tvb_multiscale.core.config import Config
-from tvb_multiscale.core.io.h5_writer import H5Writer, h5
+from tvb_multiscale.core.tvb.io import H5Writer, h5
 
 
 def _prepare_connectivity():
