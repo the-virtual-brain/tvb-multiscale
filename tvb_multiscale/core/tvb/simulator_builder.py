@@ -4,14 +4,14 @@ from six import string_types
 
 import numpy as np
 
-from tvb_multiscale.core.config import CONFIGURED
-
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.cosimulator import CoSimulator
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb.contrib.cosimulation.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.config import CONFIGURED
+from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 
 
 class SimulatorBuilder(object):

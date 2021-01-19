@@ -38,15 +38,16 @@ It inherits the Simulator class.
 """
 import time
 import math
-import numpy
+import numpy as np
 
 from tvb.basic.neotraits.api import Attr
-from tvb.contrib.cosimulation.tvb_to_cosim_interfaces import TVBtoCosimInterfaces
-from tvb.contrib.cosimulation.cosim_to_tvb_interfaces import CosimToTVBInterfaces
 from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
 
+from tvb_multiscale.core.tvb.interfaces.tvb_to_cosim_interfaces import TVBtoCosimInterfaces
+from tvb_multiscale.core.tvb.interfaces.cosim_to_tvb_interfaces import CosimToTVBInterfaces
 
-class CoSimulator_Denis(CoSimulatorBase):
+
+class CoSimulator(CoSimulatorBase):
 
     tvb_to_cosim_interfaces = Attr(
         field_type=TVBtoCosimInterfaces,
@@ -67,43 +68,24 @@ class CoSimulator_Denis(CoSimulatorBase):
     PRINT_PROGRESSION_MESSAGE = True
 
     def _configure_cosimulation(self):
-        """This method will
-           - set the synchronization time and number of steps,
-           - create CosimHistory,
-           - run all the configuration methods of all TVB <-> Cosimulator interfaces,
-           If there are any Cosimulator -> TVB update interfaces:
-            - remove connectivity among region nodes modelled exclusively in the other co-simulator.
-           If there is any current state cosim_to_tvb interface update:
-            - generate a CosimModel class from the original Model class,
-            - set the cosim_vars and cosim_vars_proxy_inds properties of the CosimModel class,
-              based on the respective vois and proxy_inds of all cosim_to_tvb state interfaces.
-           If there is any history cosim_to_tvb interface update:
-            - throw a warning if we are not using a coupling function that requires the current state.
-           """
-        self.proxy_inds = numpy.array([])
-        self.voi = numpy.array([])
+        """This method will set the voi and proxy_inds of the CoSimulator,
+            based on the predefined interfaces, which will also configure.
+        """
+        self.voi = []
+        self.proxy_inds = []
         if self.tvb_to_cosim_interfaces:
-            # Configure any TVB to Cosim interfaces:
+            # Configure all TVB to Cosim interfaces:
             self.tvb_to_cosim_interfaces.configure()
         if self.cosim_to_tvb_interfaces:
-            # Configure any Cosim to TVB interfaces:
+            # Configure all Cosim to TVB interfaces:
             self.cosim_to_tvb_interfaces.configure(self)
-            # A flag to know if the connectivity needs to be reconfigured:
-            reconfigure_connectivity = False
-            for variable in self.cosim_to_tvb_interfaces.vio:
-                if variable not in self.vio:
-                    self.vio = numpy.concatenate((self.voi,[variable]))
+            for voi in self.cosim_to_tvb_interfaces.voi:
+                self.voi += voi.tolist()
             for interface in self.cosim_to_tvb_interfaces.interfaces:
-                for index_proxy in interface.proxy_inds:
-                    self.proxy_inds = numpy.concatenate((self.proxy_inds,[index_proxy]))
-                # Interfaces marked as "exclusive" by the user
-                # should eliminate the connectivity weights among the proxy nodes,
-                # since those nodes are mutually coupled within the other (co-)simulator network model.
-                if interface.exclusive:
-                    reconfigure_connectivity = True
-                    self.connectivity.weights[interface.proxy_inds][:, interface.proxy_inds] = 0.0
-            if reconfigure_connectivity:
-                self.connectivity.configure()
+                for proxy_ind in interface.proxy_inds:
+                    self.proxy_inds += proxy_ind.tolist()
+        self.voi = np.unique(self.voi)
+        self.proxy_inds = np.unique(self.proxy_inds)
 
     def configure(self, full_configure=True):
         """Configure simulator and its components.
@@ -125,7 +107,7 @@ class CoSimulator_Denis(CoSimulatorBase):
 
         """
         self._configure_cosimulation()
-        super(CoSimulator_Denis, self).configure(full_configure=full_configure)
+        super(CoSimulator, self).configure(full_configure=full_configure)
         return self
 
     def _print_progression_message(self, step, n_steps):
@@ -157,30 +139,30 @@ class CoSimulator_Denis(CoSimulatorBase):
             ts.append([])
             xs.append([])
         wall_time_start = time.time()
-        # loop over all the synchronization step
-        for step_synch in range( 0,int(math.ceil(self.simulation_length / self.integrator.dt)),self.synchronization_n_step):
-            # get the data to update the values of the proxies
-            data_proxy = [None for i in self.vio]
-            for interface in self.cosim_to_tvb_interfaces.interfaces:
-                tmp = interface.get_value() # structure : [0] : time  [1] : values [ nb_time,nb_variable,nb_id_proxy,nb_mod]
-                for index,i in enumerate(interface.vio):
-                    data_proxy[numpy.where(self.vio == i)[0][0]] = tmp[1][:,:,index,:]
-            # loop of TVB simulator
-            for data in self(cosim_updates=[tmp[0],data_proxy],**kwds):
+        # Loop over all synchronization steps
+        for step_synch in range(0, int(math.ceil(self.simulation_length / self.integrator.dt)),
+                                self.synchronization_n_step):
+            if self.cosim_to_tvb_interfaces:
+                # Get the update data from the other cosimulator
+                cosim_updates = self.cosim_to_tvb_interfaces(self.good_cosim_update_values_shape)
+            else:
+                cosim_updates = None
+            # Loop of integration for synchronization_time
+            for data in self(cosim_updates=cosim_updates, **kwds):
                 for tl, xl, t_x in zip(ts, xs, data):
                     if t_x is not None:
                         t, x = t_x
                         tl.append(t)
                         xl.append(x)
-            data_co_sim = self.output_co_sim_monitor(self,step_synch*self.synchronization_n_step,self.synchronization_n_step)
-            # loop to push the data to the other simulator
-            for interface in self.tvb_to_cosim_interfaces.interfaces:
-                tmp = [data[1][:,:,interface.vio,:] for data in data_co_sim]
-                interface.record([data_co_sim[0][0],tmp])
+            if self.tvb_to_cosim_interfaces.interfaces:
+                # Send the data to the other cosimulator
+                self.tvb_to_cosim_interfaces.interfaces(
+                    self.loop_cosim_monitor_output(step_synch*self.synchronization_n_step,
+                                                               self.synchronization_n_step))
             elapsed_wall_time = time.time() - wall_time_start
             self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
                           elapsed_wall_time * 1e3 / self.simulation_length)
         for i in range(len(ts)):
-            ts[i] = numpy.array(ts[i])
-            xs[i] = numpy.array(xs[i])
+            ts[i] = np.array(ts[i])
+            xs[i] = np.array(xs[i])
         return list(zip(ts, xs))

@@ -1,96 +1,80 @@
 # -*- coding: utf-8 -*-
-from tvb.basic.neotraits.api import HasTraits, Float, List
 
-# -*- coding: utf-8 -*-
-import os
-import numpy
-from tvb.basic.neotraits.api import Attr, NArray
-from tvb.simulator import monitor
+import numpy as np
+
+from tvb.basic.neotraits.api import HasTraits, Int, Attr, NArray, List
+
+from tvb_multiscale.core.tvb.io.io import TVBSender
 
 
 class TVBtoCosimInterface(HasTraits):
 
     """TVBtoCosimInterface base class holding a Monitor class instance."""
 
+    monitor_id = Int(label="Monitor indice",
+                     doc="Indice of monitor to get data from",
+                     required=True,
+                     default=0)
+
     proxy_inds = NArray(
-        dtype=numpy.int,
+        dtype=np.int,
         label="Indices of TVB proxy nodes",
+        doc="""Indices of TVB proxy nodes""",
         required=True,
     )
 
     voi = NArray(
         dtype=int,
         label="Cosimulation model state variables' indices",
-        doc=("Indices of model's variables of interest (VOI) that"
-             "should be updated (i.e., overwriten) during cosimulation."),
+        doc="""Indices of model's variables of interest (VOI) that"
+             "should couple to the other cosimulator.""",
         required=True)
 
-    _number_of_proxy_nodes = 0
+    sender = Attr(
+        label="TVBSender",
+        field_type=TVBSender,
+        doc="""A TVBSender class to send TVB data to the cosimulator.""",
+        required=True
+    )
 
-
-    path = Attr(field_type=os.PathLike, required=False, default="")
-
-    record_to = Attr(field_type=str, required=True, default="memory")
-
-    _record = None  # Method to implement recording to memory, file, or MPI port
-
-    def record_to_memory(self, data):
-        """Record input data to memory"""
-        raise NotImplementedError
-
-    def record_to_file(self, data):
-        """Record input data to a file.
-        """
-        raise NotImplementedError
-
-    def record_to_mpi(self, data):
-        """Record input data to a MPI port.
-        """
-        raise NotImplementedError
-
-    def _config_recording_target(self):
-        self.record_to = self.record_to.lower()
-        if self.record_to == "file":
-            self._record = self.record_to_file
-        elif self.record_to == "mpi":
-            self._record = self.record_to_mpi
-        else:
-            self._record = self.record_to_memory
+    number_of_proxy_nodes = 0
+    n_voi = 0
 
     def configure(self):
         """Method to configure the CosimMonitor of the interface
            and compute the number_of_proxy_nodes, from user defined proxy_inds"""
-        self._config_recording_target()
-        self.number_of_proxy_nodes = len(self.proxy_inds)
+        self.sender.configure()
+        self.number_of_proxy_nodes = self.proxy_inds.shape[0]
+        self.n_voi = self.voi.shape[0]
         super(TVBtoCosimInterfaces).configure()
 
-    def record(self, data):
-        """Record a sample of the observed state at the given step to the target destination.
-           Use the TVB Monitor record method to get the data, and pass them to one of the
-           record_to_memory, record_to_file and record_to_mpi methods,
-           depending on the user input of record_to.
-        """
-        return self._record(data)
+    def __call__(self, data):
+        return self.sender([np.array([data[0][0], data[0][-1]]),        # time_steps[0], time_steps[-1]
+                            data[1][:, self.voi, self.proxy_inds, :]])  # values
 
 
 class TVBtoCosimInterfaces(HasTraits):
 
-    """This class holds a list of state_interfaces"""
+    """This class holds a list of TVB to cosimulator interfaces and sends data to them"""
 
     interfaces = List(of=TVBtoCosimInterface)
 
-    number_of_interfaces = None
+    number_of_interfaces = 0
 
     @property
     def voi(self):
-        return [interfaces.voi for interfaces in self.interfaces] # Todo need to be unique
+        return [interfaces.voi for interfaces in self.interfaces]
 
     @property
     def proxy_inds(self):
-        return [interfaces.proxy_inds for interfaces in self.interfaces] # Todo need to be unique
+        return [interfaces.proxy_inds for interfaces in self.interfaces]
 
     def configure(self):
         for interface in self.interfaces:
             interface.configure()
         self.number_of_interfaces = len(self.interfaces)
         super(TVBtoCosimInterfaces, self).configure()
+
+    def __call__(self, data):
+        for interface in self.interfaces:
+            interface(data[interface.monitor_id])
