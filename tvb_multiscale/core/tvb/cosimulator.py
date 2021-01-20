@@ -124,6 +124,39 @@ class CoSimulator(CoSimulatorBase):
         self._configure_local_vois_and_proxy_inds_per_interface()
         return self
 
+    def _prepare_stimulus(self):
+        if self.simulation_length != self.synchronization_time:
+            simulation_length = float(self.simulation_length)
+            self.simulation_length = float(self.synchronization_time)
+            super(CoSimulator, self)._prepare_stimulus()
+            self.simulation_length = simulation_length
+        else:
+            super(CoSimulator, self)._prepare_stimulus()
+
+    def _run_for_synchronization_time(self, step_synch, ts, xs, wall_time_start, interface=True, **kwds):
+        if self.cosim_to_tvb_interfaces:
+            # Get the update data from the other cosimulator
+            cosim_updates = self.cosim_to_tvb_interfaces(self.good_cosim_update_values_shape)
+            if np.all(np.isnan(cosim_updates)):
+                cosim_updates = None
+        else:
+            cosim_updates = None
+        # Loop of integration for synchronization_time
+        for data in self(cosim_updates=cosim_updates, **kwds):
+            for tl, xl, t_x in zip(ts, xs, data):
+                if t_x is not None:
+                    t, x = t_x
+                    tl.append(t)
+                    xl.append(x)
+        if self.tvb_to_cosim_interfaces.interfaces and interface:
+            # Send the data to the other cosimulator
+            self.tvb_to_cosim_interfaces.interfaces(
+                self.loop_cosim_monitor_output(step_synch * self.synchronization_n_step,
+                                               self.synchronization_n_step))
+        elapsed_wall_time = time.time() - wall_time_start
+        self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
+                      elapsed_wall_time * 1e3 / self.simulation_length)
+
     def run(self, **kwds):
         """Convenience method to call the CoSimulator with **kwds and collect output data."""
         ts, xs = [], []
@@ -132,37 +165,22 @@ class CoSimulator(CoSimulatorBase):
             xs.append([])
         wall_time_start = time.time()
         self.simulation_length = kwds.pop("simulation_length", self.simulation_length)
+        simulation_steps = int(math.ceil(self.simulation_length / self.integrator.dt))
         if self._cosimulation_flag:
-            # Loop over all synchronization steps plus one in order to get the full delayed monitors' outputs:
-            simulation_length = self.simulation_length + self.synchronization_time
-            simulation_steps = int(math.ceil(simulation_length / self.integrator.dt))
-            synchronization_n_step = self.synchronization_n_step
+            loop_n_step = self.synchronization_n_step
         else:
-            simulation_steps = int(math.ceil(self.simulation_length / self.integrator.dt))
-            synchronization_n_step = simulation_steps
-        for step_synch in range(0, simulation_steps, synchronization_n_step):
-            if self.cosim_to_tvb_interfaces:
-                # Get the update data from the other cosimulator
-                cosim_updates = self.cosim_to_tvb_interfaces(self.good_cosim_update_values_shape)
-                if np.all(np.isnan(cosim_updates)):
-                    cosim_updates = None
-            else:
-                cosim_updates = None
-            # Loop of integration for synchronization_time
-            for data in self(cosim_updates=cosim_updates, **kwds):
-                for tl, xl, t_x in zip(ts, xs, data):
-                    if t_x is not None:
-                        t, x = t_x
-                        tl.append(t)
-                        xl.append(x)
-            if self.tvb_to_cosim_interfaces.interfaces:
-                # Send the data to the other cosimulator
-                self.tvb_to_cosim_interfaces.interfaces(
-                    self.loop_cosim_monitor_output(step_synch*self.synchronization_n_step,
-                                                               self.synchronization_n_step))
-            elapsed_wall_time = time.time() - wall_time_start
-            self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
-                          elapsed_wall_time * 1e3 / simulation_length)
+            loop_n_step = simulation_steps  # loop only once
+        for step_synch in range(0, simulation_steps, loop_n_step):
+            self._run_for_synchronization_time(step_synch, ts, xs, wall_time_start, interface=True, **kwds)
+        if self._cosimulation_flag:
+            current_step = int(self.current_step)
+            current_state = np.copy(self.current_state)
+            # Run once more for synchronization steps in order to get the full delayed monitors' outputs,
+            # but without sending data to the other cosimulator:
+            self._run_for_synchronization_time(step_synch, ts, xs, wall_time_start, interface=False, **kwds)
+            # Revert the current_step and current_state to those before the excess step_synch time
+            self.current_step = int(current_step)
+            self.current_state = np.copy(current_state)
         for i in range(len(ts)):
             ts[i] = np.array(ts[i])
             xs[i] = np.array(xs[i])
