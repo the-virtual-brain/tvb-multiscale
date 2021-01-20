@@ -67,7 +67,7 @@ class CoSimulator(CoSimulatorBase):
 
     PRINT_PROGRESSION_MESSAGE = True
 
-    def _configure_cosimulation(self):
+    def _configure_vois_and_proxy_inds(self):
         """This method will set the voi and proxy_inds of the CoSimulator,
             based on the predefined interfaces, which will also configure.
         """
@@ -76,16 +76,29 @@ class CoSimulator(CoSimulatorBase):
         if self.tvb_to_cosim_interfaces:
             # Configure all TVB to Cosim interfaces:
             self.tvb_to_cosim_interfaces.configure()
+            self.voi += self.tvb_to_cosim_interfaces.voi_unique
+            self.proxy_inds += self.tvb_to_cosim_interfaces.proxy_inds_unique
         if self.cosim_to_tvb_interfaces:
             # Configure all Cosim to TVB interfaces:
             self.cosim_to_tvb_interfaces.configure(self)
-            for voi in self.cosim_to_tvb_interfaces.voi:
-                self.voi += voi.tolist()
-            for interface in self.cosim_to_tvb_interfaces.interfaces:
-                for proxy_ind in interface.proxy_inds:
-                    self.proxy_inds += proxy_ind.tolist()
+            self.voi += self.cosim_to_tvb_interfaces.voi_unique
+            self.proxy_inds += self.cosim_to_tvb_interfaces.proxy_inds_unique
         self.voi = np.unique(self.voi)
         self.proxy_inds = np.unique(self.proxy_inds)
+
+    def _configure_local_vois_and_proxy_inds_per_interface(self):
+        """This method will set the local -per interface- voi and proxy_inds indices,
+           based on the voi of each linked cosimulation monitor, for TVB to Cosimulator interfaces,
+           and on the expected shape of ths cosimulation updates data for Cosimulator to TVB interfaces.
+        """
+        if self.tvb_to_cosim_interfaces:
+            # Set the correct voi indices with reference to the linked TVB CosimMonitor, for each interface:
+            self.tvb_to_cosim_interfaces.set_local_voi_indices(self.cosim_monitors)
+        if self.cosim_to_tvb_interfaces:
+            # Method to get the correct indices of voi and proxy_inds, for each interface,
+            # adjusted to the contents, shape etc of the cosim_updates,
+            # based on TVB CoSmulators' vois and proxy_inds, i.e., good_cosim_update_values_shape
+            self.cosim_to_tvb_interfaces.set_local_voi_and_proxy_indices(self.voi, self.proxy_inds)
 
     def configure(self, full_configure=True):
         """Configure simulator and its components.
@@ -106,45 +119,28 @@ class CoSimulator(CoSimulatorBase):
             The configured Simulator instance.
 
         """
-        self._configure_cosimulation()
+        self._configure_vois_and_proxy_inds()
         super(CoSimulator, self).configure(full_configure=full_configure)
+        self._configure_local_vois_and_proxy_inds_per_interface()
         return self
 
-    def _print_progression_message(self, step, n_steps):
-        """
-        #TODO do yu it for the moment
-        :param step:
-        :param n_steps:
-        :return:
-        """
-        if step - self.current_step >= self._tic_point:
-            toc = time.time() - self._tic
-            if toc > 600:
-                if toc > 7200:
-                    time_string = "%0.1f hours" % (toc / 3600)
-                else:
-                    time_string = "%0.1f min" % (toc / 60)
-            else:
-                time_string = "%0.1f sec" % toc
-            print_this = "\r...%0.1f%% done in %s" % \
-                         (100.0 * (step - self.current_step) / n_steps, time_string)
-            self.log.info(print_this)
-            self._tic_point += self._tic_ratio * n_steps
-
     def run(self, **kwds):
-        # TODO need to be test it
-        """Convenience method to call the simulator with **kwds and collect output data."""
+        """Convenience method to call the CoSimulator with **kwds and collect output data."""
         ts, xs = [], []
         for _ in self.monitors:
             ts.append([])
             xs.append([])
         wall_time_start = time.time()
-        # Loop over all synchronization steps
-        for step_synch in range(0, int(math.ceil(self.simulation_length / self.integrator.dt)),
+        # Loop over all synchronization steps plus one in order to get the full delayed monitors' outputs:
+        simulation_length = kwds.pop("simulation_length", 0.0) + self.synchronization_time
+        for step_synch in range(0,
+                                int(math.ceil(simulation_length / self.integrator.dt)),
                                 self.synchronization_n_step):
             if self.cosim_to_tvb_interfaces:
                 # Get the update data from the other cosimulator
                 cosim_updates = self.cosim_to_tvb_interfaces(self.good_cosim_update_values_shape)
+                if np.all(np.isnan(cosim_updates)):
+                    cosim_updates = None
             else:
                 cosim_updates = None
             # Loop of integration for synchronization_time
@@ -161,7 +157,7 @@ class CoSimulator(CoSimulatorBase):
                                                                self.synchronization_n_step))
             elapsed_wall_time = time.time() - wall_time_start
             self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
-                          elapsed_wall_time * 1e3 / self.simulation_length)
+                          elapsed_wall_time * 1e3 / simulation_length)
         for i in range(len(ts)):
             ts[i] = np.array(ts[i])
             xs[i] = np.array(xs[i])

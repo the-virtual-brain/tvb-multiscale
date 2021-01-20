@@ -7,23 +7,9 @@ from tvb.basic.neotraits.api import HasTraits, Attr, NArray, List
 from tvb_multiscale.core.tvb.io.io import TVBReceiver
 
 
-class CosimToTVBInterface(HasTraits):
+class CosimToTVBInterface(TVBInterface):
 
-    """Base class to get update TVB states from data from co-simulator"""
-
-    proxy_inds = NArray(
-        dtype=np.int,
-        label="Indices of TVB proxy nodes",
-        doc="""Indices of TVB proxy nodes""",
-        required=True,
-    )
-
-    voi = NArray(
-        dtype=int,
-        label="Cosimulation model state variables' indices",
-        doc=("Indices of model's variables of interest (VOI) that"
-             "should be updated (i.e., overwriten) during cosimulation."),
-        required=False)
+    """Class to get update data for TVB states from co-simulator"""
 
     receiver = Attr(
         label="TVBReceiver",
@@ -32,17 +18,19 @@ class CosimToTVBInterface(HasTraits):
         required=True
     )
 
-    number_of_proxy_nodes = 0
-    n_voi = 0
+    proxy_inds_loc = np.array([])
 
     def configure(self, simulator):
-        """Method to configure CosimUpdate
-           the variables of interest,
-           and the number of proxy nodes"""
+        """Method to configure CosimToTVBInterface interface"""
         self.receiver.configure()
-        self.number_of_proxy_nodes = self.proxy_inds.shape[0]
-        self.n_voi = self.voi.shape[0]
         super(CosimToTVBInterface, self).configure()
+
+    def set_local_voi_and_proxy_indices(self, simulator_voi, simulator_proxy_inds):
+        """Method to get the correct indices of voi and proxy_inds,
+           adjusted to the contents, shape etc of the cosim_updates,
+           based on TVB CoSmulators' vois and proxy_inds"""
+        self.voi_loc = super(CosimToTVBInterface, self).set_local_indices(self.voi, simulator_voi)
+        self.proxy_inds_loc = super(CosimToTVBInterface, self).set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
     def __call__(self):
         return self.receiver()
@@ -54,28 +42,21 @@ class CosimToTVBInterfaces(HasTraits):
 
     interfaces = List(of=CosimToTVBInterface)
 
-    number_of_interfaces = 0
-
-    @property
-    def vois(self):
-        return [interface.voi for interface in self._interfaces]
-
-    @property
-    def proxy_inds(self):
-        return [interface.proxy_inds for interface in self._interfaces]
-
-    def configure(self, simulator):
-        for interfaces in self.interfacess:
-            interfaces.configure(simulator)
-        self.number_of_interfaces = len(self.interfaces)
-        super(CosimToTVBInterfaces, self).configure()
+    def set_local_voi_and_proxy_indices(self, simulator_voi, simulator_proxy_inds):
+        """Method to get the correct indices of voi and proxy_inds,
+           adjusted to the contents, shape etc of the cosim_updates,
+           based on TVB CoSmulators' vois and proxy_inds,
+           for each interface"""
+        for interface in self.interfaces:
+            interface.set_local_voi_and_proxy_indices(simulator_voi, simulator_proxy_inds)
 
     def __call__(self, good_cosim_update_values_shape):
-        cosim_updates = np.empty(good_cosim_update_values_shape)
+        cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
+        cosim_updates[:] = np.NAN
         for interface in self.interfaces:
             data = interface()  # [time_steps, values]
             cosim_updates[
                 (data[0] % good_cosim_update_values_shape[0])[:, None, None, None],
-                interface.vois[None, :, None, None],
-                interface.proxy_inds[None, None, :, None],
+                interface.voi_loc[None, :, None, None],        # indices specific to cosim_updates needed here
+                interface.proxy_inds_loc[None, None, :, None], # indices specific to cosim_updates needed here
                 np.arange(good_cosim_update_values_shape[3])[None, None, None, :]] = data[1]

@@ -4,31 +4,18 @@ import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Int, Attr, NArray, List
 
+from tvb_multiscale.core.tvb.interfaces.base import TVBInterface, TVBInterfaces
 from tvb_multiscale.core.tvb.io.io import TVBSender
 
 
-class TVBtoCosimInterface(HasTraits):
+class TVBtoCosimInterface(TVBInterface):
 
-    """TVBtoCosimInterface base class holding a Monitor class instance."""
+    """Class to send data from TVB to the other cosimulator."""
 
-    monitor_id = Int(label="Monitor indice",
-                     doc="Indice of monitor to get data from",
-                     required=True,
-                     default=0)
-
-    proxy_inds = NArray(
-        dtype=np.int,
-        label="Indices of TVB proxy nodes",
-        doc="""Indices of TVB proxy nodes""",
-        required=True,
-    )
-
-    voi = NArray(
-        dtype=int,
-        label="Cosimulation model state variables' indices",
-        doc="""Indices of model's variables of interest (VOI) that"
-             "should couple to the other cosimulator.""",
-        required=True)
+    monitor_ind = Int(label="Monitor indice",
+                      doc="Indice of monitor to get data from",
+                      required=True,
+                      default=0)
 
     sender = Attr(
         label="TVBSender",
@@ -37,44 +24,33 @@ class TVBtoCosimInterface(HasTraits):
         required=True
     )
 
-    number_of_proxy_nodes = 0
-    n_voi = 0
-
     def configure(self):
-        """Method to configure the CosimMonitor of the interface
-           and compute the number_of_proxy_nodes, from user defined proxy_inds"""
+        """Method to configure the TVBtoCosimInterface interface"""
         self.sender.configure()
-        self.number_of_proxy_nodes = self.proxy_inds.shape[0]
-        self.n_voi = self.voi.shape[0]
-        super(TVBtoCosimInterfaces).configure()
+        super(TVBtoCosimInterface, self).configure()
+
+    def set_local_voi_indices(self, monitor_voi):
+        """Method to set the correct voi indices with reference to the linked TVB CosimMonitor"""
+        self.voi_loc = super(TVBtoCosimInterface, self).set_local_indices(self.voi, monitor_voi)
 
     def __call__(self, data):
-        return self.sender([np.array([data[0][0], data[0][-1]]),        # time_steps[0], time_steps[-1]
-                            data[1][:, self.voi, self.proxy_inds, :]])  # values
+        return self.sender([np.array([data[0][0], data[0][-1]]),            # time_steps[0], time_steps[-1]
+                            data[1][:, self.voi_loc, self.proxy_inds, :]])  # values (voi_loc indices needed here,
+                                                                            # specific to the attached monitor)
 
 
-class TVBtoCosimInterfaces(HasTraits):
+class TVBtoCosimInterfaces(TVBInterfaces):
 
     """This class holds a list of TVB to cosimulator interfaces and sends data to them"""
 
     interfaces = List(of=TVBtoCosimInterface)
 
-    number_of_interfaces = 0
-
-    @property
-    def voi(self):
-        return [interfaces.voi for interfaces in self.interfaces]
-
-    @property
-    def proxy_inds(self):
-        return [interfaces.proxy_inds for interfaces in self.interfaces]
-
-    def configure(self):
+    def set_local_voi_indices(self, cosim_monitors):
+        """Method to set the correct voi indices with reference to the linked TVB CosimMonitor,
+           for each interface"""
         for interface in self.interfaces:
-            interface.configure()
-        self.number_of_interfaces = len(self.interfaces)
-        super(TVBtoCosimInterfaces, self).configure()
+            interface.set_local_voi_indices(cosim_monitors[interface.monitor_ind])
 
     def __call__(self, data):
         for interface in self.interfaces:
-            interface(data[interface.monitor_id])
+            interface(data[interface.monitor_ind])
