@@ -131,11 +131,16 @@ class CoSimulator(CoSimulatorBase):
             ts.append([])
             xs.append([])
         wall_time_start = time.time()
-        # Loop over all synchronization steps plus one in order to get the full delayed monitors' outputs:
-        simulation_length = kwds.pop("simulation_length", 0.0) + self.synchronization_time
-        for step_synch in range(0,
-                                int(math.ceil(simulation_length / self.integrator.dt)),
-                                self.synchronization_n_step):
+        self.simulation_length = kwds.pop("simulation_length", self.simulation_length)
+        if self._cosimulation_flag:
+            # Loop over all synchronization steps plus one in order to get the full delayed monitors' outputs:
+            simulation_length = self.simulation_length + self.synchronization_time
+            simulation_steps = int(math.ceil(simulation_length / self.integrator.dt))
+            synchronization_n_step = self.synchronization_n_step
+        else:
+            simulation_steps = int(math.ceil(self.simulation_length / self.integrator.dt))
+            synchronization_n_step = simulation_steps
+        for step_synch in range(0, simulation_steps, synchronization_n_step):
             if self.cosim_to_tvb_interfaces:
                 # Get the update data from the other cosimulator
                 cosim_updates = self.cosim_to_tvb_interfaces(self.good_cosim_update_values_shape)
