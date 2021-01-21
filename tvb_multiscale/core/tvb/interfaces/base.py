@@ -4,8 +4,10 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Int, Attr, NArray, List
+from tvb.basic.neotraits.api import HasTraits, Attr, NArray, List
+from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
+from tvb_multiscale.core.config import LINE
 from tvb_multiscale.core.tvb.io.io import TVBIO
 
 
@@ -13,6 +15,11 @@ class TVBInterface(HasTraits):
     __metaclass__ = ABCMeta
 
     """TVBInterface abstract base class."""
+
+    label = Attr(label="Interface label",
+                 doc="""Interface label of the form TVB_state_variable -> or <- for output or input interfaces.""",
+                 field_type=str,
+                 required=True)
 
     proxy_inds = NArray(
         dtype=np.int,
@@ -26,6 +33,13 @@ class TVBInterface(HasTraits):
         label="Cosimulation model state variables' indices",
         doc="""Indices of model's variables of interest (VOI) that""",
         required=True)
+
+    tvbio = Attr(
+        label="TVBIO",
+        field_type=TVBIO,
+        doc="""A TVBIO class instance to send/receive TVB data to/from the cosimulator.""",
+        required=True
+    )
 
     voi_loc = np.array([])
 
@@ -49,6 +63,30 @@ class TVBInterface(HasTraits):
     def __call__(self):
         pass
 
+    def __repr__(self):
+        return self.__class__.__name__
+
+    def __str__(self):
+        return self.print_str(None)
+
+    def print_str(self, sender_not_receiver_flag=None):
+        if sender_not_receiver_flag is True:
+            comm_str = "Sender"
+            tvb_source_or_target = "Source"
+        elif sender_not_receiver_flag is False:
+            comm_str = "Receiver"
+            tvb_source_or_target = "Target"
+        else:
+            comm_str = "TVB communicator"
+            tvb_source_or_target = ""
+        return "\n" + self.__repr__() + \
+               "\nLabel: %s, %s: %s" \
+               "TVB state variable indices: %s" \
+               "\n%s TVB proxy nodes' indices: %s" % \
+               (self.label, comm_str, self.tvbio.__class__.__name__, str(self.vois.tolist()),
+                tvb_source_or_target, extract_integer_intervals(self.proxy_inds, print=True))
+
+
 class TVBInterfaces(HasTraits):
     """This class holds a list of TVB interfaces"""
 
@@ -61,7 +99,7 @@ class TVBInterfaces(HasTraits):
     def _loop_get_from_interfaces(self, attr):
         out = []
         for interfaces in self.interfaces:
-            out += list(getattr(interfaces, "attr"))
+            out += list(getattr(interfaces, attr))
         return out
 
     @property
@@ -97,3 +135,16 @@ class TVBInterfaces(HasTraits):
     @abstractmethod
     def __call__(self):
         pass
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+    def __str__(self):
+        return self.print_str(None)
+
+    def print_str(self, sender_not_receiver):
+        output = 2 * LINE + "%s\n\n" % self.__repr__()
+        for ii, interface in enumerate(self.interfaces):
+            output += "%d. %s" % (ii, interface.print_str(sender_not_receiver))
+            output += LINE + "\n"
+        return output

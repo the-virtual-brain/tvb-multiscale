@@ -37,12 +37,12 @@ It inherits the Simulator class.
 
 """
 import time
-import math
 import numpy as np
 
 from tvb.basic.neotraits.api import Attr
 from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
 
+from tvb_multiscale.core.config import LINE
 from tvb_multiscale.core.tvb.interfaces.tvb_to_cosim_interfaces import TVBtoCosimInterfaces
 from tvb_multiscale.core.tvb.interfaces.cosim_to_tvb_interfaces import CosimToTVBInterfaces
 
@@ -205,3 +205,17 @@ class CoSimulator(CoSimulatorBase):
             ts[i] = np.array(ts[i])
             xs[i] = np.array(xs[i])
         return list(zip(ts, xs))
+
+    def interfaces_str(self):
+        output = ""
+        if self.tvb_to_cosim_interfaces or self.cosim_to_tvb_interfaces:
+            output += 3 * LINE + "TVB <-> interfaces:\n\n"
+            if self.tvb_to_cosim_interfaces:
+                output += self.tvb_to_cosim_interfaces.print_str()
+            if self.cosim_to_tvb_interfaces:
+                output += self.cosim_to_tvb_interfaces.print_str()
+            output += 2 * LINE
+        return output
+
+    def print_interfaces(self):
+        print(self.interfaces_str())

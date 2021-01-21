@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Int, Attr, NArray, List
+from tvb.basic.neotraits.api import Int, List
 
 from tvb_multiscale.core.tvb.interfaces.base import TVBInterface, TVBInterfaces
 from tvb_multiscale.core.tvb.io.io import TVBSender
@@ -17,15 +17,14 @@ class TVBtoCosimInterface(TVBInterface):
                       required=True,
                       default=0)
 
-    sender = Attr(
-        label="TVBSender",
-        field_type=TVBSender,
-        doc="""A TVBSender class to send TVB data to the cosimulator.""",
-        required=True
-    )
+    @property
+    def sender(self):
+        """A property method to return the TVBSender class used to send TVB data to the cosimulator."""
+        return self.tvbio
 
     def configure(self):
         """Method to configure the TVBtoCosimInterface interface"""
+        assert isinstance(self.sender, TVBSender)
         self.sender.configure()
         super(TVBtoCosimInterface, self).configure()
 
@@ -37,6 +36,12 @@ class TVBtoCosimInterface(TVBInterface):
         return self.sender([np.array([data[0][0], data[0][-1]]),            # time_steps[0], time_steps[-1]
                             data[1][:, self.voi_loc, self.proxy_inds, :]])  # values (voi_loc indices needed here,
                                                                             # specific to the attached monitor)
+
+    def print_str(self):
+        return super(TVBtoCosimInterface, self).print_str(True)
+
+    def __str__(self):
+        return self.print_str()
 
 
 class TVBtoCosimInterfaces(TVBInterfaces):
@@ -54,3 +59,9 @@ class TVBtoCosimInterfaces(TVBInterfaces):
     def __call__(self, data):
         for interface in self.interfaces:
             interface(data[interface.monitor_ind])
+
+    def print_str(self):
+        return super(TVBtoCosimInterfaces, self).print_str(True)
+
+    def __str__(self):
+        return self.print_str()
