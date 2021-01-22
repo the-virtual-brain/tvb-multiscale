@@ -4,7 +4,7 @@ from tvb.basic.neotraits._attr import Attr, List
 from tvb.basic.neotraits._core import HasTraits
 
 from tvb_multiscale.core.config import LINE
-from tvb_multiscale.core.interfaces.io import Communicator
+from tvb_multiscale.core.interfaces.io import Communicator, Sender, Receiver
 
 
 class BaseInterface(HasTraits):
@@ -36,8 +36,9 @@ class BaseInterface(HasTraits):
 
 
 class CommunicatorInterface(BaseInterface):
-    """CommunicatorInterface abstract base class sending/receiving data
-        directly to/from a transformer/cosimulator
+    __metaclass__ = ABCMeta
+
+    """CommunicatorInterface abstract base class sending/receiving data to/from a transformer/cosimulator
     """
 
     communicator = Attr(
@@ -52,8 +53,9 @@ class CommunicatorInterface(BaseInterface):
         self.communicator.configure()
         super(CommunicatorInterface, self).configure()
 
+    @abstractmethod
     def __call__(self, *args):
-        return self.communicator(*args)
+        pass
 
     def print_str(self, sender_not_receiver=None):
         out = super(CommunicatorInterface, self).print_str()
@@ -65,17 +67,61 @@ class CommunicatorInterface(BaseInterface):
             return out + "\nCommunicator: %s" % str(self.communicator)
 
 
-class TransformerInterface(BaseInterface):
+class SenderInterface(CommunicatorInterface):
+
+    """SenderInterface base class sending data to/from a transformer/cosimulator
+    """
+
+    @property
+    def sender(self):
+        """A property method to return the Sender class used to send data to the transformer/cosimulator."""
+        return self.communicator
+
+    def configure(self):
+        """Method to configure the SenderInterface"""
+        assert isinstance(self.communicator, Sender)
+        super(SenderInterface, self).configure()
+
+    def __call__(self, data):
+        return self.communicator(data)
+
+    def print_str(self):
+        return super(SenderInterface, self).print_str(sender_not_receiver=True)
+
+
+class ReceiverInterface(CommunicatorInterface):
+
+    """ReceiverInterface base class receiving data from a transformer/cosimulator
+    """
+
+    @property
+    def receiver(self):
+        """A property method to return the Sender class used to send data to the transformer."""
+        return self.communicator
+
+    def configure(self):
+        """Method to configure the ReceiverInterface"""
+        assert isinstance(self.communicator, Receiver)
+        super(ReceiverInterface, self).configure()
+
+    def __call__(self):
+        return self.communicator()
+
+    def print_str(self):
+        return super(ReceiverInterface, self).print_str(sender_not_receiver=False)
+
+
+class CommunicatorTransformerInterface(BaseInterface):
     """TransformerInterface abstract base class
-       - sending/receiving data to/from a Transformer,
+       - setting/getting data to/from a Transformer,
        - performing the Transformer computation,
        - and receiving/sending data from/to the cosimulator.
     """
 
-    communicator1 = Attr(
-        label="Communicator before transformation",
+    communicator = Attr(
+        label="Communicator to/from transformation",
         field_type=Communicator,
-        doc="""A Communicator class instance to send/receive data to/from the transformer.""",
+        doc="""A Communicator class instance to send/receive data for/from the transformer.""",
         required=True
     )
 
@@ -86,25 +132,15 @@ class TransformerInterface(BaseInterface):
         required=True
     )
 
-    communicator2 = Attr(
-        label="Communicator after transformation",
-        field_type=Communicator,
-        doc="""A Communicator class instance to send/receive data to/from the cosimulator.""",
-        required=True
-    )
-
     def configure(self):
         """Method to configure the CommunicatorInterface"""
-        self.communicator1.configure()
+        self.communicator.configure()
         self.transformer.configure()
-        self.communicator2.configure()
-        super(TransformerInterface, self).configure()
+        super(CommunicatorTransformerInterface, self).configure()
 
+    @abstractmethod
     def __call__(self, *args):
-        self.communicator1(*args)
-        self.transformer()
-        out = self.communicator2()
-        return out
+        pass
 
     def print_str(self, sender_not_receiver=None):
         if sender_not_receiver is True:
@@ -113,10 +149,113 @@ class TransformerInterface(BaseInterface):
             comm_str = "Receiver"
         else:
             comm_str = "Communicator"
-        out = super(TransformerInterface, self).print_str()
-        out += "\n%s to Transformer: %s" % (comm_str, str(self.communicator1))
+        out = super(CommunicatorTransformerInterface, self).print_str()
+        out += "\n%s: %s" % (comm_str, str(self.communicator1))
         out += "\nTransformer: %s" % str(self.transformer)
-        out += "\n%s from Transformer: %s" % (comm_str, str(self.communicator2))
+
+
+class TransformerSenderInterface(CommunicatorTransformerInterface):
+    """TransformerSenderInterface base class
+       - setting data to a Transformer,
+       - performing the Transformer computation,
+       - and sending data to the cosimulator.
+    """
+
+    @property
+    def sender(self):
+        """A property method to return the Sender class used to send data from the transformer."""
+        return self.communicator
+
+    def configure(self):
+        """Method to configure the TransformerSenderInterface"""
+        assert isinstance(self.communicator, Sender)
+        super(TransformerSenderInterface, self).configure()
+
+    def __call__(self, data):
+        self.transformer.time = data[0]
+        self.transformer.input_buffer = data[1]
+        self.transformer()
+        return self.communicator2([self.transformer.time, self.transformer.output_buffer])
+
+    def print_str(self):
+        super(TransformerSenderInterface, self).print_str(sender_not_receiver=True)
+
+
+class ReceiverTransformerInterface(CommunicatorTransformerInterface):
+    """ReceiverTransformerInterface base class
+       - receiving data from a cosimulator,
+       - performing the Transformer computation,
+       - and outputing data to the other cosimulator.
+    """
+
+    @property
+    def receiver(self):
+        """A property method to return the Receiver class used to receive data for the transformer."""
+        return self.communicator
+
+    def configure(self):
+        """Method to configure the SpikeNetSenderInterface"""
+        assert isinstance(self.communicator, Receiver)
+        super(ReceiverTransformerInterface, self).configure()
+
+    def __call__(self):
+        data = self.communicator()
+        self.transformer.time = data[0]
+        self.transformer.input_buffer = data[1]
+        self.transformer()
+        return [self.transformer.time, self.transformer.output_buffer]
+
+    def print_str(self):
+        super(ReceiverTransformerInterface, self).print_str(sender_not_receiver=False)
+
+
+class RemoteTransformerInterface(BaseInterface):
+    """RemoteTransformerInterface base class
+       - receiving data for a Transformer,
+       - performing the Transformer computation,
+       - and sending data to the cosimulator.
+    """
+
+    receiver = Attr(
+        label="Receiver communicator",
+        field_type=Communicator,
+        doc="""A Communicator class instance to receive data for the transformer.""",
+        required=True
+    )
+
+    transformer = Attr(
+        label="Transformer",
+        field_type=Communicator,
+        doc="""A Transformer class instance to process data.""",
+        required=True
+    )
+
+    sender = Attr(
+        label="Communicator after transformation",
+        field_type=Communicator,
+        doc="""A Communicator class instance to send data to the cosimulator.""",
+        required=True
+    )
+
+    def configure(self):
+        """Method to configure the RemoteTransformerInterface"""
+        self.receiver.configure()
+        self.transformer.configure()
+        self.sender.configure()
+        super(RemoteTransformerInterface, self).configure()
+
+    def __call__(self):
+        data = self.receiver()
+        self.transformer.time = data[0]
+        self.transformer.input_buffer = data[1]
+        self.transformer()
+        return self.sender([self.transformer.time, self.transformer.output_buffer])
+
+    def print_str(self):
+        out = super(RemoteTransformerInterface, self).print_str()
+        out += "\nReceiver: %s" % str(self.receiver)
+        out += "\nTransformer: %s" % str(self.transformer)
+        out += "\nSender: %s" % str(self.sender)
 
 
 class BaseInterfaces(HasTraits):

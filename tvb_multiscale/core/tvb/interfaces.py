@@ -7,8 +7,8 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.interfaces import CommunicatorInterface, TransformerInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.io import Sender, Receiver
+from tvb_multiscale.core.interfaces.interfaces import \
+    SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 
 
 class TVBInterface(HasTraits):
@@ -48,7 +48,7 @@ class TVBInterface(HasTraits):
         self.voi_loc = self._set_local_indices(self.voi, monitor_voi)
 
     @abstractmethod
-    def set_local_indices(self, monitor_voi):
+    def set_local_indices(self, *args):
         pass
 
     def print_str(self, sender_not_receiver=None):
@@ -66,7 +66,7 @@ class TVBInterface(HasTraits):
 
 class TVBOutgoingInterface(TVBInterface):
 
-    """TVBOutgoingInterface base class."""
+    """SpikeNetOutgoingInterface base class."""
 
     monitor_ind = Int(label="Monitor indice",
                       doc="Indice of monitor to get data from",
@@ -82,60 +82,13 @@ class TVBOutgoingInterface(TVBInterface):
                 # values (voi_loc indices needed here, specific to the attached monitor)
                 data[self.monitor_ind][1][:, self.voi_loc, self.proxy_inds, :]]
 
-
-class TVBtoTransformerInterface(CommunicatorInterface, TVBOutgoingInterface):
-
-    """TVBtoTransformerInterface class."""
-
-    @property
-    def sender(self):
-        """A property method to return the Sender class used to send TVB data to the transformer."""
-        return self.communicator
-
-    def configure(self):
-        """Method to configure the TVBtoTransformerInterface"""
-        assert isinstance(self.communicator, Sender)
-        super(TVBtoTransformerInterface, self).configure()
-
-    def __call__(self, data):
-        return CommunicatorInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
-
     def print_str(self):
-        return CommunicatorInterface.print_str(self, sender_not_receiver=True) + \
-               TVBOutgoingInterface.print_str(self, sender_not_receiver=True)
-
-
-class TVBtoCosimInterface(TransformerInterface, TVBOutgoingInterface):
-
-    """TVBtoCosimInterface class."""
-
-    @property
-    def sender_to_transformer(self):
-        """A property method to return the Sender class used to send TVB data to the transformer."""
-        return self.communicator1
-
-    @property
-    def sender_to_cosim(self):
-        """A property method to return the Sender class used to send TVB data to the cosimulator."""
-        return self.communicator2
-
-    def configure(self):
-        """Method to configure the TVBtoCosimInterface"""
-        assert isinstance(self.communicator1, Sender)
-        assert isinstance(self.communicator2, Sender)
-        super(TVBtoCosimInterface, self).configure()
-
-    def __call__(self, data):
-        return TransformerInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
-
-    def print_str(self):
-        return TransformerInterface.print_str(self, sender_not_receiver=True) + \
-               TVBOutgoingInterface.print_str(self, sender_not_receiver=True)
+        super(TVBOutgoingInterface, self).print_str(self, sender_not_receiver=True)
 
 
 class TVBIngoingInterface(TVBInterface):
 
-    """TVBIngoingInterface base class."""
+    """SpikeNetIngoingInterface base class."""
 
     proxy_inds_loc = np.array([])
 
@@ -143,61 +96,59 @@ class TVBIngoingInterface(TVBInterface):
         self.set_local_voi_indices(simulator_voi)
         self.proxy_inds_loc = self._set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
-
-class TransformerToTVBInterface(CommunicatorInterface, TVBIngoingInterface):
-
-    """TransformerToTVBInterface class."""
-
-    @property
-    def receiver(self):
-        """A property method to return the Receiver class used to receive TVB data from the transformer."""
-        return self.communicator
-
-    def configure(self):
-        """Method to configure the TransformerToTVBInterface"""
-        assert isinstance(self.communicator, Receiver)
-        super(TVBtoTransformerInterface, self).configure()
-
-    def __call__(self, *args):
-        return CommunicatorInterface.__call__(self, *args)
-
     def print_str(self):
-        return CommunicatorInterface.print_str(self, sender_not_receiver=False) + \
-               TVBOutgoingInterface.print_str(self, sender_not_receiver=False)
+        super(TVBIngoingInterface, self).print_str(self, sender_not_receiver=False)
 
 
-class CosimToTVBInterface(TransformerInterface, TVBIngoingInterface):
+class TVBSenderInterface(SenderInterface, TVBOutgoingInterface):
 
-    """CosimToTVBInterface class."""
-
-    @property
-    def receiver_from_cosim(self):
-        """A property method to return the Receiver class used to receive data from the cosimulator."""
-        return self.communicator1
-
-    @property
-    def receiver_from_transformer(self):
-        """A property method to return the Receiver class used to receive TVB data from the transformer."""
-        return self.communicator2
-
-    def configure(self):
-        """Method to configure the CosimToTVBInterface"""
-        assert isinstance(self.communicator1, Receiver)
-        assert isinstance(self.communicator2, Receiver)
-        super(TVBtoCosimInterface, self).configure()
+    """SpikeNetSenderInterface class."""
 
     def __call__(self, data):
-        return TransformerInterface.__call__(self, data)
+        return SenderInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
 
     def print_str(self):
-        return TransformerInterface.print_str(self, sender_not_receiver=False) + \
-               TVBIngoingInterface.print_str(self, sender_not_receiver=False)
+        return SenderInterface.print_str(self) + TVBOutgoingInterface.print_str(self)
+
+
+class TVBReceiverInterface(ReceiverInterface, TVBIngoingInterface):
+
+    """SpikeNetReceiverInterface class."""
+
+    def __call__(self):
+        return ReceiverInterface.__call__(self)
+
+    def print_str(self):
+        return ReceiverInterface.print_str(self) + TVBIngoingInterface.print_str(self)
+
+
+class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutgoingInterface):
+
+    """SpikeNetTransformerSenderInterface class."""
+
+    def __call__(self, data):
+        return TVBTransformerSenderInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
+
+    def print_str(self):
+        return TransformerSenderInterface.print_str(self) + TVBOutgoingInterface.print_str(self)
+
+
+class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBIngoingInterface):
+
+    """SpikeNetReceiverTransformerInterface class."""
+
+    def __call__(self):
+        return ReceiverTransformerInterface.__call__(self)
+
+    def print_str(self):
+        return ReceiverTransformerInterface.print_str(self) + \
+               TVBIngoingInterface.print_str(self)
 
 
 class TVBInterfaces(HasTraits):
     __metaclass__ = ABCMeta
 
-    """TVBInterfaces base class"""
+    """SpikeNetInterfaces abstract base class"""
 
     @property
     def voi(self):
@@ -228,9 +179,9 @@ class TVBInterfaces(HasTraits):
         pass
 
 
-class TVBtoCosimInterfaces(BaseInterfaces, TVBInterfaces):
+class TVBOutgoingInterfaces(BaseInterfaces, TVBInterfaces):
 
-    """TVBtoCosimInterfaces class holds a list of TVB interfaces to transformer/cosimulator
+    """TVBOutgoingInterfaces class holds a list of TVB interfaces to transformer/cosimulator
        and sends data to them"""
 
     def set_local_indices(self, cosim_monitors):
@@ -244,9 +195,9 @@ class TVBtoCosimInterfaces(BaseInterfaces, TVBInterfaces):
             interface(data[interface.monitor_ind])
 
 
-class CosimToTVBInterfaces(BaseInterfaces, TVBInterfaces):
+class TVBIngoingInterfaces(BaseInterfaces, TVBInterfaces):
 
-    """CosimToTVBInterfaces class holds a list of TVB interfaces from transformer/cosimulator
+    """TVBIngoingInterfaces class holds a list of TVB interfaces from transformer/cosimulator
        and receives data from them"""
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
