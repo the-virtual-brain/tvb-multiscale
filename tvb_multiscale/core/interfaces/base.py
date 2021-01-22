@@ -3,12 +3,12 @@
 from collections import OrderedDict
 
 import numpy as np
+
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger, LINE
 from tvb_multiscale.core.spiking_models.devices import \
     InputDeviceDict, OutputDeviceDict, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
 
-from tvb.contrib.scripts.utils.data_structures_utils \
-    import is_integer, concatenate_heterogeneous_DataArrays
+from tvb.contrib.scripts.utils.data_structures_utils import is_integer
 
 
 LOG = initialize_logger(__name__)
@@ -19,7 +19,7 @@ PARAMETERS = ["current", "potential"]
 
 class TVBSpikeNetInterface(object):
 
-    # This is the actual interface class between TVB and a SpikingNetwork
+    # This is the actual cosimulation class between TVB and a SpikingNetwork
 
     _available_input_devices = InputDeviceDict.keys()
     _current_input_devices = []
@@ -48,7 +48,7 @@ class TVBSpikeNetInterface(object):
         LOG.info("%s created!" % self.__class__)
 
     def __repr__(self):
-        return self.__class__.__name__ + " TVB-NEST Interface"
+        return self.__class__.__name__ + " TVB-NEST BaseInterface"
 
     def __str__(self):
         return self.print_str()
@@ -109,7 +109,7 @@ class TVBSpikeNetInterface(object):
             else:
                 # self.spikeNet_to_tvb_params_interfaces_ids.append(interface_id)  # deprecated
                 raise ValueError("tvb_sv_id=%s doesn't correspond "
-                                 "to the index of a TVB state variable for interface %s!\n"
+                                 "to the index of a TVB state variable for cosimulation %s!\n"
                                  % (str(interface.tvb_sv_id), str(interface)))
             # Even if the target in TVB is a state variable,
             # we are going to create a TVB parameter with the same name
@@ -161,7 +161,7 @@ class TVBSpikeNetInterface(object):
                     # to all target neurons of the spiking populations
                     # Instantaneous transmission. TVB history is used to buffer delayed communication.
             else:
-                raise ValueError("Interface model %s is not supported yet!" % interface.model)
+                raise ValueError("BaseInterface model %s is not supported yet!" % interface.model)
             # General form: interface_scale_weight * transformation_of(TVB_state_values)
             values = interface.scale * \
                      transform_fun(values, interface.nodes_ids)
@@ -172,26 +172,26 @@ class TVBSpikeNetInterface(object):
     #     # Apply Spiking Network -> TVB parameter input at time t before integrating time step t -> t+dt
     #     for interface_id in self.spikeNet_to_tvb_params_interfaces_ids:
     #         # ...update them:
-    #         interface = self.spikeNet_to_tvb_interfaces[interface_id]
+    #         cosimulation = self.spikeNet_to_tvb_interfaces[interface_id]
     #         # Update TVB parameter
-    #         param_values = getattr(model, interface.name)
-    #         if interface.model in self._spike_rate_output_devices:
+    #         param_values = getattr(model, cosimulation.name)
+    #         if cosimulation.model in self._spike_rate_output_devices:
     #             transform_fun = self.transforms["spikes_to_tvb"]
-    #             values = interface.population_mean_spikes_number
-    #             interface.reset  # We need to erase the spikes we have already read and communicated to TVB
-    #         elif interface.model == self._multimeter_output_devices:
+    #             values = cosimulation.population_mean_spikes_number
+    #             cosimulation.reset  # We need to erase the spikes we have already read and communicated to TVB
+    #         elif cosimulation.model == self._multimeter_output_devices:
     #             transform_fun = self.transforms["spikes_sv_to_tvb"]
-    #             values = interface.current_population_mean_values
-    #         elif interface.model == self._voltmeter_output_devices:
+    #             values = cosimulation.current_population_mean_values
+    #         elif cosimulation.model == self._voltmeter_output_devices:
     #             transform_fun = self.transforms["potential_to_tvb"]
-    #             values = interface.current_population_mean_values
+    #             values = cosimulation.current_population_mean_values
     #         # TODO: add any other possible Spiking Network output devices to TVB parameters interfaces here!
     #         else:
-    #             raise ValueError("Interface model %s is not supported yet!" % interface.model)
+    #             raise ValueError("BaseInterface model %s is not supported yet!" % cosimulation.model)
     #         # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
-    #         param_values[interface.nodes_ids] = \
-    #             interface.scale * transform_fun(values, interface.nodes_ids)
-    #         setattr(model, "__" + interface.name, param_values)
+    #         param_values[cosimulation.nodes_ids] = \
+    #             cosimulation.scale * transform_fun(values, cosimulation.nodes_ids)
+    #         setattr(model, "__" + cosimulation.name, param_values)
     #     return model
 
     def spikeNet_state_to_tvb_state(self, state):
@@ -216,7 +216,7 @@ class TVBSpikeNetInterface(object):
                 values = interface.current_population_mean_values
             # TODO: add any other possible Spiking Network output devices to TVB parameters interfaces here!
             else:
-                raise ValueError("Interface model %s is not supported yet!" % interface.model)
+                raise ValueError("BaseInterface model %s is not supported yet!" % interface.model)
             # General form: interface_scale_weight * transformation_of(SpikeNet_state_values)
             state[interface.tvb_sv_id, interface.nodes_ids, 0] = \
                 interface.scale * transform_fun(values,  interface.nodes_ids)
