@@ -36,6 +36,9 @@ It inherits the Simulator class.
 
 
 """
+
+from abc import ABCMeta, abstractmethod
+
 import time
 import numpy as np
 
@@ -43,18 +46,19 @@ from tvb.basic.neotraits.api import Attr
 from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
 
 from tvb_multiscale.core.config import LINE
-from tvb_multiscale.core.tvb.interfaces.tvb_to_cosim_interfaces import TVBtoCosimInterfaces
-from tvb_multiscale.core.tvb.interfaces.cosim_to_tvb_interfaces import CosimToTVBInterfaces
+from tvb_multiscale.core.tvb.interfaces import TVBtoCosimInterfaces
+from tvb_multiscale.core.tvb.interfaces import CosimToTVBInterfaces
 
 
 class CoSimulator(CoSimulatorBase):
+    __metaclass__ = ABCMeta
 
     tvb_to_cosim_interfaces = Attr(
         field_type=TVBtoCosimInterfaces,
         label="TVB to cosimulation outlet interfaces",
         default=None,
         required=False,
-        doc="""Interfaces to couple from TVB to a 
+        doc="""BaseInterfaces to couple from TVB to a 
                cosimulation outlet (i.e., translator level or another (co-)simulator""")
 
     cosim_to_tvb_interfaces = Attr(
@@ -62,7 +66,7 @@ class CoSimulator(CoSimulatorBase):
         label="Cosimulation to TVB interfaces",
         default=None,
         required=False,
-        doc="""Interfaces for updating from a cosimulation outlet 
+        doc="""BaseInterfaces for updating from a cosimulation outlet 
                (i.e., translator level or another (co-)simulator to TVB.""")
 
     PRINT_PROGRESSION_MESSAGE = True
@@ -87,18 +91,18 @@ class CoSimulator(CoSimulatorBase):
         self.proxy_inds = np.unique(self.proxy_inds)
 
     def _configure_local_vois_and_proxy_inds_per_interface(self):
-        """This method will set the local -per interface- voi and proxy_inds indices,
+        """This method will set the local -per cosimulation- voi and proxy_inds indices,
            based on the voi of each linked cosimulation monitor, for TVB to Cosimulator interfaces,
            and on the expected shape of ths cosimulation updates data for Cosimulator to TVB interfaces.
         """
         if self.tvb_to_cosim_interfaces:
-            # Set the correct voi indices with reference to the linked TVB CosimMonitor, for each interface:
-            self.tvb_to_cosim_interfaces.set_local_voi_indices(self.cosim_monitors)
+            # Set the correct voi indices with reference to the linked TVB CosimMonitor, for each cosimulation:
+            self.tvb_to_cosim_interfaces.set_local_indices(self.cosim_monitors)
         if self.cosim_to_tvb_interfaces:
-            # Method to get the correct indices of voi and proxy_inds, for each interface,
+            # Method to get the correct indices of voi and proxy_inds, for each cosimulation,
             # adjusted to the contents, shape etc of the cosim_updates,
             # based on TVB CoSmulators' vois and proxy_inds, i.e., good_cosim_update_values_shape
-            self.cosim_to_tvb_interfaces.set_local_voi_and_proxy_indices(self.voi, self.proxy_inds)
+            self.cosim_to_tvb_interfaces.set_local_indices(self.voi, self.proxy_inds)
 
     def configure(self, full_configure=True):
         """Configure simulator and its components.
@@ -133,8 +137,8 @@ class CoSimulator(CoSimulatorBase):
         else:
             super(CoSimulator, self)._prepare_stimulus()
 
-    def _run_for_synchronization_time(self, ts, xs, wall_time_start, interface=True, **kwds):
-        if interface and self.cosim_to_tvb_interfaces:
+    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+        if cosimulation and self.cosim_to_tvb_interfaces:
             # Get the update data from the other cosimulator
             cosim_updates = self.cosim_to_tvb_interfaces(self.good_cosim_update_values_shape)
             if np.all(np.isnan(cosim_updates)):
@@ -150,7 +154,7 @@ class CoSimulator(CoSimulatorBase):
                     tl.append(t)
                     xl.append(x)
         steps_performed = self.current_step - current_step
-        if interface and self.tvb_to_cosim_interfaces.interfaces:
+        if cosimulation and self.tvb_to_cosim_interfaces.interfaces:
             # Send the data to the other cosimulator
             self.tvb_to_cosim_interfaces.interfaces(
                 self.loop_cosim_monitor_output(current_step, steps_performed))
@@ -167,7 +171,7 @@ class CoSimulator(CoSimulatorBase):
             self.synchronization_n_step = np.minimum(synchronization_n_step,
                                                      int(remaining_time / self.integrator.dt))
             steps_performed = \
-                self._run_for_synchronization_time(ts, xs, wall_time_start, interface=True, **kwds)
+                self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
             simulation_time += steps_performed * self.integrator.dt
             remaining_time = self.simulation_length - simulation_time
             self.log.info("...%.3f%% completed!", simulation_time / self.simulation_length)
@@ -183,7 +187,7 @@ class CoSimulator(CoSimulatorBase):
                 self.synchronization_n_step = np.minimum(synchronization_n_step,
                                                          int(remaining_time / self.integrator.dt))
                 self._run_for_synchronization_time(ts, xs, wall_time_start,
-                                                   interface=False, **kwds)  # Run only TVB
+                                                   cosimulation=False, **kwds)  # Run only TVB
                 self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
                 # Revert the current_step and current_state to those before the excess synchronization time
                 self.current_step = int(current_step)
@@ -200,7 +204,7 @@ class CoSimulator(CoSimulatorBase):
         if self._cosimulation_flag:
             self._run_cosimulation(ts, xs, wall_time_start, **kwds)
         else:
-            self._run_for_synchronization_time(ts, xs, wall_time_start, interface=False, **kwds)
+            self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
             ts[i] = np.array(ts[i])
             xs[i] = np.array(xs[i])

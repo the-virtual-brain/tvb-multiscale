@@ -39,18 +39,32 @@ class Base(HasTraits):
 
     time = NArray(
         label="Time vector",
-        doc="""Buffer of time.""",
+        doc="""Buffer of (integer) time steps.""",
         required=True,
         default=np.array([])
     )
 
     @abstractmethod
-    def compute(self):
+    def compute(self, *args, **kwargs):
         """Abstract method for the computation on the input buffer data for the output buffer data to result."""
         pass
 
     def __call__(self):
         self.compute()
+
+    def configure(self):
+        if self.receiver:
+            self.receiver.configure()
+        if self.sender:
+            self.sender.configure()
+        super(Base, self).configure()
+
+    def print_str(self):
+        output = "\n%s, dt = %g" % (self.__repr__(), self.dt)
+        if self.receiver:
+            output += "\nReceiver: %s" % str(self.receiver)
+        if self.sender:
+            output += "\nSender: %s" % str(self.sender)
 
 
 # A few basic examples:
