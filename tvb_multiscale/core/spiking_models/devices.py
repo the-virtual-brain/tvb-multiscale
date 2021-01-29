@@ -99,7 +99,7 @@ class Device(HasTraits):
     # Methods to get or set attributes for devices and/or their connections:
 
     @abstractmethod
-    def Set(self, values_dict):
+    def set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -1342,7 +1342,7 @@ class DeviceSet(pd.Series, HasTraits):
         self._number_of_connections = self.do_for_all_devices("get_number_of_connections")
         self._number_of_neurons = self.do_for_all_devices("get_number_of_neurons")
 
-    def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
+    def get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DevoceSet.
             attr: the name of the method/property of Device requested
             nodes: a subselection of Device nodes of the DeviceSet the action should be performed upon
@@ -1354,18 +1354,18 @@ class DeviceSet(pd.Series, HasTraits):
             # Get dictionary of all attributes
             values_dict = []
             for node in self.devices(nodes):
-                values_dict.append(self[node].Get())
+                values_dict.append(self[node].get())
             values_dict = list_of_dicts_to_dict_of_lists(values_dict)
         else:
             values_dict = OrderedDict({})
             for attr in ensure_list(attrs):
                 this_attr = []
                 for node in self.devices(nodes):
-                    this_attr.append(self[node].Get(attr))
+                    this_attr.append(self[node].get(attr))
                 values_dict.update({attr: this_attr})
         return self._return_by_type(values_dict, return_type, name)
 
-    def Set(self, value_dict, nodes=None):
+    def set(self, value_dict, nodes=None):
         """A method to set attributes to (a subset of) all Devices of the DeviceSet.
             value_dict: dict of attributes and values to be set
             nodes: a subselection of Device nodes of the DeviceSet the action should be performed upon
@@ -1396,8 +1396,8 @@ class DeviceSet(pd.Series, HasTraits):
             try:
                 # Good for spike times and weights of spike generator
                 value_dict_i_n = get_scalar_dict1(value_dict, i_n)
-                self[node].Set(value_dict_i_n)
+                self[node].set(value_dict_i_n)
             except:
                 # Good for amplitude of dc generator and rate of poisson generator
                 value_dict_i_n = get_scalar_dict2(value_dict, i_n)
-                self[node].Set(value_dict_i_n)
+                self[node].set(value_dict_i_n)

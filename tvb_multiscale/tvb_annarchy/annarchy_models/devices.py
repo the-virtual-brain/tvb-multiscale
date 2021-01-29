@@ -123,7 +123,7 @@ class ANNarchyInputDevice(ANNarchyDevice, InputDevice, ANNarchyPopulation):
     def device_ind(self):
         return self.population_ind
 
-    def Set(self, values_dict):
+    def set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -428,7 +428,7 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
                                          % (population.name, self.label, monitor.period, self._period))
         return self._period
 
-    def Set(self, values_dict):
+    def set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.

@@ -65,7 +65,7 @@ class NESTDevice(Device):
     def nest_model(self):
         return str(self.device.get("model"))
 
-    def Set(self, values_dict):
+    def set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.

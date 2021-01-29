@@ -100,7 +100,7 @@ class SpikingBrain(Series, HasTraits):
                               Default = None, corresponds to all populations of each SpikingRegionNode.
         """
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
-            reg.Set(values_dict, pop_inds_or_lbls)
+            reg.set(values_dict, pop_inds_or_lbls)
 
     def Get(self, attrs=None, reg_inds_or_lbls=None, pop_inds_or_lbls=None, summary=None):
         """Method to get attributes of the SpikingBrain's neurons.
@@ -121,7 +121,7 @@ class SpikingBrain(Series, HasTraits):
         """
         output = Series()
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
-            output[lbl] = reg.Get(attrs, pop_inds_or_lbls, summary)
+            output[lbl] = reg.get(attrs, pop_inds_or_lbls, summary)
         return output
 
     def get_attributes(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None, summary=None):

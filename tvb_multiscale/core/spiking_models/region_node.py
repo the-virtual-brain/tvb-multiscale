@@ -98,7 +98,7 @@ class SpikingRegionNode(Series, HasTraits):
                               Default = None, corresponds to all populations of the region node.
         """
         for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
-            pop.Set(values_dict)
+            pop.set(values_dict)
 
     def Get(self, attrs=None, pop_inds_or_lbls=None, summary=False):
         """Method to get attributes of the SpikingRegionNode's populations' neurons.
@@ -117,7 +117,7 @@ class SpikingRegionNode(Series, HasTraits):
         """
         output = Series()
         for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
-            output[lbl] = pop.Get(attrs, summary=summary)
+            output[lbl] = pop.get(attrs, summary=summary)
         return output
 
     def get_attributes(self, pop_inds_or_lbls=None, summary=False):
