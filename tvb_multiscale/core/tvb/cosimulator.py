@@ -61,7 +61,7 @@ class CoSimulator(CoSimulatorBase):
         doc="""BaseInterfaces to couple from TVB to a 
                cosimulation outlet (i.e., translator level or another (co-)simulator""")
 
-    cosim_ingoing_interfaces = Attr(
+    tvb_ingoing_interfaces = Attr(
         field_type=TVBIngoingInterfaces,
         label="Cosimulation to TVB interfaces",
         default=None,
@@ -82,11 +82,11 @@ class CoSimulator(CoSimulatorBase):
             self.tvb_outgoing_interfaces.configure()
             self.voi += self.tvb_outgoing_interfaces.voi_unique
             self.proxy_inds += self.tvb_outgoing_interfaces.proxy_inds_unique
-        if self.cosim_ingoing_interfaces:
+        if self.tvb_ingoing_interfaces:
             # Configure all Cosim to TVB interfaces:
-            self.cosim_ingoing_interfaces.configure(self)
-            self.voi += self.cosim_ingoing_interfaces.voi_unique
-            self.proxy_inds += self.cosim_ingoing_interfaces.proxy_inds_unique
+            self.tvb_ingoing_interfaces.configure(self)
+            self.voi += self.tvb_ingoing_interfaces.voi_unique
+            self.proxy_inds += self.tvb_ingoing_interfaces.proxy_inds_unique
         self.voi = np.unique(self.voi)
         self.proxy_inds = np.unique(self.proxy_inds)
 
@@ -98,11 +98,11 @@ class CoSimulator(CoSimulatorBase):
         if self.tvb_outgoing_interfaces:
             # Set the correct voi indices with reference to the linked TVB CosimMonitor, for each cosimulation:
             self.tvb_outgoing_interfaces.set_local_indices(self.cosim_monitors)
-        if self.cosim_ingoing_interfaces:
+        if self.tvb_ingoing_interfaces:
             # Method to get the correct indices of voi and proxy_inds, for each cosimulation,
             # adjusted to the contents, shape etc of the cosim_updates,
             # based on TVB CoSmulators' vois and proxy_inds, i.e., good_cosim_update_values_shape
-            self.cosim_ingoing_interfaces.set_local_indices(self.voi, self.proxy_inds)
+            self.tvb_ingoing_interfaces.set_local_indices(self.voi, self.proxy_inds)
 
     def configure(self, full_configure=True):
         """Configure simulator and its components.
@@ -138,9 +138,9 @@ class CoSimulator(CoSimulatorBase):
             super(CoSimulator, self)._prepare_stimulus()
 
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
-        if cosimulation and self.cosim_ingoing_interfaces:
+        if cosimulation and self.tvb_ingoing_interfaces:
             # Get the update data from the other cosimulator
-            cosim_updates = self.cosim_ingoing_interfaces(self.good_cosim_update_values_shape)
+            cosim_updates = self.tvb_ingoing_interfaces(self.good_cosim_update_values_shape)
             if np.all(np.isnan(cosim_updates)):
                 cosim_updates = None
         else:
@@ -212,12 +212,12 @@ class CoSimulator(CoSimulatorBase):
 
     def interfaces_str(self):
         output = ""
-        if self.tvb_outgoing_interfaces or self.cosim_ingoing_interfaces:
+        if self.tvb_outgoing_interfaces or self.tvb_ingoing_interfaces:
             output += 3 * LINE + "TVB <-> interfaces:\n\n"
             if self.tvb_outgoing_interfaces:
                 output += self.tvb_outgoing_interfaces.print_str()
-            if self.cosim_ingoing_interfaces:
-                output += self.cosim_ingoing_interfaces.print_str()
+            if self.tvb_ingoing_interfaces:
+                output += self.tvb_ingoing_interfaces.print_str()
             output += 2 * LINE
         return output
 
