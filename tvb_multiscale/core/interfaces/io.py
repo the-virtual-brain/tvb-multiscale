@@ -8,6 +8,7 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr
 
 from tvb_multiscale.core.interfaces.transformers import Base as Transformer
+from tvb_multiscale.core.spiking_models.devices import InputDevice, OutputDevice, DeviceSet
 
 
 class Communicator(HasTraits):
@@ -22,12 +23,12 @@ class Communicator(HasTraits):
 
     def print_str(self, sender_not_receiver_flag=None):
         if sender_not_receiver_flag is True:
-            tvb_source_or_target = "\nSource: %s" % str(self.source)
+            source_or_target = "\nSource: %s" % str(self.source)
         elif sender_not_receiver_flag is False:
-            tvb_source_or_target = "\nTarget: %s" % str(self.target)
+            source_or_target = "\nTarget: %s" % str(self.target)
         else:
-            tvb_source_or_target = ""
-        return "\n%s:%s" % (self.__repr__(), tvb_source_or_target)
+            source_or_target = ""
+        return "\n%s:%s" % (self.__repr__(), source_or_target)
 
     @abstractmethod
     def __call__(self, *args):
@@ -178,9 +179,9 @@ class GetFromMemory(Receiver):
 class SetToTransformer(SetToMemory):
 
     """
-       SetToTransformer class to set data directly to a Transformer object in memory.
+       SetToTransformer class to set data directly to a Transformer instance in memory.
        It comprises of:
-           - a target attribute, i.e., the Transformer object to send data to,
+           - a target attribute, i.e., the Transformer instance to send data to,
            - an abstract method to set data to the target.
     """
 
@@ -199,9 +200,9 @@ class SetToTransformer(SetToMemory):
 class GetFromTransformer(GetFromMemory):
 
     """
-       GetFromTransformer class to get data from a Transformer object in memory.
+       GetFromTransformer class to get data from a Transformer instance in memory.
        It comprises of:
-           - a source attribute, i.e., the Transformer object to get (i.e., copy) data from,
+           - a source attribute, i.e., the Transformer instance to get (i.e., copy) data from,
            - an abstract method to get data from the source.
     """
 
@@ -214,3 +215,44 @@ class GetFromTransformer(GetFromMemory):
 
     def receive(self):
         return [np.copy(self.source.time), np.copy(self.source.output_buffer)]
+
+
+class SpikeNetInputDeviceToSet(SetToMemory):
+    __metaclass__ = ABCMeta
+    """
+        SpikeNetInputDeviceToSet class to set data directly to an InputDevice instance,
+        or a DeviceSet of such instances in memory.
+        It comprises of:
+            - a target attribute, i.e., the InputDevice or DeviceSet instance to send data to,
+            - an abstract method to set data to the target, depending on the specific InputDevice.
+    """
+
+    target = Attr(field_type=(InputDevice, DeviceSet),
+                  required=True,
+                  label="Target of Spiking Network",
+                  doc="""Spiking Network InputDevice or DeviceSet to set data to.""")
+
+    @abstractmethod
+    def send(self, data):
+        pass
+
+
+class SpikeNetEventsFromOutpuDevice(GetFromMemory):
+    """
+        SpikeNetEventsFromOutpuDevice class to read events' data
+         (times, senders and values from NEST Multimeters-like devices) from an OutputDevice,
+         or a DeviceSet of such instances
+        It comprises of:
+            - a source attribute, i.e., the OutputDevice or DeviceSet instance to get (i.e., copy) data from,
+            - a method to get data from the source.
+    """
+
+    source = Attr(field_type=(OutputDevice, DeviceSet),
+                  required=True,
+                  label="Source of Spiking Network events",
+                  doc="""Spiking Network OutputDevice or DeviceSet to get events from.""")
+
+    def receive(self):
+        events = self.source.get_events()
+        self.source.reset
+        return events

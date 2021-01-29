@@ -19,8 +19,8 @@ class SpikeNetInterface(HasTraits):
 
     proxy_inds = NArray(
         dtype=np.int,
-        label="Indices of NEST proxy nodes",
-        doc="""Indices of NEST proxy nodes""",
+        label="Indices of Spiking Network proxy nodes",
+        doc="""Indices of Spiking Network proxy nodes""",
         required=True,
     )
 
@@ -108,8 +108,7 @@ class SpikeNetReceiverTransformerInterface(ReceiverTransformerInterface, SpikeNe
         return ReceiverTransformerInterface.__call__(self)
 
     def print_str(self):
-        return ReceiverTransformerInterface.print_str(self) + \
-               SpikeNetIngoingInterface.print_str(self)
+        return ReceiverTransformerInterface.print_str(self) + SpikeNetIngoingInterface.print_str(self)
 
 
 class SpikeNetInterfaces(HasTraits):
@@ -142,20 +141,18 @@ class SpikeNetInterfaces(HasTraits):
 
 
 class SpikeNetOutgoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
-    __metaclass__ = ABCMeta
 
-    """SpikeNetIngoingInterfaces"""
+    """SpikeNetOutgoingInterfaces"""
 
-    @abstractmethod
-    def __call__(self, *args):
-        pass
+    def __call__(self):
+        for interface in self.interfaces:
+            interface()
 
 
 class SpikeNetIngoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
-    __metaclass__ = ABCMeta
 
     """SpikeNetIngoingInterfaces"""
 
-    @abstractmethod
     def __call__(self, *args):
-        pass
+        for interface in self.interfaces:
+            interface(*args)
