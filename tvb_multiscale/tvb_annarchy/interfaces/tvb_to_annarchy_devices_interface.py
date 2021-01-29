@@ -24,7 +24,7 @@ class TVBtoANNarchyDeviceInterface(TVBtoSpikeNetDeviceInterface):
 class TVBtoANNarchyPoissonPopulationInterface(TVBtoANNarchyDeviceInterface):
 
     def set(self, values):
-        self.Set({"rates": np.maximum([0], self._assert_input_size(values))})
+        self.set({"rates": np.maximum([0], self._assert_input_size(values))})
 
 
 class TVBtoANNarchyPoissonNeuronInterface(TVBtoANNarchyPoissonPopulationInterface):
@@ -45,7 +45,7 @@ class TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface(TVBtoANNarchyPoisso
 class TVBtoNESTMIPGeneratorInterface(TVBtoANNarchyDeviceInterface):
 
     def set(self, values):
-        self.Set({"rate": np.maximum(0, values)})
+        self.set({"rate": np.maximum(0, values)})
 
 
 INPUT_INTERFACES_DICT = {# "DCCurrentInjector": TVBtoANNarchyDCCurrentInjectorInterface,

@@ -80,4 +80,4 @@ class TVBtoSpikeNetParameterInterface(Series):
 
     def set(self, values):
         for node, value in zip(self.nodes, self._assert_input_size(values)):
-            self[node].Set({self.parameter: value})
+            self[node].set({self.parameter: value})
