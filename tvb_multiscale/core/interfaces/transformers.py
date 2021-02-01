@@ -37,12 +37,22 @@ class Base(HasTraits):
                required=True,
                default=0.1)
 
-    time = NArray(
-        label="Time vector",
-        doc="""Buffer of (integer) time steps.""",
+    input_time = NArray(
+        label="Input time vector",
+        doc="""Buffer of time (float) or time steps (integer) corresponding to the input buffer.""",
         required=True,
         default=np.array([])
     )
+
+    output_time = NArray(
+        label="Output time vector",
+        doc="""Buffer of time (float) or time steps (integer) corresponding to the output bufer.""",
+        required=True,
+        default=np.array([])
+    )
+
+    def compute_time(self):
+        self.output_time = np.copy(self.input_time)
 
     @abstractmethod
     def compute(self, *args, **kwargs):
@@ -50,6 +60,7 @@ class Base(HasTraits):
         pass
 
     def __call__(self):
+        self.compute_time()
         self.compute()
 
     def configure(self):

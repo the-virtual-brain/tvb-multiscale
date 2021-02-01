@@ -193,7 +193,7 @@ class SetToTransformer(SetToMemory):
     )
 
     def send(self, data):
-        self.target.time = np.copy(data[0])
+        self.target.input_time = np.copy(data[0])
         self.target.input_buffer = np.copy(data[1])
 
 
@@ -214,7 +214,7 @@ class GetFromTransformer(GetFromMemory):
     )
 
     def receive(self):
-        return [np.copy(self.source.time), np.copy(self.source.output_buffer)]
+        return [np.copy(self.source.output_time), np.copy(self.source.output_buffer)]
 
 
 class SpikeNetInputDeviceToSet(SetToMemory):
