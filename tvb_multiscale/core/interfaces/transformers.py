@@ -33,7 +33,7 @@ class Base(HasTraits):
     )
 
     dt = Float(label="Time step",
-               doc="Time step of integration",
+               doc="Time step of simulation",
                required=True,
                default=0.1)
 
