@@ -7,11 +7,10 @@ import numpy as np
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.io import \
-    ReaderFromFile, SetToMemory, GetFromMemory, SpikeNetInputDeviceToSet, SpikeNetEventsFromOutpuDevice
+    ReaderFromFile, SpikeNetInputDeviceToSet, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
-from tvb_multiscale.tvb_nest.nest_models.devices import \
-    read_nest_output_device_data_from_ascii_to_dict, NESTInputDevice, NESTOutputDevice, \
-    NESTDCGenerator, NESTPoissonGenerator, NESTInhomogeneousPoissonGenerator
+from tvb_multiscale.tvb_nest.nest_models.devices import read_nest_output_device_data_from_ascii_to_dict, \
+    NESTInputDevice, NESTOutputDevice, NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator
 
 
 class NESTInputDeviceToSet(SpikeNetInputDeviceToSet):
@@ -35,6 +34,53 @@ class NESTInputDeviceToSet(SpikeNetInputDeviceToSet):
         pass
 
 
+class NESTInhomogeneousPoissonGeneratorToSet(NESTInputDeviceToSet):
+    from nest import NodeCollection
+
+    """
+        NESTInhomogeneousPoissonGeneratorToSet class to set data directly to a NESTInhomogeneousPoissonGenerator 
+        instance or a nest.NodeCollection instance corresponding 
+        to a NEST inhomogeneous_poisson_generator device in memory.
+        It comprises of:
+            - a target attribute, i.e., the NESTInhomogeneousPoissonGenerator, DeviceSet, or 
+               inhomogeneous_poisson_generator instance to send data to,
+            - a method to set data to the target.
+    """
+
+    target = Attr(field_type=(NESTInhomogeneousPoissonGenerator, DeviceSet, NodeCollection),
+                  required=True,
+                  label="Target of Spiking Network",
+                  doc="""NESTInhomogeneousPoissonGenerator, DeviceSet of such instances, or
+                         inhomogeneous_poisson_generator nest.NodeCollection to set data to.""")
+
+    def send(self, data):
+        # Assuming data is of shape (proxy, time)
+        self.target.set({"rate_times": [data[0].tolist()] * data[1].shape[0],
+                         "rate_values": np.maximum([0.0], data[1]).tolist()})
+
+
+class NESTSpikeGeneratorToSet(NESTInputDeviceToSet):
+    from nest import NodeCollection
+
+    """
+        NESTSpikeGenerator class to set data directly to a NESTSpikeGenerator instance 
+        or a nest.NodeCollection instance corresponding to a NEST spike_generator device in memory.
+        It comprises of:
+            - a target attribute, i.e., the NESTSpikeGenerator, DeviceSet, or 
+               spike_generator instance to send data to,
+            - a method to set data to the target.
+    """
+
+    target = Attr(field_type=(NESTSpikeGenerator, DeviceSet, NodeCollection),
+                  required=True,
+                  label="Target of Spiking Network",
+                  doc="""NESTSpikeGenerator, DeviceSet of such instances, or 
+                         spike_generator nest.NodeCollection to set data to.""")
+
+    def set(self, data):
+        self.target.set({"spikes_times": np.maximum([0.0], data[-1]).tolist()})
+
+
 class NESTStepCurrentGeneratorToSet(NESTInputDeviceToSet):
     from nest import NodeCollection
 
@@ -54,59 +100,11 @@ class NESTStepCurrentGeneratorToSet(NESTInputDeviceToSet):
                   doc="""NESTStepCurrentGenerator, DeviceSet of such instances,
                          or step_current_generator nest.NodeCollection to set data to.""")
 
-    @abstractmethod
     def send(self, data):
         self.target.set({"amplitude_times": [data[0].tolist()] * data[1].shape[0],
                          "amplitude_values": np.maximum([0.0], data[1]).tolist()})
-
-
-class NESTInhomogeneousPoissonGeneratorToSet(NESTInputDeviceToSet):
-    from nest import NodeCollection
-
-    """
-        NESTInhomogeneousPoissonGeneratorToSet class to set data directly to a NESTInhomogeneousPoissonGenerator instance 
-        or a nest.NodeCollection instance corresponding to a NEST inhomogeneous_poisson_generator device in memory.
-        It comprises of:
-            - a target attribute, i.e., the NESTInhomogeneousPoissonGenerator, DeviceSet, or 
-               inhomogeneous_poisson_generator instance to send data to,
-            - a method to set data to the target.
-    """
-
-    target = Attr(field_type=(NESTInhomogeneousPoissonGenerator, DeviseSet, NodeCollection),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""NESTInhomogeneousPoissonGenerator, DeviceSet of such instances, or
-                         inhomogeneous_poisson_generator nest.NodeCollection to set data to.""")
-
-    def send(self, data):
-        self.target.set({"rate_times": [data[0].tolist()] * data[1].shape[0],
-                         "rate_values": np.maximum([0.0], data[1]).tolist()})
-
-
-
-class NESTSpikeGeneratorToSet(NESTInputDeviceToSet):
-    from nest import NodeCollection
-
-    """
-        NESTSpikeGenerator class to set data directly to a NESTSpikeGenerator instance 
-        or a nest.NodeCollection instance corresponding to a NEST spike_generator device in memory.
-        It comprises of:
-            - a target attribute, i.e., the NESTSpikeGenerator, DeviceSet, or 
-               spike_generator instance to send data to,
-            - a method to set data to the target.
-    """
-
-    target = Attr(field_type=(NESTSpikeGenerator, DeviseSet, NodeCollection),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""NESTSpikeGenerator, DeviceSet of such instances, or 
-                         spike_generator nest.NodeCollection to set data to.""")
-
-    def set(self, data):
-        self.target.set({"spikes_times": np.maximum([0.0], data[-1]).tolist()})
-
-
-
+        
+        
 class NESTEventsReaderFromRecorderFile(ReaderFromFile):
 
     """
@@ -122,6 +120,7 @@ class NESTEventsReaderFromRecorderFile(ReaderFromFile):
 
 
 class NESTEventsFromOutpuDevice(SpikeNetEventsFromOutpuDevice):
+    from nest import NodeCollection
     """
         NESTEventsFromOutpuDevice class to read events' data
          (times, senders and values from NEST Multimeters-like devices) from a NESTOutputDevice device,
