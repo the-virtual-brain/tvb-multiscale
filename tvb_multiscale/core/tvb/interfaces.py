@@ -4,9 +4,10 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Int, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
+from tvb_multiscale.core.interfaces.io import SpikeNetInputDeviceToSet, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 
@@ -14,7 +15,7 @@ from tvb_multiscale.core.interfaces.interfaces import \
 class TVBInterface(HasTraits):
     __metaclass__ = ABCMeta
 
-    """TVBInterface base class."""
+    """TVBInterface base class for interfaces sending/receivng data from/for TVB to/from a transformer of cosimulator"""
 
     proxy_inds = NArray(
         dtype=np.int,
@@ -66,7 +67,7 @@ class TVBInterface(HasTraits):
 
 class TVBOutgoingInterface(TVBInterface):
 
-    """SpikeNetOutgoingInterface base class."""
+    """TVBOutgoingInterface base class for interfaces sending data from TVB to a transformer or cosimulator"""
 
     monitor_ind = Int(label="Monitor indice",
                       doc="Indice of monitor to get data from",
@@ -77,8 +78,8 @@ class TVBOutgoingInterface(TVBInterface):
         self.set_local_voi_indices(monitor_voi)
 
     def __call__(self, data):
-        return [np.array([data[self.monitor_ind][0][0],     # start time step
-                          data[self.monitor_ind][0][-1]]),  # end time step
+        return [np.array([data[self.monitor_ind][0][0],     # start input_time step
+                          data[self.monitor_ind][0][-1]]),  # end input_time step
                 # values (voi_loc indices needed here, specific to the attached monitor)
                 data[self.monitor_ind][1][:, self.voi_loc, self.proxy_inds, :]]
 
@@ -88,7 +89,7 @@ class TVBOutgoingInterface(TVBInterface):
 
 class TVBIngoingInterface(TVBInterface):
 
-    """SpikeNetIngoingInterface base class."""
+    """TVBIngoingInterface base class for interfaces receiving data for TVB from a transformer or cosimulator"""
 
     proxy_inds_loc = np.array([])
 
@@ -102,7 +103,8 @@ class TVBIngoingInterface(TVBInterface):
 
 class TVBSenderInterface(SenderInterface, TVBOutgoingInterface):
 
-    """SpikeNetSenderInterface class."""
+    """TVBSenderInterface class to send data to a remote transformer or cosimulator.
+    """
 
     def __call__(self, data):
         return SenderInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
@@ -113,7 +115,8 @@ class TVBSenderInterface(SenderInterface, TVBOutgoingInterface):
 
 class TVBReceiverInterface(ReceiverInterface, TVBIngoingInterface):
 
-    """SpikeNetReceiverInterface class."""
+    """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
+    """
 
     def __call__(self):
         return ReceiverInterface.__call__(self)
@@ -124,7 +127,9 @@ class TVBReceiverInterface(ReceiverInterface, TVBIngoingInterface):
 
 class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutgoingInterface):
 
-    """SpikeNetTransformerSenderInterface class."""
+    """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
+       and, then, send them to a -potentially remote- cosimulator.
+    """
 
     def __call__(self, data):
         return TVBTransformerSenderInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
@@ -135,7 +140,9 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutgoingInter
 
 class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBIngoingInterface):
 
-    """SpikeNetReceiverTransformerInterface class."""
+    """TVBReceiverTransformerInterface class receive data from a -potentially remote- cosimulator,
+       and, then, transform them and set them to TVB locally.
+    """
 
     def __call__(self):
         return ReceiverTransformerInterface.__call__(self)
@@ -143,6 +150,36 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBIngoingIn
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + \
                TVBIngoingInterface.print_str(self)
+
+
+class TVBtoSpikeNetInterface(TVBTransformerSenderInterface):
+
+    """TVBtoSpikeNetInterface class to get data from TVB, transform them,
+       and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
+    """
+
+    communicator = Attr(
+        label="Communicator directly to SpikeNet cosimulator",
+        field_type=SpikeNetInputDeviceToSet,
+        doc="""A SpikeNetInputDeviceToSet Communicator class instance 
+              to send data to the Spiking Network co-simulator.""",
+        required=True
+    )
+
+
+class SpikeNetToTVBInterface(TVBReceiverTransformerInterface):
+
+    """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
+       and finally set them to TVB, all processes taking place in shared memmory.
+    """
+
+    communicator = Attr(
+        label="Communicator directly from SpikeNet cosimulator",
+        field_type=SpikeNetEventsFromOutpuDevice,
+        doc="""A SpikeNetEventsFromOutpuDevice Communicator class instance 
+               to receive events' data from the Spiking Network co-simulator.""",
+        required=True
+    )
 
 
 class TVBInterfaces(HasTraits):
@@ -192,7 +229,9 @@ class TVBOutgoingInterfaces(BaseInterfaces, TVBInterfaces):
 
     def __call__(self, data):
         for interface in self.interfaces:
-            interface(data[interface.monitor_ind])
+            #                            start_time_step                 end_time_step
+            interface([np.array([data[interface.monitor_ind][0][0], data[interface.monitor_ind][0][-1]]).astype("i"),
+                       data[interface.monitor_ind][1][:, :, :, 0]])  # data values !!! assuming only 1 mode!!!
 
 
 class TVBIngoingInterfaces(BaseInterfaces, TVBInterfaces):
@@ -203,7 +242,7 @@ class TVBIngoingInterfaces(BaseInterfaces, TVBInterfaces):
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
         """Method to get the correct indices of voi and proxy_inds,
            adjusted to the contents, shape etc of the cosim_updates,
-           based on TVB CoSmulators' vois and proxy_inds,
+           based on TVB CoSimulators' vois and proxy_inds,
            for each cosimulation"""
         for interface in self.interfaces:
             interface.set_local_indices(simulator_voi, simulator_proxy_inds)
@@ -212,11 +251,11 @@ class TVBIngoingInterfaces(BaseInterfaces, TVBInterfaces):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
         cosim_updates[:] = np.NAN
         for interface in self.interfaces:
-            data = interface()  # [time_steps, values]
-            # Convert start and end time step to a vector of integer time steps:
-            data[0] = np.arange(data[0][0], data[0][1] + 1).astype("i")
+            data = interface()  # [start_and_time_steps, values]
+            # Convert start and end input_time step to a vector of integer input_time steps:
+            time_steps = np.arange(data[0][0], data[0][1] + 1).astype("i")
             cosim_updates[
-                (data[0] % good_cosim_update_values_shape[0])[:, None, None, None],
-                interface.voi_loc[None, :, None, None],         # indices specific to cosim_updates needed here
-                interface.proxy_inds_loc[None, None, :, None],  # indices specific to cosim_updates needed here
-                np.arange(good_cosim_update_values_shape[3])[None, None, None, :]] = data[1]
+                (time_steps % good_cosim_update_values_shape[0])[:, None, None],
+                interface.voi_loc[None, :, None],         # indices specific to cosim_updates needed here
+                interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
+                0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
