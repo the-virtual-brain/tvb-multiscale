@@ -138,3 +138,46 @@ class DotProduct(Base):
     def compute(self):
         """Method that just scales input buffer data to compute the output buffer data."""
         self.output_buffer = np.dot(self.dot_factor * self.input_buffer)
+
+
+class RatesToSpikes(Base):
+    __metaclass__ = ABCMeta
+
+    """
+        RatesToSpikes Transformer 
+    """
+
+    @abstractmethod
+    def _compute(self, rates, t_start, t_stop, *args, **kwargs):
+        """Abstract method for the computation of rates data transformation to spike trains."""
+        pass
+
+    def compute(self, *args, **kwargs):
+        """Method for the computation on the input buffer rates' data
+           for the output buffer data of spike trains to result."""
+        self.output_buffer = []
+        for proxy_buffer in self.input_buffer:  # At this point we assume that input_buffer has shape (proxy, time)
+            self.output_buffer.append(
+                self._compute(proxy_buffer, self.input_time[0], self.input_time[-1], *args, **kwargs))
+
+
+class SpikesToRates(Base):
+    __metaclass__ = ABCMeta
+
+    """
+        RateToSpikes Transformer 
+    """
+
+    @abstractmethod
+    def _compute(self, spikes, t_start, t_stop, *args, **kwargs):
+        """Abstract method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates."""
+        pass
+
+    def compute(self, *args, **kwargs):
+        """Method for the computation on the input buffer spikes' trains' data
+           for the output buffer data of instantaneous mean spiking rates to result."""
+        self.output_buffer = []
+        for proxy_buffer in self.input_buffer:  # At this point we assume that input_buffer has shape (proxy,)
+            self.output_buffer.append(
+                self._compute(proxy_buffer, self.input_time[0], self.input_time[-1], *args, **kwargs))
