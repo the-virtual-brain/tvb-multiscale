@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr
+from tvb.basic.neotraits.api import Attr, Float
 
 from tvb_multiscale.core.interfaces.io import \
     ReaderFromFile, SpikeNetInputDeviceToSet, SpikeNetEventsFromOutpuDevice
@@ -14,8 +14,9 @@ from tvb_multiscale.tvb_nest.nest_models.devices import read_nest_output_device_
 
 
 class NESTInputDeviceToSet(SpikeNetInputDeviceToSet):
-    from nest import NodeCollection
     __metaclass__ = ABCMeta
+    from nest import NodeCollection
+
     """
         NESTInputDeviceToSet class to set data directly to a NESTInputDevice instance, a DeviceSet of such instances,
         or a nest.NodeCollection instance corresponding to a NESTInputDevice in memory.
@@ -28,6 +29,14 @@ class NESTInputDeviceToSet(SpikeNetInputDeviceToSet):
                   required=True,
                   label="Target of Spiking Network",
                   doc="""NESTInputDevice, DeviceSet or nest.NodeCollection instances to set data to.""")
+
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
+
+    def transform_time(self, time):
+        return self.dt * np.arange(time[0], time[-1] + 1)
 
     @abstractmethod
     def send(self, data):
@@ -55,7 +64,7 @@ class NESTInhomogeneousPoissonGeneratorToSet(NESTInputDeviceToSet):
 
     def send(self, data):
         # Assuming data is of shape (proxy, time)
-        self.target.set({"rate_times": [data[0].tolist()] * data[1].shape[0],
+        self.target.set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
@@ -101,8 +110,8 @@ class NESTStepCurrentGeneratorToSet(NESTInputDeviceToSet):
                          or step_current_generator nest.NodeCollection to set data to.""")
 
     def send(self, data):
-        self.target.set({"amplitude_times": [data[0].tolist()] * data[1].shape[0],
-                         "amplitude_values": np.maximum([0.0], data[1]).tolist()})
+        self.target.set({"amplitude_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
+                         "amplitude_values": data[1].tolist()})
         
         
 class NESTEventsReaderFromRecorderFile(ReaderFromFile):
