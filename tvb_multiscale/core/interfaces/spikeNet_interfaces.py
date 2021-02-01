@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, NArray
@@ -144,6 +142,8 @@ class SpikeNetOutgoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetOutgoingInterfaces"""
 
+    spiking_network = None
+
     def __call__(self):
         for interface in self.interfaces:
             interface()
@@ -152,6 +152,8 @@ class SpikeNetOutgoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
 class SpikeNetIngoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetIngoingInterfaces"""
+
+    spiking_network = None
 
     def __call__(self, *args):
         for interface in self.interfaces:
