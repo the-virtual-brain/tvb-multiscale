@@ -2,32 +2,85 @@
 
 import numpy as np
 
-from tvb_multiscale.core.interfaces.transformers import Scale, RatesToSpikes, SpikesToRates
+from tvb_multiscale.core.interfaces.transformers import Scale, RatesToSpikesElephantPoisson, \
+    RatesToSpikesElephantSinglePoissonInteraction, RatesToSpikesElephantMultiplePoissonInteraction, \
+    SpikesToRatesElephantHistogram, SpikesToRatesElephantRate
 
 # TODO: Deal with abstract methods _compute for RatesToSpikes and SpikesToRates!!!
 
 
 class TVBtoSpikeNetRateTransformer(Scale):
 
-    """TVBtoSpikeNetRateTransformer class that just scales TVB mean field rates to Spiking Network spiking rates,
+    """TVBtoSpikeNetRateTransformer class that just scales TVB mean field rates to Spiking Network rates,
        including any unit conversions and conversions from mean field to total rates"""
 
     def compute(self, *args, **kwargs):
+        """Method for the scaling on the input buffer rates' data
+           for the output buffer data also of rates to result."""
         # Assume a TVB (time, voi, proxy) to Spiking Network (proxy, time) reshaping
         self.input_buffer = self.input_buffer[:, 0, :].T  # Remove voi
         super(TVBtoSpikeNetRateTransformer, self).compute(*args, **kwargs)
 
 
-class TVBRateToSpikeNetSpikesTransformer(RatesToSpikes):
+class TVBRatesToSpikesElephantPoisson(RatesToSpikesElephantPoisson):
 
-    """TVBRateToSpikeNetSpikesTransformer class that transforms TVB mean field rates to Spiking Network spikes (times),
-       including any unit conversions and conversions from mean field to total rates"""
+    """
+        TVBRatesToSpikesElephantPoisson Transformer class,
+        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        depending on whether rate varies with time or not.
+        This class can be used to produce independent spike trains per proxy node.
+    """
 
     def compute(self, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result."""
+        """Method for the computation on the input buffer rates' data
+           for the output buffer data of spike trains to result."""
         # Assume a TVB (time, voi, proxy) to Spiking Network (proxy, time) reshaping
         self.input_buffer = self.input_buffer[:, 0, :].T  # Remove voi
-        super(TVBRateToSpikeNetSpikesTransformer, self).compute(*args, **kwargs)
+        super(TVBRatesToSpikesElephantPoisson, self).compute(*args, **kwargs)
+
+
+class TVBRatesToSpikesElephantSinglePoissonInteraction(RatesToSpikesElephantSinglePoissonInteraction):
+    """
+        TVBRatesToSpikesElephantSinglePoissonInteraction Transformer class,
+        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        depending on whether rate varies with time or not.
+        This class can be used to produce interacting spike trains per proxy node with single interaction
+        The single interaction algorithm implemented is based on
+        Kuhn, Alexandre, Ad Aertsen, and Stefan Rotter.
+        “Higher-Order Statistics of Input Ensembles and the Response of Simple Model Neurons.”
+        Neural Computation 15, no. 1 (January 2003): 67–101. https://doi.org/10.1162/089976603321043702.
+        DOI: 10.1162/089976603321043702.
+        We took it from https://github.com/multiscale-cosim/TVB-NEST
+    """
+
+    def compute(self, *args, **kwargs):
+        """Method for the computation on the input buffer rates' data
+           for the output buffer data of spike trains to result."""
+        # Assume a TVB (time, voi, proxy) to Spiking Network (proxy, time) reshaping
+        self.input_buffer = self.input_buffer[:, 0, :].T  # Remove voi
+        super(TVBRatesToSpikesElephantSinglePoissonInteraction, self).compute(*args, **kwargs)
+
+
+class TVBRatesToSpikesElephantMultiplePoissonInteraction(RatesToSpikesElephantMultiplePoissonInteraction):
+    """
+        TVBRatesToSpikesElephantMultiplePoissonInteraction Transformer class,
+        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        depending on whether rate varies with time or not.
+        This class can be used to produce interacting spike trains per proxy node with multiple interaction.
+        The multiple interaction algorithm implemented is based on
+        Kuhn, Alexandre, Ad Aertsen, and Stefan Rotter.
+        “Higher-Order Statistics of Input Ensembles and the Response of Simple Model Neurons.”
+        Neural Computation 15, no. 1 (January 2003): 67–101. https://doi.org/10.1162/089976603321043702.
+        DOI: 10.1162/089976603321043702.
+        We took it from https://github.com/multiscale-cosim/TVB-NEST
+    """
+
+    def compute(self, *args, **kwargs):
+        """Method for the computation on the input buffer rates' data
+           for the output buffer data of spike trains to result."""
+        # Assume a TVB (time, voi, proxy) to Spiking Network (proxy, time) reshaping
+        self.input_buffer = self.input_buffer[:, 0, :].T  # Remove voi
+        super(TVBRatesToSpikesElephantMultiplePoissonInteraction, self).compute(*args, **kwargs)
 
 
 class TVBtoSpikeNetCurrentTransformer(Scale):
@@ -41,13 +94,31 @@ class TVBtoSpikeNetCurrentTransformer(Scale):
         super(TVBtoSpikeNetCurrentTransformer, self).compute(*args, **kwargs)
 
 
-class SpikeNetSpikesToTVBRateTransformer(SpikesToRates):
+class TVBSpikesToRatesElephantHistogram(SpikesToRatesElephantHistogram):
 
-    """SpikeNetSpikesToTVBRateTransformer abstract base class that transforms Spiking Network spikes (times) counts to
-       TVB mean field rates, including any unit conversions and conversions from total to mean field rates"""
+    """
+        TVBSpikesToRatesElephantHistogram Transformer class using the function time_histogram of elephant software.
+        The algorithm is based just on computing a time histogram of the spike trains.
+    """
 
     def compute(self, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result."""
-        super(SpikeNetSpikesToTVBRateTransformer, self).compute(*args, **kwargs)
+        """Method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+        super(TVBSpikesToRatesElephantHistogram, self).compute(*args, **kwargs)
+        # Assume a Spiking Network (proxy, time) to TVB (time, voi, proxy) reshaping
+        self.output_buffer = self.output_buffer.T[:, np.newaxis, :]
+
+
+class TVBSpikesToRatesElephantRate(SpikesToRatesElephantRate):
+
+    """
+        SpikesToRatesElephantRate Transformer class using the function instantaneous_rate of elephant software.
+        The algorithm is based on convolution of spike trains with a kernel.
+    """
+
+    def compute(self, *args, **kwargs):
+        """Method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates, using elephant.statistics.instantaneous_rate function."""
+        super(TVBSpikesToRatesElephantRate, self).compute(*args, **kwargs)
         # Assume a Spiking Network (proxy, time) to TVB (time, voi, proxy) reshaping
         self.output_buffer = self.output_buffer.T[:, np.newaxis, :]
