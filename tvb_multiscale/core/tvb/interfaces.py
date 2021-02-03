@@ -65,9 +65,9 @@ class TVBInterface(HasTraits):
                 tvb_source_or_target, extract_integer_intervals(self.proxy_inds, print=True))
 
 
-class TVBOutgoingInterface(TVBInterface):
+class TVBOutputInterface(TVBInterface):
 
-    """TVBOutgoingInterface base class for interfaces sending data from TVB to a transformer or cosimulator"""
+    """TVBOutputInterface base class for interfaces sending data from TVB to a transformer or cosimulator"""
 
     monitor_ind = Int(label="Monitor indice",
                       doc="Indice of monitor to get data from",
@@ -84,12 +84,12 @@ class TVBOutgoingInterface(TVBInterface):
                 data[self.monitor_ind][1][:, self.voi_loc, self.proxy_inds, :]]
 
     def print_str(self):
-        super(TVBOutgoingInterface, self).print_str(self, sender_not_receiver=True)
+        super(TVBOutputInterface, self).print_str(self, sender_not_receiver=True)
 
 
-class TVBIngoingInterface(TVBInterface):
+class TVBInputInterface(TVBInterface):
 
-    """TVBIngoingInterface base class for interfaces receiving data for TVB from a transformer or cosimulator"""
+    """TVBInputInterface base class for interfaces receiving data for TVB from a transformer or cosimulator"""
 
     proxy_inds_loc = np.array([])
 
@@ -98,22 +98,22 @@ class TVBIngoingInterface(TVBInterface):
         self.proxy_inds_loc = self._set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
     def print_str(self):
-        super(TVBIngoingInterface, self).print_str(self, sender_not_receiver=False)
+        super(TVBInputInterface, self).print_str(self, sender_not_receiver=False)
 
 
-class TVBSenderInterface(SenderInterface, TVBOutgoingInterface):
+class TVBSenderInterface(SenderInterface, TVBOutputInterface):
 
     """TVBSenderInterface class to send data to a remote transformer or cosimulator.
     """
 
     def __call__(self, data):
-        return SenderInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
+        return SenderInterface.__call__(self, TVBOutputInterface.__call__(self, data))
 
     def print_str(self):
-        return SenderInterface.print_str(self) + TVBOutgoingInterface.print_str(self)
+        return SenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
 
 
-class TVBReceiverInterface(ReceiverInterface, TVBIngoingInterface):
+class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
 
     """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
     """
@@ -122,23 +122,23 @@ class TVBReceiverInterface(ReceiverInterface, TVBIngoingInterface):
         return ReceiverInterface.__call__(self)
 
     def print_str(self):
-        return ReceiverInterface.print_str(self) + TVBIngoingInterface.print_str(self)
+        return ReceiverInterface.print_str(self) + TVBInputInterface.print_str(self)
 
 
-class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutgoingInterface):
+class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterface):
 
     """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
        and, then, send them to a -potentially remote- cosimulator.
     """
 
     def __call__(self, data):
-        return TVBTransformerSenderInterface.__call__(self, TVBOutgoingInterface.__call__(self, data))
+        return TVBTransformerSenderInterface.__call__(self, TVBOutputInterface.__call__(self, data))
 
     def print_str(self):
-        return TransformerSenderInterface.print_str(self) + TVBOutgoingInterface.print_str(self)
+        return TransformerSenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
 
 
-class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBIngoingInterface):
+class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInterface):
 
     """TVBReceiverTransformerInterface class receive data from a -potentially remote- cosimulator,
        and, then, transform them and set them to TVB locally.
@@ -149,7 +149,7 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBIngoingIn
 
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + \
-               TVBIngoingInterface.print_str(self)
+               TVBInputInterface.print_str(self)
 
 
 class TVBtoSpikeNetInterface(TVBTransformerSenderInterface):
@@ -216,9 +216,9 @@ class TVBInterfaces(HasTraits):
         pass
 
 
-class TVBOutgoingInterfaces(BaseInterfaces, TVBInterfaces):
+class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
 
-    """TVBOutgoingInterfaces class holds a list of TVB interfaces to transformer/cosimulator
+    """TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
        and sends data to them"""
 
     def set_local_indices(self, cosim_monitors):
@@ -234,9 +234,9 @@ class TVBOutgoingInterfaces(BaseInterfaces, TVBInterfaces):
                        data[interface.monitor_ind][1][:, :, :, 0]])  # data values !!! assuming only 1 mode!!!
 
 
-class TVBIngoingInterfaces(BaseInterfaces, TVBInterfaces):
+class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
 
-    """TVBIngoingInterfaces class holds a list of TVB interfaces from transformer/cosimulator
+    """TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
        and receives data from them"""
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):

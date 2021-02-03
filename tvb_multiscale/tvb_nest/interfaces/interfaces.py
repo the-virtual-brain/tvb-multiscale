@@ -8,7 +8,7 @@ from tvb.basic.neotraits.api import HasTraits, Attr, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.tvb.interfaces import \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutgoingInterfaces, TVBIngoingInterfaces
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces
 from tvb_multiscale.core.interfaces.spikeNet_interfaces import \
     SpikeNetInterfaces, SpikeNetOutgoingInterface, SpikeNetIngoingInterface
 
@@ -41,9 +41,9 @@ class NESTInterface(HasTraits):
         return "\nNEST proxy nodes' gids:\n%s" % extract_integer_intervals(self.proxy_gids, print=True)
 
 
-class NESTOutgoingInterface(SpikeNetOutgoingInterface, NESTInterface):
+class NESTOutputInterface(SpikeNetOutgoingInterface, NESTInterface):
 
-    """NESTOutgoingInterface base class for interfaces sending data from NEST."""
+    """NESTOutputInterface base class for interfaces sending data from NEST."""
 
     @property
     def nest_instance(self):
@@ -53,9 +53,9 @@ class NESTOutgoingInterface(SpikeNetOutgoingInterface, NESTInterface):
         SpikeNetOutgoingInterface.print_str(self) + NESTInterface.print_str(self)
 
 
-class NESTIngoingInterface(SpikeNetIngoingInterface, NESTInterface):
+class NESTInputInterface(SpikeNetIngoingInterface, NESTInterface):
 
-    """NESTIngoingInterface base class for interfaces receiving data to NEST."""
+    """NESTInputInterface base class for interfaces receiving data to NEST."""
 
     @property
     def nest_instance(self):
@@ -65,7 +65,7 @@ class NESTIngoingInterface(SpikeNetIngoingInterface, NESTInterface):
         SpikeNetIngoingInterface.print_str(self) + NESTInterface.print_str(self)
 
 
-class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTOutgoingInterface):
+class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTOutputInterface):
 
     """TVBtoNESTInterface class to get data from TVB, transform them,
        and finally set them to NEST, all processes taking place in shared memmory.
@@ -79,10 +79,10 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTOutgoingInterface):
     )
 
     def print_str(self):
-        TVBtoSpikeNetInterface.print_str(self) + NESTOutgoingInterface.print_str(self)
+        TVBtoSpikeNetInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
 
-class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTIngoingInterface):
+class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTInputInterface):
 
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
@@ -97,7 +97,7 @@ class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTIngoingInterface):
     )
 
     def print_str(self):
-        SpikeNetToTVBInterface.print_str(self) + NESTIngoingInterface.print_str(self)
+        SpikeNetToTVBInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
 class NESTInterfaces(HasTraits):
@@ -119,32 +119,32 @@ class NESTInterfaces(HasTraits):
         pass
 
 
-class NESTOutgoingInterfaces(SpikeNetInterfaces, NESTInterfaces):
+class NESTOutputInterfaces(SpikeNetInterfaces, NESTInterfaces):
 
-    """NESTOutgoingInterfaces holding a list of NESTOutgoingInterface instances"""
-
-    @property
-    def nest_instance(self):
-        return self.spiking_network.nest_instance
-
-
-class NESTIngoingInterfaces(SpikeNetInterfaces, NESTInterfaces):
-
-    """NESTIngoingInterfaces holding a list of NESTIngoingInterface instances"""
+    """NESTOutputInterfaces holding a list of NESTOutputInterface instances"""
 
     @property
     def nest_instance(self):
         return self.spiking_network.nest_instance
 
 
-class TVBtoNESTInterfaces(TVBOutgoingInterfaces, NESTIngoingInterfaces):
+class NESTInputInterfaces(SpikeNetInterfaces, NESTInterfaces):
+
+    """NESTInputInterfaces holding a list of NESTInputInterface instances"""
+
+    @property
+    def nest_instance(self):
+        return self.spiking_network.nest_instance
+
+
+class TVBtoNESTInterfaces(TVBOutputInterfaces, NESTInputInterfaces):
 
     """TVBtoNESTInterfaces class holding a list of TVBtoNESTInterface instances"""
 
     pass
 
 
-class NESTtoTVBInterfaces(TVBIngoingInterfaces, NESTOutgoingInterfaces):
+class NESTtoTVBInterfaces(TVBInputInterfaces, NESTOutputInterfaces):
     """NESTtoTVBInterfaces class holding a list of NESTtoTVBInterface instances"""
 
     pass
