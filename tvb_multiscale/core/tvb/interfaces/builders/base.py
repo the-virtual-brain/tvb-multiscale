@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from abc import ABCMeta, abstractmethod
+
 import os
 
 from pandas import Series
 import numpy as np
 
+from tvb.basic.neotraits._core import HasTraits
+from tvb.basic.neotraits._attr import List
+
+
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
-from tvb_multiscale.core.interfaces.builders.tvb_to_spikeNet_device_interface_builder import \
+from tvb_multiscale.core.tvb.interfaces.builders import \
     TVBtoSpikeNetDeviceInterfaceBuilder
-from tvb_multiscale.core.interfaces.builders.tvb_to_spikeNet_parameter_interface_builder import \
+from tvb_multiscale.core.tvb.interfaces.builders import \
     TVBtoSpikeNetParameterInterfaceBuilder
-from tvb_multiscale.core.interfaces.builders.spikeNet_to_tvb_interface_builder import SpikeNetToTVBInterfaceBuilder
+from tvb_multiscale.core.tvb.interfaces.builders import SpikeNetToTVBInterfaceBuilder
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.devices import InputDeviceDict
 
@@ -19,6 +25,29 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 LOG = initialize_logger(__name__)
+
+
+class InterfaceBuilder(HasTraits):
+    __metaclass__ = ABCMeta
+
+    output_interfaces = List(of=dict, label="Output interfaces",
+                             doc="List of dicts of configurations for the output interfaces to be built")
+
+    input_interfaces = List(of=dict, label="Input interfaces",
+                            doc="List of dicts of configurations for the input interfaces to be built")
+
+    @property
+    def number_of_output_interfaces(self):
+        return len(self.output_interfaces)
+
+    @property
+    def number_of_input_interfaces(self):
+        return len(self.output_interfaces)
+
+    @abstractmethod
+    def build(self):
+        pass
+
 
 
 class TVBSpikeNetInterfaceBuilder(object):
@@ -162,8 +191,7 @@ class TVBSpikeNetInterfaceBuilder(object):
     def spikeNet_min_delay(self):
         return self.spiking_network.min_delay
 
-    def assert_delay(self, delay):
-        return np.maximum(0.0, delay)
+
 
     def _prepare_tvb_to_spikeNet_transform_fun(self, prop, dummy):
         # This method sets tranformations of TVB state
