@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from enum import Enum
+
 import numpy as np
 
 from tvb_multiscale.core.interfaces.transformers import Scale, RatesToSpikesElephantPoisson, \
-    RatesToSpikesElephantSinglePoissonInteraction, RatesToSpikesElephantMultiplePoissonInteraction, \
-    SpikesToRatesElephantHistogram, SpikesToRatesElephantRate
+    RatesToSpikesElephantPoissonSingleInteraction, RatesToSpikesElephantPoissonMultipleInteraction, \
+    SpikesToRatesElephantHistogram, SpikesToRatesElephantRate, Transformers
 
 # TODO: Deal with abstract methods _compute for RatesToSpikes and SpikesToRates!!!
 
@@ -39,9 +41,9 @@ class TVBRatesToSpikesElephantPoisson(RatesToSpikesElephantPoisson):
         super(TVBRatesToSpikesElephantPoisson, self).compute(*args, **kwargs)
 
 
-class TVBRatesToSpikesElephantSinglePoissonInteraction(RatesToSpikesElephantSinglePoissonInteraction):
+class TVBRatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonSingleInteraction):
     """
-        TVBRatesToSpikesElephantSinglePoissonInteraction Transformer class,
+        TVBRatesToSpikesElephantPoissonSingleInteraction Transformer class,
         using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node with single interaction
@@ -58,12 +60,12 @@ class TVBRatesToSpikesElephantSinglePoissonInteraction(RatesToSpikesElephantSing
            for the output buffer data of spike trains to result."""
         # Assume a TVB (time, voi, proxy) to Spiking Network (proxy, time) reshaping
         self.input_buffer = self.input_buffer[:, 0, :].T  # Remove voi
-        super(TVBRatesToSpikesElephantSinglePoissonInteraction, self).compute(*args, **kwargs)
+        super(TVBRatesToSpikesElephantPoissonSingleInteraction, self).compute(*args, **kwargs)
 
 
-class TVBRatesToSpikesElephantMultiplePoissonInteraction(RatesToSpikesElephantMultiplePoissonInteraction):
+class TVBRatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonMultipleInteraction):
     """
-        TVBRatesToSpikesElephantMultiplePoissonInteraction Transformer class,
+        TVBRatesToSpikesElephantPoissonMultipleInteraction Transformer class,
         using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node with multiple interaction.
@@ -80,7 +82,7 @@ class TVBRatesToSpikesElephantMultiplePoissonInteraction(RatesToSpikesElephantMu
            for the output buffer data of spike trains to result."""
         # Assume a TVB (time, voi, proxy) to Spiking Network (proxy, time) reshaping
         self.input_buffer = self.input_buffer[:, 0, :].T  # Remove voi
-        super(TVBRatesToSpikesElephantMultiplePoissonInteraction, self).compute(*args, **kwargs)
+        super(TVBRatesToSpikesElephantPoissonMultipleInteraction, self).compute(*args, **kwargs)
 
 
 class TVBtoSpikeNetCurrentTransformer(Scale):
@@ -122,3 +124,22 @@ class TVBSpikesToRatesElephantRate(SpikesToRatesElephantRate):
         super(TVBSpikesToRatesElephantRate, self).compute(*args, **kwargs)
         # Assume a Spiking Network (proxy, time) to TVB (time, voi, proxy) reshaping
         self.output_buffer = self.output_buffer.T[:, np.newaxis, :]
+
+
+class TVBRatesToSpikesTransformers(Enum):
+    ELEPHANT_POISSON = TVBRatesToSpikesElephantPoisson
+    ELEPHANT_POISSON_SINGLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
+    ELEPHANT_POISSON_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonMultipleInteraction
+
+
+class SpikesToRatesTransformers(Enum):
+    ELEPHANT_HISTOGRAM = TVBSpikesToRatesElephantHistogram
+    ELEPHANT_RATE = TVBSpikesToRatesElephantRate
+
+
+class TVBTransformers(Transformers):
+    ELEPHANT_POISSON = TVBRatesToSpikesElephantPoisson
+    ELEPHANT_POISSON_SINGLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
+    ELEPHANT_POISSON_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonMultipleInteraction
+    ELEPHANT_HISTOGRAM = TVBSpikesToRatesElephantHistogram
+    ELEPHANT_RATE = TVBSpikesToRatesElephantRate

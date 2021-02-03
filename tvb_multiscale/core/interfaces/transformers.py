@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 
 import numpy as np
 
@@ -334,9 +335,9 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
 
 
-class RatesToSpikesElephantSinglePoissonInteraction(RatesToSpikesElephantPoissonInteraction):
+class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonInteraction):
     """
-        RatesToSpikesElephantSinglePoissonInteraction Transformer class,
+        RatesToSpikesElephantPoissonSingleInteraction Transformer class,
         using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node with single interaction
@@ -357,9 +358,9 @@ class RatesToSpikesElephantSinglePoissonInteraction(RatesToSpikesElephantPoisson
         return spiketrains
 
 
-class RatesToSpikesElephantMultiplePoissonInteraction(RatesToSpikesElephantPoissonInteraction):
+class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonInteraction):
     """
-        RatesToSpikesElephantSinglePoissonInteraction Transformer class,
+        RatesToSpikesElephantPoissonSingleInteraction Transformer class,
         using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node with multiple interaction.
@@ -526,3 +527,25 @@ class SpikesToRatesElephantRate(SpikesToRatesElephantHistogram):
         else:
             # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
             return SpikesToRatesElephantHistogram._compute_rate(spiketrain)
+
+
+class RatesToSpikesTransformers(Enum):
+    ELEPHANT_POISSON = RatesToSpikesElephantPoisson
+    ELEPHANT_POISSON_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
+    ELEPHANT_POISSON_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
+
+
+class SpikesToRatesTransformers(Enum):
+    ELEPHANT_HISTOGRAM = SpikesToRatesElephantHistogram
+    ELEPHANT_RATE = SpikesToRatesElephantRate
+
+
+class Transformers(Enum):
+    ELEMENTARY = Elementary
+    SCALE = Scale
+    DOT_PRODUCT = DotProduct
+    ELEPHANT_POISSON = RatesToSpikesElephantPoisson
+    ELEPHANT_POISSON_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
+    ELEPHANT_POISSON_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
+    ELEPHANT_HISTOGRAM = SpikesToRatesElephantHistogram
+    ELEPHANT_RATE = SpikesToRatesElephantRate

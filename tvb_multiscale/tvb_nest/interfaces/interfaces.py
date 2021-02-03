@@ -13,7 +13,7 @@ from tvb_multiscale.core.interfaces.spikeNet_interfaces import \
     SpikeNetInterfaces, SpikeNetOutgoingInterface, SpikeNetIngoingInterface
 
 from tvb_multiscale.tvb_nest.interfaces.io import \
-    NESTInputDeviceToSet, NESTEventsFromOutpuDevice, NESTEventsReaderFromRecorderFile
+    NESTInputDeviceSetter, NESTEventsFromOutpuDevice, NESTEventsReaderFromRecorderFile
 
 
 class NESTInterface(HasTraits):
@@ -73,8 +73,8 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTOutputInterface):
 
     communicator = Attr(
         label="Communicator directly to NEST",
-        field_type=NESTInputDeviceToSet,
-        doc="""A NESTInputDeviceToSet Communicator class instance to send data to NEST.""",
+        field_type=NESTInputDeviceSetter,
+        doc="""A NESTInputDeviceSetter Communicator class instance to send data to NEST.""",
         required=True
     )
 

@@ -7,7 +7,7 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.io import SpikeNetInputDeviceToSet, SpikeNetEventsFromOutpuDevice
+from tvb_multiscale.core.interfaces.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 
@@ -160,8 +160,8 @@ class TVBtoSpikeNetInterface(TVBTransformerSenderInterface):
 
     communicator = Attr(
         label="Communicator directly to SpikeNet cosimulator",
-        field_type=SpikeNetInputDeviceToSet,
-        doc="""A SpikeNetInputDeviceToSet Communicator class instance 
+        field_type=SpikeNetInputDevice,
+        doc="""A SpikeNetInputDevice Communicator class instance 
               to send data to the Spiking Network co-simulator.""",
         required=True
     )
