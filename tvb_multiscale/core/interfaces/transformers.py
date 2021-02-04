@@ -553,4 +553,4 @@ class SpikesToRatesTransformers(Enum):
     ELEPHANT_RATE = SpikesToRatesElephantRate
 
 
-Transformers = combine_enums("NESTSenders", BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers)
+Transformers = combine_enums("Transformers", BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers)
