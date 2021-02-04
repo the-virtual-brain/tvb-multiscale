@@ -72,6 +72,21 @@ class InterfaceBuilder(HasTraits):
                 inds[iP] = self._label_to_ind(value, labels)
         return inds
 
+    @staticmethod
+    def _assert_interfaces_component_config(interfaces_list, types_list, component):
+        for interface in interfaces_list:
+            if interface[component] in types_list:
+                interface[component] = interface[attr](**interface.get("%s_params" % component, {}))
+            else:
+                assert isinstance(interface[component], types_list)
+        return interfaces_list
+
+    def _assert_input_interfaces_component_config(self, types_list, attr):
+        self.input_interfaces = self.assert_interfaces_component_config(self.input_interfaces, types_list, component)
+
+    def _assert_output_interfaces_component_config(self, types_list, attr):
+        self.output_interfaces = self.assert_interfaces_component_config(self.output_interfaces, types_list, component)
+
     @abstractmethod
     def build(self):
         pass

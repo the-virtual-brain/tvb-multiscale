@@ -12,10 +12,13 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.interfaces.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.io import RemoteSenders, RemoteReceivers
-from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.interfaces.transformers import \
     TVBTransformers, TVBRatesToSpikesTransformers, TVBSpikesToRatesElephantRate
+from tvb_multiscale.core.tvb.interfaces.interfaces import TVBOutputInterface, TVBInputInterfaces, \
+    TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface
+from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
+
 
 
 LOG = initialize_logger(__name__)
@@ -134,13 +137,51 @@ class TVBInterfaceBuilder(InterfaceBuilder):
 
 
 class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
-    #
-    # def configure(self):
-    #     super(TVBRemoteInterfaceBuilder, self).configure()
-    #     for interface in self.output_interfaces:
-    #         assert isinstance(interface["sender"], RemoteSender)
-    #     for interface in self.input_interfaces:
-    #         assert isinstance(interface["receiver"], RemoteReceiver)
+
+    _remote_senders_types = tuple([val.value for val in RemoteSenders.__members__.values()])
+    _remote_receivers_types = tuple([val.value for val in RemoteReceviers.__members__.values()])
+
+    def configure(self):
+        super(TVBRemoteInterfaceBuilder, self).configure()
+        self._assert_output_interfaces_component_config(self._remote_senders_types, "sender")
+        self._assert_input_interfaces_component_config(self._remote_receivers_types, "receiver")
+
+    def build(self):
+        pass
+
+
+class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
+
+    _tvb_transformers_types = tuple([val.value for val in TVBTransformers.__members__.values()])
+
+    def configure(self):
+        super(TVBTransfomerInterfaceBuilder, self).configure()
+        self._assert_output_interfaces_component_config(self._tvb_transformers_types, "output_transformer")
+        self._assert_input_interfaces_component_config(self._tvb_transformers_types, "input_transformer")
+
+    def build(self):
+        pass
+
+
+class TVBOutputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
+
+    _tvb_transformers_types = tuple([val.value for val in TVBTransformers.__members__.values()])
+
+    def configure(self):
+        super(TVBTransfomerInterfaceBuilder, self).configure()
+        self._assert_output_interfaces_component_config(self._tvb_transformers_types, "output_transformer")
+
+    def build(self):
+        pass
+
+
+class TVBInputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
+
+    _tvb_transformers_types = tuple([val.value for val in TVBTransformers.__members__.values()])
+
+    def configure(self):
+        super(TVBTransfomerInterfaceBuilder, self).configure()
+        self._assert_input_interfaces_component_config(self._tvb_transformers_types, "input_transformer")
 
     def build(self):
         pass
