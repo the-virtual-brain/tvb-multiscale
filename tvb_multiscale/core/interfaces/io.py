@@ -9,6 +9,7 @@ from tvb.basic.neotraits.api import HasTraits, Attr
 
 from tvb_multiscale.core.interfaces.transformers import Base as Transformer
 from tvb_multiscale.core.spiking_models.devices import InputDevice, OutputDevice, DeviceSet
+from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 
 class Communicator(HasTraits):
@@ -305,21 +306,8 @@ class GettersFromMemory(Enum):
     SPIKE_NET_OUTPUT_DEVICE = SpikeNetEventsFromOutpuDevice
 
 
-class RemoteSenders(WritersToFile):
-    pass
-
-
-class RemoteReceivers(ReadersFromFile):
-    pass
-
-
-class Senders(SettersToMemory, RemoteSenders):
-    pass
-
-
-class Receivers(GettersFromMemory, RemoteReceivers):
-    pass
-
-
-class Communicators(Senders, Receivers):
-    pass
+RemoteSenders = combine_enums("RemoteSenders", WritersToFile)
+RemoteReceivers = combine_enums("RemoteReceivers", ReadersFromFile)
+Senders = combine_enums("Senders", SettersToMemory, RemoteSenders)
+Receivers = combine_enums("Receivers", GettersFromMemory, RemoteReceivers)
+Communicators = combine_enums("Communicators", Senders, Receivers)

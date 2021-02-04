@@ -10,6 +10,7 @@ from tvb.basic.neotraits.api import Attr, Float
 from tvb_multiscale.core.interfaces.io import \
     ReaderFromFile, SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
+from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_nest.nest_models.devices import read_nest_output_device_data_from_ascii_to_dict, \
     NESTInputDevice, NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
     NESTOutputDevice, NESTSpikeRecorder, NESTMultimeter, NESTVoltmeter
@@ -282,19 +283,12 @@ class NESTFileRecorders(Enum):
     RECORDER_FILE = NESTEventsReaderFromRecorderFile
 
 
-class NESTSenders(NESTFileRecorders, NESTOutputDeviceGetters):
-    pass
-
-
 class NESTInputDeviceSetters(Enum):
     INHOMOGENEOUS_POISSON_GENERATOR = NESTInhomogeneousPoissonGeneratorSetter
     SPIKE_GENERATOR = NESTSpikeGeneratorSetter
     STEP_CURRENT_GENERATOR = NESTStepCurrentGeneratorSetter
 
 
-class NESTReceivers(NESTInputDeviceSetters):
-    pass
-
-
-class NESTCommunicators(NESTSenders, NESTReceivers):
-    pass
+NESTSenders = combine_enums("NESTSenders", NESTFileRecorders, NESTOutputDeviceGetters)
+NESTReceivers = combine_enums("NESTReceivers", NESTInputDeviceSetters)
+NESTCommunicators = combine_enums("NESTCommunicators", NESTSenders, NESTReceivers)

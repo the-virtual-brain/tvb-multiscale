@@ -7,6 +7,8 @@ import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray
 
+from tvb_multiscale.core.utils.data_structures_utils import combine_enums
+
 
 class Base(HasTraits):
     __metaclass__ = ABCMeta
@@ -534,6 +536,12 @@ class SpikesToRatesElephantRate(SpikesToRatesElephantHistogram):
             return SpikesToRatesElephantHistogram._compute_rate(spiketrain)
 
 
+class BasicTransformers(Enum):
+    ELEMENTARY = Elementary
+    SCALE = Scale
+    DOT_PRODUCT = DotProduct
+
+
 class RatesToSpikesTransformers(Enum):
     ELEPHANT_POISSON = RatesToSpikesElephantPoisson
     ELEPHANT_POISSON_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
@@ -545,12 +553,4 @@ class SpikesToRatesTransformers(Enum):
     ELEPHANT_RATE = SpikesToRatesElephantRate
 
 
-class Transformers(Enum):
-    ELEMENTARY = Elementary
-    SCALE = Scale
-    DOT_PRODUCT = DotProduct
-    ELEPHANT_POISSON = RatesToSpikesElephantPoisson
-    ELEPHANT_POISSON_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
-    ELEPHANT_POISSON_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
-    ELEPHANT_HISTOGRAM = SpikesToRatesElephantHistogram
-    ELEPHANT_RATE = SpikesToRatesElephantRate
+Transformers = combine_enums("NESTSenders", BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers)

@@ -7,6 +7,8 @@ import numpy as np
 from tvb_multiscale.core.interfaces.transformers import Scale, RatesToSpikesElephantPoisson, \
     RatesToSpikesElephantPoissonSingleInteraction, RatesToSpikesElephantPoissonMultipleInteraction, \
     SpikesToRatesElephantHistogram, SpikesToRatesElephantRate, Transformers
+from tvb_multiscale.core.utils.data_structures_utils import combine_enums
+
 
 # TODO: Deal with abstract methods _compute for RatesToSpikes and SpikesToRates!!!
 
@@ -132,14 +134,10 @@ class TVBRatesToSpikesTransformers(Enum):
     ELEPHANT_POISSON_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonMultipleInteraction
 
 
-class SpikesToRatesTransformers(Enum):
+class TVBSpikesToRatesTransformers(Enum):
     ELEPHANT_HISTOGRAM = TVBSpikesToRatesElephantHistogram
     ELEPHANT_RATE = TVBSpikesToRatesElephantRate
 
 
-class TVBTransformers(Transformers):
-    ELEPHANT_POISSON = TVBRatesToSpikesElephantPoisson
-    ELEPHANT_POISSON_SINGLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
-    ELEPHANT_POISSON_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonMultipleInteraction
-    ELEPHANT_HISTOGRAM = TVBSpikesToRatesElephantHistogram
-    ELEPHANT_RATE = TVBSpikesToRatesElephantRate
+TVBTransformers = combine_enums("TVBTransformers",
+                                Transformers, TVBRatesToSpikesTransformers, TVBSpikesToRatesTransformers)
