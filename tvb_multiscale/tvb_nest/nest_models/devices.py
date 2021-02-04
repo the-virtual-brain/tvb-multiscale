@@ -11,12 +11,12 @@ import xarray as xr
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
+from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header
 
 from tvb.basic.neotraits.api import List
 
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
-from tvb.contrib.scripts.utils.file_utils import truncate_ascii_file_after_header
 
 
 # These classes wrap around NEST commands.
