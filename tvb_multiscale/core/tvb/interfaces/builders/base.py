@@ -134,14 +134,13 @@ class TVBInterfaceBuilder(InterfaceBuilder):
 
 
 class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
-
-#     def configure(self):
-#         super(TVBRemoteInterfaceBuilder, self).configure()
-#         for interface in self.output_interfaces:
-#
-#             assert isinstance(interface["sender"], RemoteSender)
-#         for interface in self.input_interfaces:
-#             assert isinstance(interface["receiver"], RemoteReceiver)
+    #
+    # def configure(self):
+    #     super(TVBRemoteInterfaceBuilder, self).configure()
+    #     for interface in self.output_interfaces:
+    #         assert isinstance(interface["sender"], RemoteSender)
+    #     for interface in self.input_interfaces:
+    #         assert isinstance(interface["receiver"], RemoteReceiver)
 
     def build(self):
         pass

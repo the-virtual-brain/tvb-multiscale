@@ -24,17 +24,19 @@ class NESTInputDeviceSetter(SpikeNetInputDevice, NESTCommunicator):
     __metaclass__ = ABCMeta
 
     """
-        NESTInputDeviceSetter class to set data directly to a NESTInputDeviceSetter instance, a DeviceSet of such instances,
-        or a nest.NodeCollection instance corresponding to a NESTInputDeviceSetter in memory.
+        NESTInputDeviceSetter class to set data directly to a NESTInputDeviceSetter instance, 
+        a DeviceSet of such instances, or a nest.NodeCollection instance corresponding 
+        to a NESTInputDeviceSetter in memory.
         It comprises of:
             - a target attribute, i.e., the NESTInputDeviceSetter instance to send data to,
             - an abstract method to set data to the target, depending on the specific NESTInputDeviceSetter.
     """
 
-    target = Attr(field_type=(NESTInputDevice, DeviceSet, super()._node_collection_class),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""NESTInputDeviceSetter, DeviceSet or nest.NodeCollection instances to set data to.""")
+    # TODO: find a way to use here multiple options for field_type!
+    # target = Attr(field_type=(NESTInputDevice, DeviceSet, super()._node_collection_class),
+    #               required=True,
+    #               label="Target of Spiking Network",
+    #               doc="""NESTInputDeviceSetter, DeviceSet or nest.NodeCollection instances to set data to.""")
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
@@ -42,11 +44,12 @@ class NESTInputDeviceSetter(SpikeNetInputDevice, NESTCommunicator):
                default=0.1)
 
     def configure(self, nest_input_device_class):
+        assert isinstance(self.target, (nest_input_device_class, DeviceSet, super()._node_collection_class))
+        if isinstance(self.target, DeviceSet):
+            assert isinstance(self.target[0], nest_input_device_class)
+        elif isinstance(self.target, self._node_collection_class):
+            assert self.target.get("model") == nest_input_device_class.model
         super(NESTInputDeviceSetter, self).configure()
-        if isinstance(self.source, DeviceSet):
-            assert isinstance(self.source[0], nest_input_device_class)
-        elif isinstance(self.source, self._node_collection_class):
-            assert self.souce.get("model") == nest_input_device_class.model
 
     def transform_time(self, time):
         return self.dt * np.arange(time[0], time[-1] + 1)
@@ -68,11 +71,11 @@ class NESTInhomogeneousPoissonGeneratorSetter(NESTInputDeviceSetter):
             - a method to set data to the target.
     """
 
-    target = Attr(field_type=(NESTInhomogeneousPoissonGenerator, DeviceSet, super()._node_collection_class),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""NESTInhomogeneousPoissonGenerator, DeviceSet of such instances, or
-                         inhomogeneous_poisson_generator nest.NodeCollection to set data to.""")
+    # target = Attr(field_type=(NESTInhomogeneousPoissonGenerator, DeviceSet, super()._node_collection_class),
+    #               required=True,
+    #               label="Target of Spiking Network",
+    #               doc="""NESTInhomogeneousPoissonGenerator, DeviceSet of such instances, or
+    #                      inhomogeneous_poisson_generator nest.NodeCollection to set data to.""")
 
     def configure(self):
         super(NESTInhomogeneousPoissonGeneratorSetter, self).configure(NESTInhomogeneousPoissonGenerator)
@@ -94,11 +97,11 @@ class NESTSpikeGeneratorSetter(NESTInputDeviceSetter):
             - a method to set data to the target.
     """
 
-    target = Attr(field_type=(NESTSpikeGenerator, DeviceSet, super()._node_collection_class),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""NESTSpikeGenerator, DeviceSet of such instances, or 
-                         spike_generator nest.NodeCollection to set data to.""")
+    # target = Attr(field_type=(NESTSpikeGenerator, DeviceSet, super()._node_collection_class),
+    #               required=True,
+    #               label="Target of Spiking Network",
+    #               doc="""NESTSpikeGenerator, DeviceSet of such instances, or
+    #                      spike_generator nest.NodeCollection to set data to.""")
 
     def configure(self):
         super(NESTSpikeGeneratorSetter, self).configure(NESTSpikeGenerator)
@@ -118,12 +121,12 @@ class NESTStepCurrentGeneratorSetter(NESTInputDeviceSetter):
              or step_current_generator instance to send data to,
             - a method to set data to the target.
     """
-
-    target = Attr(field_type=(NESTStepCurrentGenerator, DeviceSet, super()._node_collection_class),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""NESTStepCurrentGenerator, DeviceSet of such instances,
-                         or step_current_generator nest.NodeCollection to set data to.""")
+    #
+    # target = Attr(field_type=(NESTStepCurrentGenerator, DeviceSet, super()._node_collection_class),
+    #               required=True,
+    #               label="Target of Spiking Network",
+    #               doc="""NESTStepCurrentGenerator, DeviceSet of such instances,
+    #                      or step_current_generator nest.NodeCollection to set data to.""")
 
     def configure(self):
         super(NESTStepCurrentGeneratorSetter, self).configure(NESTStepCurrentGenerator)
@@ -144,17 +147,18 @@ class NESTEventsFromOutpuDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator)
             - an abstract method to get data from the source.
     """
 
-    source = Attr(field_type=(NESTOutputDevice, DeviceSet, super()._node_collection_class),
-                  required=True,
-                  label="Source of Spiking Network events",
-                  doc="""NESTOutputDevice, DeviceSet or nest.NodeCollection types to get events data from.""")
+    # source = Attr(field_type=(NESTOutputDevice, DeviceSet, super()._node_collection_class),
+    #               required=True,
+    #               label="Source of Spiking Network events",
+    #               doc="""NESTOutputDevice, DeviceSet or nest.NodeCollection types to get events data from.""")
 
     def configure(self, nest_output_device_class):
-        super(NESTEventsFromOutpuDevice, self).configure()
+        assert isinstance(self.source, (nest_output_device_class, DeviceSet, super()._node_collection_class))
         if isinstance(self.source, DeviceSet):
             assert isinstance(self.source[0], nest_output_device_class)
         elif isinstance(self.source, self._node_collection_class):
             assert self.souce.get("model") == nest_output_device_class.model
+        super(NESTEventsFromOutpuDevice, self).configure()
 
     @property
     def reset(self):
@@ -169,7 +173,6 @@ class NESTEventsFromOutpuDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator)
 
 
 class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
-    from nest import NodeCollection
     """
         NESTEventsFromSpikeRecorder class to read events' data
          (spike times and senders) from a NESTSpikeRecorder device,
@@ -180,18 +183,17 @@ class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
             - an abstract method to get data from the source.
     """
 
-    source = Attr(field_type=(NESTSpikeRecorder, DeviceSet, NodeCollection),
-                  required=True,
-                  label="NESTSpikeRecorder reader",
-                  doc="""NESTSpikeRecorder, DeviceSet or spike_recorder nest.NodeCollection 
-                         types to get events data from.""")
+    # source = Attr(field_type=(NESTSpikeRecorder, DeviceSet, super()._node_collection_class)),
+    #               required=True,
+    #               label="NESTSpikeRecorder reader",
+    #               doc="""NESTSpikeRecorder, DeviceSet or spike_recorder nest.NodeCollection
+    #                      types to get events data from.""")
 
     def configure(self):
         super(NESTEventsFromSpikeRecorder, self).configure(NESTSpikeRecorder)
 
 
 class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
-    from nest import NodeCollection
     """
         NESTEventsFromMultimeter class to read events' data
          (times, senders and variable values) from a NESTMultimeter device,
@@ -202,18 +204,17 @@ class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
             - an abstract method to get data from the source.
     """
 
-    source = Attr(field_type=(NESTMultimeter, DeviceSet, NodeCollection),
-                  required=True,
-                  label="NESTMultimeter reader",
-                  doc="""NESTMultimeter, DeviceSet or multimeter nest.NodeCollection 
-                         types to get events data from.""")
+    # source = Attr(field_type=(NESTMultimeter, DeviceSet, super()._node_collection_class)),
+    #               required=True,
+    #               label="NESTMultimeter reader",
+    #               doc="""NESTMultimeter, DeviceSet or multimeter nest.NodeCollection
+    #                      types to get events data from.""")
 
     def configure(self):
         super(NESTEventsFromMultimeter, self).configure(NESTMultimeter)
 
 
 class NESTEventsFromVoltmeter(SpikeNetEventsFromOutpuDevice):
-    from nest import NodeCollection
 
     """
         NESTEventsFromVoltmeter class to read events' data
@@ -225,17 +226,17 @@ class NESTEventsFromVoltmeter(SpikeNetEventsFromOutpuDevice):
             - an abstract method to get data from the source.
     """
 
-    source = Attr(field_type=(NESTVoltmeter, DeviceSet, NodeCollection),
-                  required=True,
-                  label="NESTVoltmeter reader",
-                  doc="""NESTVoltmeter, DeviceSet or voltmeter nest.NodeCollection 
-                         types to get events data from.""")
+    # source = Attr(field_type=(NESTVoltmeter, DeviceSet, super()._node_collection_class),
+    #               required=True,
+    #               label="NESTVoltmeter reader",
+    #               doc="""NESTVoltmeter, DeviceSet or voltmeter nest.NodeCollection
+    #                      types to get events data from.""")
 
     def configure(self):
         super(NESTEventsFromVoltmeter, self).configure(NESTVoltmeter)
 
 
-class NESTEventsReaderFromRecorderFile(ReaderFromFile):
+class NESTEventsReaderFromRecorderFile(ReaderFromFile, NESTCommunicator):
 
     """
         NESTEventsReaderFromRecorderFile class to read events' data (times, senders and values from Multimeters)

@@ -503,17 +503,22 @@ class SpikesToRatesElephantRate(SpikesToRatesElephantHistogram):
     _rate_fun = instantaneous_rate
 
     _default_kernel_class = GaussianKernel
+    _kernel_class = Kernel
 
-    kernel = Attr(label="Convolution kernel",
-                  doc="""Convolution kernel, either "auto" or an elephants.kernels.Kernel.
-                         Default: GaussianKernel(sigma=dt*ms)""",
-                  field_type=(str, Kernel),
-                  required=True,
-                  default=None)
+    # kernel = Attr(label="Convolution kernel",
+    #               doc="""Convolution kernel, either "auto" or an elephants.kernels.Kernel.
+    #                      Default: GaussianKernel(sigma=dt*ms)""",
+    #               field_type=Kernel,  # TODO: find a way to use here (str, Kernel)
+    #               required=False,
+    #               default=None)
+
+    kernel = None
 
     def configure(self):
+        # This is a temporary hack to go around the above proble with TVB traits' system:
         if self.kernel is None:
             self.kernel = self._default_kernel_class(self.dt*self.time_unit)
+        assert self.kernel == "auto" or isinstance(self.kernel, self._kernel_class)
         self.output_type = "rate"
         super(SpikesToRatesElephantRate, self).configure()
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
-import os
 from enum import Enum
 
 import numpy as np
@@ -162,10 +161,14 @@ class SpikeNetInputDevice(SetToMemory):
             - an abstract method to set data to the target, depending on the specific InputDevice.
     """
 
-    target = Attr(field_type=(InputDevice, DeviceSet),
-                  required=True,
-                  label="Target of Spiking Network",
-                  doc="""Spiking Network InputDevice or DeviceSet to set data to.""")
+    # target = Attr(field_type=(InputDevice, DeviceSet),
+    #               required=True,
+    #               label="Target of Spiking Network",
+    #               doc="""Spiking Network InputDevice or DeviceSet to set data to.""")
+
+    def configure(self):
+        assert isinstance(self.target, InputDevice, DeviceSet)
+        super(SpikeNetInputDevice, self).configure()
 
     @abstractmethod
     def send(self, data):
@@ -182,10 +185,16 @@ class SpikeNetEventsFromOutpuDevice(GetFromMemory):
             - a method to get data from the source.
     """
 
-    source = Attr(field_type=(OutputDevice, DeviceSet),
-                  required=True,
-                  label="Source of Spiking Network events",
-                  doc="""Spiking Network OutputDevice or DeviceSet to get events from.""")
+    # TODO: find a way to use here multiple options for field_type!
+
+    # source = Attr(field_type=(OutputDevice, DeviceSet),
+    #               required=True,
+    #               label="Source of Spiking Network events",
+    #               doc="""Spiking Network OutputDevice or DeviceSet to get events from.""")
+
+    def configure(self):
+        assert isinstance(self.source, OutputDevice, DeviceSet)
+        super(OutputDevice, self).configure()
 
     def receive(self):
         events = self.source.get_events()
@@ -223,7 +232,7 @@ class WriterToFile(Sender):
        - an abstract method to write data to the target.
     """
 
-    target = Attr(field_type=os.PathLike, default="", required=True,
+    target = Attr(field_type=str, default="", required=True,
                   label="Path to target file", doc="""Full path to .npy file to write data to.""")
 
     @abstractmethod
@@ -241,7 +250,7 @@ class ReaderFromFile(Receiver):
            - an abstract method to read data from the source.
     """
 
-    source = Attr(field_type=os.PathLike, default="", required=True,
+    source = Attr(field_type=str, default="", required=True,
                   label="Path to source file", doc="""Full path to .npy file to read data from.""")
 
     @abstractmethod
