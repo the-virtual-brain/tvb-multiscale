@@ -4,6 +4,7 @@ from inspect import stack
 from itertools import product
 from collections import OrderedDict
 from six import string_types
+from enum import Enum
 
 import numpy as np
 from scipy.stats import describe
@@ -189,3 +190,10 @@ def combine_DataArray_dims(arr, dims_combinations, join_string=", ", return_arra
     else:
         return arr.stack(**stacked_dims).data, new_dims, new_coords
 
+
+def combine_enums(enum_name, *args):
+    d = OrderedDict()
+    for enm in args:
+        for name, member in enm.__members__.items():
+            d[name] = member.value
+    return Enum(enum_name, d)
