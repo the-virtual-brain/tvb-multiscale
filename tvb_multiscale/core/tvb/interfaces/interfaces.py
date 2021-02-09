@@ -10,6 +10,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.interfaces.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
+from tvb_multiscale.core.interfaces.spikeNet_interfaces import SpikeNetInterfaces
 
 
 class TVBInterface(HasTraits):
@@ -152,7 +153,7 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
                TVBInputInterface.print_str(self)
 
 
-class TVBtoSpikeNetInterface(TVBTransformerSenderInterface):
+class TVBtoSpikeNetInterface(TVBTransformerSenderInterface, SpikeNetIngoingInterface):
 
     """TVBtoSpikeNetInterface class to get data from TVB, transform them,
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
@@ -166,8 +167,12 @@ class TVBtoSpikeNetInterface(TVBTransformerSenderInterface):
         required=True
     )
 
+    def print_str(self):
+        return TVBTransformerSenderInterface.print_str(self) + \
+               SpikeNetIngoingInterface.print_str(self)
 
-class SpikeNetToTVBInterface(TVBReceiverTransformerInterface):
+
+class SpikeNetToTVBInterface(TVBReceiverTransformerInterface, SpikeNetOutgoingInterface):
 
     """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
@@ -180,6 +185,10 @@ class SpikeNetToTVBInterface(TVBReceiverTransformerInterface):
                to receive events' data from the Spiking Network co-simulator.""",
         required=True
     )
+
+    def print_str(self):
+        return TVBTransformerSenderInterface.print_str(self) + \
+               SpikeNetOutgoingInterface.print_str(self)
 
 
 class TVBInterfaces(HasTraits):
@@ -259,3 +268,17 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
                 interface.voi_loc[None, :, None],         # indices specific to cosim_updates needed here
                 interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
                 0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
+
+
+class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInterfaces):
+
+    "TVBtoSpikeNetInterfaces"
+
+    pass
+
+
+class SpikeNetToTVBInterfaces(TVInputInterfaces, SpikeNetInterfaces):
+
+    "SpikeNetToTVBInterfaces"
+
+    pass
