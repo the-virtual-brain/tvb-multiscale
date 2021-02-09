@@ -13,11 +13,21 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 class InterfaceBuilder(HasTraits):
     __metaclass__ = ABCMeta
 
+    proxy_inds = NArray(
+        dtype=np.int,
+        label="Indices of proxy nodes",
+        doc="""Indices of proxy nodes""",
+        required=True,
+    )
+
     output_interfaces = List(of=dict, default=(), label="Output interfaces configurations",
                              doc="List of dicts of configurations for the output interfaces to be built")
 
     input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
                             doc="List of dicts of configurations for the input interfaces to be built")
+
+    _output_interfaces = None
+    _input_interfaces = None
 
     def _loop_to_get_from_interface_configs(self, interfaces, attr):
         return [interface[attr] for interface in interfaces]
@@ -65,12 +75,22 @@ class InterfaceBuilder(HasTraits):
             return inds[0]
 
     @staticmethod
-    def _only_inds(self, interfaces, attr, labels):
+    def _only_ind(self, value, labels):
+        if isinstance(value, string_types):
+            return self._label_to_ind(value, labels)
+        else:
+            return value
+
+    @staticmethod
+    def _only_inds(self, values, labels):
         inds = []
-        for iP, value in enumerate(self._loop_to_get_unique_from_interface_configs(interfaces, attr)):
-            if isinstance(value, string_types):
-                inds[iP] = self._label_to_ind(value, labels)
+        for iV, value in enumerate(values):
+            inds.append(self._only_ind(value, labels))
         return inds
+
+    @staticmethod
+    def _only_inds_for_interfaces(self, interfaces, attr, labels):
+        return self._only_inds(self._loop_to_get_unique_from_interface_configs(interfaces, attr), labels)
 
     @staticmethod
     def _assert_interfaces_component_config(interfaces_list, types_list, component):
