@@ -42,6 +42,7 @@ import numpy as np
 
 from tvb.basic.neotraits.api import Attr
 from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
+from tvb.contrib.cosimulation.cosim_monitors import RawCosim
 
 from tvb_multiscale.core.config import LINE
 from tvb_multiscale.core.tvb.interfaces import TVBOutputInterfaces
@@ -68,9 +69,18 @@ class CoSimulator(CoSimulatorBase):
 
     PRINT_PROGRESSION_MESSAGE = True
 
-    def _configure_vois_and_proxy_inds(self):
-        """This method will set the voi and proxy_inds of the CoSimulator,
-            based on the predefined interfaces, which will also configure.
+    def _configure_synchronization_time(self):
+        """This method will default synchronization time
+           to be equal to the minimum delay time of connectivity,
+           in case the user hasn't set it up until this point."""
+        if self.synchronization_time == 0.0:
+            self.synchronization_n_step = np.min(self.connectivity.idelays[np.nonzero(self.connectivity.idelays)])
+            self.synchronization_time = self.synchronization_n_step * self.integrator.dt
+
+    def _configure_interfaces_vois_proxy_inds(self):
+        """This method will
+            - set the voi and proxy_inds of the CoSimulator, based on the predefined input and output interfaces,
+            - configure all interfaces.
         """
         self.voi = []
         self.proxy_inds = []
@@ -87,8 +97,33 @@ class CoSimulator(CoSimulatorBase):
         self.voi = np.unique(self.voi)
         self.proxy_inds = np.unique(self.proxy_inds)
 
+    def _configure_cosim_monitors(self):
+        """This method will set a default RawCosim CosimMonitor
+           if there are output interfaces and
+           the user hasn't set until this point any CosimMonitor."""
+        if len(self.cosim_monitors) == 0 and self.tvb_output_interfaces:
+            self.cosim_monitors = (RawCosim(), )
+
+    def _assert_cosim_monitors_voi_period(self):
+        """This method will assert that
+            - there is at least one CosimMonitor instance set for any voi the ouput interfaces need,
+            - the period of all CosimMonitor instances set is equal to the integrator's dt.
+         """
+        cosim_monitors_voi = []
+        periods = []
+        for cosim_monitor in cosim_monitors:
+            if isinstance(cosim_monitor, CosimMonitorFromCoupling):
+                vois = [self.model.cvar[voi] for voi in cosim_monitor.voi]
+            else:
+                vois = cosim_monitor.voi.tolist()
+            cosim_monitors_voi += vois
+            periods.append(cosim_monitor.period)
+        cosim_monitors_voi = np.unique(cosim_monitors.voi).tolist()
+        assert np.all([voi in cosim_monitors_voi for voi in self.tvb_output_interfaces.voi_unique])
+        assert np.allclose(periods, self.integrator.dt, 1e-6)
+
     def _configure_local_vois_and_proxy_inds_per_interface(self):
-        """This method will set the local -per cosimulation- voi and proxy_inds indices,
+        """This method will set the local -per cosimulation and interface- voi and proxy_inds indices,
            based on the voi of each linked cosimulation monitor, for TVB to Cosimulator interfaces,
            and on the expected shape of ths cosimulation updates data for Cosimulator to TVB interfaces.
         """
@@ -101,29 +136,20 @@ class CoSimulator(CoSimulatorBase):
             # based on TVB CoSmulators' vois and proxy_inds, i.e., good_cosim_update_values_shape
             self.tvb_input_interfaces.set_local_indices(self.voi, self.proxy_inds)
 
-    def configure(self, full_configure=True):
-        """Configure simulator and its components.
-
-        The first step of configuration is to run the configure methods of all
-        the Simulator's components, ie its traited attributes.
-
-        Configuration of a Simulator primarily consists of calculating the
-        attributes, etc, which depend on the combinations of the Simulator's
-        traited attributes (keyword args).
-
-        Converts delays from physical time units into integration steps
-        and updates attributes that depend on combinations of the 6 inputs.
-
-        Returns
-        -------
-        sim: Simulator
-            The configured Simulator instance.
-
+    def _configure_cosimulation(self):
+        """This method will
+           - set the synchronization time and number of steps,
+           - check the time and the variable of interest are correct
+           - create and initialize CosimHistory,
+           - configure the cosimulation monitor
+           - zero connectivity weights to/from nodes modelled exclusively by the other cosimulator
         """
-        self._configure_vois_and_proxy_inds()
-        super(CoSimulator, self).configure(full_configure=full_configure)
+        self._configure_synchronization_time()
+        self._configure_interfaces_vois_proxy_inds()
+        self._configure_cosim_monitors()
+        super(CoSimulator, self)._configure_cosimulation()
+        self._assert_cosim_monitors_voi_period()
         self._configure_local_vois_and_proxy_inds_per_interface()
-        return self
 
     def _prepare_stimulus(self):
         if self.simulation_length != self.synchronization_time:
