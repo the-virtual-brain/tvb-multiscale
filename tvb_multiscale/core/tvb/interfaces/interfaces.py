@@ -10,7 +10,8 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.interfaces.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.spikeNet_interfaces import SpikeNetInterfaces
+from tvb_multiscale.core.interfaces.spikeNet_interfaces import \
+    SpikeNetIngoingInterface, SpikeNetOutgoingInterface, SpikeNetOutgoingInterfaces, SpikeNetIngoingInterfaces
 
 
 class TVBInterface(HasTraits):
@@ -270,15 +271,15 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
                 0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
 
 
-class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInterfaces):
+class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetIngoingInterfaces):
 
-    "TVBtoSpikeNetInterfaces"
+    """TVBtoSpikeNetInterfaces"""
 
     pass
 
 
-class SpikeNetToTVBInterfaces(TVInputInterfaces, SpikeNetInterfaces):
+class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutgoingInterfaces):
 
-    "SpikeNetToTVBInterfaces"
+    """SpikeNetToTVBInterfaces"""
 
     pass

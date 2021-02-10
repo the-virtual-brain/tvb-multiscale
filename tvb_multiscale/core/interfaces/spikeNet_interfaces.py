@@ -2,18 +2,22 @@
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
+from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
 class SpikeNetInterface(HasTraits):
 
     """SpikeNetInterface abstract base class."""
 
-    spiking_network = None
+    spiking_network = Attr(label="Spiking Network",
+                           doc="""The instance of SpikingNetwork class""",
+                           field_type=SpikingNetwork,
+                           required=True)
 
     proxy_inds = NArray(
         dtype=np.int,
@@ -113,6 +117,15 @@ class SpikeNetInterfaces(HasTraits):
 
     """SpikeNetInterfaces abstract base class"""
 
+    interfaces = List(of=SpikeNetInterface)
+
+    @property
+    def spiking_network(self):
+        if len(self.interfaces):
+            return self.interfaces[0].spiking_network
+        else:
+            return None
+
     @property
     def populations(self):
         return np.sort(self._loop_get_from_interfaces("populations"))
@@ -142,7 +155,12 @@ class SpikeNetOutgoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetOutgoingInterfaces"""
 
-    spiking_network = None
+    pass
+
+
+class SpikeNetOutgoingRemoteInterfaces(SpikeNetOutgoingInterfaces):
+
+    """SpikeNetOutgoingRemoteInterfaces"""
 
     def __call__(self):
         for interface in self.interfaces:
@@ -153,7 +171,12 @@ class SpikeNetIngoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetIngoingInterfaces"""
 
-    spiking_network = None
+    pass
+
+
+class SpikeNetIngoingRemoteInterfaces(SpikeNetIngoingInterfaces):
+
+    """SpikeNetIngoingRemoteInterfaces"""
 
     def __call__(self, *args):
         for interface in self.interfaces:

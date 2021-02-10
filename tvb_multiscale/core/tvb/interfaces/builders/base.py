@@ -2,13 +2,10 @@
 
 from abc import ABCMeta, abstractmethod
 
-import os
 
 import numpy as np
 
 from tvb.basic.neotraits._attr import Attr, NArray
-from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimMonitorFromCoupling
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.interfaces.builder import InterfaceBuilder
@@ -18,7 +15,7 @@ from tvb_multiscale.core.tvb.interfaces.transformers import \
     TVBTransformers, TVBRatesToSpikesTransformers, TVBSpikesToRatesElephantRate
 from tvb_multiscale.core.tvb.interfaces.interfaces import TVBOutputInterface, TVBInputInterfaces, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
-    TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
 from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -154,15 +151,15 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def build(self):
         self.tvb_simulator.exclusive = self.exclusive_nodes
         self.build_interfaces()
-        self.tvb_simulator.tvb_output_interfaces = TVBOutputInterfaces(interfaces=self._output_interfaces)
-        self.tvb_simulator.tvb_input_interfaces = TVBInputInterfaces(interfaces=self._input_interfaces)
+        self.tvb_simulator.tvb_output_interfaces = self._tvb_output_interfaces_class(interfaces=self._output_interfaces)
+        self.tvb_simulator.tvb_input_interfaces = self._tvb_input_interfaces_class(interfaces=self._input_interfaces)
         return self.tvb_simulator
 
 
 class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
 
     _remote_senders_types = tuple([val.value for val in RemoteSenders.__members__.values()])
-    _remote_receivers_types = tuple([val.value for val in RemoteReceviers.__members__.values()])
+    _remote_receivers_types = tuple([val.value for val in RemoteReceivers.__members__.values()])
 
     def configure(self):
         super(TVBRemoteInterfaceBuilder, self).configure()
@@ -274,8 +271,8 @@ class TVBInputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
 
 class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
 
-    _tvb_output_interfaces_class = TVBOutputInterfaces
-    _tvb_input_interfaces_class = TVBInputInterfaces
+    _tvb_output_interfaces_class = TVBtoSpikeNetInterfaces
+    _tvb_input_interfaces_class = SpikeNetToTVBInterfaces
 
     _tvb_transformers_types = tuple([val.value for val in TVBTransformers.__members__.values()])
 
@@ -286,7 +283,6 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
         dtype=np.float,
         label="Global coupling scaling",
         doc="""Array of global coupling scaling parameters per receiving brain region node.""",
-        default=None,
         required=True,
     )
 
@@ -324,14 +320,16 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
                                                               self.region_labels),
                                        voi=self._only_inds(interface["voi"]),
                                        communicator=interface["sender"],
-                                       monitor_ind=interface.get("monitor_ind", 0)))
+                                       monitor_ind=interface.get("monitor_ind", 0)),
+                                       spiking_network=self.spiking_network)
         self._input_interfaces = []
         for interface in self.input_interfaces:
             self._input_interfaces.append(
                 SpikeNetToTVBInterface(proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds),
                                                                 self.region_labels),
                                        voi=self._only_inds(interface["voi"]),
-                                       communicator=interface["receiver"]))
+                                       communicator=interface["receiver"]),
+                                       spiking_network=self.spiking_network)
 
 # class TVBInterfaceBuilder(InterfaceBuilder):
 #
