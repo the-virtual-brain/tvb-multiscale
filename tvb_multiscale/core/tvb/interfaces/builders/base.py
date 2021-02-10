@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 
 from tvb.basic.neotraits._attr import Attr, NArray
+from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.interfaces.builder import InterfaceBuilder
@@ -277,7 +278,7 @@ class TVBInputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
             self._input_interfaces.append(
                 TVBReceiverTransformerInterface(
                     proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds), self.region_labels),
-                    voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
+                    voi=voi_inds, voi_labels=voi_labels,
                     communicator=interface["feceiver"],
                     transformer=interface["transformer"]))
 
@@ -303,13 +304,23 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
                            doc="""The instance of SpikingNetwork class""",
                            field_type=SpikingNetwork,
                            required=True)
-    @property
-    def tvb_nodes_inds(self):
-        return self.default_out_proxy_inds
 
     @property
-    def spikeNet_nodes_inds(self):
-        return self.proxy_inds
+    def tvb_nodes_inds(self):
+        return self.out_proxy_inds
+
+    @property
+    def spiking_nodes_inds(self):
+        return self.in_proxy_inds
+
+    def default_tvb_weight_fun(self, source_node, target_node):
+        return self.global_coupling_scaling * self.tvb_weights[source_node, target_node]
+
+    def default_tvb_delay_fun(self, source_node, target_node):
+        return self.delays[source_node, target_node]
+
+    def default_receptor_type(self):
+        return 0
 
     def _configure_global_coupling_scaling(self):
         if self.global_coupling_scaling is None:
@@ -324,12 +335,92 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
         self._assert_output_interfaces_component_config(self._tvb_transformers_types, "transformer")
         self._assert_input_interfaces_component_config(self._tvb_transformers_types, "transformer")
 
+    def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
+        tvb_nodes_ids = self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
+                                        self.region_labels)
+        spiking_proxy_inds = self._only_inds(interface["spiking_proxy_inds"], self.region_labels)
+        if self.exclusive_nodes:
+            # TODO: decide about the following:
+            #  can a TVB node be updated from a SpikeNet node via a SpikeNet -> TVB interface?,
+            #  and get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
+            # Will it depend on whether there is also a direct coupling of that SpikeNet node with other SpikeNet nodes?
+            assert np.all(node not in self.tvb_nodes_ids for node in spiking_proxy_inds)
+            assert np.all(node not in self.spiking_nodes_ids for node in tvb_nodes_ids)
+        weight_fun = property_to_fun(interface.pop("weights", self.default_tvb_weight_fun))
+        delay_fun = property_to_fun(interface.pop("delays", self.default_tvb_delay_fun))
+        receptor_type_fun = property_to_fun(interface.get("receptor_type", self._default_receptor_type))
+        # Default behavior for any combination of region nodes and populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_inds", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
+            # Defaults just follow TVB connectivity
+            shape = (len(interface.proxy_inds), len(interface.spiking_proxy_inds.shape[0]))
+            weights = np.empty(shape).astype("O")
+            delays = np.empty(shape).astype("O")
+            receptor_type = np.empty(shape).astype("O")
+            neurons_inds = np.tile([None], shape).astype("O")
+            device_names = []
+            # Apply now possible functions per source and target region node:
+            for src_node in tvb_nodes_ids:
+                i_src = np.where(tvb_nodes_ids == src_node)[0][0]
+                device_names.append(self.regions_labels[src_node])
+                for i_trg, trg_node in enumerate(spiking_proxy_inds):
+                    weights[i_src, i_trg] = weight_fun(src_node, trg_node)
+                    delays[i_src, i_trg] = delay_fun(src_node, trg_node)
+                    receptor_type[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
+                    if neurons_inds_fun is not None:
+                        neurons_inds[i_src, i_trg] = lambda neurons_inds: neurons_inds_fun(src_node, trg_node,
+                                                                                           neurons_inds)
+        _interface = dict()
+        _interface["names"] = device_names
+        _interface["weights"] = weights
+        _interface["delays"] = delays
+        _interface["receptor_type"] = receptor_type
+        _interface["neurons_inds"] = neurons_inds
+        _interface["nodes"] = [np.where(spiking_proxy_inds == trg_node)[0][0] for trg_node in spiking_proxy_inds]
+        # Generate the devices => "proxy TVB nodes":
+        return self.build_and_connect_devices([_interface], self.spiking_network.brain_regions), \
+               tvb_nodes_ids, spiking_proxy_inds
+
+    def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface):
+        spiking_proxy_inds = self._only_inds(interface.get("proxy_inds",
+                                                             interface.get("spiking_proxy_inds",
+                                                                           self.proxy_inds)), self.region_labels)
+        if self.exclusive_nodes:
+            # TODO: decide about the following: can a TVB node be updated from a NEST node via a NEST -> TVB interface,
+            # get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
+            # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
+            assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_proxy_inds)
+        delay_fun = property_to_fun(interface.pop("delays", 0.0))
+        # Default behavior for any region node and any combination of populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_inds", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
+        shape = (len(interface.spiking_proxy_inds),)
+        delays = np.zeros(shape).astype("O")
+        neurons_inds = np.tile([None], shape).astype("O")
+        for i_node, spiking_node in enumerate(spiking_proxy_inds):
+            delays[i_node] = delay_fun(spiking_node)
+            if neurons_inds_fun is not None:
+                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
+        _interface = dict()
+        _interface["delays"] = delays
+        _interface["neurons_inds"] = neurons_inds
+        # Convert TVB node index to interface SpikeNet node index:
+        _interface["nodes"] = [np.where(spiking_proxy_inds == spiking_node)[0][0]
+                               for spiking_node in spiking_proxy_inds]
+        # Generate the devices <== "proxy TVB nodes":
+        return self.build_and_connect_devices([_interface], self.spiking_network.brain_regions), \
+               spiking_proxy_inds
+
     def build_interfaces(self):
         self._output_interfaces = []
         for interface in self.output_interfaces:
             voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
-            output_proxy_inds = self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
-                                                self.region_labels)
+            output_proxy_nodes, output_proxy_inds = self._build_tvb_to_spikeNet_interface_proxy_nodes(interface)
+            interface["sender"].target = output_proxy_nodes
             self._output_interfaces.append(
                 TVBtoSpikeNetInterface(proxy_inds=output_proxy_inds,
                                        voi=voi_inds, voi_labels=voi_labels,
@@ -338,13 +429,13 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
                                        transformer=interface["transformer"],
                                        spiking_network=self.spiking_network,
                                        populations=np.array(interface["populations"]),
-                                       spiking_proxy_inds=self._only_inds(interface.get("spiking_proxy_inds",
-                                                                                        output_proxy_inds),
+                                       spiking_proxy_inds=self._only_inds(interface["spiking_proxy_inds"],
                                                                           self.region_labels))
         self._input_interfaces = []
         for interface in self.input_interfaces:
             voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
-            input_proxy_inds = self._only_inds(interface.get("proxy_inds", self.proxy_inds), self.region_labels)
+            input_proxy_nodes, input_proxy_inds = self._build_spikeNet_to_tvb_interface_proxy_nodes(interface)
+            interface["receiver"].source = input_proxy_nodes
             self._input_interfaces.append(
                 SpikeNetToTVBInterface(proxy_inds=input_proxy_inds,
                                        voi=voi_inds, voi_labels=voi_labels,
@@ -352,221 +443,4 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
                                        transformer=interface["transformer"],
                                        spiking_network=self.spiking_network,
                                        populations=np.array(interface["populations"]),
-                                       spiking_proxy_inds=self._only_inds(interface.get("spiking_proxy_inds",
-                                                                                        input_proxy_inds),
-                                                                          self.region_labels))
-
-# class TVBInterfaceBuilder(InterfaceBuilder):
-#
-#     def __init__(self, tvb_serial_sim, spiking_network, spiking_nodes_ids, exclusive_nodes=False,
-#                  tvb_to_spiking_interfaces=None, spiking_to_tvb_interfaces=None):
-#         if isinstance(spiking_network, SpikingNetwork):
-#             self.spiking_network = spiking_network
-#         else:
-#             raise ValueError("Input spiking_network is not a SpikingNetwork object!\n%s" % str(spiking_network))
-#         self.exclusive_nodes = exclusive_nodes
-#         if isinstance(tvb_serial_sim, os.PathLike):
-#             self.tvb_serial_sim = load_serial_tvb_simulator(tvb_serial_sim)
-#         elif not isinstance(tvb_serial_sim, dict):
-#             self.tvb_serial_sim = serialize_tvb_simulator(tvb_serial_sim)
-#         self.spiking_nodes_ids = np.array(ensure_list(spiking_nodes_ids))
-#         self.tvb_nodes_ids = list(range(self.number_of_regions))
-#         if self.exclusive_nodes:
-#             try:
-#                 for i_n in self.spiking_nodes_ids:
-#                     self.tvb_nodes_ids.remove(i_n)
-#             except:
-#                 raise ValueError("Failed to compute tvb_nodes_ids from nest_nodes_ids %s "
-#                                  "and TVB connectivity of size %s!"
-#                                  % (str(self.spiking_nodes_ids), self.number_of_regions))
-#             self.tvb_nodes_ids = np.array(self.tvb_nodes_ids)
-#
-#         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-#         self.global_coupling_scaling = self.tvb_serial_sim["coupling.a"][0].item()
-#
-#         # TVB <-> Spiking Network transformations' weights/funs
-#         # If set as weights, they will become a transformation function of
-#         # lambda state, regions_indices: w[regions_indices] * state[regions_indices]
-#         # If set as a function of lambda state: fun(state), it will become a vector function of:
-#         # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
-#         # TVB -> Spiking Network
-#         self.w_tvb_to_spike_rate = 1000.0  # (e.g., spike rate in NEST is in spikes/sec, assuming TVB rate is spikes/ms)
-#         self.w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
-#         self.w_tvb_to_potential = 1.0  # assuming mV in both NEST and TVB
-#         # TVB <- Spiking Network
-#         # We return from a Spiking Network spike_detector
-#         # the ratio number_of_population_spikes / number_of_population_neurons
-#         # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
-#         # as long as a neuron cannot fire twice during a TVB time step, i.e.,
-#         # as long as the TVB time step (usually 0.001 to 0.1 ms)
-#         # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
-#         # For conversion to a rate, one has to do:
-#         # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
-#         # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
-#         self.w_spikes_to_tvb = 1.0
-#         self.w_spikes_var_to_tvb = 1.0
-#         # We return from a Spiking Network multimeter or voltmeter the membrane potential in mV
-#         self.w_potential_to_tvb = 1.0
-#
-#         if spiking_to_tvb_interfaces is not None:
-#             self.spikeNet_to_tvb_interfaces = ensure_list(spiking_to_tvb_interfaces)
-#         if tvb_to_spiking_interfaces is not None:
-#             self.tvb_to_spikeNet_interfaces = ensure_list(tvb_to_spiking_interfaces)
-#
-#     @property
-#     def config(self):
-#         return self.spiking_network.config
-#
-#     @property
-#     def tvb_dt(self):
-#         return self.tvb_serial_sim["integrator.dt"]
-#
-#     @property
-#     def tvb_model(self):
-#         return self.tvb_serial_sim["model"]
-#
-#     @property
-#     def tvb_model_state_variables(self):
-#         return self.tvb_serial_sim["model.state_variables"]
-#
-#     @property
-#     def tvb_model_cvar(self):
-#         return self.tvb_serial_sim["model.cvar"]
-#
-#     @property
-#     def number_of_regions(self):
-#         return self.tvb_serial_sim["connectivity.number_of_regions"]
-#
-#     @property
-#     def region_labels(self):
-#         return self.tvb_serial_sim["connectivity.region_labels"]
-#
-#     @property
-#     def tvb_weights(self):
-#         return self.tvb_serial_sim["connectivity.weights"]
-#
-#     @property
-#     def tvb_delays(self):
-#         return self.tvb_serial_sim["connectivity.delays"]
-#
-#     @property
-#     def spiking_nodes(self):
-#         return self.spiking_network.brain_regions
-#
-#     @property
-#     def spikeNet_min_delay(self):
-#         return self.spiking_network.min_delay
-#
-#
-#
-#     def _prepare_tvb_to_spikeNet_transform_fun(self, prop, dummy):
-#         # This method sets tranformations of TVB state
-#         # to be applied before communication towards Spiking Network
-#         # In the simplest case, nothing happens...
-#         transform_fun = prop.split("w_")[1]
-#         if hasattr(getattr(self, prop), "__call__"):
-#             # If the property is already set as a function:
-#             return {transform_fun:
-#                         lambda state_variable, region_nodes_indices=None:
-#                             getattr(self, prop)(state_variable[region_nodes_indices])}
-#         else:
-#             # If the property is set just as a weight:
-#             setattr(self, prop, dummy * getattr(self, prop))
-#             return {transform_fun:
-#                         lambda state_variable, region_nodes_indices, weights=getattr(self, prop):
-#                             state_variable[region_nodes_indices] * weights[region_nodes_indices]}
-#
-#     def _prepare_spikeNet_to_tvb_transform_fun(self, prop, dummy):
-#         # This method sets tranformations of Spiking Network state
-#         # to be applied before communication towards TVB
-#         # In the simplest case, nothing happens...
-#         transform_fun = prop.split("w_")[1]
-#         if hasattr(getattr(self, prop), "__call__"):
-#             # If the property is already set as a function:
-#             return {transform_fun:
-#                         lambda spikeNet_variable, region_nodes_indices=None:
-#                             getattr(self, prop)(spikeNet_variable)}
-#         else:
-#             # If the property is set just as a weight:
-#             setattr(self, prop, dummy * getattr(self, prop))
-#             return {transform_fun:
-#                         lambda spikeNet_variable, region_nodes_indices, weights=getattr(self, prop):
-#                             spikeNet_variable * weights[region_nodes_indices]}
-#
-#     def generate_transforms(self):
-#         dummy = np.ones((self.number_of_regions,))
-#         # Confirm good shape for TVB-Spiking Network interface model parameters
-#         # TODO: find a possible way to differentiate scalings between
-#         #  receiver (as in _tvb_state_to_nest_current),
-#         #  and sender (as in all other cases below), node indexing
-#         #  Also, the size doesn't have to be in all cases equal to number_of_nodes,
-#         #  but sometimes equal to number_of_spiking_nodes or to number_of_tvb_nodes
-#         transforms = {}
-#         for prop in ["w_tvb_to_current",
-#                      "w_tvb_to_potential",
-#                      "w_tvb_to_spike_rate"]:
-#             transforms.update(self._prepare_tvb_to_spikeNet_transform_fun(prop, dummy))
-#         for prop in ["w_spikes_to_tvb",
-#                      "w_spikes_var_to_tvb",
-#                      "w_potential_to_tvb"]:
-#             transforms.update(self._prepare_spikeNet_to_tvb_transform_fun(prop, dummy))
-#         return transforms
-#
-#     def build_interface(self, tvb_spikeNet_interface):
-#         """
-#         Configure the TVB Spiking Network interface of the fine scale as well other aspects of its interface with TVB
-#         :return: tvb_spikeNet_interface object
-#         """
-#
-#         tvb_spikeNet_interface.config = self.config
-#         # TODO: find out why the model instance is different in simulator and interface...
-#         tvb_spikeNet_interface.tvb_model_state_variables = self.tvb_model
-#         tvb_spikeNet_interface.dt = self.tvb_dt
-#         tvb_spikeNet_interface.tvb_nodes_ids = self.tvb_nodes_ids
-#         tvb_spikeNet_interface.spiking_nodes_ids = self.spiking_nodes_ids
-#         tvb_spikeNet_interface.exclusive_nodes = self.exclusive_nodes
-#         tvb_spikeNet_interface.spiking_network = self.spiking_network
-#
-#         tvb_spikeNet_interface.transforms = self.generate_transforms()
-#
-#         tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = Series({})
-#         ids = [-1, -1]
-#         for interface in self.tvb_to_spikeNet_interfaces:
-#             model = interface.get("model", None)
-#             if model in self._input_device_dict.keys():
-#
-#                 ids[0] += 1
-#                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
-#                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
-#                         self._tvb_to_spikNet_device_interface_builder([],
-#                                                                       self.spiking_network,
-#                                                                       self.spiking_nodes_ids, self.tvb_nodes_ids,
-#                                                                       self.tvb_model_state_variables,
-#                                                                       self.tvb_weights, self.tvb_delays,
-#                                                                       self.region_labels, self.tvb_dt,
-#                                                                       self.exclusive_nodes,
-#                                                                       self.config).build_interface(interface, ids[0])
-#                                                                             )
-#             else:
-#                 ids[1] += 1
-#                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
-#                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
-#                             self._tvb_to_spikeNet_parameter_interface_builder([],
-#                                                                               self.spiking_network,
-#                                                                               self.spiking_nodes_ids, self.tvb_nodes_ids,
-#                                                                               self.tvb_model_state_variables,
-#                                                                               self.tvb_model_cvar.tolist(),
-#                                                                               self.exclusive_nodes,
-#                                                                               self.config).build_interface(interface,
-#                                                                                                            ids[1])
-#                                                                             )
-#
-#         tvb_spikeNet_interface.spikeNet_to_tvb_interfaces = \
-#             self._spikeNet_to_tvb_interface_builder(self.spikeNet_to_tvb_interfaces,
-#                                                     self.spiking_network,
-#                                                     self.spiking_nodes_ids, self.tvb_nodes_ids,
-#                                                     self.tvb_model_state_variables,
-#                                                     self.exclusive_nodes,
-#                                                     self.config).build_interfaces()
-#
-#         return tvb_spikeNet_interface
+                                       spiking_proxy_inds=input_proxy_inds)
