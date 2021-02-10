@@ -5,7 +5,7 @@ from six import string_types
 
 import numpy as np
 
-from tvb.basic.neotraits._core import HasTraits
+from tvb.basic.neotraits._core import HasTraits, NArray
 from tvb.basic.neotraits._attr import List
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -74,21 +74,18 @@ class InterfaceBuilder(HasTraits):
         else:
             return inds[0]
 
-    @staticmethod
     def _only_ind(self, value, labels):
         if isinstance(value, string_types):
             return self._label_to_ind(value, labels)
         else:
             return value
 
-    @staticmethod
     def _only_inds(self, values, labels):
         inds = []
         for iV, value in enumerate(values):
             inds.append(self._only_ind(value, labels))
         return inds
 
-    @staticmethod
     def _only_inds_for_interfaces(self, interfaces, attr, labels):
         return self._only_inds(self._loop_to_get_unique_from_interface_configs(interfaces, attr), labels)
 
@@ -96,7 +93,7 @@ class InterfaceBuilder(HasTraits):
     def _assert_interfaces_component_config(interfaces_list, types_list, component):
         for interface in interfaces_list:
             if interface[component] in types_list:
-                interface[component] = interface[attr](**interface.get("%s_params" % component, {}))
+                interface[component] = interface[component](**interface.get("%s_params" % component, {}))
             else:
                 assert isinstance(interface[component], types_list)
         return interfaces_list

@@ -11,13 +11,11 @@ from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.interfaces.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.io import RemoteSenders, RemoteReceivers, \
     SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
-from tvb_multiscale.core.tvb.interfaces.transformers import \
-    TVBTransformers, TVBRatesToSpikesTransformers, TVBSpikesToRatesElephantRate
-from tvb_multiscale.core.tvb.interfaces.interfaces import TVBOutputInterface, TVBInputInterfaces, \
+from tvb_multiscale.core.tvb.interfaces.transformers import TVBTransformers
+from tvb_multiscale.core.tvb.interfaces.interfaces import TVBOutputInterfaces, TVBInputInterfaces, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
 from tvb_multiscale.core.tvb.cosimulator import CoSimulator
-from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -90,6 +88,11 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def in_proxy_inds(self):
         return self._proxy_inds(self.input_interfaces)
 
+    def _voi_inds_labels_for_interface(self, interface):
+        voi_inds = np.array(self._only_inds(interface.voi, self.tvb_model_state_variables))
+        voi_labels = self.tvb_model_state_variables[voi_inds]
+        return voi_inds, voi_labels
+
     def _voi_inds(self, interfaces):
         return np.unique(self._only_inds_for_interfaces(interfaces, "voi", self.tvb_model_state_variables))
 
@@ -133,10 +136,11 @@ class TVBInterfaceBuilder(InterfaceBuilder):
 
     def configure(self):
         super(TVBInterfaceBuilder, self).configure()
-        self._default_out_proxy_inds = np.arange(self.number_of_regions).astype('i')
+        self._default_out_proxy_inds = np.arange(self.number_of_regions).astype('i').tolist()
         if self.exclusive_nodes:
-            for proxy_ind in self.proxy_inds:
+            for proxy_ind in self.in_proxy_inds:
                 self._default_out_proxy_inds.remove(proxy_ind)
+        self._default_out_proxy_inds = np.array(self._default_out_proxy_inds)
         if len(self.output_interfaces):
             assert self.out_voi_labels in self.tvb_model_state_variables
             assert self.out_proxy_labels in self.region_labels
@@ -169,18 +173,21 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
     def build_interfaces(self):
         self._output_interfaces = []
         for interface in self.output_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._output_interfaces.append(
-                TVBSenderInterface(proxy_inds=self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
+                TVBSenderInterface(proxy_inds=self._only_inds(interface.get("proxy_inds",
+                                                                            self._default_out_proxy_inds),
                                                               self.region_labels),
-                                   voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
+                                   voi=voi_inds, voi_labels=voi_labels,
                                    communicator=interface["sender"],
                                    monitor_ind=interface.get("monitor_ind", 0)))
         self._input_interfaces = []
         for interface in self.input_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._input_interfaces.append(
-                TVBReceiverInterface(proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds),
+                TVBReceiverInterface(proxy_inds=self._only_inds(interface.get("spiking_proxy_inds", self.proxy_inds),
                                                                 self.region_labels),
-                                     voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
+                                     voi=voi_inds, voi_labels=voi_labels,
                                      communicator=interface["receiver"]))
 
 
@@ -196,21 +203,23 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
     def build_interfaces(self):
         self._output_interfaces = []
         for interface in self.output_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._output_interfaces.append(
                 TVBTransformerSenderInterface(
                     proxy_inds=self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
                                                self.region_labels),
-                    voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
+                    voi=voi_inds, voi_labels=voi_labels,
                     communicator=interface["sender"],
                     monitor_ind=interface.get("monitor_ind", 0),
                     transformer=interface["transformer"]))
         self._input_interfaces = []
         for interface in self.input_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._input_interfaces.append(
                 TVBReceiverTransformerInterface(
                     proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds), self.region_labels),
-                    voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
-                    communicator=interface["feceiver"],
+                    voi=voi_inds, voi_labels=voi_labels,
+                    communicator=interface["receiver"],
                     transformer=interface["transformer"]))
 
 
@@ -225,16 +234,18 @@ class TVBOutputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
     def build_interfaces(self):
         self._output_interfaces = []
         for interface in self.output_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._output_interfaces.append(
                 TVBTransformerSenderInterface(
                     proxy_inds=self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
                                                self.region_labels),
-                    voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
+                    voi=voi_inds, voi_labels=voi_labels,
                     communicator=interface["sender"],
                     monitor_ind=interface.get("monitor_ind", 0),
                     transformer=interface["transformer"]))
         self._input_interfaces = []
         for interface in self.input_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._input_interfaces.append(
                 TVBReceiverInterface(proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds),
                                                                 self.region_labels),
@@ -253,14 +264,16 @@ class TVBInputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder):
     def build_interfaces(self):
         self._output_interfaces = []
         for interface in self.output_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._output_interfaces.append(
                 TVBSenderInterface(proxy_inds=self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
                                                               self.region_labels),
-                                   voi=self._only_inds(interface.get("voi"), self.tvb_model_state_variables),
+                                   voi=voi_inds, voi_labels=voi_labels,
                                    communicator=interface["sender"],
                                    monitor_ind=interface.get("monitor_ind", 0)))
         self._input_interfaces = []
         for interface in self.input_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
             self._input_interfaces.append(
                 TVBReceiverTransformerInterface(
                     proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds), self.region_labels),
@@ -314,22 +327,34 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder):
     def build_interfaces(self):
         self._output_interfaces = []
         for interface in self.output_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
+            output_proxy_inds = self._only_inds(interface.get("proxy_inds", self._default_out_proxy_inds),
+                                                self.region_labels)
             self._output_interfaces.append(
-                TVBtoSpikeNetInterface(proxy_inds=self._only_inds(interface.get("proxy_inds",
-                                                                                self._default_out_proxy_inds),
-                                                              self.region_labels),
-                                       voi=self._only_inds(interface["voi"]),
+                TVBtoSpikeNetInterface(proxy_inds=output_proxy_inds,
+                                       voi=voi_inds, voi_labels=voi_labels,
                                        communicator=interface["sender"],
                                        monitor_ind=interface.get("monitor_ind", 0)),
-                                       spiking_network=self.spiking_network)
+                                       transformer=interface["transformer"],
+                                       spiking_network=self.spiking_network,
+                                       populations=np.array(interface["populations"]),
+                                       spiking_proxy_inds=self._only_inds(interface.get("spiking_proxy_inds",
+                                                                                        output_proxy_inds),
+                                                                          self.region_labels))
         self._input_interfaces = []
         for interface in self.input_interfaces:
+            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
+            input_proxy_inds = self._only_inds(interface.get("proxy_inds", self.proxy_inds), self.region_labels)
             self._input_interfaces.append(
-                SpikeNetToTVBInterface(proxy_inds=self._only_inds(interface.get("proxy_inds", self.proxy_inds),
-                                                                self.region_labels),
-                                       voi=self._only_inds(interface["voi"]),
+                SpikeNetToTVBInterface(proxy_inds=input_proxy_inds,
+                                       voi=voi_inds, voi_labels=voi_labels,
                                        communicator=interface["receiver"]),
-                                       spiking_network=self.spiking_network)
+                                       transformer=interface["transformer"],
+                                       spiking_network=self.spiking_network,
+                                       populations=np.array(interface["populations"]),
+                                       spiking_proxy_inds=self._only_inds(interface.get("spiking_proxy_inds",
+                                                                                        input_proxy_inds),
+                                                                          self.region_labels))
 
 # class TVBInterfaceBuilder(InterfaceBuilder):
 #

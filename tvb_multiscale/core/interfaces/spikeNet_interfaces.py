@@ -19,7 +19,7 @@ class SpikeNetInterface(HasTraits):
                            field_type=SpikingNetwork,
                            required=True)
 
-    proxy_inds = NArray(
+    spiking_proxy_inds = NArray(
         dtype=np.int,
         label="Indices of Spiking Network proxy nodes",
         doc="""Indices of Spiking Network proxy nodes""",
@@ -33,8 +33,13 @@ class SpikeNetInterface(HasTraits):
         required=True)
 
     @property
+    def label(self):
+        return "%s: %s (%s)" % (self.__class__.__name__, str(self.populations),
+                                extract_integer_intervals(self.spiking_proxy_inds))
+
+    @property
     def number_of_proxy_nodes(self):
-        return self.proxy_inds.shape[0]
+        return self.spiking_proxy_inds.shape[0]
 
     @property
     def number_of_populations(self):
@@ -50,12 +55,17 @@ class SpikeNetInterface(HasTraits):
         return "\nSpiking Network populations: %s" \
                "\n%Spiking Network proxy nodes' indices: %s" % \
                (str(self.populations.tolist()),
-                spikeNet_source_or_target, extract_integer_intervals(self.proxy_inds, print=True))
+                spikeNet_source_or_target, extract_integer_intervals(self.spiking_proxy_inds, print=True))
 
 
 class SpikeNetOutgoingInterface(SpikeNetInterface):
 
     """SpikeNetOutgoingInterface base class."""
+
+    @property
+    def label(self):
+        return "%s: %s (%s) ->" % (self.__class__.__name__, str(self.populations),
+                                   extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
         super(SpikeNetOutgoingInterface, self).print_str(self, sender_not_receiver=True)
@@ -64,6 +74,11 @@ class SpikeNetOutgoingInterface(SpikeNetInterface):
 class SpikeNetIngoingInterface(SpikeNetInterface):
 
     """SpikeNetIngoingInterface base class."""
+
+    @property
+    def label(self):
+        return "%s: %s (%s) <-" % (self.__class__.__name__, str(self.populations),
+                                   extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
         super(SpikeNetIngoingInterface, self).print_str(self, sender_not_receiver=False)
@@ -136,11 +151,11 @@ class SpikeNetInterfaces(HasTraits):
 
     @property
     def proxy_inds(self):
-        return np.sort(self._loop_get_from_interfaces("proxy_inds"))
+        return np.sort(self._loop_get_from_interfaces("spiking_proxy_inds"))
 
     @property
     def proxy_inds_unique(self):
-        return np.unique(self._loop_get_from_interfaces("proxy_inds"))
+        return np.unique(self._loop_get_from_interfaces("spiking_proxy_inds"))
 
     @property
     def number_of_populations(self):

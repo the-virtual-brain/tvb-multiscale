@@ -29,10 +29,22 @@ class TVBInterface(HasTraits):
     voi = NArray(
         dtype=int,
         label="Cosimulation model state variables' indices",
-        doc="""Indices of model's variables of interest (VOI) that""",
+        doc="""Indices of model's variables of interest (VOI)""",
         required=True)
 
     voi_loc = np.array([])
+
+    voi_labels = NArray(
+        dtype=np.str,
+        label="Cosimulation model state variables' labels",
+        doc=""""Labels of model's variables of interest (VOI)""",
+        required=True,
+    )
+
+    @property
+    def label(self):
+        return "%s: %s (%s)" % (self.__class__.__name__, str(self.voi_labels),
+                                extract_integer_intervals(self.proxy_inds))
 
     @property
     def number_of_proxy_nodes(self):
@@ -76,6 +88,11 @@ class TVBOutputInterface(TVBInterface):
                       required=True,
                       default=0)
 
+    @property
+    def label(self):
+        return "%s: %s (%s) ->" % (self.__class__.__name__, str(self.voi_labels),
+                                   extract_integer_intervals(self.proxy_inds))
+
     def set_local_indices(self, monitor_voi):
         self.set_local_voi_indices(monitor_voi)
 
@@ -94,6 +111,11 @@ class TVBInputInterface(TVBInterface):
     """TVBInputInterface base class for interfaces receiving data for TVB from a transformer or cosimulator"""
 
     proxy_inds_loc = np.array([])
+
+    @property
+    def label(self):
+        return "%s: %s (%s) <-" % (self.__class__.__name__, str(self.voi_labels),
+                                   extract_integer_intervals(self.proxy_inds))
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
         self.set_local_voi_indices(simulator_voi)
@@ -168,6 +190,12 @@ class TVBtoSpikeNetInterface(TVBTransformerSenderInterface, SpikeNetIngoingInter
         required=True
     )
 
+    @property
+    def label(self):
+        return "%s: %s (%s) -> %s (%s)" % (self.__class__.__name__, str(self.voi_labels),
+                                           extract_integer_intervals(self.proxy_inds),
+                                           str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
+
     def print_str(self):
         return TVBTransformerSenderInterface.print_str(self) + \
                SpikeNetIngoingInterface.print_str(self)
@@ -186,6 +214,12 @@ class SpikeNetToTVBInterface(TVBReceiverTransformerInterface, SpikeNetOutgoingIn
                to receive events' data from the Spiking Network co-simulator.""",
         required=True
     )
+
+    @property
+    def label(self):
+        return "%s: %s (%s) <- %s (%s)" % (self.__class__.__name__, str(self.voi_labels),
+                                           extract_integer_intervals(self.proxy_inds),
+                                           str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
         return TVBTransformerSenderInterface.print_str(self) + \
@@ -206,12 +240,20 @@ class TVBInterfaces(HasTraits):
         return np.unique(self._loop_get_from_interfaces("voi"))
 
     @property
+    def voi_labels(self):
+        return np.sort(self._loop_get_from_interfaces("voi_labels"))
+
+    @property
+    def voi_labels_unique(self):
+        return np.unique(self._loop_get_from_interfaces("voi_labels"))
+
+    @property
     def proxy_inds(self):
-        return np.sort(self._loop_get_from_interfaces("proxy_inds"))
+        return np.sort(self._loop_get_from_interfaces("spiking_proxy_inds"))
 
     @property
     def proxy_inds_unique(self):
-        return np.unique(self._loop_get_from_interfaces("proxy_inds"))
+        return np.unique(self._loop_get_from_interfaces("spiking_proxy_inds"))
 
     @property
     def n_vois(self):
@@ -250,9 +292,9 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
        and receives data from them"""
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
-        """Method to get the correct indices of voi and proxy_inds,
+        """Method to get the correct indices of voi and spiking_proxy_inds,
            adjusted to the contents, shape etc of the cosim_updates,
-           based on TVB CoSimulators' vois and proxy_inds,
+           based on TVB CoSimulators' vois and spiking_proxy_inds,
            for each cosimulation"""
         for interface in self.interfaces:
             interface.set_local_indices(simulator_voi, simulator_proxy_inds)

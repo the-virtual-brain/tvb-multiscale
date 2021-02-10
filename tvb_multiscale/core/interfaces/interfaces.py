@@ -12,10 +12,9 @@ class BaseInterface(HasTraits):
 
     """Cosimulation BaseInterface abstract base class."""
 
-    label = Attr(label="BaseInterface label",
-                 doc="""BaseInterface label""",
-                 field_type=str,
-                 required=True)
+    @property
+    def label(self):
+        return self.__class__.__name__
 
     def configure(self):
         """Method to configure the cosimulation"""
@@ -280,6 +279,13 @@ class BaseInterfaces(HasTraits):
         for interface in self.interfaces:
             interface.configure()
         super().configure()
+
+    @property
+    def labels(self):
+        labels = ""
+        for interface in self.interfaces:
+            labels += "\n" + interface.label
+        return labels
 
     @abstractmethod
     def __call__(self, *args):
