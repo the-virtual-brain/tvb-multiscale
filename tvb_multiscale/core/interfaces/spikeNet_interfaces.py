@@ -150,11 +150,11 @@ class SpikeNetInterfaces(HasTraits):
         return np.unique(self._loop_get_from_interfaces("populations"))
 
     @property
-    def proxy_inds(self):
+    def spiking_proxy_inds(self):
         return np.sort(self._loop_get_from_interfaces("spiking_proxy_inds"))
 
     @property
-    def proxy_inds_unique(self):
+    def spiking_proxy_inds_unique(self):
         return np.unique(self._loop_get_from_interfaces("spiking_proxy_inds"))
 
     @property
@@ -162,7 +162,7 @@ class SpikeNetInterfaces(HasTraits):
         return self.populations_unique.shape[0]
 
     @property
-    def number_of_proxy_nodes(self):
+    def number_of_spiking_proxy_nodes(self):
         return self.proxy_inds_unique.shape[0]
 
 
