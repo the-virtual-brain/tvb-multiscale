@@ -138,10 +138,10 @@ class NESTStepCurrentGeneratorSetter(NESTInputDeviceSetter):
                          "amplitude_values": data[1].tolist()})
 
 
-class NESTEventsFromOutpuDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator):
+class NESTEventsFromOutputDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator):
 
     """
-        NESTEventsFromOutpuDevice class to read events' data
+        NESTEventsFromOutputDevice class to read events' data
          (times, senders and values from NEST Multimeters-like devices) from a NESTOutputDevice device,
          a DeviceSet of NESTOutputDevices a nest.NodeCollection instance corresponding to a NEST recording device.
         It comprises of:
@@ -160,7 +160,7 @@ class NESTEventsFromOutpuDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator)
             assert isinstance(self.source[0], nest_output_device_class)
         elif isinstance(self.source, self._node_collection_class):
             assert self.souce.get("model") == nest_output_device_class.model
-        super(NESTEventsFromOutpuDevice, self).configure()
+        super(NESTEventsFromOutputDevice, self).configure()
 
     @property
     def reset(self):
