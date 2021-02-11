@@ -5,7 +5,7 @@ from tvb_multiscale.tvb_nest.nest_models.devices import NESTInputDeviceDict
 from tvb_multiscale.tvb_nest.interfaces.builders.tvb_to_nest_devices_interface_builder import TVBtoNESTDeviceInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.tvb_to_nest_parameter_interface_builder import TVBtoNESTParameterInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.nest_to_tvb_interface_builder import NESTtoTVBInterfaceBuilder
-from tvb_multiscale.core.tvb.interfaces.builders import TVBSpikeNetInterfaceBuilder
+from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 
 
 class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):

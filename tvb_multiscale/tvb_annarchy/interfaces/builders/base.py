@@ -9,7 +9,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.builders.tvb_to_annarchy_parameter_i
 from tvb_multiscale.tvb_annarchy.interfaces.builders.annarchy_to_tvb_interface_builder import \
     ANNarchytoTVBInterfaceBuilder
 
-from tvb_multiscale.core.tvb.interfaces.builders import TVBSpikeNetInterfaceBuilder
+from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 
 
 class TVBANNarchyInterfaceBuilder(TVBSpikeNetInterfaceBuilder):

@@ -2,7 +2,7 @@
 
 from tvb_multiscale.tvb_annarchy.interfaces.tvb_to_annarchy_parameters_interface import TVBtoANNarchyParameterInterface
 
-from tvb_multiscale.core.tvb.interfaces.builders import \
+from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBtoSpikeNetParameterInterfaceBuilder
 
 

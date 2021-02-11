@@ -5,7 +5,7 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.interfaces import \
+from tvb_multiscale.core.interfaces.base import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 

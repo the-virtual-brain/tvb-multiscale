@@ -9,7 +9,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 
 from tvb_multiscale.core.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces
-from tvb_multiscale.core.interfaces.spikeNet_interfaces import \
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInterfaces, SpikeNetOutgoingInterface, SpikeNetIngoingInterface
 
 from tvb_multiscale.tvb_nest.interfaces.io import \

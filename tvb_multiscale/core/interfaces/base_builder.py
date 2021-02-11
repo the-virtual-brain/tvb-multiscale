@@ -5,8 +5,8 @@ from six import string_types
 
 import numpy as np
 
-from tvb.basic.neotraits._core import HasTraits, NArray
-from tvb.basic.neotraits._attr import List
+from tvb.basic.neotraits._core import HasTraits
+from tvb.basic.neotraits._attr import List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 

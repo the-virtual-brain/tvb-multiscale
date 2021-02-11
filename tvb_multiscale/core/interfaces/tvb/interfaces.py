@@ -7,10 +7,10 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
-from tvb_multiscale.core.interfaces.interfaces import \
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
+from tvb_multiscale.core.interfaces.base import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.spikeNet_interfaces import \
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetIngoingInterface, SpikeNetOutgoingInterface, SpikeNetOutgoingInterfaces, SpikeNetIngoingInterfaces
 
 

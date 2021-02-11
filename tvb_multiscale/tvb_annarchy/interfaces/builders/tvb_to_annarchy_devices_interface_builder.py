@@ -3,7 +3,7 @@
 from tvb_multiscale.tvb_annarchy.interfaces.tvb_to_annarchy_devices_interface import INPUT_INTERFACES_DICT
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
-from tvb_multiscale.core.tvb.interfaces.builders import \
+from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBtoSpikeNetDeviceInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
