@@ -10,7 +10,6 @@ from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.tvb.transformers import TVBTransformers
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBOutputInterfaces, TVBInputInterfaces, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
@@ -34,8 +33,10 @@ class TVBInterfaceBuilder(InterfaceBuilder):
                          field_type=CoSimulator,
                          required=True)
 
-    exclusive_nodes = Attr(label="TVB simulator",
-                           doc="""The instance of TVB simulator""",
+    exclusive_nodes = Attr(label="Flag of exclusive nodes",
+                           doc="""Boolean flag that is true 
+                                  if the co-simulator nodes are modelled exclusively by the co-simulator, 
+                                  i.e., they are not simulated by TVB""",
                            field_type=bool,
                            default=True,
                            required=True)
@@ -297,9 +298,6 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
 
     _tvb_transformers_types = tuple([val.value for val in TVBTransformers.__members__.values()])
 
-    _tvb_to_spikeNet_senders = (SpikeNetInputDevice, )
-    _spikeNet_to_tvb_receivers = (SpikeNetEventsFromOutpuDevice, )
-
     @property
     def tvb_nodes_inds(self):
         return self._default_out_proxy_inds
@@ -308,45 +306,32 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     def spiking_nodes_inds(self):
         return self.in_proxy_inds
 
+    @property
+    @abstractmethod
+    def _default_receptor_type(self):
+        pass
+
+    @property
+    @abstractmethod
+    def _default_min_delay(self):
+        pass
+
     def configure(self):
         SpikeNetProxyNodesBuilder.configure(self)
         TVBInterfaceBuilder.configure(self)
         self._assert_output_interfaces_component_config(self._tvb_transformers_types, "transformer")
         self._assert_input_interfaces_component_config(self._tvb_transformers_types, "transformer")
 
-    def _get_tvb_nodes_spiking_proxy_inds_for_output_interface(self, interface):
-        tvb_nodes_inds = self._only_inds(interface.get("proxy_inds", self.tvb_nodes_inds),
-                                         self.region_labels)
-        spiking_proxy_inds = self._only_inds(interface["spiking_proxy_inds"], self.region_labels)
-        if self.exclusive_nodes:
-            # TODO: decide about the following:
-            #  can a TVB node be updated from a SpikeNet node via a SpikeNet -> TVB interface?,
-            #  and get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
-            # Will it depend on whether there is also a direct coupling of that SpikeNet node with other SpikeNet nodes?
-            assert np.all(node not in self.tvb_nodes_ids for node in spiking_proxy_inds)
-            assert np.all(node not in self.spiking_nodes_ids for node in tvb_nodes_inds)
-        return tvb_nodes_inds, spiking_proxy_inds
-
-    def _get_spiking_proxy_inds_for_input_interface(self, interface):
-        spiking_proxy_inds = self._only_inds(interface.get("proxy_inds",
-                                                           interface.get("spiking_proxy_inds",
-                                                                         self.proxy_inds)), self.region_labels)
-        if self.exclusive_nodes:
-            # TODO: decide about the following: can a TVB node be updated from a NEST node via a NEST -> TVB interface,
-            # get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
-            # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
-            assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in spiking_proxy_inds)
-        return spiking_proxy_inds
-
     def build_output_interface(self, interface):
         voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
-        tvb_nodes_inds, spiking_proxy_inds = self._get_tvb_nodes_spiking_proxy_inds_for_output_interface(interface)
-        interface["sender"].target = \
-            self._build_tvb_to_spikeNet_interface_proxy_nodes(interface, tvb_nodes_inds, spiking_proxy_inds)
+        tvb_nodes_inds, spiking_proxy_inds = \
+            self._get_tvb_nodes_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes)
         return TVBtoSpikeNetInterface(proxy_inds=tvb_nodes_inds,
                                       voi=voi_inds, voi_labels=voi_labels,
-                                      communicator=interface["sender"],
                                       monitor_ind=interface.get("monitor_ind", 0),
+                                      spikeNet_receiver_proxy= \
+                                          self._build_tvb_to_spikeNet_interface_proxy_nodes(
+                                              interface, tvb_nodes_inds, spiking_proxy_inds),
                                       transformer=interface["transformer"],
                                       spiking_network=self.spiking_network,
                                       populations=np.array(interface["populations"]),
@@ -354,12 +339,13 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
 
     def build_input_interface(self, interface):
         voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
-        spiking_proxy_inds = self._get_spiking_proxy_inds_for_input_interface(interface)
-        interface["receiver"].source = self._build_spikeNet_to_tvb_interface_proxy_nodes(interface, spiking_proxy_inds)
+        spiking_proxy_inds = self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         return SpikeNetToTVBInterface(proxy_inds=spiking_proxy_inds,
                                       voi=voi_inds, voi_labels=voi_labels,
-                                      communicator=interface["receiver"],
                                       transformer=interface["transformer"],
+                                      spikeNet_sender_proxy= \
+                                          self._build_spikeNet_to_tvb_interface_proxy_nodes(interface,
+                                                                                            spiking_proxy_inds),
                                       spiking_network=self.spiking_network,
                                       populations=np.array(interface["populations"]),
                                       spiking_proxy_inds=spiking_proxy_inds)

@@ -176,19 +176,11 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
                TVBInputInterface.print_str(self)
 
 
-class TVBtoSpikeNetInterface(TVBTransformerSenderInterface, SpikeNetIngoingInterface):
+class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetIngoingInterface):
 
     """TVBtoSpikeNetInterface class to get data from TVB, transform them,
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
     """
-
-    communicator = Attr(
-        label="Communicator directly to SpikeNet cosimulator",
-        field_type=SpikeNetInputDevice,
-        doc="""A SpikeNetInputDevice Communicator class instance 
-              to send data to the Spiking Network co-simulator.""",
-        required=True
-    )
 
     @property
     def label(self):
@@ -201,19 +193,11 @@ class TVBtoSpikeNetInterface(TVBTransformerSenderInterface, SpikeNetIngoingInter
                SpikeNetIngoingInterface.print_str(self)
 
 
-class SpikeNetToTVBInterface(TVBReceiverTransformerInterface, SpikeNetOutgoingInterface):
+class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutgoingInterface):
 
     """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
     """
-
-    communicator = Attr(
-        label="Communicator directly from SpikeNet cosimulator",
-        field_type=SpikeNetEventsFromOutpuDevice,
-        doc="""A SpikeNetEventsFromOutpuDevice Communicator class instance 
-               to receive events' data from the Spiking Network co-simulator.""",
-        required=True
-    )
 
     @property
     def label(self):
@@ -233,7 +217,7 @@ class TVBInterfaces(HasTraits):
 
     @property
     def voi(self):
-        return np.sort(self._loop_get_from_interfaces("voi"))
+        return self._loop_get_from_interfaces("voi")
 
     @property
     def voi_unique(self):
@@ -241,7 +225,7 @@ class TVBInterfaces(HasTraits):
 
     @property
     def voi_labels(self):
-        return np.sort(self._loop_get_from_interfaces("voi_labels"))
+        return self._loop_get_from_interfaces("voi_labels")
 
     @property
     def voi_labels_unique(self):
@@ -249,7 +233,7 @@ class TVBInterfaces(HasTraits):
 
     @property
     def proxy_inds(self):
-        return np.sort(self._loop_get_from_interfaces("spiking_proxy_inds"))
+        return self._loop_get_from_interfaces("spiking_proxy_inds")
 
     @property
     def proxy_inds_unique(self):

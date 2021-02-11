@@ -276,9 +276,9 @@ class BaseInterfaces(HasTraits):
 
     def configure(self):
         """Method to configure the interfaces"""
+        super(BaseInterfaces, self).configure()
         for interface in self.interfaces:
             interface.configure()
-        super().configure()
 
     @property
     def labels(self):

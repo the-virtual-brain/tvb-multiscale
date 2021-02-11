@@ -7,6 +7,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 
 from tvb_multiscale.core.interfaces.base import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -32,6 +33,20 @@ class SpikeNetInterface(HasTraits):
         doc="""Spiking Network populations associated to the interface""",
         required=True)
 
+    spikeNet_receiver_proxy = Attr(label="Spiking network receiver proxy",
+                                   doc="""An instance of SpikeNetInputDevice 
+                                          implementing a proxy node receiving inputs from the co-simulator 
+                                          as an input to the spiking network""",
+                                   field_type=SpikeNetInputDevice,
+                                   required=True)
+
+    spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
+                                 doc="""An instance of SpikeNetEventsFromOutpuDevice 
+                                        implementing a proxy node sending outputs from the spiking network
+                                        to the co-simulator""",
+                                 field_type=SpikeNetEventsFromOutpuDevice,
+                                 required=True)
+
     @property
     def label(self):
         return "%s: %s (%s)" % (self.__class__.__name__, str(self.populations),
@@ -44,6 +59,11 @@ class SpikeNetInterface(HasTraits):
     @property
     def number_of_populations(self):
         return self.populations.shape[0]
+
+    def configure(self):
+        super(SpikeNetInterface, self).configure()
+        self.spikeNet_receiver_proxy.configure()
+        self.spikeNet_sender_proxy.configure()
 
     def print_str(self, sender_not_receiver=None):
         if sender_not_receiver is True:
@@ -70,6 +90,9 @@ class SpikeNetOutgoingInterface(SpikeNetInterface):
     def print_str(self):
         super(SpikeNetOutgoingInterface, self).print_str(self, sender_not_receiver=True)
 
+    def __call__(self):
+        return self.spikeNet_sender_proxy()
+
 
 class SpikeNetIngoingInterface(SpikeNetInterface):
 
@@ -77,19 +100,26 @@ class SpikeNetIngoingInterface(SpikeNetInterface):
 
     @property
     def label(self):
-        return "%s: %s (%s) <-" % (self.__class__.__name__, str(self.populations),
-                                   extract_integer_intervals(self.spiking_proxy_inds))
+        return "%s: %s (%s)" % (self.__class__.__name__, str(self.populations),
+                                        extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
         super(SpikeNetIngoingInterface, self).print_str(self, sender_not_receiver=False)
+
+    def __call__(self, data):
+        return self.spikeNet_receiver_proxy(data)
 
 
 class SpikeNetSenderInterface(SenderInterface, SpikeNetOutgoingInterface):
 
     """SpikeNetSenderInterface class."""
 
-    def __call__(self, data):
-        return SenderInterface.__call__(self, data)
+    def configure(self):
+        SpikeNetOutgoingInterface.configure(self)
+        SenderInterface.configure(self)
+
+    def __call__(self):
+        return SenderInterface.__call__(self, SpikeNetOutgoingInterface(self))
 
     def print_str(self):
         return SenderInterface.print_str(self) + SpikeNetOutgoingInterface.print_str(self)
@@ -99,8 +129,12 @@ class SpikeNetReceiverInterface(ReceiverInterface, SpikeNetIngoingInterface):
 
     """SpikeNetReceiverInterface class."""
 
+    def configure(self):
+        SpikeNetIngoingInterface.configure(self)
+        ReceiverInterface.configure(self)
+
     def __call__(self):
-        return ReceiverInterface.__call__(self)
+        return SpikeNetIngoingInterface(self, ReceiverInterface.__call__(self))
 
     def print_str(self):
         return ReceiverInterface.print_str(self) + SpikeNetIngoingInterface.print_str(self)
@@ -110,8 +144,12 @@ class SpikeNetTransformerSenderInterface(TransformerSenderInterface, SpikeNetOut
 
     """SpikeNetTransformerSenderInterface class."""
 
+    def configure(self):
+        SpikeNetOutgoingInterface.configure(self)
+        TransformerSenderInterface.configure(self)
+
     def __call__(self, data):
-        return SpikeNetTransformerSenderInterface.__call__(self, data)
+        return SpikeNetTransformerSenderInterface.__call__(self, self.SpikeNetOutgoingInterface())
 
     def print_str(self):
         return TransformerSenderInterface.print_str(self) + SpikeNetOutgoingInterface.print_str(self)
@@ -121,8 +159,12 @@ class SpikeNetReceiverTransformerInterface(ReceiverTransformerInterface, SpikeNe
 
     """SpikeNetReceiverTransformerInterface class."""
 
+    def configure(self):
+        SpikeNetIngoingInterface.configure(self)
+        ReceiverTransformerInterface.configure(self)
+
     def __call__(self):
-        return ReceiverTransformerInterface.__call__(self)
+        return SpikeNetIngoingInterface(self, ReceiverTransformerInterface.__call__(self))
 
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + SpikeNetIngoingInterface.print_str(self)
@@ -143,7 +185,7 @@ class SpikeNetInterfaces(HasTraits):
 
     @property
     def populations(self):
-        return np.sort(self._loop_get_from_interfaces("populations"))
+        return self._loop_get_from_interfaces("populations")
 
     @property
     def populations_unique(self):
@@ -151,7 +193,7 @@ class SpikeNetInterfaces(HasTraits):
 
     @property
     def spiking_proxy_inds(self):
-        return np.sort(self._loop_get_from_interfaces("spiking_proxy_inds"))
+        return self._loop_get_from_interfaces("spiking_proxy_inds")
 
     @property
     def spiking_proxy_inds_unique(self):
@@ -164,6 +206,14 @@ class SpikeNetInterfaces(HasTraits):
     @property
     def number_of_spiking_proxy_nodes(self):
         return self.proxy_inds_unique.shape[0]
+
+    @property
+    def spiking_proxy_receivers(self):
+        return self._loop_get_from_interfaces("spiking_proxy_receiver")
+
+    @property
+    def spiking_proxy_senders(self):
+        return self._loop_get_from_interfaces("spiking_proxy_sender")
 
 
 class SpikeNetOutgoingInterfaces(BaseInterfaces, SpikeNetInterfaces):

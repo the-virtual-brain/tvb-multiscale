@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 
 from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 from tvb_multiscale.core.spiking_models.devices import InputDevice, DeviceSet, OutputDevice
@@ -53,3 +54,11 @@ class SpikeNetEventsFromOutpuDevice(GetFromMemory):
         events = self.source.get_events()
         self.source.reset
         return events
+
+
+class SpikeNetSenders(Enum):
+    SPIKE_NET_INPUT_DEVICE = SpikeNetInputDevice
+
+
+class SpikeNetReceivers(Enum):
+    SPIKE_NET_EVENTS_FROM_OUTPUT_DEVICE = SpikeNetEventsFromOutpuDevice
