@@ -64,7 +64,7 @@ class SpikeNetOutputInterface(SpikeNetInterface):
     """SpikeNetOutputInterface base class."""
 
     spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
-                                 doc="""An instance of SpikeNetEventsFromOutpuDevice 
+                                 doc="""An instance of SpikeNetEventsFromOutputDevice 
                                         implementing a proxy node sending outputs from the spiking network
                                         to the co-simulator""",
                                  field_type=SpikeNetEventsFromOutpuDevice,
