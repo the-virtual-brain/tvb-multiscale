@@ -7,7 +7,8 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 
 from tvb_multiscale.core.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces
-from tvb_multiscale.core.interfaces.spikeNet.interfaces import SpikeNetOutputInterfaces, SpikeNetInputInterfaces,\
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
+    SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 
@@ -162,14 +163,14 @@ class NESTInterfaces(HasTraits):
             return None
 
 
-class NESTOutputInterfaces(SpikeNetOutputInterfaces, NESTInterfaces):
+class NESTOutputInterfaces(SpikeNetOutputRemoteInterfaces, NESTInterfaces):
 
     """NESTOutputInterfaces holding a list of NESTOutputInterface instances"""
 
     pass
 
 
-class NESTInputInterfaces(SpikeNetInputInterfaces, NESTInterfaces):
+class NESTInputInterfaces(SpikeNetInputRemoteInterfaces, NESTInterfaces):
 
     """NESTInputInterfaces holding a list of NESTInputInterface instances"""
 

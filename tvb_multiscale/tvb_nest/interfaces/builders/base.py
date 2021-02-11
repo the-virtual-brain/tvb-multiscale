@@ -1,41 +1,37 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from tvb_multiscale.tvb_nest.nest_models.devices import NESTInputDeviceDict
-from tvb_multiscale.tvb_nest.interfaces.builders.tvb_to_nest_devices_interface_builder import TVBtoNESTDeviceInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.tvb_to_nest_parameter_interface_builder import TVBtoNESTParameterInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.nest_to_tvb_interface_builder import NESTtoTVBInterfaceBuilder
+from tvb.basic.neotraits.api import HasTraits, Attr
+
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,  \
+    SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder
+from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
+
+from tvb_multiscale.tvb_nest.interfaces.interfaces import \
+    NESTOutputInterfaces, NESTInputInterfaces, \
+    NESTSenderInterface, NESTReceiverInterface, \
+    NESTTransformerSenderInterface, NESTReceiverTransformerInterface, \
+    TVBtoNESTInterfaces, NESTtoTVBInterfaces, \
+    TVBtoNESTInterface, NESTtoTVBInterface
+
+from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
 
-class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
-    _tvb_to_spikNet_device_interface_builder = TVBtoNESTDeviceInterfaceBuilder
-    _tvb_to_spikeNet_parameter_interface_builder = TVBtoNESTParameterInterfaceBuilder
-    _spikeNet_to_tvb_interface_builder = NESTtoTVBInterfaceBuilder
-    _input_device_dict = NESTInputDeviceDict
+class NESTInterfaceBuilder(HasTraits):
 
-    # TVB <-> Spiking Network transformations' weights/funs
-    # If set as weights, they will become a transformation function of
-    # lambda state, regions_indices: w[regions_indices] * state[regions_indices]
-    # If set as a function of lambda state: fun(state), it will become a vector function of:
-    # lambda state, regions_indices: np.array([fun(state[index]) for index in regions_indices)])
-    # TVB -> Spiking Network
-    w_tvb_to_spike_rate = 1000.0  # (e.g., spike rate in NEST is in spikes/sec, assuming TVB rate is spikes/ms)
-    w_tvb_to_current = 1000.0  # (1000.0 (nA -> pA), because I_e, and dc_generator amplitude in NEST are in pA)
-    w_tvb_to_potential = 1.0  # assuming mV in both Spiking Network and TVB
-    # TVB <- Spiking Network
-    # We return from a Spiking Network spike_detector the ratio number_of_population_spikes / number_of_population_neurons
-    # for every TVB time step, which is usually a quantity in the range [0.0, 1.0],
-    # as long as a neuron cannot fire twice during a TVB time step, i.e.,
-    # as long as the TVB time step (usually 0.001 to 0.1 ms)
-    # is smaller than the neurons' refractory time, t_ref (usually 1-2 ms)
-    # For conversion to a rate, one has to do:
-    # w_spikes_to_tvb = 1/tvb_dt, to get it in spikes/ms, and
-    # w_spikes_to_tvb = 1000/tvb_dt, to get it in Hz
-    w_spikes_to_tvb = 1.0
-    w_spikes_var_to_tvb = 1.0
-    # We return from a Spiking Network multimeter or voltmeter the membrane potential in mV
-    w_potential_to_tvb = 1.0
+    """NESTInterfaceBuilder class"""
+
+    spiking_network = Attr(label="NEST Network",
+                           doc="""The instance of NESTNetwork class""",
+                           field_type=NESTNetwork,
+                           required=True)
+
+    @property
+    def nest_network(self):
+        return self.spiking_network
 
     @property
     def nest_instance(self):
@@ -53,5 +49,89 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     def nest_min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
 
-    def assert_delay(self, delay):
-        return np.maximum(self.spikeNet_min_delay, delay)
+    def _build_and_connect_devices(self, devices, nodes, *args, **kwargs):
+        return build_and_connect_devices(devices, create_device, connect_device,
+                                         nodes, self.config, nest_instance=self.nest_instance)
+
+    @property
+    def _default_receptor_type(self):
+        return 0
+
+    @property
+    def _default_min_delay(self):
+        return self.nest_min_delay
+
+
+class NESTRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, NESTInterfaceBuilder):
+
+    """NESTRemoteInterfaceBuilder class"""
+
+    _spikeNet_output_interfaces_type = NESTOutputInterfaces
+    _spikeNet_input_interfaces_type = NESTInputInterfaces
+
+    _spikeNet_output_types = NESTSenderInterface
+    _spikeNet_input_types = NESTReceiverInterface
+
+    def configure(self):
+        SpikeNetRemoteInterfaceBuilder.configure(self)
+        NESTInterfaceBuilder.configure(self)
+
+
+class NESTTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder, NESTInterfaceBuilder):
+
+    """NESTTransformerInterfaceBuilder class"""
+
+    _spikeNet_output_interfaces_type = NESTOutputInterfaces
+    _spikeNet_input_interfaces_type = NESTInputInterfaces
+
+    _spikeNet_output_types = NESTTransformerSenderInterface
+    _spikeNet_input_types = NESTReceiverTransformerInterface
+
+    def configure(self):
+        SpikeNetTransformerInterfaceBuilder.configure(self)
+        NESTInterfaceBuilder.configure(self)
+
+
+class NESTOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBuilder, NESTInterfaceBuilder):
+
+    """NESTOutputTransformerInterfaceBuilder class"""
+
+    _spikeNet_output_interfaces_type = NESTOutputInterfaces
+    _spikeNet_input_interfaces_type = NESTInputInterfaces
+
+    _spikeNet_output_types = NESTTransformerSenderInterface
+    _spikeNet_input_types = NESTReceiverInterface
+
+    def configure(self):
+        SpikeNetOutputTransformerInterfaceBuilder.configure(self)
+        NESTInterfaceBuilder.configure(self)
+
+
+class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuilder, NESTInterfaceBuilder):
+
+    """NESTInputTransformerInterfaceBuilder abstract base class"""
+
+    _spikeNet_output_interfaces_type = NESTOutputInterfaces
+    _spikeNet_input_interfaces_type = NESTInputInterfaces
+
+    _spikeNet_output_types = NESTSenderInterface
+    _spikeNet_input_types = NESTReceiverTransformerInterface
+
+    def configure(self):
+        SpikeNetInputTransformerInterfaceBuilder.configure(self)
+        NESTInterfaceBuilder.configure(self)
+
+
+class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder, NESTInterfaceBuilder):
+
+    """TVBNESTInterfaceBuilder abstract base class"""
+
+    _tvb_output_interfaces_type = TVBtoNESTInterfaces
+    _tvb_input_interfaces_type = NESTtoTVBInterfaces
+
+    _tvb_to_spikeNet_interface_types = TVBtoNESTInterface
+    _spikeNet_to_tvb_interface_types = NESTtoTVBInterface
+
+    def configure(self):
+        TVBSpikeNetInterfaceBuilder.configure(self)
+        NESTInterfaceBuilder.configure(self)
