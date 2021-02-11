@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
-from tvb_multiscale.core.spiking_models.devices import InputDevice, DeviceSet, OutputDevice
+# rom tvb_multiscale.core.spiking_models.devices import InputDevice, DeviceSet, OutputDevice
 
 
 class SpikeNetInputDevice(SetToMemory):
@@ -20,8 +20,8 @@ class SpikeNetInputDevice(SetToMemory):
     #               label="Target of Spiking Network",
     #               doc="""Spiking Network InputDevice or DeviceSet to set data to.""")
 
-    def configure(self):
-        assert isinstance(self.target, InputDevice, DeviceSet)
+    def configure(self, device_type):
+        assert isinstance(self.target, device_type)
         super(SpikeNetInputDevice, self).configure()
 
     @abstractmethod
@@ -46,9 +46,9 @@ class SpikeNetEventsFromOutpuDevice(GetFromMemory):
     #               label="Source of Spiking Network events",
     #               doc="""Spiking Network OutputDevice or DeviceSet to get events from.""")
 
-    def configure(self):
-        assert isinstance(self.source, OutputDevice, DeviceSet)
-        super(OutputDevice, self).configure()
+    def configure(self, device_type):
+        assert isinstance(self.source, device_type)
+        super(SpikeNetEventsFromOutpuDevice, self).configure()
 
     def receive(self):
         events = self.source.get_events()

@@ -33,20 +33,6 @@ class SpikeNetInterface(HasTraits):
         doc="""Spiking Network populations associated to the interface""",
         required=True)
 
-    spikeNet_receiver_proxy = Attr(label="Spiking network receiver proxy",
-                                   doc="""An instance of SpikeNetInputDevice 
-                                          implementing a proxy node receiving inputs from the co-simulator 
-                                          as an input to the spiking network""",
-                                   field_type=SpikeNetInputDevice,
-                                   required=True)
-
-    spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
-                                 doc="""An instance of SpikeNetEventsFromOutpuDevice 
-                                        implementing a proxy node sending outputs from the spiking network
-                                        to the co-simulator""",
-                                 field_type=SpikeNetEventsFromOutpuDevice,
-                                 required=True)
-
     @property
     def label(self):
         return "%s: %s (%s)" % (self.__class__.__name__, str(self.populations),
@@ -59,11 +45,6 @@ class SpikeNetInterface(HasTraits):
     @property
     def number_of_populations(self):
         return self.populations.shape[0]
-
-    def configure(self):
-        super(SpikeNetInterface, self).configure()
-        self.spikeNet_receiver_proxy.configure()
-        self.spikeNet_sender_proxy.configure()
 
     def print_str(self, sender_not_receiver=None):
         if sender_not_receiver is True:
@@ -78,9 +59,20 @@ class SpikeNetInterface(HasTraits):
                 spikeNet_source_or_target, extract_integer_intervals(self.spiking_proxy_inds, print=True))
 
 
-class SpikeNetOutgoingInterface(SpikeNetInterface):
+class SpikeNetOutputInterface(SpikeNetInterface):
 
-    """SpikeNetOutgoingInterface base class."""
+    """SpikeNetOutputInterface base class."""
+
+    spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
+                                 doc="""An instance of SpikeNetEventsFromOutpuDevice 
+                                        implementing a proxy node sending outputs from the spiking network
+                                        to the co-simulator""",
+                                 field_type=SpikeNetEventsFromOutpuDevice,
+                                 required=True)
+
+    def configure(self):
+        super(SpikeNetOutputInterface, self).configure()
+        self.spikeNet_sender_proxy.configure()
 
     @property
     def label(self):
@@ -88,86 +80,97 @@ class SpikeNetOutgoingInterface(SpikeNetInterface):
                                    extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        super(SpikeNetOutgoingInterface, self).print_str(self, sender_not_receiver=True)
+        super(SpikeNetOutputInterface, self).print_str(self, sender_not_receiver=True)
 
     def __call__(self):
         return self.spikeNet_sender_proxy()
 
 
-class SpikeNetIngoingInterface(SpikeNetInterface):
+class SpikeNetInputInterface(SpikeNetInterface):
 
-    """SpikeNetIngoingInterface base class."""
+    """SpikeNetInputInterface base class."""
+
+    spikeNet_receiver_proxy = Attr(label="Spiking network receiver proxy",
+                                   doc="""An instance of SpikeNetInputDevice 
+                                          implementing a proxy node receiving inputs from the co-simulator 
+                                          as an input to the spiking network""",
+                                   field_type=SpikeNetInputDevice,
+                                   required=True)
+
+    def configure(self):
+        super(SpikeNetInputInterface, self).configure()
+        self.spikeNet_receiver_proxy.configure()
 
     @property
     def label(self):
-        return "%s: %s (%s)" % (self.__class__.__name__, str(self.populations),
-                                        extract_integer_intervals(self.spiking_proxy_inds))
+        return "%s: %s (%s) <-" % (self.__class__.__name__, str(self.populations),
+                                   extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        super(SpikeNetIngoingInterface, self).print_str(self, sender_not_receiver=False)
+        super(SpikeNetInputInterface, self).print_str(self, sender_not_receiver=False)
 
     def __call__(self, data):
         return self.spikeNet_receiver_proxy(data)
 
 
-class SpikeNetSenderInterface(SenderInterface, SpikeNetOutgoingInterface):
+class SpikeNetSenderInterface(SenderInterface, SpikeNetOutputInterface):
 
     """SpikeNetSenderInterface class."""
 
     def configure(self):
-        SpikeNetOutgoingInterface.configure(self)
+        SpikeNetOutputInterface.configure(self)
         SenderInterface.configure(self)
 
     def __call__(self):
-        return SenderInterface.__call__(self, SpikeNetOutgoingInterface(self))
+        return SenderInterface.__call__(self, SpikeNetOutputInterface(self))
 
     def print_str(self):
-        return SenderInterface.print_str(self) + SpikeNetOutgoingInterface.print_str(self)
+        return SenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
 
 
-class SpikeNetReceiverInterface(ReceiverInterface, SpikeNetIngoingInterface):
+class SpikeNetReceiverInterface(ReceiverInterface, SpikeNetInputInterface):
 
     """SpikeNetReceiverInterface class."""
 
     def configure(self):
-        SpikeNetIngoingInterface.configure(self)
+        SpikeNetInputInterface.configure(self)
         ReceiverInterface.configure(self)
 
     def __call__(self):
-        return SpikeNetIngoingInterface(self, ReceiverInterface.__call__(self))
+        return SpikeNetInputInterface(self, ReceiverInterface.__call__(self))
 
     def print_str(self):
-        return ReceiverInterface.print_str(self) + SpikeNetIngoingInterface.print_str(self)
+        return ReceiverInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
 
 
-class SpikeNetTransformerSenderInterface(TransformerSenderInterface, SpikeNetOutgoingInterface):
+class SpikeNetTransformerSenderInterface(TransformerSenderInterface, SpikeNetOutputInterface):
 
     """SpikeNetTransformerSenderInterface class."""
 
     def configure(self):
-        SpikeNetOutgoingInterface.configure(self)
+        SpikeNetOutputInterface.configure(self)
         TransformerSenderInterface.configure(self)
 
     def __call__(self, data):
         return SpikeNetTransformerSenderInterface.__call__(self, self.SpikeNetOutgoingInterface())
 
     def print_str(self):
-        return TransformerSenderInterface.print_str(self) + SpikeNetOutgoingInterface.print_str(self)
+        return TransformerSenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
 
 
-class SpikeNetReceiverTransformerInterface(ReceiverTransformerInterface, SpikeNetIngoingInterface):
+class SpikeNetReceiverTransformerInterface(ReceiverTransformerInterface, SpikeNetInputInterface):
 
     """SpikeNetReceiverTransformerInterface class."""
 
     def configure(self):
-        SpikeNetIngoingInterface.configure(self)
+        SpikeNetInputInterface.configure(self)
         ReceiverTransformerInterface.configure(self)
 
     def __call__(self):
-        return SpikeNetIngoingInterface(self, ReceiverTransformerInterface.__call__(self))
+        return SpikeNetInputInterface(self, ReceiverTransformerInterface.__call__(self))
 
     def print_str(self):
-        return ReceiverTransformerInterface.print_str(self) + SpikeNetIngoingInterface.print_str(self)
+        return ReceiverTransformerInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
 
 
 class SpikeNetInterfaces(HasTraits):
@@ -216,32 +219,32 @@ class SpikeNetInterfaces(HasTraits):
         return self._loop_get_from_interfaces("spiking_proxy_sender")
 
 
-class SpikeNetOutgoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
+class SpikeNetOutputInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
-    """SpikeNetOutgoingInterfaces"""
+    """SpikeNetOutputInterfaces"""
 
     pass
 
 
-class SpikeNetOutgoingRemoteInterfaces(SpikeNetOutgoingInterfaces):
+class SpikeNetOutputRemoteInterfaces(SpikeNetOutputInterfaces):
 
-    """SpikeNetOutgoingRemoteInterfaces"""
+    """SpikeNetOutputRemoteInterfaces"""
 
     def __call__(self):
         for interface in self.interfaces:
             interface()
 
 
-class SpikeNetIngoingInterfaces(BaseInterfaces, SpikeNetInterfaces):
+class SpikeNetInputInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
-    """SpikeNetIngoingInterfaces"""
+    """SpikeNetInputInterfaces"""
 
     pass
 
 
-class SpikeNetIngoingRemoteInterfaces(SpikeNetIngoingInterfaces):
+class SpikeNetInputRemoteInterfaces(SpikeNetInputInterfaces):
 
-    """SpikeNetIngoingRemoteInterfaces"""
+    """SpikeNetInputRemoteInterfaces"""
 
     def __call__(self, *args):
         for interface in self.interfaces:

@@ -10,7 +10,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetInterfaces, SpikeNetOutgoingInterface, SpikeNetIngoingInterface
+    SpikeNetInterfaces, SpikeNetOutputInterface, SpikeNetInputInterface
 
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTInputDeviceSetter, NESTEventsFromOutpuDevice, NESTEventsReaderFromRecorderFile
@@ -41,7 +41,7 @@ class NESTInterface(HasTraits):
         return "\nNEST proxy nodes' gids:\n%s" % extract_integer_intervals(self.proxy_gids, print=True)
 
 
-class NESTOutputInterface(SpikeNetOutgoingInterface, NESTInterface):
+class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
 
     """NESTOutputInterface base class for interfaces sending data from NEST."""
 
@@ -50,10 +50,10 @@ class NESTOutputInterface(SpikeNetOutgoingInterface, NESTInterface):
         return self.spiking_network.nest_instance
 
     def print_str(self):
-        SpikeNetOutgoingInterface.print_str(self) + NESTInterface.print_str(self)
+        SpikeNetOutputInterface.print_str(self) + NESTInterface.print_str(self)
 
 
-class NESTInputInterface(SpikeNetIngoingInterface, NESTInterface):
+class NESTInputInterface(SpikeNetInputInterface, NESTInterface):
 
     """NESTInputInterface base class for interfaces receiving data to NEST."""
 
@@ -62,7 +62,7 @@ class NESTInputInterface(SpikeNetIngoingInterface, NESTInterface):
         return self.spiking_network.nest_instance
 
     def print_str(self):
-        SpikeNetIngoingInterface.print_str(self) + NESTInterface.print_str(self)
+        SpikeNetInputInterface.print_str(self) + NESTInterface.print_str(self)
 
 
 class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTOutputInterface):

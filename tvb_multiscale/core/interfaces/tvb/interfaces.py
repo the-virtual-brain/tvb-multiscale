@@ -4,14 +4,13 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
+from tvb.basic.neotraits.api import HasTraits, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.base import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetIngoingInterface, SpikeNetOutgoingInterface, SpikeNetOutgoingInterfaces, SpikeNetIngoingInterfaces
+    SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
 
 
 class TVBInterface(HasTraits):
@@ -176,7 +175,7 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
                TVBInputInterface.print_str(self)
 
 
-class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetIngoingInterface):
+class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
 
     """TVBtoSpikeNetInterface class to get data from TVB, transform them,
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
@@ -190,10 +189,10 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetIngoingInterface):
 
     def print_str(self):
         return TVBTransformerSenderInterface.print_str(self) + \
-               SpikeNetIngoingInterface.print_str(self)
+               SpikeNetInputInterface.print_str(self)
 
 
-class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutgoingInterface):
+class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
 
     """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
@@ -207,7 +206,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutgoingInterface):
 
     def print_str(self):
         return TVBTransformerSenderInterface.print_str(self) + \
-               SpikeNetOutgoingInterface.print_str(self)
+               SpikeNetOutputInterface.print_str(self)
 
 
 class TVBInterfaces(HasTraits):
@@ -297,14 +296,14 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
                 0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
 
 
-class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetIngoingInterfaces):
+class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
 
     """TVBtoSpikeNetInterfaces"""
 
     pass
 
 
-class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutgoingInterfaces):
+class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
 
     """SpikeNetToTVBInterfaces"""
 

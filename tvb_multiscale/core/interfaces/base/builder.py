@@ -91,17 +91,27 @@ class InterfaceBuilder(HasTraits):
 
     @staticmethod
     def _assert_interfaces_component_config(interfaces_list, types_list, component):
+        """This method will assert that all interfaces' components types are appropriate,
+           i.e., included in the given types_list argument.
+           It will also create any communicator or transformer classes' instances.
+           Instead, even if the user enters by mistake an interface class instance with the keyword 'model',
+           it will be converted to a type, since it is the job of the builder to generate this instance.
+        """
         for interface in interfaces_list:
-            if interface[component] in types_list:
-                interface[component] = interface[component](**interface.get("%s_params" % component, {}))
+            if interface[component] in ensure_list(types_list):
+                if component.lower() != "model":
+                    interface[component] = interface[component](**interface.get("%s_params" % component, {}))
             else:
-                assert isinstance(interface[component], types_list)
+                if component.lower() != "model":
+                    assert isinstance(interface[component], types_list)
+                else:
+                    interface[component] = interface[component].__class__
         return interfaces_list
 
-    def _assert_input_interfaces_component_config(self, types_list, attr):
+    def _assert_input_interfaces_component_config(self, types_list, component):
         self.input_interfaces = self.assert_interfaces_component_config(self.input_interfaces, types_list, component)
 
-    def _assert_output_interfaces_component_config(self, types_list, attr):
+    def _assert_output_interfaces_component_config(self, types_list, component):
         self.output_interfaces = self.assert_interfaces_component_config(self.output_interfaces, types_list, component)
 
     @abstractmethod
