@@ -25,8 +25,8 @@ class TVBInterfaceBuilder(InterfaceBuilder):
 
     """TVBInterfaceBuilder abstract base class"""
 
-    _tvb_output_interfaces_class = TVBOutputInterfaces
-    _tvb_input_interfaces_class = TVBInputInterfaces
+    _tvb_output_interfaces_type = TVBOutputInterfaces
+    _tvb_input_interfaces_type = TVBInputInterfaces
 
     tvb_simulator = Attr(label="TVB simulator",
                          doc="""The instance of TVB simulator""",
@@ -169,8 +169,8 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def build(self):
         self.tvb_simulator.exclusive = self.exclusive_nodes
         self.build_interfaces()
-        self.tvb_simulator.tvb_output_interfaces = self._tvb_output_interfaces_class(interfaces=self._output_interfaces)
-        self.tvb_simulator.tvb_input_interfaces = self._tvb_input_interfaces_class(interfaces=self._input_interfaces)
+        self.tvb_simulator.tvb_output_interfaces = self._tvb_output_interfaces_type(interfaces=self._output_interfaces)
+        self.tvb_simulator.tvb_input_interfaces = self._tvb_input_interfaces_type(interfaces=self._input_interfaces)
         return self.tvb_simulator
 
 
@@ -293,6 +293,9 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     __metaclass__ = ABCMeta
 
     """TVBSpikeNetInterfaceBuilder abstract base class"""
+
+    _tvb_output_interfaces_type = TVBtoSpikeNetInterfaces
+    _tvb_input_interfaces_type = SpikeNetToTVBInterfaces
 
     _tvb_transformers_types = [val.value for val in TVBTransformers.__members__.values()]
     _tvb_to_spikeNet_interface_types = TVBtoSpikeNetInterface

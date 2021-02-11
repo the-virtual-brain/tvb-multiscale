@@ -9,8 +9,7 @@ from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers import Transformers
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
+    SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces, \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
@@ -106,9 +105,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         self._configure_global_coupling_scaling()
         super(SpikeNetProxyNodesBuilder, self).configure()
 
-    @property
     @abstractmethod
-    def _build_and_connect_devices(self):
+    def _build_and_connect_devices(self, devices, nodes, *args, **kwargs):
         pass
 
     def _get_tvb_nodes_spiking_proxy_inds_for_output_interface(self, interface, exclusive_nodes):
@@ -203,6 +201,9 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
 
     """SpikeNetInterfaceBuilder abstract base class"""
 
+    _spikeNet_output_interfaces_type = SpikeNetOutputRemoteInterfaces
+    _spikeNet_input_interfaces_type = SpikeNetInputRemoteInterfaces
+
     tvb_simulator_serialized = Attr(label="TVB simulator serialized",
                                     doc="""Dictionary of TVB simulator serialization""",
                                     field_type=dict,
@@ -216,7 +217,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
                            default=True,
                            required=True)
 
-    _spikeNet_output_types = SpikeNetOutputInterface
+    _spikeNet_output_types = SpikeNetEventsFromOutpuDevice
     _spikeNet_input_types = SpikeNetInputDevice
 
     @property
@@ -319,8 +320,8 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
 
     def build(self):
         self.build_interfaces()
-        return SpikeNetOutputInterfaces(interfaces=self._output_interfaces), \
-               SpikeNetInputInterfaces(interfaces=self._input_interfaces)
+        return self._spikeNet_output_interfaces_type(interfaces=self._output_interfaces), \
+               self._spikeNet_intput_interfaces_type(interfaces=self._input_interfaces)
 
 
 class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder):
