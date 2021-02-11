@@ -252,28 +252,6 @@ class NESTEventsReaderFromRecorderFile(ReaderFromFile, NESTCommunicator):
         return read_nest_output_device_data_from_ascii_to_dict(self.source)
 
 
-class NESTSpikeRecorderFile(NESTEventsReaderFromRecorderFile):
-    """
-        NESTSpikeRecorderFile class to read events' data (spike times and senders)
-        from a NEST spike_recorder device file.
-        It comprises of:
-            - a source attribute, i.e., the absolute path to the file to read data from,
-            - an abstract method to read data from the source.
-    """
-    pass
-
-
-class NESTMultimeterFile(NESTEventsReaderFromRecorderFile):
-    """
-        NESTMultimeterFile class to read events' data (times and values)
-        from a NEST multimeter device file.
-        It comprises of:
-            - a source attribute, i.e., the absolute path to the file to read data from,
-            - an abstract method to read data from the source.
-    """
-    pass
-
-
 class NESTOutputDeviceGetters(Enum):
     SPIKE_RECORDER = NESTEventsFromSpikeRecorder
     MULTIMETER = NESTEventsFromMultimeter
