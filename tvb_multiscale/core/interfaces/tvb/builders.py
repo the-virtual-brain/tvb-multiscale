@@ -7,9 +7,9 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.interfaces.base_builder import InterfaceBuilder
+from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder
-from tvb_multiscale.core.interfaces.io import RemoteSenders, RemoteReceivers
+from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.interfaces.tvb.transformers import TVBTransformers
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBOutputInterfaces, TVBInputInterfaces, \

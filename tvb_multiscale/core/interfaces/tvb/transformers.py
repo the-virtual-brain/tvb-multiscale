@@ -4,7 +4,7 @@ from enum import Enum
 
 import numpy as np
 
-from tvb_multiscale.core.interfaces.transformers import Scale, RatesToSpikesElephantPoisson, \
+from tvb_multiscale.core.interfaces.base.transformers import Scale, RatesToSpikesElephantPoisson, \
     RatesToSpikesElephantPoissonSingleInteraction, RatesToSpikesElephantPoissonMultipleInteraction, \
     SpikesToRatesElephantHistogram, SpikesToRatesElephantRate, Transformers
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums

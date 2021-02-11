@@ -4,7 +4,161 @@ import numpy as np
 from tvb.basic.neotraits._attr import NArray, Attr
 from tvb.basic.neotraits._core import HasTraits
 
+from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
+from tvb_multiscale.core.interfaces.
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
+
+
+class SpikeNetInterfaceBuilder(InterfaceBuilder):
+    __metaclass__ = ABCMeta
+
+    """TVBInterfaceBuilder abstract base class"""
+
+    _tvb_output_interfaces_class = TVBOutputInterfaces
+    _tvb_input_interfaces_class = TVBInputInterfaces
+
+    tvb_simulator = Attr(label="TVB simulator",
+                         doc="""The instance of TVB simulator""",
+                         field_type=CoSimulator,
+                         required=True)
+
+    exclusive_nodes = Attr(label="TVB simulator",
+                           doc="""The instance of TVB simulator""",
+                           field_type=bool,
+                           default=True,
+                           required=True)
+
+    _default_out_proxy_inds = []
+
+    @property
+    def tvb_dt(self):
+        return self.tvb_simulator.integrator.dt
+
+    @property
+    def tvb_model(self):
+        return self.tvb_simulator.model
+
+    @property
+    def tvb_model_state_variables(self):
+        return self.tvb_simulator.model.state_variables
+
+    @property
+    def tvb_model_cvar(self):
+        return self.tvb_simulator.model.cvar
+
+    @property
+    def number_of_regions(self):
+        return self.tvb_simulator.connectivity.number_of_regions
+
+    @property
+    def region_labels(self):
+        return self.tvb_simulator.connectivity.region_labels
+
+    @property
+    def tvb_coupling_a(self):
+        return self.tvb_simulator.coupling.a
+
+    @property
+    def tvb_weights(self):
+        return self.tvb_simulator.connectivity.weights
+
+    @property
+    def tvb_delays(self):
+        return self.tvb_simulator.connectivity.delays
+
+    def _proxy_inds(self, interfaces):
+        return np.unique(self._only_inds_for_interfaces(interfaces, "proxy", self.region_labels))
+
+    @property
+    def out_proxy_inds(self):
+        return self._proxy_inds(self.output_interfaces)
+
+    @property
+    def in_proxy_inds(self):
+        return self._proxy_inds(self.input_interfaces)
+
+    def _voi_inds_labels_for_interface(self, interface):
+        voi_inds = np.array(self._only_inds(interface.voi, self.tvb_model_state_variables))
+        voi_labels = self.tvb_model_state_variables[voi_inds]
+        return voi_inds, voi_labels
+
+    def _voi_inds(self, interfaces):
+        return np.unique(self._only_inds_for_interfaces(interfaces, "voi", self.tvb_model_state_variables))
+
+    @property
+    def out_voi_inds(self):
+        return self._voi_inds(self.output_interfaces)
+
+    @property
+    def in_voi_inds(self):
+        return self._voi_inds(self.input_interfaces)
+
+    @property
+    def number_of_out_voi(self):
+        return len(self.out_voi_inds)
+
+    @property
+    def number_of_in_voi(self):
+        return len(self.in_voi_inds)
+
+    def region_label_to_ind(self, labels):
+        return self._label_to_ind(labels, self.region_labels)
+
+    @property
+    def out_proxy_labels(self):
+        return self.region_labels[self.out_proxy_inds]
+
+    @property
+    def in_proxy_labels(self):
+        return self.region_labels[self.in_proxy_inds]
+
+    def voi_label_to_ind(self, voi):
+        return self._label_to_ind(voi, self.tvb_simulator.model.state_variables)
+
+    @property
+    def out_voi_labels(self):
+        return self.tvb_model_state_variables[self.out_voi_inds]
+
+    @property
+    def in_voi_labels(self):
+        return self.tvb_model_state_variables[self.in_voi_inds]
+
+    def configure(self):
+        super(TVBInterfaceBuilder, self).configure()
+        self._default_out_proxy_inds = np.arange(self.number_of_regions).astype('i').tolist()
+        if self.exclusive_nodes:
+            for proxy_ind in self.in_proxy_inds:
+                self._default_out_proxy_inds.remove(proxy_ind)
+        self._default_out_proxy_inds = np.array(self._default_out_proxy_inds)
+        if len(self.output_interfaces):
+            assert self.out_voi_labels in self.tvb_model_state_variables
+            assert self.out_proxy_labels in self.region_labels
+        if len(self.input_interfaces):
+            assert self.in_voi_labels in self.tvb_model_state_variables
+            assert self.in_proxy_labels in self.region_labels
+
+    @abstractmethod
+    def build_output_interface(self, interface):
+        pass
+
+    @abstractmethod
+    def build_input_interface(self, interface):
+        pass
+
+    def build_interfaces(self):
+        self._output_interfaces = []
+        for interface in self.output_interfaces:
+            self._output_interfaces.append(self.build_output_interface(interface))
+        self._input_interfaces = []
+        for interface in self.input_interfaces:
+            self._input_interfaces.append(self.build_input_interface(interface))
+
+    def build(self):
+        self.tvb_simulator.exclusive = self.exclusive_nodes
+        self.build_interfaces()
+        self.tvb_simulator.tvb_output_interfaces = self._tvb_output_interfaces_class(interfaces=self._output_interfaces)
+        self.tvb_simulator.tvb_input_interfaces = self._tvb_input_interfaces_class(interfaces=self._input_interfaces)
+        return self.tvb_simulator
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):

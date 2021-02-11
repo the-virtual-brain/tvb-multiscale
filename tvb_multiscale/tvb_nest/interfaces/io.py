@@ -5,16 +5,16 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr, Float
+from tvb.basic.neotraits.api import Float
 
-from tvb_multiscale.core.interfaces.io import \
+from tvb_multiscale.core.interfaces.base.io import \
     ReaderFromFile
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_nest.nest_models.devices import read_nest_output_device_data_from_ascii_to_dict, \
-    NESTInputDevice, NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
-    NESTOutputDevice, NESTSpikeRecorder, NESTMultimeter, NESTVoltmeter
+    NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
+    NESTSpikeRecorder, NESTMultimeter, NESTVoltmeter
 
 
 class NESTCommunicator(object):

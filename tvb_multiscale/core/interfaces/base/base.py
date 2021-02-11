@@ -4,7 +4,7 @@ from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, List
 
 from tvb_multiscale.core.config import LINE
-from tvb_multiscale.core.interfaces.io import Communicator, Sender, Receiver
+from tvb_multiscale.core.interfaces.base.io import Communicator, Sender, Receiver
 
 
 class BaseInterface(HasTraits):

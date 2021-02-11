@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from tvb_multiscale.core.interfaces.io import SetToMemory, GetFromMemory
+from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 from tvb_multiscale.core.spiking_models.devices import InputDevice, DeviceSet, OutputDevice
 
 
