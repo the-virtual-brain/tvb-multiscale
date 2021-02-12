@@ -8,7 +8,7 @@ import numpy as np
 from pandas import Series
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.tvb.simulator_serialization import serialize_tvb_simulator, load_serial_tvb_simulator
+from tvb_multiscale.core.tvb.cosimulator_serialization import serialize_tvb_cosimulator, load_serial_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
@@ -27,7 +27,7 @@ class SpikingModelBuilder(object):
        The builder is half way opionionated.
     """
 
-    # Default configuratons modifiable by the user:
+    # Default configurations modifiable by the user:
     config = CONFIGURED
 
     tvb_to_spiking_dt_ratio = config.TVB_TO_SPIKING_DT_RATIO
@@ -64,9 +64,9 @@ class SpikingModelBuilder(object):
 
     def __init__(self, tvb_serial_sim, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
         if isinstance(tvb_serial_sim, os.PathLike):
-            self.tvb_serial_sim = load_serial_tvb_simulator(tvb_serial_sim)
+            self.tvb_serial_sim = load_serial_tvb_cosimulator(tvb_serial_sim)
         elif not isinstance(tvb_serial_sim, dict):
-            self.tvb_serial_sim = serialize_tvb_simulator(tvb_serial_sim)
+            self.tvb_serial_sim = serialize_tvb_cosimulator(tvb_serial_sim)
         self.config = config
         self.logger = logger
         self.spiking_nodes_ids = np.unique(spiking_nodes_ids)
@@ -619,11 +619,7 @@ class SpikingModelBuilder(object):
         return self._build_and_connect_devices(self._input_devices)
 
     def build_spiking_network(self):
-        """This method will run the whole workflow of
-        configuring the builder and building the spiking network,
-        which will be returned."""
-        # Configure all inputs to set them to the correct formats and sizes
-        self.configure()
+        """This method will run the whole workflow of building the spiking network, which will be returned."""
         # Build and connect the brain network
         self.build_spiking_brain()
         # Build and connect possible Spiking output devices
