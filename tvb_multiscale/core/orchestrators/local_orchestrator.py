@@ -8,8 +8,9 @@ from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBApp
 
 
-class LocalOrchestrator(Orchestrator):
-    """LocalOrchestrator base class"""
+class SerialOrchestrator(Orchestrator):
+
+    """SerialOrchestrator base class"""
 
     tvb_app = Attr(
         label="TVB app",
@@ -72,16 +73,16 @@ class LocalOrchestrator(Orchestrator):
         self.build_cosimulators()
         self.build_interfaces()
 
-    def compute_simulation_length(self):
-        simulation_length = self.simulation_length + self.transient
-        return np.ceil(simulation_length / self.tvb_cosimulator.synchronization_time) * \
-               self.tvb_cosimulator.synchronization_time
+    def configure_simulation(self):
+        self.tvb_app.configure_simulation()
+        self.simulation_length = self.tvb_app.simulation_length
+        self.spikeNet_app.simulation_length = self.simulation_length
+        self.spikeNet_app.configure_simulation()
 
     def run(self):
-
-        if self.plotter:
-            self.tvb_app.plot(self.transient)
-            self.spikeNet_app.plot(self.transient)
+        self.build()
+        self.configure_simulation()
+        self.tvb_app.run()
 
     def stop(self):
         self.tvb_app.stop()
