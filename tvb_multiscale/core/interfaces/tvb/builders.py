@@ -169,8 +169,8 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def build(self):
         self.tvb_simulator.exclusive = self.exclusive_nodes
         self.build_interfaces()
-        self.tvb_simulator.tvb_output_interfaces = self._tvb_output_interfaces_type(interfaces=self._output_interfaces)
-        self.tvb_simulator.tvb_input_interfaces = self._tvb_input_interfaces_type(interfaces=self._input_interfaces)
+        self.tvb_simulator.output_interfaces = self._tvb_output_interfaces_type(interfaces=self._output_interfaces)
+        self.tvb_simulator.input_interfaces = self._tvb_input_interfaces_type(interfaces=self._input_interfaces)
         return self.tvb_simulator
 
 
