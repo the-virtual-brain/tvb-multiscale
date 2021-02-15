@@ -91,16 +91,15 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
     return spikes, rates
 
 
-def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_ids=[],
-                           populations=["E", "I"], populations_sizes=[],
+def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_ids=[],
                            tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
-                           plotter=None, writer=None, config=CONFIGURED):
+                           plotter=None, writer=None, config=CONFIGURED, **kwargs):
 
     plotter, figsize, writer = _initialize(config, plotter, writer)
 
-    time_with_transient = tvb_results[0][0]
+    time_with_transient = tvb_result[0]
     source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
-        data=tvb_results[0][1], time=time_with_transient,
+        data=tvb_result[1], time=time_with_transient,
         connectivity=simulator.connectivity,
         labels_ordering=["Time", tvb_state_variable_type_label, "Region", "Neurons"],
         labels_dimensions={tvb_state_variable_type_label: list(tvb_state_variables_labels),
@@ -117,6 +116,8 @@ def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_
                                os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
 
     if isinstance(simulator.model, SpikingWongWangExcIOInhI):
+        populations = kwargs.get("populations", ["E", "I"])
+        populations_sizes = kwargs.get("populations_sizes", [])
         mean_field = tvb_mean_field_per_population(source_ts, populations, populations_sizes)
         # Plot time_series
         mean_field.plot_timeseries(plotter_config=plotter.config,
@@ -343,7 +344,7 @@ def plot_write_results(tvb_results, simulator, spiking_network=None, spiking_nod
         print("Plotting (and optionally writing to files) TVB results!")
         tic = timeit.time()
         time, time_with_transient = \
-            plot_write_tvb_results(tvb_results, simulator, transient, spiking_nodes_ids,
+            plot_write_tvb_results(tvb_results[0], simulator, transient, spiking_nodes_ids,
                                    populations, populations_sizes,
                                    tvb_state_variable_type_label, tvb_state_variables_labels,
                                    plotter, writer, config)
