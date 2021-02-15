@@ -5,15 +5,15 @@ from abc import abstractmethod
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
+from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
-from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 
 
 class SpikeNetApp(NonTVBApp):
 
     """SpikeNetApp abstract base class"""
 
-    spikNet_builder = Attr(
+    spikeNet_builder = Attr(
         label="Spiking Network Builder",
         field_type=SpikingModelBuilder,
         doc="""Instance of Spiking Network Builder.""",
@@ -22,7 +22,7 @@ class SpikeNetApp(NonTVBApp):
 
     spiking_network = Attr(
         label="Spiking Network",
-        field_type=CoSimulator,
+        field_type=SpikingNetwork,
         doc="""Instance of Spiking Network class.""",
         required=False
     )
@@ -34,20 +34,20 @@ class SpikeNetApp(NonTVBApp):
 
     def configure(self):
         super(SpikeNetApp, self).configure()
-        if not self.spikNet_builder:
-            self.spikNet_builder = SpikingModelBuilder(self.tvb_cosimulator_serialized, self.spiking_proxy_inds,
-                                                       config=self.config, logger=self.logger)
-        self.spikNet_builder.configure()
+        if not self.spikeNet_builder:
+            self.spikeNet_builder = SpikingModelBuilder(self.tvb_cosimulator_serialized, self.spiking_proxy_inds,
+                                                        config=self.config, logger=self.logger)
+        self.spikeNet_builder.configure()
 
     @abstractmethod
     def start(self):
         pass
 
     def build_spiking_network(self):
-        self.spiking_network = self.spikNet_builder.build_spiking_brain()
+        self.spiking_network = self.spikeNet_builder.build_spiking_brain()
 
     def build(self):
-        if not self.spikNet_builder:
+        if not self.spikeNet_builder:
             self.configure()
         self.spiking_network = self.build_spiking_network()
 
@@ -55,8 +55,8 @@ class SpikeNetApp(NonTVBApp):
     def configure_simulation(self):
         pass
 
-    def run(self):
-        self.spiking_network(self.simulation_length)
+    def run(self, *args, **kwargs):
+        self.spiking_network.Run(self.simulation_length, *args, **kwargs)
 
     @abstractmethod
     def stop(self):
