@@ -361,7 +361,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # Finally construct the NEST network model:
     from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
-    nest_model_builder._update_default_min_delay()
+    nest_model_builder.update_default_min_delay()
     nest_network = NESTNetwork(nest_instance=nest,
                                brain_regions=nest_brain,
                                output_devices=output_devices,

@@ -39,8 +39,8 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         if self.annarchy_instance is None:
             self.annarchy_instance = load_annarchy(self.config, self.logger)
         self.annarchy_instance.clear()  # This will restart ANNarchy!
-        self._update_spiking_dt()
-        self._update_default_min_delay()
+        self.update_spiking_dt()
+        self.update_default_min_delay()
         kwargs["dt"] = self.spiking_dt
         kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
         kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)

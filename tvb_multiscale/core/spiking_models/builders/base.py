@@ -74,8 +74,8 @@ class SpikingModelBuilder(object):
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
         self.default_min_delay = self.config.MIN_SPIKING_DT
-        self._update_spiking_dt()
-        self._update_default_min_delay()
+        self.update_spiking_dt()
+        self.update_default_min_delay()
 
         # Setting SpikingNetwork defaults from config
         # to be further specified in the each Spiking simulator's specific builder class.
@@ -355,12 +355,12 @@ class SpikingModelBuilder(object):
                             % (delay, self.tvb_dt))
         return self._assert_delay(delay)
 
-    def _update_spiking_dt(self):
+    def update_spiking_dt(self):
         # The TVB dt should be an integer multiple of the spiking simulator dt:
         self.spiking_dt = int(np.round(self.tvb_dt / self.tvb_to_spiking_dt_ratio / self.default_min_spiking_dt)) \
                           * self.default_min_spiking_dt
 
-    def _update_default_min_delay(self):
+    def update_default_min_delay(self):
         # The Spiking Network min delay should be smaller than half the TVB dt,
         # and an integer multiple of the spiking simulator dt
         self.default_min_delay = np.minimum(
