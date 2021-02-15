@@ -2,9 +2,7 @@
 
 from abc import abstractmethod
 
-import numpy as np
-
-from tvb.basic.neotraits._attr import Attr, Float, NArray
+from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
 from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
@@ -23,9 +21,9 @@ class SpikeNetApp(NonTVBApp):
     )
 
     spiking_network = Attr(
-        label="TVB Simulator",
+        label="Spiking Network",
         field_type=CoSimulator,
-        doc="""Instance of TVB (Co)Simulator.""",
+        doc="""Instance of Spiking Network class.""",
         required=False
     )
 
@@ -54,12 +52,11 @@ class SpikeNetApp(NonTVBApp):
         self.spiking_network = self.build_spiking_network()
 
     @abstractmethod
-    def plot(self):
+    def configure_simulation(self):
         pass
 
-    @abstractmethod
     def run(self):
-        pass
+        self.spiking_network(self.simulation_length)
 
     @abstractmethod
     def stop(self):

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
-from tvb.basic.neotraits._attr import Attr, NArray
+
+from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import App
 from tvb_multiscale.core.tvb.cosimulator import CoSimulator
@@ -13,14 +12,13 @@ from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder
 
 
 class TVBApp(App):
-    __metaclass__ = ABCMeta
 
-    """TVBApp base abstract class"""
+    """TVBApp base class"""
 
     tvb_cosimulator_builder = Attr(
         label="TVB CoSimulator Builder",
         field_type=CoSimulatorBuilder,
-        doc="""Instance of TVB CoSimulator Builder.""",
+        doc="""Instance of TVB CoSimulator Builder class.""",
         required=False
     )
 
@@ -34,9 +32,11 @@ class TVBApp(App):
     tvb_interfaces_builder = Attr(
         label="TVB Simulator",
         field_type=TVBInterfaceBuilder,
-        doc="""Instance of TVB (Co)Simulator.""",
+        doc="""Instance of TVB interfaces' builder class.""",
         required=False
     )
+
+    results = None
 
     def setup_from_orchestrator(self, orchestrator):
         super(TVBApp, self).setup_from_another_app(orchestrator)
@@ -77,6 +77,14 @@ class TVBApp(App):
     def tvb_delays(self):
         return self.tvb_cosimulator.connectivity.delays
 
+    @property
+    def tvb_output_interfaces(self):
+        return self.tvb_cosimulator.output_interfaces
+
+    @property
+    def tvb_input_interfaces(self):
+        return self.tvb_cosimulator.input_interfaces
+
     def configure(self):
         super(TVBApp, self).configure()
         if not self.tvb_cosimulator_builder:
@@ -112,15 +120,18 @@ class TVBApp(App):
         self.tvb_interfaces_builder.exclusive_nodes = self.exclusive_nodes
         self.tvb_interfaces_builder.spiking_proxy_inds = self.spiking_proxy_inds
 
-    @abstractmethod
-    def plot(self):
-        pass
+    def assert_simulation_length(self):
+        self.simulation_length = np.ceil(self.simulation_length / self.tvb_cosimulator.synchronization_time) * \
+                                 self.tvb_cosimulator.synchronization_time
+
+    def configure_simulation(self):
+        self.tvb_cosimulator.configure()
+        self.assert_simulation_length()
 
     def run(self):
-        self.tvb_cosimulator.simulation_length = self.compute_simulation_length(self.simulation_length)
-        self.tvb_cosimulator.configure()
-        self.tvb_app.tvb_cosimulator.run()
-        if self.plotter:
+        self.configure_simulation()
+        self.results = self.tvb_app.tvb_cosimulator.run()
+        if self.plotter and self.results:
             self.plot()
 
     def stop(self):

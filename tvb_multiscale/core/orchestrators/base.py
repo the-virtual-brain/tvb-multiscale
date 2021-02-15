@@ -28,26 +28,26 @@ class App(HasTraits):
         default=CONFIGURED
     )
 
-    plotter = Attr(
-        label="Plotter",
-        field_type=Plotter,
-        doc="""Plotter class instance.""",
-        required=False
-    )
-
-    h5_writer = Attr(
-        label="H5Writer",
-        field_type=H5Writer,
-        doc="""H5Writer class instance.""",
-        required=False
-    )
-
-    h5_reader = Attr(
-        label="H5Reader",
-        field_type=H5Reader,
-        doc="""H5Reader class instance.""",
-        required=False
-    )
+    # plotter = Attr(
+    #     label="Plotter",
+    #     field_type=Plotter,
+    #     doc="""Plotter class instance.""",
+    #     required=False
+    # )
+    #
+    # h5_writer = Attr(
+    #     label="H5Writer",
+    #     field_type=H5Writer,
+    #     doc="""H5Writer class instance.""",
+    #     required=False
+    # )
+    #
+    # h5_reader = Attr(
+    #     label="H5Reader",
+    #     field_type=H5Reader,
+    #     doc="""H5Reader class instance.""",
+    #     required=False
+    # )
 
     def_tvb_serial_path = Attr(
         label="H5Reader",
@@ -79,21 +79,21 @@ class App(HasTraits):
         doc="""The length of a simulation (default in milliseconds). 
                        It will be corrected by ceiling to a multiple of the cosimulators synchronization time.""")
 
-    transient = Float(
-        label="Transient Length (ms, s, m, h)",
-        default=10.0,
-        required=True,
-        doc="""The length of a simulation (default in milliseconds).""")
+    # transient = Float(
+    #     label="Transient Length (ms, s, m, h)",
+    #     default=10.0,
+    #     required=True,
+    #     doc="""The length of a simulation (default in milliseconds).""")
 
     def setup_from_another_app(self, app):
         self.config = app.config
-        self.plotter = app.plotter
-        self.h5_reader = app.h5_reader
-        self.h5_writer = app.h5_writer
+        # self.plotter = app.plotter
+        # self.h5_reader = app.h5_reader
+        # self.h5_writer = app.h5_writer
         self.spiking_proxy_inds = app.spiking_proxy_inds
         self.exclusive_nodes = app.exclusive_nodes
         self.simulation_length = app.simulation_length
-        self.transient = app.transient
+        # self.transient = app.transient
 
     def configure(self):
         if len(self.def_tvb_serial_path) == 0:
@@ -106,6 +106,10 @@ class App(HasTraits):
 
     @abstractmethod
     def build(self):
+        pass
+
+    @abstractmethod
+    def configure_simulation(self):
         pass
 
     @abstractmethod
