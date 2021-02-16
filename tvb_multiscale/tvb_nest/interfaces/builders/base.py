@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr
@@ -109,7 +110,7 @@ class NESTOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBu
 
 class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuilder, NESTInterfaceBuilder):
 
-    """NESTInputTransformerInterfaceBuilder abstract base class"""
+    """NESTInputTransformerInterfaceBuilder class"""
 
     _spikeNet_output_interfaces_type = NESTOutputInterfaces
     _spikeNet_input_interfaces_type = NESTInputInterfaces
@@ -124,7 +125,7 @@ class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuil
 
 class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder, NESTInterfaceBuilder):
 
-    """TVBNESTInterfaceBuilder abstract base class"""
+    """TVBNESTInterfaceBuilder class"""
 
     _tvb_output_interfaces_type = TVBtoNESTInterfaces
     _tvb_input_interfaces_type = NESTtoTVBInterfaces
