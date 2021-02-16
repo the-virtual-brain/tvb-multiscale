@@ -93,7 +93,7 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         return self._proxy_inds(self.input_interfaces)
 
     def _voi_inds_labels_for_interface(self, interface):
-        voi_inds = np.array(self._only_inds(interface.voi, self.tvb_model_state_variables))
+        voi_inds = np.array(self._only_inds(interface["voi"], self.tvb_model_state_variables))
         voi_labels = self.tvb_model_state_variables[voi_inds]
         return voi_inds, voi_labels
 
