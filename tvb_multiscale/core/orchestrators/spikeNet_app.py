@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import SpikeNetOutputInterfaces, SpikeNetInputInterfaces
 
 
 class SpikeNetApp(NonTVBApp):
+    __metaclass__ = ABCMeta
 
     """SpikeNetApp abstract base class"""
 
@@ -39,10 +42,6 @@ class SpikeNetApp(NonTVBApp):
                                                         config=self.config, logger=self.logger)
         self.spikeNet_builder.configure()
 
-    @abstractmethod
-    def start(self):
-        pass
-
     def build_spiking_network(self):
         self.spiking_network = self.spikeNet_builder.build_spiking_brain()
 
@@ -58,10 +57,45 @@ class SpikeNetApp(NonTVBApp):
     def run(self, *args, **kwargs):
         self.spiking_network.Run(self.simulation_length, *args, **kwargs)
 
-    @abstractmethod
-    def stop(self):
-        pass
 
-    @abstractmethod
-    def clean_up(self):
-        pass
+class SpikeNetSerialApp(SpikeNetApp):
+    __metaclass__ = ABCMeta
+
+    """SpikeNetSerialApp abstract base class"""
+
+    pass
+
+
+class SpikeNetParallelApp(SpikeNetApp):
+    __metaclass__ = ABCMeta
+
+    """SpikeNetParallelApp abstract base class"""
+
+    interfaces_builder = Attr(
+        label="Spiking Network interfaces builder",
+        field_type=SpikeNetInterfaceBuilder,
+        doc="""Instance of Spiking Network interfaces' builder class.""",
+        required=False
+    )
+
+    output_interfaces = Attr(
+        label="Spiking Network output interfaces",
+        field_type=SpikeNetOutputInterfaces,
+        doc="""Instance of output Spiking Network interfaces.""",
+        required=False
+    )
+
+    input_interfaces = Attr(
+        label="Spiking Network input interfaces",
+        field_type=SpikeNetInputInterfaces,
+        doc="""Instance of input Spiking Network interfaces.""",
+        required=False
+    )
+
+    def build_interfaces(self):
+        self.output_interfaces, self.input_interfaces = self.interfaces_builder.build()
+
+    def build(self):
+        super(SpikeNetParallelApp, self).build()
+        self.interfaces_builder.spiking_network = self.spiking_network
+        self.build_interfaces()

@@ -10,6 +10,8 @@ from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetApp
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
+from tvb_multiscale.tvb_nest.interfaces.builders import NESTInterfacesBuilder
+from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTOutputInterfaces, NESTInputInterfaces
 
 
 class NESTApp(SpikeNetApp):
@@ -74,3 +76,44 @@ class NESTApp(SpikeNetApp):
 
     def stop(self):
         pass
+
+
+class NESTSerialApp(NESTApp):
+
+    """NESTSerialApp class"""
+
+    pass
+
+
+class NESTParallelApp(SpikeNetApp):
+
+    """NESTParallelApp class"""
+
+    interfaces_builder = Attr(
+        label="NEST interfaces builder",
+        field_type=NESTInterfacesBuilder,
+        doc="""Instance of NEST Network interfaces' builder class.""",
+        required=False
+    )
+
+    output_interfaces = Attr(
+        label="NEST Network output interfaces",
+        field_type=NESTOutputInterfaces,
+        doc="""Instance of output NEST Network interfaces.""",
+        required=False
+    )
+
+    input_interfaces = Attr(
+        label="NEST Network input interfaces",
+        field_type=NESTInputInterfaces,
+        doc="""Instance of input NEST Network interfaces.""",
+        required=False
+    )
+
+    def build_interfaces(self):
+        self.output_interfaces, self.input_interfaces = self.interfaces_builder.build()
+
+    def build(self):
+        super(SpikeNetParallelApp, self).build()
+        self.interfaces_builder.spiking_network = self.spiking_network
+        self.build_interfaces()

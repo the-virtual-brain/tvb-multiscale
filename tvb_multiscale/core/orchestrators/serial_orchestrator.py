@@ -4,7 +4,7 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr, NArray, Float
 
 from tvb_multiscale.core.orchestrators.base import Orchestrator
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetApp
+from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBApp
 
 
@@ -21,7 +21,7 @@ class SerialOrchestrator(Orchestrator):
 
     spikeNet_app = Attr(
         label="Spiking Network app",
-        field_type=SpikeNetApp,
+        field_type=SpikeNetSerialApp,
         doc="""Application for running a Spiking Network (co)simulator.""",
         required=False
     )
@@ -43,7 +43,7 @@ class SerialOrchestrator(Orchestrator):
 
     @property
     def tvb_cosimulator(self):
-        return self.tvb_app.tvb_cosimulator
+        return self.tvb_app.cosimulator
 
     @property
     def spiking_network(self):
@@ -66,12 +66,8 @@ class SerialOrchestrator(Orchestrator):
         self.spikeNet_app.build()
 
     def build_interfaces(self):
-        self.tvb_app.tvb_interfaces_builder.spiking_network = self.spiking_network
+        self.tvb_app.interfaces_builder.spiking_network = self.spiking_network
         self.tvb_app.build_interfaces()
-
-    def build(self):
-        self.build_cosimulators()
-        self.build_interfaces()
 
     def configure_simulation(self):
         self.tvb_app.configure_simulation()

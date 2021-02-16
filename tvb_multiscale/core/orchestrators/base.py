@@ -178,26 +178,6 @@ class NonTVBApp(App):
             filepath = self.def_tvb_serial_path
         self.tvb_cosimulator_serialized = load_serial_tvb_cosimulator(filepath)
 
-    @abstractmethod
-    def start(self):
-        pass
-
-    @abstractmethod
-    def build(self):
-        pass
-
-    @abstractmethod
-    def run(self):
-        pass
-
-    @abstractmethod
-    def stop(self):
-        pass
-
-    @abstractmethod
-    def clean_up(self):
-        pass
-
 
 class Orchestrator(App):
     __metaclass__ = ABCMeta
@@ -205,21 +185,9 @@ class Orchestrator(App):
     """Orchestrator abstract base class"""
 
     @abstractmethod
-    def start(self):
+    def build_interfaces(self):
         pass
 
-    @abstractmethod
     def build(self):
-        pass
-
-    @abstractmethod
-    def run(self):
-        pass
-
-    @abstractmethod
-    def stop(self):
-        pass
-
-    @abstractmethod
-    def clean_up(self):
-        pass
+        self.build_cosimulators()
+        self.build_interfaces()

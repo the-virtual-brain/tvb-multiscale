@@ -15,22 +15,22 @@ class TVBApp(App):
 
     """TVBApp base class"""
 
-    tvb_cosimulator_builder = Attr(
+    cosimulator_builder = Attr(
         label="TVB CoSimulator Builder",
         field_type=CoSimulatorBuilder,
         doc="""Instance of TVB CoSimulator Builder class.""",
         required=False
     )
 
-    tvb_cosimulator = Attr(
+    cosimulator = Attr(
         label="TVB CoSimulator",
         field_type=CoSimulator,
         doc="""Instance of TVB CoSimulator.""",
         required=False
     )
 
-    tvb_interfaces_builder = Attr(
-        label="TVB Simulator",
+    interfaces_builder = Attr(
+        label="TVB Interfaces builder",
         field_type=TVBInterfaceBuilder,
         doc="""Instance of TVB interfaces' builder class.""",
         required=False
@@ -43,62 +43,62 @@ class TVBApp(App):
 
     @property
     def tvb_dt(self):
-        return self.tvb_cosimulator.integrator.dt
+        return self.cosimulator.integrator.dt
 
     @property
     def tvb_model(self):
-        return self.tvb_cosimulator.model
+        return self.cosimulator.model
 
     @property
     def tvb_model_state_variables(self):
-        return self.tvb_cosimulator.model.state_variables
+        return self.cosimulator.model.state_variables
 
     @property
     def tvb_model_cvar(self):
-        return self.tvb_cosimulator.model.cvar
+        return self.cosimulator.model.cvar
 
     @property
     def number_of_regions(self):
-        return self.tvb_cosimulator.connectivity.number_of_regions
+        return self.cosimulator.connectivity.number_of_regions
 
     @property
     def region_labels(self):
-        return self.tvb_cosimulator.connectivity.region_labels
+        return self.cosimulator.connectivity.region_labels
 
     @property
     def tvb_coupling_a(self):
-        return self.tvb_cosimulator.coupling.a
+        return self.cosimulator.coupling.a
 
     @property
     def tvb_weights(self):
-        return self.tvb_cosimulator.connectivity.weights
+        return self.cosimulator.connectivity.weights
 
     @property
     def tvb_delays(self):
-        return self.tvb_cosimulator.connectivity.delays
+        return self.cosimulator.connectivity.delays
 
     @property
     def tvb_output_interfaces(self):
-        return self.tvb_cosimulator.output_interfaces
+        return self.cosimulator.output_interfaces
 
     @property
     def tvb_input_interfaces(self):
-        return self.tvb_cosimulator.input_interfaces
+        return self.cosimulator.input_interfaces
 
     def configure(self):
         super(TVBApp, self).configure()
-        if not self.tvb_cosimulator_builder:
-            self.tvb_cosimulator_builder = CoSimulatorBuilder(config=self.config)
-            self.tvb_cosimulator_builder.configure()
-        if self.tvb_interfaces_builder and not isinstance(self.tvb_interfaces_builder, TVBInterfaceBuilder):
-            self.tvb_interfaces_builder = self.tvb_interfaces_builder()
+        if not self.cosimulator_builder:
+            self.cosimulator_builder = CoSimulatorBuilder(config=self.config)
+            self.cosimulator_builder.configure()
+        if self.interfaces_builder and not isinstance(self.interfaces_builder, TVBInterfaceBuilder):
+            self.interfaces_builder = self.interfaces_builder()
 
     def start(self):
         from tvb.basic.profile import TvbProfile
         TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
     def build_tvb_simulator(self):
-        self.tvb_cosimulator = self.tvb_cosimulator_builder.build()
+        self.cosimulator = self.cosimulator_builder.build()
 
     def dumb_tvb_simulator_serialized(self, tvb_cosimulator_serialized=None, filepath=None):
         if not tvb_cosimulator_serialized:
@@ -108,29 +108,29 @@ class TVBApp(App):
         dump_serial_tvb_cosimulator(tvb_cosimulator_serialized, filepath)
 
     def serialize_tvb_cosimulator(self):
-        return serialize_tvb_cosimulator(self.tvb_cosimulator)
+        return serialize_tvb_cosimulator(self.cosimulator)
 
     def build_interfaces(self):
-        self.tvb_interfaces_builder.configure()
-        self.tvb_cosimulator = self.tvb_interfaces_builder.build()
+        self.interfaces_builder.configure()
+        self.cosimulator = self.interfaces_builder.build()
 
     def build(self):
         self.build_tvb_simulator()
-        self.tvb_interfaces_builder.tvb_cosimulator = self.tvb_cosimulator
-        self.tvb_interfaces_builder.exclusive_nodes = self.exclusive_nodes
-        self.tvb_interfaces_builder.spiking_proxy_inds = self.spiking_proxy_inds
+        self.interfaces_builder.cosimulator = self.cosimulator
+        self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
+        self.interfaces_builder.spiking_proxy_inds = self.spiking_proxy_inds
 
     def assert_simulation_length(self):
-        self.simulation_length = np.ceil(self.simulation_length / self.tvb_cosimulator.synchronization_time) * \
-                                 self.tvb_cosimulator.synchronization_time
+        self.simulation_length = np.ceil(self.simulation_length / self.cosimulator.synchronization_time) * \
+                                 self.cosimulator.synchronization_time
 
     def configure_simulation(self):
-        self.tvb_cosimulator.configure()
+        self.cosimulator.configure()
         self.assert_simulation_length()
 
     def run(self):
         self.configure_simulation()
-        self.results = self.tvb_app.tvb_cosimulator.run()
+        self.results = self.tvb_app.cosimulator.run()
         if self.plotter and self.results:
             self.plot()
 
