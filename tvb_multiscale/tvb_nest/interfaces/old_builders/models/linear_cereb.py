@@ -3,18 +3,18 @@
 import numpy as np
 
 from tvb_multiscale.tvb_nest.interfaces.base import TVBNESTInterface
-from tvb_multiscale.tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.models import RedWWexcIO
-from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
+from tvb_multiscale.tvb_nest.interfaces.builder import TVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.models import Linear
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay
 
 
-class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
-    _tvb_nest_interface = RedWWexcIO
+class LinearCerebBuilder(TVBNESTInterfaceBuilder):
+    _tvb_nest_interface = Linear
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
                  tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[200]):
-        super(RedWWexcIOBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                                tvb_to_nest_interfaces, nest_to_tvb_interfaces)
+        super(LinearCerebBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
+                                                 tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.populations_sizes = populations_sizes
 
         self.G = self.tvb_serial_sim["model.G"][0].item()
@@ -36,7 +36,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
     # No random jitter to weights and delays by default for this model
 
     def tvb_weight_fun(self, source_node):
-        return 20 * self.global_coupling_scaling * self.tvb_weights[source_node, self.spiking_nodes_ids].sum()
+        return 200 * self.global_coupling_scaling * self.tvb_weights[source_node, self.spiking_nodes_ids].sum()
 
     def tvb_delay_fun(self, source_node, target_node):
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
@@ -76,7 +76,7 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         interface = \
             {"model": "spike_recorder", "params": {},
              # ------------------Properties potentially set as function handles with args (nest_node_id=None)----------------
-             "weights": 1.0, "delays": 0.0,
+             "weights": 5.0, "delays": 0.0,
              # --------------------------------------------------------------------------------------------------------------
              "connections": connections, "nodes": None}  # None means all here
         interface.update(kwargs)
@@ -105,4 +105,4 @@ class RedWWexcIOBuilder(TVBNESTInterfaceBuilder):
         self.default_build(tvb_to_nest_mode, nest_to_tvb)
         if not isinstance(tvb_nest_interface, TVBNESTInterface):
             tvb_nest_interface = self._tvb_nest_interface()
-        return super(RedWWexcIOBuilder, self).build_interface(tvb_nest_interface)
+        return super(LinearCerebBuilder, self).build_interface(tvb_nest_interface)
