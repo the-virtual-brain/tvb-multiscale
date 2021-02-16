@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
 from six import string_types
 
 import numpy as np
@@ -11,7 +10,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
 class InterfaceBuilder(HasTraits):
-    __metaclass__ = ABCMeta
 
     proxy_inds = NArray(
         dtype=np.int,
@@ -99,13 +97,9 @@ class InterfaceBuilder(HasTraits):
         """
         for interface in interfaces_list:
             if interface[component] in ensure_list(types_list):
-                if component.lower() != "model":
-                    interface[component] = interface[component](**interface.get("%s_params" % component, {}))
+                interface[component] = interface[component](**interface.get("%s_params" % component, {}))
             else:
-                if component.lower() != "model":
-                    assert isinstance(interface[component], types_list)
-                else:
-                    interface[component] = interface[component].__class__
+                assert isinstance(interface[component], types_list)
         return interfaces_list
 
     def _assert_input_interfaces_component_config(self, types_list, component):
@@ -114,6 +108,26 @@ class InterfaceBuilder(HasTraits):
     def _assert_output_interfaces_component_config(self, types_list, component):
         self.output_interfaces = self.assert_interfaces_component_config(self.output_interfaces, types_list, component)
 
-    @abstractmethod
+    def _get_output_interface_arguments(self, interface):
+        return dict(interface)
+
+    def _get_input_interface_arguments(self, interface):
+        return dict(interface)
+
+    def build_output_interface(self, interface):
+        return self._output_interface_type(**self._get_output_interface_arguments(interface))
+
+    def build_input_interface(self, interface):
+        return self._input_interface_type(**self._get_input_interface_arguments(interface))
+
+    def build_interfaces(self):
+        self._output_interfaces = []
+        for interface in self.output_interfaces:
+            self._output_interfaces.append(self.build_output_interface(interface))
+        self._input_interfaces = []
+        for interface in self.input_interfaces:
+            self._input_interfaces.append(self.build_input_interface(interface))
+
     def build(self):
-        pass
+        self.build_interfaces()
+        return self._output_interfaces, self._input_interfaces

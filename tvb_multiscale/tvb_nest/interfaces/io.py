@@ -73,6 +73,8 @@ class NESTInhomogeneousPoissonGeneratorSetter(NESTInputDeviceSetter):
             - a method to set data to the target.
     """
 
+    model = "inhomogeneous_poisson_generator"
+
     # target = Attr(field_type=(NESTInhomogeneousPoissonGenerator, DeviceSet, super()._node_collection_class),
     #               required=True,
     #               label="Target of Spiking Network",
@@ -99,6 +101,8 @@ class NESTSpikeGeneratorSetter(NESTInputDeviceSetter):
             - a method to set data to the target.
     """
 
+    model = "spike_generator"
+
     # target = Attr(field_type=(NESTSpikeGenerator, DeviceSet, super()._node_collection_class),
     #               required=True,
     #               label="Target of Spiking Network",
@@ -123,6 +127,9 @@ class NESTStepCurrentGeneratorSetter(NESTInputDeviceSetter):
              or step_current_generator instance to send data to,
             - a method to set data to the target.
     """
+
+    model = "step_current_generator"
+
     #
     # target = Attr(field_type=(NESTStepCurrentGenerator, DeviceSet, super()._node_collection_class),
     #               required=True,
@@ -175,6 +182,7 @@ class NESTEventsFromOutputDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator
 
 
 class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
+
     """
         NESTEventsFromSpikeRecorder class to read events' data
          (spike times and senders) from a NESTSpikeRecorder device,
@@ -184,6 +192,8 @@ class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
             - a source attribute, i.e., the NESTSpikeRecorder to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
+
+    model = "spike_recorder"
 
     # source = Attr(field_type=(NESTSpikeRecorder, DeviceSet, super()._node_collection_class)),
     #               required=True,
@@ -196,6 +206,7 @@ class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
 
 
 class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
+
     """
         NESTEventsFromMultimeter class to read events' data
          (times, senders and variable values) from a NESTMultimeter device,
@@ -205,6 +216,8 @@ class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
             - a source attribute, i.e., the NESTMultimeter to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
+
+    model = "multimeter"
 
     # source = Attr(field_type=(NESTMultimeter, DeviceSet, super()._node_collection_class)),
     #               required=True,
@@ -227,6 +240,8 @@ class NESTEventsFromVoltmeter(SpikeNetEventsFromOutpuDevice):
             - a source attribute, i.e., the NESTMultimeter to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
+
+    model = "voltmeter"
 
     # source = Attr(field_type=(NESTVoltmeter, DeviceSet, super()._node_collection_class),
     #               required=True,
@@ -252,6 +267,51 @@ class NESTEventsReaderFromRecorderFile(ReaderFromFile, NESTCommunicator):
         return read_nest_output_device_data_from_ascii_to_dict(self.source)
 
 
+class NESTSpikeRecorderFile(NESTEventsReaderFromRecorderFile):
+
+    """
+        NESTSpikeRecorderFile class to read events' data (spike times and senders)
+        from a NEST spike_recorder device file.
+        It comprises of:
+            - a source attribute, i.e., the absolute path to the file to read data from,
+            - an abstract method to read data from the source.
+    """
+
+    model = "spike_recorder"
+
+    pass
+
+
+class NESTMultimeterFile(NESTEventsReaderFromRecorderFile):
+
+    """
+        NESTMultimeterFile class to read events' data (times and values)
+        from a NEST multimeter device file.
+        It comprises of:
+            - a source attribute, i.e., the absolute path to the file to read data from,
+            - an abstract method to read data from the source.
+    """
+
+    model = "multimeter"
+
+    pass
+
+
+class NESTVoltmeterFile(NESTEventsReaderFromRecorderFile):
+
+    """
+        NESTVoltmeterFile class to read voltage events' data (times and values)
+        from a NEST voltmeter device file.
+        It comprises of:
+            - a source attribute, i.e., the absolute path to the file to read data from,
+            - an abstract method to read data from the source.
+    """
+
+    model = "voltmeter"
+
+    pass
+
+
 class NESTOutputDeviceGetters(Enum):
     SPIKE_RECORDER = NESTEventsFromSpikeRecorder
     MULTIMETER = NESTEventsFromMultimeter
@@ -259,7 +319,9 @@ class NESTOutputDeviceGetters(Enum):
 
 
 class NESTFileRecorders(Enum):
-    RECORDER_FILE = NESTEventsReaderFromRecorderFile
+    SPIKE_RECORDER_FILE = NESTSpikeRecorderFile
+    MULTIMETER_FILE = NESTMultimeterFile
+    VOLTMETER_FILE = NESTVoltimeterFile
 
 
 class NESTInputDeviceSetters(Enum):
