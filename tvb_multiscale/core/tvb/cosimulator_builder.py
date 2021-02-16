@@ -13,7 +13,6 @@ from tvb.simulator.integrators import Integrator, HeunStochastic
 from tvb.simulator.monitors import Monitor, Raw, Bold  # , EEG
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
-from tvb_multiscale.core.config import Config, CONFIGURED
 from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 
 
@@ -27,14 +26,6 @@ class CoSimulatorBuilder(HasTraits):
        - set integrator (including noise and integration step),
        - set monitor (including model's variables of interest and period)
     """
-
-    config = Attr(
-        label="Configuration",
-        field_type=Config,
-        doc="""Configuration class instance.""",
-        required=True,
-        default=CONFIGURED
-    )
 
     model: Model = Attr(
         field_type=Model,
