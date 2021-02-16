@@ -12,7 +12,9 @@ from tvb_multiscale.tvb_nest.config import Config, CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
+from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp
+from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp
+from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 from tvb_multiscale.core.plot.plotter import Plotter
 from examples.plot_write_results import plot_write_results
 
@@ -20,46 +22,46 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
-def results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode="rate", nest_to_tvb=True, config=None):
+def results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb):
     if config is None:
-        if tvb_nest_builder is not None:
-            tvb_nest_builder_str = "_" + tvb_nest_builder.__name__.split("Builder")[0] + \
-                                   np.where(isinstance(tvb_to_nest_mode, string_types),
-                                             "_" + str(tvb_to_nest_mode), "").item()
+        if tvb_to_nest_mode is not None:
+            tvb_nest_str = "_" + tvb_to_nest_mode
         else:
-            tvb_nest_builder_str = ""
+            tvb_nest_str = ""
         return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
                             nest_model_builder.__name__.split("Builder")[0] +
-                            tvb_nest_builder_str +
+                            tvb_nest_str +
                             np.where(nest_to_tvb, "_bidir", "").item()
                             )
     else:
         return config.out.FOLDER_RES
 
 
-def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
-                 nest_nodes_ids, nest_populations_order=100,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
-                 connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=110.0, transient=10.0, use_numba=True, variables_of_interest=None,
-                 config=None, plot_write=True, **model_params):
+def main_example(tvb_sim_model, nest_model_builder, nest_nodes_ids,
+                 model_params={}, nest_populations_order=100,
+                 tvb_to_nest_mode="RATE", tvb_to_nest_connections={},
+                 nest_to_tvb_connections={}, exclusive_nodes=True,
+                 connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
+                 simulation_length=110.0, transient=10.0,
+                 config=None, plot_write=True):
 
     if config is None:
         config = Config(
-                    output_base=results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode, nest_to_tvb,
-                                                 config))
+                    output_base=results_path_fun(nest_model_builder, tvb_to_nest_mode, len(nest_to_tvb_connections)> 0))
+
+    orchestrator = SerialOrchestrator(
+        config=config,
+        exclusive_nodes=exclusive_nodes,
+        spiking_proxy_inds=nest_nodes_ids,
+        simulation_length=simulation_length,
+    )
 
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
-    simulator_builder = SimulatorBuilder()
-    simulator_builder.use_numba = use_numba
-    # Optionally modify the default configuration:
-    simulator_builder.model = tvb_sim_model
-    simulator_builder.variables_of_interest = variables_of_interest
-    simulator_builder.connectivity = connectivity
-    simulator_builder.delays_flag = delays_flag
-    simulator = simulator_builder.build(**model_params)
+    orchestrator.tvb_app.simulator_builder.model = tvb_sim_model
+    orchestrator.tvb_app.simulator_builder.model_params = model_params
+    orchestrator.tvb_app.simulator_builder.connectivity = connectivity
 
     # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
 
@@ -68,15 +70,8 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
 
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
-    nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
-    nest_model_builder.population_order = nest_populations_order
-    populations = []
-    populations_sizes = []
-    for pop in nest_model_builder.populations:
-        populations.append(pop["label"])
-        populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
-    # Common order of neurons' number per population:
-    nest_network = nest_model_builder.build_spiking_network()
+    orchestrator.spikeNet_app.spiking_model_builder = nest_model_builder
+    orchestrator.spikeNet_app.population_order = nest_populations_order
 
     print("\nDone! in %f min\n" % ((time.time() - tic) / 60))
     print(nest_network.print_str(connectivity=True))
@@ -88,9 +83,15 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
     # Using all default parameters for this example
-    tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
-                                        populations_sizes=populations_sizes)
-    tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_nest_mode=tvb_to_nest_mode, nest_to_tvb=nest_to_tvb)
+    for voi, pop in tvb_to_nest_connections.items():
+        orchestrator.tvb_app.interfaces_builder.output_interfaces.append(
+            {"model": tvb_to_nest_mode, "voi": voi, "populations": pop}
+    )
+    for conn in nest_to_tvb_connections:
+        orchestrator.tvb_app.interfaces_builder.input_interfaces.append(
+            {"voi": voi, "populations": pop}
+    )
+
     print("\nDone! in %f min\n" % ((time.time() - tic)/60))
     print(tvb_nest_model.print_str(detailed_output=True, connectivity=False))
 
