@@ -5,7 +5,7 @@ from tvb.basic.neotraits._attr import Attr, NArray, Float
 
 from tvb_multiscale.core.orchestrators.base import Orchestrator
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp
-from tvb_multiscale.core.orchestrators.tvb_app import TVBApp
+from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp
 
 
 class SerialOrchestrator(Orchestrator):
@@ -13,17 +13,19 @@ class SerialOrchestrator(Orchestrator):
     """SerialOrchestrator base class"""
 
     tvb_app = Attr(
-        label="TVB app",
-        field_type=TVBApp,
-        doc="""Application for running TVB.""",
-        required=False
+        label="TVBSerial app",
+        field_type=TVBSerialApp,
+        doc="""Application for running TVB serially.""",
+        required=False,
+        default=TVBSerialApp()
     )
 
     spikeNet_app = Attr(
         label="Spiking Network app",
         field_type=SpikeNetSerialApp,
-        doc="""Application for running a Spiking Network (co)simulator.""",
-        required=False
+        doc="""Application for running a Spiking Network (co)simulator serially.""",
+        required=False,
+        default=SpikeNetSerialApp()
     )
 
     exclusive_nodes = Attr(label="Flag of exclusive nodes",
@@ -33,13 +35,6 @@ class SerialOrchestrator(Orchestrator):
                            field_type=bool,
                            default=True,
                            required=True)
-
-    transformer_app = Attr(
-        label="Spiking Network app",
-        field_type=SpikeNetApp,
-        doc="""Application for running a Spiking Network (co)simulator.""",
-        required=False
-    )
 
     @property
     def tvb_cosimulator(self):

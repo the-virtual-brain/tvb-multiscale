@@ -8,7 +8,7 @@ from tvb_multiscale.core.orchestrators.base import App
 from tvb_multiscale.core.tvb.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator_builder import CoSimulatorBuilder
 from tvb_multiscale.core.tvb.cosimulator_serialization import dump_serial_tvb_cosimulator, serialize_tvb_cosimulator
-from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder
+from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder
 
 
 class TVBApp(App):
@@ -19,7 +19,8 @@ class TVBApp(App):
         label="TVB CoSimulator Builder",
         field_type=CoSimulatorBuilder,
         doc="""Instance of TVB CoSimulator Builder class.""",
-        required=False
+        required=False,
+        default=CoSimulatorBuilder()
     )
 
     cosimulator = Attr(
@@ -139,3 +140,16 @@ class TVBApp(App):
 
     def clean_up(self):
         pass
+
+
+
+class TVBSerialApp(TVBApp):
+
+    """TVBSerialApp class"""
+
+    interfaces_builder = Attr(
+        label="TVBSpikeNetInterfaces builder",
+        field_type=TVBSpikeNetInterfaceBuilder,
+        doc="""Instance of TVBSpikeNetInterfaces' builder class.""",
+        required=False
+    )

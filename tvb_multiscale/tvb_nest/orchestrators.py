@@ -6,11 +6,13 @@ from tvb.basic.neotraits._attr import Attr
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetApp
+from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
+from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
-from tvb_multiscale.tvb_nest.interfaces.builders import NESTInterfacesBuilder
+from tvb_multiscale.tvb_nest.interfaces.builders import NESTInterfacesBuilder, TVBNESTInterfacesBuilder
 from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTOutputInterfaces, NESTInputInterfaces
 
 
@@ -18,7 +20,7 @@ class NESTApp(SpikeNetApp):
 
     """NESTApp base class"""
 
-    spikeNet_builder = Attr(
+    spiking_model_builder = Attr(
         label="NEST Network Builder",
         field_type=NESTModelBuilder,
         doc="""Instance of NEST Model Builder.""",
@@ -117,3 +119,35 @@ class NESTParallelApp(SpikeNetApp):
         super(SpikeNetParallelApp, self).build()
         self.interfaces_builder.spiking_network = self.spiking_network
         self.build_interfaces()
+
+
+class TVBSerialApp(TVBSerialAppBase):
+
+    """TVBSerialApp class"""
+
+    interfaces_builder = Attr(
+        label="TVBNESTInterfaces builder",
+        field_type=TVBNESTInterfacesBuilder,
+        doc="""Instance of TVBNESTInterfaces' builder class.""",
+        required=False,
+        defualt=TVBNESTInterfacesBuilder()
+    )
+
+
+class TVBNESTSerialOrchestrator(SerialOrchestrator):
+
+    tvb_app = Attr(
+        label="TVBSerial app",
+        field_type=TVBSerialApp,
+        doc="""Application for running TVB serially.""",
+        required=False,
+        default=TVBSerialApp()
+    )
+
+    spikeNet_app = Attr(
+        label="NEST Network app",
+        field_type=NESTSerialApp,
+        doc="""Application for running a Spiking Network (co)simulator serially.""",
+        required=False,
+        default=NESTSerialApp()
+    )
