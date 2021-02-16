@@ -50,9 +50,9 @@ class App(HasTraits):
     # )
 
     def_tvb_serial_path = Attr(
-        label="H5Reader",
+        label="TVB serialized CoSimulator path",
         field_type=H5Reader,
-        doc="""H5Reader class instance.""",
+        doc="""File path of TVB serialized CoSimulator.""",
         required=True,
         default=""
     )
