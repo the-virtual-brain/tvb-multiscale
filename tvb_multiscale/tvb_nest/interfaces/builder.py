@@ -79,7 +79,7 @@ class NESTInterfaceBuilder(HasTraits):
                                          nodes, self.config, nest_instance=self.nest_instance)
 
     @property
-    def _default_receptor_type(self):
+    def _default_receptor_type(self, source_node, target_node):
         return 0
 
     @property
@@ -88,14 +88,14 @@ class NESTInterfaceBuilder(HasTraits):
 
     def configure(self):
         for interface in self.input_interfaces:
-            model = interface.get("proxy_model", "SPIKES")
+            model = interface.get("proxy_model", interface.get("model", "SPIKES"))
             if isinstance(model, string_types):
                 model = model.upper()
                 interface["proxy_model"] = getattr(NESTInputProxyModels, model).value
             else:
                 assert model in self._spikeNet_input_proxy_types
         for interface in self.output_interfaces:
-            model = interface.get("proxy_model", "SPIKES").upper()
+            model = interface.get("proxy_model", interface.get("model", "SPIKES")).upper()
             if isinstance(model, string_types):
                 model = model.upper()
                 interface["proxy_model"] = getattr(NESTOutputProxyModels, model).value
@@ -117,8 +117,8 @@ class NESTRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, NESTInterfaceBu
     _spikeNet_input_proxy_types = NESTInterfaceBuilder._spikeNet_input_proxy_types
 
     def configure(self):
-        SpikeNetRemoteInterfaceBuilder.configure(self)
         NESTInterfaceBuilder.configure(self)
+        SpikeNetRemoteInterfaceBuilder.configure(self)
 
 
 class NESTTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder, NESTInterfaceBuilder):
@@ -135,8 +135,8 @@ class NESTTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder, NESTI
     _spikeNet_input_proxy_types = NESTInterfaceBuilder._spikeNet_input_proxy_types
 
     def configure(self):
-        SpikeNetTransformerInterfaceBuilder.configure(self)
         NESTInterfaceBuilder.configure(self)
+        SpikeNetTransformerInterfaceBuilder.configure(self)
 
 
 class NESTOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBuilder, NESTInterfaceBuilder):
@@ -153,8 +153,8 @@ class NESTOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBu
     _spikeNet_input_proxy_types = NESTInterfaceBuilder._spikeNet_input_proxy_types
 
     def configure(self):
-        SpikeNetOutputTransformerInterfaceBuilder.configure(self)
         NESTInterfaceBuilder.configure(self)
+        SpikeNetOutputTransformerInterfaceBuilder.configure(self)
 
 
 class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuilder, NESTInterfaceBuilder):
@@ -171,8 +171,8 @@ class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuil
     _spikeNet_input_proxy_types = NESTInterfaceBuilder._spikeNet_input_proxy_types
 
     def configure(self):
-        SpikeNetInputTransformerInterfaceBuilder.configure(self)
         NESTInterfaceBuilder.configure(self)
+        SpikeNetInputTransformerInterfaceBuilder.configure(self)
 
 
 class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder, NESTInterfaceBuilder):
@@ -192,5 +192,5 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder, NESTInterfaceBuilder)
     _input_interfaces_type = NESTtoTVBInterfaces
 
     def configure(self):
-        TVBSpikeNetInterfaceBuilder.configure(self)
         NESTInterfaceBuilder.configure(self)
+        TVBSpikeNetInterfaceBuilder.configure(self)

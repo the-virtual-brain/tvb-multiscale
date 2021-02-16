@@ -89,7 +89,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
 
     @property
     @abstractmethod
-    def _default_receptor_type(self):
+    def _default_receptor_type(self, source_node, target_node):
         pass
 
     @property
