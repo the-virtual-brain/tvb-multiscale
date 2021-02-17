@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
+
 from tvb.basic.neotraits._attr import NArray, Attr
 from tvb.basic.neotraits._core import HasTraits
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
@@ -10,6 +11,7 @@ from tvb_multiscale.core.interfaces.base.transformers import Transformers
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces, \
+    SpikeNetOutputInterface, SpikeNetInputInterface, \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
@@ -170,10 +172,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["neurons_inds"] = neurons_inds
         _interface["nodes"] = [np.where(spiking_proxy_inds == trg_node)[0][0] for trg_node in spiking_proxy_inds]
         _interface["model"] = self._spikeNet_input_proxy_type.model
-        _interface["model"] = interfaces["proxy_model"].model
-        _interface["params"] = interface["device_params"]
+        _interface["model"] = interface["proxy_model"].model
+        _interface["params"] = interface["proxy_params"]
         # Generate the devices => "proxy TVB nodes":
-        return interfaces["proxy_model"](target=self._build_and_connect_devices([_interface],
+        return interface["proxy_model"](target=self._build_and_connect_devices([_interface],
                                                                                 self.spiking_network.brain_regions))
 
     def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface, spiking_proxy_inds):
@@ -196,10 +198,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         # Convert TVB node index to interface SpikeNet node index:
         _interface["nodes"] = [np.where(spiking_proxy_inds == spiking_node)[0][0]
                                for spiking_node in spiking_proxy_inds]
-        _interface["model"] = interfaces["proxy_model"].model
-        _interface["params"] = interface["device_params"]
+        _interface["model"] = interface["proxy_model"].model
+        _interface["params"] = interface["proxy_params"]
         # Generate the devices <== "proxy TVB nodes":
-        return interfaces["proxy_model"](source=self._build_and_connect_devices([_interface],
+        return interface["proxy_model"](source=self._build_and_connect_devices([_interface],
                                                                                 self.spiking_network.brain_regions))
 
 
@@ -211,8 +213,8 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
     _output_interfaces_type = SpikeNetOutputRemoteInterfaces
     _input_interfaces_type = SpikeNetInputRemoteInterfaces
 
-    _output_interface_type = SpikeNetOutputRemoteInterface
-    _input_interface_type = SpikeNetInputRemoteInterface
+    _output_interface_type = SpikeNetOutputInterface
+    _input_interface_type = SpikeNetInputInterface
 
     tvb_simulator_serialized = Attr(label="TVB simulator serialized",
                                     doc="""Dictionary of TVB simulator serialization""",
@@ -310,15 +312,14 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
         self._default_tvb_out_proxy_inds = np.array(self._default_tvb_out_proxy_inds)
 
     def _get_interface_arguments(self, interface):
-        voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
         return {"spiking_network": self.spiking_network,
-                populations: np.array(interface["populations"])}
+                "populations": np.array(interface["populations"])}
 
     def _get_output_interface_arguments(self, interface):
         kwargs = self._get_interface_arguments(interface)
         kwargs["spiking_proxy_inds"] = self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         kwargs["spikeNet_sender_proxy"] = \
-            self._build_spikeNet_to_tvb_interface_proxy_nodes(interface, spiking_proxy_inds)
+            self._build_spikeNet_to_tvb_interface_proxy_nodes(interface, kwargs["spiking_proxy_inds"])
         return kwargs
 
     def _get_input_interface_arguments(self, interface):
@@ -404,7 +405,7 @@ class SpikeNetOutputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
         self._assert_output_interfaces_component_config(self._transformer_types, "transformer")
 
     def _get_output_interface_arguments(self, interface):
-        kwargs = super(SpikeNetTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface)
+        kwargs = super(SpikeNetOutputTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface)
         kwargs["transformer"] = interface["transformer"]
         return kwargs
 
@@ -424,6 +425,6 @@ class SpikeNetInputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
         self._assert_input_interfaces_component_config(self._transformer_types, "transformer")
 
     def _get_input_interface_arguments(self, interface):
-        kwargs = super(SpikeNetTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)
+        kwargs = super(SpikeNetInputTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)
         kwargs["transformer"] = interface["transformer"]
         return kwargs
