@@ -5,8 +5,6 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Float
-
 from tvb_multiscale.core.interfaces.base.io import ReaderFromFile
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
@@ -33,11 +31,6 @@ class NESTInputDeviceSetter(SpikeNetInputDevice, NESTCommunicator):
             - an abstract method to set data to the target, depending on the specific NESTInputDeviceSetter.
     """
 
-    dt = Float(label="Time step",
-               doc="Time step of simulation",
-               required=True,
-               default=0.1)
-
     def configure(self, nest_input_device_class):
         assert isinstance(self.target, (nest_input_device_class, DeviceSet, super()._node_collection_class))
         if isinstance(self.target, DeviceSet):
@@ -45,9 +38,6 @@ class NESTInputDeviceSetter(SpikeNetInputDevice, NESTCommunicator):
         elif isinstance(self.target, self._node_collection_class):
             assert self.target.get("model") == nest_input_device_class.model
         super(NESTInputDeviceSetter, self).configure()
-
-    def transform_time(self, time):
-        return self.dt * np.arange(time[0], time[-1] + 1)
 
     @abstractmethod
     def send(self, data):

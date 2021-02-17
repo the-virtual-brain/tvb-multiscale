@@ -1,6 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 
+import numpy as np
+
+from tvb.basic.neotraits.api import Float
+
 from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 # rom tvb_multiscale.core.spiking_models.devices import InputDevice, DeviceSet, OutputDevice
 
@@ -17,6 +21,14 @@ class SpikeNetInputDevice(SetToMemory):
     """
 
     model = "input_device"
+
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
+
+    def transform_time(self, time):
+        return self.dt * np.arange(time[0], time[-1] + 1)
 
     @abstractmethod
     def send(self, data):
