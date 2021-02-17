@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits._attr import NArray, Attr
+from tvb.basic.neotraits._attr import NArray, Attr, Float
 from tvb.basic.neotraits._core import HasTraits
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
@@ -37,6 +37,11 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                            doc="""The instance of SpikingNetwork class""",
                            field_type=SpikingNetwork,
                            required=True)
+
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
 
     @property
     @abstractmethod
@@ -175,8 +180,9 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["model"] = interface["proxy_model"].model
         _interface["params"] = interface["proxy_params"]
         # Generate the devices => "proxy TVB nodes":
-        return interface["proxy_model"](target=self._build_and_connect_devices([_interface],
-                                                                                self.spiking_network.brain_regions))
+        return interface["proxy_model"](dt=self.dt,
+                                        target=self._build_and_connect_devices([_interface],
+                                                                               self.spiking_network.brain_regions))
 
     def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface, spiking_proxy_inds):
         delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
@@ -297,6 +303,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
         return self._default_tvb_out_proxy_inds
 
     def configure(self):
+        self.dt = self.tvb_dt
         SpikeNetProxyNodesBuilder.configure(self)
         InterfaceBuilder.configure(self)
         self._assert_output_interfaces_component_config(self._spikeNet_output_proxy_types, "proxy_model")
