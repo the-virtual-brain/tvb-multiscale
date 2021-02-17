@@ -158,7 +158,7 @@ class RatesToSpikes(Scale):
     )
 
     def configure(self):
-        super(RatesToSpikesElephantPoissonInteraction, self).configure()
+        super(RatesToSpikes, self).configure()
 
     def _assert_size(self, attr):
         value = getattr(self, attr).flatten()
@@ -331,7 +331,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         n_spiketrains = self.n_spiketrains[proxy_count]
         correlation_factor = self.correlation_factor[proxy_count]
         shared_spiketrain, rates = self._compute_shared_spiketrain(rates, n_spiketrains, correlation_factor)
-        if self.correlation_factor[proxy_count] == 1.0:
+        if correlation_factor == 1.0:
             return np.array(shared_spiketrain.tolist() * n_spiketrains)
         else:
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
