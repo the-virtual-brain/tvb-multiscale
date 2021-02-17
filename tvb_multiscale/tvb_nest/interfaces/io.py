@@ -7,8 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits.api import Float
 
-from tvb_multiscale.core.interfaces.base.io import \
-    ReaderFromFile
+from tvb_multiscale.core.interfaces.base.io import ReaderFromFile
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
@@ -33,12 +32,6 @@ class NESTInputDeviceSetter(SpikeNetInputDevice, NESTCommunicator):
             - a target attribute, i.e., the NESTInputDeviceSetter instance to send data to,
             - an abstract method to set data to the target, depending on the specific NESTInputDeviceSetter.
     """
-
-    # TODO: find a way to use here multiple options for field_type!
-    # target = Attr(field_type=(NESTInputDevice, DeviceSet, super()._node_collection_class),
-    #               required=True,
-    #               label="Target of Spiking Network",
-    #               doc="""NESTInputDeviceSetter, DeviceSet or nest.NodeCollection instances to set data to.""")
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
@@ -75,12 +68,6 @@ class NESTInhomogeneousPoissonGeneratorSetter(NESTInputDeviceSetter):
 
     model = "inhomogeneous_poisson_generator"
 
-    # target = Attr(field_type=(NESTInhomogeneousPoissonGenerator, DeviceSet, super()._node_collection_class),
-    #               required=True,
-    #               label="Target of Spiking Network",
-    #               doc="""NESTInhomogeneousPoissonGenerator, DeviceSet of such instances, or
-    #                      inhomogeneous_poisson_generator nest.NodeCollection to set data to.""")
-
     def configure(self):
         super(NESTInhomogeneousPoissonGeneratorSetter, self).configure(NESTInhomogeneousPoissonGenerator)
 
@@ -103,12 +90,6 @@ class NESTSpikeGeneratorSetter(NESTInputDeviceSetter):
 
     model = "spike_generator"
 
-    # target = Attr(field_type=(NESTSpikeGenerator, DeviceSet, super()._node_collection_class),
-    #               required=True,
-    #               label="Target of Spiking Network",
-    #               doc="""NESTSpikeGenerator, DeviceSet of such instances, or
-    #                      spike_generator nest.NodeCollection to set data to.""")
-
     def configure(self):
         super(NESTSpikeGeneratorSetter, self).configure(NESTSpikeGenerator)
 
@@ -130,13 +111,6 @@ class NESTStepCurrentGeneratorSetter(NESTInputDeviceSetter):
 
     model = "step_current_generator"
 
-    #
-    # target = Attr(field_type=(NESTStepCurrentGenerator, DeviceSet, super()._node_collection_class),
-    #               required=True,
-    #               label="Target of Spiking Network",
-    #               doc="""NESTStepCurrentGenerator, DeviceSet of such instances,
-    #                      or step_current_generator nest.NodeCollection to set data to.""")
-
     def configure(self):
         super(NESTStepCurrentGeneratorSetter, self).configure(NESTStepCurrentGenerator)
 
@@ -156,10 +130,7 @@ class NESTEventsFromOutputDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator
             - an abstract method to get data from the source.
     """
 
-    # source = Attr(field_type=(NESTOutputDevice, DeviceSet, super()._node_collection_class),
-    #               required=True,
-    #               label="Source of Spiking Network events",
-    #               doc="""NESTOutputDevice, DeviceSet or nest.NodeCollection types to get events data from.""")
+    model = "nest_output_device"
 
     def configure(self, nest_output_device_class):
         assert isinstance(self.source, (nest_output_device_class, DeviceSet, super()._node_collection_class))
@@ -195,12 +166,6 @@ class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
 
     model = "spike_recorder"
 
-    # source = Attr(field_type=(NESTSpikeRecorder, DeviceSet, super()._node_collection_class)),
-    #               required=True,
-    #               label="NESTSpikeRecorder reader",
-    #               doc="""NESTSpikeRecorder, DeviceSet or spike_recorder nest.NodeCollection
-    #                      types to get events data from.""")
-
     def configure(self):
         super(NESTEventsFromSpikeRecorder, self).configure(NESTSpikeRecorder)
 
@@ -218,12 +183,6 @@ class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
     """
 
     model = "multimeter"
-
-    # source = Attr(field_type=(NESTMultimeter, DeviceSet, super()._node_collection_class)),
-    #               required=True,
-    #               label="NESTMultimeter reader",
-    #               doc="""NESTMultimeter, DeviceSet or multimeter nest.NodeCollection
-    #                      types to get events data from.""")
 
     def configure(self):
         super(NESTEventsFromMultimeter, self).configure(NESTMultimeter)
@@ -243,12 +202,6 @@ class NESTEventsFromVoltmeter(SpikeNetEventsFromOutpuDevice):
 
     model = "voltmeter"
 
-    # source = Attr(field_type=(NESTVoltmeter, DeviceSet, super()._node_collection_class),
-    #               required=True,
-    #               label="NESTVoltmeter reader",
-    #               doc="""NESTVoltmeter, DeviceSet or voltmeter nest.NodeCollection
-    #                      types to get events data from.""")
-
     def configure(self):
         super(NESTEventsFromVoltmeter, self).configure(NESTVoltmeter)
 
@@ -267,7 +220,7 @@ class NESTEventsReaderFromRecorderFile(ReaderFromFile, NESTCommunicator):
         return read_nest_output_device_data_from_ascii_to_dict(self.source)
 
 
-class NESTSpikeRecorderFile(NESTEventsReaderFromRecorderFile):
+class NESTEventsFromSpikeRecorderFile(NESTEventsReaderFromRecorderFile):
 
     """
         NESTSpikeRecorderFile class to read events' data (spike times and senders)
@@ -282,7 +235,7 @@ class NESTSpikeRecorderFile(NESTEventsReaderFromRecorderFile):
     pass
 
 
-class NESTMultimeterFile(NESTEventsReaderFromRecorderFile):
+class NESTEventsFromMultimeterFile(NESTEventsReaderFromRecorderFile):
 
     """
         NESTMultimeterFile class to read events' data (times and values)
@@ -297,7 +250,7 @@ class NESTMultimeterFile(NESTEventsReaderFromRecorderFile):
     pass
 
 
-class NESTVoltmeterFile(NESTEventsReaderFromRecorderFile):
+class NESTEventsFromVoltmeterFile(NESTEventsReaderFromRecorderFile):
 
     """
         NESTVoltmeterFile class to read voltage events' data (times and values)
@@ -319,9 +272,9 @@ class NESTOutputDeviceGetters(Enum):
 
 
 class NESTFileRecorders(Enum):
-    SPIKE_RECORDER_FILE = NESTSpikeRecorderFile
-    MULTIMETER_FILE = NESTMultimeterFile
-    VOLTMETER_FILE = NESTVoltimeterFile
+    SPIKE_RECORDER_FILE = NESTEventsFromSpikeRecorderFile
+    MULTIMETER_FILE = NESTEventsFromMultimeterFile
+    VOLTMETER_FILE = NESTEventsFromVoltmeterFile
 
 
 class NESTInputDeviceSetters(Enum):

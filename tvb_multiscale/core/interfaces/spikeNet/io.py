@@ -7,6 +7,7 @@ from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 
 class SpikeNetInputDevice(SetToMemory):
     __metaclass__ = ABCMeta
+
     """
         SpikeNetInputDevice class to set data directly to an InputDevice instance,
         or a DeviceSet of such instances in memory.
@@ -15,14 +16,7 @@ class SpikeNetInputDevice(SetToMemory):
             - an abstract method to set data to the target, depending on the specific InputDevice.
     """
 
-    # target = Attr(field_type=(InputDevice, DeviceSet),
-    #               required=True,
-    #               label="Target of Spiking Network",
-    #               doc="""Spiking Network InputDevice or DeviceSet to set data to.""")
-
-    def configure(self, device_type):
-        assert isinstance(self.target, device_type)
-        super(SpikeNetInputDevice, self).configure()
+    model = "input_device"
 
     @abstractmethod
     def send(self, data):
@@ -30,6 +24,7 @@ class SpikeNetInputDevice(SetToMemory):
 
 
 class SpikeNetEventsFromOutpuDevice(GetFromMemory):
+
     """
         SpikeNetEventsFromOutpuDevice class to read events' data
          (times, senders and values from NEST Multimeters-like devices) from an OutputDevice,
@@ -39,16 +34,7 @@ class SpikeNetEventsFromOutpuDevice(GetFromMemory):
             - a method to get data from the source.
     """
 
-    # TODO: find a way to use here multiple options for field_type!
-
-    # source = Attr(field_type=(OutputDevice, DeviceSet),
-    #               required=True,
-    #               label="Source of Spiking Network events",
-    #               doc="""Spiking Network OutputDevice or DeviceSet to get events from.""")
-
-    def configure(self, device_type):
-        assert isinstance(self.source, device_type)
-        super(SpikeNetEventsFromOutpuDevice, self).configure()
+    model = "output_device"
 
     def receive(self):
         events = self.source.get_events()
