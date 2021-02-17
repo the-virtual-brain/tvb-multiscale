@@ -291,6 +291,7 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
         return self.in_proxy_inds
 
     def configure(self):
+        self.dt = self.tvb_dt  # From TVBInterfaceBuilder to SpikeNetProxyNodesBuilder
         self.output_interfaces = TVBOutputTransformerBuilder.configure(self, self.output_interfaces)
         self.input_interfaces = TVBInputTransformerBuilder.configure(self, self.input_interfaces)
         SpikeNetProxyNodesBuilder.configure(self)

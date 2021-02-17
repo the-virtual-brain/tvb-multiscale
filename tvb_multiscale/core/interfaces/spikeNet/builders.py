@@ -303,7 +303,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
         return self._default_tvb_out_proxy_inds
 
     def configure(self):
-        self.dt = self.tvb_dt
+        self.dt = self.tvb_dt  # From SpikeNetInterfaceBuilder to SpikeNetProxyNodesBuilder
         SpikeNetProxyNodesBuilder.configure(self)
         InterfaceBuilder.configure(self)
         self._assert_output_interfaces_component_config(self._spikeNet_output_proxy_types, "proxy_model")
