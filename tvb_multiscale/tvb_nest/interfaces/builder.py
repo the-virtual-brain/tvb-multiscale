@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from six import string_types
 from enum import Enum
 
-import numpy as np
-
-from tvb.basic.neotraits.api import HasTraits, Attr
+from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
@@ -21,19 +20,18 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import \
 from tvb_multiscale.tvb_nest.interfaces.io import NESTEventsFromSpikeRecorder, NESTSpikeRecorderFile, \
     NESTSpikeGeneratorSetter, NESTInhomogeneousPoissonGeneratorSetter, NESTStepCurrentGeneratorSetter
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
-from tvb_multiscale.tvb_nest.nest_models.devices import NE
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
 
 class NESTInputProxyModels(Enum):
     RATE = NESTInhomogeneousPoissonGeneratorSetter
-    SPIKES = NESTSpikeGeneratorSetter
+    RATE_TO_SPIKES = NESTSpikeGeneratorSetter
     CURRENT = NESTStepCurrentGeneratorSetter
 
 
 class NESTOutputProxyModels(Enum):
-    SPIKES = NESTEventsFromSpikeRecorder
-    SPIKES_FILE = NESTSpikeRecorderFile
+    SPIKES_TO_RATE = NESTEventsFromSpikeRecorder
+    SPIKES_FILE_TO_RATE = NESTSpikeRecorderFile
 
 
 class NESTInterfaceBuilder(HasTraits):
@@ -53,6 +51,9 @@ class NESTInterfaceBuilder(HasTraits):
 
     input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
                             doc="List of dicts of configurations for the input interfaces to be built")
+
+    _default_input_proxy_model = NESTInputProxyModels.RATE_TO_SPIKES.name
+    _default_output_proxy_model = NESTOutputProxyModels.SPIKES_TO_RATE.name
 
     @property
     def nest_network(self):
@@ -88,19 +89,20 @@ class NESTInterfaceBuilder(HasTraits):
 
     def configure(self):
         for interface in self.input_interfaces:
-            model = interface.get("proxy_model", interface.get("model", "SPIKES"))
+            model = interface.get("proxy_model", interface.get("model", self._default_input_proxy_model))
             if isinstance(model, string_types):
                 model = model.upper()
                 interface["proxy_model"] = getattr(NESTInputProxyModels, model).value
             else:
                 assert model in self._spikeNet_input_proxy_types
         for interface in self.output_interfaces:
-            model = interface.get("proxy_model", interface.get("model", "SPIKES")).upper()
+            model = interface.get("proxy_model", interface.get("model", self.self._default_output_proxy_model))
             if isinstance(model, string_types):
                 model = model.upper()
                 interface["proxy_model"] = getattr(NESTOutputProxyModels, model).value
             else:
                 assert model in self._spikeNet_output_proxy_types
+        super(NESTInterfaceBuilder, self).configure()
 
 
 class NESTRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, NESTInterfaceBuilder):
