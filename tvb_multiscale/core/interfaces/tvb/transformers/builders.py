@@ -23,6 +23,8 @@ class DefaultTVBInputTransformers(Enum):
 
 class TVBOutputTransformerBuilder(HasTraits):
 
+    """TVBOutputTransformerBuilder"""
+
     _tvb_output_transformer_types = [val.value for val in DefaultTVBOutputTransformers.__members__.values()]
     _default_output_transformer_model = DefaultTVBOutputTransformers.RATE_TO_SPIKES.name
     _default_output_transformer_types = DefaultTVBOutputTransformers
@@ -60,6 +62,8 @@ class TVBOutputTransformerBuilder(HasTraits):
 
 
 class TVBInputTransformerBuilder(HasTraits):
+
+    """TVBInputTransformerBuilder"""
 
     _tvb_input_transformer_types = TVBSpikesToRatesElephantRate
     _default_input_transformer_model = DefaultTVBOutputTransformers.RATE_TO_SPIKES.name
