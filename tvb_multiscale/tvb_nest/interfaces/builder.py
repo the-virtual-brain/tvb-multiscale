@@ -190,9 +190,6 @@ class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder, NESTInterfaceBuilder)
     _spikeNet_output_proxy_types = NESTInterfaceBuilder._spikeNet_output_proxy_types
     _spikeNet_input_proxy_types = NESTInterfaceBuilder._spikeNet_input_proxy_types
 
-    _output_interfaces_type = TVBtoNESTInterfaces
-    _input_interfaces_type = NESTtoTVBInterfaces
-
     def configure(self):
         NESTInterfaceBuilder.configure(self)
         TVBSpikeNetInterfaceBuilder.configure(self)
