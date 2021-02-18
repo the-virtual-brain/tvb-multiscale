@@ -21,9 +21,6 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 class SpikeNetProxyNodesBuilder(HasTraits):
     __metaclass__ = ABCMeta
 
-    _spikeNet_output_proxy_types = SpikeNetEventsFromOutputDevice
-    _spikeNet_input_proxy_types = SpikeNetInputDevice
-
     """SpikeNetProxyNodesBuilder abstract base class"""
 
     global_coupling_scaling = NArray(
@@ -305,8 +302,6 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
         self.dt = self.tvb_dt  # From SpikeNetInterfaceBuilder to SpikeNetProxyNodesBuilder
         SpikeNetProxyNodesBuilder.configure(self)
         InterfaceBuilder.configure(self)
-        self._assert_output_interfaces_component_config(self._spikeNet_output_proxy_types, "proxy_model")
-        self._assert_input_interfaces_component_config(self._spikeNet_input_proxy_types, "proxy_model")
         if len(self.output_interfaces):
             assert self.out_proxy_labels in self.region_labels
         if len(self.input_interfaces):
