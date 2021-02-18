@@ -60,6 +60,13 @@ class SerialOrchestrator(Orchestrator):
         self.spikeNet_app.tvb_cosimulator_serialized = self.tvb_app.serialize_tvb_cosimulator()
         self.spikeNet_app.build()
 
+    def get_number_of_neurons_per_region_and_population(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
+       return self.spikeNet_app.number_of_neurons_per_region_and_population(reg_inds_or_lbls, pop_inds_or_lbls)
+
+    @property
+    def number_of_neurons_per_region_and_population(self):
+        return self.spikeNet_app.number_of_neurons_per_region_and_population
+
     def build_interfaces(self):
         self.tvb_app.interfaces_builder.spiking_network = self.spiking_network
         self.tvb_app.build_interfaces()

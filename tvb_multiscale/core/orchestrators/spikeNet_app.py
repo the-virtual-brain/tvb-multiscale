@@ -56,16 +56,16 @@ class SpikeNetApp(NonTVBApp):
     def build_spiking_network(self):
         self.spiking_network = self.spiking_model_builder.build_spiking_brain()
 
-    def get_populations_and_sizes(self):
-        self.populations = []
-        self.populations_sizes = []
-        for pop in self.spiking_model_builder.populations:
-            self.populations.append(pop["label"])
-            try:
-                self.populations_sizes.append(int(np.round(pop["scale"] * self.spiking_model_builder.population_order)))
-            except:
-                pass
-        return self.populations, self.populations_sizes
+    def get_number_of_neurons_per_region_and_populations(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
+        if self.spiking_network is not None:
+            return self.spiking_network.get_number_of_neurons_per_region_and_population(
+                reg_inds_or_lbls, pop_inds_or_lbls)
+        else:
+            return None
+
+    @property
+    def number_of_neurons_per_region_and_population(self):
+        return self.get_number_of_neurons_per_region_and_population()
 
     def build(self):
         if not self.spiking_model_builder:
