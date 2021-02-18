@@ -6,7 +6,8 @@ from tvb_multiscale.core.config import initialize_logger, LINE
 
 from tvb.basic.neotraits.api import HasTraits, Int
 
-from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
+from tvb.contrib.scripts.utils.data_structures_utils import \
+    series_loop_generator, is_integer, concatenate_heterogeneous_DataArrays
 
 
 LOG = initialize_logger(__name__)
@@ -89,6 +90,13 @@ class SpikingBrain(Series, HasTraits):
             int: number of neurons.
         """
         return len(self.get_neurons(reg_inds_or_lbls, pop_inds_or_lbls))
+
+    def get_number_of_neurons_per_region(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
+        output = Series()
+        for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
+            output[lbl] = reg.get_number_of_neurons_per_population(pop_inds_or_lbls)
+        return concatenate_heterogeneous_DataArrays(output,
+                                                    concat_dim_name="Region", name="Number of neurons", fill_value=0)
 
     def Set(self, values_dict, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
         """Method to set attributes of the SpikingBrain's neurons.
