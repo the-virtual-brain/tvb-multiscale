@@ -147,6 +147,13 @@ class SpikingNetwork(HasTraits):
     def number_of_nodes(self):
         return len(self.brain_regions)
 
+    def get_number_of_neurons_per_region_and_population(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
+        return self.brain_regions.get_number_of_neurons_per_region_and_population(reg_inds_or_lbls, pop_inds_or_lbls)
+
+    @property
+    def number_of_neurons_per_region_and_population(self):
+        return self.get_number_of_neurons_per_region_and_population(self)
+
     def get_devices_by_model(self, model, regions=None):
         """This method will loop though all network's devices to return all devices of a given model.
            Arguments:

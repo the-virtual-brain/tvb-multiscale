@@ -301,6 +301,10 @@ class SpikingBrain(Series, HasTraits):
         return self._number_of_neurons
 
     @property
+    def number_of_neurons_per_region(self):
+        return self.get_number_of_neurons_per_region()
+
+    @property
     def attributes(self):
         """Method to get all attributes of the SpikingBrain's neurons.
            Arguments:

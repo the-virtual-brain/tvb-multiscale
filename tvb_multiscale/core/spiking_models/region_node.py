@@ -279,6 +279,10 @@ class SpikingRegionNode(Series, HasTraits):
         return self._number_of_neurons
 
     @property
+    def number_of_neurons_per_population(self):
+        return self.get_number_of_neurons_per_population()
+
+    @property
     def attributes(self):
         return self.get_attributes()
 
