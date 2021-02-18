@@ -94,7 +94,6 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     def _default_tvb_delay_fun(self, source_node, target_node):
         return self.tvb_delays[source_node, target_node]
 
-    @property
     @abstractmethod
     def _default_receptor_type(self, source_node, target_node):
         pass

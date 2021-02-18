@@ -79,7 +79,6 @@ class NESTInterfaceBuilder(HasTraits):
         return build_and_connect_devices(devices, create_device, connect_device,
                                          nodes, self.config, nest_instance=self.nest_instance)
 
-    @property
     def _default_receptor_type(self, source_node, target_node):
         return 0
 
