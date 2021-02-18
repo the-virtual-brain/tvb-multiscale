@@ -76,10 +76,7 @@ class TVBOutputTransformerBuilder(TVBTransformerBuilder):
                     setattr(interface["transformer"], p, pval)
             elif isinstance(model, string_types):
                 model = model.upper()
-                if model not in TVBOutputTransformersModels:
-                    raise ValueError("Transformer configuration\n%s\nof interface\n%s\nis not a string "
-                                     "corresponding to an available model of TVBOutputTransformers!:\n%s"
-                                     % (str(model), str(interface), str(TVBOutputTransformersModels)))
+                assert model in TVBOutputTransformersModels
                 if model == DefaultTVBOutputTransformers.RATE_TO_SPIKES.name:
                     correlation_factor = params.get("correlation_factor", None)
                     scale_factor = params.get("scale_factor", 1.0)
@@ -128,10 +125,7 @@ class TVBInputTransformerBuilder(TVBTransformerBuilder):
                     setattr(interface["transformer"], p, pval)
             elif isinstance(model, string_types):
                 model = model.upper()
-                if model not in TVBInputTransformersModels:
-                    raise ValueError("Transformer configuration\n%s\nof interface\n%s\nis not a string "
-                                     "corresponding to an available model of TVBInputTransformers!:\n%s"
-                                     % (str(model), str(interface), str(TVBInputTransformersModels)))
+                assert model in TVBInputTransformersModels
                 interface["transformer"] = \
                     getattr(self._default_input_transformer_types, model).value(**params)
             else:
