@@ -6,7 +6,7 @@ from enum import Enum
 import numpy as np
 
 from tvb_multiscale.core.interfaces.base.io import ReaderFromFile
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutputDevice
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_nest.nest_models.devices import read_nest_output_device_data_from_ascii_to_dict, \
@@ -109,7 +109,7 @@ class NESTStepCurrentGeneratorSetter(NESTInputDeviceSetter):
                          "amplitude_values": data[1].tolist()})
 
 
-class NESTEventsFromOutputDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator):
+class NESTEventsFromOutputDevice(SpikeNetEventsFromOutputDevice, NESTCommunicator):
 
     """
         NESTEventsFromOutputDevice class to read events' data
@@ -142,7 +142,7 @@ class NESTEventsFromOutputDevice(SpikeNetEventsFromOutpuDevice, NESTCommunicator
         return events
 
 
-class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
+class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutputDevice):
 
     """
         NESTEventsFromSpikeRecorder class to read events' data
@@ -160,7 +160,7 @@ class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutpuDevice):
         super(NESTEventsFromSpikeRecorder, self).configure(NESTSpikeRecorder)
 
 
-class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
+class NESTEventsFromMultimeter(SpikeNetEventsFromOutputDevice):
 
     """
         NESTEventsFromMultimeter class to read events' data
@@ -178,7 +178,7 @@ class NESTEventsFromMultimeter(SpikeNetEventsFromOutpuDevice):
         super(NESTEventsFromMultimeter, self).configure(NESTMultimeter)
 
 
-class NESTEventsFromVoltmeter(SpikeNetEventsFromOutpuDevice):
+class NESTEventsFromVoltmeter(SpikeNetEventsFromOutputDevice):
 
     """
         NESTEventsFromVoltmeter class to read events' data

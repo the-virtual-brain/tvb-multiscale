@@ -7,7 +7,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 
 from tvb_multiscale.core.interfaces.base import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutputDevice
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -67,7 +67,7 @@ class SpikeNetOutputInterface(SpikeNetInterface):
                                  doc="""An instance of SpikeNetEventsFromOutputDevice 
                                         implementing a proxy node sending outputs from the spiking network
                                         to the co-simulator""",
-                                 field_type=SpikeNetEventsFromOutpuDevice,
+                                 field_type=SpikeNetEventsFromOutputDevice,
                                  required=True)
 
     def configure(self):

@@ -14,14 +14,14 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputInterface, SpikeNetInputInterface, \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutpuDevice
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutputDevice
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
     __metaclass__ = ABCMeta
 
-    _spikeNet_output_proxy_types = SpikeNetEventsFromOutpuDevice
+    _spikeNet_output_proxy_types = SpikeNetEventsFromOutputDevice
     _spikeNet_input_proxy_types = SpikeNetInputDevice
 
     """SpikeNetProxyNodesBuilder abstract base class"""
@@ -208,7 +208,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["params"] = interface["proxy_params"]
         # Generate the devices <== "proxy TVB nodes":
         return interface["proxy_model"](source=self._build_and_connect_devices([_interface],
-                                                                                self.spiking_network.brain_regions))
+                                                                               self.spiking_network.brain_regions))
 
 
 class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):

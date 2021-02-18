@@ -35,10 +35,10 @@ class SpikeNetInputDevice(SetToMemory):
         pass
 
 
-class SpikeNetEventsFromOutpuDevice(GetFromMemory):
+class SpikeNetEventsFromOutputDevice(GetFromMemory):
 
     """
-        SpikeNetEventsFromOutpuDevice class to read events' data
+        SpikeNetEventsFromOutputDevice class to read events' data
          (times, senders and values from NEST Multimeters-like devices) from an OutputDevice,
          or a DeviceSet of such instances
         It comprises of:
@@ -59,4 +59,4 @@ class SpikeNetSenders(Enum):
 
 
 class SpikeNetReceivers(Enum):
-    SPIKE_NET_EVENTS_FROM_OUTPUT_DEVICE = SpikeNetEventsFromOutpuDevice
+    SPIKE_NET_EVENTS_FROM_OUTPUT_DEVICE = SpikeNetEventsFromOutputDevice
