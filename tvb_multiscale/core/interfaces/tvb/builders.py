@@ -10,7 +10,6 @@ from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
-from tvb_multiscale.core.interfaces.tvb.transformers.models import TVBSpikesToRatesElephantRate
 from tvb_multiscale.core.interfaces.tvb.transformers.builders import \
     TVBOutputTransformerBuilder, TVBInputTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
@@ -214,11 +213,9 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransfor
     _input_interface_type = TVBReceiverTransformerInterface
 
     def configure(self):
-        self.output_interfaces = TVBOutputTransformerBuilder.configure(self, self.output_interfaces)
-        self.input_interfaces = TVBInputTransformerBuilder.configure(self, self.input_interfaces)
         super(TVBTransfomerInterfaceBuilder, self).configure()
-        self._assert_output_interfaces_component_config(self._tvb_output_transformer_types, "transformer")
-        self._assert_input_interfaces_component_config(self._tvb_input_transformer_types, "transformer")
+        TVBOutputTransformerBuilder.configure_and_build_transformer(self)
+        TVBInputTransformerBuilder.configure_and_build_transformer(self)
 
     def _get_output_interface_arguments(self, interface):
         kwargs = super(TVBTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
@@ -239,9 +236,8 @@ class TVBOutputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTr
     _input_interface_type = TVBReceiverInterface
 
     def configure(self):
-        self.output_interfaces = TVBOutputTransformerBuilder.configure(self, self.output_interfaces)
+        self.configure_and_build_transformer(self)
         super(TVBOutputTransfomerInterfaceBuilder, self).configure()
-        self._assert_output_interfaces_component_config(self._tvb_output_transformer_types, "transformer")
 
     def _get_output_interface_arguments(self, interface):
         kwargs = super(TVBOutputTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
@@ -255,14 +251,10 @@ class TVBInputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBInputTran
 
     _output_interface_type = TVBSenderInterface
     _input_interface_type = TVBReceiverTransformerInterface
-    
-    _tvb_input_transformer_types = TVBSpikesToRatesElephantRate
-    _default_input_transformer_type = TVBSpikesToRatesElephantRate
 
     def configure(self):
-        self.input_interfaces = TVBInputTransformerBuilder.configure(self, self.input_interfaces)
         super(TVBInputTransfomerInterfaceBuilder, self).configure()
-        self._assert_input_interfaces_component_config(self._tvb_transformers_types, "transformer")
+        self.configure_and_build_transformer(self)
 
     def _get_input_interface_arguments(self, interface):
         kwargs = super(TVBInputTransfomerInterfaceBuilder, self)._get_input_interface_arguments(interface)
@@ -292,12 +284,10 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
 
     def configure(self):
         self.dt = self.tvb_dt  # From TVBInterfaceBuilder to SpikeNetProxyNodesBuilder
-        self.output_interfaces = TVBOutputTransformerBuilder.configure(self, self.output_interfaces)
-        self.input_interfaces = TVBInputTransformerBuilder.configure(self, self.input_interfaces)
         SpikeNetProxyNodesBuilder.configure(self)
         TVBInterfaceBuilder.configure(self)
-        self._assert_output_interfaces_component_config(self._tvb_transformer_types, "transformer")
-        self._assert_input_interfaces_component_config(self._tvb_transformer_types, "transformer")
+        TVBOutputTransformerBuilder.configure_and_build_transformer(self)
+        TVBInputTransformerBuilder.configure_and_build_transformer(self)
 
     def _get_spikeNet_interface_arguments(self, interface):
         return {"spiking_network": self.spiking_network,

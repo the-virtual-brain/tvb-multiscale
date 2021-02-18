@@ -134,10 +134,20 @@ class TVBRatesToSpikesTransformers(Enum):
     ELEPHANT_POISSON_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonMultipleInteraction
 
 
+class TVBOutputScaleTransformers(Enum):
+    RATE = TVBtoSpikeNetRateTransformer
+    CURRENT = TVBtoSpikeNetCurrentTransformer
+
+
+TVBOutputTransformers = combine_enums("TVBOutputTransformers", TVBRatesToSpikesTransformers, TVBOutputScaleTransformers)
+
+
 class TVBSpikesToRatesTransformers(Enum):
     ELEPHANT_HISTOGRAM = TVBSpikesToRatesElephantHistogram
     ELEPHANT_RATE = TVBSpikesToRatesElephantRate
 
 
-TVBTransformers = combine_enums("TVBTransformers",
-                                Transformers, TVBRatesToSpikesTransformers, TVBSpikesToRatesTransformers)
+TVBInputTransformers = TVBSpikesToRatesTransformers
+
+
+TVBTransformers = combine_enums("TVBTransformers", TVBOutputTransformers, TVBInputTransformers)
