@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-from tvb.basic.neotraits._attr import Attr, NArray, Float
+from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import Orchestrator
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp
