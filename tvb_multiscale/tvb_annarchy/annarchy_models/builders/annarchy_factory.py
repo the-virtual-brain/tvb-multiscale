@@ -165,9 +165,25 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
     if method == "current":
         warning("Ignoring weight and delay for connect_current method, for the connection %s -> %s!"
                 % (source_pop.label, target_pop.label))
-        proj = getattr(proj, "connect_" % method)(**connection_args)
+        proj = proj.connect_current()
+    elif method == "fixed_probability":
+        proj = proj.connect_fixed_probability(connection_args.pop("probability"), weights, **connection_args)
+    elif method in ["fixed_number_pre", "fixed_number_post"]:
+        proj = getattr(proj, "connect_" + method)(connection_args.pop("number"),
+                                                  weights, delays=delays, **connection_args)
+    elif method == "gaussian":
+        proj = proj.connect_gaussian(connection_args.pop("amp"), connection_args.pop("sigma"),
+                                     delays=delays, **connection_args)
+    elif method == "dog":
+        proj = proj.connect_dog(connection_args.pop("amp_pos"), connection_args.pop("sigma_pos"),
+                                connection_args.pop("amp_neg"), connection_args.pop("sigma_neg"),
+                                delays=delays, **connection_args)
+    elif method == "from_file":
+        proj = proj.connect_from_file(connection_args["filename"])
+    elif method == "with_func":
+        proj = proj.connect_with_func(connection_args.pop("method"), **connection_args)
     else:
-        proj = getattr(proj, "connect_" + method)(weights=weights, delays=delays, **connection_args)
+        proj = getattr(proj, "connect_" + method)(weights, delays=delays, **connection_args)
     return proj
 
 
@@ -317,7 +333,7 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
             annarchy_device.number_of_neurons - annarchy_device.number_of_connected_neurons
         if number_of_available_connections < neurons.size:
             # TODO: think more about this: error, fixed_number_pre or overlapping?
-            # If the remaining available neurons are nit enough,
+            # If the remaining available neurons are not enough,
             # use some of the already used ones with a partial overlap:
             source_view_fun = lambda _population: _population[:-neurons.size]
             warning("Device of model %s with label %s:\n"
