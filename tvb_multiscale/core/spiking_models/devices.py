@@ -766,7 +766,7 @@ class Voltmeter(Multimeter):
     """OutputDevice class to wrap around an output device
       that records continuous time membrane potential data only."""
 
-    # The Voltmeter is just a Mutlimeter measuring only a voltage quantity
+    # The Voltmeter is just a Multimeter measuring only a voltage quantity
 
     def __init__(self, device, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "voltmeter")
