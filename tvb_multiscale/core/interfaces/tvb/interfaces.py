@@ -95,12 +95,6 @@ class TVBOutputInterface(TVBInterface):
     def set_local_indices(self, monitor_voi):
         self.set_local_voi_indices(monitor_voi)
 
-    def __call__(self, data):
-        return [np.array([data[self.monitor_ind][0][0],     # start input_time step
-                          data[self.monitor_ind][0][-1]]),  # end input_time step
-                # values (voi_loc indices needed here, specific to the attached monitor)
-                data[self.monitor_ind][1][:, self.voi_loc, self.proxy_inds, :]]
-
     def print_str(self):
         super(TVBOutputInterface, self).print_str(self, sender_not_receiver=True)
 
@@ -266,7 +260,8 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         for interface in self.interfaces:
             #                            start_time_step                 end_time_step
             interface([np.array([data[interface.monitor_ind][0][0], data[interface.monitor_ind][0][-1]]).astype("i"),
-                       data[interface.monitor_ind][1][:, :, :, 0]])  # data values !!! assuming only 1 mode!!!
+                       # data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
+                       data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
 
 class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
