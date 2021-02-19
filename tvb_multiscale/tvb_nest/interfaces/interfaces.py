@@ -13,7 +13,7 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 
 from tvb_multiscale.tvb_nest.interfaces.io import \
-    NESTInputDeviceSetter, NESTEventsFromOutputDevice
+    NESTInputDeviceSet, NESTOutputDeviceSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 
 
@@ -58,10 +58,10 @@ class NESTOutputInterface(NESTInterface):
     """NESTOutputInterface base class for interfaces sending data from NEST."""
 
     spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
-                                 doc="""An instance of NESTEventsFromOutputDevice 
+                                 doc="""An instance of NESTOutputDeviceSet 
                                         implementing a proxy node sending outputs from the NEST network
                                         to the co-simulator""",
-                                 field_type=NESTEventsFromOutputDevice,
+                                 field_type=NESTOutputDeviceSet,
                                  required=True)
 
     @property
@@ -92,7 +92,7 @@ class NESTInputInterface(NESTInterface):
                                    doc="""An instance of ) 
                                           implementing a proxy node receiving inputs from the co-simulator 
                                           as an input to the NEST network""",
-                                   field_type=NESTInputDeviceSetter,
+                                   field_type=NESTInputDeviceSet,
                                    required=True)
 
     @property

@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr
 
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetEventsFromOutputDevice
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetOutputDeviceSet
 from tvb_multiscale.core.interfaces.base.transformers import Base as Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
@@ -252,7 +252,7 @@ class SettersToMemory(Enum):
 
 class GettersFromMemory(Enum):
     GET_FROM_TRANSFORMER = GetFromTransformer
-    SPIKE_NET_OUTPUT_DEVICE = SpikeNetEventsFromOutputDevice
+    SPIKE_NET_OUTPUT_DEVICE = SpikeNetOutputDeviceSet
 
 
 RemoteSenders = combine_enums("RemoteSenders", WritersToFile)

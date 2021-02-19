@@ -17,21 +17,20 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTTransformerSenderInterface, NESTReceiverTransformerInterface, \
     TVBtoNESTInterfaces, NESTtoTVBInterfaces, \
     TVBtoNESTInterface, NESTtoTVBInterface
-from tvb_multiscale.tvb_nest.interfaces.io import NESTEventsFromSpikeRecorder, NESTSpikeRecorderFile, \
-    NESTSpikeGeneratorSetter, NESTInhomogeneousPoissonGeneratorSetter, NESTStepCurrentGeneratorSetter
+from tvb_multiscale.tvb_nest.interfaces.io import NESTSpikeRecorderSet, \
+    NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
 
 class NESTInputProxyModels(Enum):
-    RATE = NESTInhomogeneousPoissonGeneratorSetter
-    RATE_TO_SPIKES = NESTSpikeGeneratorSetter
-    CURRENT = NESTStepCurrentGeneratorSetter
+    RATE = NESTInhomogeneousPoissonGeneratorSet
+    RATE_TO_SPIKES = NESTSpikeGeneratorSet
+    CURRENT = NESTStepCurrentGeneratorSet
 
 
 class NESTOutputProxyModels(Enum):
-    SPIKES_TO_RATE = NESTEventsFromSpikeRecorder
-    SPIKES_FILE_TO_RATE = NESTSpikeRecorderFile
+    SPIKES_TO_RATE = NESTSpikeRecorderSet
 
 
 NEST_OUTPUT_PROXY_TYPES = tuple([val.value for val in NESTOutputProxyModels.__members__.values()])

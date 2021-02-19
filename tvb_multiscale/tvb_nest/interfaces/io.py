@@ -5,61 +5,43 @@ from enum import Enum
 
 import numpy as np
 
-from tvb_multiscale.core.interfaces.base.io import ReaderFromFile
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutputDevice
-from tvb_multiscale.core.spiking_models.devices import DeviceSet
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
-from tvb_multiscale.tvb_nest.nest_models.devices import read_nest_output_device_data_from_ascii_to_dict, \
-    NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
-    NESTSpikeRecorder, NESTMultimeter, NESTVoltmeter
+from tvb_multiscale.tvb_nest.nest_models.devices import \
+    NESTInputDevice, NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
+    NESTOutputDevice, NESTSpikeRecorder, NESTMultimeter, NESTVoltmeter
 
 
-class NESTCommunicator(object):
-    from nest import NodeCollection
-    _node_collection_class = NodeCollection
-
-
-class NESTInputDeviceSetter(SpikeNetInputDevice, NESTCommunicator):
+class NESTInputDeviceSet(SpikeNetInputDeviceSet):
     __metaclass__ = ABCMeta
 
     """
-        NESTInputDeviceSetter class to set data directly to a NESTInputDeviceSetter instance, 
-        a DeviceSet of such instances, or a nest.NodeCollection instance corresponding 
-        to a NESTInputDeviceSetter in memory.
+        NESTInputDeviceSet class to set data directly to a DeviceSet of NESTInputDevice instances in memory.
         It comprises of:
-            - a target attribute, i.e., the NESTInputDeviceSetter instance to send data to,
-            - an abstract method to set data to the target, depending on the specific NESTInputDeviceSetter.
+            - a target attribute, i.e., the NESTInputDeviceSet of NESTInputDevice instances to send data to,
+            - an abstract method to set data to the target, depending on the specific NESTInputDeviceSet.
     """
 
-    def configure(self, nest_input_device_class):
-        assert isinstance(self.target, (nest_input_device_class, DeviceSet, super()._node_collection_class))
-        if isinstance(self.target, DeviceSet):
-            assert isinstance(self.target[0], nest_input_device_class)
-        elif isinstance(self.target, self._node_collection_class):
-            assert self.target.get("model") == nest_input_device_class.model
-        super(NESTInputDeviceSetter, self).configure()
+    _spikeNet_input_device_type = NESTInputDevice
 
     @abstractmethod
     def send(self, data):
         pass
 
 
-class NESTInhomogeneousPoissonGeneratorSetter(NESTInputDeviceSetter):
+class NESTInhomogeneousPoissonGeneratorSet(NESTInputDeviceSet):
 
     """
-        NESTInhomogeneousPoissonGeneratorSetter class to set data directly to a NESTInhomogeneousPoissonGenerator 
-        instance or a nest.NodeCollection instance corresponding 
-        to a NEST inhomogeneous_poisson_generator device in memory.
+        NESTInhomogeneousPoissonGeneratorSet class to set data directly to a DeviceSet
+        of NESTInhomogeneousPoissonGenerator instances in memory
         It comprises of:
-            - a target attribute, i.e., the NESTInhomogeneousPoissonGenerator, DeviceSet, or 
-               inhomogeneous_poisson_generator instance to send data to,
+            - a target attribute, i.e., a DeviceSet, of NESTInhomogeneousPoissonGenerator instances to send data to,
             - a method to set data to the target.
     """
 
     model = "inhomogeneous_poisson_generator"
 
-    def configure(self):
-        super(NESTInhomogeneousPoissonGeneratorSetter, self).configure(NESTInhomogeneousPoissonGenerator)
+    _spikeNet_input_device_type = NESTInhomogeneousPoissonGenerator
 
     def send(self, data):
         # Assuming data is of shape (proxy, time)
@@ -67,68 +49,56 @@ class NESTInhomogeneousPoissonGeneratorSetter(NESTInputDeviceSetter):
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
-class NESTSpikeGeneratorSetter(NESTInputDeviceSetter):
+class NESTSpikeGeneratorSet(NESTInputDeviceSet):
 
     """
-        NESTSpikeGenerator class to set data directly to a NESTSpikeGenerator instance 
-        or a nest.NodeCollection instance corresponding to a NEST spike_generator device in memory.
+        NESTSpikeGeneratorSet class to set data directly to a DeviceSet of NESTSpikeGenerator instances in memory.
         It comprises of:
-            - a target attribute, i.e., the NESTSpikeGenerator, DeviceSet, or 
-               spike_generator instance to send data to,
+            - a target attribute, i.e., the DeviceSet of NESTSpikeGenerator instances to send data to,
             - a method to set data to the target.
     """
 
     model = "spike_generator"
 
-    def configure(self):
-        super(NESTSpikeGeneratorSetter, self).configure(NESTSpikeGenerator)
+    _spikeNet_input_device_type = NESTSpikeGenerator
 
     def send(self, data):
         self.target.set({"spikes_times": np.maximum([0.0], data[-1]).tolist()})
 
 
-class NESTStepCurrentGeneratorSetter(NESTInputDeviceSetter):
+class NESTStepCurrentGeneratorSet(NESTInputDeviceSet):
 
     """
-        NESTStepCurrentGenerator class to set data directly to a NESTStepCurrentGenerator instance, 
-        a DeviceSet of such instances, or a nest.NodeCollection instance 
-        corresponding to a NEST step_current_generator device in memory.
+        NESTStepCurrentGeneratorSet class to set data directly to a DeviceSet
+        of NESTStepCurrentGenerator instances in memory.
         It comprises of:
-            - a target attribute, i.e., the NESTStepCurrentGenerator, DeviceSet,
-             or step_current_generator instance to send data to,
+            - a target attribute, i.e., the DeviceSet of NESTStepCurrentGenerator instances to send data to,
             - a method to set data to the target.
     """
 
     model = "step_current_generator"
 
-    def configure(self):
-        super(NESTStepCurrentGeneratorSetter, self).configure(NESTStepCurrentGenerator)
+    _spikeNet_input_device_type = NESTStepCurrentGenerator
 
     def send(self, data):
         self.target.set({"amplitude_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
                          "amplitude_values": data[1].tolist()})
 
 
-class NESTEventsFromOutputDevice(SpikeNetEventsFromOutputDevice, NESTCommunicator):
+class NESTOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     """
-        NESTEventsFromOutputDevice class to read events' data
-         (times, senders and values from NEST Multimeters-like devices) from a NESTOutputDevice device,
-         a DeviceSet of NESTOutputDevices a nest.NodeCollection instance corresponding to a NEST recording device.
+        NESTOutputDeviceSet class to read events' data
+         (times, senders and values from NEST Multimeters-like devices) from a DeviceSet
+        of NESTOutputDevice instances in memory.
         It comprises of:
-            - a source attribute, i.e., the NESTOutputDevice to get (i.e., copy) data from,
+            - a source attribute, i.e., the DeviceSet of NESTOutputDevice instances to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
 
     model = "nest_output_device"
 
-    def configure(self, nest_output_device_class):
-        assert isinstance(self.source, (nest_output_device_class, DeviceSet, super()._node_collection_class))
-        if isinstance(self.source, DeviceSet):
-            assert isinstance(self.source[0], nest_output_device_class)
-        elif isinstance(self.source, self._node_collection_class):
-            assert self.souce.get("model") == nest_output_device_class.model
-        super(NESTEventsFromOutputDevice, self).configure()
+    _spikeNet_output_device_type = NESTOutputDevice
 
     @property
     def reset(self):
@@ -136,143 +106,76 @@ class NESTEventsFromOutputDevice(SpikeNetEventsFromOutputDevice, NESTCommunicato
         pass
         # self.source.n_events = 0
 
-    def receive(self):
-        events = self.source.get("events")
-        self.reset
-        return events
 
-
-class NESTEventsFromSpikeRecorder(SpikeNetEventsFromOutputDevice):
+class NESTSpikeRecorderSet(SpikeNetOutputDeviceSet):
 
     """
-        NESTEventsFromSpikeRecorder class to read events' data
-         (spike times and senders) from a NESTSpikeRecorder device,
-         a DeviceSet of NESTSpikeRecorder instances 
-         or a nest.NodeCollection instance corresponding to a NEST spike_recorder device.
+        NESTSpikeRecorderSet class to read events' data (spike times and senders)
+        from a DeviceSet of NESTSpikeRecorder instances in memory.
         It comprises of:
-            - a source attribute, i.e., the NESTSpikeRecorder to get (i.e., copy) data from,
+            - a source attribute, i.e., the DeviceSet of NESTSpikeRecorder instances to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
 
     model = "spike_recorder"
 
-    def configure(self):
-        super(NESTEventsFromSpikeRecorder, self).configure(NESTSpikeRecorder)
-
-
-class NESTEventsFromMultimeter(SpikeNetEventsFromOutputDevice):
-
-    """
-        NESTEventsFromMultimeter class to read events' data
-         (times, senders and variable values) from a NESTMultimeter device,
-         a DeviceSet of NESTMultimeter instances 
-         or a nest.NodeCollection instance corresponding to a NEST multimeter device.
-        It comprises of:
-            - a source attribute, i.e., the NESTMultimeter to get (i.e., copy) data from,
-            - an abstract method to get data from the source.
-    """
-
-    model = "multimeter"
-
-    def configure(self):
-        super(NESTEventsFromMultimeter, self).configure(NESTMultimeter)
-
-
-class NESTEventsFromVoltmeter(SpikeNetEventsFromOutputDevice):
-
-    """
-        NESTEventsFromVoltmeter class to read events' data
-         (times, senders and variable values) from a NESTVoltmeter device,
-         a DeviceSet of NESTVoltmeter instances 
-         or a nest.NodeCollection instance corresponding to a NEST voltmeter device.
-        It comprises of:
-            - a source attribute, i.e., the NESTMultimeter to get (i.e., copy) data from,
-            - an abstract method to get data from the source.
-    """
-
-    model = "voltmeter"
-
-    def configure(self):
-        super(NESTEventsFromVoltmeter, self).configure(NESTVoltmeter)
-
-
-class NESTEventsReaderFromRecorderFile(ReaderFromFile, NESTCommunicator):
-
-    """
-        NESTEventsReaderFromRecorderFile class to read events' data (times, senders and values from Multimeters)
-        from a NEST recorder device file.
-        It comprises of:
-            - a source attribute, i.e., the absolute path to the file to read data from,
-            - an abstract method to read data from the source.
-    """
+    _spikeNet_output_device_type = NESTSpikeRecorder
 
     def receive(self):
-        return read_nest_output_device_data_from_ascii_to_dict(self.source)
+        events = self.get("events")
+        return [events["times"],    # data[0] will be spike times, a list of spike times per proxy node
+                events["senders"]]  # data[1] will be spike senders, a list of spike sender neurons per proxy node
 
 
-class NESTEventsFromSpikeRecorderFile(NESTEventsReaderFromRecorderFile):
+class NESTMultimeterSet(SpikeNetOutputDeviceSet):
 
     """
-        NESTSpikeRecorderFile class to read events' data (spike times and senders)
-        from a NEST spike_recorder device file.
+        NESTMultimeterSet class to read events' data (times, senders and variable values)
+        from a DeviceSet of NESTMultimeter instances in memory.
         It comprises of:
-            - a source attribute, i.e., the absolute path to the file to read data from,
-            - an abstract method to read data from the source.
-    """
-
-    model = "spike_recorder"
-
-    pass
-
-
-class NESTEventsFromMultimeterFile(NESTEventsReaderFromRecorderFile):
-
-    """
-        NESTMultimeterFile class to read events' data (times and values)
-        from a NEST multimeter device file.
-        It comprises of:
-            - a source attribute, i.e., the absolute path to the file to read data from,
-            - an abstract method to read data from the source.
+            - a source attribute, i.e., the DeviceSet of NESTMultimeter instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
     """
 
     model = "multimeter"
 
-    pass
+    _spikeNet_output_device_type = NESTMultimeter
+
+    def receive(self):
+        data = self.source.do_for_all_devices("get_mean_data", return_type="DataArray",
+                                              concatenation_index_name="Region").transpose("Time", "Variable", "Region")
+        time = np.array(data.coords["Time"])
+        time = np.array([time[0], time[-1]])
+        return [time, data.values]
 
 
-class NESTEventsFromVoltmeterFile(NESTEventsReaderFromRecorderFile):
+class NESTVoltmeterSet(NESTMultimeterSet):
 
     """
-        NESTVoltmeterFile class to read voltage events' data (times and values)
-        from a NEST voltmeter device file.
+        NESTVoltmeterSet class to read events' data (times, senders and variable values)
+         from a DeviceSet of NESTVoltmeter instances in memory.
         It comprises of:
-            - a source attribute, i.e., the absolute path to the file to read data from,
-            - an abstract method to read data from the source.
+            - a source attribute, i.e., the DeviceSet of NESTVoltmeter instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
     """
 
     model = "voltmeter"
 
-    pass
+    _spikeNet_output_device_type = NESTVoltmeter
 
 
 class NESTOutputDeviceGetters(Enum):
-    SPIKE_RECORDER = NESTEventsFromSpikeRecorder
-    MULTIMETER = NESTEventsFromMultimeter
-    VOLTMETER = NESTEventsFromVoltmeter
-
-
-class NESTFileRecorders(Enum):
-    SPIKE_RECORDER_FILE = NESTEventsFromSpikeRecorderFile
-    MULTIMETER_FILE = NESTEventsFromMultimeterFile
-    VOLTMETER_FILE = NESTEventsFromVoltmeterFile
+    SPIKE_RECORDER = NESTSpikeRecorderSet
+    MULTIMETER = NESTMultimeterSet
+    VOLTMETER = NESTVoltmeterSet
 
 
 class NESTInputDeviceSetters(Enum):
-    INHOMOGENEOUS_POISSON_GENERATOR = NESTInhomogeneousPoissonGeneratorSetter
-    SPIKE_GENERATOR = NESTSpikeGeneratorSetter
-    STEP_CURRENT_GENERATOR = NESTStepCurrentGeneratorSetter
+    INHOMOGENEOUS_POISSON_GENERATOR = NESTInhomogeneousPoissonGeneratorSet
+    SPIKE_GENERATOR = NESTSpikeGeneratorSet
+    STEP_CURRENT_GENERATOR = NESTStepCurrentGeneratorSet
 
 
-NESTSenders = combine_enums("NESTSenders", NESTFileRecorders, NESTOutputDeviceGetters)
-NESTReceivers = combine_enums("NESTReceivers", NESTInputDeviceSetters)
+NESTSenders = NESTOutputDeviceGetters
+NESTReceivers = NESTInputDeviceSetters
 NESTCommunicators = combine_enums("NESTCommunicators", NESTSenders, NESTReceivers)

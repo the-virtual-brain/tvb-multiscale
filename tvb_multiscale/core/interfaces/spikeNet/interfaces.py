@@ -5,9 +5,9 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.base import \
+from tvb_multiscale.core.interfaces.base.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDevice, SpikeNetEventsFromOutputDevice
+from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -64,10 +64,10 @@ class SpikeNetOutputInterface(SpikeNetInterface):
     """SpikeNetOutputInterface base class."""
 
     spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
-                                 doc="""An instance of SpikeNetEventsFromOutputDevice 
+                                 doc="""An instance of SpikeNetOutputDeviceSet 
                                         implementing a proxy node sending outputs from the spiking network
                                         to the co-simulator""",
-                                 field_type=SpikeNetEventsFromOutputDevice,
+                                 field_type=SpikeNetOutputDeviceSet,
                                  required=True)
 
     def configure(self):
@@ -91,10 +91,10 @@ class SpikeNetInputInterface(SpikeNetInterface):
     """SpikeNetInputInterface base class."""
 
     spikeNet_receiver_proxy = Attr(label="Spiking network receiver proxy",
-                                   doc="""An instance of SpikeNetInputDevice 
+                                   doc="""An instance of SpikeNetInputDeviceSet 
                                           implementing a proxy node receiving inputs from the co-simulator 
                                           as an input to the spiking network""",
-                                   field_type=SpikeNetInputDevice,
+                                   field_type=SpikeNetInputDeviceSet,
                                    required=True)
 
     def configure(self):
