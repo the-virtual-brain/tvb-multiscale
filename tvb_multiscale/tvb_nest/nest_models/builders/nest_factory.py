@@ -268,7 +268,7 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
 
 
 def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
-                   syn_spec=None, conn_spec=None, config=CONFIGURED, nest_instance=None, **kwargs):
+                   syn_spec=None, conn_spec=None, config=CONFIGURED, **kwargs):
     """This method connects a NESTDevice to a NESTPopulation instance.
        Arguments:
         nest_device: the NESTDevice instance
@@ -279,10 +279,10 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         delay: the delays of the connection. Default = 0.0.
         receptor_type: type of the synaptic receptor. Default = 0.
         config: configuration class instance. Default: imported default CONFIGURED object.
-        nest_instance: instance of NEST. Default = None, in which case the one of the nest_device is used.
        Returns:
         the connected NESTDevice
     """
+    nest_instance = nest_device.nest_instance
     if receptor_type is None:
         receptor_type = 0
     if nest_instance is None:
