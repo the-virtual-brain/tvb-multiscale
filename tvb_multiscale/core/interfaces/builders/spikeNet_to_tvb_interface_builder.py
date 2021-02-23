@@ -35,7 +35,7 @@ class SpikeNetToTVBInterfaceBuilder(object):
         self.config = config
 
     @abstractmethod
-    def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
+    def build_and_connect_devices(self, devices, nodes):
         pass
 
     def build_interface(self, interface, interface_id):

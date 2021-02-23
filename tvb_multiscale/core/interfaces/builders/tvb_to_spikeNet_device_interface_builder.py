@@ -70,7 +70,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
             self.tvb_dt / 2)
 
     @abstractmethod
-    def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
+    def build_and_connect_devices(self, devices, nodes):
         pass
 
     def build_interface(self, interface, interface_id):
@@ -95,8 +95,10 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         interface_weights = np.ones((len(source_tvb_nodes),)).astype("f")
         weight_fun = property_to_fun(interface.pop("weights", self.default_connection["weight"]))
         delay_fun = property_to_fun(interface.pop("delays", self.default_connection["delay"]))
-        receptor_type_fun = property_to_fun(interface.get("receptor_type",
+        receptor_type_fun = property_to_fun(interface.pop("receptor_type",
                                                           self.default_connection["receptor_type"]))
+        syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
+        conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
         # Default behavior for any combination of region nodes and populations
         # is to target all of their neurons:
         neurons_inds_fun = interface.pop("neurons_inds", None)
@@ -109,6 +111,8 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
         shape = delays.shape
         receptor_type = np.tile(self.default_connection["receptor_type"], shape).astype("O")
         neurons_inds = np.tile([None], shape).astype("O")
+        syn_spec = np.tile([None], shape).astype("O")
+        conn_spec = np.tile([None], shape).astype("O")
         device_names = []
         # Apply now possible functions per source and target region node:
         for src_node in source_tvb_nodes:
@@ -119,12 +123,16 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
                 weights[i_src, i_trg] = weight_fun(src_node, trg_node)
                 delays[i_src, i_trg] = delay_fun(src_node, trg_node)
                 receptor_type[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
+                syn_spec[i_src, i_trg] = syn_spec_fun(src_node, trg_node)
+                conn_spec[i_src, i_trg] = conn_spec_fun(src_node, trg_node)
                 if neurons_inds_fun is not None:
                     neurons_inds[i_src, i_trg] = lambda neurons_inds: neurons_inds_fun(src_node, trg_node, neurons_inds)
         interface["names"] = device_names
         interface["weights"] = weights
         interface["delays"] = delays
         interface["receptor_type"] = receptor_type
+        interface["syn_spec"] = syn_spec
+        interface["conn_spec"] = conn_spec
         interface["neurons_inds"] = neurons_inds
         interface["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in target_nodes]
         # Generate the devices => "proxy TVB nodes":
