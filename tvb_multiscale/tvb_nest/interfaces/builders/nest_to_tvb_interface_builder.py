@@ -13,6 +13,7 @@ class NESTtoTVBInterfaceBuilder(SpikeNetToTVBInterfaceBuilder):
     def nest_instance(self):
         return self.spiking_network.nest_instance
 
-    def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
+    def build_and_connect_devices(self, devices, nodes):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         nodes, self.config, nest_instance=self.nest_instance)
+                                         nodes, self.config, devices=self.spiking_network.output_proxies,
+                                         nest_instance=self.nest_instance)

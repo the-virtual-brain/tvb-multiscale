@@ -28,6 +28,7 @@ class TVBtoNESTDeviceInterfaceBuilder(TVBtoSpikeNetDeviceInterfaceBuilder):
         except:
             return self.default_min_delay
 
-    def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
+    def build_and_connect_devices(self, devices, nodes):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         nodes, self.config, nest_instance=self.nest_instance)
+                                         nodes, self.config, devices=self.spiking_network.input_proxies,
+                                         nest_instance=self.nest_instance)
