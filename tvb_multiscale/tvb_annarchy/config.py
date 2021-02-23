@@ -28,9 +28,11 @@ class Config(ConfigBase):
     DEFAULT_MODEL = "Izhikevich"
 
     # Delays should be at least equal to ANNarchy time resolution
-    DEFAULT_CONNECTION = {"synapse_model": "DefaultSpikingSynapse", "params": {},
+    DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
+    DEFAULT_CONNECTION = {"synapse_model": DEFAULT_SYNAPSE, "params": {},
                           "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
                           "source_inds": None, "target_inds": None,
+                          "syn_spec": {"synapse_model": DEFAULT_SYNAPSE, "params": {}},
                           "conn_spec": {"method": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
