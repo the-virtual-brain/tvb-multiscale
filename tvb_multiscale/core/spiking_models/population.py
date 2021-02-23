@@ -44,7 +44,6 @@ class SpikingPopulation(HasTraits):
             model: a string with the name of the model of the population
         """
         self._population = population
-        super(SpikingPopulation, self).__init__()
         self.label = str(label)
         self.model = str(model)
         self._number_of_neurons = self.get_number_of_neurons()
