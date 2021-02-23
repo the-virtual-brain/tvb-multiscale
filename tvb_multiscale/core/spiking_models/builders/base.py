@@ -465,6 +465,8 @@ class SpikingModelBuilder(object):
                                                     self.default_devices_connection["delay"]))
             receptor_type_fun = property_to_fun(device.get("receptor_type",
                                                            self.default_devices_connection["receptor_type"]))
+            syn_spec_fun = property_to_fun(device.get("syn_spec", None))
+            conn_spec_fun = property_to_fun(device.get("conn_spec", None))
             # Default behavior for any region nodes is to target all of the populations' neurons:
             neurons_fun = device.get("neurons_fun", None)
             if neurons_fun is not None:
@@ -476,17 +478,23 @@ class SpikingModelBuilder(object):
             weights = np.tile(self.default_devices_connection["weight"], shape).astype("O")
             delays = np.tile(self.default_devices_connection["delay"], shape).astype("O")
             neurons = np.tile([None], shape).astype("O")
+            syn_spec = np.tile([None], shape).astype("O")
+            conn_spec = np.tile([None], shape).astype("O")
             # Set now the properties using the above defined functions:
             for i_trg, trg_node in enumerate(spiking_nodes):
                 weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
                 delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
                 receptor_type[i_trg] = receptor_type_fun(trg_node)
+                syn_spec[i_trg] = syn_spec_fun(trg_node)
+                conn_spec[i_trg] = conn_spec_fun(trg_node)
                 if neurons_fun is not None:
                     neurons[i_trg] = lambda neurons: neurons_fun(trg_node, neurons)
             _devices[-1]["params"] = device.get("params", {})
             _devices[-1]["weights"] = weights
             _devices[-1]["delays"] = delays
             _devices[-1]["receptor_type"] = receptor_type
+            _devices[-1]["syn_spec"] = syn_spec
+            _devices[-1]["conn_spec"] = conn_spec
             _devices[-1]["neurons_fun"] = neurons
             _devices[-1]["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in spiking_nodes]
         return _devices
