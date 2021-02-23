@@ -48,20 +48,41 @@ class SpikingNetwork(HasTraits):
     # These devices are distinct from the ones for the TVB-Spiking Network interface
     output_devices = Attr(
         field_type=pd.Series,
-        label="Output devices of the SpikingNetwork.",
-        default=None,
+        label="Output devices.",
+        default=pd.Series(),
         required=True,
         doc="""A pandas.Series of output (recording) devices of the SpikingNetwork, 
-               organized by brain region and population.""")
+               organized by recorded population and brain region.""")
     # output_devices['Excitatory']['rh-insula']
 
     input_devices = Attr(
         field_type=pd.Series,
-        label="Intput devices of the SpikingNetwork.",
-        default=None,
+        label="Input devices.",
+        default=pd.Series(),
         required=True,
         doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
-               organized by brain region and population.""")
+               organized by target population and brain region.""")
+    # input_devices['Inhibitory']['rh-insula']
+
+    # These devices are distinct from the ones for the TVB-Spiking Network interface
+    output_proxies = Attr(
+        field_type=pd.Series,
+        label="Output proxies.",
+        default=pd.Series(),
+        required=True,
+        doc="""A pandas.Series of output (recording) devices of the SpikingNetwork, 
+               which record data to send to a co-simulator, organized by 
+               co-simulator recorded variable (e.g., TVB state variable) and brain region.""")
+    # output_devices['Excitatory']['rh-insula']
+
+    input_proxies = Attr(
+        field_type=pd.Series,
+        label="Intput proxys of the SpikingNetwork.",
+        default=pd.Series(),
+        required=False,
+        doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
+               that mimick a co-simulator's activity (e.g., TVB mean field state variables) 
+                   organized by brain region and population.""")
     # input_devices['Inhibitory']['rh-insula']
 
     _OutputSpikeDeviceDict = OutputSpikeDeviceDict
