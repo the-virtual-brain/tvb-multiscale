@@ -33,6 +33,11 @@ class TVBtoNESTPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
                   "stop": self.dt})
 
 
+class TVBtoNESTParrotPoissonGeneratorInterface(TVBtoNESTPoissonGeneratorInterface):
+
+    pass
+
+
 class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
@@ -42,6 +47,10 @@ class TVBtoNESTInhomogeneousPoissonGeneratorInterface(TVBtoNESTDeviceInterface):
         self.Set({"rate_times": [[self.nest_instance.GetKernelStatus("time") +
                                   self.nest_instance.GetKernelStatus("resolution")]] * self.number_of_nodes,
                   "rate_values": values})
+
+
+class TVBtoNESTParrotInhomogeneousPoissonGeneratorInterface(TVBtoNESTInhomogeneousPoissonGeneratorInterface):
+    pass
 
 
 class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
@@ -55,14 +64,29 @@ class TVBtoNESTSpikeGeneratorInterface(TVBtoNESTDeviceInterface):
                   "spike_weights": values})
 
 
+class TVBtoNESTParrotSpikeGeneratorInterface(TVBtoNESTSpikeGeneratorInterface):
+    pass
+
+
 class TVBtoNESTMIPGeneratorInterface(TVBtoNESTDeviceInterface):
 
     def set(self, values):
         self.Set({"rate": np.maximum(0, self._assert_input_size(values))})
 
 
+class TVBtoNESTParrotMIPGeneratorInterface(TVBtoNESTMIPGeneratorInterface):
+
+    pass
+
+
+
 INPUT_INTERFACES_DICT = {"dc_generator": TVBtoNESTDCGeneratorInterface,
                          "poisson_generator": TVBtoNESTPoissonGeneratorInterface,
                          "inhomogeneous_poisson_generator": TVBtoNESTInhomogeneousPoissonGeneratorInterface,
                          "spike_generator": TVBtoNESTSpikeGeneratorInterface,
-                         "mip_generator": TVBtoNESTMIPGeneratorInterface}
+                         "mip_generator": TVBtoNESTMIPGeneratorInterface,
+                         "parrot_poisson_generator": TVBtoNESTParrotPoissonGeneratorInterface,
+                         "parrot_inhomogeneous_poisson_generator": TVBtoNESTParrotInhomogeneousPoissonGeneratorInterface,
+                         "parrot_spike_generator": TVBtoNESTParrotSpikeGeneratorInterface,
+                         "parrot_mip_generator": TVBtoNESTParrotMIPGeneratorInterface
+                         }
