@@ -167,9 +167,9 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
         for i_dev, dev_name in enumerate(names):
             # ...and populations' group...
             # create a device
-            kwargs.update({"label": "%s_%s" % (pop_var, dev_name)})
             if dev_name not in devices[pop_var].keys():
-                devices[pop_var][dev_name] = build_device(device_dict, create_device_fun, config=config, **kwargs)
+                devices[pop_var][dev_name] = build_device(device_dict, create_device_fun, config=config,
+                                                          label="%s - %s" % (pop_var, dev_name), **kwargs)
             # ...and loop through the target region nodes...
             for i_node, node in enumerate(device_target_nodes):
                 # ...and populations' group...
