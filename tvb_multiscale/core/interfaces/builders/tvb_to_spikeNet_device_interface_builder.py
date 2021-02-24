@@ -143,7 +143,7 @@ class TVBtoSpikeNetDeviceInterfaceBuilder(object):
                 # The TVB state variable index linked to the interface to build
                 tvb_sv_id = self.tvb_model.state_variables.index(device_set.name)
             except:
-                raise_value_error("Interface with %s doesn't correspond to a TVB state variable!")
+                raise_value_error("Interface with %s doesn't correspond to a TVB state variable!" % device_set.name)
             try:
                 interface_builder = self._available_input_device_interfaces[device_set.model]
             except:
