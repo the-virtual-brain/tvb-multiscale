@@ -16,4 +16,4 @@ class ANNarchytoTVBInterfaceBuilder(SpikeNetToTVBInterfaceBuilder):
 
     def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         nodes, self.config, annarchy_instance=self.annarchy_instance)
+                                         nodes, config=self.config, annarchy_instance=self.annarchy_instance)
