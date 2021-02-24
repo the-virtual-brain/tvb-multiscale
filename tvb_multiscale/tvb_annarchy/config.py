@@ -33,7 +33,7 @@ class Config(ConfigBase):
                           "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
                           "source_inds": None, "target_inds": None,
                           "syn_spec": {"synapse_model": DEFAULT_SYNAPSE, "params": {}},
-                          "conn_spec": {"method": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
+                          "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
     DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
