@@ -107,15 +107,19 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                       including weight, delay and synaptic target ones
         """
         # Prepare the synaptic model:
-        syn_spec["synapse_model"] = self._assert_model(syn_spec["synapse_model"])
+        syn_spec["synapse_model"] = \
+            self._assert_model(
+                syn_spec.pop("synapse_model",
+                             syn_spec.pop("model",
+                                          syn_spec.pop("synapse", None))))
         # Get connection arguments by copying conn_spec. Make sure to pop out the "method" entry:
-        conn_args = deepcopy(conn_spec)
-        proj = connect_two_populations(pop_src, pop_trg, syn_spec["weights"], syn_spec["delays"],
-                                       syn_spec["target"], params=syn_spec["params"],
+        this_syn_spec = syn_spec.copy()
+        proj = connect_two_populations(pop_src, pop_trg, this_syn_spec.pop("weights"),
+                                       this_syn_spec.pop("delays"), this_syn_spec.pop("target"),
+                                       syn_spec=this_syn_spec, conn_spec=conn_spec.copy(),
                                        source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
-                                       synapse=syn_spec["synapse_model"], method=conn_args.pop("method"),
                                        name="%s -> %s" % (pop_src.label, pop_trg.label),
-                                       annarchy_instance=self.annarchy_instance, **conn_args)
+                                       annarchy_instance=self.annarchy_instance)
         # Add this projection to the source and target population inventories:
         pop_src.projections_pre.append(proj)
         pop_trg.projections_post.append(proj)
