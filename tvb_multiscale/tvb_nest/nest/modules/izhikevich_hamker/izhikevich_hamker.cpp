@@ -75,9 +75,10 @@ nest::izhikevich_hamker::Parameters_::Parameters_()
   , E_rev_GABA_A_( -90.0 )                          // mV
   , V_th_( 30.0 )                                   // mV
   , V_min_( -std::numeric_limits< double >::max() ) // mV
+  , V_r_( 0.0 )                                     // mV
   , C_m_( 1.0 )                                     // real
   , I_e_( 0.0 )                                     // pA
-  , t_ref_( 10.0 )                                // ms
+  , t_ref_( 10.0 )                                  // ms
   , tau_rise_( 1.0 )                                // ms
   , tau_rise_AMPA_( 10.0 )                          // ms
   , tau_rise_GABA_A_( 10.0 )                        // ms
@@ -119,6 +120,7 @@ nest::izhikevich_hamker::Parameters_::get( DictionaryDatum& d ) const
   def< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
   def< double >( d, names::V_th, V_th_ ); // threshold value
   def< double >( d, names::V_min, V_min_ );
+  def< double >( d, "V_r", V_r_ );
   def< double >( d, names::C_m, C_m_ );
   def< double >( d, names::I_e, I_e_ );
   def< double >( d, names::t_ref, t_ref_ );
@@ -144,6 +146,7 @@ nest::izhikevich_hamker::Parameters_::set( const DictionaryDatum& d )
   updateValue< double >( d, names::E_rev_GABA_A, E_rev_GABA_A_ );
   updateValue< double >( d, names::V_th, V_th_ );
   updateValue< double >( d, names::V_min, V_min_ );
+  updateValue< double >( d, "V_r", V_r_ );
   updateValue< double >( d, names::C_m, C_m_ );
   updateValue< double >( d, names::I_e, I_e_ );
   updateValue< double >( d, names::t_ref, t_ref_ );
@@ -331,7 +334,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
         // ...integrate V_m and U_m using old values at time t
         S_.v_ +=
             h * ( P_.n2_ * v_old * v_old + P_.n1_ * v_old + P_.n0_ - u_old / P_.C_m_+ S_.I_ + P_.I_e_ + S_.I_syn_ );
-        S_.u_ += h * P_.a_ * ( P_.b_ * v_old - u_old );
+        S_.u_ += h * P_.a_ * ( P_.b_ * (v_old - P_.V_r_) - u_old );
       }
 
       // Add the spikes:
@@ -385,7 +388,7 @@ nest::izhikevich_hamker::update( Time const& origin, const long from, const long
                          P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
           S_.v_ += h * 0.5 * (
                          P_.n2_ * S_.v_ * S_.v_ + P_.n1_ * S_.v_ + P_.n0_ - S_.u_ / P_.C_m_ + S_.I_ + P_.I_e_ + S_.I_syn_ );
-          S_.u_ += h * P_.a_ * ( P_.b_ * S_.v_ - S_.u_ );
+          S_.u_ += h * P_.a_ * ( P_.b_ * (S_.v_ - P_.V_r_) - S_.u_ );
       }
     }
 
