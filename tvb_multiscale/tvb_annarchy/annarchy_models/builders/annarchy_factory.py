@@ -293,7 +293,6 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
        Returns:
         the connected ANNarchyInputDevice
     """
-    neurons = get_populations_neurons(population, neurons_inds_fun)
     if isinstance(conn_spec, dict):
         connection_args = conn_spec
     else:
@@ -307,7 +306,8 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
         synapse = None
     if synapse is not None:
         syn_spec["synapse"] = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
-    proj = connect_two_populations(annarchy_device, population, weight, delay, receptor_type, syn_spec, conn_spec,
+    proj = connect_two_populations(annarchy_device, get_populations_neurons(population, neurons_inds_fun),
+                                   weight, delay, receptor_type, syn_spec, conn_spec,
                                    source_view_fun=None, target_view_fun=neurons_inds_fun,
                                    annarchy_instance=annarchy_device.annarchy_instance, **connection_args)
     # Add this projection to the source device's and target population's inventories:
