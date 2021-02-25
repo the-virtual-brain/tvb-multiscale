@@ -29,8 +29,8 @@ equations="""
     dg_base/dt = -g_base/tau_syn : init = 0
     dg_ampa/dt = -g_ampa/tau_ampa : init = 0
     dg_gaba/dt = -g_gaba/tau_gaba : init = 0
-    dv/dt = n2*v*v+n1*v+n0 - u/C  + I + I_syn : init = -72.0
-    du/dt = a*(b*(v-Vr)-u) : init = -14.4
+    dv/dt = n2*v*v+n1*v+n0 - u/C  + I + I_syn : init = -70.0
+    du/dt = a*(b*(v-Vr)-u) : init = -18.55
 """,
 spike = """
     v>=v_th

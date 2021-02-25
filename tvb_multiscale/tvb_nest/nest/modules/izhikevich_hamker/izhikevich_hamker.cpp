@@ -96,8 +96,8 @@ nest::izhikevich_hamker::Parameters_::Parameters_()
 }
 
 nest::izhikevich_hamker::State_::State_()
-  : v_( -72.0 )      // membrane potential
-  , u_( -14.4 )        // membrane recovery variable
+  : v_( -70.0 )      // membrane potential
+  , u_( -18.55 )        // membrane recovery variable
   , g_L_( 0.0 )      // baseline conductance
   , g_AMPA_( 0.0 )   // AMPA conductance
   , g_GABA_A_( 0.0 ) // GABA conductance
