@@ -2,6 +2,8 @@
 
 import os
 
+import numpy as np
+
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 
@@ -45,13 +47,20 @@ class Config(ConfigBase):
 
     ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": []},
                                          "PoissonPopulation": {"rates": 0.0},
-                                         "HomogeneousCorrelatedSpikeTrains":
-                                             {"rates": 0.0, "corr": 0.0, "tau": 1.0},
+                                         "Poisson_neuron": {"rates": 0.0},
+                                         "HomogeneousCorrelatedSpikeTrains": {"rates": 0.0, "corr": 0.0, "tau": 1.0},
+                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": [0.0], "period": -1.0},
+                                         "TimedArrayPoissonPopulation": {"rates": np.array([[0.0]]), "target": "exc",
+                                                                         "schedule": [0.0], "period": -1.0},
+                                         "TimedArrayPoisson_neuron": {"rates": np.array([[0.0]]), "target": "exc",
+                                                                      "schedule": [0.0], "period": -1.0},
+                                         "TimedArrayHomogeneousCorrelatedSpikeTrains":
+                                             {"rates": np.array([[0.0]]), "corr": 0.0, "tau": 1.0,
+                                              "schedule": [0.0], "period": -1.0}
                                          # "CurrentInjector": {"amplitude": 0.0},
                                          # "DCCurrentInjector": {"amplitude": 0.0},
                                          # "ACCurrentInjector": {"frequency": 0.0, "amplitude": 1.0,
                                          #                       "phase": 0.0, "offset": 0.0},
-                                         "TimedArray": {"rates": 0.0, "schedule": 0.0, "period": -1.0},
                                          }
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
