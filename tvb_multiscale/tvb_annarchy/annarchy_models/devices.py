@@ -14,7 +14,8 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopul
 
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
-from tvb.contrib.scripts.utils.data_structures_utils import flatten_list, ensure_list, extract_integer_intervals
+from tvb.contrib.scripts.utils.data_structures_utils import \
+    flatten_list, ensure_list, extract_integer_intervals, is_integer
 
 
 # These classes wrap around ANNarchy commands.
@@ -299,6 +300,18 @@ class ANNarchyTimedArray(ANNarchyInputDevice):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
                                                  annarchy_instance, **kwargs)
 
+    def _Get(self, attrs=None, neurons=None):
+        dictionary = {}
+        neurons = self._assert_neurons.get(neurons)
+        if attrs is None:
+            # If no attribute is specified, return all of them for TimedArray:
+            for attribute in ["rates", "schedule", "period"]:
+                dictionary[attribute] = neurons.get(attribute)
+        else:
+            for attribute in attrs:
+                dictionary[attribute] = neurons.get(attribute)
+        return dictionary
+
 
 class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
 
@@ -334,6 +347,8 @@ class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
             self._device_ind = get_population_ind(self.device, self.annarchy_instance)
         return self._device_ind
 
+    # We want to use Set and Get for the TimedArray,
+    # and Get/GetFrom/SetTo-Connections with the spikes generating population
     def _assert_neurons_for_set_get(self, neurons=None):
         """Method to return the neurons of the TimedArray, instead of those of the spike generating population"""
         if neurons is None:
@@ -341,13 +356,69 @@ class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
                 neurons = self._population
             else:
                 neurons = self.device
-        return self._assert_neurons(self, neurons)
+        self._assert_annarchy()
+        if isinstance(neurons, self.annarchy_instance.Population):
+            # Assert that we refer to this object's Population
+            assert self._population == neurons or neurons == self.device
+        elif isinstance(neurons, self.annarchy_instance.PopulationView):
+            # Assert that we refer to a view of this object's Population
+            assert self._population == neurons.population
+        else:
+            # Let's check if these are global or local indices of neurons...
+            local_inds = []
+            for neuron in ensure_list(neurons):
+                if isinstance(neuron, (tuple, list)):
+                    # If neurons are global_ids formed as tuples of (population_ind, neuron_ind)...
+                    if neuron[0] == self.population_ind:
+                        # ... confirm that the population_ind is correct and get the neuron_ind
+                        local_inds.append(neuron[1])
+                        # If neurons are just local inds, gather them...
+                    elif is_integer(neuron):
+                        local_inds.append(neuron)
+                    else:
+                        raise ValueError(
+                            "neurons %s\nis neither an instance of ANNarchy.Population, "
+                            "nor of  ANNarchy.PopulationView,\n"
+                            "nor is it a collection (tuple, list, or numpy.ndarray) "
+                            "of global (tuple of (population_inds, neuron_ind) or local indices of neurons!")
+                    # Return a Population View:
+                    neurons = self._population[neurons]
+
+        return neurons
 
     def _Set(self, values_dict, neurons=None):
-        super(ANNarchyTimedArraySpikePopulation, self)._Set(values_dict, self._assert_neurons_for_set_get(neurons))
+        self._assert_neurons_for_set_get(neurons).set(values_dict)
 
     def _Get(self, attrs=None, neurons=None):
-        super(ANNarchyTimedArraySpikePopulation, self)._Get(attrs, self._assert_neurons_for_set_get(neurons))
+        dictionary = {}
+        if neurons is None:
+            if attrs is None:
+                neurons = self._assert_neurons_for_set_get(neurons)
+            else:
+                for attribute in attrs:
+                    try:
+                        if self.device is not None:
+                            dictionary[attribute] = self.device.get(attribute)
+                    except:
+                        try:
+                            if self._population is not None:
+                                dictionary[attribute] = self._population.get(attribute)
+                        except:
+                            raise ValueError("Attribute %s is neither an attribute of ANNarchy.TimedArray nor of "
+                                             "%s" % (attribute, self._population.__class__.__name__))
+            return dictionary
+        if attrs is None:
+            if neurons == self.device:
+                attributes = ["rates", "schedule", "period"]
+            else:
+                attributes = neurons.attributes
+            # If no attribute is specified, return all of them for TimedArray:
+            for attribute in attributes:
+                dictionary[attribute] = neurons.get(attribute)
+        else:
+            for attribute in attrs:
+                dictionary[attribute] = neurons.get(attribute)
+        return dictionary
 
     @property
     def number_of_devices_neurons(self):
