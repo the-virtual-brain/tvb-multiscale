@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import shutil
-from copy import deepcopy
 
 import numpy as np
 
@@ -225,16 +223,14 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
         devices_dict = NESTInputDeviceDict
         if device_model in NESTParrotSpikeInputDeviceDict.keys():
             parrot = nest_instance.Create("parrot_neuron", int(params.pop("number_of_neurons", 1)))
-        default_params = deepcopy(
-            config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
-                                                     config.NEST_INPUT_DEVICES_PARAMS_DEF.get(
-                                                         nest_device_model, {})))
+        default_params = config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
+                                                                  config.NEST_INPUT_DEVICES_PARAMS_DEF.get(
+                                                                      nest_device_model, {})).copy()
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params = deepcopy(
-            config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
-                                                     config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(
-                                                         nest_device_model, {})))
+        default_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
+                                                                   config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(
+                                                                       nest_device_model, {})).copy()
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
