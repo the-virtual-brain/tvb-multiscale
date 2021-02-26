@@ -31,7 +31,7 @@ class TVBtoANNarchyRateInterface(TVBtoANNarchyDeviceInterface):
 class TVBtoANNarchyPoissonPopulationInterface(TVBtoANNarchyRateInterface):
 
     def set(self, values):
-        self.Set({"rates": np.maximum([0], self._assert_input_size(values))})
+        self.Set({"rates": np.maximum(0, self._assert_input_size(values))})
 
 
 class TVBtoANNarchyPoissonNeuronInterface(TVBtoANNarchyRateInterface):
@@ -47,9 +47,7 @@ class TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface(TVBtoANNarchyRateIn
 class TVBtoANNarchyTimedArrayInterface(TVBtoANNarchyDeviceInterface):
 
     def set(self, values):
-        vals = self._assert_input_size(values)[:, None, None]
-        print(vals)
-        self.Set({"rates": np.maximum(np.array([[0]]), vals)})
+        self.Set({"rates": np.maximum(np.array([[0]]), np.array(self._assert_input_size(values))[:, None, None])})
 
 
 class TVBtoANNarchyTimedArrayPoissonPopulationInterface(TVBtoANNarchyTimedArrayInterface):
