@@ -393,7 +393,7 @@ class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
         dictionary = {}
         if neurons is None:
             if attrs is None:
-                neurons = self._assert_neurons_for_set_get(neurons)
+                neurons = self._assert_neurons_for_set_get()
             else:
                 for attribute in attrs:
                     try:
@@ -406,7 +406,9 @@ class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
                         except:
                             raise ValueError("Attribute %s is neither an attribute of ANNarchy.TimedArray nor of "
                                              "%s" % (attribute, self._population.__class__.__name__))
-            return dictionary
+                return dictionary
+        else:
+            neurons = self._assert_neurons_for_set_get(neurons)
         if attrs is None:
             if neurons == self.device:
                 attributes = ["rates", "schedule", "period"]
