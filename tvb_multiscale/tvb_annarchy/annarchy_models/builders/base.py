@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
-
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 from tvb_multiscale.tvb_annarchy.annarchy_models.region_node import ANNarchyRegionNode
@@ -89,8 +87,8 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
             a ANNarchyPopulation class instance
         """
         params["name"] = label
-        annarchy_population = create_population(model, self.annarchy_instance, size=size,
-                                                params=params, import_path=self._models_import_path)
+        annarchy_population = create_population(model, self.annarchy_instance, size=size, params=params,
+                                                import_path=self._models_import_path, config=self.config)
         return ANNarchyPopulation(annarchy_population, label,
                                   annarchy_population.neuron_type.name, self.annarchy_instance)
 
