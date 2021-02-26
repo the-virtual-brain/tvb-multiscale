@@ -454,9 +454,11 @@ class SpikingModelBuilder(object):
         _devices = list()
         for device in devices:
             _devices.append(dict(device))
-            spiking_nodes = device.get("nodes", self.spiking_nodes_ids)
+            spiking_nodes = device.get("nodes", None)
             if spiking_nodes is None:
                 spiking_nodes = self.spiking_nodes_ids
+            else:
+                assert np.all([trg_node in self.spiking_nodes_ids for trg_node in spiking_nodes])
             # User inputs
             # ..set/converted to functions
             weights_fun = property_to_fun(device.get("weights",
