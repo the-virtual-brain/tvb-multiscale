@@ -51,8 +51,8 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
         # An alternative option to poisson_generator is:
         # "model": "inhomogeneous_poisson_generator", "params": {"allow_offgrid_times": False}
         interface = \
-            {"model": "PoissonPopulation",  # HomogeneousCorrelatedSpikeTrains, Poisson_neuron
-             "params": {},
+            {"model": "TimedArrayPoissonPopulation",  # HomogeneousCorrelatedSpikeTrains, Poisson_neuron
+             "params": {"period": self.tvb_dt},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, annarchy_node_id=None)-----
               "interface_weights": 1.0*self.N_E,
         # Applied outside ANNarchy for each interface device

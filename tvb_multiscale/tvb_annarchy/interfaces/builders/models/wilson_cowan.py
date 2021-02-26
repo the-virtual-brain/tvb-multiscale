@@ -28,7 +28,8 @@ class WilsonCowanBuilder(DefaultInterfaceBuilder):
         self.w_spikes_to_tvb = 1.0
 
     def build_default_rate_tvb_to_annarchy_interfaces(self):
-        self._build_default_rate_tvb_to_annarchy_interfaces({"E": ["E", "I"], "params": {"geometry": self.N_E}})
+        self._build_default_rate_tvb_to_annarchy_interfaces({"E": ["E", "I"]}, params={"geometry": self.N_E,
+                                                                                       "period": self.tvb_dt})
 
     # def build_dc_tvb_to_nest_interfaces(self):
     #     raise NotImplementedError
