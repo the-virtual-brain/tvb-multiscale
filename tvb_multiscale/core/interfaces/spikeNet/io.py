@@ -3,7 +3,7 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr, Float
+from tvb.basic.neotraits.api import Attr, Float, List
 
 from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 from tvb_multiscale.core.spiking_models.devices import DeviceSet, InputDevice, OutputDevice
@@ -36,10 +36,8 @@ class SpikeNetInputDeviceSet(SetToMemory):
     def transform_time(self, time):
         return self.dt * np.arange(time[0], time[-1] + 1)
 
-    def configure(self, ):
+    def configure(self):
         super(SpikeNetInputDeviceSet, self).configure()
-        if self.target.size:
-            assert np.all([isinstance(device, self._spikeNet_input_device_type) for device in self.target])
 
     @abstractmethod
     def send(self, data):
@@ -47,7 +45,7 @@ class SpikeNetInputDeviceSet(SetToMemory):
 
 
 class SpikeNetOutputDeviceSet(GetFromMemory):
-
+    __metaclass__ = ABCMeta
     """
         SpikeNetOutputDeviceSet class to read events' data
         (times, senders, and, possibly, values from NEST Multimeters-like devices) from an Output DeviceSet in memory.
@@ -63,17 +61,37 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
                   label="Source of Spiking Network events",
                   doc="""Spiking Network DeviceSet of OutputDevice instances to get events from.""")
 
+    variables = List(of=list,
+                     default=(),
+                     label="Variables",
+                     doc="""List of lists of variables (str) recorded by this SpikeNetOutputDeviceSet instance
+                            per device node (proxy)""")
+
     _spikeNet_output_device_type = OutputDevice
+
+    @abstractmethod
+    def device_variables(self, device):
+        pass
 
     def configure(self):
         super(SpikeNetOutputDeviceSet, self).configure()
+        self.variables = []
         if self.source.size:
-            assert np.all([isinstance(device, self._spikeNet_output_device_type) for device in self.target])
+            for device in self.source:
+                assert isinstance(device, self._spikeNet_output_device_type)
+                self.variables.append(self.device_variables(device))
+
+    @property
+    @abstractmethod
+    def events(self):
+        pass
 
     def receive(self):
-        events = self.source.get_events()
-        self.source.reset
-        return events
+        return self.events
+
+    @abstractmethod
+    def reset(self):
+        pass
 
 
 class SpikeNetSenders(Enum):
