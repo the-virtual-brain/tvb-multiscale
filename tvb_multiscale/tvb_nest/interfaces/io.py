@@ -9,6 +9,7 @@ from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, S
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_nest.nest_models.devices import \
     NESTInputDevice, NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
+    NESTParrotSpikeGenerator, NESTParrotInhomogeneousPoissonGenerator, \
     NESTOutputDevice, NESTSpikeRecorder, NESTMultimeter, NESTVoltmeter
 
 
@@ -49,6 +50,23 @@ class NESTInhomogeneousPoissonGeneratorSet(NESTInputDeviceSet):
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
+class NESTParrotInhomogeneousPoissonGeneratorSet(NESTInhomogeneousPoissonGeneratorSet):
+    """
+        NESTParrotInhomogeneousPoissonGeneratorSet class to set data directly to a DeviceSet
+        of NESTParrotInhomogeneousPoissonGenerator instances in memory
+        It comprises of:
+            - a target attribute,
+              i.e., a DeviceSet, of NESTParrotInhomogeneousPoissonGenerator instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "parrot_inhomogeneous_poisson_generator"
+
+    _spikeNet_input_device_type = NESTParrotInhomogeneousPoissonGenerator
+
+    pass
+
+
 class NESTSpikeGeneratorSet(NESTInputDeviceSet):
 
     """
@@ -64,6 +82,23 @@ class NESTSpikeGeneratorSet(NESTInputDeviceSet):
 
     def send(self, data):
         self.target.set({"spikes_times": np.maximum([0.0], data[-1]).tolist()})
+
+
+class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
+
+    """
+        NESTParrotSpikeGeneratorSet class to set data directly to
+        a DeviceSet of NESTParrotSpikeGenerator instances in memory.
+        It comprises of:
+            - a target attribute, i.e., the DeviceSet of NESTParrotSpikeGenerator instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "parrot_spike_generator"
+
+    _spikeNet_input_device_type = NESTParrotSpikeGenerator
+
+    pass
 
 
 class NESTStepCurrentGeneratorSet(NESTInputDeviceSet):
