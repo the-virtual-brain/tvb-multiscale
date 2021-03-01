@@ -138,14 +138,13 @@ def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
 if __name__ == "__main__":
 
     connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
-    annarchy_nodes_ids = [0, 1]
 
     tvb_model = WilsonCowan  # ReducedWongWangExcIO
 
     model_params = {}
 
-    if isinstance(tvb_model, WilsonCowan):
-
+    if tvb_model == WilsonCowan:
+        annarchy_nodes_ids = [0, 1]
         model_params = {
             "r_e": np.array([0.0]),
             "r_i": np.array([0.0]),
@@ -170,9 +169,16 @@ if __name__ == "__main__":
             "P": np.array([0.5]),
             "Q": np.array([0.0])
         }
+        annarchy_model_builder = WilsonCowanBuilder
+        tvb_annarchy_interface_builder = InterfaceWilsonCowanBuilder
 
-    main_example(tvb_model, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
-                 annarchy_nodes_ids,  annarchy_populations_order=100,
+    elif tvb_model == ReducedWongWangExcIO:
+        annarchy_nodes_ids = list(range(10))
+        annarchy_model_builder = BasalGangliaIzhikevichBuilder
+        tvb_annarchy_interface_builder = BasalGangliaRedWWexcIOBuilder
+
+    main_example(tvb_model, annarchy_model_builder, tvb_annarchy_interface_builder,  #
+                 annarchy_nodes_ids,  annarchy_populations_order=200,
                  tvb_to_annarchy_mode="rate", annarchy_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=0.0,

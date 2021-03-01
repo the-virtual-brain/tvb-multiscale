@@ -3,11 +3,13 @@
 import os
 import importlib
 from six import string_types
-from copy import deepcopy
+
+import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice # , ANNarchyACCurrentInjector
+    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, \
+    ANNarchyTimedArraySpikeInputDeviceDict  # , ANNarchyACCurrentInjector
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -82,7 +84,7 @@ def set_model_parameters(model_instance, **params):
     return model_instance
 
 
-def create_population(model, annarchy_instance, size=1, params={}, import_path=""):
+def create_population(model, annarchy_instance, size=1, params={}, import_path="", config=CONFIGURED):
     """This function creates an ANNarchy.Population or ANNarchy Specific Population.
        Arguments:
         model: the model name (string)
@@ -97,7 +99,30 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
     model = assert_model(model, annarchy_instance, import_path)
     if isinstance(model, string_types):
         # If model is a SpecificPopulation, create it directly:
-        population = getattr(annarchy_instance, model)(geometry=params.pop("geometry", size), **params)
+        if model in ["SpikeSourceArray", "TimedArray"]:
+            if model == "SpikeSourceArray":
+                val = params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["spike_times"])
+            else:
+                val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["rates"])
+            population = getattr(annarchy_instance, model)(val, **params)
+        elif model in ["PoissonPopulation", "Poisson_neuron", "HomogeneousCorrelatedSpikeTrains"]:
+            geometry = params.pop("geometry", size)
+            if model == "HomogeneousCorrelatedSpikeTrains":
+                rates = \
+                    params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["rates"])
+                corr = params.pop("corr", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["corr"])
+                tau = params.pop("tau", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["tau"])
+                population = annarchy_instance.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params)
+            else:
+                rates = params.pop("rates", None)
+                if rates is None:
+                    target = \
+                        params.pop("target", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray%s" % model]["target"])
+                else:
+                    target = None
+                population = annarchy_instance.PoissonPopulation(geometry, rates=rates, target=target, **params)
+        else:
+            population = getattr(annarchy_instance, model)(geometry=params.pop("geometry", size), **params)
     else:
         # If model is a Neuron class, set it in the Population creator:
         population = annarchy_instance.Population(geometry=params.pop("geometry", size), neuron=model)
@@ -125,10 +150,8 @@ def get_populations_neurons(population, inds_fun=None):
     return inds_fun(population._population)
 
 
-def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, target="exc", params={},
-                            source_view_fun=None, target_view_fun=None,
-                            synapse=None, method="all_to_all", name=None,
-                            annarchy_instance=None, **connection_args):
+def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, target="exc", syn_spec={}, conn_spec={},
+                            source_view_fun=None, target_view_fun=None, name=None, annarchy_instance=None):
     """
     function to set up and connect a projection between two ANNarchyPopulations.
     Arguments:
@@ -141,33 +164,56 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
                          Default = None.
       - target_view_fun: a function to return an ANNarchy PopulationView of the target population
                          Default = None.
-      - synapse: an optional ANarchy.Synapse class, or a string of the name of a SpecificProjection class. Default=None.
-      - params: optional dictionary of synaptic parameters. Default = {}
+      - syn_spec: optional dictionary of synaptic parameters. Default = {}
       - name: name of the projection
-      - method: name of an ANNarchy connection method
-      - **connection_args: depend on the chosen ANNarchy connection method
+      - **conn_spec: depend on the chosen ANNarchy connection rule
       Returns: the projection
       """
     # Create the projection first
     source_neurons = get_populations_neurons(source_pop, source_view_fun)
     target_neurons = get_populations_neurons(target_pop, target_view_fun)
+    if isinstance(syn_spec, dict):
+        synapse = syn_spec.pop("synapse_model", syn_spec.pop("model", syn_spec.pop("synapse", None)))
+    else:
+        synapse = None
+        syn_spec = {}
     if name is None:
         name = "%s -> %s" % (source_pop.label, target_pop.label)
     if isinstance(synapse, string_types):
         # If this is a SpecificProjection, create it directly:
-        proj = getattr(annarchy_instance, synapse)(source_neurons, target_neurons, target=target, name=name, **params)
+        proj = getattr(annarchy_instance, synapse)(source_neurons, target_neurons, target=target, name=name, **syn_spec)
     else:
         # Otherwise, create it via the Projection creator:
-        proj = annarchy_instance.Projection(source_neurons, target_neurons, target=target, synapse=synapse, name=name)
-        proj = set_model_parameters(proj, **params)
+        proj = set_model_parameters(annarchy_instance.Projection(source_neurons, target_neurons,
+                                                                 target=target, synapse=synapse, name=name), **syn_spec)
     # Build the connection:
-    method = method.lower()
-    if method == "current":
-        warning("Ignoring weight and delay for connect_current method, for the connection %s -> %s!"
-                % (source_pop.label, target_pop.label))
-        proj = getattr(proj, "connect_" % method)(**connection_args)
+    if isinstance(conn_spec, dict):
+        rule = conn_spec.pop("rule", "all_to_all").lower()
     else:
-        proj = getattr(proj, "connect_" + method)(weights=weights, delays=delays, **connection_args)
+        rule = "all_to_all"
+        conn_spec = {}
+    if rule == "current":
+        warning("Ignoring weight and delay for connect_current rule, for the connection %s -> %s!"
+                % (source_pop.label, target_pop.label))
+        proj = proj.connect_current()
+    elif rule == "fixed_probability":
+        proj = proj.connect_fixed_probability(conn_spec.pop("probability"), weights, **conn_spec)
+    elif rule in ["fixed_number_pre", "fixed_number_post"]:
+        proj = getattr(proj, "connect_" + rule)(conn_spec.pop("number"),
+                                                weights, delays=delays, **conn_spec)
+    elif rule == "gaussian":
+        proj = proj.connect_gaussian(conn_spec.pop("amp"), conn_spec.pop("sigma"),
+                                     delays=delays, **conn_spec)
+    elif rule == "dog":
+        proj = proj.connect_dog(conn_spec.pop("amp_pos"), conn_spec.pop("sigma_pos"),
+                                conn_spec.pop("amp_neg"), conn_spec.pop("sigma_neg"),
+                                delays=delays, **conn_spec)
+    elif rule == "from_file":
+        proj = proj.connect_from_file(conn_spec["filename"])
+    elif rule == "with_func":
+        proj = proj.connect_with_func(conn_spec.pop("rule"), **conn_spec)
+    else:
+        proj = getattr(proj, "connect_" + rule)(weights, delays=delays, **conn_spec)
     return proj
 
 
@@ -185,7 +231,7 @@ def params_dict_to_parameters_string(params):
     return parameters
 
 
-def create_input_device(annarchy_device, import_path, params={}):
+def create_input_device(annarchy_device, import_path, params={}, config=CONFIGURED):
     """This functions populates an ANNarchyInputDevice instance with its device ANNarchy Population instance.
        Arguments:
         annarchy_device: a ANNarchyInputDevice instance
@@ -200,9 +246,20 @@ def create_input_device(annarchy_device, import_path, params={}):
     #     f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
     #     if f:
     #         params["omega"] = 2 * np.pi * f
+    if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
+        params_timed_array = {}
+        for param in ["rates", "schedule", "period"]:
+            val = params.pop(param, None)
+            if val is not None:
+                params_timed_array[param] = val
+        annarchy_device.device = create_population("TimedArray", annarchy_device.annarchy_instance,
+                                                   params=params_timed_array, import_path=import_path, config=config)
     annarchy_device._population = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
-                                                    params=params, import_path=import_path)
+                                                    params=params, import_path=import_path, config=config)
     annarchy_device._population.name = annarchy_device.label
+    if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
+        proj = annarchy_device.annarchy_instance.Projection(annarchy_device.device, annarchy_device._population, "exc")
+        proj = proj.connect_all_to_all(1.0)
     return annarchy_device
 
 
@@ -228,12 +285,12 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     # Get the default parameters for this device...
     if device_model in ANNarchyInputDeviceDict.keys():
         devices_dict = ANNarchyInputDeviceDict
-        default_params = deepcopy(config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
+        default_params = config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}).copy()
         if len(label):
             default_params["name"] = label
     elif device_model in ANNarchyOutputDeviceDict.keys():
         devices_dict = ANNarchyOutputDeviceDict
-        default_params = deepcopy(config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
+        default_params = config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}).copy()
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
@@ -249,8 +306,8 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         # If it is an input device, populate it:
         annarchy_device = create_input_device(annarchy_device,
                                               kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
-                                              deepcopy(default_params))
-    annarchy_device.params = deepcopy(default_params)
+                                              default_params.copy(), config)
+    annarchy_device.params = default_params.copy()
     if return_annarchy:
         return annarchy_device, annarchy_instance
     else:
@@ -258,7 +315,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
 
 
 def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
-                         weight=1.0, delay=0.0, receptor_type="exc",
+                         weight=1.0, delay=0.0, receptor_type="exc", syn_spec=None, conn_spec=None,
                          import_path=CONFIGURED.MYMODELS_IMPORT_PATH):
     """This function connect an ANNarchyInputDevice to an ANNarchyPopulation instance.
        Arguments:
@@ -272,75 +329,26 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
        Returns:
         the connected ANNarchyInputDevice
     """
-    neurons = get_populations_neurons(population, neurons_inds_fun)
-    # TODO: What should we do with this checking for the delay in ANNarchy?
-    # resolution = annarchy_instance.dt()
-    # if hasattr(delay, "min"):  # In case it is an ANNarchy distribution class
-    #     if delay.min < resolution:
-    #         delay.min = resolution
-    #         warning("Minimum delay %f is smaller than the NEST simulation resolution %f!\n"
-    #                 "Setting minimum delay equal to resolution!" % (delay.min, resolution))
-    #     if delay.max <= delay.min:
-    #         raise_value_error("Maximum delay %f is not smaller than minimum one %f!" % (delay.max, delay.min))
-    # else:
-    #     if delay < resolution:
-    #         delay = resolution
-    #         warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
-    #                 "Setting minimum delay equal to resolution!" % (delay, resolution))
-
-    connection_args = {}
-    source_view_fun = None
-    if annarchy_device.number_of_devices_neurons == 0:
-        raise_value_error("There is no input device population of neurons in device of model %s with label %s!"
-                          % (annarchy_device.model, annarchy_device.label))
-    elif annarchy_device.number_of_devices_neurons == 1:
-        # A single input stimulating all target neurons
-        connect_method = "all_to_all"
-    elif annarchy_device.number_of_devices_neurons == neurons.size:
-        # Inputs are equal to target neurons, therefore connecting with one_to_one,
-        # no matter if there are already other connections.
-        connect_method = "one_to_one"
-    elif annarchy_device.number_of_devices_neurons < neurons.size:
-        # This is the case where there are less total input neurons than target ones:
-        connect_method = "fixed_number_pre"
-        connection_args["number"] = annarchy_device.number_of_devices_neurons
-        warning("Device of model %s with label %s:\n"
-                "The number of device's population neurons %d > 1 "
-                "is smaller than the number %d of the target neurons of population:\n%s"
-                "\nConnecting with method 'connect_fixed_number_pre' with number = %d"
-                % (annarchy_device.model, annarchy_device.label, annarchy_device.number_of_devices_neurons,
-                   neurons.size, str(population), annarchy_device.number_of_devices_neurons))
-    else:  # These are the cases where there are more total input neurons than target ones:
-        connect_method = "one_to_one"  # for all cases below
-        # The number of input neurons not yet connected:
-        number_of_available_connections = \
-            annarchy_device.number_of_neurons - annarchy_device.number_of_connected_neurons
-        if number_of_available_connections < neurons.size:
-            # TODO: think more about this: error, fixed_number_pre or overlapping?
-            # If the remaining available neurons are nit enough,
-            # use some of the already used ones with a partial overlap:
-            source_view_fun = lambda _population: _population[:-neurons.size]
-            warning("Device of model %s with label %s:\n"
-                    "The number of device's population neurons that is available for connections %d"
-                    "is smaller than the number %d of the target neurons of population:\n%s"
-                    "\nConnecting with method 'connect_one_to_one' using the last %d neurons "
-                    "with overlap of %d neurons!"
-                    % (annarchy_device.model, annarchy_device.label, number_of_available_connections,
-                       neurons.size, str(population), neurons.size, neurons.size - number_of_available_connections))
-        else:
-            # If the remaining available neurons are enough, just get the first available ones:
-            source_view_fun = lambda _population: \
-                                        _population[annarchy_device.number_of_connected_neurons :
-                                                    annarchy_device.number_of_connected_neurons + neurons.size]
-
-    synapse = annarchy_device.params.get("synapse", None)
+    if isinstance(conn_spec, dict):
+        connection_args = conn_spec
+    else:
+        connection_args = {}
+    if isinstance(syn_spec, dict):
+        synapse = syn_spec.pop("synapse_model",
+                               syn_spec.pop("model",
+                                          syn_spec.pop("synapse", None)))
+    else:
+        syn_spec = {}
+        synapse = None
     if synapse is not None:
-        synapse = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
-    synapse_params = annarchy_device.params.get("synapse_params", {})
-    proj = connect_two_populations(annarchy_device, population, weight, delay, receptor_type, synapse_params,
-                                   source_view_fun=source_view_fun, target_view_fun=neurons_inds_fun,
-                                   synapse=synapse, method=connect_method,
-                                   annarchy_instance=annarchy_device.annarchy_instance, **connection_args)
+        syn_spec["synapse"] = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
+    if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
+        # We need to take into consideration the delay from the TimedArray to the spiking generating population:
+        delay = np.maximum(delay - annarchy_device.annarchy_instance.dt(), 0.0)
+    proj = connect_two_populations(annarchy_device, population,
+                                   weight, delay, receptor_type, syn_spec, connection_args,
+                                   source_view_fun=None, target_view_fun=neurons_inds_fun,
+                                   annarchy_instance=annarchy_device.annarchy_instance)
     # Add this projection to the source device's and target population's inventories:
     annarchy_device.projections_pre.append(proj)
     population.projections_post.append(proj)
@@ -361,7 +369,7 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
             the connected ANNarchyOutputDevice
         """
     neurons = get_populations_neurons(population, neurons_inds_fun)
-    params = deepcopy(annarchy_device.params)
+    params = annarchy_device.params.copy()
     record_from = ensure_list(params.pop("record_from"))
     # Create a connection by adding an ANNarchy Monitor targeting the specific neurons of this population:
     monitor = annarchy_device.annarchy_instance.Monitor(neurons, record_from, **params)
@@ -374,7 +382,8 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
 
 
 def connect_device(annarchy_device, population, neurons_inds_fun=None,
-                   weight=1.0, delay=0.0, receptor_type="exc", config=CONFIGURED, **kwargs):
+                   weight=1.0, delay=0.0, receptor_type="exc", syn_spec=None, conn_spec=None,
+                   config=CONFIGURED, **kwargs):
     """This function connects an ANNarchyInputDevice or an ANNarchyOutputDevice to an ANNarchyPopulation instance.
        If the device is an ANNarchyOutputDevice, it will also be populated by an ANNarchy Monitor.
         The arguments weight, delay and receptor_type are ignored for output devices
@@ -392,6 +401,7 @@ def connect_device(annarchy_device, population, neurons_inds_fun=None,
         """
     if isinstance(annarchy_device, ANNarchyInputDevice):
         return connect_input_device(annarchy_device, population, neurons_inds_fun, weight, delay, receptor_type,
+                                    syn_spec=syn_spec, conn_spec=conn_spec,
                                     import_path=kwargs.pop("import_path", config.MYMODELS_IMPORT_PATH))
     else:
         return connect_output_device(annarchy_device, population, neurons_inds_fun)

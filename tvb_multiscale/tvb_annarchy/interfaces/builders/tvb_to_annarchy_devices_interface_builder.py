@@ -26,6 +26,7 @@ class TVBtoANNarchyDeviceInterfaceBuilder(TVBtoSpikeNetDeviceInterfaceBuilder):
     def min_delay(self):
         return self.spiking_dt
 
-    def build_and_connect_devices(self, devices, nodes, *args, **kwargs):
+    def build_and_connect_devices(self, devices, nodes):
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         nodes, self.config, annarchy_instance=self.annarchy_instance)
+                                         nodes, config=self.config, devices=self.spiking_network.input_proxies,
+                                         annarchy_instance=self.annarchy_instance)

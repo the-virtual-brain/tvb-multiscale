@@ -105,7 +105,8 @@ class Config(object):
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
-                          "source_inds": None, "target_inds": None, "params": {}}
+                          "source_inds": None, "target_inds": None, "params": {},
+                          "syn_spec": {}, "conn_spec": {}}
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
@@ -123,6 +124,11 @@ def initialize_logger(name, target_folder=None):
     if target_folder is None:
         target_folder = Config().out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
+
+
+
+def log_path(name, logger):
+    logger.info("%s: %s" % (name, os.environ.get(name, "")))
 
 
 # Used for nice __str__() outputs

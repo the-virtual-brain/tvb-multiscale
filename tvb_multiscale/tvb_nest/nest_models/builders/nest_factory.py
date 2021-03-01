@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import shutil
-from copy import deepcopy
 
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.devices import NESTInputDeviceDict, NESTOutputDeviceDict
-from tvb_multiscale.core.spiking_models.builders.factory import log_path
+from tvb_multiscale.tvb_nest.nest_models.devices import \
+    NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -33,31 +31,12 @@ def load_nest(config=CONFIGURED, logger=LOG):
         Returns:
          the imported NEST instance
     """
-    logger.info("Loading a NEST instance...")
-    nest_path = config.NEST_PATH
-    os.environ['NEST_INSTALL_DIR'] = nest_path
-    log_path('NEST_INSTALL_DIR', logger)
-    os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-    log_path('NEST_DATA_DIR', logger)
-    os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-    log_path('NEST_DOC_DIR', logger)
-    os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-    log_path('NEST_MODULE_PATH', logger)
-    os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-    log_path('PATH', logger)
-    LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-    if len(LD_LIBRARY_PATH) > 0:
-        LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-    os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-    log_path('LD_LIBRARY_PATH', logger)
-    os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
-    log_path('SLI_PATH', logger)
-    os.environ['NEST_PYTHON_PREFIX'] = config.PYTHON
-    log_path('NEST_PYTHON_PREFIX', logger)
-    sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-    logger.info("%s: %s" % ("system path", sys.path))
+    try:
+        import nest
+    except:
+        config.configure_nest_path(logger=logger)
+        import nest
 
-    import nest
     nest.ResetKernel()
     return nest
 
@@ -104,7 +83,10 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             logger.info("in build directory %s..." % module_bld_dir)
             success_message = "DONE compiling and installing %s!" % module
             from pynestml.frontend.pynestml_frontend import install_nest
-            install_nest(module_bld_dir, config.NEST_PATH)
+            try:
+                install_nest(module_bld_dir, config.NEST_PATH)
+            except Exception as e:
+                raise e
             logger.info("Compiling finished without errors...")
         else:
             logger.info("Installing precompiled module %s..." % module)
@@ -209,6 +191,8 @@ def device_to_dev_model(device):
     """Method to return a multimeter device for a spike_multimeter model name."""
     if device == "spike_multimeter":
         return "multimeter"
+    elif device.find("parrot") > -1:
+        return device.split("parrot_")[-1]
     else:
         return device
 
@@ -230,14 +214,23 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
     else:
         return_nest = False
     # Assert the model name...
-    device_model = device_to_dev_model(device_model)
+    nest_device_model = device_to_dev_model(device_model)
     label = kwargs.pop("label", "")
-    if device_model in NESTInputDeviceDict.keys():
+    parrot = None
+    input_device = False
+    if device_model in NESTInputDeviceDict.keys() or nest_device_model in NESTInputDeviceDict.keys():
+        input_device = True
         devices_dict = NESTInputDeviceDict
-        default_params = deepcopy(config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
+        if device_model in NESTParrotSpikeInputDeviceDict.keys():
+            parrot = nest_instance.Create("parrot_neuron", int(params.pop("number_of_neurons", 1)))
+        default_params = config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
+                                                                  config.NEST_INPUT_DEVICES_PARAMS_DEF.get(
+                                                                      nest_device_model, {})).copy()
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params = deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}))
+        default_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
+                                                                   config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(
+                                                                       nest_device_model, {})).copy()
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
@@ -246,18 +239,27 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
     default_params["label"] = label
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
-    if device_model in NESTInputDeviceDict.keys():
+    if input_device:
         label = default_params.pop("label", label)
     else:
         label = default_params.get("label", label)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
-        nest_device_id = nest_instance.Create(device_model, params=default_params)
+        nest_device_node_collection = nest_instance.Create(nest_device_model, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
-        nest_device_id = nest_instance.Create(device_model, params=default_params)
+        nest_device_node_collection = nest_instance.Create(nest_device_model, params=default_params)
     default_params["label"] = label
-    nest_device = devices_dict[device_model](nest_device_id, nest_instance, **default_params)
+    if parrot:
+        nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance, **default_params)
+        # Connect the input spike device to the parrot neurons' population:
+        nest_instance.Connect(nest_device.device, nest_device._population,
+                              syn_spec={"weight": 1.0,
+                                        "delay": nest_instance.GetKernelStatus("resolution"),
+                                        "receptor_type": 0},
+                              conn_spec={"rule": "all_to_all"})
+    else:
+        nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, **default_params)
     if return_nest:
         return nest_device, nest_instance
     else:
@@ -265,7 +267,7 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
 
 
 def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
-                   nest_instance=None, config=CONFIGURED, **kwargs):
+                   syn_spec=None, conn_spec=None, config=CONFIGURED, **kwargs):
     """This method connects a NESTDevice to a NESTPopulation instance.
        Arguments:
         nest_device: the NESTDevice instance
@@ -276,32 +278,50 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         delay: the delays of the connection. Default = 0.0.
         receptor_type: type of the synaptic receptor. Default = 0.
         config: configuration class instance. Default: imported default CONFIGURED object.
-        nest_instance: instance of NEST. Default = None, in which case the one of the nest_device is used.
        Returns:
         the connected NESTDevice
     """
+    nest_instance = nest_device.nest_instance
     if receptor_type is None:
         receptor_type = 0
     if nest_instance is None:
         raise_value_error("There is no NEST instance!")
     resolution = nest_instance.GetKernelStatus("resolution")
-    if isinstance(delay, dict):
-        if delay["low"] < resolution:
-            delay["low"] = resolution
-            warning("Minimum delay %f is smaller than the NEST simulation resolution %f!\n"
-                    "Setting minimum delay equal to resolution!" % (delay["low"], resolution))
-        if delay["high"] <= delay["low"]:
-            raise_value_error("Maximum delay %f is not smaller than minimum one %f!" % (delay["high"], delay["low"]))
-    else:
+    try:
         if delay < resolution:
-            delay = resolution
             warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
                     "Setting minimum delay equal to resolution!" % (delay, resolution))
-    syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
+            delay = resolution
+    except:
+        pass
+    basic_syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
+    if isinstance(syn_spec, dict):
+        syn_spec.update(basic_syn_spec)
+    else:
+        syn_spec = basic_syn_spec
     neurons = get_populations_neurons(population, neurons_inds_fun)
     if nest_device.model == "spike_recorder":
         #                     source  ->  target
         nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)
     else:
-        nest_instance.Connect(nest_device.device, neurons, syn_spec=syn_spec)
+        if isinstance(nest_device, tuple(NESTParrotSpikeInputDeviceDict.values())):
+            # This is the case where we connect to the target neurons
+            # the parrot_neuron population that is attached to the input spike device
+            try:
+                # Try to reduce delay by resolution time
+                syn_spec["delay"] = np.maximum(resolution, syn_spec["delay"] + resolution)
+            except:
+                pass
+            if conn_spec is None:
+                conn_spec = {"rule": "all_to_all"}
+            conn_spec = create_conn_spec(n_src=nest_device.number_of_neurons, n_trg=len(neurons),
+                                         src_is_trg=False, config=config, **conn_spec)[0]
+            conn_spec.pop("allow_autapses", None)
+            conn_spec.pop("allow_multapses", None)
+            receptors = ensure_list(syn_spec["receptor_type"])
+            for receptor in receptors:
+                syn_spec["receptor_type"] = receptor
+                nest_instance.Connect(nest_device._population, neurons, syn_spec=syn_spec, conn_spec=conn_spec)
+        else:
+            nest_instance.Connect(nest_device.device, neurons, syn_spec=syn_spec)
     return nest_device

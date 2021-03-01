@@ -2,6 +2,7 @@
 
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
+from tvb.basic.neotraits.api import Attr
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, extract_integer_intervals
 
 
@@ -13,10 +14,15 @@ class NESTPopulation(SpikingPopulation):
        residing at the same brain region.
     """
 
+    from nest import NodeCollection
+
     nest_instance = None
     _weight_attr = "weight"
     _delay_attr = "delay"
     _receptor_attr = "receptor"
+
+    _population = Attr(field_type=NodeCollection, default=None, required=True,
+                       label="Population", doc="""NEST population NodeCollection instance""")
 
     def __init__(self, node_collection, label="", model="", nest_instance=None):
         self.nest_instance = nest_instance
@@ -153,3 +159,13 @@ class NESTPopulation(SpikingPopulation):
             return connections.get()
         else:
             return connections.get(ensure_list(attrs))
+
+
+class NESTParrotPopulation(NESTPopulation):
+
+    """NESTParrotPopulation class to wrap around a NEST parrot_neuron population"""
+
+    def __init__(self, node_collection, label="", model="", nest_instance=None):
+        if len(model) == 0:
+            model = "parrot_neuron"
+        super(NESTParrotPopulation, self).__init__(node_collection, label, model, nest_instance)

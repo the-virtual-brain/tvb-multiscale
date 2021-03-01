@@ -1332,7 +1332,7 @@ class DeviceSet(pd.Series, HasTraits):
         """Assert that all Devices of the set are of the same model."""
         if len(self) > 0:
             models = self.do_for_all_devices("model")
-            if np.any([model != self.model for model in models]):
+            if np.any([model != models[0] or model not in self.model for model in models]):
                 raise ValueError("Not all devices of the DeviceSet are of the same model!:\n %s" % str(models))
 
     def update(self, device_set=None):
