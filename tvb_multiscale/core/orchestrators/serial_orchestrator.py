@@ -29,8 +29,8 @@ class SerialOrchestrator(Orchestrator):
 
     exclusive_nodes = Attr(label="Flag of exclusive nodes",
                            doc="""Boolean flag that is true 
-                                      if the co-simulator nodes are modelled exclusively by the co-simulator, 
-                                      i.e., they are not simulated by TVB""",
+                                  if the co-simulator nodes are modelled exclusively by the co-simulator, 
+                                  i.e., they are not simulated by TVB""",
                            field_type=bool,
                            default=True,
                            required=True)
