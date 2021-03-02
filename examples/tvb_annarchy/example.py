@@ -85,7 +85,7 @@ def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
         populations.append(pop["label"])
         populations_sizes.append(int(np.round(pop["scale"] * annarchy_model_builder.population_order)))
     # Common order of neurons' number per population:
-    annarchy_network = annarchy_model_builder.build_spiking_network()
+    annarchy_network = annarchy_model_builder.build()
     print("Done! in %f min" % ((time.time() - tic) / 60))
 
     # -----------------------------------3. Build the TVB-ANNarchy interface model -----------------------------------------

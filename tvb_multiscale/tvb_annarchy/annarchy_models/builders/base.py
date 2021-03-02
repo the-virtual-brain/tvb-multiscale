@@ -147,7 +147,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                                          self._spiking_brain, self.config, annarchy_instance=self.annarchy_instance,
                                          import_path=self._models_import_path)
 
-    def build(self):
+    def build_spiking_network(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""
         return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,
                                self._output_devices, self._input_devices, config=self.config)

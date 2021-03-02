@@ -172,7 +172,7 @@ class SpikingModelBuilder(object):
         pass
 
     @abstractmethod
-    def build(self):
+    def build_spiking_network(self):
         """A method to build the final SpikingNetwork class based on the already created constituents."""
         pass
 
@@ -628,7 +628,7 @@ class SpikingModelBuilder(object):
            - brain region nodes (pandas.Series) they target."""
         return self._build_and_connect_devices(self._input_devices)
 
-    def build_spiking_network(self):
+    def build(self):
         """This method will run the whole workflow of building the spiking network, which will be returned."""
         # Build and connect the brain network
         self.build_spiking_brain()
@@ -640,7 +640,7 @@ class SpikingModelBuilder(object):
         # Build and connect possible Spiking input devices
         # !!Use it only for stimuli, if any, not for transmitting data from TVB to the Spiking simulator!!
         self._input_devices = self.build_and_connect_input_devices()
-        return self.build()
+        return self.build_spiking_network()
 
 
 def node_key_index_and_label(node, labels):
