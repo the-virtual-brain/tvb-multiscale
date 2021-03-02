@@ -49,9 +49,9 @@ class App(HasTraits):
     #     required=False
     # )
 
-    def_tvb_serial_path = Attr(
+    default_tvb_serial_path = Attr(
         label="TVB serialized CoSimulator path",
-        field_type=H5Reader,
+        field_type=str,
         doc="""File path of TVB serialized CoSimulator.""",
         required=True,
         default=""
@@ -122,6 +122,10 @@ class App(HasTraits):
 
     @abstractmethod
     def clean_up(self):
+        pass
+
+    @abstractmethod
+    def reset(self):
         pass
 
 

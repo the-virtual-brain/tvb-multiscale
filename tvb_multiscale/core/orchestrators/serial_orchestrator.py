@@ -67,7 +67,7 @@ class SerialOrchestrator(Orchestrator):
         return self.spikeNet_app.number_of_neurons_per_region_and_population
 
     def build_interfaces(self):
-        self.tvb_app.interfaces_builder.spiking_network = self.spiking_network
+        self.tvb_app.spiking_network = self.spiking_network
         self.tvb_app.build_interfaces()
 
     def configure_simulation(self):
@@ -77,9 +77,10 @@ class SerialOrchestrator(Orchestrator):
         self.spikeNet_app.configure_simulation()
 
     def run(self):
+        self.configure()
         self.build()
         self.configure_simulation()
-        self.tvb_app.run()
+        self.tvb_app.simulate()
 
     def stop(self):
         self.tvb_app.stop()
@@ -88,3 +89,7 @@ class SerialOrchestrator(Orchestrator):
     def clean_up(self):
         self.tvb_app.clean_up()
         self.spikeNet_app.clean_up()
+
+    def reset(self):
+        self.tvb_app.reset()
+        self.spikeNet_app.reset()

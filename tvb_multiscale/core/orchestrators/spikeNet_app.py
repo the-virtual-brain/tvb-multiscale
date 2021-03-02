@@ -37,6 +37,13 @@ class SpikeNetApp(NonTVBApp):
         default=100
     )
 
+    tvb_cosimulator_serialized = Attr(
+        label="Serialized TVB CoSimunlator",
+        field_type=dict,
+        doc="""Serialized TVB CoSimulator (dict).""",
+        required=False
+    )
+
     spiking_cosimulator = None
 
     populations = []
@@ -45,39 +52,50 @@ class SpikeNetApp(NonTVBApp):
     def setup_from_orchestrator(self, orchestrator):
         super(SpikeNetApp, self).setup_from_another_app(orchestrator)
 
+    def get_serialized_tvb_cosimulator(self):
+        return self.load_tvb_simulator_serialized()
+
+    @property
+    def _spiking_cosimulator(self):
+        if self.spiking_simulator is None:
+            self.start()
+        return self.spiking_cosimulator
+
+    @property
+    def _serialized_tvb_cosimulator(self):
+        if not isinstance(self.tvb_cosimulator_serialized, dict):
+            self.get_serialized_tvb_cosimulator()
+        return self.tvb_cosimulator_serialized
+
     def configure(self):
         super(SpikeNetApp, self).configure()
-        if not self.spiking_model_builder:
-            self.spiking_model_builder = SpikingModelBuilder(self.tvb_cosimulator_serialized, self.spiking_proxy_inds,
-                                                             config=self.config, logger=self.logger)
-            self.spiking_model_builder.population_order = self.population_order
+        self.spiking_model_builder.population_order = self.population_order
         self.spiking_model_builder.configure()
 
     def build_spiking_network(self):
-        self.spiking_network = self.spiking_model_builder.build_spiking_brain()
+        self.spiking_network = self.spiking_model_builder.build()
 
     def get_number_of_neurons_per_region_and_populations(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
-        if self.spiking_network is not None:
-            return self.spiking_network.get_number_of_neurons_per_region_and_population(
-                reg_inds_or_lbls, pop_inds_or_lbls)
-        else:
-            return None
+        return self._spiking_network.get_number_of_neurons_per_region_and_population(reg_inds_or_lbls, pop_inds_or_lbls)
 
     @property
     def number_of_neurons_per_region_and_population(self):
         return self.get_number_of_neurons_per_region_and_population()
 
     def build(self):
-        if not self.spiking_model_builder:
-            self.configure()
-        self.spiking_network = self.build_spiking_network()
+        self.build_spiking_network()
 
     @abstractmethod
     def configure_simulation(self):
         pass
 
     def run(self, *args, **kwargs):
-        self.spiking_network.Run(self.simulation_length, *args, **kwargs)
+        self.configure()
+        self.build()
+        self.simulate()
+
+    def reset(self):
+        self.spiking_network = None
 
 
 class SpikeNetSerialApp(SpikeNetApp):
@@ -114,10 +132,28 @@ class SpikeNetParallelApp(SpikeNetApp):
         required=False
     )
 
+    _default_interface_builder = SpikeNetInterfaceBuilder
+    _interfaces_built = False
+
+    def configure_interfaces_builder(self):
+        self.interfaces_builder.spiking_network = self._spiking_network
+
+    @property
+    def _interfaces_builder(self):
+        if not isinstance(self.interfaces_builder, self._default_interface_builder):
+            self.interfaces_builder = self._default_interface_builder()
+            self.configure_interfaces_builder()
+        return self.interfaces_builder
+
     def build_interfaces(self):
-        self.output_interfaces, self.input_interfaces = self.interfaces_builder.build()
+        if not self._interfaces_built:
+            self.output_interfaces, self.input_interfaces = self._interfaces_builder.build()
+            self._interfaces_built = True
 
     def build(self):
         super(SpikeNetParallelApp, self).build()
-        self.interfaces_builder.spiking_network = self.spiking_network
         self.build_interfaces()
+
+    def reset(self):
+        self._interfaces_built = False
+        super(SpikeNetParallelApp, self).reset()

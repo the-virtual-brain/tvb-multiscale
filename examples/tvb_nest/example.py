@@ -12,9 +12,7 @@ from tvb_multiscale.tvb_nest.config import Config, CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp
-from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
+from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator, NESTSerialApp, TVBSerialApp
 from tvb_multiscale.core.plot.plotter import Plotter
 from examples.plot_write_results import plot_write_results
 
@@ -22,7 +20,7 @@ from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
-def results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb):
+def results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb, config=None):
     if config is None:
         if tvb_to_nest_mode is not None:
             tvb_nest_str = "_" + tvb_to_nest_mode
@@ -40,85 +38,89 @@ def results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb):
 def main_example(tvb_sim_model, nest_model_builder, nest_nodes_ids,
                  model_params={}, nest_populations_order=100,
                  tvb_to_nest_mode="RATE", tvb_to_nest_connections={},
-                 nest_to_tvb_connections={}, exclusive_nodes=True,
+                 tvb_to_nest_proxy_params={}, tvb_to_nest_transformer_params={},
+                 nest_to_tvb_connections={}, nest_to_tvb_proxy_params={}, nest_to_tvb_transformer_params={},
+                 exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP,
                  simulation_length=110.0, transient=10.0,
                  config=None, plot_write=True):
 
     if config is None:
-        config = Config(
-                    output_base=results_path_fun(nest_model_builder, tvb_to_nest_mode, len(nest_to_tvb_connections)> 0))
+        config = \
+            Config(output_base=results_path_fun(nest_model_builder, tvb_to_nest_mode, len(nest_to_tvb_connections) > 0))
 
-    orchestrator = SerialOrchestrator(
+    orchestrator = TVBNESTSerialOrchestrator(
         config=config,
         exclusive_nodes=exclusive_nodes,
         spiking_proxy_inds=nest_nodes_ids,
-        simulation_length=simulation_length,
+        simulation_length=simulation_length
     )
+    orchestrator.start()
 
     plotter = Plotter(config)
 
-    # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
+    # -----------------------------------1. Models' and simulation configuration ---------------------------------------
+
+    print("\n\nConfiguring...")
+    tic = time.time()
+
+    # -----------------------------------------a. Configure a TVB simulator builder ------------------------------------
     orchestrator.tvb_app.simulator_builder.model = tvb_sim_model
     orchestrator.tvb_app.simulator_builder.model_params = model_params
     orchestrator.tvb_app.simulator_builder.connectivity = connectivity
 
-    # ------2. Build the NEST network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
-
-    print("\n\nBuilding NEST network...")
-    tic = time.time()
-
-    # Build a NEST network model with the corresponding builder
-    # Using all default parameters for this example
+    # -----------------------------------------b. Configure the NEST network model builder------------------------------
     orchestrator.spikeNet_app.spiking_model_builder = nest_model_builder
     orchestrator.spikeNet_app.population_order = nest_populations_order
 
-    print("\nDone! in %f min\n" % ((time.time() - tic) / 60))
-    print(nest_network.print_str(connectivity=True))
-
-    # -----------------------------------3. Build the TVB-NEST interface model -----------------------------------------
-
-    print("\n\nBuilding TVB-NEST interface...")
-    tic = time.time()
-    # Build a TVB-NEST interface with all the appropriate connections between the
-    # TVB and NEST modelled regions
-    # Using all default parameters for this example
+    # -----------------------------------------c. Configure the TVB-NEST interface model -------------------------------
+    orchestrator.tvb_app.interfaces_builder.output_interfaces = []
     for voi, pop in tvb_to_nest_connections.items():
         orchestrator.tvb_app.interfaces_builder.output_interfaces.append(
-            {"model": tvb_to_nest_mode, "voi": voi, "populations": pop}
+            {"model": tvb_to_nest_mode, "voi": voi, "populations": pop,
+             "transformer_params": tvb_to_nest_transformer_params, "proxy_params": tvb_to_nest_proxy_params}
     )
-    for conn in nest_to_tvb_connections:
+    orchestrator.tvb_app.interfaces_builder.input_interfaces = []
+    for voi, pop in nest_to_tvb_connections.items():
         orchestrator.tvb_app.interfaces_builder.input_interfaces.append(
-            {"voi": voi, "populations": pop}
+            {"voi": voi, "populations": pop,
+             "transformer_params": nest_to_tvb_transformer_params, "proxy_params": nest_to_tvb_proxy_params}
     )
 
-    print("\nDone! in %f min\n" % ((time.time() - tic)/60))
-    print(tvb_nest_model.print_str(detailed_output=True, connectivity=False))
+    # ----------------------------------------d. Run the orchestrator configuration ------------------------------------
+    orchestrator.configure()
+    print("\nDone! in %f min\n" % ((time.time() - tic) / 60))
 
-    # -----------------------------------4. Simulate and gather results-------------------------------------------------
+    # # -----------------------------------3. Build models, simulators and interfaces-----------------------------------
+    print("\n\nBuilding...")
+    tic = time.time()
+    orchestrator.build()
+    print("\nBuilt in %f secs!\n" % (time.time() - t_start))
 
-    # Configure the simulator with the TVB-NEST interface...
-    simulator.configure(tvb_nest_model)
-    # ...and simulate!
+    # -------------------------------------4. Configure, Simulate and gather results------------------------------------
     print("\n\nSimulating...")
-    t_start = time.time()
-    results = simulator.run(simulation_length=simulation_length)
-    # Integrate NEST one more NEST time step so that multimeters get the last time point
-    # unless you plan to continue simulation later
-    simulator.run_spiking_simulator(simulator.tvb_spikeNet_interface.nest_instance.GetKernelStatus("resolution"))
-    # Clean-up NEST simulation
-    simulator.tvb_spikeNet_interface.nest_instance.Cleanup()
+    tic = time.time()
+    orchestrator.simulate()
     print("\nSimulated in %f secs!\n" % (time.time() - t_start))
+
+    simulator = orchestrator.tvb_app.cosimulator
+    results = orchestrator.tvb_app.results
+
+    populations = orchestrator.get_number_of_neurons_per_region_and_population()
 
     # -------------------------------------------5. Plot results--------------------------------------------------------
     if plot_write:
         try:
-            plot_write_results(results, simulator, populations=populations, populations_sizes=populations_sizes,
+            plot_write_results(results, simulator,
+                               populations=populations.coords["Population"], populations_sizes=populations[0].values,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
                                plot_per_neuron=True, plotter=plotter, config=config)
         except Exception as e:
             print("Error in plotting or writing to files!:\n%s" % str(e))
+
+    orchestrator.clean_up()
+    orchestrator.stop()
 
     return results, simulator
 
@@ -167,7 +169,10 @@ if __name__ == "__main__":
 
     main_example(tvb_sim_model, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
                  nest_nodes_ids,  nest_populations_order=100,
-                 tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
+                 tvb_to_nest_mode="RATE", tvb_to_nest_connections={},
+                 tvb_to_nest_proxy_params={}, tvb_to_nest_transformer_params={},
+                 nest_to_tvb_connections={}, nest_to_tvb_proxy_params={}, nest_to_tvb_transformer_params={},
+                 exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
                  variables_of_interest=None,
