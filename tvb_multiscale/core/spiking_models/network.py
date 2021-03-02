@@ -144,17 +144,6 @@ class SpikingNetwork(HasTraits):
             outputs += output
         return outputs
 
-    @abstractmethod
-    def configure(self, *args, **kwargs):
-        """Method to configure a simulation just before execution.
-        """
-        pass
-
-    @abstractmethod
-    def Run(self, simulation_length, *args, **kwargs):
-        """Method to simulate the spiking network for a specific simulation_length (in ms)."""
-        pass
-
     @property
     @abstractmethod
     def min_delay(self):
