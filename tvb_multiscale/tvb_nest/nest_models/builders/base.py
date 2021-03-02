@@ -258,7 +258,7 @@ class NESTModelBuilder(SpikingModelBuilder):
         return build_and_connect_devices(devices, create_device, connect_device,
                                          self._spiking_brain, self.config, nest_instance=self.nest_instance)
 
-    def build(self):
+    def build_spiking_network(self):
         """A method to build the final NESTNetwork class based on the already created constituents."""
         return NESTNetwork(self.nest_instance, self._spiking_brain,
                            self._output_devices, self._input_devices, config=self.config)
