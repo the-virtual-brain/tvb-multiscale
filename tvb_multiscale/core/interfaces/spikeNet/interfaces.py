@@ -122,7 +122,7 @@ class SpikeNetSenderInterface(SenderInterface, SpikeNetOutputInterface):
         SenderInterface.configure(self)
 
     def __call__(self):
-        return SenderInterface.__call__(self, SpikeNetOutputInterface(self))
+        return SenderInterface.__call__(self, SpikeNetOutputInterface.__call__(self))
 
     def print_str(self):
         return SenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
@@ -137,7 +137,7 @@ class SpikeNetReceiverInterface(ReceiverInterface, SpikeNetInputInterface):
         ReceiverInterface.configure(self)
 
     def __call__(self):
-        return SpikeNetInputInterface(self, ReceiverInterface.__call__(self))
+        return SpikeNetInputInterface.__call__(self, ReceiverInterface.__call__(self))
 
     def print_str(self):
         return ReceiverInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
@@ -152,7 +152,7 @@ class SpikeNetTransformerSenderInterface(TransformerSenderInterface, SpikeNetOut
         TransformerSenderInterface.configure(self)
 
     def __call__(self, data):
-        return SpikeNetTransformerSenderInterface.__call__(self, self.SpikeNetOutgoingInterface())
+        return SpikeNetTransformerSenderInterface.__call__(self, SpikeNetOutputInterface.__call__(self))
 
     def print_str(self):
         return TransformerSenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
@@ -167,7 +167,7 @@ class SpikeNetReceiverTransformerInterface(ReceiverTransformerInterface, SpikeNe
         ReceiverTransformerInterface.configure(self)
 
     def __call__(self):
-        return SpikeNetInputInterface(self, ReceiverTransformerInterface.__call__(self))
+        return SpikeNetInputInterface.__call__(self, ReceiverTransformerInterface.__call__(self))
 
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + SpikeNetInputInterface.print_str(self)

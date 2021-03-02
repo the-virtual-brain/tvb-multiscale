@@ -114,24 +114,24 @@ class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NES
         SpikeNetReceiverTransformerInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
-class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTOutputInterface):
+class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
 
     """TVBtoNESTInterface class to get data from TVB, transform them,
        and finally set them to NEST, all processes taking place in shared memmory.
     """
 
     def print_str(self):
-        TVBtoSpikeNetInterface.print_str(self) + NESTOutputInterface.print_str(self)
+        TVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
-class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTInputInterface):
+class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
 
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
     """
 
     def print_str(self):
-        SpikeNetToTVBInterface.print_str(self) + NESTInputInterface.print_str(self)
+        SpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
 
 class NESTInterfaces(HasTraits):

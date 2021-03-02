@@ -5,6 +5,7 @@ from tvb.basic.neotraits._attr import Attr, List
 
 from tvb_multiscale.core.config import LINE
 from tvb_multiscale.core.interfaces.base.io import Communicator, Sender, Receiver
+from tvb_multiscale.core.interfaces.base.transformers import Transformer
 
 
 class BaseInterface(HasTraits):
@@ -126,7 +127,7 @@ class CommunicatorTransformerInterface(BaseInterface):
 
     transformer = Attr(
         label="Transformer",
-        field_type=Communicator,
+        field_type=Transformer,
         doc="""A Transformer class instance to process data.""",
         required=True
     )
@@ -224,7 +225,7 @@ class RemoteTransformerInterface(BaseInterface):
 
     transformer = Attr(
         label="Transformer",
-        field_type=Communicator,
+        field_type=Transformer,
         doc="""A Transformer class instance to process data.""",
         required=True
     )

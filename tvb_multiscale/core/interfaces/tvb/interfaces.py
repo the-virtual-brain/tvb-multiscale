@@ -4,13 +4,14 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Int, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.base.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
+from tvb_multiscale.core.interfaces.base.transformers import Transformer
 
 
 class TVBInterface(HasTraits):
@@ -124,7 +125,7 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
     """
 
     def __call__(self, data):
-        return SenderInterface.__call__(self, TVBOutputInterface.__call__(self, data))
+        return SenderInterface.__call__(self, data)
 
     def print_str(self):
         return SenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
@@ -149,7 +150,7 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterfa
     """
 
     def __call__(self, data):
-        return TVBTransformerSenderInterface.__call__(self, TVBOutputInterface.__call__(self, data))
+        return TVBTransformerSenderInterface.__call__(self, data)
 
     def print_str(self):
         return TransformerSenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
@@ -175,6 +176,13 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
     """
 
+    transformer = Attr(
+        label="Transformer",
+        field_type=Transformer,
+        doc="""A Transformer class instance to process data.""",
+        required=True
+    )
+
     @property
     def label(self):
         return "%s: %s (%s) -> %s (%s)" % (self.__class__.__name__, str(self.voi_labels),
@@ -182,8 +190,14 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        return TVBTransformerSenderInterface.print_str(self) + \
+        return TVBOutputInterface.print_str(self) + \
                SpikeNetInputInterface.print_str(self)
+
+    def __call__(self, data):
+        self.transformer.input_time = data[0]
+        self.transformer.input_buffer = data[1]
+        self.transformer()
+        return SpikeNetInputInterface.__call__(self, [self.transformer.output_time, self.transformer.output_buffer])
 
 
 class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
@@ -192,6 +206,13 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
        and finally set them to TVB, all processes taking place in shared memmory.
     """
 
+    transformer = Attr(
+        label="Transformer",
+        field_type=Transformer,
+        doc="""A Transformer class instance to process data.""",
+        required=True
+    )
+
     @property
     def label(self):
         return "%s: %s (%s) <- %s (%s)" % (self.__class__.__name__, str(self.voi_labels),
@@ -199,8 +220,15 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        return TVBTransformerSenderInterface.print_str(self) + \
+        return TVBInputInterface.print_str(self) + \
                SpikeNetOutputInterface.print_str(self)
+
+    def __call__(self):
+        data = SpikeNetOutputInterface.__call__(self)
+        self.transformer.input_time = data[0]
+        self.transformer.input_buffer = data[1]
+        self.transformer()
+        return [self.transformer.output_time, self.transformer.output_buffer]
 
 
 class TVBInterfaces(HasTraits):
