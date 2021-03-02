@@ -67,7 +67,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         populations.append(pop["label"])
         populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Common order of neurons' number per population:
-    nest_network = nest_model_builder.build_spiking_network()
+    nest_network = nest_model_builder.build()
 
     print(nest_network.print_str(connectivity=True))
     print("Done! in %f min" % ((time.time() - tic) / 60))
