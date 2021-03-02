@@ -10,11 +10,11 @@ from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 
-class Base(HasTraits):
+class Transformer(HasTraits):
     __metaclass__ = ABCMeta
 
     """
-        Abstract Base Transformer class comprising:
+        Abstract Transformer base class comprising:
             - an input buffer data numpy.array,
             - an output buffer data numpy.array,
             - an abstract method for the computations applied 
@@ -71,7 +71,7 @@ class Base(HasTraits):
             self.receiver.configure()
         if self.sender:
             self.sender.configure()
-        super(Base, self).configure()
+        super(Transformer, self).configure()
 
     def print_str(self):
         output = "\n%s, dt = %g" % (self.__repr__(), self.dt)
@@ -84,7 +84,7 @@ class Base(HasTraits):
 # A few basic examples:
 
 
-class Elementary(Base):
+class Elementary(Transformer):
     """
         Elementary Transformer just copies the input to the output without any computation.
         It comprises of:
@@ -98,7 +98,7 @@ class Elementary(Base):
         self.output_buffer = np.copy(self.input_buffer)
 
 
-class Scale(Base):
+class Scale(Transformer):
     """
         Scale Transformer scales the input with a scale factor in order to compute the output.
         It comprises of:
@@ -120,7 +120,7 @@ class Scale(Base):
         self.output_buffer = self.scale_factor * self.input_buffer
 
 
-class DotProduct(Base):
+class DotProduct(Transformer):
     """
         DotProduct Transformer computes the dot product of the input with a scale factor
         in order to compute the output.
