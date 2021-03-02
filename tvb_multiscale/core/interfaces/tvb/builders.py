@@ -228,36 +228,36 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransfor
         return kwargs
 
 
-class TVBOutputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransformerBuilder):
+class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransformerBuilder):
 
-    """TVBOutputTransfomerInterfaceBuilder class"""
+    """TVBOutputTransformerInterfaceBuilder class"""
 
     _output_interface_type = TVBTransformerSenderInterface
     _input_interface_type = TVBReceiverInterface
 
     def configure(self):
         self.configure_and_build_transformer(self)
-        super(TVBOutputTransfomerInterfaceBuilder, self).configure()
+        super(TVBOutputTransformerInterfaceBuilder, self).configure()
 
     def _get_output_interface_arguments(self, interface):
-        kwargs = super(TVBOutputTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
+        kwargs = super(TVBOutputTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface)
         kwargs["transformer"] = interface["transformer"]
         return kwargs
 
 
-class TVBInputTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBInputTransformerBuilder):
+class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBInputTransformerBuilder):
 
-    """TVBInputTransfomerInterfaceBuilder class"""
+    """TVBInputTransformerInterfaceBuilder class"""
 
     _output_interface_type = TVBSenderInterface
     _input_interface_type = TVBReceiverTransformerInterface
 
     def configure(self):
-        super(TVBInputTransfomerInterfaceBuilder, self).configure()
+        super(TVBInputTransformerInterfaceBuilder, self).configure()
         self.configure_and_build_transformer(self)
 
     def _get_input_interface_arguments(self, interface):
-        kwargs = super(TVBInputTransfomerInterfaceBuilder, self)._get_input_interface_arguments(interface)
+        kwargs = super(TVBInputTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)
         kwargs["transformer"] = interface["transformer"]
         return kwargs
 

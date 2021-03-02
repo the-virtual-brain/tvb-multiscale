@@ -18,14 +18,23 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     TVBtoNESTInterfaces, NESTtoTVBInterfaces, \
     TVBtoNESTInterface, NESTtoTVBInterface
 from tvb_multiscale.tvb_nest.interfaces.io import NESTSpikeRecorderSet, \
-    NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet
+    NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
+    NESTParrotSpikeGeneratorSet, NESTParrotInhomogeneousPoissonGeneratorSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
 
 class NESTInputProxyModels(Enum):
     RATE = NESTInhomogeneousPoissonGeneratorSet
+    PARROT_RATE = NESTParrotInhomogeneousPoissonGeneratorSet
     RATE_TO_SPIKES = NESTSpikeGeneratorSet
+    PARROT_RATE_TO_SPIKES = NESTParrotSpikeGeneratorSet
+    CURRENT = NESTStepCurrentGeneratorSet
+
+
+class NESTDefaultInputProxyModels(Enum):
+    RATE = NESTParrotInhomogeneousPoissonGeneratorSet
+    RATE_TO_SPIKES = NESTParrotSpikeGeneratorSet
     CURRENT = NESTStepCurrentGeneratorSet
 
 
@@ -33,11 +42,15 @@ class NESTOutputProxyModels(Enum):
     SPIKES_TO_RATE = NESTSpikeRecorderSet
 
 
+class NESTDefaultOutputProxyModels(Enum):
+    SPIKES_TO_RATE = NESTSpikeRecorderSet
+
+
 NEST_OUTPUT_PROXY_TYPES = tuple([val.value for val in NESTOutputProxyModels.__members__.values()])
-NEST_OUTPUT_PROXY_MODELS = tuple([val.name for val in NESTOutputProxyModels.__members__.values()])
+NEST_OUTPUT_PROXY_MODELS = tuple([val.name for val in NESTDefaultOutputProxyModels.__members__.values()])
 
 NEST_INPUT_PROXY_TYPES = tuple([val.value for val in NESTInputProxyModels.__members__.values()])
-NEST_INPUT_PROXY_MODELS = tuple([val.name for val in NESTInputProxyModels.__members__.values()])
+NEST_INPUT_PROXY_MODELS = tuple([val.name for val in NESTDefaultInputProxyModels.__members__.values()])
 
 
 class NESTInterfaceBuilder(HasTraits):
@@ -55,8 +68,8 @@ class NESTInterfaceBuilder(HasTraits):
     input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
                             doc="List of dicts of configurations for the input interfaces to be built")
 
-    _default_input_proxy_model = NESTInputProxyModels.RATE_TO_SPIKES.name
-    _default_output_proxy_model = NESTOutputProxyModels.SPIKES_TO_RATE.name
+    _default_input_proxy_model = NESTDefaultInputProxyModels.RATE.name
+    _default_output_proxy_model = NESTDefaultOutputProxyModels.SPIKES_TO_RATE.name
 
     @property
     def nest_network(self):
@@ -95,7 +108,7 @@ class NESTInterfaceBuilder(HasTraits):
             if isinstance(model, string_types):
                 model = model.upper()
                 assert model in NEST_INPUT_PROXY_MODELS
-                interface["proxy_model"] = getattr(NESTInputProxyModels, model).value
+                interface["proxy_model"] = getattr(NESTDefaultInputProxyModels, model).value
             else:
                 assert model in NEST_INPUT_PROXY_TYPES
         for interface in self.output_interfaces:
@@ -103,7 +116,7 @@ class NESTInterfaceBuilder(HasTraits):
             if isinstance(model, string_types):
                 model = model.upper()
                 assert model in NEST_OUTPUT_PROXY_MODELS
-                interface["proxy_model"] = getattr(NESTOutputProxyModels, model).value
+                interface["proxy_model"] = getattr(NESTDefaultOutputProxyModels, model).value
             else:
                 assert model in NEST_OUTPUT_PROXY_TYPES
         super(NESTInterfaceBuilder, self).configure()
