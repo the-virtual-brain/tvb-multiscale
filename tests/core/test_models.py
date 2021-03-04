@@ -19,9 +19,10 @@ from examples.simulate_tvb_only import main_example, results_path_fun
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
+# from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
+
 
 # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
@@ -66,17 +67,12 @@ model_params_sp = {
 
 
 class TestModel(object):
-    use_numba = True
+    use_numba = False
     simulation_length = 55.0
     transient = 5.0
     model = None
     model_params = {}
-    results_path = ""
-    plot_write = True
-
-    def __init__(self, model, model_params={}):
-        self.model = model
-        self.model_params = model_params
+    plot_write = False
 
     @property
     def results_path(self):
@@ -93,36 +89,49 @@ class TestModel(object):
 class TestWilsonCowan(TestModel):
     model = WilsonCowan
 
-    def __init__(self):
-        super(TestWilsonCowan, self).__init__(WilsonCowan, model_params_wc)
+    # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
+    model_params = model_params_wc
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
 class TestReducedWongWangExcIO(TestModel):
     model = ReducedWongWangExcIO
+    model_params = model_params_redww_exc_io
 
-    def __init__(self):
-        super(TestReducedWongWangExcIO, self).__init__(ReducedWongWangExcIO, model_params_redww_exc_io)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
 class TestReducedWongWangExcIOInhI(TestModel):
     model = ReducedWongWangExcIOInhI
+    model_params = model_params_redww_exc_io_inn_i
 
-    def __init__(self):
-        super(TestReducedWongWangExcIOInhI, self).__init__(ReducedWongWangExcIOInhI, model_params_redww_exc_io_inn_i)
-
-
-class TestSpikingWongWangExcIOInhI(TestModel):
-    model = SpikingWongWangExcIOInhI
-
-    def __init__(self):
-        super(TestSpikingWongWangExcIOInhI, self).__init__(SpikingWongWangExcIOInhI, model_params_sp)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
-# @pytest.mark.skip(reason="These tests are taking too much time") # only TestSpikingWongWangExcIOInhI takes time
-def test_models(models_to_test=[TestWilsonCowan,
-                                TestReducedWongWangExcIO,
-                                TestReducedWongWangExcIOInhI], # , TestSpikingWongWangExcIOInhI
-                use_numba=True):
+# class TestSpikingWongWangExcIOInhI(TestModel):
+#     model = SpikingWongWangExcIOInhI
+#     model_params = model_params_sp
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.run()
+
+
+def teardown_function():
+    output_folder = Config().out._out_base
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
+
+
+def loop_all(use_numba=False,
+             models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):
     import time
     import numpy as np
     from collections import OrderedDict
@@ -133,37 +142,32 @@ def test_models(models_to_test=[TestWilsonCowan,
         print("\n******************************************************")
         print("******************************************************")
         print(test_model_class.__name__)
+        for test in test_model.__dict__.keys():
+            if test[:5] == "test_":
+                print("******************************************************")
+                print(test)
+                print("******************************************************")
+                try:
+                    tic = time.time()
+                    getattr(test_model, test)()
+                    print("\nSuccess in time %f sec!" % (time.time() - tic))
+                    success[test_model_class.__name__] = True
+                except Exception as e:
+                    success[test_model_class.__name__] = e
+                    print("\nError after time %f sec!" % (time.time() - tic))
+                del test_model
+                gc.collect()
+                print("******************************************************\n")
+                sleep(5)
+        print("\n******************************************************")
         print("******************************************************")
-        try:
-            tic = time.time()
-            test_model.run()
-            print("\nSuccess in time %f sec!" % (time.time() - tic))
-            success[test_model_class.__name__] = True
-        except Exception as e:
-            success[test_model_class.__name__] = e
-            print("\nError after time %f sec!" % (time.time() - tic))
-        del test_model
-        gc.collect()
-        print("******************************************************\n")
-        sleep(5)
-    print("\n******************************************************")
-    print("******************************************************")
     if not np.all([result is True for result in list(success.values())]):
         raise Exception("%s\nmodels' tests failed! Details:\n%s" % (str(os.getcwd()), str(success)))
     else:
         print(success)
     print("******************************************************\n")
-    return success
-
-
-def teardown_function():
-    output_folder = Config().out._out_base
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
 
 
 if __name__ == "__main__":
-    print("************Testing with use_numba=False!*************\n")
-    test_models(use_numba=False)
-    print("************Testing with use_numba=True!**************\n")
-    test_models(use_numba=True)
+    loop_all(use_numba=False)
+    loop_all(use_numba=True)

@@ -18,8 +18,8 @@ from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich import \
     RedWWexcIOBuilder as IzhikevichRedWWexcIOBuilder
 
-from tests.core.test_models import test_models as test_models_base
-from tests.core.test_models import model_params_wc
+from tests.core.test_models import loop_all, TestModel
+from tests.core.test_models import model_params_wc, model_params_redww_exc_io
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
@@ -27,7 +27,7 @@ from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
 
-class TestModel(object):
+class TestModelAnnarchy(TestModel):
     annarchy_nodes_ids = []
     annarchy_model_builder = None
     interface_model_builder = None
@@ -36,16 +36,6 @@ class TestModel(object):
     annarchy_to_tvb = True
     exclusive_nodes = True
     delays_flag = True
-    simulation_length = 55.0
-    transient = 5.0
-    plot_write = True
-
-    def __init__(self, model, annarchy_nodes_ids, annarchy_model_builder, interface_model_builder, model_params={}):
-        self.model = model
-        self.annarchy_nodes_ids = annarchy_nodes_ids
-        self.annarchy_model_builder = annarchy_model_builder
-        self.interface_model_builder = interface_model_builder
-        self.model_params = model_params
 
     @property
     def results_path(self):
@@ -66,25 +56,30 @@ class TestModel(object):
                             **self.model_params)
 
 
-class TestWilsonCowan(TestModel):
+class TestWilsonCowan(TestModelAnnarchy):
+    model = WilsonCowan
+    model_params = model_params_wc
     tvb_to_annarchy_mode = "rate"
+    annarchy_nodes_ids = [33, 34]
+    annarchy_model_builder = WilsonCowanBuilder
+    interface_model_builder = InterfaceWilsonCowanBuilder
 
-    def __init__(self):
-        super(TestWilsonCowan, self).__init__(WilsonCowan, [33, 34], WilsonCowanBuilder,
-                                              InterfaceWilsonCowanBuilder, model_params_wc)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
-class TestIzhikevichRedWWexcIO(TestModel):
+class TestIzhikevichRedWWexcIO(TestModelAnnarchy):
+    model = ReducedWongWangExcIO
+    model_params = model_params_redww_exc_io
     tvb_to_annarchy_mode = "rate"
+    annarchy_nodes_ids = list(range(10))
+    annarchy_model_builder = BasalGangliaIzhikevichBuilder
+    interface_model_builder = IzhikevichRedWWexcIOBuilder
 
-    def __init__(self):
-        super(TestIzhikevichRedWWexcIO, self).__init__(ReducedWongWangExcIO, list(range(10)),
-                                                       BasalGangliaIzhikevichBuilder, IzhikevichRedWWexcIOBuilder, {})
-
-
-# @pytest.mark.skip(reason="These tests are taking too much time")
-def test_models(models_to_test=[TestWilsonCowan, TestIzhikevichRedWWexcIO]):
-    return test_models_base(models_to_test=models_to_test)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
 def teardown_function():
@@ -94,4 +89,4 @@ def teardown_function():
 
 
 if __name__ == "__main__":
-    test_models()
+    loop_all(use_numba=False, models_to_test=[TestWilsonCowan, TestIzhikevichRedWWexcIO])

@@ -23,7 +23,7 @@ from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww import RedWWexcIO
 
 from tests.core.test_models import model_params_wc, model_params_redww_exc_io, model_params_redww_exc_io_inn_i
 
-from tests.core.test_models import test_models as test_models_base
+from tests.core.test_models import loop_all, TestModel
 
 from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
@@ -32,7 +32,7 @@ from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangE
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
 
-class TestModel(object):
+class TestModelNEST(TestModel):
     nest_nodes_ids = []
     nest_model_builder = None
     interface_model_builder = None
@@ -41,16 +41,6 @@ class TestModel(object):
     nest_to_tvb = True
     exclusive_nodes = True
     delays_flag = True
-    simulation_length = 55.0
-    transient = 5.0
-    plot_write = True
-
-    def __init__(self, model, nest_nodes_ids, nest_model_builder, interface_model_builder, model_params={}):
-        self.model = model
-        self.nest_nodes_ids = nest_nodes_ids
-        self.nest_model_builder = nest_model_builder
-        self.interface_model_builder = interface_model_builder
-        self.model_params = model_params
 
     @property
     def results_path(self):
@@ -68,59 +58,80 @@ class TestModel(object):
                             **self.model_params)
 
 
-class TestWilsonCowan(TestModel):
-    tvb_to_nest_mode = "rate"
+class TestWilsonCowan(TestModelNEST):
+    model = WilsonCowan
+    model_params = model_params_wc
+    nest_nodes_ids = [33, 34]
+    nest_model_builder = WilsonCowanBuilder
+    interface_model_builder = InterfaceWilsonCowanBuilder
 
-    def __init__(self):
-        super(TestWilsonCowan, self).__init__(WilsonCowan, [33, 34], WilsonCowanBuilder,
-                                              InterfaceWilsonCowanBuilder, model_params_wc)
-
-
-class TestWilsonCowanMultisynapse(TestModel):
-    tvb_to_nest_mode = "rate"
-
-    def __init__(self):
-        super(TestWilsonCowanMultisynapse, self).__init__(WilsonCowan, [33, 34], WilsonCowanMultisynapseBuilder,
-                                                          InterfaceWilsonCowanMultisynapseBuilder, model_params_wc)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
-class TestReducedWongWangExcIO(TestModel):
+class TestWilsonCowanMultisynapse(TestWilsonCowan):
+    nest_model_builder = WilsonCowanMultisynapseBuilder
+    interface_model_builder = InterfaceWilsonCowanMultisynapseBuilder
 
-    def __init__(self):
-        super(TestReducedWongWangExcIO, self).__init__(ReducedWongWangExcIO, [33, 34], WWDeco2013Builder,
-                                                       RedWWexcIOBuilder, model_params_redww_exc_io)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
-    def run(self):
-        for tvb_to_nest_mode in ["param", "current", "rate"]:
+
+class TestReducedWongWangExcIO(TestModelNEST):
+    model = ReducedWongWangExcIO
+    model_params = model_params_redww_exc_io
+    nest_nodes_ids = [33, 34]
+    nest_model_builder = WWDeco2013Builder
+    interface_model_builder = RedWWexcIOBuilder
+
+    def run(self, interfaces=["param", "current", "rate"]):
+        for tvb_to_nest_mode in interfaces:
             self.tvb_to_nest_mode = tvb_to_nest_mode
             super(TestReducedWongWangExcIO, self).run()
 
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_rate(self):
+        self.run(interfaces=["rate"])
 
-class TestReducedWongWangExcIOinhI(TestModel):
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_current(self):
+        self.run(interfaces=["current"])
 
-    def __init__(self):
-        super(TestReducedWongWangExcIOinhI, self).__init__(ReducedWongWangExcIOInhI, [33, 34], WWDeco2014Builder,
-                                                           RedWWexcIOinhIBuilder, model_params_redww_exc_io_inn_i)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_param(self):
+        self.run(interfaces=["param"])
 
-    def run(self):
-        for tvb_to_nest_mode in ["param", "current", "rate"]:
-            self.tvb_to_nest_mode = tvb_to_nest_mode
-            super(TestReducedWongWangExcIOinhI, self).run()
+
+class TestReducedWongWangExcIOinhI(TestReducedWongWangExcIO):
+    model = ReducedWongWangExcIOInhI
+    model_params = model_params_redww_exc_io_inn_i
+    nest_model_builder = WWDeco2014Builder
+    interface_model_builder = RedWWexcIOinhIBuilder
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_rate(self):
+        self.run(interfaces=["rate"])
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_current(self):
+        self.run(interfaces=["current"])
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_param(self):
+        self.run(interfaces=["param"])
 
 
 class TestIzhikevichRedWWexcIO(TestModel):
-    tvb_to_nest_mode = "rate"
+    model = ReducedWongWangExcIO
+    nest_nodes_ids = list(range(10))
+    nest_model_builder = BasalGangliaIzhikevichBuilder
+    interface_model_builder = IzhikevichRedWWexcIOBuilder
 
-    def __init__(self):
-        super(TestIzhikevichRedWWexcIO, self).__init__(ReducedWongWangExcIO, list(range(10)),
-                                                       BasalGangliaIzhikevichBuilder, IzhikevichRedWWexcIOBuilder, {})
-
-
-# @pytest.mark.skip(reason="These tests are taking too much time")
-def test_models(models_to_test=[TestWilsonCowan, TestWilsonCowanMultisynapse,
-                                TestIzhikevichRedWWexcIO,
-                                TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO]):
-    test_models_base(models_to_test=models_to_test)
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
 def teardown_function():
@@ -130,4 +141,6 @@ def teardown_function():
 
 
 if __name__ == "__main__":
-    test_models()
+    loop_all(models_to_test=[TestWilsonCowan, TestWilsonCowanMultisynapse,
+                             TestIzhikevichRedWWexcIO,
+                             TestReducedWongWangExcIOinhI, TestReducedWongWangExcIO])
