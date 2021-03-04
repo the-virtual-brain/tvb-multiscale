@@ -12,7 +12,7 @@ from tvb.core.neocom import h5
 from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb.contrib.scripts.utils.data_structures_utils import is_numeric, ensure_list
 from tvb.contrib.scripts.utils.file_utils import change_filename_or_overwrite
-from tvb_multiscale.core.tvb.io import REGISTRY
+from tvb_multiscale.core.tvb.io.datatypes_h5 import REGISTRY
 
 
 h5.REGISTRY = REGISTRY
