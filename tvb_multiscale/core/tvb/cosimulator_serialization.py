@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
-import dill
+import pickle  # dill
 
 import numpy as np
 
@@ -39,11 +39,11 @@ def serialize_tvb_cosimulator(input_cosimulator):
 
 def dump_serial_tvb_cosimulator(serial_tvb_cosim, filepath):
     with open(filepath, "wb") as f:
-        dill.dump(serial_tvb_cosim, f)
+        pickle.dump(serial_tvb_cosim, f)  # dill
 
 
 def load_serial_tvb_cosimulator(filepath):
     with open(filepath, "wb") as f:
-        serial_tvb_cosim = dill.load(f)
+        serial_tvb_cosim = pickle.load(f)  # dill
     return serial_tvb_cosim
 
