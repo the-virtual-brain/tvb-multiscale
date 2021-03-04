@@ -79,8 +79,9 @@ RUN cd $NEST; \
 
 # Install nestml
 RUN $VENV/bin/pip3 install setuptools; \
-    git clone --depth 1 https://github.com/nest/nestml.git; \
+    git clone https://github.com/nest/nestml.git; \
     cd nestml; \
+    git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
 
 # Install pyNN
