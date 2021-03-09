@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
+from logging import Logger
 
 from tvb.basic.neotraits._attr import Attr
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
@@ -9,20 +9,37 @@ from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, Sp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
+from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
-from tvb_multiscale.tvb_nest.interfaces.builders import NESTInterfacesBuilder, TVBNESTInterfacesBuilder
 from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTOutputInterfaces, NESTInputInterfaces
+from tvb_multiscale.tvb_nest.interfaces.builder import NESTInterfaceBuilder, TVBNESTInterfaceBuilder
 
 
 class NESTSerialApp(SpikeNetSerialApp):
 
     """NESTSerialApp class"""
 
-    spiking_model_builder = Attr(
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
+
+    spikeNet_builder = Attr(
         label="NEST Network Builder",
-        field_type=NESTModelBuilder,
+        field_type=NESTNetworkBuilder,
         doc="""Instance of NEST Model Builder.""",
         required=False
     )
@@ -56,22 +73,26 @@ class NESTSerialApp(SpikeNetSerialApp):
         self.spikeNet_builder.nest_instance = self.spiking_cosimulator
         # Printing the time progress should only be used when the simulation is run on a local machine:
         #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
-        kernel_config = deepcopy(self.default_kernel_config)
+        kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG.copy()
         if "data_path" in kernel_config.keys():
             safe_makedirs(kernel_config["data_path"])  # Make sure this folder exists
         self.spiking_cosimulator.SetKernelStatus(kernel_config)
 
     def configure_simulation(self):
-        # TODO: make these two functions of the App, instead of the builder!
-        self._spiking_model_builder.update_spiking_dt()
-        self._spiking_model_builder.update_default_min_delay()
-        self.spiking_cosimulator.SetKernelStatus({"resolution": self.spiking_dt})
-        self.spiking_cosimulator.Prepare()
+        super(NESTSerialApp, self).configure_simulation()
+        try:
+            self.spiking_cosimulator.Prepare()
+        except:
+            pass
+
+    def simulate(self, simulation_length=None):
+        if simulation_length is None:
+            simulation_length = self.simulation_length
+        self.spiking_cosimulator.Run(simulation_length)
 
     def run(self, *args, **kwargs):
         self.configure()
         self.build()
-        self.spiking_cosimulator.Run(self.simulation_length, *args, **kwargs)
 
     def clean_up(self):
         # # Integrate NEST for one more NEST time step so that multimeters get the last time point
@@ -94,7 +115,7 @@ class NESTParallelApp(NESTSerialApp, SpikeNetParallelApp):
 
     interfaces_builder = Attr(
         label="NEST interfaces builder",
-        field_type=NESTInterfacesBuilder,
+        field_type=NESTInterfaceBuilder,
         doc="""Instance of NEST Network interfaces' builder class.""",
         required=False
     )
@@ -113,7 +134,7 @@ class NESTParallelApp(NESTSerialApp, SpikeNetParallelApp):
         required=False
     )
 
-    _default_interface_builder = NESTInterfacesBuilder
+    _default_interface_builder = NESTInterfaceBuilder
 
     def build(self):
         SpikeNetParallelApp.build(self)
@@ -127,12 +148,28 @@ class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
 
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
+
     interfaces_builder = Attr(
         label="TVBNESTInterfaces builder",
-        field_type=TVBNESTInterfacesBuilder,
+        field_type=TVBNESTInterfaceBuilder,
         doc="""Instance of TVBNESTInterfaces' builder class.""",
         required=True,
-        defualt=TVBNESTInterfacesBuilder()
+        default=TVBNESTInterfaceBuilder()
     )
 
     spiking_network = Attr(
@@ -142,10 +179,26 @@ class TVBSerialApp(TVBSerialAppBase):
         required=False
     )
 
-    _default_interface_builder = TVBNESTInterfacesBuilder
+    _default_interface_builder = TVBNESTInterfaceBuilder
 
 
 class TVBNESTSerialOrchestrator(SerialOrchestrator):
+
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
 
     tvb_app = Attr(
         label="TVBSerial app",
