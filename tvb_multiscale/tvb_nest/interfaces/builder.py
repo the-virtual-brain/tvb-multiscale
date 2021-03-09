@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from six import string_types
+from logging import Logger
 from enum import Enum
 
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,  \
     SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
+from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTOutputInterfaces, NESTInputInterfaces, \
     NESTSenderInterface, NESTReceiverInterface, \
@@ -24,38 +26,54 @@ from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
 
+TVBtoNESTModels = TVBtoSpikeNetModels
+NESTtoTVBModels = SpikeNetToTVBModels
+
+
+class DefaultTVBtoNESTModels(Enum):
+    RATE = "RATE_TO_SPIKES"
+    SPIKES = "PARROT_SPIKES"
+    CURRENT = "CURRENT"
+
+
+class DefaultNESTtoTVBModels(Enum):
+    SPIKES = "SPIKES"
+
+
 class NESTInputProxyModels(Enum):
     RATE = NESTInhomogeneousPoissonGeneratorSet
-    PARROT_RATE = NESTParrotInhomogeneousPoissonGeneratorSet
-    RATE_TO_SPIKES = NESTSpikeGeneratorSet
-    PARROT_RATE_TO_SPIKES = NESTParrotSpikeGeneratorSet
-    CURRENT = NESTStepCurrentGeneratorSet
-
-
-class NESTDefaultInputProxyModels(Enum):
-    RATE = NESTParrotInhomogeneousPoissonGeneratorSet
-    RATE_TO_SPIKES = NESTParrotSpikeGeneratorSet
+    RATE_TO_SPIKES = NESTParrotInhomogeneousPoissonGeneratorSet
+    SPIKES = NESTSpikeGeneratorSet
+    PARROT_SPIKES = NESTParrotSpikeGeneratorSet
     CURRENT = NESTStepCurrentGeneratorSet
 
 
 class NESTOutputProxyModels(Enum):
-    SPIKES_TO_RATE = NESTSpikeRecorderSet
-
-
-class NESTDefaultOutputProxyModels(Enum):
-    SPIKES_TO_RATE = NESTSpikeRecorderSet
-
-
-NEST_OUTPUT_PROXY_TYPES = tuple([val.value for val in NESTOutputProxyModels.__members__.values()])
-NEST_OUTPUT_PROXY_MODELS = tuple([val.name for val in NESTDefaultOutputProxyModels.__members__.values()])
-
-NEST_INPUT_PROXY_TYPES = tuple([val.value for val in NESTInputProxyModels.__members__.values()])
-NEST_INPUT_PROXY_MODELS = tuple([val.name for val in NESTDefaultInputProxyModels.__members__.values()])
+    SPIKES = NESTSpikeRecorderSet
 
 
 class NESTInterfaceBuilder(HasTraits):
 
     """NESTInterfaceBuilder class"""
+
+    _tvb_to_spikeNet_models = TVBtoNESTModels
+    _spikeNet_to_tvb_models = NESTtoTVBModels
+
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
 
     spiking_network = Attr(label="NEST Network",
                            doc="""The instance of NESTNetwork class""",
@@ -68,9 +86,6 @@ class NESTInterfaceBuilder(HasTraits):
     input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
                             doc="List of dicts of configurations for the input interfaces to be built")
 
-    _default_input_proxy_model = NESTDefaultInputProxyModels.RATE.name
-    _default_output_proxy_model = NESTDefaultOutputProxyModels.SPIKES_TO_RATE.name
-
     @property
     def nest_network(self):
         return self.spiking_network
@@ -80,10 +95,6 @@ class NESTInterfaceBuilder(HasTraits):
         return self.spiking_network.nest_instance
 
     @property
-    def config(self):
-        return self.spiking_network.config
-
-    @property
     def spikeNet_min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
 
@@ -91,9 +102,10 @@ class NESTInterfaceBuilder(HasTraits):
     def nest_min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
 
-    def _build_and_connect_devices(self, devices, nodes, *args, **kwargs):
-        return build_and_connect_devices(devices, create_device, connect_device,
-                                         nodes, self.config, nest_instance=self.nest_instance)
+    def _build_and_connect_devices(self, interface, **kwargs):
+        return build_and_connect_devices(interface, create_device, connect_device,
+                                         self.spiking_network.brain_regions,
+                                         self.config, nest_instance=self.nest_instance, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
         return 0
@@ -102,29 +114,16 @@ class NESTInterfaceBuilder(HasTraits):
     def _default_min_delay(self):
         return self.nest_min_delay
 
-    def configure(self):
-        for interface in self.input_interfaces:
-            model = interface.get("proxy_model", interface.get("model", self._default_input_proxy_model))
-            if isinstance(model, string_types):
-                model = model.upper()
-                assert model in NEST_INPUT_PROXY_MODELS
-                interface["proxy_model"] = getattr(NESTDefaultInputProxyModels, model).value
-            else:
-                assert model in NEST_INPUT_PROXY_TYPES
-        for interface in self.output_interfaces:
-            model = interface.get("proxy_model", interface.get("model", self._default_output_proxy_model))
-            if isinstance(model, string_types):
-                model = model.upper()
-                assert model in NEST_OUTPUT_PROXY_MODELS
-                interface["proxy_model"] = getattr(NESTDefaultOutputProxyModels, model).value
-            else:
-                assert model in NEST_OUTPUT_PROXY_TYPES
-        super(NESTInterfaceBuilder, self).configure()
 
-
-class NESTRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, NESTInterfaceBuilder):
+class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
 
     """NESTRemoteInterfaceBuilder class"""
+
+    _default_tvb_to_nest_models = DefaultTVBtoNESTModels
+    _default_nest_to_tvb_models = DefaultNESTtoTVBModels
+
+    _input_proxy_models = NESTInputProxyModels
+    _output_proxy_models = NESTOutputProxyModels
 
     _output_interfaces_type = NESTOutputInterfaces
     _input_interfaces_type = NESTInputInterfaces
@@ -137,9 +136,12 @@ class NESTRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, NESTInterfaceBu
         SpikeNetRemoteInterfaceBuilder.configure(self)
 
 
-class NESTTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder, NESTInterfaceBuilder):
+class NESTTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetTransformerInterfaceBuilder):
 
     """NESTTransformerInterfaceBuilder class"""
+
+    _input_proxy_models = NESTInputProxyModels
+    _output_proxy_models = NESTOutputProxyModels
 
     _output_interfaces_type = NESTOutputInterfaces
     _input_interfaces_type = NESTInputInterfaces
@@ -152,9 +154,12 @@ class NESTTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder, NESTI
         SpikeNetTransformerInterfaceBuilder.configure(self)
 
 
-class NESTOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBuilder, NESTInterfaceBuilder):
+class NESTOutputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetOutputTransformerInterfaceBuilder):
 
     """NESTOutputTransformerInterfaceBuilder class"""
+
+    _input_proxy_models = NESTInputProxyModels
+    _output_proxy_models = NESTOutputProxyModels
 
     _output_interfaces_type = NESTOutputInterfaces
     _input_interfaces_type = NESTInputInterfaces
@@ -167,9 +172,12 @@ class NESTOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBu
         SpikeNetOutputTransformerInterfaceBuilder.configure(self)
 
 
-class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuilder, NESTInterfaceBuilder):
+class NESTInputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder):
 
     """NESTInputTransformerInterfaceBuilder class"""
+
+    _input_proxy_models = NESTInputProxyModels
+    _output_proxy_models = NESTOutputProxyModels
 
     _output_interfaces_type = NESTOutputInterfaces
     _input_interfaces_type = NESTInputInterfaces
@@ -182,9 +190,18 @@ class NESTInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuil
         SpikeNetInputTransformerInterfaceBuilder.configure(self)
 
 
-class TVBNESTInterfaceBuilder(TVBSpikeNetInterfaceBuilder, NESTInterfaceBuilder):
+class TVBNESTInterfaceBuilder(NESTInterfaceBuilder, TVBSpikeNetInterfaceBuilder):
 
     """TVBNESTInterfaceBuilder class"""
+
+    _tvb_to_spikeNet_models = TVBtoNESTModels
+    _spikeNet_to_tvb_models = NESTtoTVBModels
+
+    _default_nest_to_tvb_models = DefaultNESTtoTVBModels
+    _default_tvb_to_nest_models = DefaultTVBtoNESTModels
+
+    _input_proxy_models = NESTOutputProxyModels  # Input to SpikeNet is output of TVB
+    _output_proxy_models = NESTInputProxyModels  # Output of SpikeNet is input to TVB
 
     _output_interfaces_type = TVBtoNESTInterfaces
     _input_interfaces_type = NESTtoTVBInterfaces

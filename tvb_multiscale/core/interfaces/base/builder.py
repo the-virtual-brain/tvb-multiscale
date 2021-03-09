@@ -1,15 +1,34 @@
 # -*- coding: utf-8 -*-
 
+from logging import Logger
 from six import string_types
 
 import numpy as np
 
 from tvb.basic.neotraits._core import HasTraits
-from tvb.basic.neotraits._attr import List, NArray
+from tvb.basic.neotraits._attr import Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 
 
 class InterfaceBuilder(HasTraits):
+
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
 
     proxy_inds = NArray(
         dtype=np.int,
@@ -35,11 +54,11 @@ class InterfaceBuilder(HasTraits):
 
     @property
     def out_proxy_inds(self):
-        return self._loop_to_get_unique_from_interface_configs(self.output_interfaces, "proxy")
+        return self._loop_to_get_unique_from_interface_configs(self.output_interfaces, "proxy_inds")
 
     @property
     def in_proxy_inds(self):
-        return self._loop_to_get_unique_from_interface_configs(self.input_interfaces, "proxy")
+        return self._loop_to_get_unique_from_interface_configs(self.input_interfaces, "proxy_inds")
 
     @property
     def number_of_out_proxy_nodes(self):
@@ -59,6 +78,7 @@ class InterfaceBuilder(HasTraits):
 
     @staticmethod
     def _label_to_ind(these_labels, all_labels):
+        all_labels = ensure_list(all_labels)
         if isinstance(these_labels, (list, tuple, np.ndarray)):
             return_array = True
         else:
@@ -66,7 +86,7 @@ class InterfaceBuilder(HasTraits):
             return_array = False
         inds = []
         for label in ensure_list(labels):
-            inds.append(np.where(all_labels == label)[0][0])
+            inds.append(all_labels.index(label))
         if return_array:
             return np.array(inds)
         else:
@@ -80,7 +100,7 @@ class InterfaceBuilder(HasTraits):
 
     def _only_inds(self, values, labels):
         inds = []
-        for iV, value in enumerate(values):
+        for iV, value in enumerate(ensure_list(values)):
             inds.append(self._only_ind(value, labels))
         return inds
 
@@ -109,10 +129,10 @@ class InterfaceBuilder(HasTraits):
         self.output_interfaces = self.assert_interfaces_component_config(self.output_interfaces, types_list, component)
 
     def _get_output_interface_arguments(self, interface):
-        return dict(interface)
+        return interface
 
     def _get_input_interface_arguments(self, interface):
-        return dict(interface)
+        return interface
 
     def build_output_interface(self, interface):
         return self._output_interface_type(**self._get_output_interface_arguments(interface))
