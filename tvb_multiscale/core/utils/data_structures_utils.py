@@ -191,6 +191,14 @@ def combine_DataArray_dims(arr, dims_combinations, join_string=", ", return_arra
         return arr.stack(**stacked_dims).data, new_dims, new_coords
 
 
+def get_enum_names(en):
+    return [val.name for val in en.__members__.values()]
+
+
+def get_enum_values(en):
+    return [val.value for val in en.__members__.values()]
+
+
 def combine_enums(enum_name, *args):
     d = OrderedDict()
     for enm in args:
