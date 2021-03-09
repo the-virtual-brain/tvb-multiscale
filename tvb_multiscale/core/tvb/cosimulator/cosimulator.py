@@ -45,8 +45,8 @@ from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
 from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimMonitorFromCoupling
 
 from tvb_multiscale.core.config import LINE
-from tvb_multiscale.core.tvb.interfaces import TVBOutputInterfaces
-from tvb_multiscale.core.tvb.interfaces import TVBInputInterfaces
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBOutputInterfaces
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBInputInterfaces
 
 
 class CoSimulator(CoSimulatorBase):
@@ -74,28 +74,29 @@ class CoSimulator(CoSimulatorBase):
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
         if self.synchronization_time == 0.0:
-            self.synchronization_n_step = np.min(self.connectivity.idelays[np.nonzero(self.connectivity.idelays)])
+            self.synchronization_n_step = np.min(self.connectivity.idelays[np.nonzero(self.connectivity.weights)])
             self.synchronization_time = self.synchronization_n_step * self.integrator.dt
+        super(CoSimulator, self)._configure_synchronization_time()
 
     def _configure_interfaces_vois_proxy_inds(self):
         """This method will
             - set the voi and spiking_proxy_inds of the CoSimulator, based on the predefined input and output interfaces,
             - configure all interfaces.
         """
-        self.voi = []
-        self.proxy_inds = []
+        voi = []
+        proxy_inds = []
         if self.output_interfaces:
             # Configure all TVB to Cosim interfaces:
             self.output_interfaces.configure()
-            self.voi += self.output_interfaces.voi_unique
-            self.proxy_inds += self.output_interfaces.proxy_inds_unique
+            voi += self.output_interfaces.voi_unique.tolist()
+            proxy_inds += self.output_interfaces.proxy_inds_unique.tolist()
         if self.input_interfaces:
             # Configure all Cosim to TVB interfaces:
-            self.input_interfaces.configure(self)
-            self.voi += self.input_interfaces.voi_unique
-            self.proxy_inds += self.input_interfaces.proxy_inds_unique
-        self.voi = np.unique(self.voi)
-        self.proxy_inds = np.unique(self.proxy_inds)
+            self.input_interfaces.configure()
+            voi += self.input_interfaces.voi_unique.tolist()
+            proxy_inds += self.input_interfaces.proxy_inds_unique.tolist()
+        self.voi = np.unique(voi).astype(np.int)
+        self.proxy_inds = np.unique(proxy_inds).astype(np.int)
 
     def _configure_cosim_monitors(self):
         """This method will set a default RawCosim CosimMonitor
@@ -118,7 +119,7 @@ class CoSimulator(CoSimulatorBase):
                 vois = cosim_monitor.voi.tolist()
             cosim_monitors_voi += vois
             periods.append(cosim_monitor.period)
-        cosim_monitors_voi = np.unique(self.cosim_monitors.voi).tolist()
+        cosim_monitors_voi = np.unique(cosim_monitors_voi).tolist()
         assert np.all([voi in cosim_monitors_voi for voi in self.output_interfaces.voi_unique])
         assert np.allclose(periods, self.integrator.dt, 1e-6)
 
@@ -144,12 +145,12 @@ class CoSimulator(CoSimulatorBase):
            - configure the cosimulation monitor
            - zero connectivity weights to/from nodes modelled exclusively by the other cosimulator
         """
-        self._configure_synchronization_time()
         self._configure_interfaces_vois_proxy_inds()
         self._configure_cosim_monitors()
         super(CoSimulator, self)._configure_cosimulation()
-        self._assert_cosim_monitors_voi_period()
-        self._configure_local_vois_and_proxy_inds_per_interface()
+        if self._cosimulation_flag:
+            self._assert_cosim_monitors_voi_period()
+            self._configure_local_vois_and_proxy_inds_per_interface()
 
     def _prepare_stimulus(self):
         if self.simulation_length != self.synchronization_time:

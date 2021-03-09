@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from logging import Logger
 from six import string_types
 
 import numpy as np
@@ -13,7 +14,10 @@ from tvb.simulator.integrators import Integrator, HeunStochastic
 from tvb.simulator.monitors import Monitor, Raw, Bold  # , EEG
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
-from tvb_multiscale.core.tvb.cosimulator import CoSimulator
+from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
 
 
 class CoSimulatorBuilder(HasTraits):
@@ -27,7 +31,25 @@ class CoSimulatorBuilder(HasTraits):
        - set monitor (including model's variables of interest and period)
     """
 
-    model: Model = Attr(
+    _cosimulator_type = CoSimulator
+
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(config=CONFIGURED)
+    )
+
+    model = Attr(
         field_type=Model,
         label="Local dynamic model",
         default=WilsonCowan(),
@@ -48,7 +70,7 @@ class CoSimulatorBuilder(HasTraits):
     connectivity = Attr(
         field_type=Connectivity,
         label="Long-range connectivity",
-        default=None,
+        default=Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP),
         required=True,
         doc="""A tvb.datatypes.Connectivity object which contains the
              structural long-range connectivity data (i.e., white-matter tracts). In
@@ -100,7 +122,7 @@ class CoSimulatorBuilder(HasTraits):
                               delays are forced to be equal to one integration time step.
                               Default = True""",
                        field_type=bool,
-                       default=False,
+                       default=True,
                        required=True)
 
     coupling = Attr(
@@ -150,7 +172,7 @@ class CoSimulatorBuilder(HasTraits):
     monitors = List(
         of=Monitor,
         label="Monitor(s)",
-        default=(Raw, ),
+        default=(Raw(), ),
         doc="""A tvb.simulator.Monitor or a list of tvb.simulator.Monitor
             objects that 'know' how to record relevant data from the simulation. Two
             main types exist: 1) simple, spatial and temporal, reductions (subsets
@@ -176,24 +198,6 @@ class CoSimulatorBuilder(HasTraits):
             If the number of time points in the provided array is insufficient the 
             array will be padded with random values based on the 'state_variables_range'
             attribute.""")
-
-    def configure(self):
-        if not isinstance(self.model, Model):
-            self.model = self.model()
-        if isinstance(self.connectivity, string_types):
-            self.connectivity = Connectivity.from_file(self.connectivity)
-        if not isinstance(self.integrator, Integrator):
-            self.integrator = self.integrator()
-        if not isinstance(self.noise_strength, np.ndarray):
-            self.noise_strength = np.array([self.noise_strength])
-        self.monitors = list(self.monitors)
-        for iM, monitor in enumerate(self.monitors):
-            if isinstance(monitor, Monitor):
-                self.monitors[iM] = monitor
-            else:
-                self.monitors[iM] = monitor()
-        self.monitors = tuple(self.monitors)
-        super(CoSimulatorBuilder, self).configure()
 
     def configure_connectivity(self):
         # Load, normalize and configure connectivity
@@ -241,7 +245,7 @@ class CoSimulatorBuilder(HasTraits):
     def configure_monitors(self):
         # Build monitors:
         self.monitors = list(self.monitors)
-        for iM, monitor in self.monitors:
+        for iM, monitor in enumerate(self.monitors):
             if isinstance(monitor, Bold):
                 period = np.ceil(self.period / 500) * 500
                 self.monitors[iM].period = period
@@ -267,10 +271,10 @@ class CoSimulatorBuilder(HasTraits):
             - the TVB simulator built, but not yet configured.
         """
         # Build simulator
-        simulator = CoSimulator(model=self.configure_model(**model_params),
-                                connectivity=self.configure_connectivity(),
-                                integrator=self.configure_integrator(),
-                                monitors=self.configure_monitors())
+        simulator = self._cosimulator_type(model=self.configure_model(**model_params),
+                                           connectivity=self.configure_connectivity(),
+                                           integrator=self.configure_integrator(),
+                                           monitors=self.configure_monitors())
 
         if self.initial_conditions is not None:
             simulator.initial_conditions = self.configure_initial_conditions(simulator)
@@ -278,3 +282,32 @@ class CoSimulatorBuilder(HasTraits):
         simulator.log.setLevel(20)
 
         return simulator
+
+
+class CoSimulatorParallelBuilder(CoSimulatorBuilder):
+
+    """CoSimulatorParallelBuilder is an opinionated builder for a TVB CoSimulatorParallel,
+       adjusted for parallel cosimulation.
+       Depending on its properties set, the builder may
+       - scale/normalize the connectivity weights,
+       - remove time delays or not,
+       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
+       - set integrator (including noise and integration step),
+       - set monitor (including model's variables of interest and period)
+    """
+
+    _cosimulator_type = CoSimulatorParallel
+
+
+class CoSimulatorSerialBuilder(CoSimulatorBuilder):
+    """CoSimulatorSerialBuilder is an opinionated builder for a TVB CoSimulatorSerial,
+       adjusted for serial cosimulation.
+       Depending on its properties set, the builder may
+       - scale/normalize the connectivity weights,
+       - remove time delays or not,
+       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
+       - set integrator (including noise and integration step),
+       - set monitor (including model's variables of interest and period)
+    """
+
+    _cosimulator_type = CoSimulatorSerial

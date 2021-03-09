@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import dill
 
 import numpy as np
 
@@ -13,8 +12,8 @@ from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 
 from tvb_multiscale.core.config import CONFIGURED
-from tvb_multiscale.core.tvb.cosimulator_builder import CoSimulatorBuilder
-from tvb_multiscale.core.tvb.cosimulator_serialization import \
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     serialize_tvb_cosimulator, dump_serial_tvb_cosimulator, load_serial_tvb_cosimulator
 
 

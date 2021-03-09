@@ -37,50 +37,17 @@ It inherits the Simulator class.
 
 """
 
-from tvb.basic.neotraits.api import Attr
-
-from tvb_multiscale.core.tvb.cosimulator import CoSimulator
-from tvb_multiscale.core.spiking_models.network import SpikingNetwork
+from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
 class CoSimulatorSerial(CoSimulator):
 
-    spiking_network = Attr(
-        label="Spiking Network",
-        field_type=SpikingNetwork,
-        doc="""A SpikingNetwork class to simulate the spiking nework simulator.""",
-        required=True,
-        default=None
-    )
-
-    def configure(self, full_configure=True):
-        """Configure simulator and its components.
-
-        The first step of configuration is to run the configure methods of all
-        the Simulator's components, ie its traited attributes.
-
-        Configuration of a Simulator primarily consists of calculating the
-        attributes, etc, which depend on the combinations of the Simulator's
-        traited attributes (keyword args).
-
-        Converts delays from physical time units into integration steps
-        and updates attributes that depend on combinations of the 6 inputs.
-
-        Returns
-        -------
-        sim: Simulator
-            The configured Simulator instance.
-
-        """
-        super(CoSimulatorSerial, self).configure(full_configure=full_configure)
-        if self.spiking_network:
-            self.spiking_network.configure()
+    simulate_spiking_simulator = None
 
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         steps_performed = \
             super(CoSimulatorSerial, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation, **kwds)
-        if cosimulation:
-            if self.spiking_network:
-                self.log.info("Simulating the spikning network for %d time steps...", steps_performed)
-                self.spiking_network.Run(steps_performed)
+        if cosimulation and self.simulate_spiking_simulator is not None:
+            self.log.info("Simulating the spiking network for %d time steps...", steps_performed)
+            self.simulate_spiking_simulator(steps_performed*self.dt)
         return steps_performed

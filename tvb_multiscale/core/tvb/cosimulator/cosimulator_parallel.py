@@ -37,7 +37,7 @@ It inherits the Simulator class.
 
 """
 
-from tvb_multiscale.core.tvb.cosimulator import CoSimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
 class CoSimulatorParallel(CoSimulator):
