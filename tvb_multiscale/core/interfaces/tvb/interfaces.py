@@ -7,7 +7,7 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.base.interfaces import \
+from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
@@ -35,7 +35,7 @@ class TVBInterface(HasTraits):
     voi_loc = np.array([])
 
     voi_labels = NArray(
-        dtype=np.str,
+        dtype='U128',
         label="Cosimulation model state variables' labels",
         doc=""""Labels of model's variables of interest (VOI)""",
         required=True,
@@ -170,7 +170,7 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
                TVBInputInterface.print_str(self)
 
 
-class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
+class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInterface):
 
     """TVBtoSpikeNetInterface class to get data from TVB, transform them,
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
@@ -190,7 +190,8 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        return TVBOutputInterface.print_str(self) + \
+        return BaseInterface.print_str(self) + \
+               TVBOutputInterface.print_str(self) + \
                SpikeNetInputInterface.print_str(self)
 
     def __call__(self, data):
@@ -200,7 +201,7 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
         return SpikeNetInputInterface.__call__(self, [self.transformer.output_time, self.transformer.output_buffer])
 
 
-class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
+class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInterface):
 
     """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
@@ -282,7 +283,7 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         """Method to set the correct voi indices with reference to the linked TVB CosimMonitor,
            for each cosimulation"""
         for interface in self.interfaces:
-            interface.set_local_indices(cosim_monitors[interface.monitor_ind])
+            interface.set_local_indices(cosim_monitors[interface.monitor_ind].voi)
 
     def __call__(self, data):
         for interface in self.interfaces:

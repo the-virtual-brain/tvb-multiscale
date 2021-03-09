@@ -5,16 +5,21 @@ from abc import ABCMeta, abstractmethod
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.tvb.interfaces import \
+from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
+    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
+    TVBtoSpikeNetModels, SpikeNetToTVBModels
 
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTInputDeviceSet, NESTOutputDeviceSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
+
+
+TVBtoNESTModels = TVBtoSpikeNetModels
+NESTtoTVBModels = SpikeNetToTVBModels
 
 
 class NESTInterface(HasTraits):
@@ -57,16 +62,15 @@ class NESTOutputInterface(NESTInterface):
 
     """NESTOutputInterface base class for interfaces sending data from NEST."""
 
-    spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
-                                 doc="""An instance of NESTOutputDeviceSet 
-                                        implementing a proxy node sending outputs from the NEST network
-                                        to the co-simulator""",
-                                 field_type=NESTOutputDeviceSet,
-                                 required=True)
+    proxy = Attr(label="Proxy",
+                 doc="""An instance of NESTOutputDeviceSet implementing a proxy node 
+                        sending outputs from the NEST network to the co-simulator""",
+                 field_type=NESTOutputDeviceSet,
+                 required=True)
 
     @property
     def proxy_gids(self):
-        return self._get_proxy_gids(self.spikeNet_sender_proxy.target)
+        return self._get_proxy_gids(self.proxy.target)
 
 
 class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
@@ -88,16 +92,15 @@ class NESTInputInterface(NESTInterface):
 
     """NESTInputInterface base class for interfaces receiving data to NEST."""
 
-    spikeNet_receiver_proxy = Attr(label="Spiking network receiver proxy",
-                                   doc="""An instance of ) 
-                                          implementing a proxy node receiving inputs from the co-simulator 
-                                          as an input to the NEST network""",
-                                   field_type=NESTInputDeviceSet,
-                                   required=True)
+    proxy = Attr(label="Proxy",
+                 doc="""An instance of NESTInputDeviceSet implementing a proxy node 
+                        receiving inputs from the co-simulator as an input to the NEST network""",
+                 field_type=NESTInputDeviceSet,
+                 required=True)
 
     @property
     def proxy_gids(self):
-        return self._get_proxy_gids(self.spikeNet_receiver_proxy.source)
+        return self._get_proxy_gids(self.proxy.source)
 
 
 class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):

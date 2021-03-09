@@ -5,10 +5,14 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits, Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.base.interfaces import \
+from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
+
+
+TVBtoSpikeNetModels = ["RATE", "SPIKES", "CURRENT"]
+SpikeNetToTVBModels = ["SPIKES"]
 
 
 class SpikeNetInterface(HasTraits):
@@ -28,7 +32,7 @@ class SpikeNetInterface(HasTraits):
     )
 
     populations = NArray(
-        dtype=str,
+        dtype='U128',
         label="Spiking Network populations",
         doc="""Spiking Network populations associated to the interface""",
         required=True)
@@ -63,16 +67,17 @@ class SpikeNetOutputInterface(SpikeNetInterface):
 
     """SpikeNetOutputInterface base class."""
 
-    spikeNet_sender_proxy = Attr(label="Spiking network sender proxy",
-                                 doc="""An instance of SpikeNetOutputDeviceSet 
-                                        implementing a proxy node sending outputs from the spiking network
-                                        to the co-simulator""",
-                                 field_type=SpikeNetOutputDeviceSet,
-                                 required=True)
+    proxy = Attr(label="Proxy",
+                 doc="""An instance of SpikeNetOutputDeviceSet implementing a proxy node 
+                        sending outputs from the spiking network to the co-simulator""",
+                 field_type=SpikeNetOutputDeviceSet,
+                 required=True)
 
     def configure(self):
         super(SpikeNetOutputInterface, self).configure()
-        self.spikeNet_sender_proxy.configure()
+        self.proxy.configure()
+        if len(self.model) == 0:
+            self.model = self.proxy.model
 
     @property
     def label(self):
@@ -83,23 +88,24 @@ class SpikeNetOutputInterface(SpikeNetInterface):
         super(SpikeNetOutputInterface, self).print_str(self, sender_not_receiver=True)
 
     def __call__(self):
-        return self.spikeNet_sender_proxy()
+        return self.proxy()
 
 
 class SpikeNetInputInterface(SpikeNetInterface):
 
     """SpikeNetInputInterface base class."""
 
-    spikeNet_receiver_proxy = Attr(label="Spiking network receiver proxy",
-                                   doc="""An instance of SpikeNetInputDeviceSet 
-                                          implementing a proxy node receiving inputs from the co-simulator 
-                                          as an input to the spiking network""",
-                                   field_type=SpikeNetInputDeviceSet,
-                                   required=True)
+    proxy = Attr(label="Proxy",
+                 doc="""An instance of SpikeNetInputDeviceSet implementing a proxy node 
+                        receiving inputs from the co-simulator as an input to the spiking network""",
+                 field_type=SpikeNetInputDeviceSet,
+                 required=True)
 
     def configure(self):
         super(SpikeNetInputInterface, self).configure()
-        self.spikeNet_receiver_proxy.configure()
+        self.proxy.configure()
+        if len(self.model) == 0:
+            self.model = self.proxy.model
 
     @property
     def label(self):
@@ -110,10 +116,10 @@ class SpikeNetInputInterface(SpikeNetInterface):
         super(SpikeNetInputInterface, self).print_str(self, sender_not_receiver=False)
 
     def __call__(self, data):
-        return self.spikeNet_receiver_proxy(data)
+        return self.proxy(data)
 
 
-class SpikeNetSenderInterface(SenderInterface, SpikeNetOutputInterface):
+class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
 
     """SpikeNetSenderInterface class."""
 
@@ -128,7 +134,7 @@ class SpikeNetSenderInterface(SenderInterface, SpikeNetOutputInterface):
         return SenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
 
 
-class SpikeNetReceiverInterface(ReceiverInterface, SpikeNetInputInterface):
+class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
 
     """SpikeNetReceiverInterface class."""
 
@@ -143,7 +149,7 @@ class SpikeNetReceiverInterface(ReceiverInterface, SpikeNetInputInterface):
         return ReceiverInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
 
 
-class SpikeNetTransformerSenderInterface(TransformerSenderInterface, SpikeNetOutputInterface):
+class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSenderInterface):
 
     """SpikeNetTransformerSenderInterface class."""
 
@@ -158,7 +164,7 @@ class SpikeNetTransformerSenderInterface(TransformerSenderInterface, SpikeNetOut
         return TransformerSenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
 
 
-class SpikeNetReceiverTransformerInterface(ReceiverTransformerInterface, SpikeNetInputInterface):
+class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTransformerInterface):
 
     """SpikeNetReceiverTransformerInterface class."""
 
