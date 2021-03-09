@@ -246,6 +246,7 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     #     f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
     #     if f:
     #         params["omega"] = 2 * np.pi * f
+    record = params.pop("record", None)
     if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
         params_timed_array = {}
         for param in ["rates", "schedule", "period"]:
@@ -257,8 +258,17 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     annarchy_device._population = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
                                                     params=params, import_path=import_path, config=config)
     annarchy_device._population.name = annarchy_device.label
+    if record is not None:
+        rec_params = {}
+        if isinstance(record, dict):
+            rec_params = list(record.values())[0]
+            record = list(record.keys())[0]
+        annarchy_device._record = \
+            annarchy_device.annarchy_instance.Monitor(annarchy_device._population, record, **rec_params)
     if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
-        proj = annarchy_device.annarchy_instance.Projection(annarchy_device.device, annarchy_device._population, "exc")
+        proj = annarchy_device.annarchy_instance.Projection(annarchy_device.device, annarchy_device._population, "exc",
+                                                            name="%s -> %s"
+                                                                 % (annarchy_device.label, annarchy_device.label))
         proj = proj.connect_all_to_all(1.0)
     return annarchy_device
 
