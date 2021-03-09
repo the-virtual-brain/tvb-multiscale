@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+
 from six import string_types
+from collections import OrderedDict
+
+import numpy as np
 from pandas import Series
 
 from tvb_multiscale.core.config import initialize_logger, LINE
@@ -91,12 +95,24 @@ class SpikingBrain(Series, HasTraits):
         """
         return len(self.get_neurons(reg_inds_or_lbls, pop_inds_or_lbls))
 
-    def get_number_of_neurons_per_region(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
+    def get_number_of_neurons_per_region(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None, fill_value=0):
         output = Series()
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
             output[lbl] = reg.get_number_of_neurons_per_population(pop_inds_or_lbls)
-        return concatenate_heterogeneous_DataArrays(output,
-                                                    concat_dim_name="Region", name="Number of neurons", fill_value=0)
+        return concatenate_heterogeneous_DataArrays(output, concat_dim_name="Region",
+                                                    name="Number of neurons", fill_value=fill_value)
+
+    def get_populations_sizes(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
+        pops_per_region = self.get_number_of_neurons_per_region(reg_inds_or_lbls, pop_inds_or_lbls, fill_value=np.nan)
+        populations = list(pops_per_region.coords["Population"])
+        populations_sizes = OrderedDict()
+        for pop in populations.values.tolist():
+            populations_sizes[pop] = np.nanmean(pops_per_region.loc[:, pop].values.squeeze()).item()
+        return populations_sizes
+
+    @property
+    def populations_sizes(self):
+        return self.get_populations_sizes()
 
     def Set(self, values_dict, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
         """Method to set attributes of the SpikingBrain's neurons.
