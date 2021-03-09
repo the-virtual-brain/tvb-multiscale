@@ -6,12 +6,12 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyModelBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
-class DefaultExcIOInhIBuilder(ANNarchyModelBuilder):
+class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
 
     def __init__(self, tvb_simulator, annarchy_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
         super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, annarchy_nodes_ids, annarchy_instance, config)

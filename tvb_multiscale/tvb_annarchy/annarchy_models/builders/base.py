@@ -8,15 +8,12 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
-from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 
 
-LOG = initialize_logger(__name__)
+class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
-
-class ANNarchyModelBuilder(SpikingModelBuilder):
-
-    """This is the base class of a ANNarchyModelBuilder,
+    """This is the base class of a ANNarchyNetworkBuilder,
        which builds a ANNarchyNetwork from user configuration inputs.
        The builder is half way opionionated.
     """
@@ -27,10 +24,12 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=LOG):
+    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=None):
+        if logger is None:
+            logger = initialize_logger(__name__, config=config)
         # Setting or loading an annarchy instance:
         self.annarchy_instance = annarchy_instance
-        super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
     def _configure_annarchy(self, **kwargs):
@@ -46,7 +45,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
 
     def configure(self, **kwargs):
         self._configure_annarchy()
-        super(ANNarchyModelBuilder, self).configure()
+        super(ANNarchyNetworkBuilder, self).configure()
 
     @property
     def min_delay(self):
