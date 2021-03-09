@@ -8,7 +8,7 @@ from pandas import Series
 from xarray import DataArray
 
 from tvb.basic.neotraits.api import List
-from tvb.contrib.utils.data_structures_utils import \
+from tvb.contrib.scripts.utils.data_structures_utils import \
     data_xarray_from_continuous_events, concatenate_heterogeneous_DataArrays
 
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
@@ -153,6 +153,7 @@ class NESTOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     def reset(self):
         # TODO: find how to reset NEST recorders!
+        self.number_of_events = list(self.number_of_events)
         for i_node, node in enumerate(zip(self.source.devices())):
             if len(self.number_of_events) <= i_node:
                 self.number_of_events.append(0)
