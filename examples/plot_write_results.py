@@ -22,7 +22,7 @@ except:
 from tvb_multiscale.core.plot.plotter import Plotter
 from tvb_multiscale.tvb_elephant.spiking_network_analyser import SpikingNetworkAnalyser
 
-from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
+# from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.simulator.plot.base_plotter import pyplot
 
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
@@ -115,44 +115,44 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
                                                                         connectivity=source_ts.connectivity),
                                os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
 
-    if isinstance(simulator.model, SpikingWongWangExcIOInhI):
-        populations = kwargs.get("populations", ["E", "I"])
-        populations_sizes = kwargs.get("populations_sizes", [])
-        mean_field = tvb_mean_field_per_population(source_ts, populations, populations_sizes)
-        # Plot time_series
-        mean_field.plot_timeseries(plotter_config=plotter.config,
-                                   hue="Region" if mean_field.shape[2] > MAX_REGIONS_IN_ROWS else None,
-                                   per_variable=mean_field.shape[1] > MAX_VARS_IN_COLS,
-                                   figsize=figsize)
-        if mean_field.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
-            # Plot raster
-            mean_field.plot_raster(plotter_config=plotter.config,
-                                   per_variable=mean_field.shape[1] > MAX_VARS_IN_COLS,
-                                   figsize=figsize)
-
-        tvb_spikes, tvb_rates = \
-            plot_tvb_results_with_spikes_and_rates(source_ts, simulator, source_ts.time[-1] - source_ts.time[0],
-                                                   plotter, populations, populations_sizes)
-
-        tvb_corrs = compute_tvb_spike_rate_corrs(tvb_rates)
-
-        if writer:
-            writer.write_object(tvb_spikes.to_dict(),
-                                path=os.path.join(config.out.FOLDER_RES, "TVB_Spikes") + ".h5")
-            writer.write_tvb_to_h5(tvb_rates, os.path.join(config.out.FOLDER_RES, tvb_rates.title) + ".h5",
-                                   recursive=False)
-            writer.write_object(tvb_corrs, path=os.path.join(config.out.FOLDER_RES, "TVB_corrs") + ".h5")
-    else:
-        # Plot time_series
-        source_ts.plot_timeseries(plotter_config=plotter.config,
-                                  hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
-                                  per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
-                                  figsize=figsize)
-        if source_ts.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
-            # Plot raster
-            source_ts.plot_raster(plotter_config=plotter.config,
-                                  per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
-                                  figsize=figsize)
+    # if isinstance(simulator.model, SpikingWongWangExcIOInhI):
+    #     populations = kwargs.get("populations", ["E", "I"])
+    #     populations_sizes = kwargs.get("populations_sizes", [])
+    #     mean_field = tvb_mean_field_per_population(source_ts, populations, populations_sizes)
+    #     # Plot time_series
+    #     mean_field.plot_timeseries(plotter_config=plotter.config,
+    #                                hue="Region" if mean_field.shape[2] > MAX_REGIONS_IN_ROWS else None,
+    #                                per_variable=mean_field.shape[1] > MAX_VARS_IN_COLS,
+    #                                figsize=figsize)
+    #     if mean_field.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
+    #         # Plot raster
+    #         mean_field.plot_raster(plotter_config=plotter.config,
+    #                                per_variable=mean_field.shape[1] > MAX_VARS_IN_COLS,
+    #                                figsize=figsize)
+    #
+    #     tvb_spikes, tvb_rates = \
+    #         plot_tvb_results_with_spikes_and_rates(source_ts, simulator, source_ts.time[-1] - source_ts.time[0],
+    #                                                plotter, populations, populations_sizes)
+    #
+    #     tvb_corrs = compute_tvb_spike_rate_corrs(tvb_rates)
+    #
+    #     if writer:
+    #         writer.write_object(tvb_spikes.to_dict(),
+    #                             path=os.path.join(config.out.FOLDER_RES, "TVB_Spikes") + ".h5")
+    #         writer.write_tvb_to_h5(tvb_rates, os.path.join(config.out.FOLDER_RES, tvb_rates.title) + ".h5",
+    #                                recursive=False)
+    #         writer.write_object(tvb_corrs, path=os.path.join(config.out.FOLDER_RES, "TVB_corrs") + ".h5")
+    # else:
+    # Plot time_series
+    source_ts.plot_timeseries(plotter_config=plotter.config,
+                              hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                              per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
+                              figsize=figsize)
+    if source_ts.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
+        # Plot raster
+        source_ts.plot_raster(plotter_config=plotter.config,
+                              per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
+                              figsize=figsize)
 
     n_spiking_nodes = len(spiking_nodes_ids)
     if n_spiking_nodes > 0:
@@ -329,15 +329,6 @@ def plot_write_results(tvb_results, simulator, spiking_network=None, spiking_nod
     plotter.plot_tvb_connectivity(simulator.connectivity)
 
     # -------------------------------------------6. Plot results--------------------------------------------------------
-
-    try:
-        tvb_spikeNet_interface = simulator.tvb_spikeNet_interface
-        if spiking_network is None:
-            spiking_network = tvb_spikeNet_interface.spiking_network
-        if len(spiking_nodes_ids) == 0:
-            spiking_nodes_ids = tvb_spikeNet_interface.spiking_nodes_ids
-    except:
-        pass
 
     time_with_transient = None
     if len(tvb_results) > 0:
