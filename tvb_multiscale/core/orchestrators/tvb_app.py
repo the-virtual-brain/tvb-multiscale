@@ -5,9 +5,12 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import App
-from tvb_multiscale.core.tvb.cosimulator import CoSimulator
-from tvb_multiscale.core.tvb.cosimulator_builder import CoSimulatorBuilder
-from tvb_multiscale.core.tvb.cosimulator_serialization import dump_serial_tvb_cosimulator, serialize_tvb_cosimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import \
+    CoSimulatorBuilder, CoSimulatorParallelBuilder, CoSimulatorSerialBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import dump_serial_tvb_cosimulator, serialize_tvb_cosimulator
 from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
@@ -42,6 +45,7 @@ class TVBApp(App):
 
     _interfaces_built = False
 
+    _cosimulator_builder_type = CoSimulatorBuilder
     _default_interface_builder = TVBInterfaceBuilder
 
     def setup_from_orchestrator(self, orchestrator):
@@ -53,14 +57,15 @@ class TVBApp(App):
 
     @property
     def _cosimulator_builder(self):
-        if not isinstance(self.cosimulator_builder, CoSimulatorBuilder):
-            self.cosimulator_builder = CoSimulatorBuilder(config=self.config)
+        if not isinstance(self.cosimulator_builder, self._cosimulator_builder_type):
+            self.cosimulator_builder = self._cosimulator_builder_type(config=self.config, logger=self.logger)
             self.cosimulator_builder.configure()
         return self.cosimulator_builder
 
     def configure(self):
         super(TVBApp, self).configure()
-        self.cosimulator_builder = CoSimulatorBuilder(config=self.config)
+        self.cosimulator_builder.config = self.config
+        self.cosimulator_builder.logger = self.logger
         self.cosimulator_builder.configure()
 
     @property
@@ -70,16 +75,17 @@ class TVBApp(App):
         return self.cosimulator
 
     def configure_interfaces_builder(self):
-        self.interfaces_builder.cosimulator = self._cosimulator
+        self._interfaces_builder.tvb_cosimulator = self._cosimulator
+        self.interfaces_builder.config = self.config
+        self.interfaces_builder.logger = self.logger
         self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
-        self.interfaces_builder.spiking_proxy_inds = self.spiking_proxy_inds
+        self.interfaces_builder.proxy_inds = self.spiking_proxy_inds
         self.interfaces_builder.configure()
 
     @property
     def _interfaces_builder(self):
         if not isinstance(self.interfaces_builder, self._default_interface_builder):
-            self.interfaces_builder = self._default_interface_builder()
-            self.configure_interfaces_builder()
+            self.interfaces_builder = self._default_interface_builder(config=self.config, logger=self.logger)
         return self.interfaces_builder
 
     @property
@@ -136,12 +142,13 @@ class TVBApp(App):
         if not tvb_cosimulator_serialized:
             tvb_cosimulator_serialized = self.serialize_tvb_cosimulator()
         if not filepath:
-            filepath = self.def_tvb_serial_path
+            filepath = self.default_tvb_serial_cosim_path
         dump_serial_tvb_cosimulator(tvb_cosimulator_serialized, filepath)
 
     def build_interfaces(self):
         if not self._interfaces_built:
-            self.cosimulator = self._interfaces_builder.build()
+            self.configure_interfaces_builder()
+            self.cosimulator = self.interfaces_builder.build()
             self._interfaces_built = True
 
     def build(self):
@@ -149,12 +156,14 @@ class TVBApp(App):
         self.build_interfaces()
 
     def assert_simulation_length(self):
-        self.simulation_length = np.ceil(self.simulation_length / self._cosimulator.synchronization_time) * \
-                                 self._cosimulator.synchronization_time
+        if self._cosimulator.synchronization_time > 0:
+            self.simulation_length = np.ceil(self.simulation_length / self.cosimulator.synchronization_time) * \
+                                     self._cosimulator.synchronization_time
 
     def configure_simulation(self):
         self._cosimulator.configure()
         self.assert_simulation_length()
+        self.synchronization_time = self.cosimulator.synchronization_time
 
     def simulate(self):
         self.results = self._cosimulator.run()
@@ -176,9 +185,44 @@ class TVBApp(App):
         pass
 
 
+class TVBParallelApp(TVBApp):
+
+    cosimulator_builder = Attr(
+        label="TVB CoSimulatorParallelBuilder",
+        field_type=CoSimulatorParallelBuilder,
+        doc="""Instance of TVB Parallel CoSimulator Builder class.""",
+        required=False,
+        default=CoSimulatorParallelBuilder()
+    )
+
+    cosimulator = Attr(
+        label="TVB CoSimulator",
+        field_type=CoSimulatorParallel,
+        doc="""Instance of TVB CoSimulator.""",
+        required=False
+    )
+
+    _cosimulator_builder_type = CoSimulatorParallelBuilder
+
+
 class TVBSerialApp(TVBApp):
 
     """TVBSerialApp class"""
+
+    cosimulator_builder = Attr(
+        label="TVB CoSimulatorSerialBuilder",
+        field_type=CoSimulatorSerialBuilder,
+        doc="""Instance of TVB Serial CoSimulator Builder class.""",
+        required=False,
+        default=CoSimulatorSerialBuilder()
+    )
+
+    cosimulator = Attr(
+        label="TVB CoSimulatorSerial",
+        field_type=CoSimulatorSerial,
+        doc="""Instance of TVB CoSimulator for serial cosimulation.""",
+        required=False
+    )
 
     interfaces_builder = Attr(
         label="TVBSpikeNetInterfaces builder",
@@ -194,6 +238,7 @@ class TVBSerialApp(TVBApp):
         required=False
     )
 
+    _cosimulator_builder_type = CoSimulatorSerialBuilder
     _default_interface_builder = TVBSpikeNetInterfaceBuilder
 
     def configure_interfaces_builder(self):

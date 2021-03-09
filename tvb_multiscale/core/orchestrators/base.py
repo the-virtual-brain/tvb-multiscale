@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 import os
+from logging import Logger
 
 import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray
+from tvb.contrib.scripts.utils.log_error_utils import warning
 
-from tvb_multiscale.core.config import Config, CONFIGURED
-from tvb_multiscale.core.plot.plotter import Plotter
-from tvb_multiscale.core.tvb.io.h5_writer import H5Writer
-from tvb_multiscale.core.tvb.io.h5_reader import H5Reader
-from tvb_multiscale.core.tvb.cosimulator_serialization import \
+from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     load_serial_tvb_cosimulator
 
 
@@ -28,28 +27,15 @@ class App(HasTraits):
         default=CONFIGURED
     )
 
-    # plotter = Attr(
-    #     label="Plotter",
-    #     field_type=Plotter,
-    #     doc="""Plotter class instance.""",
-    #     required=False
-    # )
-    #
-    # h5_writer = Attr(
-    #     label="H5Writer",
-    #     field_type=H5Writer,
-    #     doc="""H5Writer class instance.""",
-    #     required=False
-    # )
-    #
-    # h5_reader = Attr(
-    #     label="H5Reader",
-    #     field_type=H5Reader,
-    #     doc="""H5Reader class instance.""",
-    #     required=False
-    # )
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
 
-    default_tvb_serial_path = Attr(
+    default_tvb_serial_cosim_path = Attr(
         label="TVB serialized CoSimulator path",
         field_type=str,
         doc="""File path of TVB serialized CoSimulator.""",
@@ -73,32 +59,31 @@ class App(HasTraits):
                            required=True)
 
     simulation_length = Float(
-        label="Simulation Length (ms, s, m, h)",
+        label="Simulation Length (ms)",
         default=110.0,
         required=True,
         doc="""The length of a simulation (default in milliseconds). 
-                       It will be corrected by ceiling to a multiple of the cosimulators synchronization time.""")
+               It will be corrected by ceiling to a multiple of the cosimulators synchronization time.""")
 
-    # transient = Float(
-    #     label="Transient Length (ms, s, m, h)",
-    #     default=10.0,
-    #     required=True,
-    #     doc="""The length of a simulation (default in milliseconds).""")
+    synchronization_time = Float(
+        label="Synchronization time (ms)",
+        default=0.0,
+        required=True,
+        doc="""Synchronization time (default in milliseconds).""")
 
     def setup_from_another_app(self, app):
         self.config = app.config
-        # self.plotter = app.plotter
-        # self.h5_reader = app.h5_reader
-        # self.h5_writer = app.h5_writer
+        self.logger = app.logger
         self.spiking_proxy_inds = app.spiking_proxy_inds
         self.exclusive_nodes = app.exclusive_nodes
         self.simulation_length = app.simulation_length
-        # self.transient = app.transient
+        self.synchronization_time = app.synchronization_time
 
     def configure(self):
-        if len(self.def_tvb_serial_path) == 0:
-            self.def_tvb_serial_path = os.path.join(self.config.out.FOLDER_RES, "tvb_cosimulator_serialized.pkl")
         super(App, self).configure()
+        if len(self.default_tvb_serial_cosim_path) == 0:
+            self.default_tvb_serial_cosim_path = \
+                os.path.join(self.config.out.FOLDER_RES, "tvb_cosimulator_serialized.pkl")
 
     @abstractmethod
     def start(self):
@@ -117,10 +102,6 @@ class App(HasTraits):
         pass
 
     @abstractmethod
-    def stop(self):
-        pass
-
-    @abstractmethod
     def clean_up(self):
         pass
 
@@ -128,8 +109,12 @@ class App(HasTraits):
     def reset(self):
         pass
 
+    @abstractmethod
+    def stop(self):
+        pass
 
-class NonTVBApp(App):
+
+class NonTVBApp(App, ABC):
     __metaclass__ = ABCMeta
 
     """NonTVBApp abstract base class"""
@@ -177,13 +162,17 @@ class NonTVBApp(App):
     def tvb_delays(self):
         return self.tvb_cosimulator_serialized["connectivity.delays"]
 
-    def load_tvb_simulator_serialized(self, filepath=None):
+    def load_serialized_tvb_cosimulator(self, filepath=None):
         if not filepath:
-            filepath = self.def_tvb_serial_path
-        self.tvb_cosimulator_serialized = load_serial_tvb_cosimulator(filepath)
+            filepath = self.default_tvb_serial_cosim_path
+        try:
+            self.tvb_cosimulator_serialized = load_serial_tvb_cosimulator(filepath)
+        except:
+            # TODO: Decide whether to raise an exception here
+            warning("Failed to load serialized TVB CoSimulator from file!:\n%s" % filepath)
 
 
-class Orchestrator(App):
+class Orchestrator(App, ABC):
     __metaclass__ = ABCMeta
 
     """Orchestrator abstract base class"""
