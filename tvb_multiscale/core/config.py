@@ -98,6 +98,7 @@ class CalculusConfig(object):
 class Config(object):
     calcul = CalculusConfig()
 
+    DEFAULT_DT = 0.1
     TVB_TO_SPIKING_DT_RATIO = 2
     MIN_DELAY_RATIO = 1
     MIN_SPIKING_DT = 0.001
@@ -120,11 +121,10 @@ class Config(object):
 CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=None):
+def initialize_logger(name="tvb-multiscale", target_folder=None, config=CONFIGURED):
     if target_folder is None:
-        target_folder = Config().out.FOLDER_LOGS
+        target_folder = config.out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
-
 
 
 def log_path(name, logger):

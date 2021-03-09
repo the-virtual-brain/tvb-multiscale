@@ -118,7 +118,7 @@ CONFIGURED = Config(initialize_logger=False)
 CONFIGURED.configure_nest_path()
 
 
-def initialize_logger(name, target_folder=None):
+def initialize_logger(name="tvb_nest", target_folder=None, config=CONFIGURED):
     if target_folder is None:
-        target_folder = Config().out.FOLDER_LOGS
+        target_folder = config.out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
