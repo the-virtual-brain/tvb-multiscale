@@ -6,7 +6,7 @@ import numpy as np
 
 from tvb_multiscale.core.interfaces.base.transformers import Scale, RatesToSpikesElephantPoisson, \
     RatesToSpikesElephantPoissonSingleInteraction, RatesToSpikesElephantPoissonMultipleInteraction, \
-    SpikesToRatesElephantHistogram, SpikesToRatesElephantRate, Transformers
+    SpikesToRatesElephantHistogram, SpikesToRatesElephantRate
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 

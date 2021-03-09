@@ -1,35 +1,42 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
+from logging import Logger
 from enum import Enum
-
+from abc import ABCMeta, abstractmethod
 from six import string_types
 
 from tvb.basic.neotraits._core import HasTraits
-from tvb.basic.neotraits._attr import List
+from tvb.basic.neotraits._attr import Attr, Float, List
 
+from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.interfaces.tvb.transformers.models import TVBOutputTransformers, TVBInputTransformers, \
     TVBtoSpikeNetRateTransformer, TVBtoSpikeNetCurrentTransformer, \
     TVBRatesToSpikesElephantPoisson, TVBSpikesToRatesElephantRate, \
     TVBRatesToSpikesElephantPoissonMultipleInteraction, TVBRatesToSpikesElephantPoissonSingleInteraction
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
+from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
+
+
+class DefaultTVBtoSpikeNetModels(Enum):
+    RATE = "RATE"
+    SPIKES = "SPIKES"
+    CURRENT = "CURRENT"
+
+
+class DefaultSpikeNetToTVBModels(Enum):
+    SPIKES = "SPIKES"
 
 
 class DefaultTVBOutputTransformers(Enum):
     RATE = TVBtoSpikeNetRateTransformer
-    RATE_TO_SPIKES = TVBRatesToSpikesElephantPoisson
+    SPIKES = TVBRatesToSpikesElephantPoisson
+    SPIKES_SINGLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
+    SPIKES_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
     CURRENT = TVBtoSpikeNetCurrentTransformer
 
 
 class DefaultTVBInputTransformers(Enum):
-    SPIKES_TO_RATES = TVBSpikesToRatesElephantRate
-    SPIKES_FILE_TO_RATES = TVBSpikesToRatesElephantRate
-
-
-TVBOutputTransformersTypes = tuple([val.value for val in TVBOutputTransformers.__members__.values()])
-TVBOutputTransformersModels = tuple([val.name for val in DefaultTVBOutputTransformers.__members__.values()])
-
-TVBInputTransformersTypes = tuple([val.value for val in TVBInputTransformers.__members__.values()])
-TVBInputTransformersModels = tuple([val.value for val in DefaultTVBInputTransformers.__members__.values()])
+    SPIKES = TVBSpikesToRatesElephantRate
 
 
 class TVBTransformerBuilder(HasTraits):
@@ -37,16 +44,62 @@ class TVBTransformerBuilder(HasTraits):
 
     """TVBTransformerBuilder abstract class"""
 
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(__name__, config=CONFIGURED)
+    )
+
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
+
     output_interfaces = List(of=dict, default=(), label="Output interfaces configurations",
                              doc="List of dicts of configurations for the output interfaces to be built")
 
     input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
                             doc="List of dicts of configurations for the input interfaces to be built")
 
-    @property
-    @abstractmethod
-    def tvb_dt(self):
-        pass
+    @staticmethod
+    def _configure_transformer_model(interface, interface_models, default_transformer_models, transformer_models):
+        # Return a model or an Enum
+        model = interface.get("transformer", interface.pop("transformer_model", None))
+        if model is None:
+            model = interface.get("model", interface_models[0])
+            model = model.upper()
+            assert model in interface_models
+            model = getattr(default_transformer_models, model).value
+        if isinstance(model, string_types):
+            # String input:
+            model = model.upper()
+            model = getattr(transformer_models, model)
+        elif isinstance(model, Enum):
+            # Enum input:
+            assert model in transformer_models
+        else:
+            enum_values = tuple(get_enum_values(transformer_models))
+            if model in enum_values:
+                # type input:
+                model = model()
+            else:
+                # model input
+                assert isinstance(model, enum_values)
+        interface["transformer"] = model
+
+    def set_transformer_parameters(self, transformer, params):
+        for p, pval in params.items():
+            setattr(transformer, p, pval)
 
     @abstractmethod
     def configure_and_build_transformer(self):
@@ -54,82 +107,62 @@ class TVBTransformerBuilder(HasTraits):
 
 
 class TVBOutputTransformerBuilder(TVBTransformerBuilder):
-    __metaclass__ = ABCMeta
 
     """TVBOutputTransformerBuilder abstract class"""
 
-    _default_output_transformer_model = DefaultTVBOutputTransformers.RATE_TO_SPIKES.name
-    _default_output_transformer_types = DefaultTVBOutputTransformers
+    _tvb_to_spikeNet_models = TVBtoSpikeNetModels
+    _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
+    _output_transformer_models = DefaultTVBOutputTransformers
 
     def configure_and_build_transformer(self):
         for interface in self.output_interfaces:
-            model = interface.get("transformer",
-                                  interface.get("transformer_model",
-                                                interface.get("model",
-                                                              self._default_output_transformer_model)))
-            params = interface.get("transformer_params", {})
-            params = params.pop("dt", self.tvb_dt)
-            if model in TVBOutputTransformersTypes:
-                interface["transformer"] = model(**params)
-            elif isinstance(model, TVBOutputTransformersTypes):
-                for p, pval in params.items():
-                    setattr(interface["transformer"], p, pval)
-            elif isinstance(model, string_types):
-                model = model.upper()
-                assert model in TVBOutputTransformersModels
-                if model == DefaultTVBOutputTransformers.RATE_TO_SPIKES.name:
-                    correlation_factor = params.get("correlation_factor", None)
-                    scale_factor = params.get("scale_factor", 1.0)
+            self._configure_transformer_model(interface, self._tvb_to_spikeNet_models,
+                                              self._default_tvb_to_spikeNet_models, self._output_transformer_models)
+            params = interface.pop("transformer_params", {})
+            params["dt"] = params.pop("dt", self.tvb_dt)
+            if isinstance(interface["transformer"], Enum):
+                # It will be either an Enum...
+                if interface["transformer"] == DefaultTVBOutputTransformers.SPIKES:
+                    # If the transformer is "SPIKES", but there are parameters that concern correlations...
+                    correlation_factor = params.pop("correlation_factor", None)
+                    scale_factor = params.pop("scale_factor", 1.0)
                     if correlation_factor:
-                        interaction = params.get("interaction", "multiple")
+                        interaction = params.pop("interaction", "multiple")
                         if interaction == "multiple":
                             interface["transformer"] = \
                                 TVBRatesToSpikesElephantPoissonMultipleInteraction(
                                     scale_factor=scale_factor,
-                                    correlation_factor=correlation_factor)
+                                    correlation_factor=correlation_factor, **params)
                         else:
                             interface["transformer"] = \
                                 TVBRatesToSpikesElephantPoissonSingleInteraction(
                                     scale_factor=scale_factor,
-                                    correlation_factor=correlation_factor)
+                                    correlation_factor=correlation_factor, **params)
                 else:
-                    interface["transformer"] = \
-                        getattr(self._default_output_transformer_types, model).value(**params)
+                    interface["transformer"] = interface["transformer"].value(**params)
             else:
-                raise ValueError("Transformer configuration\n%s\nof interface\n%s\n"
-                                 "is not a model name (string), model type or transformer instance "
-                                 "of the available TVBOutputTransformers types!:\n%s"
-                                 % (str(model), str(interface), str(TVBOutputTransformersTypes)))
+                # ...or a model
+                self.set_transformer_parameters(interface["transformer"], params)
 
 
 class TVBInputTransformerBuilder(TVBTransformerBuilder):
-    __metaclass__ = ABCMeta
 
     """TVBInputTransformerBuilder abstract class"""
 
-    _default_input_transformer_model = DefaultTVBOutputTransformers.RATE_TO_SPIKES.name
-    _default_input_transformer_type = TVBSpikesToRatesElephantRate
+    _spikeNet_to_tvb_models = SpikeNetToTVBModels
+    _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBModels
+    _input_transformer_models = DefaultTVBInputTransformers
 
     def configure_and_build_transformer(self):
         for interface in self.input_interfaces:
-            model = interface.get("transformer",
-                                  interface.get("transformer_model",
-                                                interface.get("model",
-                                                              self._default_input_transformer_model)))
-            params = interface.get("transformer_params", {})
-            params = params.pop("dt", self.tvb_dt)
-            if model in TVBInputTransformersTypes:
-                interface["transformer"] = model(**params)
-            elif isinstance(model, TVBInputTransformersTypes):
-                for p, pval in params.items():
-                    setattr(interface["transformer"], p, pval)
-            elif isinstance(model, string_types):
-                model = model.upper()
-                assert model in TVBInputTransformersModels
-                interface["transformer"] = \
-                    getattr(self._default_input_transformer_types, model).value(**params)
+            self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
+                                              self._default_spikeNet_to_tvb_transformer_models,
+                                              self._output_transformer_models)
+            params = interface.pop("transformer_params", {})
+            params["dt"] = params.pop("dt", self.tvb_dt)
+            if isinstance(interface["transformer"], Enum):
+                # It will be either an Enum...
+                interface["transformer"] = interface["transformer"].value(**params)
             else:
-                raise ValueError("Transformer configuration\n%s\nof interface\n%s\n"
-                                 "is not a model name (string), model type or transformer instance "
-                                 "of the available TVBInputTransformers types!:\n%s"
-                                 % (str(model), str(interface), str(TVBInputTransformersTypes)))
+                # ...or a model
+                self.set_transformer_parameters(interface["transformer"], params)
