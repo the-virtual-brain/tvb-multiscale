@@ -12,11 +12,12 @@ from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor
 
 class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
+    w_EE = 0.9
+
+    def __init__(self, tvb_simulator={}, nest_nodes_ids=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
 
-        super(WWDeco2013Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config,
-                                                set_defaults=False)
+        super(WWDeco2013Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 
@@ -50,7 +51,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.tau_rise_NMDA = 2.0  # ms
         # inh spikes (GABA):
         self.tau_decay_GABA = 10.0  # ms
-        self.w_EE = 1.55
+        self.w_EE = np.array(kwargs.get("w_EE", kwargs.get("w", self.w_EE)))
         self.w_IE = 1.0
         self.w_EI = 1.0
         self.w_II = 1.0
@@ -62,16 +63,16 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.w_ie = -1.0
         self.w_ii = -1.0
 
+        self.lamda = 0.0
+
+    def configure(self):
+        super(WWDeco2013Builder, self).configure()
         self.d_ee = self.spiking_dt
         self.d_ie = self.spiking_dt
         self.d_ei = self.spiking_dt
         self.d_ii = self.spiking_dt
-
-        self.global_coupling_scaling *= self.tvb_serial_sim["model.G"][0].item()
-        self.lamda = 0.0
-
-        if set_defaults:
-            self.set_defaults()
+        self.global_coupling_scaling *= self.tvb_serial_sim.get("model.G", np.array([2.0]))[0].item()
+        self.w_EE = self.tvb_serial_sim.get("model.w", self.w_EE)[0].item()
 
     def set_defaults(self):
 
@@ -168,11 +169,13 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
 
 class WWDeco2014Builder(WWDeco2013Builder):
 
+    w_EE = 1.4
+    w_IE = 1.0
+
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
 
-        super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config,
-                                                set_defaults=False)
+        super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 
@@ -190,16 +193,19 @@ class WWDeco2014Builder(WWDeco2013Builder):
         self.g_GABA_in = 8.51  # nS
         self.stimulus_spike_rate = 2400.0  # Hz
 
-        self.lamda = self.tvb_serial_sim["model.lamda"][0].item()
-        self.w_EE = kwargs.get("w_EE",
-                          kwargs.get("w_p", self.tvb_serial_sim["model.w_p"][0].item()))
-        self.w_IE = kwargs.get("w_IE",
-                          kwargs.get("J_i", self.tvb_serial_sim["model.J_i"][0].item()))
+        self.w_EE = np.array(kwargs.get("w_EE", kwargs.get("w_p", self.w_EE)))
+        self.w_IE = np.array(kwargs.get("w_IE", kwargs.get("J_i", self.w_IE)))
 
         self.nodes_conns_EI = 1.0
 
-        if set_defaults:
-            WWDeco2013Builder.set_defaults(self)
+    def set_defaults(self):
+        WWDeco2013Builder.set_defaults(self)
+
+    def configure(self):
+        self.lamda = self.tvb_serial_sim.get("model.lamda", np.array([0.0]))[0].item()
+        self.w_EE = self.tvb_serial_sim.get("model.w_p", self.w_EE)[0].item()
+        self.w_IE = self.tvb_serial_sim.get("model.J_i", self.w_IE)[0].item()
+        super(WWDeco2014Builder, self).configure()
 
     def set_nodes_connections(self):
         WWDeco2013Builder.set_nodes_connections(self)

@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
 
@@ -25,7 +25,7 @@ class TVBWeightFun(object):
                                 scale=self.global_coupling_scaling)
 
 
-class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
+class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
@@ -63,8 +63,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
         self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
 
-        if set_defaults:
-            self.set_defaults()
+        self.set_defaults_flag = set_defaults
 
     def paramsE(self, node_id):
         # For the moment they are identical, unless you differentiate the noise parameters
@@ -213,3 +212,8 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def build(self):
+        if self.set_defaults_flag:
+            self.set_defaults()
+        return super(BasalGangliaIzhikevichBuilder, self).build()

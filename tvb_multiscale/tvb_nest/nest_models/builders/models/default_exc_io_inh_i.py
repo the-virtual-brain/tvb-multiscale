@@ -5,18 +5,18 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
     random_normal_weight, random_normal_tvb_weight, \
     random_uniform_delay, random_uniform_tvb_delay, receptor_by_source_region
 
 
-class DefaultExcIOInhIBuilder(NESTModelBuilder):
+class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+    def __init__(self, tvb_simulator={}, nest_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, nest_nodes_inds, nest_instance, config)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -47,7 +47,11 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
 
         self.spike_stimulus = {}
 
-        if set_defaults:
+        self.set_defaults_flag = set_defaults
+
+    def configure(self):
+        super(DefaultExcIOInhIBuilder, self).configure()
+        if self.set_defaults_flag:
             self.set_defaults()
 
     def set_E_population(self):
@@ -220,14 +224,19 @@ class DefaultExcIOInhIBuilder(NESTModelBuilder):
         self.set_output_devices()
         self.set_input_devices()
 
+    def build(self):
+        if self.set_defaults_flag:
+            self.set_defaults()
+        return super(DefaultExcIOInhIBuilder, self).build()
+
 
 class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
+    def __init__(self, tvb_simulator={}, nest_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
 
         super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(
-            tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults=False)
+            tvb_simulator, nest_nodes_inds, nest_instance, config, set_defaults=False)
 
         self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 
@@ -252,7 +261,11 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
                                "receptor_type": lambda target_node: target_node + 3}
 
-        if set_defaults:
+        self.set_defaults_flag = set_defaults
+
+    def configure(self):
+        super(DefaultExcIOInhIMultisynapseBuilder, self).configure()
+        if self.set_defaults_flag:
             self.set_defaults()
 
     def receptor_E_fun(self):

@@ -6,7 +6,7 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 
 
 class NeuronsFun(object):
@@ -22,7 +22,7 @@ class NeuronsFun(object):
                                                         for x in self.conns]]
 
 
-class CerebBuilder(NESTModelBuilder):
+class CerebBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
@@ -144,8 +144,7 @@ class CerebBuilder(NESTModelBuilder):
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
         self.modules_to_install = ["cereb"]
-        if set_defaults:
-            self.set_defaults()
+        self.set_defaults_flag = set_defaults
 
     def set_populations(self):
         # Populations' configurations
@@ -274,3 +273,8 @@ class CerebBuilder(NESTModelBuilder):
         self.set_output_devices()
         self.set_input_devices()
         self.net_src_file.close()
+
+    def build(self):
+        if self.set_defaults_flag:
+            self.set_defaults()
+        return super(CerebBuilder, self).build()

@@ -3,11 +3,11 @@
 from collections import OrderedDict
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
-class RedRateWWExcIOInhIBuilder(NESTModelBuilder):
+class RedRateWWExcIOInhIBuilder(NESTNetworkBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  J_N=150, J_i=1000):
