@@ -338,6 +338,7 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
 
     def _get_spikeNet_output_interface_arguments(self, interface):
         self._get_spikeNet_interface_arguments(interface)
+        interface["dt"] = self.tvb_dt
         self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         self._build_spikeNet_to_tvb_interface_proxy_nodes(interface)
 

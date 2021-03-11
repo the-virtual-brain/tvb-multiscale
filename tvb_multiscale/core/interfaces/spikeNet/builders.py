@@ -31,7 +31,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 
 class DefaultSpikeNetToTVBModels(Enum):
-    SPIKES = "SPIKES"
+    SPIKES = "SPIKES_MEAN"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
@@ -161,8 +161,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     def _get_spiking_proxy_inds_for_output_interface(self, interface, exclusive_nodes):
         interface["proxy_inds"] = np.array(self._only_inds(interface.get("proxy_inds", self.tvb_nodes_inds),
                                                   self.region_labels))
-        interface["spiking_proxy_inds"] = np.array(self._only_inds(interface.get("spiking_proxy_inds", self.spiking_nodes_inds),
-                                                          self.region_labels))
+        interface["spiking_proxy_inds"] = \
+            np.array(self._only_inds(interface.get("spiking_proxy_inds", self.spiking_nodes_inds), self.region_labels))
         if exclusive_nodes:
             # TODO: decide about the following:
             #  can a TVB node be updated from a SpikeNet node via a SpikeNet -> TVB interface?,
@@ -378,6 +378,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
 
     def _get_output_interface_arguments(self, interface):
         self._get_interface_arguments(interface)
+        interface["dt"] = self.tvb_dt
         self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         self._build_spikeNet_to_tvb_interface_proxy_nodes(interface)
         return interface

@@ -19,7 +19,8 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTTransformerSenderInterface, NESTReceiverTransformerInterface, \
     TVBtoNESTInterfaces, NESTtoTVBInterfaces, \
     TVBtoNESTInterface, NESTtoTVBInterface
-from tvb_multiscale.tvb_nest.interfaces.io import NESTSpikeRecorderSet, \
+from tvb_multiscale.tvb_nest.interfaces.io import \
+    NESTSpikeRecorderSet, NESTSpikeRecorderMeanSet, NESTSpikeRecorderTotalSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
     NESTParrotSpikeGeneratorSet, NESTParrotInhomogeneousPoissonGeneratorSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
@@ -37,7 +38,7 @@ class DefaultTVBtoNESTModels(Enum):
 
 
 class DefaultNESTtoTVBModels(Enum):
-    SPIKES = "SPIKES"
+    SPIKES = "SPIKES_MEAN"
 
 
 class NESTInputProxyModels(Enum):
@@ -50,6 +51,8 @@ class NESTInputProxyModels(Enum):
 
 class NESTOutputProxyModels(Enum):
     SPIKES = NESTSpikeRecorderSet
+    SPIKES_MEAN = NESTSpikeRecorderMeanSet
+    SPIKES_TOTAL = NESTSpikeRecorderTotalSet
 
 
 class NESTInterfaceBuilder(HasTraits):
