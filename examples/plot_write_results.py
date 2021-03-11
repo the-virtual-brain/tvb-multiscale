@@ -92,6 +92,7 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
 
 
 def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_ids=[],
+                           # populations=["E", "I"], populations_sizes=[],
                            tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
                            plotter=None, writer=None, config=CONFIGURED, **kwargs):
 
@@ -146,6 +147,7 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
     # Plot time_series
     source_ts.plot_timeseries(plotter_config=plotter.config,
                               hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                              row="Region" if source_ts.shape[2] <= MAX_REGIONS_IN_ROWS else None,
                               per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
                               figsize=figsize)
     if source_ts.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
@@ -160,6 +162,7 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
         source_ts_nest = source_ts[:, :, spiking_nodes_ids]
         source_ts_nest.plot_timeseries(plotter_config=plotter.config,
                                        hue="Region" if source_ts_nest.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                       row="Region" if source_ts_nest.shape[2] <= MAX_REGIONS_IN_ROWS else None,
                                        per_variable=source_ts_nest.shape[1] > MAX_VARS_IN_COLS,
                                        figsize=figsize, figname="Spiking nodes TVB Time Series")
         if n_spiking_nodes > MIN_REGIONS_FOR_RASTER_PLOT:
@@ -318,8 +321,9 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         del mean_field_ts
 
 
-def plot_write_results(tvb_results, simulator, spiking_network=None, spiking_nodes_ids=[],
-                       populations=["E", "I"], populations_sizes=[], transient=0.0,
+def plot_write_results(tvb_results, simulator,
+                       spiking_network=None, spiking_nodes_ids=[],
+                       transient=0.0,  # populations=["E", "I"], populations_sizes=[],
                        tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
                        plot_per_neuron=False, plotter=None, config=CONFIGURED):
     import time as timeit
@@ -336,7 +340,7 @@ def plot_write_results(tvb_results, simulator, spiking_network=None, spiking_nod
         tic = timeit.time()
         time, time_with_transient = \
             plot_write_tvb_results(tvb_results[0], simulator, transient, spiking_nodes_ids,
-                                   populations, populations_sizes,
+                                   # populations=["E", "I"], populations_sizes=[],
                                    tvb_state_variable_type_label, tvb_state_variables_labels,
                                    plotter, writer, config)
         print("Done! in %f min" % ((timeit.time() - tic) / 60))
