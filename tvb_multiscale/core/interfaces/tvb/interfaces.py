@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, Float, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
@@ -125,7 +125,7 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
     """
 
     def __call__(self, data):
-        return SenderInterface.__call__(self, data)
+        return self.send(data)
 
     def print_str(self):
         return SenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
@@ -137,7 +137,7 @@ class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
     """
 
     def __call__(self):
-        return ReceiverInterface.__call__(self)
+        return self.receive()
 
     def print_str(self):
         return ReceiverInterface.print_str(self) + TVBInputInterface.print_str(self)
@@ -150,7 +150,7 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterfa
     """
 
     def __call__(self, data):
-        return TVBTransformerSenderInterface.__call__(self, data)
+        return self.transform_send(data)
 
     def print_str(self):
         return TransformerSenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
@@ -163,7 +163,7 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
     """
 
     def __call__(self):
-        return ReceiverTransformerInterface.__call__(self)
+        return self.receive_transform()
 
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + \
@@ -194,11 +194,15 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
                TVBOutputInterface.print_str(self) + \
                SpikeNetInputInterface.print_str(self)
 
+    def configure(self):
+        super(TVBtoSpikeNetInterface, self).configure()
+        self.transformer.configure()
+
     def __call__(self, data):
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
-        return SpikeNetInputInterface.__call__(self, [self.transformer.output_time, self.transformer.output_buffer])
+        return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
 
 class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInterface):
@@ -214,6 +218,10 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         required=True
     )
 
+    def configure(self):
+        super(SpikeNetToTVBInterface, self).configure()
+        self.transformer.configure()
+
     @property
     def label(self):
         return "%s: %s (%s) <- %s (%s)" % (self.__class__.__name__, str(self.voi_labels),
@@ -225,7 +233,9 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
                SpikeNetOutputInterface.print_str(self)
 
     def __call__(self):
-        data = SpikeNetOutputInterface.__call__(self)
+        data = self.get_proxy_data()
+        if data[0][1] < data[0][0]:
+            return None
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
@@ -279,6 +289,11 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
     """TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
        and sends data to them"""
 
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
+
     def set_local_indices(self, cosim_monitors):
         """Method to set the correct voi indices with reference to the linked TVB CosimMonitor,
            for each cosimulation"""
@@ -287,8 +302,8 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
 
     def __call__(self, data):
         for interface in self.interfaces:
-            #                            start_time_step                 end_time_step
-            interface([np.array([data[interface.monitor_ind][0][0], data[interface.monitor_ind][0][-1]]).astype("i"),
+            interface([np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),               #  start_time_step
+                                 np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i"),  #  end_time_step
                        # data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
                        data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
@@ -309,15 +324,18 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
     def __call__(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
         cosim_updates[:] = np.NAN
+        time_steps = []
         for interface in self.interfaces:
             data = interface()  # [start_and_time_steps, values]
-            # Convert start and end input_time step to a vector of integer input_time steps:
-            time_steps = np.arange(data[0][0], data[0][1] + 1).astype("i")
-            cosim_updates[
-                (time_steps % good_cosim_update_values_shape[0])[:, None, None],
-                interface.voi_loc[None, :, None],         # indices specific to cosim_updates needed here
-                interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
-                0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
+            if data is not None:
+                # Convert start and end input_time step to a vector of integer input_time steps:
+                time_steps = np.arange(data[0][0], data[0][1] + 1).astype("i")
+                cosim_updates[
+                    (time_steps % good_cosim_update_values_shape[0])[:, None, None],
+                    interface.voi_loc[None, :, None],         # indices specific to cosim_updates needed here
+                    interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
+                    0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
+        return [time_steps, cosim_updates]
 
 
 class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):

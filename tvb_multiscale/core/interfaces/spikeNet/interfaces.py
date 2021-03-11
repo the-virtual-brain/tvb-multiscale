@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, List, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
+from tvb_multiscale.core.interfaces.base.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -73,6 +73,11 @@ class SpikeNetOutputInterface(SpikeNetInterface):
                  field_type=SpikeNetOutputDeviceSet,
                  required=True)
 
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
+
     def configure(self):
         super(SpikeNetOutputInterface, self).configure()
         self.proxy.configure()
@@ -87,7 +92,7 @@ class SpikeNetOutputInterface(SpikeNetInterface):
     def print_str(self):
         super(SpikeNetOutputInterface, self).print_str(self, sender_not_receiver=True)
 
-    def __call__(self):
+    def get_proxy_data(self):
         return self.proxy()
 
 
@@ -115,7 +120,7 @@ class SpikeNetInputInterface(SpikeNetInterface):
     def print_str(self):
         super(SpikeNetInputInterface, self).print_str(self, sender_not_receiver=False)
 
-    def __call__(self, data):
+    def set_proxy_data(self, data):
         return self.proxy(data)
 
 
@@ -128,7 +133,7 @@ class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
         SenderInterface.configure(self)
 
     def __call__(self):
-        return SenderInterface.__call__(self, SpikeNetOutputInterface.__call__(self))
+        return self.send(self.get_proxy_data())
 
     def print_str(self):
         return SenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
@@ -143,7 +148,7 @@ class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
         ReceiverInterface.configure(self)
 
     def __call__(self):
-        return SpikeNetInputInterface.__call__(self, ReceiverInterface.__call__(self))
+        return self.set_proxy_data(self.receive())
 
     def print_str(self):
         return ReceiverInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
@@ -157,8 +162,8 @@ class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSen
         SpikeNetOutputInterface.configure(self)
         TransformerSenderInterface.configure(self)
 
-    def __call__(self, data):
-        return SpikeNetTransformerSenderInterface.__call__(self, SpikeNetOutputInterface.__call__(self))
+    def __call__(self):
+        return self.transform_send(self.get_proxy_data())
 
     def print_str(self):
         return TransformerSenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
@@ -173,7 +178,7 @@ class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTrans
         ReceiverTransformerInterface.configure(self)
 
     def __call__(self):
-        return SpikeNetInputInterface.__call__(self, ReceiverTransformerInterface.__call__(self))
+        return self.set_proxy_data(self.receive_transform())
 
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + SpikeNetInputInterface.print_str(self)

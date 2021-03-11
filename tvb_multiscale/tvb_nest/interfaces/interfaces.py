@@ -2,7 +2,9 @@
 
 from abc import ABCMeta, abstractmethod
 
-from tvb.basic.neotraits.api import HasTraits, Attr, List
+import numpy as np
+
+from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
@@ -41,6 +43,10 @@ class NESTInterface(HasTraits):
         return self.spiking_network.nest_instance
 
     @property
+    def time(self):
+        return self.nest_instance.GetKernelStatus("time")
+
+    @property
     @abstractmethod
     def proxy_gids(self):
         pass
@@ -68,9 +74,38 @@ class NESTOutputInterface(NESTInterface):
                  field_type=NESTOutputDeviceSet,
                  required=True)
 
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
+
+    times = NArray(
+        dtype=np.int,
+        label="Indices of Spiking Network proxy nodes",
+        doc="""Indices of Spiking Network proxy nodes""",
+        required=True,
+        default=np.array([1, 0])
+    )
+
     @property
     def proxy_gids(self):
-        return self._get_proxy_gids(self.proxy.target)
+        return self._get_proxy_gids(self.proxy.source)
+
+    def get_proxy_data(self):
+        data = self.proxy()
+        if len(data[0]) == 2:
+            # This will work for multimeters:
+            self.times = np.array([np.round(data[0][0] / self.dt),  # start_time_step
+                                   np.round(data[0][1] / self.dt)]).astype("i")
+        else:
+            # This will work for spike recorders:
+            time = np.int(np.round(self.time/self.dt))
+            times = self.times.copy()
+            if time > times[1]:
+                times[0] = times[1] + 1
+                times[1] = time
+            self.times = times
+        return [self.times, data[-1]]
 
 
 class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
@@ -80,12 +115,18 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
     def print_str(self):
         SpikeNetSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
+    def __call__(self):
+        return self.send(NESTOutputInterface.get_proxy_data(self))
+
 
 class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOutputInterface):
     """NESTTransformerSenderInterface"""
 
     def print_str(self):
         SpikeNetTransformerSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
+
+    def __call__(self):
+        return self.transform_send(NESTOutputInterface.get_proxy_data(self))
 
 
 class NESTInputInterface(NESTInterface):
@@ -100,7 +141,7 @@ class NESTInputInterface(NESTInterface):
 
     @property
     def proxy_gids(self):
-        return self._get_proxy_gids(self.proxy.source)
+        return self._get_proxy_gids(self.proxy.target)
 
 
 class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
@@ -132,6 +173,9 @@ class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
     """
+
+    def get_proxy_data(self):
+        return NESTOutputInterface.get_proxy_data(self)
 
     def print_str(self):
         SpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)

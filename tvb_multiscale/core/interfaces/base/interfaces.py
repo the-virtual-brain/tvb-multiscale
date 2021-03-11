@@ -88,6 +88,9 @@ class SenderInterface(CommunicatorInterface):
         """A property method to return the Sender class used to send data to the transformer/cosimulator."""
         return self.communicator
 
+    def send(self, data):
+        return self.communicator(data)
+
     def __call__(self, data):
         return self.communicator(data)
 
@@ -111,6 +114,9 @@ class ReceiverInterface(CommunicatorInterface):
     def receiver(self):
         """A property method to return the Sender class used to send data to the transformer."""
         return self.communicator
+
+    def receive(self):
+        return self.communicator()
 
     def __call__(self):
         return self.communicator()
@@ -181,11 +187,14 @@ class TransformerSenderInterface(CommunicatorTransformerInterface):
         """A property method to return the Sender class used to send data from the transformer."""
         return self.communicator
 
-    def __call__(self, data):
+    def transform_send(self, data):
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
         return self.communicator2([self.transformer.output_time, self.transformer.output_buffer])
+
+    def __call__(self, data):
+        return self.transform_send(data)
 
     def print_str(self):
         super(TransformerSenderInterface, self).print_str(sender_not_receiver=True)
@@ -210,12 +219,15 @@ class ReceiverTransformerInterface(CommunicatorTransformerInterface):
         """A property method to return the Receiver class used to receive data for the transformer."""
         return self.communicator
 
-    def __call__(self):
+    def receive_transform(self):
         data = self.communicator()
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
         return [self.transformer.output_time, self.transformer.output_buffer]
+
+    def __call__(self):
+        return self.receive_transform()
 
     def print_str(self):
         super(ReceiverTransformerInterface, self).print_str(sender_not_receiver=False)
@@ -256,12 +268,15 @@ class RemoteTransformerInterface(BaseInterface):
         self.sender.configure()
         super(RemoteTransformerInterface, self).configure()
 
-    def __call__(self):
+    def receive_transform_send(self):
         data = self.receiver()
         self.transformer.time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
         return self.sender([self.transformer.time, self.transformer.output_buffer])
+
+    def __call__(self):
+        self.receive_transform_send()
 
     def print_str(self):
         out = super(RemoteTransformerInterface, self).print_str()
