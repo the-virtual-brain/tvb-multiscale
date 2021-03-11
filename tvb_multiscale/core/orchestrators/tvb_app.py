@@ -159,8 +159,10 @@ class TVBApp(App):
         if self._cosimulator.synchronization_time > 0:
             self.simulation_length = np.ceil(self.simulation_length / self.cosimulator.synchronization_time) * \
                                      self._cosimulator.synchronization_time
+        self.cosimulator.simulation_length = self.simulation_length
 
     def configure_simulation(self):
+        self.cosimulator.simulation_length = self.simulation_length
         self._cosimulator.configure()
         self.assert_simulation_length()
         self.synchronization_time = self.cosimulator.synchronization_time
