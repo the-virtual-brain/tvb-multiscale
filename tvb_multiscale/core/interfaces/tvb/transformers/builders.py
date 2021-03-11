@@ -9,9 +9,9 @@ from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Float, List
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.tvb.transformers.models import TVBOutputTransformers, TVBInputTransformers, \
+from tvb_multiscale.core.interfaces.tvb.transformers.models import \
     TVBtoSpikeNetRateTransformer, TVBtoSpikeNetCurrentTransformer, \
-    TVBRatesToSpikesElephantPoisson, TVBSpikesToRatesElephantRate, \
+    TVBSpikesToRatesElephantRate, TVBSpikesToRatesElephantHistogram, TVBRatesToSpikesElephantPoisson, \
     TVBRatesToSpikesElephantPoissonMultipleInteraction, TVBRatesToSpikesElephantPoissonSingleInteraction
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
@@ -24,7 +24,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 
 class DefaultSpikeNetToTVBModels(Enum):
-    SPIKES = "SPIKES"
+    SPIKES = "SPIKES"  # "SPIKES_TO_RATE", "SPIKES_HIST"
 
 
 class DefaultTVBOutputTransformers(Enum):
@@ -37,6 +37,8 @@ class DefaultTVBOutputTransformers(Enum):
 
 class DefaultTVBInputTransformers(Enum):
     SPIKES = TVBSpikesToRatesElephantRate
+    SPIKES_TO_RATE = TVBSpikesToRatesElephantRate
+    SPIKES_HIST = TVBSpikesToRatesElephantHistogram
 
 
 class TVBTransformerBuilder(HasTraits):
@@ -157,7 +159,7 @@ class TVBInputTransformerBuilder(TVBTransformerBuilder):
         for interface in self.input_interfaces:
             self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
                                               self._default_spikeNet_to_tvb_transformer_models,
-                                              self._output_transformer_models)
+                                              self._input_transformer_models)
             params = interface.pop("transformer_params", {})
             params["dt"] = params.pop("dt", self.tvb_dt)
             if isinstance(interface["transformer"], Enum):

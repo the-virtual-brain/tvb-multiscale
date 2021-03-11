@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray, List
 
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
@@ -15,25 +16,15 @@ class Transformer(HasTraits):
 
     """
         Abstract Transformer base class comprising:
-            - an input buffer data numpy.array,
-            - an output buffer data numpy.array,
+            - an input buffer data,
+            - an output buffer data,
             - an abstract method for the computations applied 
               upon the input buffer data for the output buffer data to result.
     """
 
-    input_buffer = NArray(
-        label="Input buffer",
-        doc="""Buffer of incoming data.""",
-        required=True,
-        default=np.array([])
-    )
+    input_buffer = []
 
-    output_buffer = NArray(
-        label="Output buffer",
-        doc="""Buffer of outgoing data.""",
-        required=True,
-        default=np.array([])
-    )
+    output_buffer = []
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
@@ -41,17 +32,19 @@ class Transformer(HasTraits):
                default=0.1)
 
     input_time = NArray(
+        dtype=np.int,
         label="Input time vector",
         doc="""Buffer of time (float) or time steps (integer) corresponding to the input buffer.""",
         required=True,
-        default=np.array([])
+        default=np.array([]).astype("i")
     )
 
     output_time = NArray(
+        dtype=np.int,
         label="Output time vector",
         doc="""Buffer of time (float) or time steps (integer) corresponding to the output bufer.""",
         required=True,
-        default=np.array([])
+        default=np.array([]).astype("i")
     )
 
     def compute_time(self):
@@ -66,12 +59,19 @@ class Transformer(HasTraits):
         self.compute_time()
         self.compute()
 
-    def configure(self):
-        if self.receiver:
-            self.receiver.configure()
-        if self.sender:
-            self.sender.configure()
-        super(Transformer, self).configure()
+    def _assert_size(self, attr, buffer="input", dim=0):
+        value = getattr(self, attr)
+        input_buffer_size = len(getattr(self, "%s_buffer" % buffer))
+        if input_buffer_size != 0:
+            if input_buffer_size != value.shape[dim]:
+                if value.shape[dim] == 1:
+                    value = np.repeat(value, input_buffer_size, axis=dim)
+                else:
+                    raise ValueError("%s (=%s) is neither of length 1 "
+                                     "nor of length equal to the proxy dimension (1st) of the input buffer (=%d)"
+                                     % (attr, str(value), input_buffer_size))
+                setattr(self, attr, value)
+        return value
 
     def print_str(self):
         output = "\n%s, dt = %g" % (self.__repr__(), self.dt)
@@ -95,7 +95,7 @@ class Elementary(Transformer):
 
     def compute(self):
         """Method that just copies input buffer data to the output buffer"""
-        self.output_buffer = np.copy(self.input_buffer)
+        self.output_buffer = deepcopy(self.input_buffer)
 
 
 class Scale(Transformer):
@@ -115,9 +115,18 @@ class Scale(Transformer):
         default=np.array([1.0])
     )
 
+    def configure(self):
+        super(Scale, self).configure()
+        self._assert_size("scale_factor")
+
     def compute(self):
         """Method that just scales input buffer data to compute the output buffer data."""
-        self.output_buffer = self.scale_factor * self.input_buffer
+        if isinstance(self.input_buffer, np.ndarray):
+            self.output_buffer = self.scale_factor * self.input_buffer
+        else:
+            self.output_buffer = []
+            for scale_factor, input_buffer in zip(self.scale_factor, self.input_buffer):
+                self.output_buffer.append(scale_factor * input_buffer)
 
 
 class DotProduct(Transformer):
@@ -135,12 +144,27 @@ class DotProduct(Transformer):
         label="Dot factor",
         doc="""Array to perform the left dot product upon the input buffer.""",
         required=True,
-        default=np.array([1.0])
+        default=np.array([[1.0]])
     )
+
+    def configure(self):
+        super(DotProduct, self).configure()
+        self._assert_size("dot_factor", dim=1)
 
     def compute(self):
         """Method that just scales input buffer data to compute the output buffer data."""
         self.output_buffer = np.dot(self.dot_factor * self.input_buffer)
+
+
+class ElephantFunctions(Enum):
+    from elephant.spike_train_generation import homogeneous_poisson_process, inhomogeneous_poisson_process
+    from elephant.statistics import time_histogram
+    from elephant.statistics import instantaneous_rate
+
+    HOMOGENEOUS_POISSON_PROCESS = homogeneous_poisson_process
+    INHOMOGENEOUS_POISSON_PROCESS = inhomogeneous_poisson_process
+    TIME_HISTOGRAM = time_histogram
+    INSTANTANEOUS_RATE = instantaneous_rate
 
 
 class RatesToSpikes(Scale):
@@ -160,18 +184,6 @@ class RatesToSpikes(Scale):
     def configure(self):
         super(RatesToSpikes, self).configure()
 
-    def _assert_size(self, attr):
-        value = getattr(self, attr).flatten()
-        if self.input_buffer.shape[0] != value.shape[0]:
-            if value.shape[0] == 1:
-                value = np.repeat(value, self.input_buffer.shape[0])
-            else:
-                raise ValueError("%s (=%s) is neither of length 1 "
-                                 "nor of length equal to the proxy dimension (1st) of the input buffer (=%d)"
-                                 % (attr, str(value), self.input_buffer.shape[0]))
-            setattr(self, attr, value)
-        return value
-
     def _assert_n_spiketrains_size(self):
         return self._assert_size("n_spiketrains")
 
@@ -188,8 +200,8 @@ class RatesToSpikes(Scale):
            for the output buffer data of spike trains to result."""
         self._assert_parameters_sizes()
         self.output_buffer = []
-        for iP, proxy_buffer in enumerate(self.scale_factor*self.input_buffer):
-            self.output_buffer.append(self._compute(proxy_buffer, iP, *args, **kwargs))
+        for iP, scale_factor, proxy_buffer in enumerate(zip(self.scale_factor, self.input_buffer)):
+            self.output_buffer.append(self._compute(scale_factor*proxy_buffer, iP, *args, **kwargs))
 
 
 class RatesToSpikesElephant(RatesToSpikes):
@@ -222,11 +234,11 @@ class RatesToSpikesElephant(RatesToSpikes):
 
     @property
     def _t_start(self):
-        return self.input_time[0] * self.ms
+        return self.dt * self.input_time[0] * self.ms
 
     @property
     def _t_stop(self):
-        return self.input_time[-1] * self.ms
+        return self.dt * self.input_time[-1] * self.ms
 
     def _rates_analog_signal(self, rates):
         return self._analog_signal_class(rates*self.rate_unit, sampling_period=self.dt*self.time_unit,
@@ -245,16 +257,19 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         This class can be used to produce independent spike trains per proxy node.
     """
 
-    from elephant.spike_train_generation import homogeneous_poisson_process, inhomogeneous_poisson_process
-
-    _spike_gen_fun_h = homogeneous_poisson_process
-    _spike_gen_fun_inh = inhomogeneous_poisson_process
-
     refractory_period = Float(label="Refractory period",
                               doc="The time period after one spike no other spike is emitted. "
                                   "pq.Quantity scalar with dimension time. Default: None.",
                               required=False,
                               default=None)
+
+    @staticmethod
+    def _spike_gen_fun_h(*args, **kwargs):
+        return ElephantFunctions.HOMOGENEOUS_POISSON_PROCESS(*args, **kwargs)
+
+    @staticmethod
+    def _spike_gen_fun_inh(*args, **kwargs):
+        return ElephantFunctions.INHOMOGENEOUS_POISSON_PROCESS(*args, **kwargs)
 
     def _compute_for_n_spiketrains(self, rates, n_spiketrains):
         spiketrains = []
@@ -395,14 +410,19 @@ class SpikesToRates(Scale):
            to instantaneous mean spiking rates."""
         pass
 
+    def configure(self):
+        super(SpikesToRates, self).configure()
+        self._assert_size("scale_factor", "output")
+
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
-        self.output_buffer = []
+        output_buffer = []
         for proxy_buffer in self.input_buffer:  # At this point we assume that input_buffer has shape (proxy,)
-            self.output_buffer.append(
+            output_buffer.append(
                 self._compute(proxy_buffer, *args, **kwargs))
-        return self.scale_factor * np.array(self.output_buffer)
+        self.output_buffer = self.scale_factor * np.array(output_buffer)
+        return self.output_buffer
 
 
 class SpikesToRatesElephant(SpikesToRates):
@@ -435,11 +455,11 @@ class SpikesToRatesElephant(SpikesToRates):
 
     @property
     def _t_start(self):
-        return self.input_time[0] * self.ms
+        return (self.dt * self.input_time[0] - np.finfo(np.float32).resolution) * self.ms
 
     @property
     def _t_stop(self):
-        return self.input_time[-1] * self.ms
+        return (np.finfo(np.float32).resolution + self.dt * (self.input_time[-1] + 1)) * self.ms
 
     def _spiketrain(self, spikes):
         return self._spike_train_class(spikes * self.time_unit, t_start=self._t_start, t_stop=self._t_stop)
@@ -458,16 +478,16 @@ class SpikesToRatesElephantHistogram(SpikesToRatesElephant):
         The algorithm is based just on computing a time histogram of the spike trains.
     """
 
-    from elephant.statistics import time_histogram
-
-    _time_hist_fun = time_histogram
-
     output_type = Attr(label="Output type",
                        doc="""Output type with choices ('counts' (default), 'mean', 'rate')""",
                        field_type=str,
                        required=True,
                        default="counts",
                        choices=("counts", "mean", "rate"))
+
+    @staticmethod
+    def _time_hist_fun(*args, **kwargs):
+        return ElephantFunctions.TIME_HISTOGRAM(*args, **kwargs)
 
     def _compute_rate(self, spikes):
         return np.array(self._compute_time_histogram(spikes).rescale(self.rate_unit))
@@ -499,10 +519,7 @@ class SpikesToRatesElephantRate(SpikesToRatesElephantHistogram):
         The algorithm is based on convolution of spike trains with a kernel.
     """
 
-    from elephant.statistics import instantaneous_rate
     from elephant.kernels import Kernel, GaussianKernel
-
-    _rate_fun = instantaneous_rate
 
     _default_kernel_class = GaussianKernel
     _kernel_class = Kernel
@@ -515,6 +532,10 @@ class SpikesToRatesElephantRate(SpikesToRatesElephantHistogram):
     #               default=None)
 
     kernel = None
+
+    @staticmethod
+    def _rate_fun(*args, **kwargs):
+        return ElephantFunctions.INSTANTANEOUS_RATE(*args, **kwargs)
 
     def configure(self):
         # This is a temporary hack to go around the above proble with TVB traits' system:
@@ -529,11 +550,13 @@ class SpikesToRatesElephantRate(SpikesToRatesElephantHistogram):
            to instantaneous mean spiking rates, using elephant.statistics.instantaneous_rate function."""
         spiketrain = self._spiketrain(spikes)
         if self.kernel != "auto" or spiketrain.size > 2:
-            return np.array(self._rate_fun(spiketrain,  self.dt,
-                                           kernel=self.kernel, *args, **kwargs).rescale(self.rate_unit))
+            data = np.array(
+                self._rate_fun(spiketrain,
+                               self.dt*self.time_unit, self.kernel, *args, **kwargs).rescale(self.rate_unit)).flatten()
+            return data
         else:
             # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
-            return SpikesToRatesElephantHistogram._compute_rate(spiketrain)
+            return SpikesToRatesElephantHistogram._compute_rate(spiketrain).flatten()
 
 
 class BasicTransformers(Enum):
