@@ -387,7 +387,10 @@ class OutputDevice(Device):
         """
         if events is None:
             # The events of the device:
-            events = deepcopy(self.events)
+            if filter_kwargs.pop("new", False):
+                events = self.get_new_events()
+            else:
+                events = self.events.copy()
         if variables is None:
             variables = events.keys()
         else:
@@ -409,6 +412,10 @@ class OutputDevice(Device):
                 events[var] = []
         return events
 
+    @abstractmethod
+    def get_new_events(self, variables=None, **filter_kwargs):
+        pass
+
     @property
     @abstractmethod
     def events(self):
@@ -416,8 +423,18 @@ class OutputDevice(Device):
         pass
 
     @property
+    def new_events(self):
+        return self.get_new_events()
+
+    @property
     @abstractmethod
     def number_of_events(self):
+        """This method returns the number (integer) of events"""
+        pass
+
+    @property
+    @abstractmethod
+    def number_of_new_events(self):
         """This method returns the number (integer) of events"""
         pass
 
@@ -524,7 +541,8 @@ class SpikeRecorder(OutputDevice):
         """
         return self.get_mean_number_of_spikes(events_inds=events_inds, **filter_kwargs) / dt
 
-    def get_spikes_times_by_neurons(self, events_inds=None, times=None, exclude_times=[], full_senders=False):
+    def get_spikes_times_by_neurons(self, events_inds=None, times=None, exclude_times=[], full_senders=False,
+                                    **filter_kwargs):
         """This method will return the spikes' times per neuron,
              after selecting/excluding part of the detected spikes' events, depending on user inputs
              Arguments:
@@ -535,22 +553,17 @@ class SpikeRecorder(OutputDevice):
               exclude_times: sequence (list, tuple, array) of times
                              the events of which should be excluded from the output. Default = [].
               full_senders: if True, we include neurons' indices that have sent no spike at all. Default=False
+              filter_kwargs: see filter_events method for its possible keyword arguments
              Returns:
               dictionary of spike events sorted by sender neuron
          """
-        sorted_events = sort_events_by_x_and_y(self.get_events(events_inds=events_inds),
-                                               x="senders", y="times",
-                                               filter_y=times, exclude_y=exclude_times)
         if full_senders:
-            # In this case we also include neurons with 0 spikes in the output
-            sender_neurons = self.neurons
-            output = OrderedDict()
-            for neuron in sender_neurons:
-                output[neuron] = np.array([])
-            output.update(sorted_events)
-            return output
+            filter_x = self.neurons
         else:
-            return sorted_events
+            filter_x = None
+        return sort_events_by_x_and_y(self.get_events(events_inds=events_inds, **filter_kwargs),
+                                      x="senders", y="times", filter_x=filter_x,
+                                      filter_y=times, exclude_y=exclude_times)
 
     def get_spikes_neurons_by_times(self, events_inds=None, times=None, exclude_times=[]):
         """This method will return the spikes' senders per spike time,
@@ -577,6 +590,16 @@ class SpikeRecorder(OutputDevice):
     def spikes_senders(self):
         """This method will return spikes' sender neurons in an array"""
         return self.senders
+
+    @property
+    def new_spikes_times(self):
+        """This method will return newly recorded spikes' times in an array"""
+        return self.get_spikes_times(new=True)
+
+    @property
+    def new_spikes_senders(self):
+        """This method will return newly recorded spikes' sender neurons in an array"""
+        return self.get_spikes_senders(new=True)
 
     @property
     def number_of_spikes(self):
@@ -633,7 +656,8 @@ class Multimeter(OutputDevice):
         return variables
 
     @abstractmethod
-    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
+                 flatten_neurons_inds=True, new=False):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -641,12 +665,20 @@ class Multimeter(OutputDevice):
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable", "Neuron"]
+            flatten_neurons_inds: if true, neurons coordinates are arranged from 1 to number of neurons,
+                                  instead for neurons_inds
+            new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
            Returns:
             a xarray DataArray with the output data
         """
         pass
 
-    def get_mean_data(self, variables=None, name=None, dims_names=["Time", "Variable"]):
+    def get_new_data(self, **kwargs):
+        kwargs.pop("new", None)
+        return self.get_data(new=True, **kwargs)
+
+    def get_mean_data(self, variables=None, name=None, dims_names=["Time", "Variable"], new=False):
         """This method returns time series' data recorded by the multimeter, averaged across the neurons' dimension.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -654,14 +686,16 @@ class Multimeter(OutputDevice):
             name: label of output. Default = None, which defaults to the label of the Device
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable"]
+            new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
            Returns:
             a xarray DataArray with the output data
         """
         dims_names = [dims_names[0], dims_names[1], "Neuron"]
-        data = self.get_data(variables, name, dims_names)
+        data = self.get_data(variables, name, dims_names, new=new)
         return data.mean(dim="Neuron")
 
-    def get_total_data(self, variables=None, name=None, dims_names=["Time", "Variable"]):
+    def get_total_data(self, variables=None, name=None, dims_names=["Time", "Variable"], new=False):
         """This method returns time series' data recorded by the multimeter, summed across the neurons' dimension.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -671,11 +705,13 @@ class Multimeter(OutputDevice):
                         Default = ["Time", "Variable"]
            flatten_neurons_inds: if true, neurons coordinates are arranged from 1 to number of neurons,
                                   instead for neurons_inds
+           new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
            Returns:
             a xarray DataArray with the output data
         """
         dims_names = [dims_names[0], dims_names[1], "Neuron"]
-        data = self.get_data(variables, name, dims_names)
+        data = self.get_data(variables, name, dims_names, new=new)
         return data.sum(dim="Neuron")
 
     @property
@@ -687,6 +723,14 @@ class Multimeter(OutputDevice):
         return self.get_data()
 
     @property
+    def new_data(self):
+        """This method returns time series' data newly recorded by the multimeter.
+           Returns:
+            a xarray DataArray with the output data with dimensions ["Variable", "Neuron", "Time"]
+        """
+        return self.get_data(new=True)
+
+    @property
     def data_mean(self):
         """This method returns time series' data recorded by the multimeter, averaged across the neurons' dimension.
            Returns:
@@ -695,12 +739,31 @@ class Multimeter(OutputDevice):
         return self.get_mean_data()
 
     @property
-    def data_total(self):
-        """This method returns time series' data recorded by the multimeter, summed across the neurons' dimension.
+    def new_data_total(self):
+        """This method returns time series' data newly recorded by the multimeter,
+           summed across the neurons' dimension.
            Returns:
             a xarray DataArray with the output data with dimensions ["Variable", "Time"]
         """
-        return self.get_mean_data()
+        return self.get_mean_data(new=True)
+
+    @property
+    def new_data_mean(self):
+        """This method returns time series' data newly recorded by the multimeter,
+           averaged across the neurons' dimension.
+           Returns:
+            a xarray DataArray with the output data with dimensions ["Variable", "Time"]
+        """
+        return self.get_mean_data(new=True)
+
+    @property
+    def new_data_total(self):
+        """This method returns time series' data newly recorded by the multimeter,
+            summed across the neurons' dimension.
+           Returns:
+            a xarray DataArray with the output data with dimensions ["Variable", "Time"]
+        """
+        return self.get_mean_data(new=True)
 
     def current_data(self, variables=None, name=None, dims_names=["Variable", "Neuron"], flatten_neurons_inds=True):
         """This method returns the last time point of the data recorded by the multimeter.
@@ -778,46 +841,33 @@ class Voltmeter(Multimeter):
         """A method to return the string of the voltage variable's label, e.g, "V_m" for membrane potential in NEST"""
         pass
 
-    def get_data(self, name=None, dims_names=["Time", "Variable", "Neuron"]):
+    def get_data(self, name=None, dims_names=["Time", "Variable", "Neuron"], new=False):
         """This method returns time series' data of the membrane potential recorded by the voltmeter.
            Arguments:
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable", "Neuron"]
+            new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
            Returns:
             a xarray DataArray with the output data
         """
-        return super(Voltmeter, self).get_data(self.var, name, dims_names)
+        return super(Voltmeter, self).get_data(self.var, name, dims_names, new=new)
 
-    def get_mean_data(self, name=None, dims_names=["Time", "Variable"]):
+    def get_mean_data(self, name=None, dims_names=["Time", "Variable"], new=False):
         """This method returns time series' data of the membrane potential recorded by the voltmeter,
            averaged across neurons.
            Arguments:
             name: label of output. Default = None
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable"]
+            new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
            Returns:
             a xarray DataArray with the output data
         """
         data = self.get_data()
         return data.mean(dim="Neuron")
-
-    @property
-    def data(self):
-        """This method returns time series' data of the membrane potential recorded by the voltmeter.
-           Returns:
-            a xarray DataArray with the output data and dimensions ["Variable", "Neuron", "Time"]
-        """
-        return self.get_data()
-
-    @property
-    def data_mean(self):
-        """This method returns time series' data of the membrane potential recorded by the voltmeter,
-           averaged across neurons.
-           Returns:
-            a xarray DataArray with the output data and dimensions ["Variable", "Neuron", "Time"]
-        """
-        return self.get_mean_data()
 
     def current_data(self, name=None, dims_names=["Variable", "Neuron"]):
         """This method returns the last time point of the membrane's voltage data recorded by the voltmeter.
