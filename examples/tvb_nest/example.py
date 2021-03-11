@@ -13,8 +13,11 @@ from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator, NES
 from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
 from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb_multiscale.core.plot.plotter import Plotter
-from examples.plot_write_results import plot_write_results
+
 from tvb.datatypes.connectivity import Connectivity
+# from tvb.simulator.models.wilson_cowan import WilsonCowan
+
+from examples.plot_write_results import plot_write_results
 
 
 def results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb, config=None):
@@ -104,15 +107,14 @@ def main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
     if plot_write:
         print("\n\nPlotting and/or writing results to files...")
         tic = time.time()
-        try:
-            plot_write_results(results, simulator, orchestrator.spiking_network,
-                               populations=list(populations_sizes.keys()),
-                               populations_sizes=list(populations_sizes.values()),
+        # try:
+        plot_write_results(results, simulator,
+                               orchestrator.spiking_network, orchestrator.spiking_proxy_inds,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
                                plot_per_neuron=True, plotter=plotter, config=config)
-        except Exception as e:
-            print("Error in plotting or writing to files!:\n%s" % str(e))
+        # except Exception as e:
+        #     print("Error in plotting or writing to files!:\n%s" % str(e))
         print("\nFinished in %f secs!\n" % (time.time() - tic))
 
     orchestrator.clean_up()
@@ -163,14 +165,17 @@ if __name__ == "__main__":
             "Q": np.array([0.0])
         }
         tvb_to_nest_interfaces = [{"model": "RATE", "voi": "E", "populations": "E",
-                                   "proxy_params": {"number_of_neurons": 100}}]
-        nest_to_tvb_interfaces = [{"voi": "Ein", "populations": "E"},
-                                  {"voi": "Iin", "populations": "I"}]
+                                   "proxy_params": {"number_of_neurons": 100},
+                                   "transformer_params": {"scale_factor": np.array([1000.0])}}]
+        nest_to_tvb_interfaces = [{"voi": "E", "populations": "E",
+                                   "transformer_params": {"scale_factor": np.array([0.001])/100}},
+                                  {"voi": "I", "populations": "I",
+                                   "transformer_params": {"scale_factor": np.array([0.001])/100}}]
 
     main_example(tvb_sim_model, WilsonCowanBuilder, nest_nodes_inds,
                  model_params=model_params, nest_populations_order=100,
                  tvb_to_nest_interfaces=tvb_to_nest_interfaces, nest_to_tvb_interfaces=nest_to_tvb_interfaces,
                  exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=10.0,
+                 simulation_length=1100.0, transient=0.0,
                  config=None)
