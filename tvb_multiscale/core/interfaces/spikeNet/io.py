@@ -83,11 +83,11 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
 
     @property
     @abstractmethod
-    def events(self):
+    def data(self):
         pass
 
     def receive(self):
-        return self.events
+        return self.data
 
     @abstractmethod
     def reset(self):
