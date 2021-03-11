@@ -104,7 +104,7 @@ class SpikingBrain(Series, HasTraits):
 
     def get_populations_sizes(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None):
         pops_per_region = self.get_number_of_neurons_per_region(reg_inds_or_lbls, pop_inds_or_lbls, fill_value=np.nan)
-        populations = list(pops_per_region.coords["Population"])
+        populations = pops_per_region.coords["Population"]
         populations_sizes = OrderedDict()
         for pop in populations.values.tolist():
             populations_sizes[pop] = np.nanmean(pops_per_region.loc[:, pop].values.squeeze()).item()
