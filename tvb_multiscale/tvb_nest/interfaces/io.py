@@ -5,9 +5,7 @@ from enum import Enum
 
 import numpy as np
 from pandas import Series
-from xarray import DataArray
 
-from tvb.basic.neotraits.api import List
 from tvb.contrib.scripts.utils.data_structures_utils import \
     data_xarray_from_continuous_events, concatenate_heterogeneous_DataArrays
 
@@ -141,40 +139,25 @@ class NESTOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     _spikeNet_output_device_type = NESTOutputDevice
 
-    number_of_events = List(of=int,
-                            default=(),
-                            label="Number of events",
-                            doc="""List of number of events (integers) 
-                                   already read per device of the NESTOutputDeviceSet. 
-                                   It functions as an index for reading only newly recorded events.""")
-
     def device_variables(self, *args):
         return ["times", "senders"]
 
     def reset(self):
-        # TODO: find how to reset NEST recorders!
-        self.number_of_events = list(self.number_of_events)
-        for i_node, node in enumerate(zip(self.source.devices())):
-            if len(self.number_of_events) <= i_node:
-                self.number_of_events.append(0)
-            else:
-                self.number_of_events[i_node] = self.source[node].number_of_events
+       pass
 
     def configure(self):
         super(NESTOutputDeviceSet, self).configure()
         self.reset()
 
     @property
-    def events(self):
-        events = [dict(zip(["times", "senders"], [[]] * 2))] * self.source.size
-        for i_node, (node, variables, n_events) in \
-                enumerate(zip(self.source.devices(), self.variables, self.number_of_events)):
-            number_of_events = self.source[node].number_of_events
-            if number_of_events > n_events:
-                for var, val in self.source[node].get("events"):
-                    events[i_node][var] = val[number_of_events:]
-            self.number_of_events[i_node] = number_of_events
-        return events
+    def data(self):
+        data = []
+        # We need to get only the newly recorded events since last time:
+        for i_node, node in enumerate(self.source.devices()):
+            data.append({})
+            for var, val in self.source[node].get_new_events(self.variables).items():
+                data[i_node][var] = val
+        return [[], data]
 
 
 class NESTSpikeRecorderSet(NESTOutputDeviceSet):
@@ -192,15 +175,42 @@ class NESTSpikeRecorderSet(NESTOutputDeviceSet):
     _spikeNet_output_device_type = NESTSpikeRecorder
 
     @property
-    def events(self):
-        times = []
-        senders = []
-        for node_events in super(NESTSpikeRecorderSet, self).events:
-            times.append(node_events.get("times", []))
-            senders.append(node_events.get("senders", []))
-        # data[0] will be spike times, a list of spike times per proxy node
-        # data[1] will be spike senders, a list of spike sender neurons per proxy node
-        return [np.array(times), np.array(senders)]
+    def data(self):
+        spike_data = []
+        for node in self.source.devices():
+            spike_data.append([])
+            spike_data[-1] = self.source[node].get_spikes_times_by_neurons(full_senders=True, new=True)
+        return [[], spike_data]
+
+
+class NESTSpikeRecorderMeanSet(NESTSpikeRecorderSet):
+
+    """
+        NESTSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        from a DeviceSet of NESTSpikeRecorder instances in memory.
+        It comprises of:
+            - a source attribute, i.e., the DeviceSet of NESTSpikeRecorder instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
+    """
+
+    @property
+    def data(self):
+        spike_data = []
+        for node in self.source.devices():
+            spike_data.append([])
+            spike_data[-1] = self.source[node].new_spikes_times
+        return [[], spike_data]
+
+
+class NESTSpikeRecorderTotalSet(NESTSpikeRecorderMeanSet):
+
+    """
+        NESTSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        from a DeviceSet of NESTSpikeRecorder instances in memory.
+        It comprises of:
+            - a source attribute, i.e., the DeviceSet of NESTSpikeRecorder instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
+    """
 
 
 class NESTMultimeterSet(NESTOutputDeviceSet):
@@ -221,34 +231,85 @@ class NESTMultimeterSet(NESTOutputDeviceSet):
         return super(NESTMultimeterSet, self).device_variables() + list(device.record_from)
 
     @property
-    def events(self):
-        events = Series()
-        for i_node, (label, variables, node_events) in \
-                enumerate(zip(self.labels, self.variables, super(NESTMultimeterSet, self).events)):
-            times = node_events.pop("times", [])
-            senders = node_events.pop("senders", [])
-            if len(times) + len(senders):
-                events[label] = \
-                    data_xarray_from_continuous_events(node_events, times, senders,
-                                                       variables=variables, name=label,
-                                                       dims_names=["Time", "Variable", "Neuron"]).mean(dim="Neuron")
-            else:
-                events[label] = DataArray(np.empty((len(times), len(variables))),
-                                          name=label, dims=["Time", "Variable"],
-                                          coords={"Time": times, "Variable": vars})
-        events = concatenate_heterogeneous_DataArrays(events, "Proxy",
-                                                      data_keys=None, name=self.source.name,
-                                                      fill_value=np.nan, transpose_dims=None)
-        time = events.coords["Time"].values
+    def data(self):
+        data = Series()
+        for node in self.source.devices():
+            data[node.label] = self.source[node].get_new_data(flatten_neurons_inds=True)
+        data = concatenate_heterogeneous_DataArrays(data, "Proxy",
+                                                    data_keys=None, name=self.source.name,
+                                                    fill_value=np.nan, transpose_dims=None)
+        time = data.coords["Time"].values
         # data[0] will be start and end times
         # data[1] will be values array in (time x variables x proxies) shape
-        return [np.array([time[0], time[-1]]), events.values]
+        return [np.array([time[0], time[-1]]), data.values]
+
+
+class NESTMultimeterMeanSet(NESTMultimeterSet):
+    """
+            NESTMultimeterMeanSet class to read population mean events' data (times and variable values)
+            from a DeviceSet of NESTMultimeter instances in memory.
+            It comprises of:
+                - a source attribute, i.e., the DeviceSet of NESTMultimeter instances to get (i.e., copy) data from,
+                - an abstract method to get data from the source.
+        """
+
+    @property
+    def data(self):
+        data = super(NESTMultimeterMeanSet, self).data
+        data[1] = data[1].mean(dim="Neuron")
+        return data
+
+
+class NESTMultimeterTotalSet(NESTMultimeterSet):
+    """
+            NESTMultimeterTotalSet class to read population total (summed across neurons) events' data
+            (times and variable values) from a DeviceSet of NESTMultimeter instances in memory.
+            It comprises of:
+                - a source attribute, i.e., the DeviceSet of NESTMultimeter instances to get (i.e., copy) data from,
+                - an abstract method to get data from the source.
+        """
+
+    @property
+    def data(self):
+        data = super(NESTMultimeterTotalSet, self).data
+        data[1] = data[1].sum(dim="Neuron")
+        return data
 
 
 class NESTVoltmeterSet(NESTMultimeterSet):
 
     """
-        NESTVoltmeterSet class to read events' data (times, senders and variable values)
+        NESTVoltmeterSet class to read events' data (times, senders, and variable values)
+         from a DeviceSet of NESTVoltmeter instances in memory.
+        It comprises of:
+            - a source attribute, i.e., the DeviceSet of NESTVoltmeter instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
+    """
+
+    model = "voltmeter"
+
+    _spikeNet_output_device_type = NESTVoltmeter
+
+
+class NESTVoltmeterMeanSet(NESTMultimeterMeanSet):
+
+    """
+        NESTVoltmeterMeanSet class to read events' mean data (times and variable values)
+         from a DeviceSet of NESTVoltmeter instances in memory.
+        It comprises of:
+            - a source attribute, i.e., the DeviceSet of NESTVoltmeter instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
+    """
+
+    model = "voltmeter"
+
+    _spikeNet_output_device_type = NESTVoltmeter
+
+
+class NESTVoltmeterTotalSet(NESTMultimeterTotalSet):
+
+    """
+        NESTVoltmeterTotalSet class to read events' total (summed) data (times, and variable values)
          from a DeviceSet of NESTVoltmeter instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of NESTVoltmeter instances to get (i.e., copy) data from,
@@ -262,8 +323,14 @@ class NESTVoltmeterSet(NESTMultimeterSet):
 
 class NESTOutputDeviceGetters(Enum):
     SPIKE_RECORDER = NESTSpikeRecorderSet
+    SPIKE_RECORDER_MEAN = NESTSpikeRecorderMeanSet
+    SPIKE_RECORDER_TOTAL = NESTSpikeRecorderTotalSet
     MULTIMETER = NESTMultimeterSet
+    MULTIMETER_MEAN = NESTMultimeterMeanSet
+    MULTIMETER_TOTAL = NESTMultimeterTotalSet
     VOLTMETER = NESTVoltmeterSet
+    VOLTMETER_MEAN = NESTVoltmeterMeanSet
+    VOLTMETER_TOTAL = NESTVoltmeterTotalSet
 
 
 class NESTInputDeviceSetters(Enum):
