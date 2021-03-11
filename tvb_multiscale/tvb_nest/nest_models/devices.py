@@ -15,7 +15,7 @@ from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_heade
 
 from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
-from tvb.basic.neotraits.api import HasTraits, Attr, List
+from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
@@ -540,6 +540,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     """NESTOutputDevice class to wrap around a NEST output (recording) device"""
 
+    _output_events_counter = Int(field_type=int, default=0, required=True, label="Number of output events",
+                                 doc="""The number of recorded events that 
+                                          have been given to the output via a get_events() call.""")
+
     def __init__(self, device, nest_instance, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "nest_output_device")
         super(NESTOutputDevice, self).__init__(device, nest_instance, *args, **kwargs)
@@ -574,6 +578,15 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     def _get_events_from_memory(self):
         return self.device.get("events")
 
+    def get_events(self, **kwargs):
+        events = super(NESTOutputDevice, self).get_events(**kwargs)
+        # Advance the _output_events_counter
+        self._output_events_counter = self.device.get("n_events")
+        return events
+
+    def get_new_events(self, variables=None, **filter_kwargs):
+        return self.get_events(variables=variables, events_inds=self._output_events_counter, **filter_kwargs)
+
     @property
     def events(self):
         return self._get_events()
@@ -581,6 +594,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def number_of_events(self):
         return self.device.get("n_events")
+
+    @property
+    def number_of_new_events(self):
+        return self.device.get("n_events") - self._output_events_counter
 
     @property
     def n_events(self):
@@ -642,7 +659,8 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
     def record_from(self):
         return [str(name) for name in self.device.get('record_from')]
 
-    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
+                 flatten_neurons_inds=True, new=False):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -650,20 +668,28 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
             name: label of output. Default = None, which defaults to the label of the Device
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable", "Neuron"]
-           Returns:
+            flatten_neurons_inds: if true, neurons coordinates are arranged from 1 to number of neurons,
+                                  instead for neurons_inds
+            new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
+          Returns:
             a xarray DataArray with the output data
         """
         if name is None:
             name = self.label
-        events = self.events
+        if new:
+            events = self.get_new_events()
+        else:
+            events = self.events
         times = events.pop("times")
         senders = events.pop("senders")
         if len(times) + len(senders):
+            permuted_dims_names = [dims_names[1], dims_names[2], dims_names[0]]
             # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
             # Therefore, we have to re-arrange the output to get all variables separated following time order.
             data = data_xarray_from_continuous_events(events, times, senders,
                                                       variables=self._determine_variables(variables),
-                                                      name=name, dims_names=dims_names)
+                                                      name=name, dims_names=permuted_dims_names).transpose(*dims_names)
             if flatten_neurons_inds:
                 data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
         else:
