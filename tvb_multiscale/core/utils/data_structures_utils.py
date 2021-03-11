@@ -205,3 +205,4 @@ def combine_enums(enum_name, *args):
         for name, member in enm.__members__.items():
             d[name] = member.value
     return Enum(enum_name, d)
+
