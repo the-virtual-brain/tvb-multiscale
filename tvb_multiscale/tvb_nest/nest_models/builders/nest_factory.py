@@ -197,11 +197,11 @@ def device_to_dev_model(device):
         return device
 
 
-def create_device(device_model, params=None, config=CONFIGURED, nest_instance=None, **kwargs):
+def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None, **kwargs):
     """Method to create a NESTDevice.
        Arguments:
         device_model: name (string) of the device model
-        params: dictionary of parameters of device and/or its synapse. Default = None
+        params: dictionary of parameters of device and/or its synapse. Default = {}
         config: configuration class instance. Default: imported default CONFIGURED object.
         nest_instance: the NEST instance.
                        Default = None, in which case we are going to load one, and also return it in the output
@@ -222,6 +222,9 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
     if device_model in NESTInputDeviceDict.keys() or nest_device_model in NESTInputDeviceDict.keys():
         input_device = True
         devices_dict = NESTInputDeviceDict
+        if device_model in NESTParrotSpikeInputDeviceDict.keys():
+            record_parrot = params.pop("record", None)
+            parrot = nest_instance.Create("parrot_neuron", int(params.pop("number_of_neurons", 1)))
         if device_model in NESTParrotSpikeInputDeviceDict.keys() or device_model == "spike_generator":
             number_of_devices = int(params.pop("number_of_neurons", number_of_devices))
             if device_model in NESTParrotSpikeInputDeviceDict.keys():
@@ -241,7 +244,7 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
                           (device_model, str(config.NEST_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NEST_OUTPUT_DEVICES_PARAMS_DEF)))
     default_params["label"] = label
-    if isinstance(params, dict) and len(params) > 0:
+    if len(params) > 0:
         default_params.update(params)
     if input_device:
         label = default_params.pop("label", label)
@@ -262,6 +265,12 @@ def create_device(device_model, params=None, config=CONFIGURED, nest_instance=No
                                         "delay": nest_instance.GetKernelStatus("resolution"),
                                         "receptor_type": 0},
                               conn_spec={"rule": parrot_connect_method})
+        if record_parrot is not None:
+            rec_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get("spike_recorder", {})
+            if isinstance(record_parrot, dict):
+                rec_params.update(record_parrot)
+            nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
+            nest_instance.Connect(nest_device._population, nest_device._record)
     else:
         nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, **default_params)
     if return_nest:
