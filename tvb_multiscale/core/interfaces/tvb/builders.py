@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-
+from enum import Enum
 from logging import Logger
 from abc import ABCMeta, ABC
-from enum import Enum
 
 import numpy as np
 
@@ -20,7 +19,6 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.spikeNet.builders import DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
@@ -356,3 +354,13 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
         self._get_spikeNet_output_interface_arguments(
             TVBInterfaceBuilder._get_input_interface_arguments(self, interface))
         return interface
+
+
+class DefaultTVBtoSpikeNetModels(Enum):
+    RATE = "RATE_TO_SPIKES"
+    SPIKES = "SPIKES"
+    CURRENT = "CURRENT"
+
+
+class DefaultSpikeNetToTVBModels(Enum):
+    SPIKES = "SPIKES_MEAN"
