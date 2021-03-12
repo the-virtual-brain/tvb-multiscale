@@ -129,6 +129,21 @@ class Scale(Transformer):
                 self.output_buffer.append(scale_factor * input_buffer)
 
 
+class ScaleRate(Scale):
+
+    """ScaleRate class that just scales mean field rates to spiking rates,
+       including any unit conversions and conversions from mean field to total rates"""
+
+    pass
+
+
+class ScaleCurrent(Scale):
+    """ScaleCurrent class that just scales mean field currents to spiking network ScaleCurrent,
+       including any unit conversions and conversions from mean field to total rates"""
+
+    pass
+
+
 class DotProduct(Transformer):
     """
         DotProduct Transformer computes the dot product of the input with a scale factor
@@ -139,6 +154,20 @@ class DotProduct(Transformer):
             - a dot factor numpy.array,
             - a method to perform the left dot product upon the input buffer for the output buffer data to result.
     """
+
+    input_buffer = NArray(
+        label="Input buffer",
+        doc="""Array to store temporarily the data to be transformed.""",
+        required=True,
+        default=np.array([])
+    )
+
+    output_buffer = NArray(
+        label="Output buffer",
+        doc="""Array to store temporarily the transformed data.""",
+        required=True,
+        default=np.array([])
+    )
 
     dot_factor = NArray(
         label="Dot factor",
@@ -174,7 +203,21 @@ class RatesToSpikes(Scale):
         RatesToSpikes Transformer abstract base class
     """
 
+    input_buffer = NArray(
+        label="Input buffer",
+        doc="""Array to store temporarily the data to be transformed.""",
+        required=True,
+        default=np.array([])
+    )
+
+    output_buffer = List(
+        of=list,
+        doc="""List of spiketrains (lists) storing temporarily the generated spikes.""",
+        default=(())
+    )
+
     number_of_neurons = NArray(
+        dtype="i",
         label="Number of neurons",
         doc="""Number of neuronal spiketrains to generate for each proxy node.""",
         required=True,
@@ -200,7 +243,7 @@ class RatesToSpikes(Scale):
            for the output buffer data of spike trains to result."""
         self._assert_parameters_sizes()
         self.output_buffer = []
-        for iP, scale_factor, proxy_buffer in enumerate(zip(self.scale_factor, self.input_buffer)):
+        for iP, (scale_factor, proxy_buffer) in enumerate(zip(self.scale_factor, self.input_buffer)):
             self.output_buffer.append(self._compute(scale_factor*proxy_buffer, iP, *args, **kwargs))
 
 
@@ -275,14 +318,17 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         spiketrains = []
         if len(rates) > 1:
             this_rates = self._rates_analog_signal(rates)
-            for _ in range(number_of_spiketrains):
+            for iS in range(number_of_spiketrains):
                 spiketrains.append(
-                    self._spike_gen_fun_inh(this_rates, as_array=True, refractory_period=self.refractory_period))
+                    self._spike_gen_fun_inh(
+                        this_rates, as_array=True, refractory_period=self.refractory_period).tolist())
         else:
             this_rates = rates * self.rate_unit
-            for _ in range(number_of_spiketrains):
-                spiketrains.append(self._spike_gen_fun_inh(this_rates, t_start=self._t_start, t_stop=self._t_stop,
-                                                           as_array=True, refractory_period=self.refractory_period))
+            for iS in range(number_of_spiketrains):
+                spiketrains.append(
+                    self._spike_gen_fun_inh(this_rates,
+                                            t_start=self._t_start, t_stop=self._t_stop,
+                                            as_array=True, refractory_period=self.refractory_period).tolist())
         return spiketrains
 
     def _compute(self, rates, proxy_count):
@@ -332,7 +378,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
     def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
         rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
         return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
-                                                                            rates * correlation_factor, 1)[0], \
+                                                                            rates * correlation_factor, 1), \
                rates
 
     @abstractmethod
@@ -347,7 +393,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         correlation_factor = self.correlation_factor[proxy_count]
         shared_spiketrain, rates = self._compute_shared_spiketrain(rates, n_spiketrains, correlation_factor)
         if correlation_factor == 1.0:
-            return np.array(shared_spiketrain.tolist() * n_spiketrains)
+            return shared_spiketrain * n_spiketrains
         else:
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
 
@@ -371,7 +417,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
             super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
                                                                         rates * (1 - correlation_factor), n_spiketrains)
         for iSP, spiketrain in enumerate(spiketrains):
-            spiketrains[iSP] = np.around(np.sort(np.concatenate([spiketrain, shared_spiketrain]), decimals=1))
+            spiketrains[iSP] = np.sort(np.concatenate([spiketrain, shared_spiketrain])).tolist()
         return spiketrains
 
 
@@ -393,7 +439,7 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         select = np.random.binomial(n=1, p=correlation_factor, size=(n_spiketrains, shared_spiketrain.shape[0]))
         spiketrains = []
         for spiketrain_mask in np.repeat([shared_spiketrain], n_spiketrains, axis=0)*select:
-            spiketrains.append(spiketrain_mask[np.where(spiketrain_mask != 0)])
+            spiketrains.append(spiketrain_mask[np.where(spiketrain_mask != 0)].tolist())
         return spiketrains
 
 
@@ -403,6 +449,19 @@ class SpikesToRates(Scale):
     """
         RateToSpikes Transformer abstract base class
     """
+
+    input_buffer = List(
+        of=list,
+        doc="""List of spiketrains (lists) storing temporarily the spikes to be transformed into rates.""",
+        default=(())
+    )
+
+    output_buffer = NArray(
+        label="Output buffer",
+        doc="""Array to store temporarily the output rate data.""",
+        required=True,
+        default=np.array([])
+    )
 
     @abstractmethod
     def _compute(self, spikes, *args, **kwargs):
@@ -577,3 +636,23 @@ class SpikesToRatesTransformers(Enum):
 
 
 Transformers = combine_enums("Transformers", BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers)
+
+
+TVBRatesToSpikesTransformers = RatesToSpikesTransformers
+
+
+class TVBOutputScaleTransformers(Enum):
+    RATE = ScaleRate
+    CURRENT = ScaleCurrent
+
+
+TVBOutputTransformers = combine_enums("TVBOutputTransformers", TVBRatesToSpikesTransformers, TVBOutputScaleTransformers)
+
+
+class TVBSpikesToRatesTransformers(Enum):
+    ELEPHANT_HISTOGRAM = SpikesToRatesElephantHistogram
+    ELEPHANT_RATE = SpikesToRatesElephantRate
+
+
+TVBInputTransformers = TVBSpikesToRatesTransformers
+TVBTransformers = combine_enums("TVBTransformers", TVBOutputTransformers, TVBInputTransformers)

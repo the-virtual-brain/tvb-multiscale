@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from enum import Enum
+
 from logging import Logger
 from abc import ABCMeta, ABC
 
@@ -10,15 +10,16 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
-from tvb_multiscale.core.interfaces.tvb.transformers.builders import \
-    TVBOutputTransformerBuilder, TVBInputTransformerBuilder
+from tvb_multiscale.core.interfaces.base.transformers.builders import \
+    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBOutputInterfaces, TVBInputInterfaces, TVBOutputInterface, TVBInputInterface, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
-from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces, \
+    TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
@@ -236,7 +237,8 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
         return interface
 
 
-class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransformerBuilder, TVBInputTransformerBuilder):
+class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder,
+                                    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
 
     """TVBTransfomerInterfaceBuilder class"""
 
@@ -245,8 +247,8 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransfor
 
     def configure(self):
         super(TVBTransfomerInterfaceBuilder, self).configure()
-        TVBOutputTransformerBuilder.configure_and_build_transformer(self)
-        TVBInputTransformerBuilder.configure_and_build_transformer(self)
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
 
     def _get_output_interface_arguments(self, interface):
         interface = super(TVBTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
@@ -257,7 +259,7 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransfor
         return interface
 
 
-class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputTransformerBuilder):
+class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
 
     """TVBOutputTransformerInterfaceBuilder class"""
 
@@ -273,7 +275,7 @@ class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBOutputT
         return interface
 
 
-class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBInputTransformerBuilder):
+class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToTVBTransformerBuilder):
 
     """TVBInputTransformerInterfaceBuilder class"""
 
@@ -290,7 +292,7 @@ class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBInputTra
 
 
 class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder,
-                                  TVBOutputTransformerBuilder, TVBInputTransformerBuilder, ABC):
+                                  TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, ABC):
     __metaclass__ = ABCMeta
 
     """TVBSpikeNetInterfaceBuilder abstract base class"""
@@ -325,11 +327,11 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
                                      self._default_tvb_to_nest_models, self._output_proxy_models)
         self._configure_proxy_models(self.input_interfaces, self._spikeNet_to_tvb_models,
                                      self._default_nest_to_tvb_models, self._input_proxy_models)
-        # From TVBInterfaceBuilder to SpikeNetProxyNodesBuilder
-        # and TVBOutputTransformerBuilder, TVBInputTransformerBuilder:
+        # From TVBInterfaceBuilder to
+        # SpikeNetProxyNodesBuilder, TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder:
         self.dt = self.tvb_dt
-        TVBOutputTransformerBuilder.configure_and_build_transformer(self)
-        TVBInputTransformerBuilder.configure_and_build_transformer(self)
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
 
     def _get_spikeNet_interface_arguments(self, interface):
         interface.update({"spiking_network": self.spiking_network, "populations": np.array(interface["populations"])})
@@ -354,13 +356,3 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
         self._get_spikeNet_output_interface_arguments(
             TVBInterfaceBuilder._get_input_interface_arguments(self, interface))
         return interface
-
-
-class DefaultTVBtoSpikeNetModels(Enum):
-    RATE = "RATE_TO_SPIKES"
-    SPIKES = "SPIKES"
-    CURRENT = "CURRENT"
-
-
-class DefaultSpikeNetToTVBModels(Enum):
-    SPIKES = "SPIKES_MEAN"

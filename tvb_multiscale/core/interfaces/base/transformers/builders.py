@@ -9,11 +9,10 @@ from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Float, List
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.tvb.transformers.models import \
-    TVBtoSpikeNetRateTransformer, TVBtoSpikeNetCurrentTransformer, \
-    TVBSpikesToRatesElephantRate, TVBSpikesToRatesElephantHistogram, TVBRatesToSpikesElephantPoisson, \
-    TVBRatesToSpikesElephantPoissonMultipleInteraction, TVBRatesToSpikesElephantPoissonSingleInteraction
-from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
+from tvb_multiscale.core.interfaces.base.transformers.models import ScaleRate, ScaleCurrent, \
+    SpikesToRatesElephantRate, SpikesToRatesElephantHistogram, RatesToSpikesElephantPoisson, \
+    RatesToSpikesElephantPoissonMultipleInteraction, RatesToSpikesElephantPoissonSingleInteraction
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 
 
@@ -27,24 +26,24 @@ class DefaultSpikeNetToTVBModels(Enum):
     SPIKES = "SPIKES"  # "SPIKES_TO_RATE", "SPIKES_HIST"
 
 
-class DefaultTVBOutputTransformers(Enum):
-    RATE = TVBtoSpikeNetRateTransformer
-    SPIKES = TVBRatesToSpikesElephantPoisson
-    SPIKES_SINGLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
-    SPIKES_MULTIPLE_INTERACTION = TVBRatesToSpikesElephantPoissonSingleInteraction
-    CURRENT = TVBtoSpikeNetCurrentTransformer
+class DefaultTVBtoSpikeNetTransformers(Enum):
+    RATE = ScaleRate
+    SPIKES = RatesToSpikesElephantPoisson
+    SPIKES_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
+    SPIKES_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
+    CURRENT = ScaleCurrent
 
 
-class DefaultTVBInputTransformers(Enum):
-    SPIKES = TVBSpikesToRatesElephantRate
-    SPIKES_TO_RATE = TVBSpikesToRatesElephantRate
-    SPIKES_HIST = TVBSpikesToRatesElephantHistogram
+class DefaultSpikeNetToTVBTransformers(Enum):
+    SPIKES = SpikesToRatesElephantRate
+    SPIKES_TO_RATE = SpikesToRatesElephantRate
+    SPIKES_HIST = SpikesToRatesElephantHistogram
 
 
-class TVBTransformerBuilder(HasTraits):
+class TransformerBuilder(HasTraits):
     __metaclass__ = ABCMeta
 
-    """TVBTransformerBuilder abstract class"""
+    """TransformerBuilder abstract class"""
 
     config = Attr(
         label="Configuration",
@@ -66,12 +65,6 @@ class TVBTransformerBuilder(HasTraits):
                doc="Time step of simulation",
                required=True,
                default=0.1)
-
-    output_interfaces = List(of=dict, default=(), label="Output interfaces configurations",
-                             doc="List of dicts of configurations for the output interfaces to be built")
-
-    input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
-                            doc="List of dicts of configurations for the input interfaces to be built")
 
     @staticmethod
     def _configure_transformer_model(interface, interface_models, default_transformer_models, transformer_models):
@@ -104,27 +97,28 @@ class TVBTransformerBuilder(HasTraits):
             setattr(transformer, p, pval)
 
     @abstractmethod
-    def configure_and_build_transformer(self):
+    def configure_and_build_transformer(self, interfaces):
         pass
 
 
-class TVBOutputTransformerBuilder(TVBTransformerBuilder):
+class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
 
-    """TVBOutputTransformerBuilder abstract class"""
+    """TVBtoSpikeNetTransformerBuilder abstract class"""
 
     _tvb_to_spikeNet_models = TVBtoSpikeNetModels
     _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
-    _output_transformer_models = DefaultTVBOutputTransformers
+    _tvb_to_spikeNet_transformer_models = DefaultTVBtoSpikeNetTransformers
 
-    def configure_and_build_transformer(self):
-        for interface in self.output_interfaces:
+    def configure_and_build_transformer(self, interfaces):
+        for interface in interfaces:
             self._configure_transformer_model(interface, self._tvb_to_spikeNet_models,
-                                              self._default_tvb_to_spikeNet_models, self._output_transformer_models)
+                                              self._default_tvb_to_spikeNet_models,
+                                              self._tvb_to_spikeNet_transformer_models)
             params = interface.pop("transformer_params", {})
             params["dt"] = params.pop("dt", self.tvb_dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
-                if interface["transformer"] == DefaultTVBOutputTransformers.SPIKES:
+                if interface["transformer"] == DefaultTVBtoSpikeNetTransformers.SPIKES:
                     # If the transformer is "SPIKES", but there are parameters that concern correlations...
                     correlation_factor = params.pop("correlation_factor", None)
                     scale_factor = params.pop("scale_factor", 1.0)
@@ -132,14 +126,16 @@ class TVBOutputTransformerBuilder(TVBTransformerBuilder):
                         interaction = params.pop("interaction", "multiple")
                         if interaction == "multiple":
                             interface["transformer"] = \
-                                TVBRatesToSpikesElephantPoissonMultipleInteraction(
+                                DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value(
                                     scale_factor=scale_factor,
                                     correlation_factor=correlation_factor, **params)
                         else:
                             interface["transformer"] = \
-                                TVBRatesToSpikesElephantPoissonSingleInteraction(
+                                DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.value(
                                     scale_factor=scale_factor,
                                     correlation_factor=correlation_factor, **params)
+                    else:
+                        interface["transformer"] = interface["transformer"].value(**params)
                 else:
                     interface["transformer"] = interface["transformer"].value(**params)
             else:
@@ -147,19 +143,19 @@ class TVBOutputTransformerBuilder(TVBTransformerBuilder):
                 self.set_transformer_parameters(interface["transformer"], params)
 
 
-class TVBInputTransformerBuilder(TVBTransformerBuilder):
+class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
 
-    """TVBInputTransformerBuilder abstract class"""
+    """SpikeNetToTVBTransformerBuilder abstract class"""
 
     _spikeNet_to_tvb_models = SpikeNetToTVBModels
     _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBModels
-    _input_transformer_models = DefaultTVBInputTransformers
+    _spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBTransformers
 
-    def configure_and_build_transformer(self):
-        for interface in self.input_interfaces:
+    def configure_and_build_transformer(self, interfaces):
+        for interface in interfaces:
             self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
                                               self._default_spikeNet_to_tvb_transformer_models,
-                                              self._input_transformer_models)
+                                              self._spikeNet_to_tvb_transformer_models)
             params = interface.pop("transformer_params", {})
             params["dt"] = params.pop("dt", self.tvb_dt)
             if isinstance(interface["transformer"], Enum):

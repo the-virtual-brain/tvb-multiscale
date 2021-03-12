@@ -5,7 +5,7 @@ from tvb.basic.neotraits._attr import Attr, List
 
 from tvb_multiscale.core.config import LINE
 from tvb_multiscale.core.interfaces.base.io import Communicator, Sender, Receiver
-from tvb_multiscale.core.interfaces.base.transformers import Transformer
+from tvb_multiscale.core.interfaces.base.transformers.models import Transformer
 
 
 class BaseInterface(HasTraits):
@@ -209,7 +209,7 @@ class ReceiverTransformerInterface(CommunicatorTransformerInterface):
 
     communicator = Attr(
         label="Receiver Communicator",
-        field_type=Sender,
+        field_type=Receiver,
         doc="""A Receiver Communicator class instance to receive data from the cosimulator.""",
         required=True
     )
@@ -242,7 +242,7 @@ class RemoteTransformerInterface(BaseInterface):
 
     receiver = Attr(
         label="Receiver communicator",
-        field_type=Communicator,
+        field_type=Receiver,
         doc="""A Communicator class instance to receive data for the transformer.""",
         required=True
     )
@@ -256,7 +256,7 @@ class RemoteTransformerInterface(BaseInterface):
 
     sender = Attr(
         label="Communicator after transformation",
-        field_type=Communicator,
+        field_type=Sender,
         doc="""A Communicator class instance to send data to the cosimulator.""",
         required=True
     )

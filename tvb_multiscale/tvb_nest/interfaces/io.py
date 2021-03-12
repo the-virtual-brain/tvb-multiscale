@@ -29,6 +29,10 @@ class NESTInputDeviceSet(SpikeNetInputDeviceSet):
 
     _spikeNet_input_device_type = NESTInputDevice
 
+    @property
+    def spiking_time(self):
+        return self.target[0].nest_instance.GetKernelStatus("time")
+
     @abstractmethod
     def send(self, data):
         pass
@@ -85,7 +89,8 @@ class NESTSpikeGeneratorSet(NESTInputDeviceSet):
     _spikeNet_input_device_type = NESTSpikeGenerator
 
     def send(self, data):
-        self.target.set({"spikes_times": np.maximum([0.0], data[-1]).tolist()})
+        self.target.set({"spike_times": np.maximum([self.spiking_time + self.next_time_step],
+                                                    data[-1]).tolist()})
 
 
 class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):

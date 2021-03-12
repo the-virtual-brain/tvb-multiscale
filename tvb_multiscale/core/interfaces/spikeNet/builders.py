@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from six import string_types
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, ABC
 from enum import Enum
 
 import numpy as np
@@ -11,15 +11,17 @@ from tvb.basic.neotraits._core import HasTraits
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers import Transformers
+from tvb_multiscale.core.interfaces.base.transformers.models import Transformers
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
 
+from tvb_multiscale.core.interfaces.base.transformers.builders import \
+    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces, \
     SpikeNetOutputInterface, SpikeNetInputInterface, \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
-    TVBtoSpikeNetModels, SpikeNetToTVBModels
+    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 
@@ -395,7 +397,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder):
                self._spikeNet_intput_interfaces_type(interfaces=self._input_interfaces)
 
 
-class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder):
+class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
 
     """SpikeNetRemoteInterfaceBuilder abstract base class"""
@@ -422,7 +424,8 @@ class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder):
         return interface
 
 
-class SpikeNetTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
+class SpikeNetTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder,
+                                          TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, ABC):
     __metaclass__ = ABCMeta
 
     """SpikeNetTransformerInterfaceBuilder abstract base class"""
@@ -434,8 +437,8 @@ class SpikeNetTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
 
     def configure(self):
         super(SpikeNetTransformerInterfaceBuilder, self).configure()
-        self._assert_output_interfaces_component_config(self._transformer_types, "transformer")
-        self._assert_input_interfaces_component_config(self._transformer_types, "transformer")
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
 
     def _get_output_interface_arguments(self, interface):
         return super(SpikeNetTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface)
@@ -444,7 +447,7 @@ class SpikeNetTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
         return super(SpikeNetTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)
 
 
-class SpikeNetOutputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
+class SpikeNetOutputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, SpikeNetToTVBTransformerBuilder, ABC):
     __metaclass__ = ABCMeta
 
     """SpikeNetOutputTransformerInterfaceBuilder abstract base class"""
@@ -452,17 +455,15 @@ class SpikeNetOutputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
     _output_interface_type = SpikeNetTransformerSenderInterface
     _input_interface_type = SpikeNetReceiverInterface
 
-    _transformer_types = [val.value for val in Transformers.__members__.values()]
-
     def configure(self):
         super(SpikeNetOutputTransformerInterfaceBuilder, self).configure()
-        self._assert_output_interfaces_component_config(self._transformer_types, "transformer")
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
 
     def _get_output_interface_arguments(self, interface):
         return super(SpikeNetOutputTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface)
 
 
-class SpikeNetInputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
+class SpikeNetInputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder, ABC):
     __metaclass__ = ABCMeta
 
     """SpikeNetInputTransformerInterfaceBuilder abstract base class"""
@@ -470,11 +471,9 @@ class SpikeNetInputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder):
     _output_interface_type = SpikeNetSenderInterface
     _input_interface_type = SpikeNetReceiverTransformerInterface
 
-    _transformer_types = [val.value for val in Transformers.__members__.values()]
-
     def configure(self):
         super(SpikeNetInputTransformerInterfaceBuilder, self).configure()
-        self._assert_input_interfaces_component_config(self._transformer_types, "transformer")
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
 
     def _get_input_interface_arguments(self, interface):
         return super(SpikeNetInputTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)

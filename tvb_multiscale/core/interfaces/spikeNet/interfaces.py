@@ -11,10 +11,6 @@ from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, S
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
-TVBtoSpikeNetModels = ["RATE", "SPIKES", "CURRENT"]
-SpikeNetToTVBModels = ["SPIKES"]
-
-
 class SpikeNetInterface(HasTraits):
 
     """SpikeNetInterface abstract base class."""

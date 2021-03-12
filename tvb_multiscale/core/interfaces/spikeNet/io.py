@@ -33,8 +33,17 @@ class SpikeNetInputDeviceSet(SetToMemory):
 
     _spikeNet_input_device_type = InputDevice
 
+    @property
+    @abstractmethod
+    def spiking_time(self):
+        pass
+
+    @property
+    def next_time_step(self):
+        return self.spiking_time + self.dt
+
     def transform_time(self, time):
-        return self.dt * np.arange(time[0], time[-1] + 1)
+        return np.maximum(self.next_time_step, self.dt * np.arange(time[0], time[-1] + 1))
 
     def configure(self):
         super(SpikeNetInputDeviceSet, self).configure()

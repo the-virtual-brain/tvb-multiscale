@@ -11,7 +11,7 @@ from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
-from tvb_multiscale.core.interfaces.base.transformers import Transformer
+from tvb_multiscale.core.interfaces.base.transformers.models import Transformer
 
 
 class TVBInterface(HasTraits):
@@ -99,6 +99,11 @@ class TVBOutputInterface(TVBInterface):
     def print_str(self):
         super(TVBOutputInterface, self).print_str(self, sender_not_receiver=True)
 
+    def __call__(self, data):
+        # Assume a single voi and a single mode,
+        # and reshape from TVB (time, voi, proxy) to (proxy, time) reshaping
+        return data[:, 0, :].T
+
 
 class TVBInputInterface(TVBInterface):
 
@@ -125,7 +130,7 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
     """
 
     def __call__(self, data):
-        return self.send(data)
+        return self.send(TVBOutputInterface.__call__(self, data))
 
     def print_str(self):
         return SenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
@@ -150,7 +155,7 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterfa
     """
 
     def __call__(self, data):
-        return self.transform_send(data)
+        return self.transform_send(TVBOutputInterface.__call__(self, data))
 
     def print_str(self):
         return TransformerSenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
@@ -200,7 +205,7 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
 
     def __call__(self, data):
         self.transformer.input_time = data[0]
-        self.transformer.input_buffer = data[1]
+        self.transformer.input_buffer = TVBOutputInterface.__call__(self, data[1])
         self.transformer()
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
@@ -350,3 +355,7 @@ class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
     """SpikeNetToTVBInterfaces"""
 
     pass
+
+
+TVBtoSpikeNetModels = ["RATE", "SPIKES", "CURRENT"]
+SpikeNetToTVBModels = ["SPIKES"]

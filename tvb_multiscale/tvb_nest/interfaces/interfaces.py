@@ -8,12 +8,12 @@ from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
+    SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
-    TVBtoSpikeNetModels, SpikeNetToTVBModels
+    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTInputDeviceSet, NESTOutputDeviceSet

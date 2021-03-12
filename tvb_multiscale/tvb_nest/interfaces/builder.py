@@ -6,7 +6,7 @@ from enum import Enum
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
-from tvb_multiscale.core.interfaces.spikeNet.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,  \
     SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder

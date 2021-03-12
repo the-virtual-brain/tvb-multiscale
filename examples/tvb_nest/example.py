@@ -98,8 +98,6 @@ def main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
     orchestrator.simulate()
     print("\nSimulated in %f secs!\n" % (time.time() - tic))
 
-    populations_sizes = orchestrator.populations_sizes
-
     simulator = orchestrator.tvb_cosimulator
     results = orchestrator.tvb_app.results
 
@@ -164,7 +162,8 @@ if __name__ == "__main__":
             "P": np.array([0.5]),
             "Q": np.array([0.0])
         }
-        tvb_to_nest_interfaces = [{"model": "RATE", "voi": "E", "populations": "E",
+        tvb_to_nest_interfaces = [{"model": "SPIKES", "voi": "E", "populations": "E",
+                                   "transformer_params": {"number_of_neurons": np.array([100]).astype("i")},
                                    "proxy_params": {"number_of_neurons": 100},
                                    "transformer_params": {"scale_factor": np.array([1000.0])}}]
         nest_to_tvb_interfaces = [{"voi": "E", "populations": "E",
