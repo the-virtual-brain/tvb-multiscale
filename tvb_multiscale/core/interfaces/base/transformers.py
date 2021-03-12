@@ -174,9 +174,9 @@ class RatesToSpikes(Scale):
         RatesToSpikes Transformer abstract base class
     """
 
-    n_spiketrains = NArray(
-        label="Number of spiketrains",
-        doc="""Number of spiketrains to generate for each proxy node.""",
+    number_of_neurons = NArray(
+        label="Number of neurons",
+        doc="""Number of neuronal spiketrains to generate for each proxy node.""",
         required=True,
         default=np.array([1]).astype('i')
     )
@@ -184,11 +184,11 @@ class RatesToSpikes(Scale):
     def configure(self):
         super(RatesToSpikes, self).configure()
 
-    def _assert_n_spiketrains_size(self):
-        return self._assert_size("n_spiketrains")
+    def _assert_number_of_neurons_size(self):
+        return self._assert_size("number_of_neurons")
 
     def _assert_parameters_sizes(self):
-        self._assert_n_spiketrains_size()
+        self._assert_number_of_neurons_size()
 
     @abstractmethod
     def _compute(self, rates, proxy_count, *args, **kwargs):
@@ -271,16 +271,16 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
     def _spike_gen_fun_inh(*args, **kwargs):
         return ElephantFunctions.INHOMOGENEOUS_POISSON_PROCESS(*args, **kwargs)
 
-    def _compute_for_n_spiketrains(self, rates, n_spiketrains):
+    def _compute_for_n_spiketrains(self, rates, number_of_spiketrains):
         spiketrains = []
         if len(rates) > 1:
             this_rates = self._rates_analog_signal(rates)
-            for _ in range(n_spiketrains):
+            for _ in range(number_of_spiketrains):
                 spiketrains.append(
                     self._spike_gen_fun_inh(this_rates, as_array=True, refractory_period=self.refractory_period))
         else:
             this_rates = rates * self.rate_unit
-            for _ in range(n_spiketrains):
+            for _ in range(number_of_spiketrains):
                 spiketrains.append(self._spike_gen_fun_inh(this_rates, t_start=self._t_start, t_stop=self._t_stop,
                                                            as_array=True, refractory_period=self.refractory_period))
         return spiketrains
@@ -288,7 +288,7 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
     def _compute(self, rates, proxy_count):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (in)homogeneous_poisson_process functions."""
-        return self._compute_for_n_spiketrains(rates, self.n_spiketrains[proxy_count])
+        return self._compute_for_n_spiketrains(rates, self.number_of_neurons[proxy_count])
 
 
 class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
@@ -310,7 +310,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
     correlation_factor = NArray(
                             label="Correlation factor",
                             doc="Correlation factor per proxy, array of floats in the interval (0, 1], "
-                                "default = 1.0 / n_spiketrains.",
+                                "default = 1.0 / number_of_neurons.",
                             required=True,
                             default=np.array([]).astype('f')
                         )
@@ -319,13 +319,13 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         return self._assert_size("correlation_factor")
 
     def _assert_parameters_sizes(self):
-        self._assert_n_spiketrains_size()
+        self._assert_number_of_neurons_size()
         self._assert_correlation_factor_size()
 
     def configure(self):
         super(RatesToSpikesElephantPoissonInteraction, self).configure()
         if self.correlation_factor.size == 0:
-            self.correlation_factor = 1.0 / self.n_spiketrains
+            self.correlation_factor = 1.0 / self.number_of_neurons
         else:
             assert np.all(0.0 < self.correlation_factor <= 1.0)
 
@@ -343,7 +343,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         """Method for the computation of rates data transformation to interacting spike trains,
            using (in)homogeneous_poisson_process functions.
         """
-        n_spiketrains = self.n_spiketrains[proxy_count]
+        n_spiketrains = self.number_of_neurons[proxy_count]
         correlation_factor = self.correlation_factor[proxy_count]
         shared_spiketrain, rates = self._compute_shared_spiketrain(rates, n_spiketrains, correlation_factor)
         if correlation_factor == 1.0:
