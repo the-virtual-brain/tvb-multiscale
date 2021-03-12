@@ -101,7 +101,7 @@ class TVBOutputInterface(TVBInterface):
 
     def __call__(self, data):
         # Assume a single voi and a single mode,
-        # and reshape from TVB (time, voi, proxy) to (proxy, time) reshaping
+        # and reshape from TVB (time, voi, proxy) to (proxy, time)
         return data[:, 0, :].T
 
 
@@ -123,6 +123,11 @@ class TVBInputInterface(TVBInterface):
     def print_str(self):
         super(TVBInputInterface, self).print_str(self, sender_not_receiver=False)
 
+    def __call__(self, data):
+        # Assume a single voi and a single mode,
+        # and reshape from  (proxy, time) to TVB (time, voi, proxy)
+        return data.T[:, None, :]
+
 
 class TVBSenderInterface(SenderInterface, TVBOutputInterface):
 
@@ -134,18 +139,6 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
 
     def print_str(self):
         return SenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
-
-
-class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
-
-    """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
-    """
-
-    def __call__(self):
-        return self.receive()
-
-    def print_str(self):
-        return ReceiverInterface.print_str(self) + TVBInputInterface.print_str(self)
 
 
 class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterface):
@@ -161,6 +154,18 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterfa
         return TransformerSenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
 
 
+class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
+
+    """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
+    """
+
+    def __call__(self):
+        return TVBInputInterface.__call__(self, self.receive())
+
+    def print_str(self):
+        return ReceiverInterface.print_str(self) + TVBInputInterface.print_str(self)
+
+
 class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInterface):
 
     """TVBReceiverTransformerInterface class receive data from a -potentially remote- cosimulator,
@@ -168,7 +173,7 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
     """
 
     def __call__(self):
-        return self.receive_transform()
+        return TVBInputInterface.__call__(self, self.receive_transform())
 
     def print_str(self):
         return ReceiverTransformerInterface.print_str(self) + \
@@ -244,7 +249,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
-        return [self.transformer.output_time, self.transformer.output_buffer]
+        return [self.transformer.output_time, TVBInputInterface.__call__(self, self.transformer.output_buffer)]
 
 
 class TVBInterfaces(HasTraits):
