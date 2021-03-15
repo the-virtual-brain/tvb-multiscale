@@ -89,8 +89,9 @@ class NESTSpikeGeneratorSet(NESTInputDeviceSet):
     _spikeNet_input_device_type = NESTSpikeGenerator
 
     def send(self, data):
-        self.target.set({"spike_times": np.maximum([self.spiking_time + self.next_time_step],
-                                                    data[-1]).tolist()})
+        # TODO: Decide whether to check for the values being in the future...:
+        # data[-1] >= self.next_time_step
+        self.target.set({"spike_times": data[-1]})
 
 
 class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
