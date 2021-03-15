@@ -124,18 +124,19 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
                     scale_factor = params.pop("scale_factor", 1.0)
                     if correlation_factor:
                         interaction = params.pop("interaction", "multiple")
-                        if interaction == "multiple":
-                            interface["transformer"] = \
-                                DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value(
-                                    scale_factor=scale_factor,
-                                    correlation_factor=correlation_factor, **params)
-                        else:
+                        if interaction == "single":
                             interface["transformer"] = \
                                 DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.value(
                                     scale_factor=scale_factor,
                                     correlation_factor=correlation_factor, **params)
+                        else:
+                            interface["transformer"] = \
+                                DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value(
+                                    scale_factor=scale_factor,
+                                    correlation_factor=correlation_factor, **params)
                     else:
-                        interface["transformer"] = interface["transformer"].value(**params)
+                        interface["transformer"] = interface["transformer"].value(scale_factor=scale_factor,
+                                                                                  **params)
                 else:
                     interface["transformer"] = interface["transformer"].value(**params)
             else:

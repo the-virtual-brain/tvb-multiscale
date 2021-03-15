@@ -115,9 +115,13 @@ class Scale(Transformer):
         default=np.array([1.0])
     )
 
+    @property
+    def _scale_factor(self):
+        return self._assert_size("scale_factor")
+
     def configure(self):
         super(Scale, self).configure()
-        self._assert_size("scale_factor")
+        self._scale_factor
 
     def compute(self):
         """Method that just scales input buffer data to compute the output buffer data."""
@@ -125,7 +129,7 @@ class Scale(Transformer):
             self.output_buffer = self.scale_factor * self.input_buffer
         else:
             self.output_buffer = []
-            for scale_factor, input_buffer in zip(self.scale_factor, self.input_buffer):
+            for scale_factor, input_buffer in zip(self._scale_factor, self.input_buffer):
                 self.output_buffer.append(scale_factor * input_buffer)
 
 
@@ -176,13 +180,17 @@ class DotProduct(Transformer):
         default=np.array([[1.0]])
     )
 
+    @property
+    def _dot_factor(self):
+        return self._assert_size("dot_factor", dim=1)
+
     def configure(self):
         super(DotProduct, self).configure()
-        self._assert_size("dot_factor", dim=1)
+        self._dot_factor
 
     def compute(self):
         """Method that just scales input buffer data to compute the output buffer data."""
-        self.output_buffer = np.dot(self.dot_factor * self.input_buffer)
+        self.output_buffer = np.dot(self._dot_factor * self.input_buffer)
 
 
 class ElephantFunctions(Enum):
@@ -226,12 +234,11 @@ class RatesToSpikes(Scale):
 
     def configure(self):
         super(RatesToSpikes, self).configure()
+        self._number_of_neurons
 
-    def _assert_number_of_neurons_size(self):
+    @property
+    def _number_of_neurons(self):
         return self._assert_size("number_of_neurons")
-
-    def _assert_parameters_sizes(self):
-        self._assert_number_of_neurons_size()
 
     @abstractmethod
     def _compute(self, rates, proxy_count, *args, **kwargs):
@@ -241,9 +248,8 @@ class RatesToSpikes(Scale):
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        self._assert_parameters_sizes()
         self.output_buffer = []
-        for iP, (scale_factor, proxy_buffer) in enumerate(zip(self.scale_factor, self.input_buffer)):
+        for iP, (scale_factor, proxy_buffer) in enumerate(zip(self._scale_factor, self.input_buffer)):
             self.output_buffer.append(self._compute(scale_factor*proxy_buffer, iP, *args, **kwargs))
 
 
@@ -334,7 +340,7 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
     def _compute(self, rates, proxy_count):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (in)homogeneous_poisson_process functions."""
-        return self._compute_for_n_spiketrains(rates, self.number_of_neurons[proxy_count])
+        return self._compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count])
 
 
 class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
@@ -361,12 +367,9 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
                             default=np.array([]).astype('f')
                         )
 
-    def _assert_correlation_factor_size(self):
+    @property
+    def _correlation_factor(self):
         return self._assert_size("correlation_factor")
-
-    def _assert_parameters_sizes(self):
-        self._assert_number_of_neurons_size()
-        self._assert_correlation_factor_size()
 
     def configure(self):
         super(RatesToSpikesElephantPoissonInteraction, self).configure()
@@ -374,11 +377,12 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
             self.correlation_factor = 1.0 / self.number_of_neurons
         else:
             assert np.all(0.0 < self.correlation_factor <= 1.0)
+        self._correlation_factor
 
     def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
         rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
         return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
-                                                                            rates * correlation_factor, 1), \
+                                                                            rates * correlation_factor, 1)[0], \
                rates
 
     @abstractmethod
@@ -389,8 +393,8 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         """Method for the computation of rates data transformation to interacting spike trains,
            using (in)homogeneous_poisson_process functions.
         """
-        n_spiketrains = self.number_of_neurons[proxy_count]
-        correlation_factor = self.correlation_factor[proxy_count]
+        n_spiketrains = self._number_of_neurons[proxy_count]
+        correlation_factor = self._correlation_factor[proxy_count]
         shared_spiketrain, rates = self._compute_shared_spiketrain(rates, n_spiketrains, correlation_factor)
         if correlation_factor == 1.0:
             return shared_spiketrain * n_spiketrains
@@ -409,7 +413,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
         “Higher-Order Statistics of Input Ensembles and the Response of Simple Model Neurons.”
         Neural Computation 15, no. 1 (January 2003): 67–101. https://doi.org/10.1162/089976603321043702.
         DOI: 10.1162/089976603321043702.
-        We took it from https://github.com/multiscale-cosim/TVB-NEST
+        We took it from https://github.com/multiscale-cosim/TVB-NEST-0
     """
 
     def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, rates):
@@ -417,7 +421,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
             super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
                                                                         rates * (1 - correlation_factor), n_spiketrains)
         for iSP, spiketrain in enumerate(spiketrains):
-            spiketrains[iSP] = np.sort(np.concatenate([spiketrain, shared_spiketrain])).tolist()
+            spiketrains[iSP] = np.sort(spiketrain + shared_spiketrain).tolist()
         return spiketrains
 
 
@@ -436,10 +440,10 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
     """
 
     def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, *args):
-        select = np.random.binomial(n=1, p=correlation_factor, size=(n_spiketrains, shared_spiketrain.shape[0]))
+        select = np.random.binomial(n=1, p=correlation_factor, size=(n_spiketrains, len(shared_spiketrain)))
         spiketrains = []
         for spiketrain_mask in np.repeat([shared_spiketrain], n_spiketrains, axis=0)*select:
-            spiketrains.append(spiketrain_mask[np.where(spiketrain_mask != 0)].tolist())
+            spiketrains.append(np.sort(spiketrain_mask[np.where(spiketrain_mask != 0)]).tolist())
         return spiketrains
 
 
@@ -469,18 +473,20 @@ class SpikesToRates(Scale):
            to instantaneous mean spiking rates."""
         pass
 
+    @property
+    def _scale_factor(self):
+        return self._assert_size("scale_factor", "output")
+
     def configure(self):
         super(SpikesToRates, self).configure()
-        self._assert_size("scale_factor", "output")
 
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
         output_buffer = []
-        for proxy_buffer in self.input_buffer:  # At this point we assume that input_buffer has shape (proxy,)
-            output_buffer.append(
-                self._compute(proxy_buffer, *args, **kwargs))
-        self.output_buffer = self.scale_factor * np.array(output_buffer)
+        for scale_factor, proxy_buffer in zip(self._scale_factor, self.input_buffer):  # At this point we assume that input_buffer has shape (proxy,)
+            output_buffer.append(scale_factor * self._compute(proxy_buffer, *args, **kwargs))
+        self.output_buffer = np.array(output_buffer)
         return self.output_buffer
 
 
