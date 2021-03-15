@@ -79,7 +79,7 @@ class NESTDevice(Device):
         """
         self.device.set(values_dict)
 
-    def Get(self, attrs=None):
+    def get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
@@ -247,6 +247,29 @@ class NESTSpikeGenerator(NESTInputDevice):
         kwargs["model"] = kwargs.pop("model", "spike_generator")
         super(NESTSpikeGenerator, self).__init__(device, nest_instance, *args, **kwargs)
 
+    @property
+    def number_of_devices(self):
+        return len(self.device)
+
+    def _assert_value_size(self, val):
+        try:
+            n_vals = len(val)
+            if n_vals != self.number_of_devices:
+                if n_vals in [0, 1]:
+                    val = [val] * self.number_of_devices
+                else:
+                    raise ValueError("The number of input values %s to set() method of the NESTSpikeGenerator"
+                                     "is neither 0, nor 1 or equal to the number of devices %s!"
+                                     % (n_vals, self.number_of_devices))
+        except:
+            val = [val] * self.number_of_devices
+        return val
+
+    def set(self, values_dict):
+        for key, vals in values_dict.items():
+            for i_dev, val in enumerate(self._assert_value_size(vals)):
+                self.device[i_dev].set({key: val})
+
 
 class NESTPulsePacketGenerator(NESTInputDevice):
 
@@ -316,35 +339,23 @@ class NESTParrotInputDevice(NESTParrotPopulation, NESTInputDevice):
         self._number_of_connections = 0
         self._number_of_neurons = self.get_number_of_neurons()
 
-    def Set(self, values_dict, neurons=None):
+    def set(self, values_dict, neurons=None):
         if neurons is None:
-            NESTInputDevice.Set(self, values_dict)
+            NESTInputDevice.set(self, values_dict)
         else:
-            NESTParrotPopulation.Set(self, values_dict, neurons)
+            NESTParrotPopulation.set(self, values_dict, neurons)
 
-    def Get(self, attrs=None, neurons=None, summary=None):
+    def get(self, attrs=None, neurons=None, summary=None):
         if neurons is None:
-            return NESTInputDevice.Get(self, attrs)
+            return NESTInputDevice.get(self, attrs)
         else:
-            return NESTParrotPopulation.Get(self, attrs, neurons, summary)
+            return NESTParrotPopulation.get(self, attrs, neurons, summary)
 
     def get_attributes(self, neurons=None, summary=False):
         if neurons is None:
             return NESTInputDevice.get_attributes(self)
         else:
             return NESTParrotPopulation.get_attributes(self, neurons, summary)
-
-    def _Set(self, values_dict, neurons=None):
-        if neurons is None:
-            NESTInputDevice._Set(self, values_dict)
-        else:
-            NESTParrotPopulation._Set(self, values_dict, neurons)
-
-    def _Get(self, attrs=None, neurons=None):
-        if neurons is None:
-            return NESTInputDevice._Get(self, attrs)
-        else:
-            return NESTParrotPopulation.Get(self, attrs, neurons)
 
     def _default_neurons_and_source_or_target(self, neurons=None, source_or_target=None):
         if neurons is None:
@@ -470,13 +481,20 @@ class NESTParrotDPPDSupGenerator(NESTParrotInputDevice):
         super(NESTParrotDPPDSupGenerator, self).__init__(device, population, nest_instance, *args, **kwargs)
 
 
-class NESTParrotSpikeGenerator(NESTParrotInputDevice):
+class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 
     """NESTParrotSpikeGenerator class to wrap around a NEST spike_generator device"""
 
     def __init__(self, device, population, nest_instance, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "parrot_spike_generator")
         super(NESTParrotSpikeGenerator, self).__init__(device, population, nest_instance, *args, **kwargs)
+        super(NESTSpikeGenerator, self).__init__(device, nest_instance, *args, **kwargs)
+
+    def set(self, values_dict, neurons=None):
+        if neurons is None:
+            NESTSpikeGenerator.set(self, values_dict)
+        else:
+            NESTParrotPopulation.set(self, values_dict, neurons)
 
 
 class NESTParrotPulsePacketGenerator(NESTParrotInputDevice):
