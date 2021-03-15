@@ -222,12 +222,10 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
     if device_model in NESTInputDeviceDict.keys() or nest_device_model in NESTInputDeviceDict.keys():
         input_device = True
         devices_dict = NESTInputDeviceDict
-        if device_model in NESTParrotSpikeInputDeviceDict.keys():
-            record_parrot = params.pop("record", None)
-            parrot = nest_instance.Create("parrot_neuron", int(params.pop("number_of_neurons", 1)))
         if device_model in NESTParrotSpikeInputDeviceDict.keys() or device_model == "spike_generator":
             number_of_devices = int(params.pop("number_of_neurons", number_of_devices))
             if device_model in NESTParrotSpikeInputDeviceDict.keys():
+                record_parrot = params.pop("record", None)
                 parrot = nest_instance.Create("parrot_neuron", number_of_devices)
                 parrot_connect_method = "one_to_one" if device_model == "parrot_spike_generator" else "all_to_all"
         default_params = config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
