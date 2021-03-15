@@ -129,16 +129,16 @@ class ANNarchyInputDevice(ANNarchyDevice, InputDevice, ANNarchyPopulation):
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        ANNarchyPopulation.Set(self, values_dict)
+        ANNarchyPopulation.set(self, values_dict)
 
-    def Get(self, attrs=None):
+    def get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all device's attributes.
            Returns:
             Dictionary of attributes.
         """
-        ANNarchyPopulation.Get(self, attrs)
+        ANNarchyPopulation.get(self, attrs)
 
     def _GetConnections(self):
         """Method to get attributes of the connections from the device
@@ -300,7 +300,7 @@ class ANNarchyTimedArray(ANNarchyInputDevice):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
                                                  annarchy_instance, **kwargs)
 
-    def _Get(self, attrs=None, neurons=None):
+    def _get(self, attrs=None, neurons=None):
         dictionary = {}
         neurons = self._assert_neurons.get(neurons)
         if attrs is None:
@@ -386,10 +386,10 @@ class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
 
         return neurons
 
-    def _Set(self, values_dict, neurons=None):
+    def _set(self, values_dict, neurons=None):
         self._assert_neurons_for_set_get(neurons).set(values_dict)
 
-    def _Get(self, attrs=None, neurons=None):
+    def _get(self, attrs=None, neurons=None):
         dictionary = {}
         if neurons is None:
             if attrs is None:
@@ -616,7 +616,7 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
         else:
             dictionary[attribute] = [getattr(monitor, attribute)]
 
-    def Get(self, attrs=None):
+    def get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponding to all devices' attributes.

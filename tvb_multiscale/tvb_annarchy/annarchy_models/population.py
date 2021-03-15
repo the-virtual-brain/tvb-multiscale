@@ -132,7 +132,7 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         return "%d neurons in population with index: %d" % (self.number_of_neurons, self._population_ind)
 
-    def _Set(self, values_dict, neurons=None):
+    def _set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -143,7 +143,7 @@ class ANNarchyPopulation(SpikingPopulation):
         """
         self._assert_neurons(neurons).set(values_dict)
 
-    def _Get(self, attrs=None, neurons=None):
+    def _get(self, attrs=None, neurons=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
