@@ -107,7 +107,7 @@ class Device(HasTraits):
         pass
 
     @abstractmethod
-    def Get(self, attrs=None):
+    def get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all device's attributes.
@@ -150,7 +150,7 @@ class Device(HasTraits):
            Returns:
             Dictionary of sequences (tuples, lists, arrays) of neurons' attributes.
         """
-        return self.Get()
+        return self.get()
 
     def get_number_of_connections(self):
         """Method to get the number of  connections of the device to/from neurons.

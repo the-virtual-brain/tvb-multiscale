@@ -98,7 +98,7 @@ class SpikingPopulation(HasTraits):
         pass
 
     @abstractmethod
-    def _Set(self, values_dict, neurons=None):
+    def _set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -109,7 +109,7 @@ class SpikingPopulation(HasTraits):
         pass
 
     @abstractmethod
-    def _Get(self, attr=None, neurons=None):
+    def _get(self, attr=None, neurons=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
             attrs: sequence (list, tuple, array) of the attributes to be included in the output.
@@ -167,7 +167,7 @@ class SpikingPopulation(HasTraits):
         """
         return len(self._population)
 
-    def Set(self, values_dict, neurons=None):
+    def set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -175,9 +175,9 @@ class SpikingPopulation(HasTraits):
                      or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
         """
-        self._Set(values_dict, neurons)
+        self._set(values_dict, neurons)
 
-    def Get(self, attrs=None, neurons=None, summary=None):
+    def get(self, attrs=None, neurons=None, summary=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
@@ -193,7 +193,7 @@ class SpikingPopulation(HasTraits):
            Returns:
             Dictionary of sequences (lists, tuples, or arrays) of neurons' attributes.
         """
-        attributes = self._Get(attrs, neurons)
+        attributes = self._get(attrs, neurons)
         if summary:
             return summarize(attributes, summary)
         else:
@@ -214,7 +214,7 @@ class SpikingPopulation(HasTraits):
            Returns:
             Dictionary of sequences (lists, tuples, or arrays) of neurons' attributes.
         """
-        return self.Get(neurons=neurons, summary=summary)
+        return self.get(neurons=neurons, summary=summary)
 
     def GetConnections(self, neurons=None,  source_or_target=None):
         """Method to get all connections of the device to/from neurons.
