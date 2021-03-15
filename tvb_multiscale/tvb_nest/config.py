@@ -62,13 +62,13 @@ class Config(ConfigBase):
                                       "spike_recorder": {"record_to": "memory"},
                                       "spike_multimeter": {'record_from': ["spike"], "record_to": "memory"}}
 
-    NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"allow_offgrid_times": False},
+    NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"allow_offgrid_times": True},
                                      "poisson_generator": {},
                                      "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
-                                     "inhomogeneous_poisson_generator": {"allow_offgrid_times": False},
+                                     "inhomogeneous_poisson_generator": {"allow_offgrid_times": True},
                                      "parrot_poisson_generator": {},
                                      "parrot_mip_generator": {"p_copy": 0.5, "mother_seed": 0},
-                                     "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": False}
+                                     "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
                                      }
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
