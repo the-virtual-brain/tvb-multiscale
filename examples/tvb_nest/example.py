@@ -11,11 +11,13 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator, NESTSerialApp, TVBSerialApp
 from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
+from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
-# from tvb.simulator.models.wilson_cowan import WilsonCowan
 
 from examples.plot_write_results import plot_write_results
 
@@ -132,7 +134,7 @@ if __name__ == "__main__":
 
     model_params = {}
 
-    tvb_sim_model = WilsonCowan
+    tvb_sim_model = ReducedWongWangExcIO
 
     # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
@@ -162,19 +164,58 @@ if __name__ == "__main__":
             "P": np.array([0.5]),
             "Q": np.array([0.0])
         }
-        tvb_to_nest_interfaces = [{"model": "SPIKES", "voi": "E", "populations": "E",
-                                   "transformer_params": {"number_of_neurons": np.array([100]).astype("i")},
-                                   "proxy_params": {"number_of_neurons": 100},
-                                   "transformer_params": {"scale_factor": np.array([1000.0])}}]
+        tvb_to_nest_interfaces = [{"model": "RATE", "voi": "E", "populations": "E",
+                                   "transformer_params":
+                                       {"scale_factor": np.array([10000.0]),  # 100 (neurons) * 100Hz (ceiling)
+                                       # "number_of_neurons": np.array([100]).astype("i"),
+                                       # "interaction": "single",
+                                       # "correlation_factor": np.array([0.1])
+                                       },
+                                   "proxy_params": {"number_of_neurons": 1}}]
         nest_to_tvb_interfaces = [{"voi": "E", "populations": "E",
-                                   "transformer_params": {"scale_factor": np.array([0.001])/100}},
+                                   "transformer_params":
+                                       {"scale_factor": np.array([1e-6])}},  # (dt(ms) * 1000)Hz*100(neurons)
                                   {"voi": "I", "populations": "I",
-                                   "transformer_params": {"scale_factor": np.array([0.001])/100}}]
+                                   "transformer_params":
+                                       {"scale_factor": np.array([1e-6])}}]  # (dt(ms) * 1000)Hz*100(neurons)
+        nest_model_builder = WilsonCowanBuilder
+    elif tvb_sim_model == ReducedWongWangExcIO:
+        tvb_to_nest_interfaces = [{"model":  "RATE",  # "RATE",  # "SPIKES", "CURRENT"
+                                   "voi": "R",  # "S"
+                                   "populations": "E",
+                                   "transformer_params": {"scale_factor": np.array([100.0]),
+                                                              # np.array([model_params.get("J_N",
+                                                              #                            1000.0*np.array([0.2609, ]))]),
+                                                          # "number_of_neurons": np.array([100]).astype("i"),
+                                                          # "interaction": "single",
+                                                          # "correlation_factor": np.array([0.1])
+                                                          },
+                                   "proxy_params": {"number_of_neurons": 1}
+                                  }]
+        from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import \
+            ElephantSpikesRateRedWongWangExc
+        from tvb.simulator.integrators import HeunStochastic
+        from tvb.simulator.noise import Additive
+        nest_to_tvb_interfaces = [{"voi": ("S", "R"), "populations": "E",
+                                   "transformer": ElephantSpikesRateRedWongWangExc,
+                                   "transformer_params": {"scale_factor": np.array([1.0]) / 100,
+                                                          "integrator":
+                                                              HeunStochastic(dt=0.1,
+                                                                             noise=Additive(
+                                                                                 nsig=np.array([[1e-3], [0.0]]))),
+                                                          "state": np.zeros((2, 1)),
+                                                          "tau_s": model_params.get("tau_s",
+                                                                                    np.array([100.0, ])),
+                                                          "tau_r": np.array([1.0, ]),
+                                                          "gamma": model_params.get("gamma",
+                                                                                    np.array([0.641 / 1000, ]))}
+                                   }]
+        nest_model_builder = WWDeco2013Builder
 
-    main_example(tvb_sim_model, WilsonCowanBuilder, nest_nodes_inds,
+    main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
                  model_params=model_params, nest_populations_order=100,
                  tvb_to_nest_interfaces=tvb_to_nest_interfaces, nest_to_tvb_interfaces=nest_to_tvb_interfaces,
                  exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True,
-                 simulation_length=1100.0, transient=0.0,
+                 simulation_length=110.0, transient=10.0,
                  config=None)
