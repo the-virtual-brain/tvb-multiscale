@@ -11,7 +11,7 @@ from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
-from tvb_multiscale.core.interfaces.base.transformers.models import Transformer
+from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 
 
 class TVBInterface(HasTraits):
@@ -124,9 +124,12 @@ class TVBInputInterface(TVBInterface):
         super(TVBInputInterface, self).print_str(self, sender_not_receiver=False)
 
     def __call__(self, data):
-        # Assume a single voi and a single mode,
-        # and reshape from  (proxy, time) to TVB (time, voi, proxy)
-        return data.T[:, None, :]
+        # Assume a single mode,
+        data = data.T  # and reshape from (proxy, (voi,) time) to TVB (time, (voi,) proxy)
+        if data.ndim < 3:
+            # and reshape from (proxy, time) to TVB (time, voi, proxy) if there was only one voi
+            data = data[:, None, :]
+        return data
 
 
 class TVBSenderInterface(SenderInterface, TVBOutputInterface):
