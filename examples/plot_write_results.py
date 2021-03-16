@@ -148,7 +148,7 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
     source_ts.plot_timeseries(plotter_config=plotter.config,
                               hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
                               row="Region" if source_ts.shape[2] <= MAX_REGIONS_IN_ROWS else None,
-                              per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
+                              per_variable=True,  # source_ts.shape[1] > MAX_VARS_IN_COLS,
                               figsize=figsize)
     if source_ts.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
         # Plot raster
@@ -163,7 +163,7 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
         source_ts_nest.plot_timeseries(plotter_config=plotter.config,
                                        hue="Region" if source_ts_nest.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                        row="Region" if source_ts_nest.shape[2] <= MAX_REGIONS_IN_ROWS else None,
-                                       per_variable=source_ts_nest.shape[1] > MAX_VARS_IN_COLS,
+                                       per_variable=True,  # source_ts_nest.shape[1] > MAX_VARS_IN_COLS,
                                        figsize=figsize, figname="Spiking nodes TVB Time Series")
         if n_spiking_nodes > MIN_REGIONS_FOR_RASTER_PLOT:
             source_ts_nest.plot_raster(plotter_config=plotter.config,
@@ -304,7 +304,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
 
         if mean_field_ts.size > 0:
             mean_field_ts.plot_timeseries(plotter_config=plotter.config,
-                                          per_variable=mean_field_ts.shape[1] > MAX_VARS_IN_COLS,
+                                          per_variable=True, # mean_field_ts.shape[1] > MAX_VARS_IN_COLS,
                                           figsize=figsize)
             if mean_field_ts.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
                 mean_field_ts.plot_raster(plotter_config=plotter.config,
