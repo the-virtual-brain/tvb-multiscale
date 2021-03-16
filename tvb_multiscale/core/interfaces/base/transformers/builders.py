@@ -6,14 +6,15 @@ from abc import ABCMeta, abstractmethod
 from six import string_types
 
 from tvb.basic.neotraits._core import HasTraits
-from tvb.basic.neotraits._attr import Attr, Float, List
+from tvb.basic.neotraits._attr import Attr, Float
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.base.transformers.models import ScaleRate, ScaleCurrent, \
-    SpikesToRatesElephantRate, SpikesToRatesElephantHistogram, RatesToSpikesElephantPoisson, \
-    RatesToSpikesElephantPoissonMultipleInteraction, RatesToSpikesElephantPoissonSingleInteraction
+from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer, ScaleRate, ScaleCurrent
+from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+    ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
+    RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
+    RatesToSpikesElephantPoissonSingleInteraction
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 
 
 class DefaultTVBtoSpikeNetModels(Enum):
@@ -23,7 +24,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 
 class DefaultSpikeNetToTVBModels(Enum):
-    SPIKES = "SPIKES"  # "SPIKES_TO_RATE", "SPIKES_HIST"
+    SPIKES = "SPIKES_TO_HIST_RATE"  # "SPIKES_TO_RATE", "SPIKES_TO_HIST", "SPIKES_TO_HIST_RATE"
 
 
 class DefaultTVBtoSpikeNetTransformers(Enum):
@@ -35,9 +36,10 @@ class DefaultTVBtoSpikeNetTransformers(Enum):
 
 
 class DefaultSpikeNetToTVBTransformers(Enum):
-    SPIKES = SpikesToRatesElephantRate
-    SPIKES_TO_RATE = SpikesToRatesElephantRate
-    SPIKES_HIST = SpikesToRatesElephantHistogram
+    SPIKES = ElephantSpikesHistogramRate
+    SPIKES_TO_RATE = ElephantSpikesRate
+    SPIKES_TO_HIST = ElephantSpikesHistogram
+    SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
 
 
 class TransformerBuilder(HasTraits):
@@ -82,14 +84,10 @@ class TransformerBuilder(HasTraits):
         elif isinstance(model, Enum):
             # Enum input:
             assert model in transformer_models
-        else:
-            enum_values = tuple(get_enum_values(transformer_models))
-            if model in enum_values:
-                # type input:
-                model = model()
-            else:
-                # model input
-                assert isinstance(model, enum_values)
+        elif not isinstance(model, Transformer):
+            # assume model is a Transformer type
+            model = model()
+            assert isinstance(model, Transformer)
         interface["transformer"] = model
 
     def set_transformer_parameters(self, transformer, params):

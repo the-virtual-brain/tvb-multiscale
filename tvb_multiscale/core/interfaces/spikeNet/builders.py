@@ -11,7 +11,7 @@ from tvb.basic.neotraits._core import HasTraits
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.models import Transformers
+from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
 
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
