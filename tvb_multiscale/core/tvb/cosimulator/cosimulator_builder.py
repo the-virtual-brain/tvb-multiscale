@@ -151,7 +151,7 @@ class CoSimulatorBuilder(HasTraits):
     noise_strength = NArray(
         label=":math:`D`",
         required=True,
-        default=np.array([0.001]),
+        default=np.array([-1.0]),
         doc="""The noise dispersion, it is the standard deviation of the
                 distribution from which the Gaussian random variates are drawn. NOTE:
                 Sensible values are typically ~<< 1% of the dynamic range of a Model's
@@ -239,6 +239,8 @@ class CoSimulatorBuilder(HasTraits):
     def configure_integrator(self):
         # Build integrator
         self.integrator.dt = self.dt
+        if np.all(self.noise_strength < 0.0):
+            self.noise_strength = np.array([self.config.DEFAULT_NSIG])
         self.integrator.noise.nsig = np.array(ensure_list(self.noise_strength))
         return self.integrator
 

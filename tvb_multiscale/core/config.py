@@ -104,6 +104,13 @@ class Config(object):
     MIN_SPIKING_DT = 0.001
     MIN_DELAY = 0.001
 
+    from tvb.simulator.integrators import HeunStochastic
+    from tvb.simulator.noise import Additive
+
+    DEFAULT_INTEGRATOR = HeunStochastic
+    DEFAULT_NOISE = Additive
+    DEFAULT_NSIG = 1e-3
+
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
                           "source_inds": None, "target_inds": None, "params": {},
