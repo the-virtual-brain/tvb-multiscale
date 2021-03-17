@@ -304,7 +304,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
 
         if mean_field_ts.size > 0:
             mean_field_ts.plot_timeseries(plotter_config=plotter.config,
-                                          per_variable=True, # mean_field_ts.shape[1] > MAX_VARS_IN_COLS,
+                                          per_variable=True,  # mean_field_ts.shape[1] > MAX_VARS_IN_COLS,
                                           figsize=figsize)
             if mean_field_ts.shape[2] > MIN_REGIONS_FOR_RASTER_PLOT:
                 mean_field_ts.plot_raster(plotter_config=plotter.config,

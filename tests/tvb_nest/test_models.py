@@ -50,7 +50,7 @@ class TestModelNEST(TestModel):
     def run(self):
         delete_folder_safely(self.results_path)
         return main_example(self.model, self.nest_model_builder, self.interface_model_builder,
-                            self.nest_nodes_ids, nest_populations_order=self.nest_populations_order,
+                            self.nest_nodes_ids, populations_order=self.nest_populations_order,
                             tvb_to_nest_mode=self.tvb_to_nest_mode, nest_to_tvb=self.nest_to_tvb,
                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                             simulation_length=self.simulation_length, transient=self.transient,

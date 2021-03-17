@@ -37,7 +37,7 @@ def prepare_launch_default_simulation():
 
     results, simulator = \
         main_example(WilsonCowan, WilsonCowanBuilder, InterfacWilsonCowanBuilder,
-                     nest_nodes_ids, nest_populations_order=20, connectivity=connectivity,
+                     nest_nodes_ids, populations_order=20, connectivity=connectivity,
                      simulation_length=55.0, exclusive_nodes=True, config=config)
 
     return simulator.connectivity.weights, simulator.connectivity.tract_lengths, results[0][1]

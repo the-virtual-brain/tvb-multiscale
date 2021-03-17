@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+
 import os
 import time
-from six import string_types
 
 import numpy as np
 
@@ -9,12 +9,9 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator, NESTSerialApp, TVBSerialApp
+from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator
 from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
-from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
-from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
@@ -22,35 +19,36 @@ from tvb.datatypes.connectivity import Connectivity
 from examples.plot_write_results import plot_write_results
 
 
-def results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb, config=None):
+def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_tvb, config=None):
     if config is None:
-        if tvb_to_nest_mode is not None:
-            tvb_nest_str = "_" + tvb_to_nest_mode
+        if tvb_to_spikeNet_mode is not None:
+            tvb_spikeNet_str = "_" + tvb_to_spikeNet_mode
         else:
-            tvb_nest_str = ""
+            tvb_spikeNet_str = ""
         return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
-                            nest_model_builder.__name__.split("Builder")[0] +
-                            tvb_nest_str +
-                            np.where(nest_to_tvb, "_bidir", "").item()
+                            spikeNet_model_builder.__name__.split("Builder")[0] +
+                            tvb_spikeNet_str +
+                            np.where(spikeNet_to_tvb, "_bidir", "").item()
                             )
     else:
         return config.out.FOLDER_RES
 
 
-def main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
-                 model_params={}, nest_populations_order=100,
-                 tvb_to_nest_interfaces=[], nest_to_tvb_interfaces=[], exclusive_nodes=True,
+def main_example(tvb_sim_model, spikeNet_model_builder, spiking_proxy_inds,
+                 model_params={}, populations_order=100,
+                 tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
                  config=None, plot_write=True):
 
     if config is None:
-        if len(tvb_to_nest_interfaces):
-            tvb_to_nest_mode = tvb_to_nest_interfaces[0]["model"]
+        if len(tvb_to_spikeNet_interfaces):
+            tvb_to_spikeNet_mode = tvb_to_spikeNet_interfaces[0]["model"]
         else:
-            tvb_to_nest_mode = None
+            tvb_to_spikeNet_mode = None
         config = \
-            Config(output_base=results_path_fun(nest_model_builder, tvb_to_nest_mode, len(nest_to_tvb_interfaces) > 0))
+            Config(output_base=results_path_fun(spikeNet_model_builder,
+                                                tvb_to_spikeNet_mode, len(spikeNet_to_tvb_interfaces) > 0))
 
     logger = initialize_logger(__name__, config=config)
 
@@ -58,7 +56,7 @@ def main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
         config=config,
         logger=logger,
         exclusive_nodes=exclusive_nodes,
-        spiking_proxy_inds=np.array(nest_nodes_inds),
+        spiking_proxy_inds=np.array(spiking_proxy_inds),
         simulation_length=simulation_length
     )
     orchestrator.start()
@@ -73,16 +71,18 @@ def main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
     # -----------------------------------------a. Configure a TVB simulator builder ------------------------------------
     orchestrator.tvb_app.cosimulator_builder.model = tvb_sim_model()
     orchestrator.tvb_app.cosimulator_builder.model_params = model_params
+    if not isinstance(connectivity, Connectivity):
+        connectivity = Connectivity.from_file(connectivity)
     orchestrator.tvb_app.cosimulator_builder.connectivity = connectivity
     orchestrator.tvb_app.cosimulator_builder.delays_flag = delays_flag
 
-    # -----------------------------------------b. Configure the NEST network model builder------------------------------
-    orchestrator.spikeNet_app.spikeNet_builder = nest_model_builder(config=config)
-    orchestrator.spikeNet_app.population_order = nest_populations_order
+    # -----------------------------------------b. Configure the spiking network model builder------------------------------
+    orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder(config=config)
+    orchestrator.spikeNet_app.population_order = populations_order
 
-    # -----------------------------------------c. Configure the TVB-NEST interface model -------------------------------
-    orchestrator.tvb_app.interfaces_builder.output_interfaces = tvb_to_nest_interfaces
-    orchestrator.tvb_app.interfaces_builder.input_interfaces = nest_to_tvb_interfaces
+    # -----------------------------------------c. Configure the TVB-SpikeNet interface model -------------------------------
+    orchestrator.tvb_app.interfaces_builder.output_interfaces = tvb_to_spikeNet_interfaces
+    orchestrator.tvb_app.interfaces_builder.input_interfaces = spikeNet_to_tvb_interfaces
 
     # ----------------------------------------d. Run the orchestrator configuration ------------------------------------
     orchestrator.configure()
@@ -124,98 +124,51 @@ def main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
 
 
 if __name__ == "__main__":
-    # Select the regions for the fine scale modeling with NEST spiking networks
-    nest_nodes_inds = []  # the indices of fine scale regions modeled with NEST
-    # In this example, we model parahippocampal cortices (left and right) with NEST
-    connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
-    for id, label in enumerate(connectivity.region_labels):
-        if label.find("hippo") > 0:
-            nest_nodes_inds.append(id)
 
-    model_params = {}
-
-    tvb_sim_model = ReducedWongWangExcIO
+    # Select the regions for the fine scale modeling with spiking networks
+    spiking_proxy_inds = [0, 1]  # the indices of fine scale regions modeled as spiking networks
 
     # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
-    if tvb_sim_model == WilsonCowan:
-
-        model_params = {
-            "r_e": np.array([0.0]),
-            "r_i": np.array([0.0]),
-            "k_e": np.array([1.0]),
-            "k_i": np.array([1.0]),
-            "tau_e": np.array([10.0]),
-            "tau_i": np.array([10.0]),
-            "c_ee": np.array([10.0]),
-            "c_ei": np.array([6.0]),
-            "c_ie": np.array([10.0]),
-            "c_ii": np.array([1.0]),
-            "alpha_e": np.array([1.2]),
-            "alpha_i": np.array([2.0]),
-            "a_e": np.array([1.0]),
-            "a_i": np.array([1.0]),
-            "b_e": np.array([0.0]),
-            "b_i": np.array([0.0]),
-            "c_e": np.array([1.0]),
-            "c_i": np.array([1.0]),
-            "theta_e": np.array([2.0]),
-            "theta_i": np.array([3.5]),
-            "P": np.array([0.5]),
-            "Q": np.array([0.0])
-        }
-        tvb_to_nest_interfaces = [{"model": "RATE", "voi": "E", "populations": "E",
+    model_params = {
+        "r_e": np.array([0.0]),
+        "r_i": np.array([0.0]),
+        "k_e": np.array([1.0]),
+        "k_i": np.array([1.0]),
+        "tau_e": np.array([10.0]),
+        "tau_i": np.array([10.0]),
+        "c_ee": np.array([10.0]),
+        "c_ei": np.array([6.0]),
+        "c_ie": np.array([10.0]),
+        "c_ii": np.array([1.0]),
+        "alpha_e": np.array([1.2]),
+        "alpha_i": np.array([2.0]),
+        "a_e": np.array([1.0]),
+        "a_i": np.array([1.0]),
+        "b_e": np.array([0.0]),
+        "b_i": np.array([0.0]),
+        "c_e": np.array([1.0]),
+        "c_i": np.array([1.0]),
+        "theta_e": np.array([2.0]),
+        "theta_i": np.array([3.5]),
+        "P": np.array([0.5]),
+        "Q": np.array([0.0])
+    }
+    tvb_to_spikeNet_interfaces = [{"model": "RATE", "voi": "E", "populations": "E",
                                    "transformer_params":
-                                       {"scale_factor": np.array([10000.0]),  # 100 (neurons) * 100Hz (ceiling)
-                                       # "number_of_neurons": np.array([100]).astype("i"),
-                                       # "interaction": "single",
-                                       # "correlation_factor": np.array([0.1])
-                                       },
+                                       {"scale_factor": np.array([10000.0])},
                                    "proxy_params": {"number_of_neurons": 1}}]
-        nest_to_tvb_interfaces = [{"voi": "E", "populations": "E",
+    spikeNet_to_tvb_interfaces = [{"voi": "E", "populations": "E",
                                    "transformer_params":
                                        {"scale_factor": np.array([1e-6])}},  # (dt(ms) * 1000)Hz*100(neurons)
                                   {"voi": "I", "populations": "I",
                                    "transformer_params":
                                        {"scale_factor": np.array([1e-6])}}]  # (dt(ms) * 1000)Hz*100(neurons)
-        nest_model_builder = WilsonCowanBuilder
-    elif tvb_sim_model == ReducedWongWangExcIO:
-        tvb_to_nest_interfaces = [{"model":  "RATE",  # "RATE",  # "SPIKES", "CURRENT"
-                                   "voi": "R",  # "S"
-                                   "populations": "E",
-                                   "transformer_params": {"scale_factor": np.array([100.0]),
-                                                              # np.array([model_params.get("J_N",
-                                                              #                            1000.0*np.array([0.2609, ]))]),
-                                                          # "number_of_neurons": np.array([100]).astype("i"),
-                                                          # "interaction": "single",
-                                                          # "correlation_factor": np.array([0.1])
-                                                          },
-                                   "proxy_params": {"number_of_neurons": 1}
-                                  }]
-        from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import \
-            ElephantSpikesRateRedWongWangExc
-        from tvb.simulator.integrators import HeunStochastic
-        from tvb.simulator.noise import Additive
-        nest_to_tvb_interfaces = [{"voi": ("S", "R"), "populations": "E",
-                                   "transformer": ElephantSpikesRateRedWongWangExc,
-                                   "transformer_params": {"scale_factor": np.array([1.0]) / 100,
-                                                          "integrator":
-                                                              HeunStochastic(dt=0.1,
-                                                                             noise=Additive(
-                                                                                 nsig=np.array([[1e-3], [0.0]]))),
-                                                          "state": np.zeros((2, 1)),
-                                                          "tau_s": model_params.get("tau_s",
-                                                                                    np.array([100.0, ])),
-                                                          "tau_r": np.array([1.0, ]),
-                                                          "gamma": model_params.get("gamma",
-                                                                                    np.array([0.641 / 1000, ]))}
-                                   }]
-        nest_model_builder = WWDeco2013Builder
 
-    main_example(tvb_sim_model, nest_model_builder, nest_nodes_inds,
-                 model_params=model_params, nest_populations_order=100,
-                 tvb_to_nest_interfaces=tvb_to_nest_interfaces, nest_to_tvb_interfaces=nest_to_tvb_interfaces,
-                 exclusive_nodes=True,
-                 connectivity=connectivity, delays_flag=True,
+    main_example(WilsonCowan, WilsonCowanBuilder, spiking_proxy_inds,
+                 model_params=model_params, populations_order=100,
+                 tvb_to_spikeNet_interfaces=tvb_to_spikeNet_interfaces,
+                 spikeNet_to_tvb_interfaces=spikeNet_to_tvb_interfaces,
+                 exclusive_nodes=True, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
                  config=None)
