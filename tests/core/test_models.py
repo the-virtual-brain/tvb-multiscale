@@ -16,9 +16,12 @@ import numpy as np
 
 from examples.simulate_tvb_only import main_example, results_path_fun
 
-from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
+from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
+from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
+
 # from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
@@ -51,9 +54,9 @@ model_params_wc = {
     "Q": np.array([0.0])
 }
 
-model_params_redww_exc_io = {"G": np.array([20.0, ])}
+model_params_redww_exc_io = {"G": np.array([2.0, ])}
 
-model_params_redww_exc_io_inn_i = {"G": np.array([20.0, ]), "lamda": np.array([0.5, ])}
+model_params_redww_exc_io_inn_i = {"G": np.array([2.0, ]), "lamda": np.array([0.5, ])}
 
 # ----------------------------------------SpikingWongWangExcIOInhI/MultiscaleWongWangExcIOInhI----------------------
 
@@ -67,9 +70,8 @@ model_params_sp = {
 
 
 class TestModel(object):
-    use_numba = False
-    simulation_length = 55.0
-    transient = 5.0
+    simulation_length = 36.0
+    transient = 6.0
     model = None
     model_params = {}
     plot_write = False
@@ -82,8 +84,17 @@ class TestModel(object):
         delete_folder_safely(self.results_path)
         return main_example(tvb_sim_model=self.model,
                             simulation_length=self.simulation_length, transient=self.transient,
-                            use_numba=self.use_numba, plot_write=self.plot_write,
-                            **self.model_params)
+                            plot_write=self.plot_write, **self.model_params)
+
+
+class TestLinear(TestModel):
+    model = Linear
+
+    model_params = {}
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
 
 
 class TestWilsonCowan(TestModel):
@@ -91,6 +102,15 @@ class TestWilsonCowan(TestModel):
 
     # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
     model_params = model_params_wc
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.run()
+
+
+class TestLinearReducedWongWangExcIO(TestModel):
+    model = LinearReducedWongWangExcIO
+    model_params = model_params_redww_exc_io
 
     # @pytest.mark.skip(reason="These tests are taking too much time")
     def test(self):
@@ -130,20 +150,19 @@ def teardown_function():
         shutil.rmtree(output_folder)
 
 
-def loop_all(use_numba=False,
-             models_to_test=[TestWilsonCowan, TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):
+def loop_all(models_to_test=[TestLinear, TestWilsonCowan,
+                             TestLinearReducedWongWangExcIO, TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):
     import time
     import numpy as np
     from collections import OrderedDict
     success = OrderedDict()
     for test_model_class in models_to_test:
         test_model = test_model_class()
-        test_model.use_numba = use_numba
         print("\n******************************************************")
         print("******************************************************")
         print(test_model_class.__name__)
-        for test in test_model.__dict__.keys():
-            if test[:5] == "test_":
+        for test in dir(test_model):
+            if test[:4] == "test":
                 print("******************************************************")
                 print(test)
                 print("******************************************************")
@@ -169,5 +188,4 @@ def loop_all(use_numba=False,
 
 
 if __name__ == "__main__":
-    loop_all(use_numba=False)
-    loop_all(use_numba=True)
+    loop_all()
