@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import time
-import os
 import numpy as np
 
 from tvb.basic.profile import TvbProfile
@@ -9,7 +8,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
 from examples.tvb_nest.example import results_path_fun
 from examples.plot_write_results import plot_write_results
-from tvb_multiscale.tvb_nest.nest_models.builders.models.cereb import CerebBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.models.dev.cereb import CerebBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_cereb import RedWWexcIOBuilder
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter
@@ -55,7 +54,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder = \
         nest_model_builder(simulator, nest_nodes_ids,
                            os.path.join(os.getcwd().split("tvb_nest")[0],
-                                        "tvb_nest", "../data", "cerebellar_cortex_scaffold_dcn.hdf5"),
+                                        "tvb_nest", "../../data", "cerebellar_cortex_scaffold_dcn.hdf5"),
                            config=config, set_defaults=True)
     nest_model_builder.modules_to_install = ["cereb"]
     if tvb_nest_builder is not None:
