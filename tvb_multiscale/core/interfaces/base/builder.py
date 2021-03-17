@@ -47,7 +47,10 @@ class InterfaceBuilder(HasTraits):
     _input_interfaces = None
 
     def _loop_to_get_from_interface_configs(self, interfaces, attr):
-        return [interface[attr] for interface in interfaces]
+        output = []
+        for interface in interfaces:
+            output += ensure_list(interface[attr])
+        return output
 
     def _loop_to_get_unique_from_interface_configs(self, interfaces, attr):
         return np.unique(self._loop_to_get_from_interface_configs(interfaces, attr))
