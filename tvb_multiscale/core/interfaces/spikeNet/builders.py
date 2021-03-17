@@ -215,7 +215,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["delays"] = delays
         _interface["receptor_type"] = receptor_type
         _interface["neurons_inds"] = neurons_inds
-        _interface["nodes"] = [np.where(interface["spiking_proxy_inds"] == trg_node)[0][0]
+        _interface["nodes"] = [np.where(self.spiking_nodes_inds == trg_node)[0][0]
                                for trg_node in interface["spiking_proxy_inds"]]
         _interface["model"] = interface["proxy"].model
         _interface["params"] = interface.pop("proxy_params", {})
@@ -245,7 +245,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["delays"] = delays
         _interface["neurons_inds"] = neurons_inds
         # Convert TVB node index to interface SpikeNet node index:
-        _interface["nodes"] = [np.where(interface["spiking_proxy_inds"] == spiking_node)[0][0]
+        _interface["nodes"] = [np.where(self.spiking_nodes_inds == spiking_node)[0][0]
                                for spiking_node in interface["spiking_proxy_inds"]]
         _interface["model"] = interface["proxy"].model
         _interface["params"] = interface.pop("proxy_params", {})
