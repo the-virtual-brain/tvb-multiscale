@@ -37,34 +37,60 @@ from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 
 class Linear(Model):
+
+    tau = NArray(
+        label=r":math:`\tau`",
+        default=numpy.array([100.0]),
+        domain=Range(lo=-0.1, hi=100.0, step=0.1),
+        doc="Time constant")
+
     gamma = NArray(
         label=r":math:`\gamma`",
-        default=numpy.array([-10.0]),
+        default=numpy.array([-1.0]),
         domain=Range(lo=-100.0, hi=0.0, step=1.0),
         doc="The damping coefficient specifies how quickly the node's activity relaxes, must be larger"
             " than the node's in-degree in order to remain stable.")
 
+    I_o = NArray(
+        label=r":math:`I_o`",
+        default=numpy.array([0.0]),
+        domain=Range(lo=-100.0, hi=100.0, step=1.0),
+        doc="External stimulus")
+
+    G = NArray(
+        label=r":math:`G`",
+        default=numpy.array([2.0]),
+        domain=Range(lo=-0.0, hi=100.0, step=1.0),
+        doc="Global coupling scaling")
+
     state_variable_range = Final(
         label="State Variable ranges [lo, hi]",
-        default={"x": numpy.array([-1, 1])},
+        default={"R": numpy.array([0, 100.0])},
         doc="Range used for state variable initialization and visualization.")
+
+    state_variable_boundaries = Final(
+        default={"R": numpy.array([0.0, None])},
+        label="State Variable boundaries [lo, hi]",
+        doc="""The values for each state-variable should be set to encompass
+                the boundaries of the dynamic range of that state-variable. 
+                Set None for one-sided boundaries""")
 
     variables_of_interest = List(
         of=str,
         label="Variables watched by Monitors",
-        choices=("x",),
-        default=("x",), )
+        choices=("R",),
+        default=("R",), )
 
-    state_variables = ('x',)
+    state_variables = ('R',)
     _nvar = 1
     cvar = numpy.array([0], dtype=numpy.int32)
 
     def dfun(self, state, coupling, local_coupling=0.0):
         """
         .. math::
-            x = a{\gamma} + b
+            dR = ({\gamma}R + G * coupling + local_coupling * R)/{\tau} + I_o
         """
-        x, = state
+        R, = state
         c, = coupling
-        dx = self.gamma * x + c + local_coupling * x
-        return numpy.array([dx])
+        dR = (self.gamma * R + self.G * c + local_coupling * R) / self.tau + self.I_o
+        return numpy.array([dR])

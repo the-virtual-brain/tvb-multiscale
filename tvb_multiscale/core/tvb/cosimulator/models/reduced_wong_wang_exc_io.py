@@ -51,9 +51,9 @@ def _numba_update_non_state_variables_before_integration(S, c, a, b, d, w, jn, g
 
 
 @guvectorize([(float64[:],)*5], '(n),(m)' + ',()'*2 + '->(n)', nopython=True)
-def _numba_dfun(S, r, g, t, dx):
+def _numba_dfun(S, R, g, t, dx):
     "Gufunc for reduced Wong-Wang model equations."
-    dx[0] = - (S[0] / t[0]) + (1.0 - S[0]) * r[0] * g[0]   # S
+    dx[0] = - (S[0] / t[0]) + (1.0 - S[0]) * R[0] * g[0]   # S
 
 
 class ReducedWongWangExcIO(TVBReducedWongWang):
@@ -198,13 +198,6 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
                     self.a, self.b, self.d, self.w, self.J_N, self.G, self.I_o)
             return state_variables.T[..., numpy.newaxis]
 
-        # In this case, rates (H_e, H_i) are non-state variables,
-        # i.e., they form part of state_variables but have no dynamics assigned on them
-        # Most of the computations of this dfun aim at computing rates, including coupling considerations.
-        # Therefore, we compute and update them only once a new state is computed,
-        # and we consider them constant for any subsequent possible call to this function,
-        # by any integration scheme
-
         S = state_variables[0, :]  # synaptic gating dynamics
 
         c_0 = coupling[0, :]
@@ -221,7 +214,7 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
         # Rates
         R = x / (1 - numpy.exp(-self.d * x))
 
-        # We now update the state_variable vector with the new rates and currents:
+        # We now update the state_variable vector with the new rate:
         state_variables[1, :] = R
 
         # Keep them here so that they are not recomputed in the dfun
@@ -243,7 +236,6 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
 
         """
         S = integration_variables[0, :]  # Synaptic gating dynamics
-        R = integration_variables[1, :]  # Rates
 
         # Synaptic gating dynamics
         dS = - (S / self.tau_s) + (1 - S) * R * self.gamma
@@ -259,7 +251,7 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
         else:
             R = self._R
         if self.use_numba:
-            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R, self.gamma, self.tau_s)
+            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T, self.gamma, self.tau_s)
             deriv = deriv.T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, R)
