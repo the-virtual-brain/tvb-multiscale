@@ -60,15 +60,15 @@ class Transformer(HasTraits):
 
     def _assert_size(self, attr, buffer="input", dim=0):
         value = getattr(self, attr)
-        input_buffer_size = len(getattr(self, "%s_buffer" % buffer))
-        if input_buffer_size != 0:
-            if input_buffer_size != value.shape[dim]:
+        buffer_size = len(getattr(self, "%s_buffer" % buffer))
+        if buffer_size != 0:
+            if buffer_size != value.shape[dim]:
                 if value.shape[dim] == 1:
-                    value = np.repeat(value, input_buffer_size, axis=dim)
+                    value = np.repeat(value, buffer_size, axis=dim)
                 else:
                     raise ValueError("%s (=%s) is neither of length 1 "
-                                     "nor of length equal to the proxy dimension (1st) of the input buffer (=%d)"
-                                     % (attr, str(value), input_buffer_size))
+                                     "nor of length equal to the proxy dimension (%d) of the buffer (=%d)"
+                                     % (attr, str(value), dim, buffer_size))
                 setattr(self, attr, value)
         return value
 
