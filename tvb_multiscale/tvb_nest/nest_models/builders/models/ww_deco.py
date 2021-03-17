@@ -12,7 +12,7 @@ from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor
 
 class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
 
-    w_EE = 0.9
+    w_EE = np.array([0.9])
 
     def __init__(self, tvb_simulator={}, nest_nodes_ids=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
@@ -51,7 +51,7 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.tau_rise_NMDA = 2.0  # ms
         # inh spikes (GABA):
         self.tau_decay_GABA = 10.0  # ms
-        self.w_EE = np.array(kwargs.get("w_EE", kwargs.get("w", self.w_EE)))
+        self.w_EE = kwargs.get("w_EE", kwargs.get("w", self.w_EE))
         self.w_IE = 1.0
         self.w_EI = 1.0
         self.w_II = 1.0
@@ -72,6 +72,8 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         self.d_ei = self.spiking_dt
         self.d_ii = self.spiking_dt
         self.global_coupling_scaling *= self.tvb_serial_sim.get("model.G", np.array([2.0]))[0].item()
+        if not isinstance(self.w_EE, np.ndarray) or self.w_EE.size < 1:
+            self.w_EE = np.array([self.w_EE])
         self.w_EE = self.tvb_serial_sim.get("model.w", self.w_EE)[0].item()
 
     def set_defaults(self):
@@ -169,10 +171,10 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
 
 class WWDeco2014Builder(WWDeco2013Builder):
 
-    w_EE = 1.4
-    w_IE = 1.0
+    w_EE = np.array([1.4])
+    w_IE = np.array([1.0])
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True,
+    def __init__(self, tvb_simulator={}, nest_nodes_ids=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
 
         super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults)
@@ -193,8 +195,8 @@ class WWDeco2014Builder(WWDeco2013Builder):
         self.g_GABA_in = 8.51  # nS
         self.stimulus_spike_rate = 2400.0  # Hz
 
-        self.w_EE = np.array(kwargs.get("w_EE", kwargs.get("w_p", self.w_EE)))
-        self.w_IE = np.array(kwargs.get("w_IE", kwargs.get("J_i", self.w_IE)))
+        self.w_EE = kwargs.get("w_EE", kwargs.get("w_p", self.w_EE))
+        self.w_IE = kwargs.get("w_IE", kwargs.get("J_i", self.w_IE))
 
         self.nodes_conns_EI = 1.0
 
@@ -203,6 +205,10 @@ class WWDeco2014Builder(WWDeco2013Builder):
 
     def configure(self):
         self.lamda = self.tvb_serial_sim.get("model.lamda", np.array([0.0]))[0].item()
+        for attr in ["w_EE", "w_IE"]:
+            val = getattr(self, attr)
+            if not isinstance(val, np.ndarray) or val.size < 1:
+                setattr(self, attr, np.array([val]))
         self.w_EE = self.tvb_serial_sim.get("model.w_p", self.w_EE)[0].item()
         self.w_IE = self.tvb_serial_sim.get("model.J_i", self.w_IE)[0].item()
         super(WWDeco2014Builder, self).configure()
