@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 
 import numpy as np
 
@@ -365,5 +366,11 @@ class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
     pass
 
 
-TVBtoSpikeNetModels = ["RATE", "SPIKES", "CURRENT"]
-SpikeNetToTVBModels = ["SPIKES"]
+class TVBtoSpikeNetModels(Enum):
+    RATE = 0
+    SPIKES = 1
+    CURRENT = 2
+
+
+class SpikeNetToTVBModels(Enum):
+    SPIKES = 1
