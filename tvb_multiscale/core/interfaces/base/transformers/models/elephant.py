@@ -132,7 +132,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
                             doc="Correlation factor per proxy, array of floats in the interval (0, 1], "
                                 "default = 1.0 / number_of_neurons.",
                             required=True,
-                            default=np.array([0.1]).astype('f')
+                            default=np.array([0.0]).astype('f')
                         )
 
     @property
@@ -141,11 +141,8 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
 
     def configure(self):
         super(RatesToSpikesElephantPoissonInteraction, self).configure()
-        if self.correlation_factor.size == 0:
-            self.correlation_factor = 1.0 / self.number_of_neurons
-        else:
-            assert np.all(0.0 < self.correlation_factor <= 1.0)
-        self._correlation_factor
+        inds = np.where(self._correlation_factor <= 0.0)
+        self.correlation_factor[inds] = 1.0 / self._number_of_neurons[inds]
 
     def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
         rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
