@@ -29,8 +29,8 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, nest_nodes_ids=[], nest_instance=None, config=CONFIGURED, set_defaults=True):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
         self.default_population["model"] = "izhikevich_hamker"
 
         # Common order of neurons' number per population:
@@ -82,6 +82,9 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
         elif node_id in self.Igpi_nodes_ids:
             params.update({"I_e": 30.0})
         return params
+
+    def weight_fun(self, w):
+        return w
 
     def tvb_delay_fun(self, source_node, target_node):
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
