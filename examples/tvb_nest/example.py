@@ -46,9 +46,13 @@ def main_example(tvb_sim_model, model_params={},
                  config=None, plot_write=True):
 
     if config is None:
+        try:
+            spikeNet_to_tvb = tvb_nest_interface_builder.input_flag
+        except:
+            spikeNet_to_tvb = len(spikeNet_to_tvb_interfaces) > 0
         config = \
             Config(output_base=results_path_fun(spikeNet_model_builder, tvb_nest_interface_builder.model,
-                                                len(spikeNet_to_tvb_interfaces) > 0))
+                                                spikeNet_to_tvb))
 
     logger = initialize_logger(__name__, config=config)
 
