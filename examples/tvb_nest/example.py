@@ -83,7 +83,8 @@ def main_example(tvb_sim_model, model_params={},
     orchestrator.tvb_app.cosimulator_builder.delays_flag = delays_flag
 
     # -----------------------------------------b. Configure the spiking network model builder---------------------------
-    orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder(config=config)
+    orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder(config=config,
+                                                                        spiking_nodes_inds=spiking_proxy_inds)
     orchestrator.spikeNet_app.population_order = populations_order
 
     # -----------------------------------------c. Configure the TVB-SpikeNet interface model ---------------------------
