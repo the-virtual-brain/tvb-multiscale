@@ -178,9 +178,9 @@ def default_example(**kwargs):
     # tvb_to_spikeNet_interfaces = [{"model": model, "voi": "R", "populations": "E"}]
     # spikeNet_to_tvb_interfaces = [{"voi": "R", "populations": "E"}]
 
-    main_example(Linear, model_params,
-                 nest_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
-                 tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
+    return main_example(Linear, model_params,
+                        nest_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
+                        tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
 
 
 if __name__ == "__main__":

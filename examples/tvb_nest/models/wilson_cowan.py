@@ -104,9 +104,9 @@ def wilson_cowan_example(**kwargs):
     # spikeNet_to_tvb_interfaces[0]["transformer_params"].update(kwargs.pop("spikeNet_to_tvb_transformer_params", {}))
     #
 
-    main_example(WilsonCowan, model_params,
-                 nest_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
-                 tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
+    return main_example(WilsonCowan, model_params,
+                        nest_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
+                        tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
 
 
 if __name__ == "__main__":

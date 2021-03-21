@@ -9,7 +9,6 @@ mpl.use('Agg')
 import os
 import numpy as np
 from tvb_multiscale.tvb_nest.config import Config
-from tvb.datatypes.connectivity import Connectivity
 
 from examples.tvb_nest.example import default_example
 
@@ -21,9 +20,7 @@ def launch_example(write_files=True, **kwargs):
     config.figures.SHOW_FLAG = False
     config.figures.MATPLOTLIB_BACKEND = "Agg"
 
-    connectivity = Connectivity.from_file(config.DEFAULT_CONNECTIVITY_ZIP)
-
-    results, simulator = default_example(connectivity=connectivity, config=config, **kwargs)
+    results, simulator = default_example(config=config, **kwargs)
 
     if write_files:
         np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)
