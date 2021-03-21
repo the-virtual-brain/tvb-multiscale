@@ -54,14 +54,20 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
         if self.set_defaults_flag:
             self.set_defaults()
 
+    def _params_E(self, node_index):
+        return self.params_E
+
+    def _params_I(self, node_index):
+        return self.params_I
+
     def set_E_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
-               "params": self.params_E, "scale": self.scale_e, "nodes": None}  # None means "all"
+               "params": self._params_E, "scale": self.scale_e, "nodes": None}  # None means "all"
         return pop
 
     def set_I_population(self):
         pop = {"label": "I", "model": self.default_population["model"],
-               "params": self.params_I, "scale": self.scale_i, "nodes": None}  # None means "all"
+               "params": self._params_I, "scale": self.scale_i, "nodes": None}  # None means "all"
         return pop
 
     def set_populations(self):
@@ -252,7 +258,7 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         tau_syn = np.array([tau_syn_ex] +  # exc spikes
                            [tau_syn_in])  # inh spikes
         self.params_E = {"E_rev": E_rev, "tau_syn": tau_syn}
-        self.params_I = self.params_E
+        self.params_I = self.params_E.copy()
 
         self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
 
@@ -264,14 +270,19 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
     def _adjust_multisynapse_params(self, params, multi_params=["E_rev", "tau_syn"]):
         for p in multi_params:
             val = params[p].tolist()
-            val += [val[0]] * self.number_of_regions
+            n_vals = self.number_of_regions - len(val) + 2
+            val += [val[0]] * n_vals
             params[p] = np.array(val)
         return params
 
+    def _params_E(self, node_index):
+        return self._adjust_multisynapse_params(self.params_E)
+
+    def _params_I(self, node_index):
+        return self._adjust_multisynapse_params(self.params_I)
+
     def configure(self):
         super(DefaultExcIOInhIMultisynapseBuilder, self).configure()
-        self.params_E = self._adjust_multisynapse_params(self.params_E)
-        self.params_I = self._adjust_multisynapse_params(self.params_I)
         if self.set_defaults_flag:
             self.set_defaults()
 

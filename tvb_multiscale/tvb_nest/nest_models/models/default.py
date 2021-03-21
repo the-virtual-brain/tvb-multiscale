@@ -26,7 +26,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         self.w_ee = 1.0
         self.d_ee = self.within_node_delay()
 
-        self.params_E = {}
+        self.params = {}
         self.pop_conns_EE = {}
 
         self.nodes_conns = {}
@@ -45,7 +45,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
     def set_E_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
-               "params": self.params_E, "scale": self.scale_e, "nodes": None}  # None means "all"
+               "params": self.params, "scale": self.scale_e, "nodes": None}  # None means "all"
         return pop
 
     def set_populations(self):
@@ -191,7 +191,7 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
                          [E_in])  # inh local spikes
         tau_syn = np.array([tau_syn_ex] +  # exc spikes
                            [tau_syn_in])  # inh spikes
-        self.params_E = {"E_rev": E_rev, "tau_syn": tau_syn}
+        self.params = {"E_rev": E_rev, "tau_syn": tau_syn}
 
         self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
 
@@ -209,7 +209,7 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
     def configure(self):
         super(DefaultExcIOMultisynapseBuilder, self).configure()
-        self.params_E = self._adjust_multisynapse_params(self.params_E)
+        self.params = self._adjust_multisynapse_params(self.params)
         if self.set_defaults_flag:
             self.set_defaults()
 

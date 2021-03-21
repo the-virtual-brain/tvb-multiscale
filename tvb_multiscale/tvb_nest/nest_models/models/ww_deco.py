@@ -14,10 +14,10 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
 
     w_EE = np.array([0.9])
 
-    def __init__(self, tvb_simulator={}, nest_nodes_ids=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
-                 **kwargs):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED,
+                 set_defaults=True, **kwargs):
 
-        super(WWDeco2013Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults)
+        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, set_defaults)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 
@@ -76,6 +76,9 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
             self.w_EE = np.array([self.w_EE])
         self.w_EE = self.tvb_serial_sim.get("model.w", self.w_EE)[0].item()
 
+    def weight_fun(self, w):
+        return w
+
     def set_defaults(self):
 
         # Populations' configurations
@@ -94,24 +97,21 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
             "s_AMPA_ext_max": self.N_E * np.ones((self.number_of_regions,)).astype("f"),
             "N_E": self.N_E, "N_I": self.N_I, "epsilon": self.epsilon
         }
-        params_E = {
+        self.params_E = {
                     "C_m": self.C_m_ex, "g_L": self.g_L_ex, "t_ref": self.t_ref_ex,
                     "g_AMPA_ext": self.g_AMPA_ext_ex, "g_AMPA": self.g_AMPA_rec_ex,
                     "g_NMDA": self.g_NMDA_ex, "g_GABA_A": self.g_GABA_ex,
                     "w_E": self.w_EE, "w_I": self.w_IE
                     }
-        params_E.update(common_params)
-        self.params_E = lambda node_index: self.param_fun(node_index, params_E,
-                                                          weight=self.global_coupling_scaling)
-        params_I = {
+        self.params_E.update(common_params)
+
+        self.params_I = {
                     "C_m": self.C_m_in, "g_L": self.g_L_in, "t_ref": self.t_ref_in,
                     "g_AMPA_ext": self.g_AMPA_ext_in, "g_AMPA": self.g_AMPA_rec_in,
                     "g_NMDA": self.g_NMDA_in, "g_GABA_A": self.g_GABA_in,
                     "w_E": self.w_EI, "w_I": self.w_II
                     }
-        params_I.update(common_params)
-        self.params_I = lambda node_index: self.param_fun(node_index, params_I,
-                                                          weight=self.lamda * self.global_coupling_scaling)
+        self.params_I.update(common_params)
 
         self.nodes_conns_EE = 1.0
 
@@ -139,6 +139,12 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
         out_params = deepcopy(params)
         out_params.update({"w_E_ext": w_E_ext})
         return out_params
+
+    def _params_E(self, node_index):
+        return self.param_fun(node_index, self.params_E, weight=self.global_coupling_scaling)
+
+    def _params_I(self, node_index):
+        return self.param_fun(node_index, self.params_I, weight=self.lamda*self.global_coupling_scaling)
 
     def receptor_E_fun(self):
         return 0
@@ -174,10 +180,10 @@ class WWDeco2014Builder(WWDeco2013Builder):
     w_EE = np.array([1.4])
     w_IE = np.array([1.0])
 
-    def __init__(self, tvb_simulator={}, nest_nodes_ids=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
                  **kwargs):
 
-        super(WWDeco2014Builder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, set_defaults)
+        super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, set_defaults)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 
