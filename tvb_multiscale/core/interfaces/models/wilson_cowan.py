@@ -34,7 +34,7 @@ class WilsonCowanTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilder, ABC):
 
     def default_tvb_to_spikeNet_config(self, interfaces):
         for interface in interfaces:
-            if self.model == TVBtoSpikeNetModels.SPIKES:
+            if self.model == TVBtoSpikeNetModels.SPIKES.name:
                 interface["transformer_params"] = \
                     {"scale_factor": np.array([100]),
                      "number_of_neurons": np.array([self.N_E])}

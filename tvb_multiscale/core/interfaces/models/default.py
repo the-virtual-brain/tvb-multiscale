@@ -99,9 +99,9 @@ class DefaultTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilder, ABC):
 
     def default_tvb_to_spikeNet_config(self, interfaces):
         for interface in interfaces:
-            if self.model == TVBtoSpikeNetModels.SPIKES:
-                interface["transformer_params"] = \
-                    {"number_of_neurons": np.array([self.N_E])}
+            if self.model == TVBtoSpikeNetModels.SPIKES.name:
+                interface["transformer_params"] = {"scale_factor": np.array([1.0]),
+                                                   "number_of_neurons": np.array([self.N_E])}
             else:  # RATE
                 interface["transformer_params"] = {"scale_factor": np.array([self.N_E])}
 
@@ -172,7 +172,7 @@ class DefaultSpikeNetProxyNodesBuilder(SpikeNetProxyNodesBuilder, ABC):
 
     def default_tvb_to_spikeNet_config(self, interfaces):
         for interface in interfaces:
-            if self.model == TVBtoSpikeNetModels.SPIKES:
+            if self.model == TVBtoSpikeNetModels.SPIKES.name:
                 interface["proxy_params"] = {"number_of_neurons": self.N_E}
             else:  # RATE
                 interface["proxy_params"] = {"number_of_neurons": 1}

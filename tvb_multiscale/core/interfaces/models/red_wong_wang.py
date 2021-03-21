@@ -23,7 +23,7 @@ from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang impor
 class RedWongWangExcIOTVBInterfaceBuilder(DefaultTVBInterfaceBuilder):
 
     def default_output_config(self):
-        self._get_output_interfaces()["voi"] = "S" if self.model == TVBtoSpikeNetModels.CURRENT else "R"
+        self._get_output_interfaces()["voi"] = "S" if self.model == TVBtoSpikeNetModels.CURRENT.name else "R"
 
     def default_input_config(self):
         self._get_input_interfaces()["voi"] = ("S", "R")
@@ -41,10 +41,11 @@ class RedWongWangExcIOTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilder, A
 
     def default_tvb_to_spikeNet_config(self, interfaces):
         for interface in interfaces:
-            if self.model == TVBtoSpikeNetModels.CURRENT:
+            if self.model == TVBtoSpikeNetModels.CURRENT.name:
                 interface["transformer_params"] = {"scale_factor": self.J_N}
-            elif self.model == TVBtoSpikeNetModels.SPIKES:
-                interface["transformer_params"] = {"scale_factor": np.array([1.0])}
+            elif self.model == TVBtoSpikeNetModels.SPIKES.name:
+                interface["transformer_params"] = {"scale_factor": np.array([1.0]),
+                                                   "number_of_neurons": np.array([self.N_E])}
             else:  # RATE
                 interface["transformer_params"] = {"scale_factor": self.N_E*np.array([1.0])}
 
@@ -178,6 +179,13 @@ class RedWongWangExcIOSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder
         if self.global_coupling_scaling.size == 0:
             self.global_coupling_scaling = self.tvb_coupling_a * self.G
         DefaultSpikeNetProxyNodesBuilder._configure_global_coupling_scaling(self)
+
+    def default_tvb_to_spikeNet_config(self, interfaces):
+        for interface in interfaces:
+            if self.model == TVBtoSpikeNetModels.SPIKES.name:
+                interface["proxy_params"] = {"number_of_neurons": self.N_E}
+            elif self.model == TVBtoSpikeNetModels.RATE.name:
+                interface["proxy_params"] = {"number_of_neurons": 1}
 
 
 class RedWongWangExcIOSpikeNetInterfaceBuilder(RedWongWangExcIOSpikeNetProxyNodesBuilder,
@@ -327,7 +335,7 @@ class RedWongWangExcIOInhITVBInterfaceBuilder(DefaultTVBInterfaceBuilder):
         return self.tvb_model.lamda
 
     def default_output_config(self):
-        var = "S_e" if self.model == TVBtoSpikeNetModels.CURRENT else "R_e"
+        var = "S_e" if self.model == TVBtoSpikeNetModels.CURRENT.name else "R_e"
         self._get_output_interfaces(0)["voi"] = var
         if self.lamda > 0.0:
             self._get_output_interfaces(1)["voi"] = var
@@ -353,10 +361,10 @@ class RedWongWangExcIOInhITVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilde
         pass
 
     def default_tvb_to_spikeNet_config(self, interfaces):
-        if self.model == TVBtoSpikeNetModels.CURRENT:
+        if self.model == TVBtoSpikeNetModels.CURRENT.name:
             transformer_params = {"scale_factor": self.J_N}
-        elif self.model == TVBtoSpikeNetModels.SPIKES:
-            transformer_params = {"scale_factor": np.array([1.0])}
+        elif self.model == TVBtoSpikeNetModels.SPIKES.name:
+            transformer_params = {"scale_factor": np.array([1.0]), "number_of_neurons": np.array([self.N_E])}
         else:  # RATE
             transformer_params = {"scale_factor": self.N_E*np.array([1.0])}
         interfaces[0]["transformer_params"] = transformer_params
@@ -568,9 +576,9 @@ class RedWongWangExcIOInhISpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBui
         DefaultSpikeNetInterfaceBuilder._configure_global_coupling_scaling(self)
 
     def default_tvb_to_spikeNet_config(self, interfaces):
-        if self.model == TVBtoSpikeNetModels.SPIKES:
+        if self.model == TVBtoSpikeNetModels.SPIKES.name:
             proxy_params = {"number_of_neurons": self.N_E}
-        elif self.model == TVBtoSpikeNetModels.RATE:
+        elif self.model == TVBtoSpikeNetModels.RATE.name:
             proxy_params = {"number_of_neurons": 1}
         else:
             proxy_params = {}

@@ -22,7 +22,7 @@ class BasalGangliaIzhikevichTVBInterfaceBuilder(DefaultTVBInterfaceBuilder):
 
     def default_output_config(self):
         for ii in range(2):
-            self._get_output_interfaces(ii)["voi"] = "S" if self.model == TVBtoSpikeNetModels.CURRENT else "R"
+            self._get_output_interfaces(ii)["voi"] = "S" if self.model == TVBtoSpikeNetModels.CURRENT.name else "R"
 
     def default_input_config(self):
         for ii in range(3):
@@ -41,10 +41,11 @@ class BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuil
 
     def default_tvb_to_spikeNet_config(self, interfaces):
         for interface in interfaces:
-            if self.model == TVBtoSpikeNetModels.CURRENT:
+            if self.model == TVBtoSpikeNetModels.CURRENT.name:
                 interface["transformer_params"] = {"scale_factor": self.J_N}
-            elif self.model == TVBtoSpikeNetModels.SPIKES:
-                interface["transformer_params"] = {"scale_factor": np.array([1.0])}
+            elif self.model == TVBtoSpikeNetModels.SPIKES.name:
+                interface["transformer_params"] = {"scale_factor": np.array([1.0]),
+                                                   "number_of_neurons": np.array([self.N_E])}
             else:  # RATE
                 interface["transformer_params"] = {"scale_factor": self.N_E*np.array([1.0])}
 
@@ -278,9 +279,9 @@ class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesB
 
     def default_tvb_to_spikeNet_config(self, interfaces):
         for interface in interfaces:
-            if self.model == TVBtoSpikeNetModels.SPIKES:
+            if self.model == TVBtoSpikeNetModels.SPIKES.name:
                 interface["proxy_params"] = {"number_of_neurons": self.N_E}
-            else:  # RATE
+            elif self.model == TVBtoSpikeNetModels.RATE.name:
                 interface["proxy_params"] = {"number_of_neurons": 1}
 
 
