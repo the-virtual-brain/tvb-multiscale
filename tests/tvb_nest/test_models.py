@@ -221,6 +221,6 @@ if __name__ == "__main__":
     loop_all(models_to_test=[
                              TestDefault, TestDefaultMutisynapse,
                              TestWilsonCowan, TestWilsonCowanMultisynapse,
-                             TestBasalGangliaIzhikevich,
-                             TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI
+                             TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI,
+                             TestBasalGangliaIzhikevich
     ])
