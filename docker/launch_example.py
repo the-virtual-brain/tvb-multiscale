@@ -14,7 +14,7 @@ from tvb.datatypes.connectivity import Connectivity
 from examples.tvb_nest.models.wilson_cowan import wilson_cowan_example
 
 
-def launch_example():
+def launch_example(write_files=True, **kwargs):
 
     config = Config(output_base="outputs/")
     config.figures.SAVE_FLAG = False
@@ -29,11 +29,14 @@ def launch_example():
         if connectivity.region_labels[id].find("hippo") > 0:
             nest_nodes_ids.append(id)
 
-    results, simulator = wilson_cowan_example(connectivity=connectivity, config=config)
+    results, simulator = wilson_cowan_example(connectivity=connectivity, config=config, **kwargs)
 
-    np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)
-    np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), simulator.connectivity.tract_lengths)
-    np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
+    if write_files:
+        np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)
+        np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), simulator.connectivity.tract_lengths)
+        np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
+
+    return simulator, results[0][1]
 
 
 if __name__ == "__main__":

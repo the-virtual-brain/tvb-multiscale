@@ -10,8 +10,11 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator
-from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+from tvb_multiscale.tvb_nest.interfaces.models.default import DefaultTVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.models.default import DefaultMultisynapseTVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.models.default import DefaultExcIOBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.models.default import DefaultExcIOMultisynapseBuilder
+from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
@@ -34,29 +37,28 @@ def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_t
         return config.out.FOLDER_RES
 
 
-def main_example(tvb_sim_model, spikeNet_model_builder, spiking_proxy_inds,
-                 model_params={}, populations_order=100,
+def main_example(tvb_sim_model, model_params={},
+                 spikeNet_model_builder=DefaultExcIOBuilder, spiking_proxy_inds=[], populations_order=100,
+                 tvb_nest_interface_builder=DefaultTVBNESTInterfaceBuilder(),
                  tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
                  config=None, plot_write=True):
 
     if config is None:
-        if len(tvb_to_spikeNet_interfaces):
-            tvb_to_spikeNet_mode = tvb_to_spikeNet_interfaces[0]["model"]
-        else:
-            tvb_to_spikeNet_mode = None
         config = \
-            Config(output_base=results_path_fun(spikeNet_model_builder,
-                                                tvb_to_spikeNet_mode, len(spikeNet_to_tvb_interfaces) > 0))
+            Config(output_base=results_path_fun(spikeNet_model_builder, tvb_nest_interface_builder.model,
+                                                len(spikeNet_to_tvb_interfaces) > 0))
 
     logger = initialize_logger(__name__, config=config)
+
+    spiking_proxy_inds = np.array(spiking_proxy_inds)
 
     orchestrator = TVBNESTSerialOrchestrator(
         config=config,
         logger=logger,
         exclusive_nodes=exclusive_nodes,
-        spiking_proxy_inds=np.array(spiking_proxy_inds),
+        spiking_proxy_inds=spiking_proxy_inds,
         simulation_length=simulation_length
     )
     orchestrator.start()
@@ -76,11 +78,13 @@ def main_example(tvb_sim_model, spikeNet_model_builder, spiking_proxy_inds,
     orchestrator.tvb_app.cosimulator_builder.connectivity = connectivity
     orchestrator.tvb_app.cosimulator_builder.delays_flag = delays_flag
 
-    # -----------------------------------------b. Configure the spiking network model builder------------------------------
+    # -----------------------------------------b. Configure the spiking network model builder---------------------------
     orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder(config=config)
     orchestrator.spikeNet_app.population_order = populations_order
 
-    # -----------------------------------------c. Configure the TVB-SpikeNet interface model -------------------------------
+    # -----------------------------------------c. Configure the TVB-SpikeNet interface model ---------------------------
+    if tvb_nest_interface_builder is not None:
+        orchestrator.tvb_app.interfaces_builder = tvb_nest_interface_builder
     orchestrator.tvb_app.interfaces_builder.output_interfaces = tvb_to_spikeNet_interfaces
     orchestrator.tvb_app.interfaces_builder.input_interfaces = spikeNet_to_tvb_interfaces
 
@@ -109,10 +113,10 @@ def main_example(tvb_sim_model, spikeNet_model_builder, spiking_proxy_inds,
         tic = time.time()
         # try:
         plot_write_results(results, simulator,
-                               orchestrator.spiking_network, orchestrator.spiking_proxy_inds,
-                               transient=transient, tvb_state_variable_type_label="State Variables",
-                               tvb_state_variables_labels=simulator.model.variables_of_interest,
-                               plot_per_neuron=True, plotter=plotter, config=config)
+                           orchestrator.spiking_network, orchestrator.spiking_proxy_inds,
+                           transient=transient, tvb_state_variable_type_label="State Variables",
+                           tvb_state_variables_labels=simulator.model.variables_of_interest,
+                           plot_per_neuron=True, plotter=plotter, config=config)
         # except Exception as e:
         #     print("Error in plotting or writing to files!:\n%s" % str(e))
         print("\nFinished in %f secs!\n" % (time.time() - tic))
@@ -123,10 +127,7 @@ def main_example(tvb_sim_model, spikeNet_model_builder, spiking_proxy_inds,
     return results, simulator
 
 
-if __name__ == "__main__":
-
-    # Select the regions for the fine scale modeling with spiking networks
-    spiking_proxy_inds = [0, 1]  # the indices of fine scale regions modeled as spiking networks
+def default_example(**kwargs):
 
     # -----------------------------------Wilson Cowan oscillatory regime------------------------------------------------
 
@@ -154,21 +155,38 @@ if __name__ == "__main__":
         "P": np.array([0.5]),
         "Q": np.array([0.0])
     }
-    tvb_to_spikeNet_interfaces = [{"model": "RATE", "voi": "E", "populations": "E",
-                                   "transformer_params":
-                                       {"scale_factor": np.array([10000.0])},
-                                   "proxy_params": {"number_of_neurons": 1}}]
-    spikeNet_to_tvb_interfaces = [{"voi": "E", "populations": "E",
-                                   "transformer_params":
-                                       {"scale_factor": np.array([1e-6])}},  # (dt(ms) * 1000)Hz*100(neurons)
-                                  {"voi": "I", "populations": "I",
-                                   "transformer_params":
-                                       {"scale_factor": np.array([1e-6])}}]  # (dt(ms) * 1000)Hz*100(neurons)
 
-    main_example(WilsonCowan, WilsonCowanBuilder, spiking_proxy_inds,
-                 model_params=model_params, populations_order=100,
-                 tvb_to_spikeNet_interfaces=tvb_to_spikeNet_interfaces,
-                 spikeNet_to_tvb_interfaces=spikeNet_to_tvb_interfaces,
-                 exclusive_nodes=True, delays_flag=True,
-                 simulation_length=110.0, transient=10.0,
-                 config=None)
+    model_params.update(kwargs.pop("model_params", {}))
+
+    populations_order = kwargs.pop("populations_order", 100)
+
+    model = kwargs.pop("model", "RATE").upper()
+    if kwargs.pop("multisynapse", False):
+        nest_model_builder = DefaultExcIOMultisynapseBuilder
+        tvb_nest_model_builder = DefaultMultisynapseTVBNESTInterfaceBuilder()
+    else:
+        nest_model_builder = DefaultExcIOBuilder
+        tvb_nest_model_builder = DefaultTVBNESTInterfaceBuilder()
+    tvb_nest_model_builder.model = model
+    tvb_to_spikeNet_interfaces = []
+    spikeNet_to_tvb_interfaces = []
+    tvb_nest_model_builder.N_E = populations_order
+    tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
+    tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
+
+    # An example of a minimal configuration:
+    # tvb_to_spikeNet_interfaces = [{"model": model, "voi": "R", "populations": "E"}]
+    # spikeNet_to_tvb_interfaces = [{"voi": "R", "populations": "E"}]
+
+    main_example(Linear, model_params,
+                 nest_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
+                 tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
+
+
+if __name__ == "__main__":
+    import sys
+
+    if sys.argv[-1] == "1":
+        default_example(model="RATE", multisynapse=True)
+    else:
+        default_example(model="RATE")

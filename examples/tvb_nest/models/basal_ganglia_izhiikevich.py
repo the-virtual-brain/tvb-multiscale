@@ -3,12 +3,16 @@
 import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
+from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight
+from tvb_multiscale.tvb_nest.interfaces.models.basal_ganglia_izhikevich import \
+    BasalGangliaIzhikevichTVBNESTInterfaceBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
 from examples.tvb_nest.example import main_example
 
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import \
-    ElephantSpikesRateRedWongWangInh
+    ElephantSpikesRateRedWongWangExc, ElephantSpikesRateRedWongWangInh
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.integrators import HeunStochastic
@@ -16,8 +20,6 @@ from tvb.simulator.noise import Additive
 
 
 def basal_ganglia_izhikevich_example(**kwargs):
-
-    spiking_proxy_inds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     import os
 
@@ -59,67 +61,94 @@ def basal_ganglia_izhikevich_example(**kwargs):
 
     connectivity = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_lengths=tlTVB)
 
-    model_params = kwargs.pop("model_params", {})
-
+    spiking_proxy_inds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     populations_order = kwargs.pop("populations_order", 200)
 
-    tvb_to_spikeNet_transformer = kwargs.pop("tvb_to_spikeNet_transformer",
-                                             kwargs.pop("tvb_to_spikeNet_transformer_model", None))
-    tvb_spikeNet_transformer_params = {"scale_factor": populations_order*np.array([1.0])}
-    tvb_spikeNet_transformer_params.update(kwargs.pop("tvb_spikeNet_transformer_params", {}))
+    model_params = kwargs.pop("model_params", {})
 
-    tvb_to_spikeNet_proxy = kwargs.pop("tvb_to_spikeNet_proxy", kwargs.pop("tvb_to_spikeNet_proxy_model", None))
-    tvb_spikeNet_proxy_params = {"number_of_neurons": 1}
-    tvb_spikeNet_proxy_params.update(kwargs.pop("tvb_spikeNet_proxy_params", {}))
 
+    model = kwargs.pop("model", "RATE").upper()
+    tvb_nest_model_builder = BasalGangliaIzhikevichTVBNESTInterfaceBuilder()
+    tvb_nest_model_builder.model = model
+    tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
+    tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
+    tvb_nest_model_builder.N_E = populations_order
+    tvb_nest_model_builder.GPe_proxy_inds = np.array([0, 1])
+    tvb_nest_model_builder.GPi_proxy_inds = np.array([2, 3])
+    tvb_nest_model_builder.STN_proxy_inds = np.array([4, 5])
+    tvb_nest_model_builder.Striatum_proxy_inds = np.array([6, 7])
+    tvb_nest_model_builder.Thal_proxy_inds = np.array([8, 9])
     tvb_to_spikeNet_interfaces = []
-    for ii, (trg_pop, nodes, _pop) in enumerate(zip(["E",          ["IdSN", "IiSN"]],
-                                                    [[4, 5, 8, 9], [6, 7]],
-                                                    ["E",          "ISN"])):
-        tvb_to_spikeNet_interfaces.append({"model": "RATE", "voi": "R", "populations": trg_pop,
-                                           "transformer_params": tvb_spikeNet_transformer_params,
-                                           "proxy_params": tvb_spikeNet_proxy_params,
-                                           "spiking_proxy_inds": np.array(nodes)})
-        if tvb_to_spikeNet_transformer:
-            tvb_to_spikeNet_interfaces[ii]["transformer_model"] = tvb_to_spikeNet_transformer
-        tvb_to_spikeNet_interfaces[ii]["transformer_params"].update(
-            kwargs.pop("tvb_to_spikeNet_transformer_params_%s" % _pop, {}))
-        if tvb_to_spikeNet_proxy:
-            tvb_to_spikeNet_interfaces[ii]["proxy_model"] = tvb_to_spikeNet_proxy
-        tvb_to_spikeNet_interfaces[ii]["proxy_params"].update(
-            kwargs.pop("tvb_to_spikeNet_proxy_params_%s" % _pop, {}))
-
-    spikeNet_to_tvb_transformer = kwargs.pop("spikeNet_to_tvb_transformer",
-                                             kwargs.pop("spikeNet_to_tvb_transformer_model",
-                                                        ElephantSpikesRateRedWongWangInh))
     spikeNet_to_tvb_interfaces = []
-    for ii, (src_pop, nodes, _pop) in enumerate(zip(["E",          "I",          ["IdSN", "IiSN"]],
-                                                    [[4, 5, 8, 9], [0, 1, 2, 3], [6, 7]],
-                                                    ["E", "I", "ISN"])):
-        spikeNet_to_tvb_interfaces.append(
-            {"voi": ("S", "R"), "populations": src_pop,
-             "transformer": spikeNet_to_tvb_transformer,
-             "transformer_params": {"scale_factor": np.array([1.0]) / populations_order,
-                                    "integrator":
-                                        HeunStochastic(dt=0.1,
-                                                       noise=Additive(
-                                                           nsig=np.array([[1e-3], [0.0]]))),
-                                    "state": np.zeros((2, len(nodes))),
-                                    "tau_s": model_params.get("tau_s",
-                                                              np.array([100.0, ])),
-                                    "tau_r": np.array([10.0, ]),
-                                    "gamma": model_params.get("gamma",
-                                                              np.array([0.641 / 1000, ]))},
-             "proxy_inds": np.array(nodes)
-             })
-        spikeNet_to_tvb_interfaces[ii]["transformer_params"].update(
-            kwargs.pop("spikeNet_to_tvb_transformer_params_%s" % _pop, {}))
 
-    return main_example(LinearReducedWongWangExcIO, BasalGangliaIzhikevichBuilder, spiking_proxy_inds,
-                        populations_order=populations_order, model_params=model_params, connectivity=connectivity,
-                        tvb_to_spikeNet_interfaces=tvb_to_spikeNet_interfaces,
-                        spikeNet_to_tvb_interfaces=spikeNet_to_tvb_interfaces,
-                        **kwargs)
+    # An example of a configuration:
+    # G = model_params.get("G", np.array([2.0]))[0].item()
+    # coupling_a = model_params.pop("coupling_a", np.array([1.0 / 256]))[0].item()
+    # global_coupling_scaling = G * coupling_a
+    # tvb_to_spikeNet_transformer = kwargs.pop("tvb_to_spikeNet_transformer",
+    #                                          kwargs.pop("tvb_to_spikeNet_transformer_model", None))
+    # tvb_spikeNet_transformer_params = {"scale_factor": populations_order*np.array([1.0])}
+    # tvb_spikeNet_transformer_params.update(kwargs.pop("tvb_spikeNet_transformer_params", {}))
+    #
+    # tvb_to_spikeNet_proxy = kwargs.pop("tvb_to_spikeNet_proxy", kwargs.pop("tvb_to_spikeNet_proxy_model", None))
+    # tvb_spikeNet_proxy_params = {"number_of_neurons": 1,
+    #                              "weights": lambda source_node, target_node, tvb_weights:
+    #                                 scale_tvb_weight(source_node, target_node, tvb_weights, global_coupling_scaling),
+    #                              "receptor_type": lambda source_node, target_node:
+    #                                 receptor_by_source_region(source_node, target_node, start=1)}
+    # tvb_spikeNet_proxy_params.update(kwargs.pop("tvb_spikeNet_proxy_params", {}))
+    #
+    # tvb_to_spikeNet_interfaces = []
+    # for ii, (trg_pop, nodes, _pop) in \
+    #         enumerate(zip(["E",                                 ["IdSN", "IiSN"]],
+    #                       [tvb_nest_model_builder.E_proxy_inds, tvb_nest_model_builder.Striatum_proxy_inds],
+    #                       ["E",                                 "ISN"])):
+    #     tvb_to_spikeNet_interfaces.append({"model": "RATE", "voi": "R", "populations": trg_pop,
+    #                                        "transformer_params": tvb_spikeNet_transformer_params,
+    #                                        "proxy_params": tvb_spikeNet_proxy_params,
+    #                                        "spiking_proxy_inds": np.array(nodes)})
+    #     if tvb_to_spikeNet_transformer:
+    #         tvb_to_spikeNet_interfaces[ii]["transformer_model"] = tvb_to_spikeNet_transformer
+    #     tvb_to_spikeNet_interfaces[ii]["transformer_params"].update(
+    #         kwargs.pop("tvb_to_spikeNet_transformer_params_%s" % _pop, {}))
+    #     if tvb_to_spikeNet_proxy:
+    #         tvb_to_spikeNet_interfaces[ii]["proxy_model"] = tvb_to_spikeNet_proxy
+    #     tvb_to_spikeNet_interfaces[ii]["proxy_params"].update(
+    #         kwargs.pop("tvb_to_spikeNet_proxy_params_%s" % _pop, {}))
+    #
+    # spikeNet_to_tvb_transformer = kwargs.pop("spikeNet_to_tvb_transformer",
+    #                                          kwargs.pop("spikeNet_to_tvb_transformer_model",
+    #                                                     ElephantSpikesRateRedWongWangInh))
+    # spikeNet_to_tvb_interfaces = []
+    # for ii, (src_pop, nodes, _pop) in \
+    #     enumerate(zip(["E", "I", ["IdSN", "IiSN"]],
+    #                   [tvb_nest_model_builder.E_proxy_inds,
+    #                    tvb_nest_model_builder.I_proxy_inds,
+    #                    tvb_nest_model_builder.Striatum_proxy_inds],
+    #                    ["E", "I", "ISN"])):
+    #     spikeNet_to_tvb_interfaces.append(
+    #         {"voi": ("S", "R"), "populations": src_pop,
+    #          "transformer": spikeNet_to_tvb_transformer,
+    #          "transformer_params": {"scale_factor": np.array([1.0]) / tvb_nest_model_builder.N_E,
+    #                                 "integrator":
+    #                                     HeunStochastic(dt=0.1,
+    #                                                    noise=Additive(
+    #                                                        nsig=np.array([[1e-3], [0.0]]))),
+    #                                 "state": np.zeros((2, len(nodes))),
+    #                                 "tau_s": model_params.get("tau_s",
+    #                                                           np.array([100.0, ])),
+    #                                 "tau_r": np.array([10.0, ]),
+    #                                 "gamma": model_params.get("gamma",
+    #                                                           np.array([0.641 / 1000, ]))},
+    #          "proxy_inds": np.array(nodes)
+    #          })
+    #     spikeNet_to_tvb_interfaces[ii]["transformer_params"].update(
+    #         kwargs.pop("spikeNet_to_tvb_transformer_params_%s" % _pop, {}))
+
+    return main_example(LinearReducedWongWangExcIO, model_params,
+                        BasalGangliaIzhikevichBuilder, spiking_proxy_inds, populations_order,
+                        tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
+                        connectivity=connectivity, **kwargs)
 
 
 if __name__ == "__main__":
