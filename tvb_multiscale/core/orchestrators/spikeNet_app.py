@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABC, ABCMeta
 
 import numpy as np
 
@@ -11,6 +11,8 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import SpikeNetOutputInterfaces, SpikeNetInputInterfaces
+from tvb_multiscale.core.interfaces.models.default import \
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder
 
 
 class SpikeNetApp(NonTVBApp, ABC):
@@ -22,7 +24,7 @@ class SpikeNetApp(NonTVBApp, ABC):
         label="Spiking Network Builder",
         field_type=SpikingNetworkBuilder,
         doc="""Instance of Spiking Network Builder.""",
-        required=False
+        required=True
     )
 
     spiking_network = Attr(
@@ -182,6 +184,9 @@ class SpikeNetParallelApp(SpikeNetApp, ABC):
         self.interfaces_builder.spiking_network = self._spiking_network
         self.interfaces_builder.config = self.config
         self.interfaces_builder.logger = self.logger
+        if hasattr(self.interfaces_builder, "default_config"):
+            self.interfaces_builder.default_config()
+        self.interfaces_builder.configure()
 
     @property
     def _interfaces_builder(self):

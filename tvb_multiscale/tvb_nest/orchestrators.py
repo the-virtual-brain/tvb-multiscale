@@ -12,9 +12,12 @@ from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestr
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.models.default import DefaultExcIOBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
 from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTOutputInterfaces, NESTInputInterfaces
-from tvb_multiscale.tvb_nest.interfaces.builder import NESTInterfaceBuilder, TVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.builders import NESTProxyNodesBuilder, TVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.models.default import \
+    DefaultNESTRemoteInterfaceBuilder, DefaultTVBNESTInterfaceBuilder
 
 
 class NESTSerialApp(SpikeNetSerialApp):
@@ -41,7 +44,8 @@ class NESTSerialApp(SpikeNetSerialApp):
         label="NEST Network Builder",
         field_type=NESTNetworkBuilder,
         doc="""Instance of NEST Model Builder.""",
-        required=False
+        required=True,
+        default=DefaultExcIOBuilder()
     )
 
     spiking_network = Attr(
@@ -115,9 +119,10 @@ class NESTParallelApp(NESTSerialApp, SpikeNetParallelApp):
 
     interfaces_builder = Attr(
         label="NEST interfaces builder",
-        field_type=NESTInterfaceBuilder,
+        field_type=NESTProxyNodesBuilder,
         doc="""Instance of NEST Network interfaces' builder class.""",
-        required=False
+        required=False,
+        default=DefaultNESTRemoteInterfaceBuilder()
     )
 
     output_interfaces = Attr(
@@ -134,7 +139,7 @@ class NESTParallelApp(NESTSerialApp, SpikeNetParallelApp):
         required=False
     )
 
-    _default_interface_builder = NESTInterfaceBuilder
+    _default_interface_builder = NESTProxyNodesBuilder
 
     def build(self):
         SpikeNetParallelApp.build(self)
@@ -169,7 +174,7 @@ class TVBSerialApp(TVBSerialAppBase):
         field_type=TVBNESTInterfaceBuilder,
         doc="""Instance of TVBNESTInterfaces' builder class.""",
         required=True,
-        default=TVBNESTInterfaceBuilder()
+        default=DefaultTVBNESTInterfaceBuilder()
     )
 
     spiking_network = Attr(

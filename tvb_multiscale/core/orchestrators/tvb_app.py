@@ -11,7 +11,10 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import \
     CoSimulatorBuilder, CoSimulatorParallelBuilder, CoSimulatorSerialBuilder
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import dump_serial_tvb_cosimulator, serialize_tvb_cosimulator
-from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder
+from tvb_multiscale.core.interfaces.tvb.builders import \
+    TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder, TVBRemoteInterfaceBuilder
+from tvb_multiscale.core.interfaces.models.default import \
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -35,9 +38,9 @@ class TVBApp(App):
     )
 
     interfaces_builder = Attr(
-        label="TVB Interfaces builder",
+        label="TVBInterfaces builder",
         field_type=TVBInterfaceBuilder,
-        doc="""Instance of TVB interfaces' builder class.""",
+        doc="""Instance of TVBInterfaces' builder class.""",
         required=False
     )
 
@@ -80,6 +83,8 @@ class TVBApp(App):
         self.interfaces_builder.logger = self.logger
         self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
         self.interfaces_builder.proxy_inds = self.spiking_proxy_inds
+        if hasattr(self.interfaces_builder, "default_config"):
+            self.interfaces_builder.default_config()
         self.interfaces_builder.configure()
 
     @property
@@ -204,7 +209,16 @@ class TVBParallelApp(TVBApp):
         required=False
     )
 
+    interfaces_builder = Attr(
+        label="TVBRemoteInterfaceBuilder builder",
+        field_type=TVBRemoteInterfaceBuilder,
+        doc="""Instance of TVBRemoteInterfaceBuilder' builder class.""",
+        required=False,
+        default=DefaultTVBRemoteInterfaceBuilder()
+    )
+
     _cosimulator_builder_type = CoSimulatorParallelBuilder
+    _default_interface_builder = DefaultTVBRemoteInterfaceBuilder
 
 
 class TVBSerialApp(TVBApp):
@@ -241,7 +255,7 @@ class TVBSerialApp(TVBApp):
     )
 
     _cosimulator_builder_type = CoSimulatorSerialBuilder
-    _default_interface_builder = TVBSpikeNetInterfaceBuilder
+    _default_interface_builder = DefaultTVBSpikeNetInterfaceBuilder
 
     def configure_interfaces_builder(self):
         self.interfaces_builder.spiking_network = self.spiking_network
