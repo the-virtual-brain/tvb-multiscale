@@ -244,7 +244,7 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         self.w_ii = self.weight_fun(1.0)
 
         E_ex = kwargs.get("E_ex", 0.0)
-        E_in = kwargs.get("E_ex", -85.0)
+        E_in = kwargs.get("E_in", -85.0)
         tau_syn_ex = kwargs.get("tau_syn_ex", 0.2)
         tau_syn_in = kwargs.get("tau_syn_in", 2.0)
         E_rev = np.array([E_ex] +  # exc local spikes
