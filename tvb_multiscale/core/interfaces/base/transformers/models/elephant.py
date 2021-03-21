@@ -132,7 +132,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
                             doc="Correlation factor per proxy, array of floats in the interval (0, 1], "
                                 "default = 1.0 / number_of_neurons.",
                             required=True,
-                            default=np.array([]).astype('f')
+                            default=np.array([0.1]).astype('f')
                         )
 
     @property
