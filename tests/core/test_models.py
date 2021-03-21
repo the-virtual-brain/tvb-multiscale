@@ -181,7 +181,9 @@ def loop_all(models_to_test=[TestLinear, TestWilsonCowan,
         sleep(5)
         print("\n******************************************************")
         print("******************************************************")
-    if not np.all([result is True for result in list(success.values())]):
+    if not np.all([result is True
+                    for model_result in list(success.values())
+                        for result in list(model_result.values()) ]):
         raise Exception("%s\nmodels' tests failed! Details:\n%s" % (str(os.getcwd()), str(success)))
     else:
         print(success)

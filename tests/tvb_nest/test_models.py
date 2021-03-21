@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
-import shutil
 
 from tvb.basic.profile import TvbProfile
-from tvb_multiscale.core.config import Config
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
+import numpy as np
 
 import matplotlib as mpl
 mpl.use('Agg')
@@ -188,10 +187,11 @@ class TestReducedWongWangExcIOInhI(TestSpikeNetModel):
         self.run()
 
 
-class TestBasalGangliaIzhikegich(TestSpikeNetModel):
+class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
     model = LinearReducedWongWangExcIO
     spikeNet_model_builder = BasalGangliaIzhikevichBuilder
+    spiking_proxy_inds = np.arange(10).tolist()
     tvb_spikeNet_model_builder = BasalGangliaIzhikevichTVBNESTInterfaceBuilder
 
     def run_fun(self):
@@ -218,7 +218,9 @@ class TestBasalGangliaIzhikegich(TestSpikeNetModel):
 
 
 if __name__ == "__main__":
-    loop_all(models_to_test=[TestDefault, TestDefaultMutisynapse,
+    loop_all(models_to_test=[
+                             TestDefault, TestDefaultMutisynapse,
                              TestWilsonCowan, TestWilsonCowanMultisynapse,
-                             TestBasalGangliaIzhikegich,
-                             TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI])
+                             TestBasalGangliaIzhikevich,
+                             TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI
+    ])
