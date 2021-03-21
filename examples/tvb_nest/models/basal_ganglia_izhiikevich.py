@@ -3,20 +3,13 @@
 import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
-from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight
 from tvb_multiscale.tvb_nest.interfaces.models.basal_ganglia_izhikevich import \
     BasalGangliaIzhikevichTVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
+from tvb_multiscale.tvb_nest.nest_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 
 from examples.tvb_nest.example import main_example
 
-from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import \
-    ElephantSpikesRateRedWongWangExc, ElephantSpikesRateRedWongWangInh
-
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.integrators import HeunStochastic
-from tvb.simulator.noise import Additive
 
 
 def basal_ganglia_izhikevich_example(**kwargs):

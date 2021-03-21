@@ -3,7 +3,7 @@
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.models.default_exc_io_inh_i import \
+from tvb_multiscale.tvb_nest.nest_models.models.default_exc_io_inh_i import \
     DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
 
 

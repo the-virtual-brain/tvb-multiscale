@@ -8,7 +8,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
 from examples.tvb_nest.example import results_path_fun
 from examples.plot_write_results import plot_write_results
-from tvb_multiscale.tvb_nest.nest_models.builders.models.dev.cereb import CerebBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.dev import CerebBuilder
 from tvb_multiscale.tvb_nest.interfaces.models import RedWWexcIOBuilder
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter

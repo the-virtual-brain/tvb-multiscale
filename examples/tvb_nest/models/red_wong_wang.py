@@ -4,18 +4,11 @@ import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import \
-    ElephantSpikesRateRedWongWangExc, ElephantSpikesRateRedWongWangInh
-from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight
 from tvb_multiscale.tvb_nest.interfaces.models.red_wong_wang import \
     RedWongWangExcIOTVBNESTInterfaceBuilder, RedWongWangExcIOInhITVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
+from tvb_multiscale.tvb_nest.nest_models.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 
 from examples.tvb_nest.example import main_example
-
-from tvb.simulator.integrators import HeunStochastic
-from tvb.simulator.noise import Additive
 
 
 def red_wong_wang_excio_example(**kwargs):

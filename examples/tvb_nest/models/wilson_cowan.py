@@ -5,9 +5,8 @@ import numpy as np
 from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb_multiscale.tvb_nest.interfaces.models.wilson_cowan import WilsonCowanTVBNESTInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.models.wilson_cowan import WilsonCowanMultisynapseTVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import \
+from tvb_multiscale.tvb_nest.nest_models.models.wilson_cowan import \
     WilsonCowanBuilder, WilsonCowanMultisynapseBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
 from examples.tvb_nest.example import main_example
 

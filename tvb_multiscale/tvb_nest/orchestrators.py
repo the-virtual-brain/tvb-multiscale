@@ -12,7 +12,7 @@ from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestr
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.default import DefaultExcIOBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
 from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTOutputInterfaces, NESTInputInterfaces
 from tvb_multiscale.tvb_nest.interfaces.builders import NESTProxyNodesBuilder, TVBNESTInterfaceBuilder

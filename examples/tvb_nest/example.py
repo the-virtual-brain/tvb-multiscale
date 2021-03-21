@@ -12,8 +12,8 @@ from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.orchestrators import TVBNESTSerialOrchestrator
 from tvb_multiscale.tvb_nest.interfaces.models.default import DefaultTVBNESTInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.models.default import DefaultMultisynapseTVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.default import DefaultExcIOBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.models.default import DefaultExcIOMultisynapseBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOMultisynapseBuilder
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 from tvb_multiscale.core.plot.plotter import Plotter
 
