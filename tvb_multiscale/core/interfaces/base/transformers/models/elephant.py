@@ -141,8 +141,10 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
 
     def configure(self):
         super(RatesToSpikesElephantPoissonInteraction, self).configure()
-        inds = np.where(self._correlation_factor <= 0.0)
-        self.correlation_factor[inds] = 1.0 / self._number_of_neurons[inds]
+        correlation_factor = self._correlation_factor.copy()
+        inds = np.where(correlation_factor <= 0.0)
+        correlation_factor[inds] = 1.0 / self._number_of_neurons[inds]
+        self.correlation_factor = correlation_factor.copy()
 
     def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
         rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
