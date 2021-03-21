@@ -5,6 +5,8 @@ from enum import Enum
 from abc import ABCMeta, abstractmethod
 from six import string_types
 
+import numpy as np
+
 from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Float
 
@@ -19,7 +21,7 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, S
 
 class DefaultTVBtoSpikeNetModels(Enum):
     RATE = "RATE"
-    SPIKES = "SPIKES"
+    SPIKES = "SPIKES_MULTIPLE_INTERACTION"
     CURRENT = "CURRENT"
 
 
@@ -65,8 +67,7 @@ class TransformerBuilder(HasTraits):
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
-               required=True,
-               default=0.1)
+               required=True, default=0.0)
 
     @staticmethod
     def _configure_transformer_model(interface, interface_models, default_transformer_models, transformer_models):
@@ -103,7 +104,7 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
 
     """TVBtoSpikeNetTransformerBuilder abstract class"""
 
-    _tvb_to_spikeNet_models = TVBtoSpikeNetModels
+    _tvb_to_spikeNet_models = list(TVBtoSpikeNetModels.__members__)
     _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
     _tvb_to_spikeNet_transformer_models = DefaultTVBtoSpikeNetTransformers
 
@@ -113,13 +114,13 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
                                               self._default_tvb_to_spikeNet_models,
                                               self._tvb_to_spikeNet_transformer_models)
             params = interface.pop("transformer_params", {})
-            params["dt"] = params.pop("dt", self.tvb_dt)
+            params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
                 if interface["transformer"] == DefaultTVBtoSpikeNetTransformers.SPIKES:
                     # If the transformer is "SPIKES", but there are parameters that concern correlations...
                     correlation_factor = params.pop("correlation_factor", None)
-                    scale_factor = params.pop("scale_factor", 1.0)
+                    scale_factor = params.pop("scale_factor", np.array([1.0]))
                     if correlation_factor:
                         interaction = params.pop("interaction", "multiple")
                         if interaction == "single":
@@ -146,7 +147,7 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
 
     """SpikeNetToTVBTransformerBuilder abstract class"""
 
-    _spikeNet_to_tvb_models = SpikeNetToTVBModels
+    _spikeNet_to_tvb_models = list(SpikeNetToTVBModels.__members__)
     _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBModels
     _spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBTransformers
 
@@ -156,7 +157,7 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
                                               self._default_spikeNet_to_tvb_transformer_models,
                                               self._spikeNet_to_tvb_transformer_models)
             params = interface.pop("transformer_params", {})
-            params["dt"] = params.pop("dt", self.tvb_dt)
+            params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
                 interface["transformer"] = interface["transformer"].value(**params)
