@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from logging import Logger
 from six import string_types
 
