@@ -12,8 +12,7 @@ def serialize_tvb_cosimulator(input_cosimulator):
     cosimulator.configure()
 
     d = \
-        {"synchronization_time": float(cosimulator.synchronization_time),
-         "integrator.dt": float(cosimulator.integrator.dt),
+        {"integrator.dt": float(cosimulator.integrator.dt),
          "connectivity.number_of_regions": int(cosimulator.connectivity.number_of_regions),
          "connectivity.region_labels": np.copy(cosimulator.connectivity.region_labels),
          "connectivity.weights": np.copy(cosimulator.connectivity.weights),
@@ -24,8 +23,11 @@ def serialize_tvb_cosimulator(input_cosimulator):
          "model.nintvar": int(cosimulator.model.nintvar),
          "model.state_variables": list(cosimulator.model.state_variables),
          "model.cvar": np.copy(cosimulator.model.cvar),
-         "monitor.period": float(cosimulator.monitors[0].period)
+         "monitor.period": float(cosimulator.monitors[0].period),
     }
+    d["synchronization_time"] = float(getattr(cosimulator, "synchronization_time", d["integrator.dt"]))
+    if hasattr(cosimulator.integrator, "noise"):
+        d["integrator.noise.nsig"] = cosimulator.integrator.noise.nsig
 
     excluded_params = ("state_variables", "state_variable_range", "state_variable_boundaries", "variables_of_interest",
                        "nvar", "nintvar", "cvar", "noise", "psi_table", "nerf_table", "gid")
