@@ -3,7 +3,7 @@
 import numpy as np
 
 from tvb_multiscale.tvb_nest.interfaces.base import TVBNESTInterface
-from tvb_multiscale.tvb_nest.interfaces.builder import TVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.builders import TVBNESTInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.models import Linear
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay
 
