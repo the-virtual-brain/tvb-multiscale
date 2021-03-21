@@ -59,7 +59,6 @@ def basal_ganglia_izhikevich_example(**kwargs):
 
     model_params = kwargs.pop("model_params", {})
 
-
     model = kwargs.pop("model", "RATE").upper()
     tvb_nest_model_builder = BasalGangliaIzhikevichTVBNESTInterfaceBuilder()
     tvb_nest_model_builder.model = model
