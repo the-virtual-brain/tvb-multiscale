@@ -88,14 +88,17 @@ class SpikingNetworkBuilder(object):
         self.default_devices_connection["nodes"] = None
 
         self.tvb_serial_sim = tvb_serial_sim
+        self._assert_tvb_cosimulator()
         self.spiking_nodes_inds = spiking_nodes_inds
 
-    def configure(self):
+    def _assert_tvb_cosimulator(self):
         if isinstance(self.tvb_serial_sim, os.PathLike):
             self.tvb_serial_sim = load_serial_tvb_cosimulator(self.tvb_serial_sim)
         elif not isinstance(self.tvb_serial_sim, dict):
             self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
 
+    def configure(self):
+        self._assert_tvb_cosimulator()
         self.update_spiking_dt()
         self.update_default_min_delay()
 
