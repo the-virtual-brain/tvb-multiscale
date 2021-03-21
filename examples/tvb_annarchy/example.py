@@ -10,8 +10,8 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, Config
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_izhikevich \
+from tvb_multiscale.tvb_annarchy.annarchy_models.models import WilsonCowanBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.models \
     import BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder

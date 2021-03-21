@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.models import DefaultExcIOInhIBuilder
 
 
 class WilsonCowanBuilder(DefaultExcIOInhIBuilder):

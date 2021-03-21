@@ -10,8 +10,8 @@ import matplotlib as mpl
 mpl.use('Agg')
 
 from examples.tvb_annarchy.example import main_example, results_path_fun
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_izhikevich import \
+from tvb_multiscale.tvb_annarchy.annarchy_models.models import WilsonCowanBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.models import \
     BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder

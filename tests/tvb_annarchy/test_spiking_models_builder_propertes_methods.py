@@ -5,7 +5,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, Config
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_izhikevich import \
+from tvb_multiscale.tvb_annarchy.annarchy_models.models import \
     BasalGangliaIzhikevichBuilder
 
 from tvb.datatypes.connectivity import Connectivity
