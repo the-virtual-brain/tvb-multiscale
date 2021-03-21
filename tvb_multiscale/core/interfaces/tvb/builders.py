@@ -71,6 +71,13 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         return self.tvb_cosimulator.integrator.dt
 
     @property
+    def tvb_nsig(self):
+        try:
+            return self.tvb_cosimulator.integrator.noise.nsig
+        except:
+            return np.array([0.0])
+
+    @property
     def tvb_model(self):
         if self.tvb_cosimulator is None:
             return ""
@@ -237,28 +244,6 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
         return interface
 
 
-class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder,
-                                    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
-
-    """TVBTransfomerInterfaceBuilder class"""
-
-    _output_interface_type = TVBTransformerSenderInterface
-    _input_interface_type = TVBReceiverTransformerInterface
-
-    def configure(self):
-        super(TVBTransfomerInterfaceBuilder, self).configure()
-        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
-        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
-
-    def _get_output_interface_arguments(self, interface):
-        interface = super(TVBTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
-        return interface
-
-    def _get_input_interface_arguments(self, interface):
-        interface = TVBTransfomerInterfaceBuilder._get_input_interface_arguments(self, interface)
-        return interface
-
-
 class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
 
     """TVBOutputTransformerInterfaceBuilder class"""
@@ -267,8 +252,11 @@ class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpike
     _input_interface_type = TVBReceiverInterface
 
     def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        TVBRemoteInterfaceBuilder.configure(self)
         self.configure_and_build_transformer(self)
-        super(TVBOutputTransformerInterfaceBuilder, self).configure()
 
     def _get_output_interface_arguments(self, interface):
         interface.update(super(TVBOutputTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface))
@@ -283,11 +271,39 @@ class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToT
     _input_interface_type = TVBReceiverTransformerInterface
 
     def configure(self):
-        super(TVBInputTransformerInterfaceBuilder, self).configure()
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        TVBRemoteInterfaceBuilder.configure(self)
         self.configure_and_build_transformer(self)
 
     def _get_input_interface_arguments(self, interface):
         interface = super(TVBInputTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)
+        return interface
+
+
+class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder,
+                                    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
+
+    """TVBTransfomerInterfaceBuilder class"""
+
+    _output_interface_type = TVBTransformerSenderInterface
+    _input_interface_type = TVBReceiverTransformerInterface
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        TVBRemoteInterfaceBuilder.configure(self)
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
+
+    def _get_output_interface_arguments(self, interface):
+        interface = super(TVBTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
+        return interface
+
+    def _get_input_interface_arguments(self, interface):
+        interface = TVBTransfomerInterfaceBuilder._get_input_interface_arguments(self, interface)
         return interface
 
 
@@ -297,8 +313,8 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
 
     """TVBSpikeNetInterfaceBuilder abstract base class"""
 
-    _tvb_to_spikeNet_models = TVBtoSpikeNetModels
-    _spikeNet_to_tvb_models = SpikeNetToTVBModels
+    _tvb_to_spikeNet_models = list(TVBtoSpikeNetModels.__members__)
+    _spikeNet_to_tvb_models = list(SpikeNetToTVBModels.__members__)
 
     _default_nest_to_tvb_models = DefaultSpikeNetToTVBModels
     _default_tvb_to_nest_models = DefaultTVBtoSpikeNetModels
@@ -321,15 +337,16 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
         return self.in_proxy_inds
 
     def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to
+            # SpikeNetProxyNodesBuilder, TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder:
+            self.dt = self.tvb_dt
         TVBInterfaceBuilder.configure(self)
         SpikeNetProxyNodesBuilder.configure(self)
         self._configure_proxy_models(self.output_interfaces, self._tvb_to_spikeNet_models,
                                      self._default_tvb_to_nest_models, self._output_proxy_models)
         self._configure_proxy_models(self.input_interfaces, self._spikeNet_to_tvb_models,
                                      self._default_nest_to_tvb_models, self._input_proxy_models)
-        # From TVBInterfaceBuilder to
-        # SpikeNetProxyNodesBuilder, TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder:
-        self.dt = self.tvb_dt
         TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
         SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
 
