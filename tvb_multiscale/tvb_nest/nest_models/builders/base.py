@@ -30,10 +30,10 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
     modules_to_install = []
     _spiking_brain = NESTBrain()
 
-    def __init__(self, tvb_simulator={}, nest_nodes_inds=[], nest_instance=None, config=CONFIGURED, logger=None):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, logger=None):
         if logger is None:
             logger = initialize_logger(__name__, config=config)
-        super(NESTNetworkBuilder, self).__init__(tvb_simulator, nest_nodes_inds, config, logger)
+        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self.nest_instance = nest_instance
         self._spiking_brain = NESTBrain()
 
