@@ -25,7 +25,7 @@ parameters="""
 equations="""
     I_syn_ex = - g_ampa*(v-E_ampa)
     I_syn_in = - g_gaba*(v-E_gaba)
-    I_syn = I_syn_ex + I_syn_in - g_base*v
+    I_syn = I_syn_ex + I_syn_in - g_base*v + g_dbs
     dg_base/dt = -g_base/tau_syn : init = 0
     dg_ampa/dt = -g_ampa/tau_ampa : init = 0
     dg_gaba/dt = -g_gaba/tau_gaba : init = 0
