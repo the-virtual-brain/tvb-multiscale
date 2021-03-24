@@ -21,11 +21,12 @@ parameters="""
     C = 1.0
     v_th = 30.0
     Vr = 0.0
+    noise = 0.0
 """,
 equations="""
     I_syn_ex = - g_ampa*(v-E_ampa)
     I_syn_in = - g_gaba*(v-E_gaba)
-    I_syn = I_syn_ex + I_syn_in - g_base*v + g_dbs
+    I_syn = I_syn_ex + I_syn_in - g_base*v + g_dbs + noise * Normal(0.0, 1.0)
     dg_base/dt = -g_base/tau_syn : init = 0
     dg_ampa/dt = -g_ampa/tau_ampa : init = 0
     dg_gaba/dt = -g_gaba/tau_gaba : init = 0
