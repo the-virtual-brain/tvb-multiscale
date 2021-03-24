@@ -24,7 +24,6 @@ LOG = initialize_logger(__name__)
 
 # Helper functions with NEST
 
-
 def load_annarchy(config=CONFIGURED, logger=LOG, clean_compilation_directory=True, **kwargs):
     """This function will load an ANNarchy instance and return it.
         Arguments:
@@ -98,33 +97,35 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
     # Get either the Neuron class or the SpecificPopulation model name
     model = assert_model(model, annarchy_instance, import_path)
     if isinstance(model, string_types):
-        # If model is a SpecificPopulation, create it directly:
-        if model in ["SpikeSourceArray", "TimedArray"]:
-            if model == "SpikeSourceArray":
-                val = params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["spike_times"])
-            else:
-                val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["rates"])
-            population = getattr(annarchy_instance, model)(val, **params)
-        elif model in ["PoissonPopulation", "Poisson_neuron", "HomogeneousCorrelatedSpikeTrains"]:
-            geometry = params.pop("geometry", size)
-            if model == "HomogeneousCorrelatedSpikeTrains":
-                rates = \
-                    params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["rates"])
-                corr = params.pop("corr", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["corr"])
-                tau = params.pop("tau", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model]["tau"])
-                population = annarchy_instance.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params)
-            else:
-                rates = params.pop("rates", None)
-                if rates is None:
-                    target = \
-                        params.pop("target", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray%s" % model]["target"])
-                else:
-                    target = None
-                population = annarchy_instance.PoissonPopulation(geometry, rates=rates, target=target, **params)
+        model = getattr(annarchy_instance, model)
+
+    # If model is a SpecificPopulation, create it directly:
+    if model in [annarchy_instance.SpikeSourceArray, annarchy_instance.TimedArray]:
+        if model == annarchy_instance.SpikeSourceArray:
+            val = \
+                params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["SpikeSourceArray"]["spike_times"])
         else:
-            population = getattr(annarchy_instance, model)(geometry=params.pop("geometry", size), **params)
+            val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray"]["rates"])
+        population = model(val, **params)
+    elif model in [annarchy_instance.PoissonPopulation, annarchy_instance.HomogeneousCorrelatedSpikeTrains]:
+        geometry = params.pop("geometry", size)
+        if model == annarchy_instance.HomogeneousCorrelatedSpikeTrains:
+            rates = params.pop("rates",
+                               config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["rates"])
+            corr = params.pop("corr",
+                              config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["corr"])
+            tau = params.pop("tau",
+                             config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["tau"])
+            population = annarchy_instance.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params)
+        else:
+            rates = params.pop("rates", None)
+            if rates is None:
+                target = params.pop("target",
+                                    config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArrayPoissonPopulation"]["target"])
+            else:
+                target = None
+            population = annarchy_instance.PoissonPopulation(geometry, rates=rates, target=target, **params)
     else:
-        # If model is a Neuron class, set it in the Population creator:
         population = annarchy_instance.Population(geometry=params.pop("geometry", size), neuron=model)
         # Parametrize the population:
         if len(params):
