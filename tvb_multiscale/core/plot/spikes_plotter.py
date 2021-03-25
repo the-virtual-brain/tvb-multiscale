@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 from matplotlib import pyplot
 import numpy as np
 from xarray import DataArray
@@ -209,9 +211,30 @@ class SpikesPlotter(BasePlotter):
 
         return axes
 
+    def _check_show(self):
+        pyplot.tight_layout()
+        if self.config.SHOW_FLAG:
+            # mp.use('TkAgg')
+            pyplot.ion()
+            pyplot.show()
+        else:
+            # mp.use('Agg')
+            pyplot.ioff()
+            pyplot.close()
+
+    def _save_figure(self, fig=pyplot.gcf(), figure_name=None):
+        fig.tight_layout()
+        if self.config.SAVE_FLAG:
+            figure_name = self._figure_filename(fig, figure_name)
+            figure_name = figure_name[:np.min([100, len(figure_name)])] + '.' + self.config.FIG_FORMAT
+            figure_dir = self.config.FOLDER_FIGURES
+            if not (os.path.isdir(figure_dir)):
+                os.mkdir(figure_dir)
+            pyplot.savefig(os.path.join(figure_dir, figure_name))
+
     def _return_figure(self, axes, figure_name):
         fig = pyplot.gcf()
-        fig.tight_layout()
+        # fig.tight_layout()
         self._save_figure(fig, figure_name)
         self._check_show()
         return fig, axes
