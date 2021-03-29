@@ -5,12 +5,11 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, Config
-from tvb_multiscale.tvb_annarchy.annarchy_models.models import \
-    BasalGangliaIzhikevichBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.models.default import DefaultExcIOBuilder
 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.simulator import Simulator
-from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 from tvb.simulator.monitors import Raw  # , Bold  # , EEG
 
 
@@ -27,7 +26,7 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
     simulator = Simulator()
     simulator.integrator.dt = dt
     # simulator.integrator.noise.nsig = np.array([noise_strength])
-    simulator.model = ReducedWongWangExcIOInhI()
+    simulator.model = Linear()
 
     simulator.connectivity = connectivity
     mon_raw = Raw(period=simulator.integrator.dt)
@@ -35,7 +34,7 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
 
     # Build a ANNarchy network model with the corresponding builder
     # Using all default parameters for this example
-    anarchy_model_builder = BasalGangliaIzhikevichBuilder(simulator, anarchy_nodes_ids, config=config)
+    anarchy_model_builder = DefaultExcIOBuilder(simulator, anarchy_nodes_ids, config=config)
     anarchy_model_builder.configure()
     for prop in ["min_delay", "tvb_dt", "monitor_period", "tvb_model",
                  "number_of_regions", "tvb_weights", "tvb_delays", "region_labels",
