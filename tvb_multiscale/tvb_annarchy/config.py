@@ -27,7 +27,7 @@ class Config(ConfigBase):
 
     MIN_SPIKING_DT = 0.001
 
-    DEFAULT_MODEL = "Izhikevich"
+    DEFAULT_MODEL = "IF_cond_alpha"
 
     # Delays should be at least equal to ANNarchy time resolution
     DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
