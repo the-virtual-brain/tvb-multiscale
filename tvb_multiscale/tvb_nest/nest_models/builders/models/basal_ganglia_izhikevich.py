@@ -39,14 +39,17 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.params_common = {"E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
                               "C_m": 1.0, "I_e": 0.0, "current_stimulus_scale": 1.0, "current_stimulus_mode": 0,
                               "t_ref": 10.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
-                              "n0": 140.0, "n1": 5.0, "n2": 0.04}
+                              "n0": 140.0, "n1": 5.0, "n2": 0.04,
+                              "v": -72.0, "u": -14.0}
         self._paramsI = deepcopy(self.params_common)
-        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
+        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0,
+                              "v": -70.0, "u": -18.55})
         self._paramsE = deepcopy(self.params_common)
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"V_th": 40.0, "C_m": 50.0,
                                "n0": 61.65119, "n1": 2.594639, "n2": 0.022799,
-                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0})
+                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
+                               "v": -70.0, "u": -18.55})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
@@ -158,7 +161,7 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         #          label <- target population
         for pop in self.populations:
             connections = OrderedDict({})
-            connections[pop["label"] + "_spikes"] = pop["label"]
+            connections[pop["label"]] = pop["label"]
             params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
             params["record_to"] = self.output_devices_record_to
             self.output_devices.append(
@@ -169,11 +172,12 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         # Labels have to be different for every connection to every distinct population
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params.update({"interval": 1.0, "record_to": self.output_devices_record_to,
-                       'record_from': ["V_m", "U_m", "I", "I_syn", "I_syn_ex", "I_syn_in", "g_AMPA", "g_GABA_A", "g_L"]})
+                       'record_from': ["V_m", "U_m", "I", "I_syn", "I_syn_ex", "I_syn_in",
+                                       "g_AMPA", "g_GABA_A", "g_L"]})
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
-            connections[pop["label"]] = pop["label"]
+            connections[pop["label"] + "_ts"] = pop["label"]
             self.output_devices.append(
                 {"model": "multimeter", "params": params,
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
@@ -203,11 +207,11 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
             #  "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
             #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
             #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
-            {"model": "ac_generator",
-             "params": {"frequency": 100.0, "phase": 0.0, "amplitude": 1.0, "offset": 0.0,
+            {"model": "dc_generator",
+             "params": {"amplitude": 1.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
                         "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
-             "connections": {"DBS_Estn": ["E"]},  # "Estn"
-             "nodes": self.Estn_nodes_ids,  # None means apply to all
+             "connections": {"DBS_GPi": ["I"]},  # "Igpi"
+             "nodes": self.Igpi_nodes_ids,  # None means apply to all
              "weights": 1.0, "delays": 0.0}
         ]  #
 
