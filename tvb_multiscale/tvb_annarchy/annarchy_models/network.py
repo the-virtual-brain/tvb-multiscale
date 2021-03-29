@@ -72,18 +72,7 @@ class ANNarchyNetwork(SpikingNetwork):
     def min_delay(self):
         return self.dt
 
-    def configure(self, *args, **kwargs):
-        """Method to configure a simulation just before execution.
-           It will compile the ANNarchy network by running
-           annarchy_instance.compile(*args, **kwargs)
-        """
-        directory = str(kwargs.pop("directory", self.config.out.FOLDER_RES))
-        cwd = os.getcwd()
-        if directory.find(cwd) > -1:
-            directory = os.path.join(directory.split(cwd)[-1][1:].split("res")[0], self.__class__.__name__)
-        self.annarchy_instance.compile(directory=directory, *args, **kwargs)
-
-    def Run(self, simulation_length, *args, **kwargs):
+    def Run(self, simulation_length, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
            It will run annarchy_instance.simulate(simulation_length, *args, **kwargs)
         """
