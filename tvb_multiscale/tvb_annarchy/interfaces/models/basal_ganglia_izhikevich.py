@@ -16,10 +16,11 @@ from tvb_multiscale.tvb_annarchy.interfaces.builders import ANNarchyProxyNodesBu
 
 
 class BasalGangliaIzhikevichANNarchyProxyNodesBuilder(ANNarchyProxyNodesBuilder,
-                                                  BasalGangliaIzhikevichSpikeNetProxyNodesBuilder, ABC):
+                                                      BasalGangliaIzhikevichSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
-    pass
+    def _default_receptor_type(self, source_node, target_node):
+        return "ampa"
 
 
 class BasalGangliaIzhikevichANNarchyInterfaceBuilder(BasalGangliaIzhikevichANNarchyProxyNodesBuilder,
