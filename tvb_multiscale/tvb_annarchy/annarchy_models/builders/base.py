@@ -24,24 +24,23 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=None):
+    def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=CONFIGURED, logger=None):
         if logger is None:
             logger = initialize_logger(__name__, config=config)
-        # Setting or loading an annarchy instance:
         self.annarchy_instance = annarchy_instance
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
             self.annarchy_instance = load_annarchy(self.config, self.logger)
-        self.annarchy_instance.clear()  # This will restart ANNarchy!
-        self.update_spiking_dt()
-        self.update_default_min_delay()
-        kwargs["dt"] = self.spiking_dt
-        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-        self.annarchy_instance.setup(**kwargs)
+            self.annarchy_instance.clear()  # This will restart ANNarchy!
+            self.update_spiking_dt()
+            self.update_default_min_delay()
+            kwargs["dt"] = self.spiking_dt
+            kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
+            kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
+            self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
         self._configure_annarchy()
