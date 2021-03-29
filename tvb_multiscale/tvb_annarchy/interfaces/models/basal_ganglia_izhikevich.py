@@ -9,7 +9,7 @@ from tvb_multiscale.core.interfaces.models.basal_ganglia_izhikevich import \
     BasalGangliaIzhikevichSpikeNetInputTransformerInterfaceBuilder, \
     BasalGangliaIzhikevichSpikeNetInterfaceBuilder, BasalGangliaIzhikevichSpikeNetProxyNodesBuilder
 
-from tvb_multiscale.tvb_ανναρψηυ.interfaces.builders import ANNarchyProxyNodesBuilder, ANNarchyInterfaceBuilder, \
+from tvb_multiscale.tvb_annarchy.interfaces.builders import ANNarchyProxyNodesBuilder, ANNarchyInterfaceBuilder, \
     ANNarchyRemoteInterfaceBuilder, TVBANNarchyInterfaceBuilder, \
     ANNarchyTransformerInterfaceBuilder, ANNarchyOutputTransformerInterfaceBuilder, \
     ANNarchyInputTransformerInterfaceBuilder
