@@ -2,8 +2,8 @@
 
 from enum import Enum
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Elementary, Scale, DotProduct, ScaleRate, \
-    ScaleCurrent
+from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+    Elementary, Scale, DotProduct, ScaleRate, ScaleCurrent
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantRatesToSpikesTransformers, ElephantSpikesToRatesTransformers
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
