@@ -188,9 +188,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
             np.array(self._only_inds(interface.get("proxy_inds",
                                           interface.get("spiking_proxy_inds", self.proxy_inds)), self.region_labels))
         if exclusive_nodes:
-            # TODO: decide about the following: can a TVB node be updated from a NEST node via a NEST -> TVB interface,
+            # TODO: decide about the following: can a TVB node be updated from a Spiking Network node
+            #  via a SpikeNet -> TVB interface,
             # get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
-            # Will it depend on whether there is also a directly coupling of that NEST node with other NEST nodes?
+            # Will it depend on whether there is also a direct coupling of that SpikeNet node with other SpikeNet nodes?
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in interface["spiking_proxy_inds"])
 
     def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
