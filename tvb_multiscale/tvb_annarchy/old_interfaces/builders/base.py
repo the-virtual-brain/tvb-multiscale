@@ -2,11 +2,11 @@
 import numpy as np
 
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import ANNarchyInputDeviceDict
-from tvb_multiscale.tvb_annarchy.interfaces.builders.tvb_to_annarchy_devices_interface_builder import \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.tvb_to_annarchy_devices_interface_builder import \
     TVBtoANNarchyDeviceInterfaceBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.tvb_to_annarchy_parameter_interface_builder import \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.tvb_to_annarchy_parameter_interface_builder import \
     TVBtoANNarchyParameterInterfaceBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.annarchy_to_tvb_interface_builder import \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.annarchy_to_tvb_interface_builder import \
     ANNarchytoTVBInterfaceBuilder
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder

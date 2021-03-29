@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_annarchy.interfaces.base import TVBANNarchyInterface
+from tvb_multiscale.tvb_annarchy.old_interfaces.base import TVBANNarchyInterface
 
 from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb.simulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI

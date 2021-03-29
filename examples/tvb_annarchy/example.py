@@ -13,9 +13,9 @@ from tvb_multiscale.tvb_annarchy.config import CONFIGURED, Config
 from tvb_multiscale.tvb_annarchy.annarchy_models.models import WilsonCowanBuilder
 from tvb_multiscale.tvb_annarchy.annarchy_models.models \
     import BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
 from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter

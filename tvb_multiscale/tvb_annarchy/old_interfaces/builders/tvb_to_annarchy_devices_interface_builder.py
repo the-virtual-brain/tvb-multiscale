@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tvb_multiscale.tvb_annarchy.interfaces.tvb_to_annarchy_devices_interface import INPUT_INTERFACES_DICT
+from tvb_multiscale.tvb_annarchy.old_interfaces.tvb_to_annarchy_devices_interface import INPUT_INTERFACES_DICT
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
 from tvb_multiscale.core.interfaces.tvb.builders import \

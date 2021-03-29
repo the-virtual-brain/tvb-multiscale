@@ -13,9 +13,9 @@ from examples.tvb_annarchy.example import main_example, results_path_fun
 from tvb_multiscale.tvb_annarchy.annarchy_models.models import WilsonCowanBuilder
 from tvb_multiscale.tvb_annarchy.annarchy_models.models import \
     BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich import \
+from tvb_multiscale.tvb_annarchy.old_interfaces.builders.models.red_ww_basal_ganglia_izhikevich import \
     RedWWexcIOBuilder as IzhikevichRedWWexcIOBuilder
 
 from tests.core.test_models import loop_all, TestModel
