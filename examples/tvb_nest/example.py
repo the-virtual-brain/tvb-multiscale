@@ -39,7 +39,7 @@ def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_t
 
 def main_example(tvb_sim_model, model_params={},
                  spikeNet_model_builder=DefaultExcIOBuilder, spiking_proxy_inds=[], populations_order=100,
-                 tvb_nest_interface_builder=DefaultTVBNESTInterfaceBuilder(),
+                 tvb_spikeNet_interface_builder=DefaultTVBNESTInterfaceBuilder(),
                  tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
@@ -47,11 +47,11 @@ def main_example(tvb_sim_model, model_params={},
 
     if config is None:
         try:
-            spikeNet_to_tvb = tvb_nest_interface_builder.input_flag
+            spikeNet_to_tvb = tvb_spikeNet_interface_builder.input_flag
         except:
             spikeNet_to_tvb = len(spikeNet_to_tvb_interfaces) > 0
         config = \
-            Config(output_base=results_path_fun(spikeNet_model_builder, tvb_nest_interface_builder.model,
+            Config(output_base=results_path_fun(spikeNet_model_builder, tvb_spikeNet_interface_builder.model,
                                                 spikeNet_to_tvb))
 
     logger = initialize_logger(__name__, config=config)
@@ -88,8 +88,8 @@ def main_example(tvb_sim_model, model_params={},
     orchestrator.spikeNet_app.population_order = populations_order
 
     # -----------------------------------------c. Configure the TVB-SpikeNet interface model ---------------------------
-    if tvb_nest_interface_builder is not None:
-        orchestrator.tvb_app.interfaces_builder = tvb_nest_interface_builder
+    if tvb_spikeNet_interface_builder is not None:
+        orchestrator.tvb_app.interfaces_builder = tvb_spikeNet_interface_builder
     orchestrator.tvb_app.interfaces_builder.output_interfaces = tvb_to_spikeNet_interfaces
     orchestrator.tvb_app.interfaces_builder.input_interfaces = spikeNet_to_tvb_interfaces
 
