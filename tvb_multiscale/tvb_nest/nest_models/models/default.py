@@ -15,19 +15,20 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED,
+                 set_defaults=True):
         super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
 
         # Common order of neurons' number per population:
         self.population_order = 100
 
-        self.scale_e = 1
+        self.scale = 1
 
-        self.w_ee = 1.0
-        self.d_ee = self.within_node_delay()
+        self.w = 1.0
+        self.d = self.within_node_delay()
 
         self.params = {}
-        self.pop_conns_EE = {}
+        self.pop_conns = {}
 
         self.nodes_conns = {}
 
@@ -43,14 +44,14 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         if self.set_defaults_flag:
             self.set_defaults()
 
-    def set_E_population(self):
+    def set_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
-               "params": self.params, "scale": self.scale_e, "nodes": None}  # None means "all"
+               "params": self.params, "scale": self.scale, "nodes": None}  # None means "all"
         return pop
 
     def set_populations(self):
         # Populations' configurations
-        self.populations = [self.set_E_population()]
+        self.populations = [self.set_population()]
 
     # Within region-node connections
     # By default we choose random jitter on weights and delays
@@ -68,22 +69,22 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
     def within_node_delay(self):
         return self.delay_fun()
 
-    def receptor_E_fun(self):
+    def receptor_fun(self):
         return 0
 
-    def set_EE_populations_connections(self):
+    def set_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
              "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.weight_fun(self.w_ee),
-             "delay": self.d_ee,
-             "receptor_type": self.receptor_E_fun(), "nodes": None}  # None means "all"
-        connections.update(self.pop_conns_EE)
+             "weight": self.weight_fun(self.w),
+             "delay": self.d,
+             "receptor_type": self.receptor_fun(), "nodes": None}  # None means "all"
+        connections.update(self.pop_conns)
         return connections
 
     def set_populations_connections(self):
-        self.populations_connections = [self.set_EE_populations_connections()]
+        self.populations_connections = [self.set_populations_connections()]
 
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
@@ -115,7 +116,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
     def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
-        connections["E_spikes"] = "E"
+        connections["E"] = "E"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
         params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
@@ -128,7 +129,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
     def set_multimeter(self):
         connections = OrderedDict()
         #               label    <- target population
-        connections["E"] = "E"
+        connections["Excitatory"] = "E"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         params["record_to"] = self.output_devices_record_to
@@ -213,7 +214,7 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
         if self.set_defaults_flag:
             self.set_defaults()
 
-    def receptor_E_fun(self):
+    def receptor_fun(self):
         return 1
 
     def receptor_by_source_region_fun(self, source_node, target_node):
