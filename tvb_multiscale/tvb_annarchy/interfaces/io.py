@@ -11,7 +11,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
-from tvb_multiscale.tvb_ANNarchy.annarchy_models.devices import \
+from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDevice, ANNarchyTimedArray, ANNarchySpikeSourceArray, \
     ANNarchyTimedArrayPoissonPopulation, ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains, \
     ANNarchyOutputDevice, ANNarchyMonitor, ANNarchySpikeMonitor
@@ -54,29 +54,7 @@ class ANNarchyTimedArrayPoissonPopulationSet(ANNarchyInputDeviceSet):
 
     def send(self, data):
         # Assuming data is of shape (proxy, time)
-        self.target.set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
-                         "rate_values": np.maximum([0.0], data[1]).tolist()})
-
-
-class ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsSet(ANNarchyInputDeviceSet):
-
-    """
-        ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsSet class to set data directly to a DeviceSet
-        of ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains instances in memory
-        It comprises of:
-            - a target attribute, i.e., a DeviceSet,
-              of ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains instances to send data to,
-            - a method to set data to the target.
-    """
-
-    model = "TimedArrayHomogeneousCorrelatedSpikeTrains"
-
-    _spikeNet_input_device_type = ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains
-
-    def send(self, data):
-        # Assuming data is of shape (proxy, time)
-        self.target.set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
-                         "rate_values": np.maximum([0.0], data[1]).tolist()})
+        self.target.set({"rates": np.maximum([0.0], data[1]).tolist()})
 
 
 class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
@@ -280,7 +258,6 @@ class ANNarchyOutputDeviceGetters(Enum):
 
 class ANNarchyInputDeviceSetters(Enum):
     TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedArrayPoissonPopulationSet
-    TIMED_ARRAY_HOMOGENEOUS_CORRELATED_SPIKE_TRAINS = ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsSet
     SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
     TIMED_ARRAY = ANNarchyTimedArraySet
 
