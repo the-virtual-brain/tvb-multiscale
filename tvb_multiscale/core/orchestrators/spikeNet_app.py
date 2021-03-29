@@ -11,8 +11,6 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import SpikeNetOutputInterfaces, SpikeNetInputInterfaces
-from tvb_multiscale.core.interfaces.models.default import \
-    DefaultTVBSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder
 
 
 class SpikeNetApp(NonTVBApp, ABC):
