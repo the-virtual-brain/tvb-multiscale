@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray, List
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
+from tvb_multiscale.core.config import CONFIGURED
 
 
 class Transformer(HasTraits):
