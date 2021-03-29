@@ -81,10 +81,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
              "delay": self.d,
              "receptor_type": self.receptor_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns)
-        return connections
-
-    def set_populations_connections(self):
-        self.populations_connections = [self.set_populations_connections()]
+        self.populations_connections = [connections]
 
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
