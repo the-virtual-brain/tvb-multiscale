@@ -20,8 +20,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     TVBtoANNarchyInterface, ANNarchyToTVBInterface
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeMonitorSet, ANNarchySpikeMonitorMeanSet, ANNarchySpikeMonitorTotalSet, \
-    ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet, \
-    ANNarchyTimedArrayPoissonPopulationSet, ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsSet
+    ANNarchySpikeSourceArraySet, ANNarchyTimedArrayPoissonPopulationSet  # ANNarchyTimedArraySet,
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
@@ -33,7 +32,7 @@ ANNarchyToTVBModels = SpikeNetToTVBModels
 class DefaultTVBtoANNarchyModels(Enum):
     RATE = "RATE"
     SPIKES = "SPIKES"
-    CURRENT = "CURRENT"
+    # CURRENT = "CURRENT"
 
 
 class DefaultANNarchytoTVBModels(Enum):
@@ -42,9 +41,8 @@ class DefaultANNarchytoTVBModels(Enum):
 
 class ANNarchyInputProxyModels(Enum):
     RATE = ANNarchyTimedArrayPoissonPopulationSet
-    RATE_CORR = ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsSet
     SPIKES = ANNarchySpikeSourceArraySet
-    CURRENT = ANNarchyTimedArraySet
+    # CURRENT = ANNarchyTimedArraySet
 
 
 class ANNarchyOutputProxyModels(Enum):
@@ -82,7 +80,7 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
     def _build_and_connect_devices(self, interface, **kwargs):
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
-                                         self.config, ANNarchy_instance=self.annarchy_instance, **kwargs)
+                                         self.config, annarchy_instance=self.annarchy_instance, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
         return 0
