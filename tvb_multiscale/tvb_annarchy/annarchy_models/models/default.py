@@ -54,16 +54,13 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
     def set_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w,
              "delay": self.d,
              "receptor_type": self.receptor_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns_EE)
-        return connections
-
-    def set_populations_connections(self):
-        self.populations_connections = [self.set_populations_connections()]
+        self.populations_connections = [connections]
 
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays

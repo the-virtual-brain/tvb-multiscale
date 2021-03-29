@@ -74,7 +74,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_EE_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee,
              "delay": self.d_ee,
@@ -85,7 +85,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_EI_populations_connections(self):
         connections = \
             {"source": "E", "target": "I",  # E -> I
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ei,
              "delay": self.d_ei,
@@ -96,7 +96,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_IE_populations_connections(self):
         connections = \
             {"source": "I", "target": "E",  # I -> E
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ie,
              "delay": self.d_ie,
@@ -107,7 +107,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_II_populations_connections(self):
         connections = \
             {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ii,
              "delay": self.d_ii,
