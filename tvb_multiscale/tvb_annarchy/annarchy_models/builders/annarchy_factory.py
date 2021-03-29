@@ -247,6 +247,9 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     #     f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
     #     if f:
     #         params["omega"] = 2 * np.pi * f
+    number_of_neurons = params.pop("number_of_neurons", None)
+    if number_of_neurons is not None:
+        params["geometry"] = number_of_neurons
     record = params.pop("record", None)
     if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
         params_timed_array = {}
