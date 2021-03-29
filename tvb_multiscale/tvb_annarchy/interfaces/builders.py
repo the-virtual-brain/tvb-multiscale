@@ -30,7 +30,7 @@ ANNarchyToTVBModels = SpikeNetToTVBModels
 
 
 class DefaultTVBtoANNarchyModels(Enum):
-    RATE = "RATE"
+    RATE = "RATE_TO_SPIKES"
     SPIKES = "SPIKES"
     # CURRENT = "CURRENT"
 
@@ -40,7 +40,7 @@ class DefaultANNarchytoTVBModels(Enum):
 
 
 class ANNarchyInputProxyModels(Enum):
-    RATE = ANNarchyTimedArrayPoissonPopulationSet
+    RATE_TO_SPIKES = ANNarchyTimedArrayPoissonPopulationSet
     SPIKES = ANNarchySpikeSourceArraySet
     # CURRENT = ANNarchyTimedArraySet
 
@@ -74,7 +74,7 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.annarchy_instance.dt()
 
     @property
-    def ANNarchy_min_delay(self):
+    def annarchy_min_delay(self):
         return self.annarchy_instance.dt()
 
     def _build_and_connect_devices(self, interface, **kwargs):
@@ -83,11 +83,11 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
                                          self.config, annarchy_instance=self.annarchy_instance, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
-        return 0
+        return "exc"
 
     @property
     def _default_min_delay(self):
-        return self.ANNarchy_min_delay
+        return self.annarchy_min_delay
 
 
 class ANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, SpikeNetInterfaceBuilder):
