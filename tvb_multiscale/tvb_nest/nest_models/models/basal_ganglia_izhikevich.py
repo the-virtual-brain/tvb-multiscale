@@ -29,7 +29,8 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, set_defaults=True):
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
         self.default_population["model"] = "izhikevich_hamker"
 
@@ -39,14 +40,17 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
         self.params_common = {"E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
                               "C_m": 1.0, "I_e": 0.0, "current_stimulus_scale": -5.0, "current_stimulus_mode": 0,
                               "t_ref": 10.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
-                              "n0": 140.0, "n1": 5.0, "n2": 0.04}
+                              "n0": 140.0, "n1": 5.0, "n2": 0.04,
+                              "v": -72.0, "u": -14.0}
         self._paramsI = deepcopy(self.params_common)
-        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
+        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0,
+                              "v": -70.0, "u": -18.55})
         self._paramsE = deepcopy(self.params_common)
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"V_th": 40.0, "C_m": 50.0,
                                "n0": 61.65119, "n1": 2.594639, "n2": 0.022799,
-                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0})
+                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
+                               "v": -70.0, "u": -18.55})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
@@ -156,7 +160,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
         #          label <- target population
         for pop in self.populations:
             connections = OrderedDict({})
-            connections[pop["label"] + "_spikes"] = pop["label"]
+            connections[pop["label"]] = pop["label"]
             params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
             params["record_to"] = self.output_devices_record_to
             self.output_devices.append(
@@ -172,7 +176,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
-            connections[pop["label"]] = pop["label"]
+            connections[pop["label"] + "_ts"] = pop["label"]
             self.output_devices.append(
                 {"model": "multimeter", "params": params,
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
