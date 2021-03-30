@@ -92,13 +92,14 @@ class ANNarchyOutputInterface(ANNarchyInterface):
 
     def get_proxy_data(self):
         data = self.proxy()
+        # Only for ANNarchy, we start from time = dt instead for time = 0
         if len(data[0]) == 2:
             # This will work for multimeters:
-            self.times = np.array([np.round(data[0][0] / self.dt),  # start_time_step
-                                   np.round(data[0][1] / self.dt)]).astype("i")
+            self.times = np.array([np.round(data[0][0] / self.dt) - 1,  # start_time_step
+                                   np.round(data[0][1] / self.dt) - 1]).astype("i")
         else:
             # This will work for spike recorders:
-            time = np.int(np.round(self.time/self.dt))
+            time = np.int(np.round(self.time/self.dt)) - 1
             times = self.times.copy()
             if time > times[1]:
                 times[0] = times[1] + 1
