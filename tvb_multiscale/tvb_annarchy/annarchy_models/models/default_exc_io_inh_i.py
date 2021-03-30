@@ -32,8 +32,13 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.d_ie = 1.0
         self.d_ii = 1.0
 
+        # Parameters following the iaf_cond_alpha NEST model params
+        self.params_E = {"v_rest": -70.0, "v_reset": -60.0, "v_thresh": -55.0, "e_rev_E": 0.0, "e_rev_I": -85.0,
+                          "cm": 0.25,  # nF
+                          "tau_refrac": 2.0, "tau_syn_E": 0.2, "tau_syn_I": 2.0, "tau_m": 16.6667}
         self.params_E = {}
-        self.params_I = {}
+        self.params_I = self.params_E.copy()
+
         self.pop_conns_EE = {}
         self.pop_conns_EI = {}
         self.pop_conns_IE = {}
