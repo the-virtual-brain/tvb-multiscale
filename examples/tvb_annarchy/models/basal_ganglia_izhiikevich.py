@@ -3,11 +3,11 @@
 import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
-from tvb_multiscale.tvb_nest.interfaces.models.basal_ganglia_izhikevich import \
-    BasalGangliaIzhikevichTVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.nest_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
+from tvb_multiscale.tvb_annarchy.interfaces.models.basal_ganglia_izhikevich import \
+    BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 
-from examples.tvb_nest.example import main_example
+from examples.tvb_annarchy.example import main_example
 
 from tvb.datatypes.connectivity import Connectivity
 
@@ -60,7 +60,7 @@ def basal_ganglia_izhikevich_example(**kwargs):
     model_params = kwargs.pop("model_params", {})
 
     model = kwargs.pop("model", "RATE").upper()
-    tvb_annarchy_model_builder = BasalGangliaIzhikevichTVBNESTInterfaceBuilder()
+    tvb_annarchy_model_builder = BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder()
     tvb_annarchy_model_builder.model = model
     tvb_annarchy_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_annarchy_model_builder.output_flag = kwargs.pop("output_flag", True)
