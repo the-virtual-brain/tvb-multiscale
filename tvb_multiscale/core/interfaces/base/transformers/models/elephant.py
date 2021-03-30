@@ -272,12 +272,12 @@ class ElephantSpikesHistogram(SpikesToRatesElephant):
         return ElephantFunctions.TIME_HISTOGRAM(*args, **kwargs)
 
     def _compute_fun(self, spiketrains):
-        return self._time_hist_fun(spiketrains, self.dt * self.time_unit, output="counts").squeeze()
+        return self._time_hist_fun(spiketrains, self.dt * self.time_unit, output="counts").flatten()
 
     def _compute(self, spikes):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
-        return self._compute_fun(self._spiketrain(spikes))
+        return np.array(self._compute_fun(self._spiketrain(spikes)))
 
 
 class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
@@ -290,7 +290,7 @@ class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
 
     def _compute_fun(self, spiketrains):
         return (ElephantSpikesHistogram._compute_fun(self, spiketrains) /
-                (self.dt * self.time_unit)).rescale(self.rate_unit)
+                (self.dt * self.time_unit)).rescale(self.rate_unit).flatten()
 
 
 class ElephantSpikesRate(ElephantSpikesHistogramRate):
@@ -336,7 +336,7 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
             return data
         else:
             # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
-            return ElephantSpikesHistogramRate._compute_fun(spiketrain).flatten()
+            return np.array(ElephantSpikesHistogramRate._compute_fun(spiketrain).flatten())
 
 
 class ElephantRatesToSpikesTransformers(Enum):
