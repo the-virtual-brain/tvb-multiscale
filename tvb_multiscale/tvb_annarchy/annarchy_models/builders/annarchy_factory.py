@@ -389,6 +389,7 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
     monitor = annarchy_device.annarchy_instance.Monitor(neurons, record_from, **params)
     monitor.name = "%s_%d" % (annarchy_device.label, len(annarchy_device.monitors) + 1)
     annarchy_device.monitors[monitor] = neurons
+    annarchy_device.device = annarchy_device.monitors
     # Update the number of connections and connected neurons to the device:
     annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
     annarchy_device._number_of_neurons = annarchy_device.get_number_of_neurons()
