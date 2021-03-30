@@ -524,6 +524,10 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
     _monitors_inds = List(of=int, label="Device's Monitors' indices", default=(),
                           doc="""A list of the indices of the ANNarchy.Monitor instances of the ANNarchyOutputDevice""")
 
+    store_data = Attr(field_type=bool, label="Store Data",
+                      default=True, required=True,
+                      doc="""Flag to store data after reading from ANNarchy monitor.""")
+
     annarchy_instance = None
 
     params = {}
@@ -581,6 +585,13 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
         if self._monitors_inds is None:
             self._monitors_inds = self._get_monitors_inds()
         return self._monitors_inds
+
+    @property
+    def number_of_monitors(self):
+        if isinstance(self.monitors, dict):
+            return len(self.monitors)
+        else:
+            return 0
 
     @property
     def dt(self):
@@ -799,28 +810,37 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
     def _record(self):
         """Method to get data from ANNarchy.Monitor instances,
            and merge and store them to the _data buffer of xarray.DataArray type."""
+        data = DataArray(np.empty((0, 0, 0)), dims=["Time", "Variable", "Neuron"], name=self.label)
         for monitor, population in self.monitors.items():
-            data = monitor.get()
-            variables = list(data.keys())
-            data = np.array(list(data.values()))
-            if data.size > 0:
-                data = data.transpose((1, 0, 2))
-                data = DataArray(data,
+            m_data = monitor.get()
+            variables = list(m_data.keys())
+            m_data = np.array(list(m_data.values()))
+            if m_data.size > 0:
+                m_data = m_data.transpose((1, 0, 2))
+                m_data = DataArray(m_data,
                                  dims=["Time", "Variable", "Neuron"],
-                                 coords={"Time": self._compute_times(monitor.times(), data.shape[0]), "Variable": variables,
+                                 coords={"Time": self._compute_times(monitor.times(), m_data.shape[0]), "Variable": variables,
                                          "Neuron": self._get_senders(population, population.ranks)},
                                  name=self.label)
-                if self._data.size:
-                    self._data = combine_by_coords([self._data, data], fill_value=np.nan)
+                if data.size > 0:
+                    data = combine_by_coords([data, m_data], fill_value=np.nan)
                 else:
-                    self._data = data
+                    data = m_data.copy()
+        if self.store_data:
+            if self._data.size > 0:
+                self._data = combine_by_coords([self._data, data], fill_value=np.nan)
+            else:
+                self._data = data.copy()
+        return data
 
-    def _get_data(self, variables=None, events_inds=None, name=None,
+    def _get_data(self, data=None, variables=None, events_inds=None, name=None,
                   dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+        if data is None:
+            data = self._data
         if events_inds is None:
-            _data = self._data
+            _data = data
         else:
-            _data = self._data[events_inds]
+            _data = data[events_inds]
         if variables:
             _data = _data.loc[:, variables]
 
@@ -837,8 +857,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
 
     def get_new_data(self, variables=None, name=None,
                      dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
-        self._record()
-        return self._get_data(variables, slice(self._output_events_index, None),
+        return self._get_data(self._record(), variables, slice(self._output_events_index, None),
                               name, dims_names, flatten_neurons_inds)
 
     def get_data(self, variables=None, events_inds=None,
@@ -854,7 +873,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
             a xarray DataArray with the output data
         """
         self._record()
-        return self._get_data(variables, events_inds, name, dims_names, flatten_neurons_inds)
+        return self._get_data(None, variables, events_inds, name, dims_names, flatten_neurons_inds)
 
     def _get_events(self, data):
         variables = data.coords["Variable"].values
@@ -869,7 +888,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         return events
 
     def get_new_events(self, variables=None, name=None,
-                     dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+                      dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
         """Method to convert and place continuous time data measured from Monitors, to an events dictionary."""
         return self._get_events(self.get_new_data(variables, flatten_neurons_inds, dims_names, flatten_neurons_inds))
 
@@ -897,10 +916,6 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
     def number_of_new_events(self):
         return (self._data.shape[0] - self._output_events_index) * self._data.shape[-1]
 
-    @property
-    def number_of_monitors(self):
-        return len(self.device)
-
     def reset(self):
         self._record()
         self._data = DataArray(np.empty((0, 0, 0)),
@@ -917,9 +932,9 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                  doc="""A list of dictionaries (one per Monitor) for holding the spike events
                        read from the Monitors""")
 
-    _output_events_counter = List(of=int, label="Number of output events", default=(),
-                                  doc="""A list of numbers of recorded events per monitor that 
-                                          have been given to the output via a get_events() call.""")
+    _output_events_counter = List(of=OrderedDict, label="Number of output events", default=(),
+                                  doc="""A list of lists of numbers of recorded events per sender neuron and monitor 
+                                         that have been given to the output via a get_events() call.""")
 
     def __init__(self, monitors=None, label="", annarchy_instance=None, run_tvb_multiscale_init=True, **kwargs):
         if run_tvb_multiscale_init:
@@ -932,37 +947,44 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,
            and merge and store them to the _data buffer."""
         dt = self.dt
+        number_of_monitors = self.number_of_monitors
+        data = tuple([OrderedDict()] * number_of_monitors)
+        if self.store_data:
+            while len(self._data) < number_of_monitors:
+                self._data += (OrderedDict(),)
         for i_m, (monitor, population) in enumerate(self.monitors.items()):
-            if len(self._data) <= i_m:
-                self._data += (OrderedDict(), )
             spikes = monitor.get("spike")
             senders = self._get_senders(population, list(spikes.keys()))
             for sender, spikes_times in zip(senders, list(spikes.values())):
-                self._data[i_m].update({sender:
-                                            self._data[i_m].get(sender, []) + (np.array(spikes_times) * dt).tolist()})
+                data[i_m].update({sender: (np.array(spikes_times) * dt).tolist()})
+                if self.store_data:
+                    self._data[i_m].update({sender: self._data[i_m].get(sender, []) + data[i_m].get(sender, [])})
+        return data
 
-    def _get_events(self):
-        self._record()
+    def _get_events(self, data=None):
+        if data is None:
+            data = self._record()
+            if self.store_data:
+                data = self._data
+        if self.store_data:
+            while len(self._output_events_counter) < self.number_of_monitors:
+                self._output_events_counter += (OrderedDict(),)
         events = OrderedDict()
         events["times"] = []
         events["senders"] = []
-        self._output_events_counter = np.zeros((self.number_of_monitors, )).tolist()
-        for i_m, monitor_data in enumerate(self._data):
+        for i_m, monitor_data in enumerate(data):
             for sender, spikes_times in monitor_data.items():
                 events["times"] += spikes_times
                 events["senders"] += [sender] * len(spikes_times)
-            self._output_events_counter[i_m] = len(events["times"])
+                if self.store_data:
+                    self._output_events_counter[i_m][sender] = len(events["times"])
+        inds = np.argsort(events["times"])
+        events["times"] = np.array(events["times"])[inds].tolist()
+        events["senders"] = np.array(events["senders"])[inds].tolist()
         return events
 
     def get_new_events(self):
-        _output_events_counter = list(self._output_events_counter)
-        if len(_output_events_counter) == 0:
-            _output_events_counter = [0] * self.number_of_monitors
-        events = self._get_events()
-        for i_m, n_events in enumerate(_output_events_counter):
-            events["times"] = events["times"][n_events:]
-            events["senders"] = events["senders"][n_events:]
-        return events
+        return self._get_events(self._record())
 
     @property
     def events(self):
