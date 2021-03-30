@@ -338,7 +338,7 @@ class SpikesToRates(Scale):
 
     @property
     def _scale_factor(self):
-        return self._assert_size("scale_factor", "output")
+        return self._assert_size("scale_factor")
 
     def configure(self):
         super(SpikesToRates, self).configure()
