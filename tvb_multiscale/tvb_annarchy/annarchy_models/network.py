@@ -87,6 +87,8 @@ class ANNarchyNetwork(SpikingNetwork):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
            It will run annarchy_instance.simulate(simulation_length, *args, **kwargs)
         """
+        if simulation_length is None:
+            simulation_length = self.dt
         measure_time = kwargs.pop("measure_time", False)
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all_devices("resume")
