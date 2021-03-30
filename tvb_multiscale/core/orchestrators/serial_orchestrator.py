@@ -40,6 +40,10 @@ class SerialOrchestrator(Orchestrator):
         return self.tvb_app.cosimulator
 
     @property
+    def dt(self):
+        return self.tvb_app.cosimulator.integrator.dt
+
+    @property
     def spiking_network(self):
         return self.spikeNet_app.spiking_network
 
