@@ -75,39 +75,39 @@ class SpikeNetApp(NonTVBApp, ABC):
 
     @property
     def tvb_dt(self):
-        return self._tvb_simulator_serialized.get("integrator.dt", self.config.DEFAULT_DT)
+        return self._serialized_tvb_cosimulator.get("integrator.dt", self.config.DEFAULT_DT)
 
     @property
     def tvb_model(self):
-        return self._tvb_simulator_serialized.get("model", "")
+        return self._serialized_tvb_cosimulator.get("model", "")
 
     @property
     def tvb_model_state_variables(self):
-        return self._tvb_simulator_serialized.get("model.state_variables", [])
+        return self._serialized_tvb_cosimulator.get("model.state_variables", [])
 
     @property
     def tvb_model_cvar(self):
-        return self._tvb_simulator_serialized.get("model.cvar", [])
+        return self._serialized_tvb_cosimulator.get("model.cvar", [])
 
     @property
     def number_of_regions(self):
-        return self._tvb_simulator_serialized.get("connectivity.number_of_regions", 0)
+        return self._serialized_tvb_cosimulator.get("connectivity.number_of_regions", 0)
 
     @property
     def region_labels(self):
-        return self._tvb_simulator_serialized.get("connectivity.region_labels", np.array([]))
+        return self._serialized_tvb_cosimulator.get("connectivity.region_labels", np.array([]))
 
     @property
     def tvb_coupling_a(self):
-        return self._tvb_simulator_serialized.get("coupling.a", np.array([1.0 / 256]))
+        return self._serialized_tvb_cosimulator.get("coupling.a", np.array([1.0 / 256]))
 
     @property
     def tvb_weights(self):
-        return self._tvb_simulator_serialized.get("connectivity.weights", np.zeros((0, 0)))
+        return self._serialized_tvb_cosimulator.get("connectivity.weights", np.zeros((0, 0)))
 
     @property
     def tvb_delays(self):
-        return self._tvb_simulator_serialized.get("connectivity.delays", self._tvb_dt * np.ones((0, 0)))
+        return self._serialized_tvb_cosimulator.get("connectivity.delays", self._tvb_dt * np.ones((0, 0)))
 
     def configure(self):
         super(SpikeNetApp, self).configure()
