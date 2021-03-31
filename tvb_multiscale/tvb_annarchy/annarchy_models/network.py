@@ -82,6 +82,7 @@ class ANNarchyNetwork(SpikingNetwork):
         if directory.find(cwd) > -1:
             directory = os.path.join(directory.split(cwd)[-1][1:].split("res")[0], self.__class__.__name__)
         self.annarchy_instance.compile(directory=directory, *args, **kwargs)
+        self.annarchy_instance.set_time(self.tvb_dt)
 
     def Run(self, simulation_length, *args, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
