@@ -3,16 +3,13 @@
 import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
-from tvb_multiscale.tvb_nest.interfaces.models.basal_ganglia_izhikevich import \
-    BasalGangliaIzhikevichTVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.nest_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 
-from examples.tvb_nest.example import main_example
+from examples.example import main_example
 
 from tvb.datatypes.connectivity import Connectivity
 
 
-def basal_ganglia_izhikevich_example(**kwargs):
+def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrator_app, **kwargs):
 
     import os
 
@@ -60,16 +57,15 @@ def basal_ganglia_izhikevich_example(**kwargs):
     model_params = kwargs.pop("model_params", {})
 
     model = kwargs.pop("model", "RATE").upper()
-    tvb_nest_model_builder = BasalGangliaIzhikevichTVBNESTInterfaceBuilder()
-    tvb_nest_model_builder.model = model
-    tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
-    tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_nest_model_builder.N_E = populations_order
-    tvb_nest_model_builder.GPe_proxy_inds = np.array([0, 1])
-    tvb_nest_model_builder.GPi_proxy_inds = np.array([2, 3])
-    tvb_nest_model_builder.STN_proxy_inds = np.array([4, 5])
-    tvb_nest_model_builder.Striatum_proxy_inds = np.array([6, 7])
-    tvb_nest_model_builder.Thal_proxy_inds = np.array([8, 9])
+    tvb_spikeNet_model_builder.model = model
+    tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
+    tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
+    tvb_spikeNet_model_builder.N_E = populations_order
+    tvb_spikeNet_model_builder.GPe_proxy_inds = np.array([0, 1])
+    tvb_spikeNet_model_builder.GPi_proxy_inds = np.array([2, 3])
+    tvb_spikeNet_model_builder.STN_proxy_inds = np.array([4, 5])
+    tvb_spikeNet_model_builder.Striatum_proxy_inds = np.array([6, 7])
+    tvb_spikeNet_model_builder.Thal_proxy_inds = np.array([8, 9])
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
 
@@ -137,11 +133,8 @@ def basal_ganglia_izhikevich_example(**kwargs):
     #     spikeNet_to_tvb_interfaces[ii]["transformer_params"].update(
     #         kwargs.pop("spikeNet_to_tvb_transformer_params_%s" % _pop, {}))
 
-    return main_example(LinearReducedWongWangExcIO, model_params,
-                        BasalGangliaIzhikevichBuilder, spiking_proxy_inds, populations_order,
-                        tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
+    return main_example(orchestrator_app,
+                        LinearReducedWongWangExcIO, model_params,
+                        spikeNet_model_builder, spiking_proxy_inds, populations_order,
+                        tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
                         connectivity=connectivity, **kwargs)
-
-
-if __name__ == "__main__":
-    basal_ganglia_izhikevich_example()

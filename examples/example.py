@@ -38,7 +38,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
                  tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
                  simulation_length=110.0, transient=10.0,
-                 config=None, plot_write=True):
+                 config=None, plot_write=True, config_type=Config, logger_initializer=initialize_logger):
 
     if config is None:
         try:
@@ -46,10 +46,10 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
         except:
             spikeNet_to_tvb = len(spikeNet_to_tvb_interfaces) > 0
         config = \
-            Config(output_base=results_path_fun(spikeNet_model_builder, tvb_spikeNet_interface_builder.model,
+            config_type(output_base=results_path_fun(spikeNet_model_builder, tvb_spikeNet_interface_builder.model,
                                                 spikeNet_to_tvb))
 
-    logger = initialize_logger(__name__, config=config)
+    logger = logger_initializer(__name__, config=config)
 
     spiking_proxy_inds = np.array(spiking_proxy_inds)
 

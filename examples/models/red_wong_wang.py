@@ -16,7 +16,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     model_params = kwargs.pop("model_params", {})
 
     model = kwargs.pop("model", "RATE").upper()
-    tvb_nest_model_builder = tvb_spikeNet_model_builder()
+    tvb_nest_model_builder = tvb_spikeNet_model_builder
     tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
     tvb_nest_model_builder.model = model
@@ -96,7 +96,7 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     model_params = kwargs.pop("model_params", {})
 
     model = kwargs.pop("model", "RATE").upper()
-    tvb_nest_model_builder = tvb_spikeNet_model_builder()
+    tvb_nest_model_builder = tvb_spikeNet_model_builder
     tvb_nest_model_builder.model = model
     tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
