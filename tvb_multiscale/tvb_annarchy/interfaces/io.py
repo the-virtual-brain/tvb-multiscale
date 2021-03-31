@@ -258,8 +258,8 @@ class ANNarchyOutputDeviceGetters(Enum):
 
 class ANNarchyInputDeviceSetters(Enum):
     TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedArrayPoissonPopulationSet
-    SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
-    TIMED_ARRAY = ANNarchyTimedArraySet
+    # SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
+    # TIMED_ARRAY = ANNarchyTimedArraySet
 
 
 ANNarchySenders = ANNarchyOutputDeviceGetters
