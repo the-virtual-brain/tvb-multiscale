@@ -36,7 +36,7 @@ class TestDefault(TestSpikeNetModel):
     multisynapse = False
 
     def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
+        default_example(model=self.tvb_to_spikeNet_mode,
                         spiking_proxy_inds=self.spiking_proxy_inds, populations_order=self.populations_order,
                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                         simulation_length=self.simulation_length, transient=self.transient,
@@ -61,7 +61,7 @@ class TestWilsonCowan(TestSpikeNetModel):
     multisynapse = False
 
     def run_fun(self):
-        wilson_cowan_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
+        wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
                              spiking_proxy_inds=self.spiking_proxy_inds, populations_order=self.populations_order,
                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                              simulation_length=self.simulation_length, transient=self.transient,
