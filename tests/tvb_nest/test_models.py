@@ -217,10 +217,15 @@ class TestBasalGangliaIzhikevich(TestSpikeNetModel):
         self.run()
 
 
-if __name__ == "__main__":
-    loop_all(models_to_test=[
+def test_models(models_to_test=[
                              TestDefault, TestDefaultMutisynapse,
                              TestWilsonCowan, TestWilsonCowanMultisynapse,
                              TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI,
                              TestBasalGangliaIzhikevich
-    ])
+                               ]):
+    loop_all(models_to_test)
+
+
+if __name__ == "__main__":
+    test_models()
+

@@ -150,8 +150,7 @@ def teardown_function():
         shutil.rmtree(output_folder)
 
 
-def loop_all(models_to_test=[TestLinear, TestWilsonCowan,
-                             TestLinearReducedWongWangExcIO, TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):
+def loop_all(models_to_test=[]):
     import time
     import numpy as np
     from collections import OrderedDict
@@ -190,5 +189,11 @@ def loop_all(models_to_test=[TestLinear, TestWilsonCowan,
     print("******************************************************\n")
 
 
+def test_models(models_to_test=[TestLinear, TestWilsonCowan,
+                                TestLinearReducedWongWangExcIO,
+                                TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):
+    loop_all(models_to_test)
+
+
 if __name__ == "__main__":
-    loop_all()
+    test_models()
