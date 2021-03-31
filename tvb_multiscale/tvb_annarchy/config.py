@@ -53,10 +53,10 @@ class Config(ConfigBase):
                                          "TimedArrayPoissonPopulation": {"rates": np.array([[0.0]]), "target": "exc",
                                                                          "schedule": [0.0], "period": -1.0},
                                          "TimedArrayPoisson_neuron": {"rates": np.array([[0.0]]), "target": "exc",
-                                                                      "schedule": [0.0], "period": -1.0},
-                                         "TimedArrayHomogeneousCorrelatedSpikeTrains":
-                                             {"rates": np.array([[1.0]]), "corr": 0.0, "tau": 1.0,
-                                              "schedule": [0.0], "period": -1.0}
+                                                                      "schedule": [0.0], "period": -1.0}  # ,
+                                         # "TimedArrayHomogeneousCorrelatedSpikeTrains":
+                                         #     {"rates": np.array([[1.0]]), "corr": 0.0, "tau": 1.0,
+                                         #      "schedule": [0.0], "period": -1.0}
                                          # "CurrentInjector": {"amplitude": 0.0},
                                          # "DCCurrentInjector": {"amplitude": 0.0},
                                          # "ACCurrentInjector": {"frequency": 0.0, "amplitude": 1.0,
