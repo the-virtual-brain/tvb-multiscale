@@ -12,9 +12,9 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDevice, ANNarchyTimedArray, ANNarchySpikeSourceArray, \
-    ANNarchyTimedArrayPoissonPopulation, ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains, \
+    ANNarchyInputDevice, ANNarchyTimedArrayPoissonPopulation, \
     ANNarchyOutputDevice, ANNarchyMonitor, ANNarchySpikeMonitor
+    # ANNarchyTimedArray,  ANNarchySpikeSourceArray, ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
 
 
 class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
@@ -57,42 +57,42 @@ class ANNarchyTimedArrayPoissonPopulationSet(ANNarchyInputDeviceSet):
         self.target.set({"rates": np.maximum([0.0], data[1][:, :, None])})
 
 
-class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
-
-    """
-        ANNarchySpikeSourceArraySet class to set data directly 
-        to a DeviceSet of ANNarchySpikeSourceArray instances in memory.
-        It comprises of:
-            - a target attribute, i.e., the DeviceSet of ANNarchySpikeSourceArray instances to send data to,
-            - a method to set data to the target.
-    """
-
-    model = "SpikeSourceArray"
-
-    _spikeNet_input_device_type = ANNarchySpikeSourceArray
-
-    def send(self, data):
-        # TODO: Decide whether to check for the values being in the future...:
-        # data[-1] >= self.next_time_step
-        self.target.set({"spike_times": data[-1]})
-
-
-class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
-
-    """
-        ANNarchyTimedArraySet class to set data directly to a DeviceSet of ANNarchyTimedArray instances in memory.
-        It comprises of:
-            - a target attribute, i.e., the DeviceSet of ANNarchyTimedArray instances to send data to,
-            - a method to set data to the target.
-    """
-
-    model = "TimedArray"
-
-    _spikeNet_input_device_type = ANNarchyTimedArray
-
-    def send(self, data):
-        # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        self.target.set({"rates": np.maximum([0.0], data[1][:, :, None])})
+# class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
+#
+#     """
+#         ANNarchySpikeSourceArraySet class to set data directly
+#         to a DeviceSet of ANNarchySpikeSourceArray instances in memory.
+#         It comprises of:
+#             - a target attribute, i.e., the DeviceSet of ANNarchySpikeSourceArray instances to send data to,
+#             - a method to set data to the target.
+#     """
+#
+#     model = "SpikeSourceArray"
+#
+#     _spikeNet_input_device_type = ANNarchySpikeSourceArray
+#
+#     def send(self, data):
+#         # TODO: Decide whether to check for the values being in the future...:
+#         # data[-1] >= self.next_time_step
+#         self.target.set({"spike_times": data[-1]})
+#
+#
+# class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
+#
+#     """
+#         ANNarchyTimedArraySet class to set data directly to a DeviceSet of ANNarchyTimedArray instances in memory.
+#         It comprises of:
+#             - a target attribute, i.e., the DeviceSet of ANNarchyTimedArray instances to send data to,
+#             - a method to set data to the target.
+#     """
+#
+#     model = "TimedArray"
+#
+#     _spikeNet_input_device_type = ANNarchyTimedArray
+#
+#     def send(self, data):
+#         # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
+#         self.target.set({"rates": np.maximum([0.0], data[1][:, :, None])})
 
 
 class ANNarchyOutputDeviceSet(SpikeNetOutputDeviceSet):

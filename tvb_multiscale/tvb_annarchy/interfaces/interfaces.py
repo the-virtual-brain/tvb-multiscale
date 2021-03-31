@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from enum import Enum
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
@@ -19,7 +20,11 @@ from tvb_multiscale.tvb_annarchy.interfaces.io import ANNarchyInputDeviceSet, AN
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 
 
-TVBtoANNarchyModels = TVBtoSpikeNetModels
+# TVBtoANNarchyModels = TVBtoSpikeNetModels
+class TVBtoANNarchyModels(Enum):
+    RATE = 0
+
+
 ANNarchytoTVBModels = SpikeNetToTVBModels
 
 
