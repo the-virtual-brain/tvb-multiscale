@@ -20,7 +20,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     TVBtoANNarchyInterface, ANNarchyToTVBInterface
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeMonitorSet, ANNarchySpikeMonitorMeanSet, ANNarchySpikeMonitorTotalSet, \
-    ANNarchySpikeSourceArraySet, ANNarchyTimedArrayPoissonPopulationSet  # ANNarchyTimedArraySet,
+    ANNarchyTimedArrayPoissonPopulationSet  # ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet,
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
