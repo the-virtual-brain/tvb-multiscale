@@ -106,6 +106,7 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
                 params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["SpikeSourceArray"]["spike_times"])
         else:
             val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray"]["rates"])
+        params.pop("geometry", None)  # remove geometry argument for SpikeSourceArray and TimedArray
         population = model(val, **params)
     elif model in [annarchy_instance.PoissonPopulation, annarchy_instance.HomogeneousCorrelatedSpikeTrains]:
         geometry = params.pop("geometry", size)
