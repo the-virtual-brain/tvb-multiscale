@@ -439,16 +439,16 @@ class ANNarchyTimedArrayPoissonPopulation(ANNarchyTimedArraySpikePopulation):
         self.model = "PoissonPopulation"
 
 
-class ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains(ANNarchyTimedArraySpikePopulation):
-
-    """ANNarchyTimedArrayPoissonPopulation class to wrap around a rate ANNarchy.TimedArray,
-       and connect it to a HomogeneousCorrelatedSpikeTrains specific population of ANNarchy,
-       in order to act as an input (stimulating) device."""
-
-    def __init__(self, device=None, population=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains, self).__init__(device, population, label,
-                                                                                 annarchy_instance, **kwargs)
-        self.model = "HomogeneousCorrelatedSpikeTrains"
+# class ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains(ANNarchyTimedArraySpikePopulation):
+#
+#     """ANNarchyTimedArrayPoissonPopulation class to wrap around a rate ANNarchy.TimedArray,
+#        and connect it to a HomogeneousCorrelatedSpikeTrains specific population of ANNarchy,
+#        in order to act as an input (stimulating) device."""
+#
+#     def __init__(self, device=None, population=None, label="", annarchy_instance=None, **kwargs):
+#         super(ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains, self).__init__(device, population, label,
+#                                                                                  annarchy_instance, **kwargs)
+#         self.model = "HomogeneousCorrelatedSpikeTrains"
 
 
 class ANNarchyTimedArrayPoissonNeuron(ANNarchyTimedArraySpikePopulation):
@@ -470,7 +470,7 @@ ANNarchyInputDeviceDict = {}
 
 ANNarchyTimedArraySpikeInputDeviceDict = \
     {"TimedArrayPoissonPopulation": ANNarchyTimedArrayPoissonPopulation,
-     "TimedArrayHomogeneousCorrelatedSpikeTrains": ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
+     # "TimedArrayHomogeneousCorrelatedSpikeTrains": ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
      # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
      "TimedArrayPoisson_neuron": ANNarchyTimedArrayPoissonNeuron}
 
