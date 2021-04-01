@@ -47,10 +47,10 @@ class TestDefault(TestSpikeNetModel):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
-    # # @pytest.mark.skip(reason="These tests are taking too much time")
-    # def test_spikes(self):
-    #     self.tvb_to_spikeNet_mode = "SPIKES"
-    #     self.run()
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_spikes(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
 
 
 class TestWilsonCowan(TestSpikeNetModel):
@@ -72,10 +72,10 @@ class TestWilsonCowan(TestSpikeNetModel):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
-    # # @pytest.mark.skip(reason="These tests are taking too much time")
-    # def test_spikes(self):
-    #     self.tvb_to_spikeNet_mode = "SPIKES"
-    #     self.run()
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_spikes(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
 
 
 class TestBasalGangliaIzhikevich(TestSpikeNetModel):
@@ -97,10 +97,10 @@ class TestBasalGangliaIzhikevich(TestSpikeNetModel):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
-    # # @pytest.mark.skip(reason="These tests are taking too much time")
-    # def test_spikes(self):
-    #     self.tvb_to_spikeNet_mode = "SPIKES"
-    #     self.run()
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_spikes(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
 
     # # @pytest.mark.skip(reason="These tests are taking too much time")
     # def test_current(self):

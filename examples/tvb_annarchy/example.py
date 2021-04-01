@@ -21,4 +21,8 @@ def default_example(**kwargs):
 
 
 if __name__ == "__main__":
-    default_example(model="RATE")
+    import sys
+    if sys.argv[-1] == "1":
+        default_example(model="SPIKES")
+    else:
+        default_example(model="RATE")

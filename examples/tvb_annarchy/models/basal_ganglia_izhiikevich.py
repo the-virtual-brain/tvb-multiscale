@@ -16,4 +16,8 @@ def basal_ganglia_izhikevich_example(**kwargs):
 
 
 if __name__ == "__main__":
-    basal_ganglia_izhikevich_example()
+    import sys
+    if sys.argv[-1] == "1":
+        basal_ganglia_izhikevich_example(model="SPIKES")
+    else:
+        basal_ganglia_izhikevich_example(model="RATE")

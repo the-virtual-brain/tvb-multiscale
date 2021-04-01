@@ -13,4 +13,8 @@ def wilson_cowan_example(**kwargs):
 
 
 if __name__ == "__main__":
-    wilson_cowan_example(model="RATE")
+    import sys
+    if sys.argv[-1] == "1":
+        wilson_cowan_example(model="SPIKES")
+    else:
+        wilson_cowan_example(model="RATE")
