@@ -146,11 +146,9 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         correlation_factor[inds] = 1.0 / self._number_of_neurons[inds]
         self.correlation_factor = correlation_factor.copy()
 
+    @abstractmethod
     def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
-        rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
-        return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
-                                                                            rates * correlation_factor, 1)[0], \
-               rates
+        pass
 
     @abstractmethod
     def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, *args):
@@ -183,6 +181,11 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
         We took it from https://github.com/multiscale-cosim/TVB-NEST-0
     """
 
+    def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
+        return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
+                                                                            rates * correlation_factor, 1)[0], \
+               rates
+
     def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, rates):
         spiketrains = \
             super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
@@ -205,6 +208,12 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         DOI: 10.1162/089976603321043702.
         We took it from https://github.com/multiscale-cosim/TVB-NEST
     """
+
+    def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
+        rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
+        return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
+                                                                            rates * correlation_factor, 1)[0], \
+               rates
 
     def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, *args):
         select = np.random.binomial(n=1, p=correlation_factor, size=(n_spiketrains, len(shared_spiketrain)))
