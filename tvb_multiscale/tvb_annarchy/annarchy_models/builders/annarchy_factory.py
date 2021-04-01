@@ -101,12 +101,16 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
 
     # If model is a SpecificPopulation, create it directly:
     if model in [annarchy_instance.SpikeSourceArray, annarchy_instance.TimedArray]:
+        geometry = params.pop("geometry", 1)  # remove geometry argument for SpikeSourceArray and TimedArray
         if model == annarchy_instance.SpikeSourceArray:
             val = \
                 params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["SpikeSourceArray"]["spike_times"])
+            if len(val) == 1:
+                val *= geometry
         else:
             val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray"]["rates"])
-        params.pop("geometry", None)  # remove geometry argument for SpikeSourceArray and TimedArray
+            if val.shape[1] == 1:
+                val = np.repeat(val, geometry, axis=1)
         population = model(val, **params)
     elif model in [annarchy_instance.PoissonPopulation, annarchy_instance.HomogeneousCorrelatedSpikeTrains]:
         geometry = params.pop("geometry", size)
@@ -357,6 +361,8 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
         synapse = None
     if synapse is not None:
         syn_spec["synapse"] = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
+    # TODO: Decide about this: We don't need to reduce delay,
+    #  because we can schedule TimedArray to start at current time (0.0)
     if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
         # We need to take into consideration the delay from the TimedArray to the spiking generating population:
         delay = np.maximum(delay - annarchy_device.annarchy_instance.dt(), 0.0)
