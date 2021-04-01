@@ -19,16 +19,6 @@ from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 
 
-class DefaultTVBtoSpikeNetModels(Enum):
-    RATE = "RATE"
-    SPIKES = "SPIKES_MULTIPLE_INTERACTION"
-    CURRENT = "CURRENT"
-
-
-class DefaultSpikeNetToTVBModels(Enum):
-    SPIKES = "SPIKES_TO_HIST_RATE"  # "SPIKES_TO_RATE", "SPIKES_TO_HIST", "SPIKES_TO_HIST_RATE"
-
-
 class DefaultTVBtoSpikeNetTransformers(Enum):
     RATE = ScaleRate
     SPIKES = RatesToSpikesElephantPoisson
@@ -42,6 +32,16 @@ class DefaultSpikeNetToTVBTransformers(Enum):
     SPIKES_TO_RATE = ElephantSpikesRate
     SPIKES_TO_HIST = ElephantSpikesHistogram
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
+
+
+class DefaultTVBtoSpikeNetModels(Enum):
+    RATE = DefaultTVBtoSpikeNetTransformers.RATE.name
+    SPIKES = DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.name
+    CURRENT = DefaultTVBtoSpikeNetTransformers.CURRENT.name
+
+
+class DefaultSpikeNetToTVBModels(Enum):
+    SPIKES = DefaultSpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
 
 
 class TransformerBuilder(HasTraits):

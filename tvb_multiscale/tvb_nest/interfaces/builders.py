@@ -30,16 +30,6 @@ TVBtoNESTModels = TVBtoSpikeNetModels
 NESTtoTVBModels = SpikeNetToTVBModels
 
 
-class DefaultTVBtoNESTModels(Enum):
-    RATE = "RATE_TO_SPIKES"
-    SPIKES = "PARROT_SPIKES"
-    CURRENT = "CURRENT"
-
-
-class DefaultNESTtoTVBModels(Enum):
-    SPIKES = "SPIKES_MEAN"
-
-
 class NESTInputProxyModels(Enum):
     RATE = NESTInhomogeneousPoissonGeneratorSet
     RATE_TO_SPIKES = NESTParrotInhomogeneousPoissonGeneratorSet
@@ -52,6 +42,16 @@ class NESTOutputProxyModels(Enum):
     SPIKES = NESTSpikeRecorderSet
     SPIKES_MEAN = NESTSpikeRecorderMeanSet
     SPIKES_TOTAL = NESTSpikeRecorderTotalSet
+
+
+class DefaultTVBtoNESTModels(Enum):
+    RATE = NESTInputProxyModels.RATE_TO_SPIKES.name
+    SPIKES = NESTInputProxyModels.PARROT_SPIKES.name
+    CURRENT = NESTInputProxyModels.CURRENT.name
+
+
+class DefaultNESTtoTVBModels(Enum):
+    SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):

@@ -20,31 +20,23 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     TVBtoANNarchyInterface, ANNarchyToTVBInterface
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeMonitorSet, ANNarchySpikeMonitorMeanSet, ANNarchySpikeMonitorTotalSet, \
-    ANNarchyTimedArrayPoissonPopulationSet  # ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet,
+    ANNarchyTimedArrayPoissonPopulationSet, ANNarchySpikeSourceArraySet # ANNarchyTimedArraySet,
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
 
 # TVBtoANNarchyModels = TVBtoSpikeNetModels
 class TVBtoANNarchyModels(Enum):
-    RATE = 0
+    RATE = 0,
+    SPIKES = 1
+
 
 ANNarchyToTVBModels = SpikeNetToTVBModels
 
 
-class DefaultTVBtoANNarchyModels(Enum):
-    RATE = "RATE_TO_SPIKES"
-    # SPIKES = "SPIKES"
-    # CURRENT = "CURRENT"
-
-
-class DefaultANNarchytoTVBModels(Enum):
-    SPIKES = "SPIKES_MEAN"
-
-
 class ANNarchyInputProxyModels(Enum):
     RATE_TO_SPIKES = ANNarchyTimedArrayPoissonPopulationSet
-    # SPIKES = ANNarchySpikeSourceArraySet
+    SPIKES = ANNarchySpikeSourceArraySet
     # CURRENT = ANNarchyTimedArraySet
 
 
@@ -52,6 +44,19 @@ class ANNarchyOutputProxyModels(Enum):
     SPIKES = ANNarchySpikeMonitorSet
     SPIKES_MEAN = ANNarchySpikeMonitorMeanSet
     SPIKES_TOTAL = ANNarchySpikeMonitorTotalSet
+
+
+class DefaultTVBtoANNarchyModels(Enum):
+    RATE = ANNarchyInputProxyModels.RATE_TO_SPIKES.name
+    SPIKES = ANNarchyInputProxyModels.SPIKES.name
+    # CURRENT =ANNarchyInputProxyModels.CURRENT.name
+
+
+class DefaultANNarchytoTVBModels(Enum):
+    SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
+
+
+
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
