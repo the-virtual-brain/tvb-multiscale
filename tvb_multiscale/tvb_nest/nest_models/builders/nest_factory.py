@@ -312,11 +312,13 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         nest_instance.Connect(neurons, nest_device.device, syn_spec=syn_spec)
     else:
         if isinstance(nest_device, tuple(NESTParrotSpikeInputDeviceDict.values())):
+            # TODO: Decide if this is necessary, given that we can configure rates'/spikes' times
+            #  to be set one resolution step earlier.
             # This is the case where we connect to the target neurons
             # the parrot_neuron population that is attached to the input spike device
             try:
                 # Try to reduce delay by resolution time
-                syn_spec["delay"] = np.maximum(resolution, syn_spec["delay"] + resolution)
+                syn_spec["delay"] = np.maximum(resolution, syn_spec["delay"] - resolution)
             except:
                 pass
             if conn_spec is None:
