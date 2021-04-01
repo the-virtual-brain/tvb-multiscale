@@ -23,6 +23,7 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 # TVBtoANNarchyModels = TVBtoSpikeNetModels
 class TVBtoANNarchyModels(Enum):
     RATE = 0
+    SPIKES = 1
 
 
 ANNarchytoTVBModels = SpikeNetToTVBModels
