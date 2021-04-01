@@ -33,6 +33,10 @@ class NESTInputDeviceSet(SpikeNetInputDeviceSet):
     def spiking_time(self):
         return self.target[0].nest_instance.GetKernelStatus("time")
 
+    @property
+    def spiking_dt(self):
+        return self.target[0].nest_instance.GetKernelStatus("min_delay")
+
     @abstractmethod
     def send(self, data):
         pass
@@ -72,7 +76,15 @@ class NESTParrotInhomogeneousPoissonGeneratorSet(NESTInhomogeneousPoissonGenerat
 
     _spikeNet_input_device_type = NESTParrotInhomogeneousPoissonGenerator
 
-    pass
+    def send(self, data):
+        # Assuming data is of shape (proxy, time)
+        # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
+        # time = self.transform_time(data[0])
+        # spiking_dt = self.spiking_dt
+        # if time[0] - self.spiking_time >= spiking_dt:
+        #     time -= spiking_dt
+        self.target.set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
+                         "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
 class NESTSpikeGeneratorSet(NESTInputDeviceSet):
@@ -108,7 +120,18 @@ class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
 
     _spikeNet_input_device_type = NESTParrotSpikeGenerator
 
-    pass
+    def send(self, data):
+        # TODO: Decide whether to check for the values being in the future...:
+        # data[-1] >= self.next_time_step
+        # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
+        # Send the spikes one NEST time step earlier to account for the
+        # spiking_dt = self.spiking_dt
+        # spiking_time = self.spiking_time
+        # for proxy in data[-1]:
+        #     for iN, neuron in enumerate(proxy):
+        #         if len(neuron) and (neuron[0] - spiking_time) >= spiking_dt:
+        #             proxy[iN] = [spike - spiking_dt for spike in neuron]
+        self.target.set({"spike_times": data[-1]})
 
 
 class NESTStepCurrentGeneratorSet(NESTInputDeviceSet):

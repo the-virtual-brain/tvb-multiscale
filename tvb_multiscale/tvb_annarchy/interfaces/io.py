@@ -12,9 +12,9 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDevice, ANNarchyTimedArrayPoissonPopulation, \
+    ANNarchyInputDevice, ANNarchySpikeSourceArray, ANNarchyTimedArrayPoissonPopulation, \
     ANNarchyOutputDevice, ANNarchyMonitor, ANNarchySpikeMonitor
-    # ANNarchyTimedArray,  ANNarchySpikeSourceArray, ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
+    # ANNarchyTimedArray,  ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
 
 
 class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
@@ -32,6 +32,14 @@ class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
     @property
     def spiking_time(self):
         return self.target[0].annarchy_instance.get_time()
+
+    @property
+    def spiking_dt(self):
+        return self.target[0].dt
+
+    def transform_time(self, time):
+        # We need to add a TVB time step to get ANNarchy time in synchronization with TVB time.
+        return self.dt * (np.arange(time[0], time[-1] + 1) + 1)
 
     @abstractmethod
     def send(self, data):
@@ -54,29 +62,40 @@ class ANNarchyTimedArrayPoissonPopulationSet(ANNarchyInputDeviceSet):
 
     def send(self, data):
         # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        self.target.set({"rates": np.maximum([0.0], data[1][:, :, None])})
+        # Rate times do not need to be advanced by dt,
+        # because they anyway count from the start time of the simulation = dt
+        # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
+        # But, we need to substract one ANNarchy time step,
+        # in order to account for the TimedArray -> PoissonPopulation communication time
+        # time = self.transform_time(data[0])
+        # spiking_dt = self.spiking_dt
+        # if time[0] - self.spiking_time >= spiking_dt:
+        #     time -= spiking_dt
+        self.target.set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
 
 
-# class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
-#
-#     """
-#         ANNarchySpikeSourceArraySet class to set data directly
-#         to a DeviceSet of ANNarchySpikeSourceArray instances in memory.
-#         It comprises of:
-#             - a target attribute, i.e., the DeviceSet of ANNarchySpikeSourceArray instances to send data to,
-#             - a method to set data to the target.
-#     """
-#
-#     model = "SpikeSourceArray"
-#
-#     _spikeNet_input_device_type = ANNarchySpikeSourceArray
-#
-#     def send(self, data):
-#         # TODO: Decide whether to check for the values being in the future...:
-#         # data[-1] >= self.next_time_step
-#         self.target.set({"spike_times": data[-1]})
-#
-#
+class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
+
+    """
+        ANNarchySpikeSourceArraySet class to set data directly
+        to a DeviceSet of ANNarchySpikeSourceArray instances in memory.
+        It comprises of:
+            - a target attribute, i.e., the DeviceSet of ANNarchySpikeSourceArray instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "SpikeSourceArray"
+
+    _spikeNet_input_device_type = ANNarchySpikeSourceArray
+
+    def send(self, data):
+        # TODO: Decide whether to check for the values being in the future...:
+        # data[-1] >= self.next_time_step
+        # Spike times do not need to be advanced by dt,
+        # because they anyway count from the start time of the simulation = dt
+        self.target.set({"spike_times": data[-1]})
+
+
 # class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
 #
 #     """
@@ -209,7 +228,9 @@ class ANNarchyMonitorSet(ANNarchyOutputDeviceSet):
         data = concatenate_heterogeneous_DataArrays(data, "Proxy",
                                                     data_keys=None, name=self.source.name,
                                                     fill_value=np.nan, transpose_dims=None)
-        time = data.coords["Time"].values
+        # Unlike spikes, the continuous variable's times are recorded at time t for the time step t-dt -> t
+        # Therefore, we need to subtract the TVB dt to be at the same time as TVB
+        time = data.coords["Time"].values - self.dt
         # data[0] will be start and end times
         # data[1] will be values array in (time x variables x proxies) shape
         return [np.array([time[0], time[-1]]), data.values]
@@ -258,7 +279,7 @@ class ANNarchyOutputDeviceGetters(Enum):
 
 class ANNarchyInputDeviceSetters(Enum):
     TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedArrayPoissonPopulationSet
-    # SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
+    SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
     # TIMED_ARRAY = ANNarchyTimedArraySet
 
 

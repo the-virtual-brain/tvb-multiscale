@@ -43,8 +43,7 @@ class SpikeNetInputDeviceSet(SetToMemory):
         return self.spiking_time + self.dt
 
     def transform_time(self, time):
-        # TODO: Decide whether to check for the values being in the future...
-        return np.maximum(self.next_time_step, self.dt * np.arange(time[0], time[-1] + 1))
+        return self.dt * np.arange(time[0], time[-1] + 1)
 
     def configure(self):
         super(SpikeNetInputDeviceSet, self).configure()
