@@ -28,6 +28,8 @@ class ANNarchyDevice(Device):
 
     annarchy_instance = None
 
+    _dt = None
+
     def __init__(self, device=None, label="", model="annarchy_device", annarchy_instance=None):
         super(ANNarchyDevice, self).__init__(device=device, label=label, model=model)
         self.annarchy_instance = annarchy_instance
@@ -39,6 +41,12 @@ class ANNarchyDevice(Device):
     @abstractmethod
     def _assert_annarchy(self):
         pass
+
+    @property
+    def dt(self):
+        if self._dt is None:
+            self._dt = self.annarchy_instance.Global.dt()
+        return self._dt
 
     @abstractmethod
     def _GetConnections(self):
@@ -540,8 +548,6 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
 
     _record_from = []
 
-    _dt = None
-
     _period = None
 
     def __init__(self, monitors=None, label="", model="annarchy_output_device", annarchy_instance=None,
@@ -592,12 +598,6 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
             return len(self.monitors)
         else:
             return 0
-
-    @property
-    def dt(self):
-        if self._dt is None:
-            self._dt = self.annarchy_instance.Global.dt()
-        return self._dt
 
     @property
     def period(self):
