@@ -338,7 +338,7 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
     def __call__(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
         cosim_updates[:] = np.NAN
-        time_steps = []
+        all_time_steps = []
         for interface in self.interfaces:
             data = interface()  # [start_and_time_steps, values]
             if data is not None:
@@ -349,7 +349,12 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
                     interface.voi_loc[None, :, None],         # indices specific to cosim_updates needed here
                     interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
                     0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
-        return [time_steps, cosim_updates]
+                all_time_steps += time_steps.tolist()
+        if len(all_time_steps):
+            all_time_steps = np.unique(all_time_steps)
+            return [all_time_steps, cosim_updates[all_time_steps % good_cosim_update_values_shape[0]]]
+        else:
+            return [all_time_steps, cosim_updates]
 
 
 class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
