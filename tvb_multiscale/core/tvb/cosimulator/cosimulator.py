@@ -189,35 +189,35 @@ class CoSimulator(CoSimulatorBase):
         return steps_performed
 
     def _run_cosimulation(self, ts, xs, wall_time_start, **kwds):
-        simulation_time = 0.0
+        simulated_steps = 0
         simulation_length = self.simulation_length
-        # remaining_time = self.simulation_length
-        # synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-        for i_sync in range(int(np.ceil(simulation_length / self.synchronization_time))):
-            # self.synchronization_n_step = np.minimum(synchronization_n_step,
-            #                                          int(remaining_time / self.integrator.dt))
-            steps_performed = \
-                self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
-            simulation_time += steps_performed * self.integrator.dt
-            # remaining_time -= simulation_time
-            self.log.info("...%.3f%% completed!", 100 * simulation_time / simulation_length)
-        # self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
-        # if self._cosimulation_flag:
-        #     # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
-        #     remaining_time = simulation_length + self.synchronization_time - simulation_time
-        #     if remaining_time:
-        #         self.log.info("Simulating for synchronization excess time %0.3f...", remaining_time)
-        #         current_step = int(self.current_step)
-        #         current_state = np.copy(self.current_state)
-        #         synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-        #         self.synchronization_n_step = np.minimum(synchronization_n_step,
-        #                                                  int(remaining_time / self.integrator.dt))
-        #         self._run_for_synchronization_time(ts, xs, wall_time_start,
-        #                                            cosimulation=False, **kwds)  # Run only TVB
-        #         self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
-        #         # Revert the current_step and current_state to those before the excess synchronization time
-        #         self.current_step = int(current_step)
-        #         self.current_state = np.copy(current_state)
+        synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
+        remaining_steps = int(np.round(simulation_length / self.integrator.dt))
+        while remaining_steps > 0:
+            self.synchronization_n_step = np.minimum(synchronization_n_step, remaining_steps)
+            steps_performed = self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
+            simulated_steps += steps_performed
+            remaining_steps -= steps_performed
+            self.log.info("...%.3f%% completed!", 100 * (simulated_steps * self.integrator.dt) / simulation_length)
+        self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
+        if self._cosimulation_flag:
+            # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
+            remaining_steps = \
+                int(np.round((simulation_length + self.synchronization_time - simulated_steps*self.integrator.dt)
+                             / self.integrator.dt))
+            if remaining_steps:
+                self.log.info("Simulating for synchronization excess time %0.3f...",
+                              remaining_steps * self.integrator.dt)
+                current_step = int(self.current_step)
+                current_state = np.copy(self.current_state)
+                synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
+                self.synchronization_n_step = np.minimum(synchronization_n_step, remaining_steps)
+                self._run_for_synchronization_time(ts, xs, wall_time_start,
+                                                   cosimulation=False, **kwds)  # Run only TVB
+                self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
+                # Revert the current_step and current_state to those before the excess synchronization time
+                self.current_step = int(current_step)
+                self.current_state = np.copy(current_state)
         self.simulation_length = simulation_length  # recover the configured value
 
     def run(self, **kwds):
