@@ -94,13 +94,14 @@ class SpikingModelBuilder(object):
         self._spiking_brain = SpikingBrain()
 
     @abstractmethod
-    def build_spiking_population(self, label, model, size, params):
+    def build_spiking_population(self, label, model, brain_region, size, params):
         """This methods builds a SpikingPopulation instance,
            which represents a population of spiking neurons of the same neural model,
            and residing at a particular brain region node.
            Arguments:
             label: name (string) of the population
             model: name (string) of the neural model
+            brain_region: name (string) of the brain reegion the population will reside
             size: number (integer) of the neurons of this population
             params: dictionary of parameters of the neural model to be set upon creation
            Returns:
@@ -529,7 +530,7 @@ class SpikingModelBuilder(object):
                     # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
                     self._spiking_brain[node_label][population["label"]] = \
-                        self.build_spiking_population(population["label"], population["model"], size,
+                        self.build_spiking_population(population["label"], population["model"], node_label, size,
                                                       params=population["params"](node_id),
                                                       *args, **kwargs)
 
