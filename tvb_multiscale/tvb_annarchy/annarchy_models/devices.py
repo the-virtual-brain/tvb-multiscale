@@ -114,7 +114,7 @@ class ANNarchyInputDevice(ANNarchyDevice, InputDevice, ANNarchyPopulation):
         self.params = kwargs.get("params", {})
         ANNarchyDevice.__init__(self, device, label=label, model=model, annarchy_instance=annarchy_instance)
         InputDevice.__init__(self, device, model=model, label=label)
-        ANNarchyPopulation.__init__(self, device, label, model, annarchy_instance)
+        ANNarchyPopulation.__init__(self, device, label, model, "", annarchy_instance)
 
     def _assert_annarchy(self):
         ANNarchyPopulation._assert_annarchy(self)
@@ -250,55 +250,25 @@ class ANNarchyHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
                                                                        "HomogeneousCorrelatedSpikeTrains",
                                                                        annarchy_instance, **kwargs)
 
+class ANNarchyContinuousInputDevice(ANNarchyInputDevice):
 
-class ANNarchyPoissonNeuron(ANNarchyInputDevice):
+    """ANNarchyContinuousInputDevice class to wrap around a ANNarchy rate neuron, or TimedArray specific population,
+        acting as an input (stimulating) device, by generating and sending
+        a set of continuous quantities interpreted as a current or rate values."""
 
-    """ANNarchyPoissonPopulation class to wrap around an PoissonNeuron model
-       (from Maith et al 2020, see tvb_annarchy.annarchy.izhikevich_maith_etal),
-       acting as an input (stimulating) device, by generating and sending
-       uncorrelated Poisson spikes to target neurons."""
+    from tvb_multiscale.tvb_annarchy.annarchy.input_devices import CurrentProxy
 
-    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyPoissonNeuron, self).__init__(device,  label, "Poisson_neuron",
-                                                    annarchy_instance, **kwargs)
+    proxy = Attr(field_type=bool, label="proxy", default=True, required=True,
+                 doc="""Flag to store data after reading from ANNarchy monitor.""")
 
+    proxy_type = CurrentProxy
 
-# class ANNarchyCurrentInjector(InputDevice):
-#
-#     """ANNarchyCurrentInjector class to wrap around a rate ANNarchy.Population,
-#        acting as an input (stimulating) device, by generating and sending
-#        a continuous quantity interpreted as a current (or potentially rate)."""
-#
-#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-#         super(ANNarchyCurrentInjector, self).__init__(device,  label, "CurrentInjector",
-#                                                       annarchy_instance, **kwargs)
-#
-#
-# class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
-#
-#     """ANNarchyDCCurrentInjector class to wrap around a rate ANNarchy.Population,
-#        acting as an input (stimulating) device, by generating and sending
-#        a constant continuous quantity interpreted as a DC current (or potentially rate)."""
-#
-#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-#         super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "DCCurrentInjector",
-#                                                         annarchy_instance, **kwargs)
-#
-#
-# class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
-#
-#     """ANNarchyACCurrentInjector class to wrap around a rate ANNarchy.Population,
-#        acting as an input (stimulating) device, by generating and sending
-#        a sinusoidaly varying continuous quantity interpreted as a AC current (or potentially rate)."""
-#
-#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-#         super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ACCurrentInjector",
-#                                                         annarchy_instance, **kwargs)
-#
-#
+    def __init__(self, device=None, label="", model="TimedArray", annarchy_instance=None, **kwargs):
+        super(ANNarchyContinuousInputDevice, self).__init__(device, label, model,
+                                                            annarchy_instance, **kwargs)
 
 
-class ANNarchyTimedArray(ANNarchyInputDevice):
+class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
 
     """ANNarchyTimedArray class to wrap around a rate ANNarchy.TimedArray,
        acting as an input (stimulating) device, by generating and sending
@@ -319,6 +289,50 @@ class ANNarchyTimedArray(ANNarchyInputDevice):
             for attribute in attrs:
                 dictionary[attribute] = neurons.get(attribute)
         return dictionary
+
+
+class ANNarchyPoissonNeuron(ANNarchyInputDevice):
+
+    """ANNarchyPoissonPopulation class to wrap around an PoissonNeuron model
+       (from Maith et al 2020, see tvb_annarchy.annarchy.izhikevich_maith_etal),
+       acting as an input (stimulating) device, by generating and sending
+       uncorrelated Poisson spikes to target neurons."""
+
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyPoissonNeuron, self).__init__(device,  label, "Poisson_neuron",
+                                                    annarchy_instance, **kwargs)
+
+
+class ANNarchyCurrentInjector(ANNarchyContinuousInputDevice):
+
+    """ANNarchyCurrentInjector class to wrap around a rate ANNarchy.Population,
+       acting as an input (stimulating) device, by generating and sending
+       a continuous quantity interpreted as a current (or potentially rate)."""
+
+    def __init__(self, device=None, label="", model="CurrentInjector", annarchy_instance=None, **kwargs):
+        super(ANNarchyCurrentInjector, self).__init__(device,  label, model, annarchy_instance, **kwargs)
+
+
+class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
+
+    """ANNarchyDCCurrentInjector class to wrap around a rate ANNarchy.Population,
+       acting as an input (stimulating) device, by generating and sending
+       a constant continuous quantity interpreted as a DC current (or potentially rate)."""
+
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyDCCurrentInjector, self).__init__(device,  label, "DCCurrentInjector",
+                                                        annarchy_instance, **kwargs)
+
+
+class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
+
+    """ANNarchyACCurrentInjector class to wrap around a rate ANNarchy.Population,
+       acting as an input (stimulating) device, by generating and sending
+       a sinusoidaly varying continuous quantity interpreted as a AC current (or potentially rate)."""
+
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyACCurrentInjector, self).__init__(device,  label, "ACCurrentInjector",
+                                                        annarchy_instance, **kwargs)
 
 
 class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
@@ -358,10 +372,10 @@ ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
 ANNarchySpikeInputDeviceDict.update(ANNarchyTimedSpikeInputDeviceDict)
 
 
-ANNarchyCurrentInputDeviceDict = {"TimedArray": ANNarchyTimedArray
-                                  # "CurrentInjector": ANNarchyCurrentInjector,
-                                  # "DCCurrentInjector": ANNarchyDCCurrentInjector,
-                                  # "ACCurrentInjector": ANNarchyACCurrentInjector,
+ANNarchyCurrentInputDeviceDict = {"TimedArray": ANNarchyTimedArray,
+                                  "CurrentInjector": ANNarchyCurrentInjector,
+                                  "DCCurrentInjector": ANNarchyDCCurrentInjector,
+                                  "ACCurrentInjector": ANNarchyACCurrentInjector
                                   }
 
 ANNarchyInputDeviceDict.update(ANNarchySpikeInputDeviceDict)
