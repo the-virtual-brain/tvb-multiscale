@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pandas as pd
+
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 from tvb_multiscale.tvb_annarchy.annarchy_models.region_node import ANNarchyRegionNode
@@ -74,13 +76,14 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     def _assert_model(self, model):
         return assert_model(model, self.annarchy_instance, self._models_import_path)
 
-    def build_spiking_population(self, label, model, size, params):
+    def build_spiking_population(self, label, model, brain_region, size, params):
         """This methods builds an  ANNarchyPopulation instance,
            which represents a population of spiking neurons of the same neural model,
            and residing at a particular brain region node.
            Arguments:
             label: name (string) of the population
             model: name (string) of the neural model
+            brain_region: name (string) of the brain reegion the population will reside
             size: number (integer) of the neurons of this population
             params: dictionary of parameters of the neural model to be set upon creation
            Returns:
@@ -135,6 +138,18 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         """
         return ANNarchyRegionNode(label, input_node, self.annarchy_instance)
 
+    def build_and_connect_input_devices(self):
+        """Method to build and connect input devices, organized by
+           - the variable they stimulate (pandas.Series), and the
+           - population(s) (pandas.Series), and
+           - brain region nodes (pandas.Series) they target."""
+        _devices = pd.Series()
+        for device in self._input_devices:
+            device["input_proxies"] = self._input_proxies
+            _devices = _devices.append(
+                self.build_and_connect_devices(device))
+        return _devices
+
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
            - the variable they measure or stimulate (pandas.Series), and the
@@ -150,4 +165,5 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     def build(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""
         return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,
-                               self._output_devices, self._input_devices, config=self.config)
+                               self._output_devices, self._input_devices,
+                               self._input_proxies, config=self.config)
