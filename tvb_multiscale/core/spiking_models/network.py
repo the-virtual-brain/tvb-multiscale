@@ -73,17 +73,17 @@ class SpikingNetwork(HasTraits):
         doc="""A pandas.Series of output (recording) devices of the SpikingNetwork, 
                which record data to send to a co-simulator, organized by 
                co-simulator recorded variable (e.g., TVB state variable) and brain region.""")
-    # output_devices['Excitatory']['rh-insula']
+    # output_proxies['Excitatory']['rh-insula']
 
     input_proxies = Attr(
         field_type=pd.Series,
-        label="Intput proxys of the SpikingNetwork.",
+        label="Intput proxies of the SpikingNetwork.",
         default=pd.Series(),
         required=False,
         doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
                that mimick a co-simulator's activity (e.g., TVB mean field state variables) 
                    organized by brain region and population.""")
-    # input_devices['Inhibitory']['rh-insula']
+    # input_proxies['Inhibitory']['rh-insula']
 
     _OutputSpikeDeviceDict = OutputSpikeDeviceDict
     _OutputContinuousTimeDeviceDict = OutputContinuousTimeDeviceDict
