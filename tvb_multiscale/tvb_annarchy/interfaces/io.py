@@ -12,7 +12,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDevice, ANNarchySpikeSourceArray, ANNarchyTimedArrayPoissonPopulation, \
+    ANNarchyInputDevice, ANNarchySpikeSourceArray, ANNarchyTimedPoissonPopulation, \
     ANNarchyOutputDevice, ANNarchyMonitor, ANNarchySpikeMonitor
     # ANNarchyTimedArray,  ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
 
@@ -46,31 +46,24 @@ class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
         pass
 
 
-class ANNarchyTimedArrayPoissonPopulationSet(ANNarchyInputDeviceSet):
+class ANNarchyTimedPoissonPopulationSet(ANNarchyInputDeviceSet):
 
     """
-        ANNarchyTimedArrayPoissonPopulationSet class to set data directly to a DeviceSet
-        of ANNarchyTimedArrayPoissonPopulation instances in memory
+        ANNarchyTimedPoissonPopulationSet class to set data directly to a DeviceSet
+        of ANNarchyTimedPoissonPopulation instances in memory
         It comprises of:
-            - a target attribute, i.e., a DeviceSet, of ANNarchyTimedArrayPoissonPopulation instances to send data to,
+            - a target attribute, i.e., a DeviceSet, of ANNarchyTimedPoissonPopulation instances to send data to,
             - a method to set data to the target.
     """
 
-    model = "TimedArrayPoissonPopulation"
+    model = "TimedPoissonPopulation"
 
-    _spikeNet_input_device_type = ANNarchyTimedArrayPoissonPopulation
+    _spikeNet_input_device_type = ANNarchyTimedPoissonPopulation
 
     def send(self, data):
         # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
         # Rate times do not need to be advanced by dt,
         # because they anyway count from the start time of the simulation = dt
-        # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
-        # But, we need to substract one ANNarchy time step,
-        # in order to account for the TimedArray -> PoissonPopulation communication time
-        # time = self.transform_time(data[0])
-        # spiking_dt = self.spiking_dt
-        # if time[0] - self.spiking_time >= spiking_dt:
-        #     time -= spiking_dt
         self.target.set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
 
 
@@ -278,7 +271,7 @@ class ANNarchyOutputDeviceGetters(Enum):
 
 
 class ANNarchyInputDeviceSetters(Enum):
-    TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedArrayPoissonPopulationSet
+    TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedPoissonPopulationSet
     SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
     # TIMED_ARRAY = ANNarchyTimedArraySet
 

@@ -321,173 +321,41 @@ class ANNarchyTimedArray(ANNarchyInputDevice):
         return dictionary
 
 
-class ANNarchyTimedArraySpikePopulation(ANNarchyTimedArray):
+class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
 
-    """ANNarchyTimedArraySpikePopulation class to wrap around a rate ANNarchy.TimedArray,
-       and connect it to a spikes generating specific population of ANNarchy,
+    """ANNarchyTimedPoissonPopulation class to wrap around a rate ANNarchy.TimedPoissonPopulation,
        in order to act as an input (stimulating) device."""
 
-    _device_ind = None
-
-    def __init__(self, device=None, population=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyTimedArraySpikePopulation, self).__init__(device, label, annarchy_instance, **kwargs)
-        self.device = device
-        self._population = population
-        self.model = "TimedArray"
-
-    def _assert_device(self):
-        if self.annarchy_instance is not None:
-            from ANNarchy import Population
-            if self.device is not None:
-                assert isinstance(self.device, Population)
-            if self._population is not None:
-                assert isinstance(self._population, Population)
-
-    @property
-    def annarchy_model(self):
-        return str(self.device.get("model"))
-
-    @property
-    def device_ind(self):
-        if self._device_ind is None:
-            self._assert_annarchy()
-            from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
-            self._device_ind = get_population_ind(self.device, self.annarchy_instance)
-        return self._device_ind
-
-    # We want to use Set and Get for the TimedArray,
-    # and Get/GetFrom/SetTo-Connections with the spikes generating population
-    def _assert_neurons_for_set_get(self, neurons=None):
-        """Method to return the neurons of the TimedArray, instead of those of the spike generating population"""
-        if neurons is None:
-            if self.device is None:
-                neurons = self._population
-            else:
-                neurons = self.device
-        self._assert_annarchy()
-        if isinstance(neurons, self.annarchy_instance.Population):
-            # Assert that we refer to this object's Population
-            assert self._population == neurons or neurons == self.device
-        elif isinstance(neurons, self.annarchy_instance.PopulationView):
-            # Assert that we refer to a view of this object's Population
-            assert self._population == neurons.population
-        else:
-            # Let's check if these are global or local indices of neurons...
-            local_inds = []
-            for neuron in ensure_list(neurons):
-                if isinstance(neuron, (tuple, list)):
-                    # If neurons are global_ids formed as tuples of (population_ind, neuron_ind)...
-                    if neuron[0] == self.population_ind:
-                        # ... confirm that the population_ind is correct and get the neuron_ind
-                        local_inds.append(neuron[1])
-                        # If neurons are just local inds, gather them...
-                    elif is_integer(neuron):
-                        local_inds.append(neuron)
-                    else:
-                        raise ValueError(
-                            "neurons %s\nis neither an instance of ANNarchy.Population, "
-                            "nor of  ANNarchy.PopulationView,\n"
-                            "nor is it a collection (tuple, list, or numpy.ndarray) "
-                            "of global (tuple of (population_inds, neuron_ind) or local indices of neurons!")
-                    # Return a Population View:
-                    neurons = self._population[neurons]
-
-        return neurons
-
-    def _set(self, values_dict, neurons=None):
-        self._assert_neurons_for_set_get(neurons).set(values_dict)
-
-    def _get(self, attrs=None, neurons=None):
-        dictionary = {}
-        if neurons is None:
-            if attrs is None:
-                neurons = self._assert_neurons_for_set_get()
-            else:
-                for attribute in attrs:
-                    try:
-                        if self.device is not None:
-                            dictionary[attribute] = self.device.get(attribute)
-                    except:
-                        try:
-                            if self._population is not None:
-                                dictionary[attribute] = self._population.get(attribute)
-                        except:
-                            raise ValueError("Attribute %s is neither an attribute of ANNarchy.TimedArray nor of "
-                                             "%s" % (attribute, self._population.__class__.__name__))
-                return dictionary
-        else:
-            neurons = self._assert_neurons_for_set_get(neurons)
-        if attrs is None:
-            if neurons == self.device:
-                attributes = ["rates", "schedule", "period"]
-            else:
-                attributes = neurons.attributes
-            # If no attribute is specified, return all of them for TimedArray:
-            for attribute in attributes:
-                dictionary[attribute] = neurons.get(attribute)
-        else:
-            for attribute in attrs:
-                dictionary[attribute] = neurons.get(attribute)
-        return dictionary
-
-    @property
-    def number_of_devices_neurons(self):
-        return self.device.size
+    def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+        super(ANNarchyTimedPoissonPopulation, self).__init__(device, label, "TimedPoissonPopulation",
+                                                             annarchy_instance, **kwargs)
 
 
-class ANNarchyTimedArrayPoissonPopulation(ANNarchyTimedArraySpikePopulation):
-
-    """ANNarchyTimedArrayPoissonPopulation class to wrap around a rate ANNarchy.TimedArray,
-       and connect it to a PoissonPopulation specific population of ANNarchy,
-       in order to act as an input (stimulating) device."""
-
-    def __init__(self, device=None, population=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyTimedArrayPoissonPopulation, self).__init__(device, population, label,
-                                                                  annarchy_instance, **kwargs)
-        self.model = "PoissonPopulation"
-
-
-# class ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains(ANNarchyTimedArraySpikePopulation):
+# class ANNarchyTimedHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
 #
-#     """ANNarchyTimedArrayPoissonPopulation class to wrap around a rate ANNarchy.TimedArray,
-#        and connect it to a HomogeneousCorrelatedSpikeTrains specific population of ANNarchy,
-#        in order to act as an input (stimulating) device."""
+#     """ANNarchyTimedHomogeneousCorrelatedSpikeTrains class to wrap around a rate
+#        ANNarchy.TimedHomogeneousCorrelatedSpikeTrains, in order to act as an input (stimulating) device."""
 #
-#     def __init__(self, device=None, population=None, label="", annarchy_instance=None, **kwargs):
-#         super(ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains, self).__init__(device, population, label,
-#                                                                                  annarchy_instance, **kwargs)
-#         self.model = "HomogeneousCorrelatedSpikeTrains"
-
-
-class ANNarchyTimedArrayPoissonNeuron(ANNarchyTimedArraySpikePopulation):
-
-    """ANNarchyTimedArrayPoissonNeuron class to wrap around a rate ANNarchy.TimedArray,
-       and connect it to a Poisson_neuron specific population of ANNarchy,
-       in order to act as an input (stimulating) device."""
-
-    _annarchy_population_class = ANNarchyPoissonNeuron
-
-    def __init__(self, device=None, population=None, label="", annarchy_instance=None, **kwargs):
-        super(ANNarchyTimedArrayPoissonNeuron, self).__init__(device, population, label,
-                                                              annarchy_instance, **kwargs)
-        self.model = "Poisson_neuron"
+#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
+#         super(ANNarchyTimedHomogeneousCorrelatedSpikeTrains, self).__init__(device, label,
+#                                                                             "TimedHomogeneousCorrelatedSpikeTrains"
+#                                                                             annarchy_instance, **kwargs)
 
 
 ANNarchyInputDeviceDict = {}
 
 
-ANNarchyTimedArraySpikeInputDeviceDict = \
-    {"TimedArrayPoissonPopulation": ANNarchyTimedArrayPoissonPopulation,
+ANNarchyTimedSpikeInputDeviceDict = \
+    {"TimedPoissonPopulation": ANNarchyTimedPoissonPopulation,
      # "TimedArrayHomogeneousCorrelatedSpikeTrains": ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
-     # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
-     "TimedArrayPoisson_neuron": ANNarchyTimedArrayPoissonNeuron}
+    }
 
 ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
                                  "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
                                  "SpikeSourceArray": ANNarchySpikeSourceArray,
                                  # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
                                  "Poisson_neuron": ANNarchyPoissonNeuron}
-ANNarchySpikeInputDeviceDict.update(ANNarchyTimedArraySpikeInputDeviceDict)
+ANNarchySpikeInputDeviceDict.update(ANNarchyTimedSpikeInputDeviceDict)
 
 
 ANNarchyCurrentInputDeviceDict = {"TimedArray": ANNarchyTimedArray

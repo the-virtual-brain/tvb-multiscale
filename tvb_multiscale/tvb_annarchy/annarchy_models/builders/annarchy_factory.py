@@ -9,7 +9,7 @@ import numpy as np
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, \
-    ANNarchyTimedArraySpikeInputDeviceDict  # , ANNarchyACCurrentInjector
+    ANNarchyTimedSpikeInputDeviceDict  # , ANNarchyACCurrentInjector
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -100,18 +100,23 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
         model = getattr(annarchy_instance, model)
 
     # If model is a SpecificPopulation, create it directly:
-    if model in [annarchy_instance.SpikeSourceArray, annarchy_instance.TimedArray]:
+    if model in [annarchy_instance.SpikeSourceArray,
+                 annarchy_instance.TimedArray, annarchy_instance.TimedPoissonPopulation]:
         geometry = params.pop("geometry", 1)  # remove geometry argument for SpikeSourceArray and TimedArray
         if model == annarchy_instance.SpikeSourceArray:
             val = \
                 params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["SpikeSourceArray"]["spike_times"])
             if len(val) == 1:
                 val *= geometry
+            population = model(val, **params)
         else:
             val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray"]["rates"])
-            if val.shape[1] == 1:
-                val = np.repeat(val, geometry, axis=1)
-        population = model(val, **params)
+            if model == annarchy_instance.TimedArray:
+                if val.shape[1] == 1:
+                    val = np.repeat(val, geometry, axis=1)
+                population = model(val, **params)
+            else:  # TimedPoissonPopulation
+                population = model(geometry, val, **params)
     elif model in [annarchy_instance.PoissonPopulation, annarchy_instance.HomogeneousCorrelatedSpikeTrains]:
         geometry = params.pop("geometry", size)
         if model == annarchy_instance.HomogeneousCorrelatedSpikeTrains:
@@ -125,8 +130,7 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
         else:
             rates = params.pop("rates", None)
             if rates is None:
-                target = params.pop("target",
-                                    config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArrayPoissonPopulation"]["target"])
+                target = params.pop("target", "exc")
             else:
                 target = None
             population = annarchy_instance.PoissonPopulation(geometry, rates=rates, target=target, **params)
@@ -256,14 +260,6 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     if number_of_neurons is not None:
         params["geometry"] = number_of_neurons
     record = params.pop("record", None)
-    if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
-        params_timed_array = {}
-        for param in ["rates", "schedule", "period"]:
-            val = params.pop(param, None)
-            if val is not None:
-                params_timed_array[param] = val
-        annarchy_device.device = create_population("TimedArray", annarchy_device.annarchy_instance,
-                                                   params=params_timed_array, import_path=import_path, config=config)
     annarchy_device._population = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
                                                     params=params, import_path=import_path, config=config)
     annarchy_device._population.name = annarchy_device.label
@@ -274,11 +270,6 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
             record = list(record.keys())[0]
         annarchy_device._record = \
             annarchy_device.annarchy_instance.Monitor(annarchy_device._population, record, **rec_params)
-    if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
-        proj = annarchy_device.annarchy_instance.Projection(annarchy_device.device, annarchy_device._population, "exc",
-                                                            name="%s -> %s"
-                                                                 % (annarchy_device.label, annarchy_device.label))
-        proj = proj.connect_all_to_all(1.0)
     return annarchy_device
 
 
@@ -361,11 +352,6 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
         synapse = None
     if synapse is not None:
         syn_spec["synapse"] = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
-    # TODO: Decide about this: We don't need to reduce delay,
-    #  because we can schedule TimedArray to start at current time (0.0)
-    if isinstance(annarchy_device, tuple(ANNarchyTimedArraySpikeInputDeviceDict.values())):
-        # We need to take into consideration the delay from the TimedArray to the spiking generating population:
-        delay = np.maximum(delay - annarchy_device.annarchy_instance.dt(), 0.0)
     proj = connect_two_populations(annarchy_device, population,
                                    weight, delay, receptor_type, syn_spec, connection_args,
                                    source_view_fun=None, target_view_fun=neurons_inds_fun,
