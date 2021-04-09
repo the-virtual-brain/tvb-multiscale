@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pandas as pd
+
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 from tvb_multiscale.tvb_annarchy.annarchy_models.region_node import ANNarchyRegionNode
@@ -23,6 +25,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     modules_to_install = []
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
+
+    _input_proxies = pd.Series()
+    # input_proxies['Inhibitory']['rh-insula']
 
     def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=CONFIGURED, logger=None):
         if logger is None:
@@ -72,13 +77,14 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     def _assert_model(self, model):
         return assert_model(model, self.annarchy_instance, self._models_import_path)
 
-    def build_spiking_population(self, label, model, size, params):
+    def build_spiking_population(self, label, model, brain_region, size, params):
         """This methods builds an  ANNarchyPopulation instance,
            which represents a population of spiking neurons of the same neural model,
            and residing at a particular brain region node.
            Arguments:
             label: name (string) of the population
             model: name (string) of the neural model
+            brain_region: name (string) of the brain reegion the population will reside
             size: number (integer) of the neurons of this population
             params: dictionary of parameters of the neural model to be set upon creation
            Returns:
@@ -87,7 +93,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         params["name"] = label
         annarchy_population = create_population(model, self.annarchy_instance, size=size, params=params,
                                                 import_path=self._models_import_path, config=self.config)
-        return ANNarchyPopulation(annarchy_population, label,
+        return ANNarchyPopulation(annarchy_population, label, brain_region,
                                   annarchy_population.neuron_type.name, self.annarchy_instance)
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
@@ -133,6 +139,18 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         """
         return ANNarchyRegionNode(label, input_node, self.annarchy_instance)
 
+    def build_and_connect_input_devices(self):
+        """Method to build and connect input devices, organized by
+           - the variable they stimulate (pandas.Series), and the
+           - population(s) (pandas.Series), and
+           - brain region nodes (pandas.Series) they target."""
+        _devices = pd.Series()
+        for device in self._input_devices:
+            device["input_proxies"] = self._input_proxies
+            _devices = _devices.append(
+                self.build_and_connect_devices(device))
+        return _devices
+
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
            - the variable they measure or stimulate (pandas.Series), and the
@@ -148,4 +166,5 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     def build_spiking_network(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""
         return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,
-                               self._output_devices, self._input_devices, config=self.config)
+                               self._output_devices, self._input_devices,
+                               self._input_proxies, config=self.config)
