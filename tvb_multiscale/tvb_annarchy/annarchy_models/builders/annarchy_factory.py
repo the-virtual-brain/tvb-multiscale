@@ -5,11 +5,11 @@ import importlib
 from six import string_types
 
 import numpy as np
+import pandas as pd
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, \
-    ANNarchyTimedSpikeInputDeviceDict  # , ANNarchyACCurrentInjector
+    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyContinuousInputDevice
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -160,8 +160,39 @@ def get_populations_neurons(population, inds_fun=None):
     return inds_fun(population._population)
 
 
+def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import_path="", **kwargs):
+    annarchy_instance = input_device.annarchy_instance
+    population_to_connect_to = kwargs.get("proxy", None)  # in case proxy is provided already
+    proxy_devices = kwargs.get("input_proxies", pd.Series())
+    if population_to_connect_to is None:
+        # Check if proxy has been already created for this ANNArchyNetwork:
+        proxy_label = "%s_proxy" % target_pop.label
+        reg_label = target_pop.brain_region
+        if proxy_label in proxy_devices.keys():
+            if reg_label in proxy_devices[proxy_label]:
+                population_to_connect_to = proxy_devices[proxy_label][reg_label]
+    if population_to_connect_to is None:
+        # Create the and add it to this ANNArchyNetwork:
+        proxy_type = kwargs.get("proxy_type", input_device.proxy_type)
+        population_to_connect_to = create_population(proxy_type, annarchy_instance,
+                                                     size=target_pop.number_of_neurons,
+                                                     params=kwargs.get("proxy_params", {}),
+                                                     import_path=import_path)
+        proxy_devices[proxy_label][reg_label] = population_to_connect_to
+        # Connect the input proxy to the target population:
+        proj = annarchy_instance.CurrentInjection(pre=input_device._population,
+                                                  post=population_to_connect_to,
+                                                  target="exc")
+        proj.connect_current()
+    kwargs["input_proxies"] = proxy_devices
+    if neurons_inds_fun is None:
+        return population_to_connect_to
+    else:
+        return neurons_inds_fun(population_to_connect_to)
+
+
 def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, target="exc", syn_spec={}, conn_spec={},
-                            source_view_fun=None, target_view_fun=None, name=None, annarchy_instance=None):
+                            source_view_fun=None, target_view_fun=None, name=None, import_path="", **kwargs):
     """
     function to set up and connect a projection between two ANNarchyPopulations.
     Arguments:
@@ -175,13 +206,19 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
       - target_view_fun: a function to return an ANNarchy PopulationView of the target population
                          Default = None.
       - syn_spec: optional dictionary of synaptic parameters. Default = {}
+      - conn_spec: optional dictionary of connection parameters. Default = {}
       - name: name of the projection
-      - **conn_spec: depend on the chosen ANNarchy connection rule
+      - import_path: the path to be possibly searched to import a model. Default = ""
+      - **kwargs
       Returns: the projection
       """
+    annarchy_instance = source_pop.annarchy_instance
     # Create the projection first
     source_neurons = get_populations_neurons(source_pop, source_view_fun)
-    target_neurons = get_populations_neurons(target_pop, target_view_fun)
+    if isinstance(source_pop, ANNarchyContinuousInputDevice) and getattr(source_pop, "proxy", False):
+        target_neurons = get_proxy_target_pop(target_pop, source_pop, target_view_fun, import_path, **kwargs)
+    else:
+        target_neurons = get_populations_neurons(target_pop, target_view_fun)
     if isinstance(syn_spec, dict):
         synapse = syn_spec.pop("synapse_model", syn_spec.pop("model", syn_spec.pop("synapse", None)))
     else:
@@ -282,6 +319,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         config: configuration class instance. Default: imported default CONFIGURED object.
         annarchy_instance: the ANNarchy instance.
                            Default = None, in which case we are going to load one, and also return it in the output
+         - **kwargs
        Returns:
         the ANNarchyDevice class, and optionally, the ANNarchy instance if it is loaded here.
     """
@@ -326,7 +364,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
 
 def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
                          weight=1.0, delay=0.0, receptor_type="exc", syn_spec=None, conn_spec=None,
-                         import_path=CONFIGURED.MYMODELS_IMPORT_PATH):
+                         import_path=CONFIGURED.MYMODELS_IMPORT_PATH, **kwargs):
     """This function connect an ANNarchyInputDevice to an ANNarchyPopulation instance.
        Arguments:
         annarchy_device: the ANNarchyInputDevice instance
@@ -355,7 +393,8 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
     proj = connect_two_populations(annarchy_device, population,
                                    weight, delay, receptor_type, syn_spec, connection_args,
                                    source_view_fun=None, target_view_fun=neurons_inds_fun,
-                                   annarchy_instance=annarchy_device.annarchy_instance)
+                                   annarchy_instance=annarchy_device.annarchy_instance,
+                                   import_path=import_path, **kwargs)
     # Add this projection to the source device's and target population's inventories:
     annarchy_device.projections_pre.append(proj)
     population.projections_post.append(proj)
@@ -410,6 +449,7 @@ def connect_device(annarchy_device, population, neurons_inds_fun=None,
     if isinstance(annarchy_device, ANNarchyInputDevice):
         return connect_input_device(annarchy_device, population, neurons_inds_fun, weight, delay, receptor_type,
                                     syn_spec=syn_spec, conn_spec=conn_spec,
-                                    import_path=kwargs.pop("import_path", config.MYMODELS_IMPORT_PATH))
+                                    import_path=kwargs.pop("import_path", config.MYMODELS_IMPORT_PATH),
+                                    **kwargs)
     else:
         return connect_output_device(annarchy_device, population, neurons_inds_fun)
