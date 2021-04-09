@@ -78,7 +78,6 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.annarchy_instance.dt()
 
     def _build_and_connect_devices(self, interface, **kwargs):
-        kwargs["input_proxies"] = self.spiking_network.input_proxies
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
                                          self.config, annarchy_instance=self.annarchy_instance,
