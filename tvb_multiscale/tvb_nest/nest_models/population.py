@@ -24,9 +24,9 @@ class NESTPopulation(SpikingPopulation):
     _population = Attr(field_type=NodeCollection, default=None, required=True,
                        label="Population", doc="""NEST population NodeCollection instance""")
 
-    def __init__(self, node_collection, label="", model="", nest_instance=None):
+    def __init__(self, node_collection, label="", model="", brain_region="", nest_instance=None):
         self.nest_instance = nest_instance
-        super(NESTPopulation, self).__init__(node_collection, label, model)
+        super(NESTPopulation, self).__init__(node_collection, label, model, brain_region)
 
     @property
     def spiking_simulator_module(self):

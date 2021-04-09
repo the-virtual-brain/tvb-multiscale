@@ -99,20 +99,21 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         self.compile_install_nest_modules(self.modules_to_install)
         self.confirm_compile_install_nest_models(self._models)
 
-    def build_spiking_population(self, label, model, size, params):
+    def build_spiking_population(self, label, model, brain_region, size, params):
         """This methods builds a NESTPopulation instance,
            which represents a population of spiking neurons of the same neural model,
            and residing at a particular brain region node.
            Arguments:
             label: name (string) of the population
             model: name (string) of the neural model
+            brain_region: name (string) of the brain reegion the population will reside
             size: number (integer) of the neurons of this population
             params: dictionary of parameters of the neural model to be set upon creation
            Returns:
             a NESTPopulation class instance
         """
         return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
-                              label, model, self.nest_instance)
+                              label, model, brain_region, self.nest_instance)
 
     @property
     def min_delay(self):
