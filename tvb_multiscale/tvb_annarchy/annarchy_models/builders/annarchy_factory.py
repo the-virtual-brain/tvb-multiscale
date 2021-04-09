@@ -393,7 +393,6 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
     proj = connect_two_populations(annarchy_device, population,
                                    weight, delay, receptor_type, syn_spec, connection_args,
                                    source_view_fun=None, target_view_fun=neurons_inds_fun,
-                                   annarchy_instance=annarchy_device.annarchy_instance,
                                    import_path=import_path, **kwargs)
     # Add this projection to the source device's and target population's inventories:
     annarchy_device.projections_pre.append(proj)
