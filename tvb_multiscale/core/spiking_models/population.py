@@ -28,6 +28,9 @@ class SpikingPopulation(HasTraits):
     model = Attr(field_type=str, default="", required=True, label="Population model",
                  doc="""Label of neuronal model of SpikingPopulation's neurons""")
 
+    brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
+                        doc="""Label of the brain region the spiking population resides""")
+
     _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
                              doc="""The number of neurons of SpikingPopulation """)
 
@@ -36,7 +39,7 @@ class SpikingPopulation(HasTraits):
     # _delay_attr = "delay"
     # _receptor_attr = "receptor"
 
-    def __init__(self, population=None, label="", model=""):
+    def __init__(self, population=None, label="", model="", brain_region=""):
         """Constructor of a population class.
            Arguments:
             population: Class instance of a sequence of neurons, that depends on its spiking simulator. Default=None.
@@ -46,7 +49,9 @@ class SpikingPopulation(HasTraits):
         self._population = population
         self.label = str(label)
         self.model = str(model)
+        self.brain_region = str(brain_region)
         self._number_of_neurons = self.get_number_of_neurons()
+        super(SpikingPopulation, self).__init__()
 
     def __getitem__(self, keys):
         """Slice specific neurons (keys) of this SpikingPopulation.
