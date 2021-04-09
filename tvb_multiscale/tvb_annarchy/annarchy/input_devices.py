@@ -31,3 +31,10 @@ parameters="""
     offset = 0.0
 """
 )
+
+
+CurrentProxy = Neuron(
+equations="""
+    r = sum(exc)
+"""
+)
