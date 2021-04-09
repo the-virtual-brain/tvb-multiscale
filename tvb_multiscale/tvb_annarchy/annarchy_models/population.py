@@ -37,7 +37,7 @@ class ANNarchyPopulation(SpikingPopulation):
     _receptor_attr = "target"
     _default_connection_attrs = [_weight_attr, _delay_attr, _receptor_attr]
 
-    def __init__(self, population_neurons=None, label="", model="", annarchy_instance=None):
+    def __init__(self, population_neurons=None, label="", model="", brain_region="", annarchy_instance=None):
         self.annarchy_instance = annarchy_instance
         self._population = population_neurons
         if self._population is not None:
@@ -49,7 +49,7 @@ class ANNarchyPopulation(SpikingPopulation):
                 self._population_ind = self._get_population_ind()
         self.projections_pre = []
         self.projections_post = []
-        super(ANNarchyPopulation, self).__init__(population_neurons, label, model)
+        super(ANNarchyPopulation, self).__init__(population_neurons, label, model, brain_region)
 
     @property
     def spiking_simulator_module(self):
