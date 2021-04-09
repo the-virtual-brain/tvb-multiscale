@@ -20,24 +20,19 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     TVBtoANNarchyInterface, ANNarchyToTVBInterface
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeMonitorSet, ANNarchySpikeMonitorMeanSet, ANNarchySpikeMonitorTotalSet, \
-    ANNarchyTimedPoissonPopulationSet, ANNarchySpikeSourceArraySet # ANNarchyTimedArraySet,
+    ANNarchyTimedPoissonPopulationSet, ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
 
-# TVBtoANNarchyModels = TVBtoSpikeNetModels
-class TVBtoANNarchyModels(Enum):
-    RATE = 0,
-    SPIKES = 1
-
-
+TVBtoANNarchyModels = TVBtoSpikeNetModels
 ANNarchyToTVBModels = SpikeNetToTVBModels
 
 
 class ANNarchyInputProxyModels(Enum):
     RATE_TO_SPIKES = ANNarchyTimedPoissonPopulationSet
     SPIKES = ANNarchySpikeSourceArraySet
-    # CURRENT = ANNarchyTimedArraySet
+    CURRENT = ANNarchyTimedArraySet
 
 
 class ANNarchyOutputProxyModels(Enum):
@@ -49,14 +44,11 @@ class ANNarchyOutputProxyModels(Enum):
 class DefaultTVBtoANNarchyModels(Enum):
     RATE = ANNarchyInputProxyModels.RATE_TO_SPIKES.name
     SPIKES = ANNarchyInputProxyModels.SPIKES.name
-    # CURRENT =ANNarchyInputProxyModels.CURRENT.name
+    CURRENT =ANNarchyInputProxyModels.CURRENT.name
 
 
 class DefaultANNarchytoTVBModels(Enum):
     SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
-
-
-
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
@@ -86,9 +78,11 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.annarchy_instance.dt()
 
     def _build_and_connect_devices(self, interface, **kwargs):
+        kwargs["input_proxies"] = self.spiking_network.input_proxies
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
-                                         self.config, annarchy_instance=self.annarchy_instance, **kwargs)
+                                         self.config, annarchy_instance=self.annarchy_instance,
+                                         input_proxies=self.spiking_network.input_proxies, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
         return "exc"

@@ -236,7 +236,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         interface["proxy"] = \
             interface["proxy"](dt=self.dt,
                                target=self._build_and_connect_devices(_interface,
-                                                 devices=self.spiking_network.input_proxies)[0])
+                                                                      devices=self.spiking_network.input_proxies)[0])
 
     def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface):
         delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
