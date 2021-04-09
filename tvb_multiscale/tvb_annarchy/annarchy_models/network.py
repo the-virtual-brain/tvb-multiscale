@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os
+import pandas as pd
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import load_annarchy
@@ -44,11 +44,14 @@ class ANNarchyNetwork(SpikingNetwork):
                  brain_regions=None,
                  output_devices=None,
                  input_devices=None,
+                 input_proxies=None,
                  config=CONFIGURED):
         if annarchy_instance is None:
             annarchy_instance = load_annarchy(self.config, LOG)
         self.annarchy_instance = annarchy_instance
         super(ANNarchyNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
+        if isinstance(input_proxies, pd.Series):
+            self.input_proxies = input_proxies
         self._OutputSpikeDeviceDict = ANNarchyOutputSpikeDeviceDict
         self._OutputContinuousTimeDeviceDict = ANNarchyOutputContinuousTimeDeviceDict
 
