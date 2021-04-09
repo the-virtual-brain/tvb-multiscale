@@ -49,7 +49,8 @@ class Config(ConfigBase):
                                          "PoissonPopulation": {"rates": 0.0},
                                          "Poisson_neuron": {"rates": 0.0},
                                          "HomogeneousCorrelatedSpikeTrains": {"rates": 1.0, "corr": 0.0, "tau": 1.0},
-                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": [0.0], "period": -1.0},
+                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": [0.0], "period": -1.0,
+                                                        "proxy": True},
                                          "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
                                                                     "schedule": [0.0], "period": -1.0},
                                          # "TimedHomogeneousCorrelatedSpikeTrains":
