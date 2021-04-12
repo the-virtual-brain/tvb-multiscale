@@ -12,15 +12,20 @@ from tvb_multiscale.core.interfaces.models.basal_ganglia_izhikevich import \
 from tvb_multiscale.tvb_annarchy.interfaces.builders import ANNarchyProxyNodesBuilder, ANNarchyInterfaceBuilder, \
     ANNarchyRemoteInterfaceBuilder, TVBANNarchyInterfaceBuilder, \
     ANNarchyTransformerInterfaceBuilder, ANNarchyOutputTransformerInterfaceBuilder, \
-    ANNarchyInputTransformerInterfaceBuilder
+    ANNarchyInputTransformerInterfaceBuilder, TVBtoANNarchyModels
 
 
 class BasalGangliaIzhikevichANNarchyProxyNodesBuilder(ANNarchyProxyNodesBuilder,
                                                       BasalGangliaIzhikevichSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
+    __default_receptor_type = "ampa"
+
     def _default_receptor_type(self, source_node, target_node):
-        return "ampa"
+        if self.model == TVBtoANNarchyModels.CURRENT.name:
+            return "exc"
+        else:
+            return "ampa"
 
 
 class BasalGangliaIzhikevichANNarchyInterfaceBuilder(BasalGangliaIzhikevichANNarchyProxyNodesBuilder,
