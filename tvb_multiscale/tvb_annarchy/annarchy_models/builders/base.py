@@ -29,6 +29,9 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
 
+    _input_proxies = pd.Series()
+    # input_proxies['Inhibitory']['rh-insula']
+
     def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=LOG):
         # Setting or loading an annarchy instance:
         self.annarchy_instance = annarchy_instance
@@ -92,8 +95,8 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         params["name"] = label
         annarchy_population = create_population(model, self.annarchy_instance, size=size, params=params,
                                                 import_path=self._models_import_path, config=self.config)
-        return ANNarchyPopulation(annarchy_population, label,
-                                  annarchy_population.neuron_type.name, self.annarchy_instance)
+        return ANNarchyPopulation(annarchy_population, label, annarchy_population.neuron_type.name, brain_region,
+                                  self.annarchy_instance)
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
         """Method to connect two ANNarchyPopulation instances in the SpikingNetwork.
