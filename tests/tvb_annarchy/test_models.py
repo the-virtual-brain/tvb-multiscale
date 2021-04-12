@@ -22,7 +22,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.models.basal_ganglia_izhikevich impo
 
 from examples.tvb_annarchy.example import default_example
 from examples.tvb_annarchy.models.wilson_cowan import wilson_cowan_example
-from examples.tvb_annarchy.models.basal_ganglia_izhiikevich import basal_ganglia_izhikevich_example
+from examples.tvb_annarchy.models.basal_ganglia_izhikevich import basal_ganglia_izhikevich_example
 
 from tests.core.test_models import loop_all
 from tests.core.test_spikeNet_models import TestSpikeNetModel
