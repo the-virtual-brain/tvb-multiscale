@@ -174,8 +174,6 @@ class DefaultSpikeNetProxyNodesBuilder(SpikeNetProxyNodesBuilder, ABC):
         for interface in interfaces:
             if self.model == TVBtoSpikeNetModels.SPIKES.name:
                 interface["proxy_params"] = {"number_of_neurons": self.N_E}
-            else:  # RATE
-                interface["proxy_params"] = {"number_of_neurons": 1}
 
 
 class DefaultSpikeNetInterfaceBuilder(SpikeNetInterfaceBuilder,
