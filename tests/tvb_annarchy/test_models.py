@@ -102,10 +102,10 @@ class TestBasalGangliaIzhikevich(TestSpikeNetModel):
         self.tvb_to_spikeNet_mode = "SPIKES"
         self.run()
 
-    # # @pytest.mark.skip(reason="These tests are taking too much time")
-    # def test_current(self):
-    #     self.tvb_to_spikeNet_mode = "CURRENT"
-    #     self.run()
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test_current(self):
+        self.tvb_to_spikeNet_mode = "CURRENT"
+        self.run()
 
 
 def test_models(models_to_test=[
