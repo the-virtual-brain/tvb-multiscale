@@ -93,8 +93,8 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         params["name"] = label
         annarchy_population = create_population(model, self.annarchy_instance, size=size, params=params,
                                                 import_path=self._models_import_path, config=self.config)
-        return ANNarchyPopulation(annarchy_population, label, brain_region,
-                                  annarchy_population.neuron_type.name, self.annarchy_instance)
+        return ANNarchyPopulation(annarchy_population, label, annarchy_population.neuron_type.name, brain_region,
+                                  self.annarchy_instance)
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
         """Method to connect two ANNarchyPopulation instances in the SpikingNetwork.
