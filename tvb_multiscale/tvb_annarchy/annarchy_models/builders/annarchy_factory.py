@@ -171,18 +171,24 @@ def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import
         if proxy_label in proxy_devices.keys():
             if reg_label in proxy_devices[proxy_label]:
                 population_to_connect_to = proxy_devices[proxy_label][reg_label]
+        else:
+            from tvb_multiscale.core.spiking_models.devices import DeviceSet
+            proxy_devices[proxy_label] = DeviceSet(label=proxy_label, model=input_device.proxy_type)
     if population_to_connect_to is None:
         # Create the and add it to this ANNArchyNetwork:
-        proxy_type = kwargs.get("proxy_type", input_device.proxy_type)
-        population_to_connect_to = create_population(proxy_type, annarchy_instance,
+        population_to_connect_to = create_population(input_device.proxy_type, annarchy_instance,
                                                      size=target_pop.number_of_neurons,
                                                      params=kwargs.get("proxy_params", {}),
                                                      import_path=import_path)
         proxy_devices[proxy_label][reg_label] = population_to_connect_to
         # Connect the input proxy to the target population:
-        proj = annarchy_instance.CurrentInjection(pre=input_device._population,
-                                                  post=population_to_connect_to,
-                                                  target="exc")
+        if neurons_inds_fun is None:
+            target_neurons = target_pop._population
+        else:
+            target_neurons = neurons_inds_fun(target_pop._population)
+        proj = annarchy_instance.CurrentInjection(pre=population_to_connect_to,
+                                                  post=target_neurons,
+                                                  target=input_device.proxy_target)
         proj.connect_current()
     kwargs["input_proxies"] = proxy_devices
     if neurons_inds_fun is None:
@@ -351,6 +357,10 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     # Create the ANNarchy Device class:
     annarchy_device = devices_dict[device_model](None, label=label, annarchy_instance=annarchy_instance)
     if isinstance(annarchy_device, ANNarchyInputDevice):
+        if isinstance(annarchy_device, ANNarchyContinuousInputDevice):
+            annarchy_device.proxy = default_params.pop("proxy", annarchy_device.proxy)
+            annarchy_device.proxy_type = default_params.pop("proxy_type", annarchy_device.proxy_type)
+            annarchy_device.proxy_target = default_params.pop("proxy_target", annarchy_device.proxy_target)
         # If it is an input device, populate it:
         annarchy_device = create_input_device(annarchy_device,
                                               kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
