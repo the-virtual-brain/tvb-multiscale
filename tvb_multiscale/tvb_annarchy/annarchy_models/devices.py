@@ -263,6 +263,9 @@ class ANNarchyContinuousInputDevice(ANNarchyInputDevice):
 
     proxy_type = CurrentProxy
 
+    proxy_target = Attr(field_type=str, label="proxy target", default="exc", required=True,
+                        doc="""Proxy target label (string).""")
+
     def __init__(self, device=None, label="", model="TimedArray", annarchy_instance=None, **kwargs):
         super(ANNarchyContinuousInputDevice, self).__init__(device, label, model,
                                                             annarchy_instance, **kwargs)
@@ -365,10 +368,10 @@ ANNarchyTimedSpikeInputDeviceDict = \
     }
 
 ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
-                                 "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
-                                 "SpikeSourceArray": ANNarchySpikeSourceArray,
-                                 # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
-                                 "Poisson_neuron": ANNarchyPoissonNeuron}
+                                "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
+                                "SpikeSourceArray": ANNarchySpikeSourceArray,
+                                # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
+                                "Poisson_neuron": ANNarchyPoissonNeuron}
 ANNarchySpikeInputDeviceDict.update(ANNarchyTimedSpikeInputDeviceDict)
 
 
