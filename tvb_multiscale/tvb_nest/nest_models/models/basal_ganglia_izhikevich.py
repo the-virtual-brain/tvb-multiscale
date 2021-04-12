@@ -38,7 +38,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
         self.population_order = 200
 
         self.params_common = {"E_rev_AMPA": 0.0, "E_rev_GABA_A": -90.0, "V_th": 30.0, "c": -65.0,
-                              "C_m": 1.0, "I_e": 0.0, "current_stimulus_scale": -5.0, "current_stimulus_mode": 0,
+                              "C_m": 1.0, "I_e": 0.0, "current_stimulus_scale": 1.0, "current_stimulus_mode": 0,
                               "t_ref": 10.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04,
                               "V_m": -72.0, "U_m": -14.0}
@@ -207,7 +207,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
             #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
             #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
             {"model": "dc_generator",
-             "params": {"amplitude": 1.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
+             "params": {"amplitude": -5.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
                         "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
              "connections": {"DBS_GPi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
