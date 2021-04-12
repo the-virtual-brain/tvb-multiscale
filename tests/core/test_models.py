@@ -142,8 +142,9 @@ def loop_all(use_numba=False,
         print("\n******************************************************")
         print("******************************************************")
         print(test_model_class.__name__)
-        for test in test_model.__dict__.keys():
-            if test[:5] == "test_":
+        success[test_model_class.__name__] = OrderedDict()
+        for test in test_model.__dir__():
+            if test[:4] == "test":
                 print("******************************************************")
                 print(test)
                 print("******************************************************")
@@ -151,17 +152,17 @@ def loop_all(use_numba=False,
                     tic = time.time()
                     getattr(test_model, test)()
                     print("\nSuccess in time %f sec!" % (time.time() - tic))
-                    success[test_model_class.__name__] = True
+                    success[test_model_class.__name__][test] = True
                 except Exception as e:
-                    success[test_model_class.__name__] = e
+                    success[test_model_class.__name__][test] = e
                     print("\nError after time %f sec!" % (time.time() - tic))
-                del test_model
-                gc.collect()
-                print("******************************************************\n")
-                sleep(5)
+        del test_model
+        gc.collect()
+        print("******************************************************\n")
+        sleep(5)
         print("\n******************************************************")
         print("******************************************************")
-    if not np.all([result is True for result in list(success.values())]):
+    if not np.all([result is True for test in list(success.values()) for result in list(test.values())]):
         raise Exception("%s\nmodels' tests failed! Details:\n%s" % (str(os.getcwd()), str(success)))
     else:
         print(success)
