@@ -30,8 +30,7 @@ class TVBtoANNarchyRateInterface(TVBtoANNarchyDeviceInterface):
 
 class TVBtoANNarchyPoissonPopulationInterface(TVBtoANNarchyRateInterface):
 
-    def set(self, values):
-        self.Set({"rates": np.maximum(0, self._assert_input_size(values))})
+    pass
 
 
 class TVBtoANNarchyPoissonNeuronInterface(TVBtoANNarchyRateInterface):
@@ -50,22 +49,19 @@ class TVBtoANNarchyTimedArrayInterface(TVBtoANNarchyDeviceInterface):
         self.Set({"rates": np.maximum(np.array([[0]]), np.array(self._assert_input_size(values))[:, None, None])})
 
 
-class TVBtoANNarchyTimedArrayPoissonPopulationInterface(TVBtoANNarchyTimedArrayInterface):
-    pass
+class TVBtoANNarchyTimedPoissonPopulationInterface(TVBtoANNarchyTimedArrayInterface):
+
+    def set(self, values):
+        values = self._assert_input_size(values)
+        n_values = len(values)
+        self.Set({"rates": np.maximum(np.array([[0]]), np.array(values)[:, None, None]),
+                  "schedule": np.array([self.annarchy_instance.get_time() + self.annarchy_instance.dt()]*n_values)})
 
 
-class TVBtoANNarchyTimedArrayPoissonNeuronInterface(TVBtoANNarchyTimedArrayInterface):
-    pass
+class TVBtoANNarchyDCCurrentInjectorInterface(TVBtoANNarchyDeviceInterface):
 
-
-class TVBtoANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsInterface(TVBtoANNarchyTimedArrayInterface):
-    pass
-
-
-# class TVBtoANNarchyDCCurrentInjectorInterface(TVBtoANNarchyDeviceInterface):
-#
-#     def set(self, values):
-#         self.Set({"amplitude": values})
+    def set(self, values):
+        self.Set({"amplitude": values})
 
 
 INPUT_INTERFACES_DICT = {
@@ -74,8 +70,6 @@ INPUT_INTERFACES_DICT = {
     "Poisson_neuron": TVBtoANNarchyPoissonNeuronInterface,
     "HomogeneousCorrelatedSpikeTrains": TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface,
     "TimedArray": TVBtoANNarchyTimedArrayInterface,
-    "TimedArrayPoissonPopulation": TVBtoANNarchyTimedArrayPoissonPopulationInterface,
-    "TimedArrayPoisson_neuron": TVBtoANNarchyTimedArrayPoissonNeuronInterface,
-    "TimedArrayHomogeneousCorrelatedSpikeTrains": TVBtoANNarchyTimedArrayHomogeneousCorrelatedSpikeTrainsInterface
-    # "DCCurrentInjector": TVBtoANNarchyDCCurrentInjectorInterface,
+    "TimedPoissonPopulation": TVBtoANNarchyTimedPoissonPopulationInterface,
+    "DCCurrentInjector": TVBtoANNarchyDCCurrentInjectorInterface,
 }

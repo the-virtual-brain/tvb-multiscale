@@ -57,7 +57,7 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
     def _build_default_rate_tvb_to_annarchy_interfaces(self, connections, **kwargs):
         # For spike transmission from TVB to ANNarchy devices as TVB proxy nodes with TVB delays:
         interface = \
-            {"model": "TimedArrayPoissonPopulation",
+            {"model": "TimedPoissonPopulation",
              "params": {"geometry": 600, "period": self.tvb_dt},  #
         # -------Properties potentially set as function handles with args (tvb_node_id=None, annarchy_node_id=None)---------
               "interface_weights": 10.0,
