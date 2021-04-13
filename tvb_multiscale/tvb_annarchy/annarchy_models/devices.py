@@ -132,21 +132,21 @@ class ANNarchyInputDevice(ANNarchyDevice, InputDevice, ANNarchyPopulation):
     def device_ind(self):
         return self.population_ind
 
-    def set(self, values_dict):
+    def Set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
-        ANNarchyPopulation.set(self, values_dict)
+        ANNarchyPopulation.Set(self, values_dict)
 
-    def get(self, attrs=None):
+    def Get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all device's attributes.
            Returns:
             Dictionary of attributes.
         """
-        ANNarchyPopulation.get(self, attrs)
+        return ANNarchyPopulation.Get(self, attrs)
 
     def _GetConnections(self):
         """Method to get attributes of the connections from the device
@@ -281,9 +281,9 @@ class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
                                                  annarchy_instance, **kwargs)
 
-    def _get(self, attrs=None, neurons=None):
+    def _Get(self, attrs=None, neurons=None):
         dictionary = {}
-        neurons = self._assert_neurons.get(neurons)
+        neurons = self._assert_neurons(neurons)
         if attrs is None:
             # If no attribute is specified, return all of them for TimedArray:
             for attribute in ["rates", "schedule", "period"]:
@@ -346,6 +346,18 @@ class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
         super(ANNarchyTimedPoissonPopulation, self).__init__(device, label, "TimedPoissonPopulation",
                                                              annarchy_instance, **kwargs)
+
+    def _Get(self, attrs=None, neurons=None):
+        dictionary = {}
+        neurons = self._assert_neurons(neurons)
+        if attrs is None:
+            # If no attribute is specified, return all of them for TimedArray:
+            for attribute in ["rates", "schedule", "period"]:
+                dictionary[attribute] = neurons.get(attribute)
+        else:
+            for attribute in attrs:
+                dictionary[attribute] = neurons.get(attribute)
+        return dictionary
 
 
 # class ANNarchyTimedHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
@@ -497,7 +509,7 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
                                          % (population.name, self.label, monitor.period, self._period))
         return self._period
 
-    def set(self, values_dict):
+    def Set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -512,7 +524,7 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
         else:
             dictionary[attribute] = [getattr(monitor, attribute)]
 
-    def get(self, attrs=None):
+    def Get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponding to all devices' attributes.

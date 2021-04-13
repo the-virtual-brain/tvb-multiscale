@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import pandas as pd
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
