@@ -563,7 +563,7 @@ class SpikeRecorder(OutputDevice):
             filter_x = None
         return sort_events_by_x_and_y(self.get_events(events_inds=events_inds, **filter_kwargs),
                                       x="senders", y="times", filter_x=filter_x,
-                                      filter_y=times, exclude_y=exclude_times)
+                                      filter_y=times, exclude_y=exclude_times, hashfun=tuple)
 
     def get_spikes_neurons_by_times(self, events_inds=None, times=None, exclude_times=[]):
         """This method will return the spikes' senders per spike time,
@@ -579,7 +579,7 @@ class SpikeRecorder(OutputDevice):
               dictionary of spike events sorted by time
          """
         return sort_events_by_x_and_y(self.get_events(events_inds=events_inds),
-                                      x="times", y="senders", filter_x=times, exclude_x=exclude_times)
+                                      x="times", y="senders", filter_x=times, exclude_x=exclude_times, hashfun=str)
 
     @property
     def spikes_times(self):
