@@ -21,10 +21,12 @@ def get_caller_fun_name(caller_id=1):
 
 def get_ordered_dimensions(dims, dims_order):
     out_dims = []
+    dims = ensure_list(dims)
     for dim in dims_order:
         if dim in dims:
             out_dims.append(dim)
-    return out_dims
+            dims.remove(dim)
+    return out_dims + dims
 
 
 def flatten_neurons_inds_in_DataArray(data_array, neurons_dim_label="Neuron"):
