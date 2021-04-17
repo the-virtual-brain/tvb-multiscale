@@ -125,6 +125,11 @@ RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     cd annarchy; \
     $VENV/bin/python3 setup.py install --user
 
+RUN $VENV/bin/pip3 install nose
+RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
+    cd PySpike; \
+    $VENV/bin/python3 setup.py build_ext install
+
 WORKDIR /home/docker/
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
