@@ -7,8 +7,7 @@ import numpy as np
 from xarray import DataArray
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.data_analysis.spiking_network_analyser \
-    import SpikingNetworkAnalyser as SpikingNetworkAnalyzerBase
+from tvb_multiscale.core.data_analysis.spiking_network_analyser_base import SpikingNetworkAnalyserBase
 
 from tvb.basic.neotraits.api import Attr, Float
 
@@ -16,9 +15,9 @@ from tvb.basic.neotraits.api import Attr, Float
 LOG = initialize_logger(__name__)
 
 
-class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
+class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
 
-    """SpikingNetworkAnalyser
+    """SpikingNetworkAnalyserBase
        - gets data from the output devices of a SpikingNetwork,
        (TODO: - or reads them from files,)
        - performs computations of mean field quantities, including spikes_train' rates,
@@ -42,6 +41,10 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                                             dividing the total number of spikes_train by the total number of neurons,
                                             without using elephant.""")
 
+    _spikes_train_name = None
+
+    _binned_spikes_trains_name = None
+
     def compute_spikes_train(self, spikes):
         """Method to compute a neo.core.SpikesTrain data type from an array of spikes" times.
            Arguments:
@@ -59,7 +62,14 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
             t_stop = self.period
         return SpikeTrain(spikes*ms, t_stop=t_stop*ms)
 
-    def _assert_spike_train(self, spikes):
+    @property
+    def spikes_train_name(self):
+        """A method to set and return the name of the Spikes Train data type."""
+        if not self._spikes_train_name:
+            self._spikes_train_name = self._get_comput_res_type(self.compute_spikes_train)
+        return self._spikes_train_name
+
+    def _assert_spikes_train(self, spikes):
         """A method to assert that an argument is of neo.core.SpikesTrain data type.
            If not, a neo.core.SpikesTrain is computed from the input spikes' times array.
            Arguments:
@@ -88,7 +98,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         from elephant.conversion import BinnedSpikeTrain
         from elephant.utils import get_common_start_stop_times
         for i_spike_train, spikes_train, in enumerate(spikes_trains):
-            spikes_trains[i_spike_train] = self._assert_spike_train(spikes_train)
+            spikes_trains[i_spike_train] = self._assert_spikes_train(spikes_train)
         t_start, t_stop = get_common_start_stop_times(spikes_trains)
         if binsize is not None:
             binsize = float(binsize) * ms
@@ -96,6 +106,13 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         elif num_bins is None:
             binsize = self.period * ms
         return BinnedSpikeTrain(spikes_trains, binsize=binsize, num_bins=num_bins, t_start=t_start, t_stop=t_stop)
+
+    @property
+    def binned_spikes_trains_name(self):
+        """A method to set and return the name of the Binned Spikes Train data type."""
+        if not self._binned_spikes_trains_name:
+            self._binned_spikes_trains_name = self._get_comput_res_type(self.compute_binned_spikes_trains)
+        return self._binned_spikes_trains_name
 
     def _assert_binned_spikes_trains(self, spikes_trains, binsize=None, num_bins=None):
         """Method to assert that the input is of a elephant.conversion.BinnedSpikeTrain data type.
@@ -116,7 +133,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         else:
             return self.compute_binned_spikes_trains(spikes_trains, binsize, num_bins)
 
-    def compute_elephant_mean_firing_rate(self, spikes_times, **elephant_kwargs):
+    def compute_elephant_mean_firing_rate(self, spikes_times, res_type, **elephant_kwargs):
         """A method to compute mean (across time) rate from an input of spikes' events or spikes' times
            using the elephant.statistics.mean_firing_rate method.
            Arguments:
@@ -131,13 +148,15 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         from quantities import ms
         from elephant.statistics import mean_firing_rate
         t_start, t_stop = self._assert_start_end_times_from_spikes_times(spikes_times)
-        spikes_train = self._assert_spike_train(spikes_times)
+        spikes_train = self._assert_spikes_train(spikes_times)
         elephant_kwargs["t_start"] = elephant_kwargs.get("t_start", t_start-self._fmin_resolution) * ms
         elephant_kwargs["t_stop"] = elephant_kwargs.get("t_stop", t_stop+self._fmin_resolution) * ms
         if len(spikes_train):
-            return mean_firing_rate(spikes_train, **elephant_kwargs), spikes_train
+            result = mean_firing_rate(spikes_train, **elephant_kwargs)
         else:
-            return 0.0, spikes_train
+            result = 0.0
+        return {res_type: DataArray([1000 * float(result)]).squeeze(),
+                self.spikes_train_name: spikes_train}
 
     def compute_rate(self, spikes, number_of_neurons=1, duration=None, **kwargs):
         """A method to compute rate from an input of spikes' events or spikes' times.
@@ -154,15 +173,13 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
              and if elephant_mean_firing_rate=True:
              "spikes_train": the neo.core.SpikeTrain used for the computation
         """
+        res_type = self._get_comput_res_type()
+        spikes_times = self._get_spikes_times_from_spikes_events(spikes)
         if self.elephant_mean_firing_rate:
-            res_type = self._get_comput_res_type()
-            spikes_times = self._get_spikes_times_from_spikes_events(spikes)
-            result, spikes_train = \
-                    self.compute_elephant_mean_firing_rate(spikes_times, **kwargs)
-            return {res_type: DataArray([1000*float(result)]).squeeze(),
-                    self.spikes_train_name: spikes_train}
+            return self.compute_elephant_mean_firing_rate(spikes_times, res_type, **kwargs)
         else:
-            return super(SpikingNetworkAnalyser, self).compute_rate(spikes, number_of_neurons, duration, **kwargs)
+            return super(SpikingNetworkAnalyser, self)._compute_rate_base(spikes_times, res_type,
+                                                                          number_of_neurons, duration, **kwargs)
 
     def compute_rate_time_series(self, spikes_train, number_of_neurons=1, **elephant_kwargs):
         """A method to compute instantaneous spiking rate time series,
@@ -183,7 +200,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
         # ...the time vector
         time = np.arange(t_start, t_stop+self._fmin_resolution, self.period)
         # ...and that the input spikes are in a neo.core.SpikeTrain instance
-        spikes_train = self._assert_spike_train(spikes_train)
+        spikes_train = self._assert_spikes_train(spikes_train)
         if len(spikes_train) > 0:
             from quantities import ms
             from elephant.statistics import instantaneous_rate
@@ -228,6 +245,46 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyzerBase):
                         "Removing last time point and retrying!" % (str(e), len(time), len(rates)))
             return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time[:-1]}),
                     self.spikes_train_name: spikes_train}
+
+    def compute_spikes_rates_by_neuron(self, spikes, number_of_neurons=1, rate_method=None, **kwargs):
+        """A method to compute any type of spiking rate, but separately for each neuron.
+           Arguments:
+            - spikes: a Spike Train instance or
+                      an array of spikes' times
+                      or a dict with a key-value pair of "times" and spikes' times array
+            - number_of_neurons=1: the number (integer) of neurons
+            -rate_method: Default=None, in which case the instantaneous rate time series for each neuron are computed
+            **kwargs: keyword arguments for the method that computes the rate
+           Returns:
+            - a dictionary of the following key-value pair:
+             result_name: a xarray.DataArray of the result of dimensions (Neuron, ) or (Time, Neuron)
+        """
+        if rate_method is None:
+            rate_method = self.compute_rate_time_series
+        return super(SpikingNetworkAnalyser, self).compute_spikes_rates_by_neuron(spikes, number_of_neurons,
+                                                                                  rate_method, **kwargs)
+
+    def compute_mean_rate_time_series(self, spikes, number_of_neurons=1, **kwargs):
+        """A method to compute populations' mean instantaneous spiking rate time series.
+           After the rate time series of the whole population is computed,
+           it is divided by the number of neurons.
+           Arguments:
+            - spikes: a Spike Train instance or
+                      an array of spikes' times
+                      or a dict with a key-value pair of "times" and spikes' times array
+            - number_of_neurons=1: the number (integer) of neurons
+            **kwargs: keyword arguments for the method that computes the rate
+           Returns:
+            - a dictionary of the following key-value pair(s):
+            "rate_time_series": a xarray.DataArray of dimensions (Time,)
+            "spikes_train": the Spike Train used for the computation
+        """
+        res_type = self._get_comput_res_type()
+        res2_type = self._get_comput_res_type(self.compute_rate_time_series)
+        results = self.compute_rate_time_series(spikes, **kwargs)
+        results[res_type] = results[res2_type] / number_of_neurons
+        del results[res2_type]
+        return results
 
     def compute_spikes_correlation_coefficient(self, binned_spikes_trains, binsize=None, num_bins=None, **kwargs):
         """A method to compute the correlation coefficients
