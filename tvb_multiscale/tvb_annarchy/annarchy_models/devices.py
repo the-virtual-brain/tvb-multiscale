@@ -83,8 +83,8 @@ class ANNarchyDevice(Device):
         for pop in self.populations:
             population_ind = get_population_ind(pop, self.annarchy_instance)
             local_inds = pop.ranks
-            neurons += list(zip([population_ind] * len(local_inds), local_inds))
-        return tuple(np.unique(neurons, axis=0).tolist())
+            neurons += tuple(zip([population_ind] * len(local_inds), local_inds))
+        return tuple(neurons)
 
     @property
     def neurons(self):
@@ -612,15 +612,16 @@ class ANNarchyOutputDevice(ANNarchyDevice, OutputDevice):
                     self._record_from = ensure_list(monitor.variables)
         return self._record_from
 
-    def _get_senders(self, population, neurons_ranks):
+    def _get_senders(self, population, neurons_ranks, str_flag=False):
         population_ind = self.annarchy_instance.Global._network[0]["populations"].index(population)
-        if len(self.monitors) > 1:
+        if str_flag:
             senders = ["%d_%d" % (population_ind, neuron_rank) for neuron_rank in ensure_list(neurons_ranks)]
-            if len(senders) == 1:
-                senders = senders[0]
-            return senders
         else:
-            return neurons_ranks
+            senders = [(population_ind, neuron_rank) for neuron_rank in ensure_list(neurons_ranks)]
+        if len(senders) == 1:
+            senders = senders[0]
+        return senders
+
 
     @abstractmethod
     def _record(self):
@@ -716,8 +717,8 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                 m_data = m_data.transpose((1, 0, 2))
                 m_data = DataArray(m_data,
                                  dims=["Time", "Variable", "Neuron"],
-                                 coords={"Time": self._compute_times(monitor.times(), m_data.shape[0]), "Variable": variables,
-                                         "Neuron": self._get_senders(population, population.ranks)},
+                                 coords={"Time": self._compute_times(monitor.times(), data.shape[0]), "Variable": variables,
+                                         "Neuron": self._get_senders(population, population.ranks, True)},
                                  name=self.label)
                 if data.size > 0:
                     data = combine_by_coords([data, m_data], fill_value=np.nan)
@@ -851,7 +852,7 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                 self._data += (OrderedDict(),)
         for i_m, (monitor, population) in enumerate(self.monitors.items()):
             spikes = monitor.get("spike")
-            senders = self._get_senders(population, list(spikes.keys()))
+            senders = self._get_senders(population, list(spikes.keys()), False)
             for sender, spikes_times in zip(senders, list(spikes.values())):
                 data[i_m].update({sender: (np.array(spikes_times) * dt).tolist()})
                 if self.store_data:
