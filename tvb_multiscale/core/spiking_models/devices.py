@@ -540,13 +540,17 @@ class SpikeRecorder(OutputDevice):
          """
         sorted_events = sort_events_by_x_and_y(self.get_events(events_inds=events_inds),
                                                x="senders", y="times",
-                                               filter_y=times, exclude_y=exclude_times)
+                                               filter_y=times, exclude_y=exclude_times, hashfun=tuple)
         if full_senders:
             # In this case we also include neurons with 0 spikes in the output
             sender_neurons = self.neurons
+            if len(sender_neurons) and isinstance(sender_neurons[0], list):
+                neuron_fun = lambda neuron: tuple(neuron)
+            else:
+                neuron_fun = lambda neuron: neuron
             output = OrderedDict()
             for neuron in sender_neurons:
-                output[neuron] = np.array([])
+                output[neuron_fun(neuron)] = np.array([])
             output.update(sorted_events)
             return output
         else:
@@ -566,7 +570,7 @@ class SpikeRecorder(OutputDevice):
               dictionary of spike events sorted by time
          """
         return sort_events_by_x_and_y(self.get_events(events_inds=events_inds),
-                                      x="times", y="senders", filter_x=times, exclude_x=exclude_times)
+                                      x="times", y="senders", filter_x=times, exclude_x=exclude_times, hashfun=str)
 
     @property
     def spikes_times(self):
