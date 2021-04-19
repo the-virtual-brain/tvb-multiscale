@@ -20,7 +20,7 @@ except:
     H5Writer = None
 
 from tvb_multiscale.core.plot.plotter import Plotter
-from tvb_multiscale.tvb_elephant.spiking_network_analyser import SpikingNetworkAnalyser
+from tvb_multiscale.core.data_analysis.spiking_network_analyser import SpikingNetworkAnalyser
 
 from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.simulator.plot.base_plotter import pyplot
@@ -182,7 +182,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         start_time = None
         end_time = None
 
-    spikeNet_analyzer = SpikingNetworkAnalyser(spikeNet=spiking_network,
+    spikeNet_analyzer = SpikingNetworkAnalyser(elephant=True, pyspike=True, spikeNet=spiking_network,
                                                start_time=start_time, end_time=end_time,
                                                period=monitor_period, transient=transient,
                                                time_series_output_type="TVB", return_data=True,
@@ -209,7 +209,10 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
 
     if spikes_res is not None:
         # Plot spikes' rasters together with mean population's spikes' rates' time series
-        plotter.plot_spike_events(spikes_res["spikes"], rates=spikes_res["mean_rate_time_series"], figsize=figsize)
+        plotter.plot_spike_events(spikes_res["spikes"],
+                                  time_series=spikes_res["mean_rate_time_series"],
+                                  mean_results=spikes_res["mean_rate"],
+                                  figsize=figsize)
 
         # Mean rates
         print(spikes_res["mean_rate"])
@@ -235,8 +238,35 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                    os.path.join(config.out.FOLDER_RES,
                                                 spikes_res["mean_rate_time_series"].title) + ".h5",
                                    recursive=False)
-        del spikes_res
 
+            spikes_sync = \
+                spikeNet_analyzer.compute_spikeNet_synchronization(
+                    populations_devices=None, regions=None,
+                    comp_methods=[spikeNet_analyzer.compute_spikes_sync,
+                                  spikeNet_analyzer.compute_spikes_sync_time_series],
+                    computations_kwargs=[{}], data_kwargs={},
+                    return_spikes_trains=False, return_devices=False)
+
+            if spikes_sync is not None:
+                print(spikes_sync["spikes_sync"])
+                # Plot spikes' rasters together with mean population's spikes' rates' time series
+                plotter.plot_spike_events(spikes_res["spikes"],
+                                          time_series=spikes_sync["spikes_sync_time_series"],
+                                          mean_results=spikes_sync["spikes_sync"],
+                                          figsize=figsize)
+                if writer:
+                    writer.write_object(spikes_sync["spikes_sync"].to_dict(),
+                                        path=os.path.join(config.out.FOLDER_RES,
+                                                          spikes_sync["spikes_sync"].name) + ".h5")
+                    writer.write_tvb_to_h5(
+                        TimeSeriesRegion().from_xarray_DataArray(
+                            spikes_sync["spikes_sync_time_series"]._data,
+                            connectivity=spikes_sync["spikes_sync_time_series"].connectivity),
+                        os.path.join(config.out.FOLDER_RES,
+                                     spikes_sync["spikes_sync_time_series"].title) + ".h5",
+                        recursive=False)
+
+        del spikes_res
         if plot_per_neuron:
             # Spikes' rates per neuron:
             spikeNet_analyzer.return_data = False
