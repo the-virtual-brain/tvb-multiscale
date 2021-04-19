@@ -24,7 +24,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
          (numpy.array, xarray.DataArray, TVB TimeSeries, pandas.Series of xarray.DataArray)
        """
 
-    resample = Attr(field_type=bool, default=True, required=False, label="Resample flag",
+    resample = Attr(field_type=bool, default=False, required=True, label="Resample flag",
                     doc="""If resample is True, we return time series results 
                            on a fixed time step time vector instead of along spikes' times""")
 
