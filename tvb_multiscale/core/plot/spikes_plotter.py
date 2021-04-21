@@ -48,6 +48,18 @@ class SpikesPlotter(BasePlotter):
                 n_y_ticks = 11
             self.yticks = np.arange(self.ylims[0], self.ylims[0] + n_y_ticks*neurons_step, neurons_step)
 
+    def _assert_neurons_indices(self, neurons_inds, n_neurons=None, **kwargs):
+        if kwargs.get("flatten_neurons_inds", False):
+            if n_neurons is None:
+                n_neurons = len(neurons_inds)
+                return np.array(range(n_neurons))
+        else:
+            neurons_inds = np.array(neurons_inds).squeeze()
+            if neurons_inds.ndim == 2:
+                return neurons_inds[:, 1]
+            else:
+                return neurons_inds
+
     def _neurons_axis_from_indices(self, neurons, **kwargs):
         if len(neurons) > 0:
             self.max_n_neurons = np.max(neurons)
@@ -147,15 +159,16 @@ class SpikesPlotter(BasePlotter):
         return axes
 
     def _format_axes(self, axes, i_pop, i_region, pop_label, reg_label, **kwargs):
-        title = str(pop_label)
-        if self.mean_results is not None:
-            if self.mean_results.name.lower().find("rate") > -1:
-                mean_results_units = "spikes/s"
-            else:
-                mean_results_units = ""
-            mean_results_units = kwargs.get("mean_results_units", mean_results_units)
-            title += ": %.1f %s" % (self.mean_results.loc[pop_label, reg_label], mean_results_units)
-        axes.set_title(title, fontsize=kwargs.get("title_fontsize", self.config.FONTSIZE))
+        if kwargs.get("plot_title", True):
+            title = str(pop_label)
+            if self.mean_results is not None:
+                if self.mean_results.name.lower().find("rate") > -1:
+                    mean_results_units = "spikes/s"
+                else:
+                    mean_results_units = ""
+                mean_results_units = kwargs.get("mean_results_units", mean_results_units)
+                title += ": %.1f %s" % (self.mean_results.loc[pop_label, reg_label], mean_results_units)
+            axes.set_title(title, fontsize=kwargs.get("title_fontsize", self.config.FONTSIZE))
         axes = self._format_time_axis(axes, i_region, **kwargs)
         axes.set_ylim(self.ylims)
         axes.set_yticks(self.yticks)
@@ -165,10 +178,10 @@ class SpikesPlotter(BasePlotter):
                 axes.set_yticklabels(self._time_series_ytick_labels)
         if i_region not in self._y_axes_labels.keys():
             self._y_axes_labels[i_region] = []
-        if reg_label not in self._y_axes_labels[i_region]:
+        if reg_label not in self._y_axes_labels[i_region] and kwargs.get("plot_ylabel", True):
             self._y_axes_labels[i_region].append(reg_label)
             axes.set_ylabel("%s neurons" % reg_label, fontsize=kwargs.get("ylabel_fontsize", self.config.FONTSIZE))
-        elif i_pop == 0:
+        elif i_pop == 0 and kwargs.get("plot_ylabel", True):
             axes.set_ylabel("%s neurons" % reg_label, fontsize=kwargs.get("ylabel_fontsize", self.config.FONTSIZE))
         return axes
 
@@ -311,7 +324,8 @@ class SpikesPlotter(BasePlotter):
                 indices = np.argwhere(self.get_spikes_fun(spikes, i_region) > 0.0)
                 this_time = spike_time[indices[:, 0]]
                 spike_senders_indices = spike_time[indices[:, 1]]
-                self._neurons_axis_from_indices(spike_senders_indices, **kwargs)
+                spike_senders_indices = self._assert_neurons_indices(spike_senders_indices, n_neurons=None, **kwargs)
+                spike_senders_indices = self._neurons_axis_from_indices(spike_senders_indices, **kwargs)
                 axes = self._plot(axes, i_pop, i_region, pop_label, reg_label,
                                   this_time, spike_senders_indices, **kwargs)
         if self._adjust_time_axes_flag:
@@ -342,8 +356,9 @@ class SpikesPlotter(BasePlotter):
                 # Get spikes
                 senders = region_spike_detector.senders
                 neurons = region_spike_detector.neurons
+                senders = self._assert_neurons_indices(senders, n_neurons=len(neurons), **kwargs)
                 self._neurons_axis_from_indices(neurons, **kwargs)
-                axes = self.c(axes, i_pop, i_region, pop_label, reg_label,
+                axes = self._plot(axes, i_pop, i_region, pop_label, reg_label,
                                   region_spike_detector.spikes_times, senders, **kwargs)
         if self._adjust_time_axes_flag:
             axes = self._adjust_time_axes(axes, **kwargs)
@@ -372,6 +387,7 @@ class SpikesPlotter(BasePlotter):
             for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.iteritems()):
                 # Define spike senders and time_series' axis
                 neurons = region_spikes_events["senders"]
+                neurons = self._assert_neurons_indices(neurons, n_neurons=None, **kwargs)
                 self._neurons_axis_from_indices(neurons, **kwargs)
                 axes = self._plot(axes, i_pop, i_region, pop_label, reg_label,
                                   region_spikes_events["times"], neurons, **kwargs)
