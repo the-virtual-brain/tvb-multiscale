@@ -94,7 +94,6 @@ class SpikingNetwork(HasTraits):
                  input_devices=None,
                  config=CONFIGURED):
         self.config = config
-
         self.brain_regions = brain_regions
         self.output_devices = output_devices
         self.input_devices = input_devices
