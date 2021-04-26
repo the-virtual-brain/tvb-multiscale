@@ -34,11 +34,12 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, logger=None):
         if logger is None:
             logger = initialize_logger(__name__, config=config)
+
         super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         if nest_instance is None:
             nest_instance = load_nest(self.config)
-        self.default_kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG
         self.nest_instance = nest_instance
+        self.default_kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG
         self._spiking_brain = NESTBrain()
 
     def configure_nest_kernel(self):
