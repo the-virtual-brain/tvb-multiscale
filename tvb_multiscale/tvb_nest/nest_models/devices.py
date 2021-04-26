@@ -702,12 +702,11 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
         times = events.pop("times")
         senders = events.pop("senders")
         if len(times) + len(senders):
-            permuted_dims_names = [dims_names[1], dims_names[2], dims_names[0]]
             # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
             # Therefore, we have to re-arrange the output to get all variables separated following time order.
             data = data_xarray_from_continuous_events(events, times, senders,
                                                       variables=self._determine_variables(variables),
-                                                      name=name, dims_names=permuted_dims_names).transpose(*dims_names)
+                                                      name=name, dims_names=dims_names)
             if flatten_neurons_inds:
                 data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
         else:
