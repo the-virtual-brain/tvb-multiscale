@@ -632,8 +632,7 @@ class SpikingNetworkBuilder(object):
            - brain region nodes (pandas.Series) they target."""
         _devices = Series()
         for device in devices:
-            _devices = _devices.append(
-                            self.build_and_connect_devices(device))
+            _devices = _devices.append(self.build_and_connect_devices(device))
         return _devices
 
     def build_and_connect_output_devices(self):
