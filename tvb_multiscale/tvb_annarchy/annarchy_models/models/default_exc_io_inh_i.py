@@ -13,8 +13,8 @@ from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weig
 
 class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator, annarchy_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, annarchy_nodes_ids, annarchy_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None, config=CONFIGURED):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, annarchy_instance, config)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -31,11 +31,13 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.d_ie = 1.0
         self.d_ii = 1.0
 
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
-
+        # Parameters following the iaf_cond_alpha NEST model params
+        self.params_E = {"v_rest": -70.0, "v_reset": -60.0, "v_thresh": -55.0, "e_rev_E": 0.0, "e_rev_I": -85.0,
+                          "cm": 0.25,  # nF
+                          "tau_refrac": 2.0, "tau_syn_E": 0.2, "tau_syn_I": 2.0, "tau_m": 16.6667}
         self.params_E = {}
-        self.params_I = {}
+        self.params_I = self.params_E.copy()
+
         self.pop_conns_EE = {}
         self.pop_conns_EI = {}
         self.pop_conns_IE = {}
@@ -47,9 +49,6 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.monitor = {}
 
         self.spike_stimulus = {}
-
-        if set_defaults:
-            self.set_defaults()
 
     def set_E_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
@@ -76,7 +75,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_EE_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ee,
              "delay": self.d_ee,
@@ -87,7 +86,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_EI_populations_connections(self):
         connections = \
             {"source": "E", "target": "I",  # E -> I
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ei,
              "delay": self.d_ei,
@@ -98,7 +97,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_IE_populations_connections(self):
         connections = \
             {"source": "I", "target": "E",  # I -> E
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ie,
              "delay": self.d_ie,
@@ -109,7 +108,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     def set_II_populations_connections(self):
         connections = \
             {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w_ii,
              "delay": self.d_ii,
@@ -126,20 +125,20 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
 
-    def tvb_weight(self, source_node, target_node, scale=None):
+    def tvb_weight_fun(self, source_node, target_node, scale=None):
         if scale is None:
             scale = self.global_coupling_scaling
         return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale)
 
     def tvb_delay_fun(self, source_node, target_node):
-        return tvb_delay(source_node, target_node, self.tvb_delays)
+        return np.maximum(tvb_delay(source_node, target_node, self.tvb_delays), self.tvb_dt)
 
     def set_nodes_connections(self):
         self.nodes_connections = [
             {"source": "E", "target": ["E", "I"],
              "synapse_model": self.default_nodes_connection["synapse_model"],
              "conn_spec": self.default_nodes_connection["conn_spec"],
-             "weight": self.tvb_weight,
+             "weight": self.tvb_weight_fun,
              "delay": self.tvb_delay_fun,
              # Each region emits spikes in its own port:
              "receptor_type": "exc", "source_nodes": None, "target_nodes": None}  # None means "all"
@@ -186,7 +185,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
              "params": {"rates": 6000.0},
              "connections": connections, "nodes": None,
              "weights": 1.0,
-             "delays": 0.0,
+             "delays": self.default_min_delay,
              "receptor_type": "exc"}
         device.update(self.spike_stimulus)
         return device
@@ -200,3 +199,8 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(DefaultExcIOInhIBuilder, self).build()

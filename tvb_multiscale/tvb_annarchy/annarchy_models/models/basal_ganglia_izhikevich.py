@@ -26,8 +26,9 @@ class TVBWeightFun(object):
 
 class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, annarchy_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None, config=CONFIGURED):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                            annarchy_instance, config)
         self.default_population["model"] = Izhikevich_Hamker
 
         # Common order of neurons' number per population:
@@ -36,14 +37,19 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         self.params_common = {"E_ampa": 0.0, "E_gaba": -90.0, "v_th": 30.0, "c": -65.0,
                               "C": 1.0, "I": 0.0,
                               "tau_refrac": 10.0, "tau_syn": 1.0, "tau_ampa": 10.0, "tau_gaba": 10.0,
-                              "n0": 140.0, "n1": 5.0, "n2": 0.04}
+                              "n0": 140.0, "n1": 5.0, "n2": 0.04,
+                              "v": -72.0, "u": -14.0,
+                              "noise": 0.0}
         self._paramsI = deepcopy(self.params_common)
-        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0})
+        self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0,
+                              "v": -70.0, "u": -18.55})
         self._paramsE = deepcopy(self.params_common)
+        self._paramsE.update({"v": -70.0, "u": -18.55})
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"v_th": 40.0, "C": 50.0,
                                "n0": 61.65119, "n1": 2.594639, "n2": 0.022799,
-                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0})
+                               "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
+                               "v": -70.0, "u": -18.55})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
@@ -54,24 +60,13 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         self.Istr_nodes_ids = [6, 7]
 
         self.scaleBGoptTOtvb = 0.00205875
+        self.global_coupling_scaling = self.scaleBGoptTOtvb
 
         # Create a spike stimulus input device
         # When TVB is connected, we don't need any baseline stimulus
         self.Estn_stim = {"rate": 500.0, "weight": 0.009}
         self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
         self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
-
-        if set_defaults:
-            self.set_defaults()
-
-    def paramsI(self, node_id):
-        # For the moment they are identical, unless you differentiate the noise parameters
-        params = deepcopy(self._paramsI)
-        if node_id in self.Igpe_nodes_ids:
-            params.update({"I": 12.0})
-        elif node_id in self.Igpi_nodes_ids:
-            params.update({"I": 30.0})
-        return params
 
     def paramsE(self, node_id):
         # For the moment they are identical, unless you differentiate the noise parameters
@@ -80,6 +75,15 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
             params.update({"a": 0.005, "b": 0.265, "d": 2.0, "I": 3.0})
         elif node_id in self.Eth_nodes_ids:
             params.update({"a": 0.02, "b": 0.25, "d": 0.05, "I": 3.5})
+        return params
+
+    def paramsI(self, node_id):
+        # For the moment they are identical, unless you differentiate the noise parameters
+        params = deepcopy(self._paramsI)
+        if node_id in self.Igpe_nodes_ids:
+            params.update({"I": 12.0})
+        elif node_id in self.Igpi_nodes_ids:
+            params.update({"I": 30.0})
         return params
 
     def tvb_delay_fun(self, source_node, target_node):
@@ -118,12 +122,6 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
                      "receptor_type": "gaba", "nodes": pop["nodes"]})
 
     def set_nodes_connections(self):
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.scaleBGoptTOtvb
-        # self.global_coupling_scaling = tvb_simulator.coupling.a[0].item()
-        # # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
-        # self.global_coupling_scaling *= tvb_simulator.model.G[0].item()
-
         # Inter-regions'-nodes' connections
         self.nodes_connections = []
         for src_pop, trg_pop, src_nodes, trg_nodes in \
@@ -163,7 +161,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         for pop in self.populations:
             connections = OrderedDict({})
             #                      label <- target population
-            params["label"] = pop["label"] + "_spikes"
+            params["label"] = pop["label"]
             connections[params["label"]] = pop["label"]
             self.output_devices.append(
                 {"model": "SpikeMonitor", "params": deepcopy(params),
@@ -179,8 +177,8 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         for pop in self.populations:
             connections = OrderedDict({})
             #               label    <- target population
-            connections[pop["label"]] = pop["label"]
-            params["label"] = pop["label"]
+            params["label"] = pop["label"] + "_ts"
+            connections[params["label"]] = pop["label"]
             self.output_devices.append(
                 {"model": "Monitor", "params": deepcopy(params),
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to all
@@ -198,19 +196,19 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
                         "geometry": self.population_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
-             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+             "weights": self.Estn_stim["weight"], "delays": self.default_min_delay, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpe_stim["rate"],
                         "geometry": self.population_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
-             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+             "weights": self.Igpe_stim["weight"], "delays": self.default_min_delay, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpi_stim["rate"],
                         "geometry": self.population_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+             "weights": self.Igpi_stim["weight"], "delays": self.default_min_delay, "receptor_type": "base"}
         ]
 
     def set_defaults(self):
@@ -219,3 +217,8 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(BasalGangliaIzhikevichBuilder, self).build()
