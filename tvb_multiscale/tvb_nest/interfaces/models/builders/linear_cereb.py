@@ -85,23 +85,23 @@ class LinearCerebBuilder(TVBNESTInterfaceBuilder):
         connections = {"Rin": "purkinje_cell"}
         self._build_default_nest_to_tvb_interfaces(connections)
 
-    def default_build(self, tvb_to_nest_mode="rate", nest_to_tvb=True):
-        if tvb_to_nest_mode and \
+    def default_build(self, tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True):
+        if tvb_to_spikeNet_mode and \
                 (self.tvb_to_spikeNet_interfaces is None or len(self.tvb_to_spikeNet_interfaces) == 0):
             self.tvb_to_spikeNet_interfaces = []
-            if tvb_to_nest_mode.lower() == "rate":
+            if tvb_to_spikeNet_mode.lower() == "rate":
                 # For spike transmission from TVB to NEST devices as TVB proxy nodes with TVB delays:
                 self.build_default_rate_tvb_to_nest_interfaces()
             else:
                 raise ValueError("No %s interface for this model! Only a 'rate' one is possible!")
 
-        if nest_to_tvb and \
+        if spikeNet_to_tvb and \
                 (self.spikeNet_to_tvb_interfaces is None or len(self.spikeNet_to_tvb_interfaces) == 0):
             self.spikeNet_to_tvb_interfaces = []
             self.build_default_nest_to_tvb_interfaces()
 
-    def build_interface(self, tvb_nest_interface=None, tvb_to_nest_mode="rate", nest_to_tvb=True):
-        self.default_build(tvb_to_nest_mode, nest_to_tvb)
-        if not isinstance(tvb_nest_interface, TVBNESTInterface):
-            tvb_nest_interface = self._tvb_nest_interface()
-        return super(LinearCerebBuilder, self).build_interface(tvb_nest_interface)
+    def build_interface(self, tvb_spikeNet_interface=None, tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True):
+        self.default_build(tvb_to_spikeNet_mode, spikeNet_to_tvb)
+        if not isinstance(tvb_spikeNet_interface, TVBNESTInterface):
+            tvb_spikeNet_interface = self._tvb_nest_interface()
+        return super(LinearCerebBuilder, self).build_interface(tvb_spikeNet_interface)
