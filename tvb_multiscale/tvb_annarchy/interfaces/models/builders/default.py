@@ -136,28 +136,28 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
     def build_default_annarchy_to_tvb_interfaces(self):
         self._build_default_annarchy_to_tvb_interfaces({"Rin": ["E"]})
 
-    def default_build(self, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True):
-        if tvb_to_annarchy_mode and \
+    def default_build(self, tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True):
+        if tvb_to_spikeNet_mode and \
                 (self.tvb_to_spikeNet_interfaces is None or len(self.tvb_to_spikeNet_interfaces) == 0):
             self.tvb_to_spikeNet_interfaces = []
-            if tvb_to_annarchy_mode.lower() == "rate":
+            if tvb_to_spikeNet_mode.lower() == "rate":
                 # For spike transmission from TVB to ANNarchy devices as TVB proxy nodes with TVB delays:
                 self.build_default_rate_tvb_to_annarchy_interfaces()
-            # elif tvb_to_annarchy_mode.lower() == "current":
-            #     # For injecting current to ANNarchy neurons via dc generators acting as TVB proxy nodes with TVB delays:
-            #     self.build_default_current_tvb_to_annarchy_interfaces()
-            elif tvb_to_annarchy_mode.lower() == "param":
+            elif tvb_to_spikeNet_mode.lower() == "current":
+                # For injecting current to ANNarchy neurons via dc generators acting as TVB proxy nodes with TVB delays:
+                self.build_default_current_tvb_to_annarchy_interfaces()
+            elif tvb_to_spikeNet_mode.lower() == "param":
                 # For directly setting an external current parameter in ANNarchy neurons instantaneously:
                 self.build_default_param_tvb_to_annarchy_interfaces()
 
         # The ANNarchy nodes the activity of which is transformed to TVB state variables or parameters
-        if annarchy_to_tvb and \
+        if spikeNet_to_tvb and \
                 (self.spikeNet_to_tvb_interfaces is None or len(self.spikeNet_to_tvb_interfaces) == 0):
             self.spikeNet_to_tvb_interfaces = []
             self.build_default_annarchy_to_tvb_interfaces()
 
-    def build_interface(self, tvb_annarchy_interface=None, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True):
-        self.default_build(tvb_to_annarchy_mode, annarchy_to_tvb)
-        if not isinstance(tvb_annarchy_interface, TVBANNarchyInterface):
-            tvb_annarchy_interface = self._tvb_annarchy_interface()
-        return super(DefaultInterfaceBuilder, self).build_interface(tvb_annarchy_interface)
+    def build_interface(self, tvb_spikeNet_interface=None, tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True):
+        self.default_build(tvb_to_spikeNet_mode, spikeNet_to_tvb)
+        if not isinstance(tvb_spikeNet_interface, TVBANNarchyInterface):
+            tvb_spikeNet_interface = self._tvb_annarchy_interface()
+        return super(DefaultInterfaceBuilder, self).build_interface(tvb_spikeNet_interface)

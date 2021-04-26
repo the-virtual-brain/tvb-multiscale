@@ -115,26 +115,26 @@ class RedWWexcIOBuilder(TVBANNarchyInterfaceBuilder):
                                   [self.I_nodes, self.E_nodes, self.Istr_nodes_ids]):
             self._build_default_annarchy_to_tvb_interfaces({"Rin": ensure_list(src_pop)}, nodes=nodes)
 
-    def default_build(self, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True):
-        if tvb_to_annarchy_mode and \
+    def default_build(self, tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True):
+        if tvb_to_spikeNet_mode and \
                 (self.tvb_to_spikeNet_interfaces is None or len(self.tvb_to_spikeNet_interfaces) == 0):
             self.tvb_to_spikeNet_interfaces = []
-            if tvb_to_annarchy_mode.lower() == "rate":
+            if tvb_to_spikeNet_mode.lower() == "rate":
                 # For spike transmission from TVB to ANNarchy devices as TVB proxy nodes with TVB delays:
                 self.build_default_rate_tvb_to_annarchy_interfaces()
-            elif tvb_to_annarchy_mode.lower() == "param":
+            elif tvb_to_spikeNet_mode.lower() == "param":
                 # For directly setting an external current parameter in ANNarchy neurons instantaneously:
                 self.build_default_param_tvb_to_annarchy_interfaces()
             else:
                 raise ValueError("No %s interface for this model! Only a 'rate' one is possible!")
 
-        if annarchy_to_tvb and \
+        if spikeNet_to_tvb and \
                 (self.spikeNet_to_tvb_interfaces is None or len(self.spikeNet_to_tvb_interfaces) == 0):
             self.spikeNet_to_tvb_interfaces = []
             self.build_default_annarchy_to_tvb_interfaces()
 
-    def build_interface(self, tvb_annarchy_interface=None, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True):
-        self.default_build(tvb_to_annarchy_mode, annarchy_to_tvb)
-        if not isinstance(tvb_annarchy_interface, TVBANNarchyInterface):
-            tvb_annarchy_interface = self._tvb_annarchy_interface()
-        return super(RedWWexcIOBuilder, self).build_interface(tvb_annarchy_interface)
+    def build_interface(self, tvb_spikeNet_interface=None, tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True):
+        self.default_build(tvb_to_spikeNet_mode, spikeNet_to_tvb)
+        if not isinstance(tvb_spikeNet_interface, TVBANNarchyInterface):
+            tvb_spikeNet_interface = self._tvb_annarchy_interface()
+        return super(RedWWexcIOBuilder, self).build_interface(tvb_spikeNet_interface)
