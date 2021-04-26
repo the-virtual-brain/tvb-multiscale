@@ -213,15 +213,14 @@ def test_timeseries_4D(datatype=TimeSeriesXarray):
     assert ts_4D.x.data.shape == (3, 1, 4, 4)
 
 
-if __name__ == "__main__":
-    test_timeseries_1D_definition(TimeSeriesXarray)
-    test_timeseries_2D(TimeSeriesXarray)
-    test_timeseries_3D(TimeSeriesXarray)
-    test_timeseries_data_access(TimeSeriesXarray)
-    test_timeseries_4D(TimeSeriesXarray)
+def test_all(timeseries_type):
+    test_timeseries_1D_definition(timeseries_type)
+    test_timeseries_2D(timeseries_type)
+    test_timeseries_3D(timeseries_type)
+    test_timeseries_data_access(timeseries_type)
+    test_timeseries_4D(timeseries_type)
 
-    test_timeseries_1D_definition(TimeSeries)
-    test_timeseries_2D(TimeSeries)
-    test_timeseries_3D(TimeSeries)
-    test_timeseries_data_access(TimeSeries)
-    test_timeseries_4D(TimeSeries)
+
+if __name__ == "__main__":
+    test_all(TimeSeriesXarray)
+    test_all(TimeSeries)
