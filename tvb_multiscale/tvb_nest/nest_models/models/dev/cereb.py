@@ -137,14 +137,13 @@ class CerebBuilder(NESTNetworkBuilder):
     start_id_scaffold = []
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[],
-                 nest_instance=None, config=CONFIGURED, set_defaults=True, path_to_network_source_file=""):
+                 nest_instance=None, config=CONFIGURED, path_to_network_source_file=""):
         super(CerebBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
         self.spiking_nodes_inds = spiking_nodes_inds
         self.path_to_network_source_file = path_to_network_source_file
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
         self.modules_to_install = ["cereb"]
-        self.set_defaults_flag = set_defaults
 
     def set_populations(self):
         # Populations' configurations
