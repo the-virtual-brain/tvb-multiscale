@@ -13,8 +13,7 @@ from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weig
 
 class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None,
-                 config=CONFIGURED, set_defaults=True):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None, config=CONFIGURED):
         super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, annarchy_instance, config)
 
         # Common order of neurons' number per population:
@@ -25,7 +24,11 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
         self.w = 1.0
         self.d = 1.0
 
-        self.params = {}
+        # Parameters following the iaf_cond_alpha NEST model params
+        self.params = {"v_rest": -70.0, "v_reset": -60.0, "v_thresh": -55.0, "e_rev_E": 0.0, "e_rev_I": -85.0,
+                       "cm": 0.25,  # nF
+                       "tau_refrac": 2.0, "tau_syn_E": 0.2, "tau_syn_I": 2.0, "tau_m": 16.6667}
+
         self.pop_conns_EE = {}
         self.nodes_conns = {}
 
@@ -33,9 +36,6 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
         self.monitor = {}
 
         self.spike_stimulus = {}
-
-        if set_defaults:
-            self.set_defaults()
 
     def set_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
@@ -54,16 +54,13 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
     def set_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
-             "model": self.default_populations_connection["synapse_model"],
+             "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
              "weight": self.w,
              "delay": self.d,
              "receptor_type": self.receptor_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns_EE)
-        return connections
-
-    def set_populations_connections(self):
-        self.populations_connections = [self.set_populations_connections()]
+        self.populations_connections = [connections]
 
     # Among/Between region-node connections
     # By default we choose random jitter around TVB weights and delays
@@ -74,7 +71,7 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
         return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale)
 
     def tvb_delay_fun(self, source_node, target_node):
-        return tvb_delay(source_node, target_node, self.tvb_delays)
+        return np.maximum(tvb_delay(source_node, target_node, self.tvb_delays), self.tvb_dt)
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -126,7 +123,7 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
              "params": {"rates": 6000.0},
              "connections": connections, "nodes": None,
              "weights": 1.0,
-             "delays": 0.0,
+             "delays": self.default_min_delay,
              "receptor_type": "exc"}
         device.update(self.spike_stimulus)
         return device
@@ -140,3 +137,8 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(DefaultExcIOBuilder, self).build()
