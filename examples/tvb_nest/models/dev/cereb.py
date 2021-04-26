@@ -6,15 +6,16 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
-from examples.tvb_nest.example import results_path_fun
-from examples.plot_write_results import plot_write_results
-from tvb_multiscale.tvb_nest.nest_models.builders.models.cereb import CerebBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_cereb import RedWWexcIOBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.dev.cereb import CerebBuilder
+from tvb_multiscale.tvb_nest.interfaces.models.builders.red_ww_cereb import RedWWexcIOBuilder
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter
 
+from examples.example import results_path_fun
+from examples.plot_write_results import plot_write_results
+
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.linear_with_stimulus import Linear
+from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 
 
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids, stim_node_id=42,
@@ -54,7 +55,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder = \
         nest_model_builder(simulator, nest_nodes_ids,
                            os.path.join(os.getcwd().split("tvb_nest")[0],
-                                        "tvb_nest", "../data", "cerebellar_cortex_scaffold_dcn.hdf5"),
+                                        "tvb_nest", "../../../data", "cerebellar_cortex_scaffold_dcn.hdf5"),
                            config=config, set_defaults=True)
     nest_model_builder.modules_to_install = ["cereb"]
     if tvb_nest_builder is not None:
@@ -80,7 +81,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         # Using all default parameters for this example
         tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                             populations_sizes=populations_sizes[0])
-        tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_nest_mode=tvb_to_nest_mode, nest_to_tvb=nest_to_tvb)
+        tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_spikeNet_mode=tvb_to_nest_mode, spikeNet_to_tvb=nest_to_tvb)
         print(tvb_nest_model.print_str(detailed_output=True, connectivity=False))
         print("Done! in %f min" % ((time.time() - tic)/60))
 
@@ -123,7 +124,6 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         try:
             plot_write_results(tvb_results, simulator,
                                spiking_network=nest_network, spiking_nodes_ids=nest_nodes_ids,
-                               populations=populations, populations_sizes=populations_sizes,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
                                plot_per_neuron=False, plotter=plotter, config=config)

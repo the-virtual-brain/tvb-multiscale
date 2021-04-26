@@ -7,14 +7,15 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
-from examples.tvb_nest.example import results_path_fun
-from examples.plot_write_results import plot_write_results
 from tvb_multiscale.tvb_nest.nest_models.builders.models.cereb import CerebBuilder
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter
 
+from examples.example import results_path_fun
+from examples.plot_write_results import plot_write_results
+
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
+from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
 def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes_ids,
@@ -46,7 +47,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     tic = time.time()
 
     def remove_files():
-        for f in os.listdir('.'):
+        for f in os.listdir('../..'):
             if '.gdf' in f or '.dat' in f:
                 os.remove(f)
 
@@ -57,7 +58,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     nest_model_builder = \
         nest_model_builder(simulator, nest_nodes_ids,
                            os.path.join(os.getcwd().split("tvb_nest")[0],
-                                        "tvb_nest", "../data", "cerebellar_cortex_scaffold.hdf5"),
+                                        "tvb_nest", "../../../data", "cerebellar_cortex_scaffold.hdf5"),
                            config=config, set_defaults=True)
     nest_model_builder.modules_to_install = ["cereb"]
     nest_model_builder.compile_install_nest_modules(["cereb"])
@@ -229,7 +230,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     from pandas import Series
     from tvb_multiscale.core.spiking_models.devices import DeviceSet
-    from tvb_multiscale.tvb_nest.nest_models.devices import NESTPoissonGenerator, NESTSpikeDetector, NESTMultimeter
+    from tvb_multiscale.tvb_nest.nest_models.devices import NESTPoissonGenerator, NESTSpikeRecorder, NESTMultimeter
 
     # ### Defining stimuli
     # Into the next cell, the user can define the parameters value for the simulation. The background input is a 4 Hz Poisson process to glomeruli, for 300 ms. Then a 100-Hz burst is provided, lasting 100 ms. The user can set the following parameters:
@@ -320,7 +321,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
                                 ['mossy_fibers', "glomerulus_spikes", "granule_spikes", "golgi_spikes", "basket_spikes",
                                  "stellate_spikes", "purkinje_spikes"]):
         output_devices[label] = DeviceSet(label=label, model="spike_detector")
-        output_devices[label][nest_region_label] = NESTSpikeDetector(device_id, nest)
+        output_devices[label][nest_region_label] = NESTSpikeRecorder(device_id, nest)
 
     if RECORD_VM:
         def neurons_inds_fun(neurons_inds, n_neurons=100):
@@ -378,7 +379,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         # Using all default parameters for this example
         tvb_nest_builder = tvb_nest_builder(simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                             populations_sizes=populations_sizes[0])
-        tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_nest_mode=tvb_to_nest_mode, nest_to_tvb=nest_to_tvb)
+        tvb_nest_model = tvb_nest_builder.build_interface(tvb_to_spikeNet_mode=tvb_to_nest_mode, spikeNet_to_tvb=nest_to_tvb)
         print(tvb_nest_model.print_str(detailed_output=True, connectivity=False))
         print("Done! in %f min" % ((time.time() - tic)/60))
 
@@ -408,7 +409,6 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
         try:
             plot_write_results(tvb_results, simulator,
                                spiking_network=nest_network, spiking_nodes_ids=nest_nodes_ids,
-                               populations=populations, populations_sizes=populations_sizes,
                                transient=transient, tvb_state_variable_type_label="State Variables",
                                tvb_state_variables_labels=simulator.model.variables_of_interest,
                                plot_per_neuron=False, plotter=plotter, config=config)
