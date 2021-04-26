@@ -137,8 +137,12 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
             if node.label not in devices[dev_var].keys():
                 devices[dev_var][node.label] = build_device(device_dict, create_device_fun, config=config, **kwargs)
             for pop in populations:
+                if isinstance(pop, np.ndarray):
+                    population = pop.item()
+                else:
+                    population = pop
                 devices[dev_var][node.label] = \
-                    connect_device_fun(devices[dev_var][node.label], node[pop], neurons_funs[i_node],
+                    connect_device_fun(devices[dev_var][node.label], node[population], neurons_funs[i_node],
                                        weights[i_node], delays[i_node], receptor_types[i_node],
                                        syn_specs[i_node], conn_specs[i_node],
                                        config=config, **kwargs)
@@ -176,8 +180,12 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
                 # ...and populations' group...
                 # ...to connect it:
                 for pop in populations:
+                    if isinstance(pop, np.ndarray):
+                        population = pop.item()
+                    else:
+                        population = pop
                     devices[pop_var][dev_name] = \
-                        connect_device_fun(devices[pop_var][dev_name], node[pop], neurons_funs[i_dev, i_node],
+                        connect_device_fun(devices[pop_var][dev_name], node[population], neurons_funs[i_dev, i_node],
                                            weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
                                            syn_specs[i_dev, i_node], conn_specs[i_dev, i_node],
                                            config=config, **kwargs)
