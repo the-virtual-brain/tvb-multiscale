@@ -31,18 +31,18 @@ def launch_example(config_type, example_fun, write_files=True, **kwargs):
 
 def launch_example_nest(write_files=True, **kwargs):
 
-    from tvb_multiscale.tvb_nest.config import Config
-    from examples.tvb_nest.example import default_example
+    from tvb_multiscale.tvb_nest.config import Config as NESTConfig
+    from examples.tvb_nest.example import default_example as nest_default_example
 
-    return launch_example(Config, default_example, write_files, **kwargs)
+    return launch_example(NESTConfig, nest_default_example, write_files, **kwargs)
 
 
 def launch_example_annarchy(write_files=True, **kwargs):
 
-    from tvb_multiscale.tvb_annarchy.config import Config
-    from examples.tvb_annarchy.example import default_example
+    from tvb_multiscale.tvb_annarchy.config import Config as ANNarchyConfig
+    from examples.tvb_annarchy.example import default_example as annarchy_default_example
 
-    return launch_example(Config, default_example, write_files, **kwargs)
+    return launch_example(ANNarchyConfig, annarchy_default_example, write_files, **kwargs)
 
 
 if __name__ == "__main__":
