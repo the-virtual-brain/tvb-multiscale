@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from tvb_multiscale.core.config import CONFIGURED
 from tvb_multiscale.tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.models import RedWWexcIOinhI
+from tvb_multiscale.tvb_nest.interfaces.models.models import RedWWexcIOinhI
 
 
 class RedRateWWexcIOinhIBuilder(TVBNESTInterfaceBuilder):

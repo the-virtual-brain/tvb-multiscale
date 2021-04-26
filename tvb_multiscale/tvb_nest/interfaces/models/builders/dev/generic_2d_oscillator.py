@@ -2,7 +2,7 @@
 
 import numpy as np
 from tvb_multiscale.tvb_nest.interfaces.models.builders.default import DefaultInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.models import Generic2dOscillator
+from tvb_multiscale.tvb_nest.interfaces.models.models import Generic2dOscillator
 
 
 class Generic2DOscillatorBuilder(DefaultInterfaceBuilder):

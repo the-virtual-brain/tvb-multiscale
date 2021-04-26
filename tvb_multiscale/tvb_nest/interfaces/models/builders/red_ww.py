@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.tvb_nest.interfaces.models.builders.default import DefaultMultiSynapseInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.models import RedWWexcIO, RedWWexcIOinhI
+from tvb_multiscale.tvb_nest.interfaces.models.models import RedWWexcIO, RedWWexcIOinhI
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
