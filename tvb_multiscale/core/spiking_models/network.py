@@ -94,7 +94,6 @@ class SpikingNetwork(HasTraits):
                  input_devices=None,
                  config=CONFIGURED):
         self.config = config
-
         self.brain_regions = brain_regions
         self.output_devices = output_devices
         self.input_devices = input_devices
@@ -144,17 +143,6 @@ class SpikingNetwork(HasTraits):
             outputs += output
         return outputs
 
-    @abstractmethod
-    def configure(self, *args, **kwargs):
-        """Method to configure a simulation just before execution.
-        """
-        pass
-
-    @abstractmethod
-    def Run(self, simulation_length, *args, **kwargs):
-        """Method to simulate the spiking network for a specific simulation_length (in ms)."""
-        pass
-
     @property
     @abstractmethod
     def min_delay(self):
@@ -167,6 +155,10 @@ class SpikingNetwork(HasTraits):
     @property
     def number_of_nodes(self):
         return len(self.brain_regions)
+
+    @property
+    def populations_sizes(self):
+        return self.brain_regions.populations_sizes
 
     def get_devices_by_model(self, model, regions=None):
         """This method will loop though all network's devices to return all devices of a given model.

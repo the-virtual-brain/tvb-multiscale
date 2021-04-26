@@ -2,11 +2,11 @@
 
 from collections import OrderedDict
 from tvb_multiscale.core.config import CONFIGURED
-from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 
-class WWAMPANMDAGABABuilder(SpikingModelBuilder):
+class WWAMPANMDAGABABuilder(SpikingNetworkBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED,
                  w_ee=1.4, J_i=1.0):
