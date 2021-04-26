@@ -218,12 +218,16 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
     label = kwargs.pop("label", "")
     parrot = None
     input_device = False
+    number_of_devices = int(params.pop("number_of_devices", 1))
     if device_model in NESTInputDeviceDict.keys() or nest_device_model in NESTInputDeviceDict.keys():
         input_device = True
         devices_dict = NESTInputDeviceDict
-        if device_model in NESTParrotSpikeInputDeviceDict.keys():
-            record_parrot = params.pop("record", None)
-            parrot = nest_instance.Create("parrot_neuron", int(params.pop("number_of_neurons", 1)))
+        if device_model in NESTParrotSpikeInputDeviceDict.keys() or device_model == "spike_generator":
+            number_of_devices = int(params.pop("number_of_neurons", number_of_devices))
+            if device_model in NESTParrotSpikeInputDeviceDict.keys():
+                record_parrot = params.pop("record", None)
+                parrot = nest_instance.Create("parrot_neuron", number_of_devices)
+                parrot_connect_method = "one_to_one" if device_model == "parrot_spike_generator" else "all_to_all"
         default_params = config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
                                                                   config.NEST_INPUT_DEVICES_PARAMS_DEF.get(
                                                                       nest_device_model, {})).copy()
@@ -246,10 +250,10 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
         label = default_params.get("label", label)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
-        nest_device_node_collection = nest_instance.Create(nest_device_model, params=default_params)
+        nest_device_node_collection = nest_instance.Create(nest_device_model, number_of_devices, params=default_params)
     except:
         warning("Using temporary hack for creating successive %s devices!" % device_model)
-        nest_device_node_collection = nest_instance.Create(nest_device_model, params=default_params)
+        nest_device_node_collection = nest_instance.Create(nest_device_model, number_of_devices, params=default_params)
     default_params["label"] = label
     if parrot:
         nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance, **default_params)
@@ -258,7 +262,7 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
                               syn_spec={"weight": 1.0,
                                         "delay": nest_instance.GetKernelStatus("resolution"),
                                         "receptor_type": 0},
-                              conn_spec={"rule": "all_to_all"})
+                              conn_spec={"rule": parrot_connect_method})
         if record_parrot is not None:
             rec_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get("spike_recorder", {})
             if isinstance(record_parrot, dict):
