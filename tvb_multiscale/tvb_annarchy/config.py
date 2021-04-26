@@ -27,7 +27,7 @@ class Config(ConfigBase):
 
     MIN_SPIKING_DT = 0.001
 
-    DEFAULT_MODEL = "Izhikevich"
+    DEFAULT_MODEL = "IF_cond_alpha"
 
     # Delays should be at least equal to ANNarchy time resolution
     DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
@@ -73,7 +73,7 @@ class Config(ConfigBase):
 CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=None):
+def initialize_logger(name="tvb_annarchy", target_folder=None, config=CONFIGURED):
     if target_folder is None:
-        target_folder = Config().out.FOLDER_LOGS
+        target_folder = config.out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)
