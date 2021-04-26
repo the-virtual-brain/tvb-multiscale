@@ -26,9 +26,9 @@ class TVBWeightFun(object):
 
 class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None, config=CONFIGURED):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
-                                                            annarchy_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None, config=CONFIGURED, logger=None):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(
+            tvb_simulator, spiking_nodes_inds, annarchy_instance, config, logger)
         self.default_population["model"] = Izhikevich_Hamker
 
         # Common order of neurons' number per population:

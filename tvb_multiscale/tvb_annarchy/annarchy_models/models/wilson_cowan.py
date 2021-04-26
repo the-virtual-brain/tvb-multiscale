@@ -12,8 +12,9 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
     w_ie = -10.0
     w_ii = -1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, **kwargs):
-        super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None, **kwargs):
+        super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
         self.w_ee = kwargs.get("w_ee", kwargs.get("c_ee", np.array([self.w_ee])))[0].item()
         self.w_ei = kwargs.get("w_ei", kwargs.get("c_ei", np.array([self.w_ei])))[0].item()
