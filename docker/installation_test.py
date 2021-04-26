@@ -10,8 +10,8 @@ from tests.tvb_nest.test_models import test_models
 test_models()
 
 # ...or only the faster one:
-from .launch_example import launch_example
-launch_example()
+from .launch_example import launch_example_nest
+launch_example_nest()
 
 # To test the spiking model builder for TVB-NEST:
 from tests.tvb_nest.test_spiking_models_builder_propertes_methods import test as test_spiking_model_builder_nest
