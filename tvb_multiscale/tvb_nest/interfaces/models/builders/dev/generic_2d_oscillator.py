@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from tvb_multiscale.tvb_nest.interfaces.models.default import DefaultInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.models.builders.default import DefaultInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.models import Generic2dOscillator
 
 
