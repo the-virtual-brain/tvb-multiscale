@@ -6,7 +6,7 @@ import numpy as np
 
 from tvb_multiscale.tvb_annarchy.interfaces.builders.base import TVBANNarchyInterfaceBuilder
 from tvb_multiscale.tvb_annarchy.interfaces.base import TVBANNarchyInterface
-from tvb_multiscale.tvb_annarchy.interfaces.models.models import RedWWexcIOinhI
+from tvb_multiscale.tvb_annarchy.interfaces.models.models import Linear
 
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
@@ -14,7 +14,7 @@ from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weig
 class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
     __metaclass__ = ABCMeta
 
-    _tvb_annarchy_interface = RedWWexcIOinhI  # Set here the target interface model
+    _tvb_annarchy_interface = Linear  # Set here the target interface model
 
     def __init__(self, tvb_simulator, annarchy_network, annarchy_nodes_ids, exclusive_nodes=False,
                  tvb_to_annarchy_interfaces=None, annarchy_to_tvb_interfaces=None, populations_sizes=[100, 100]):
@@ -22,7 +22,8 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
         super(DefaultInterfaceBuilder, self).__init__(tvb_simulator, annarchy_network, annarchy_nodes_ids, exclusive_nodes,
                                                       tvb_to_annarchy_interfaces, annarchy_to_tvb_interfaces)
         self.N_E = populations_sizes[0]
-        self.N_I = populations_sizes[1]
+        if len(populations_sizes) > 1:
+            self.N_I = populations_sizes[1]
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
@@ -120,21 +121,20 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
         interface.update(kwargs)
         self.spikeNet_to_tvb_interfaces.append(interface)
 
-    @abstractmethod
     def build_default_rate_tvb_to_annarchy_interfaces(self):
-        raise NotImplementedError
+        self._build_default_rate_tvb_to_annarchy_interfaces({"R": ["E"]}, params={"geometry": self.N_E,
+                                                                                  "period": self.tvb_dt})
 
-    # @abstractmethod
-    # def build_default_current_tvb_to_annarchy_interfaces(self):
-    #     raise NotImplementedError
+    @abstractmethod
+    def build_default_current_tvb_to_annarchy_interfaces(self):
+        raise NotImplementedError
 
     @abstractmethod
     def build_default_param_tvb_to_annarchy_interfaces(self):
         raise NotImplementedError
 
-    @abstractmethod
     def build_default_annarchy_to_tvb_interfaces(self):
-        raise NotImplementedError
+        self._build_default_annarchy_to_tvb_interfaces({"Rin": ["E"]})
 
     def default_build(self, tvb_to_annarchy_mode="rate", annarchy_to_tvb=True):
         if tvb_to_annarchy_mode and \
