@@ -10,15 +10,15 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
-from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 
 
 LOG = initialize_logger(__name__)
 
 
-class ANNarchyModelBuilder(SpikingModelBuilder):
+class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
-    """This is the base class of a ANNarchyModelBuilder,
+    """This is the base class of a ANNarchyNetworkBuilder,
        which builds a ANNarchyNetwork from user configuration inputs.
        The builder is half way opionionated.
     """
@@ -32,26 +32,28 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
     _input_proxies = pd.Series()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=LOG):
+    def __init__(self, tvb_simulator, spiking_nodes_ids, annarchy_instance=None, config=CONFIGURED, logger=LOG):
+        if logger is None:
+            logger = initialize_logger(__name__, config=config)
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_ids, config, logger)
         # Setting or loading an annarchy instance:
+        if annarchy_instance is None:
+            annarchy_instance = load_annarchy(self.config, self.logger)
         self.annarchy_instance = annarchy_instance
-        super(ANNarchyModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
-    def _configure_annarchy(self, **kwargs):
+    def configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
             self.annarchy_instance = load_annarchy(self.config, self.logger)
         self.annarchy_instance.clear()  # This will restart ANNarchy!
-        self._update_spiking_dt()
-        self._update_default_min_delay()
         kwargs["dt"] = self.spiking_dt
         kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
         kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
         self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
-        super(ANNarchyModelBuilder, self).configure()
-        self._configure_annarchy(**kwargs)
+        super(ANNarchyNetworkBuilder, self).configure()
+        self.configure_annarchy()
 
     @property
     def min_delay(self):
@@ -149,8 +151,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         _devices = pd.Series()
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
-            _devices = _devices.append(
-                self.build_and_connect_devices(device))
+            _devices = _devices.append(self.build_and_connect_devices(device))
         return _devices
 
     def build_and_connect_devices(self, devices):
@@ -165,7 +166,7 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
                                          self._spiking_brain, self.config, annarchy_instance=self.annarchy_instance,
                                          import_path=self._models_import_path)
 
-    def build(self):
+    def build_spiking_network(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""
         return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,
                                self._output_devices, self._input_devices,
