@@ -10,8 +10,7 @@ from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
 from examples.tvb_nest.example import results_path_fun
 from examples.plot_write_results import plot_write_results
 from tvb_multiscale.tvb_nest.nest_models.builders.models.cereb import CerebBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_cereb import RedWWexcIOBuilder
-from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
@@ -32,7 +31,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
-    simulator_builder = SimulatorBuilder()
+    simulator_builder = CoSimulatorBuilder()
     simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model

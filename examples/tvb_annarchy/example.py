@@ -10,21 +10,22 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, Config
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_izhikevich \
+from tvb_multiscale.tvb_annarchy.annarchy_models.models.wilson_cowan import WilsonCowanBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.models.basal_ganglia_izhikevich \
     import BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
     import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
 from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
-from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from examples.plot_write_results import plot_write_results
 
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
+
 
 
 def results_path_fun(anarchy_model_builder, tvb_anarchy_builder,
@@ -60,38 +61,37 @@ def main_example(tvb_sim_model, annarchy_model_builder, tvb_annarchy_builder,
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
-    simulator_builder = SimulatorBuilder()
+    simulator_builder = CoSimulatorBuilder()
     # Optionally modify the default configuration:
-    simulator_builder.model = tvb_sim_model
+    simulator_builder.model = tvb_sim_model()
     simulator_builder.variables_of_interest = variables_of_interest
     simulator_builder.connectivity = connectivity
     simulator_builder.delays_flag = delays_flag
     simulator_builder.use_numba = use_numba
     simulator = simulator_builder.build(**model_params)
 
-    # ------2. Build the annarchy network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)-------
+    # ------2. Build the annarchy network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)---
 
     print("Building annarchy network...")
     tic = time.time()
-
     # Build a annarchy network model with the corresponding builder
     # Using all default parameters for this example
-    annarchy_model_builder = annarchy_model_builder(simulator, annarchy_nodes_ids, config=config, set_defaults=False)
+    annarchy_model_builder = annarchy_model_builder(simulator, annarchy_nodes_ids, config=config)
     annarchy_model_builder.population_order = annarchy_populations_order
-    annarchy_model_builder.set_defaults()
+    # Common order of neurons' number per population:
+    annarchy_model_builder.configure()
+    annarchy_network = annarchy_model_builder.build(set_defaults=True)
+    print("Done! in %f min" % ((time.time() - tic) / 60))
+
+    # -----------------------------------3. Build the TVB-ANNarchy interface model -------------------------------------
+
+    print("Building TVB-ANNarchy interface...")
+    tic = time.time()
     populations = []
     populations_sizes = []
     for pop in annarchy_model_builder.populations:
         populations.append(pop["label"])
         populations_sizes.append(int(np.round(pop["scale"] * annarchy_model_builder.population_order)))
-    # Common order of neurons' number per population:
-    annarchy_network = annarchy_model_builder.build_spiking_network()
-    print("Done! in %f min" % ((time.time() - tic) / 60))
-
-    # -----------------------------------3. Build the TVB-ANNarchy interface model -----------------------------------------
-
-    print("Building TVB-ANNarchy interface...")
-    tic = time.time()
     # Build a TVB-ANNarchy interface with all the appropriate connections between the
     # TVB and ANNarchy modelled regions
     # Using all default parameters for this example

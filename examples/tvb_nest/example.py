@@ -9,15 +9,15 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.models.wilson_cowan import WilsonCowanBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.wilson_cowan import WilsonCowanBuilder
 from tvb_multiscale.tvb_nest.interfaces.builders.models.wilson_cowan import \
     WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb_multiscale.core.plot.plotter import Plotter
 from examples.plot_write_results import plot_write_results
 
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
 
 
 def results_path_fun(nest_model_builder, tvb_nest_builder, tvb_to_nest_mode="rate", nest_to_tvb=True, config=None):
@@ -52,10 +52,10 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
-    simulator_builder = SimulatorBuilder()
+    simulator_builder = CoSimulatorBuilder()
     simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
-    simulator_builder.model = tvb_sim_model
+    simulator_builder.model = tvb_sim_model()
     simulator_builder.variables_of_interest = variables_of_interest
     simulator_builder.connectivity = connectivity
     simulator_builder.delays_flag = delays_flag
@@ -65,19 +65,13 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
 
     print("\n\nBuilding NEST network...")
     tic = time.time()
-
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
     nest_model_builder = nest_model_builder(simulator, nest_nodes_ids, config=config)
     nest_model_builder.population_order = nest_populations_order
-    populations = []
-    populations_sizes = []
-    for pop in nest_model_builder.populations:
-        populations.append(pop["label"])
-        populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Common order of neurons' number per population:
-    nest_network = nest_model_builder.build_spiking_network()
-
+    nest_model_builder.configure()
+    nest_network = nest_model_builder.build(set_defaults=True)
     print("\nDone! in %f min\n" % ((time.time() - tic) / 60))
     print(nest_network.print_str(connectivity=True))
 
@@ -85,6 +79,11 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder,
 
     print("\n\nBuilding TVB-NEST interface...")
     tic = time.time()
+    populations = []
+    populations_sizes = []
+    for pop in nest_model_builder.populations:
+        populations.append(pop["label"])
+        populations_sizes.append(int(np.round(pop["scale"] * nest_model_builder.population_order)))
     # Build a TVB-NEST interface with all the appropriate connections between the
     # TVB and NEST modelled regions
     # Using all default parameters for this example
