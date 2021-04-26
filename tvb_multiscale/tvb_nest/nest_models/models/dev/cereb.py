@@ -137,8 +137,8 @@ class CerebBuilder(NESTNetworkBuilder):
     start_id_scaffold = []
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[],
-                 nest_instance=None, config=CONFIGURED, path_to_network_source_file=""):
-        super(CerebBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+                 nest_instance=None, config=CONFIGURED, logger=None, path_to_network_source_file=""):
+        super(CerebBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
         self.spiking_nodes_inds = spiking_nodes_inds
         self.path_to_network_source_file = path_to_network_source_file
         # Common order of neurons' number per population:

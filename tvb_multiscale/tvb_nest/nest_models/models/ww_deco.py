@@ -14,9 +14,10 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
 
     w_EE = np.array([0.9])
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, **kwargs):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None, **kwargs):
 
-        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, **kwargs)
+        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger **kwargs)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 
@@ -179,9 +180,11 @@ class WWDeco2014Builder(WWDeco2013Builder):
     w_EE = np.array([1.4])
     w_IE = np.array([1.0])
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, **kwargs):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None, **kwargs):
 
-        super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, **kwargs)
+        super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+                                                config, logger, **kwargs)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 

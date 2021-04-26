@@ -15,8 +15,9 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED):
-        super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None):
+        super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100

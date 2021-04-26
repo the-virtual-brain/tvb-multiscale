@@ -29,8 +29,10 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+                                                            config, logger)
         self.default_population["model"] = "izhikevich_hamker"
 
         # Common order of neurons' number per population:
