@@ -9,7 +9,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.nest_models.builders.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_nest.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
+from tvb_multiscale.tvb_nest.interfaces.models \
     import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
 
 example_core_path = os.path.dirname(__file__)
