@@ -5,7 +5,7 @@ import numpy as np
 from tvb_multiscale.tvb_annarchy.interfaces.base import TVBANNarchyInterface
 from tvb_multiscale.tvb_annarchy.interfaces.builders.base import TVBANNarchyInterfaceBuilder
 
-from tvb_multiscale.tvb_annarchy.interfaces.models import RedWWexcIO
+from tvb_multiscale.tvb_annarchy.interfaces.models.models import RedWWexcIO
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
