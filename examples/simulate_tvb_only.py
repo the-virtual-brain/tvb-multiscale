@@ -8,7 +8,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.core.config import CONFIGURED, Config
-from tvb_multiscale.core.tvb.simulator_builder import SimulatorBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder
 from tvb_multiscale.core.plot.plotter import Plotter
 from examples.plot_write_results import plot_write_results
 
@@ -33,7 +33,7 @@ def main_example(tvb_sim_model=ReducedWongWangExcIOInhI, connectivity=CONFIGURED
     plotter = Plotter(config)
 
     # ----------------------1. Define a TVB simulator (model, integrator, monitors...)----------------------------------
-    simulator_builder = SimulatorBuilder()
+    simulator_builder = CoSimulatorBuilder()
     simulator_builder.use_numba = use_numba
     # Optionally modify the default configuration:
     simulator_builder.model = tvb_sim_model
