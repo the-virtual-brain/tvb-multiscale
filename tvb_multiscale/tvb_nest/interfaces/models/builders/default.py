@@ -5,7 +5,7 @@ import numpy as np
 
 from tvb_multiscale.tvb_nest.interfaces.builders.base import TVBNESTInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.base import TVBNESTInterface
-from tvb_multiscale.tvb_nest.interfaces.models.models import RedWWexcIOinhI
+from tvb_multiscale.tvb_nest.interfaces.models.models import Linear
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import random_normal_tvb_weight, \
     random_uniform_tvb_delay, receptor_by_source_region
 
@@ -13,15 +13,16 @@ from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import random_n
 class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
     __metaclass__ = ABCMeta
 
-    _tvb_nest_interface = RedWWexcIOinhI  # Set here the target interface model
+    _tvb_nest_interface = Linear  # Set here the target interface model
 
     def __init__(self, tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes=False,
-                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[100, 100]):
+                 tvb_to_nest_interfaces=None, nest_to_tvb_interfaces=None, populations_sizes=[100]):
 
         super(DefaultInterfaceBuilder, self).__init__(tvb_simulator, nest_network, nest_nodes_ids, exclusive_nodes,
                                                       tvb_to_nest_interfaces, nest_to_tvb_interfaces)
         self.N_E = populations_sizes[0]
-        self.N_I = populations_sizes[1]
+        if len(populations_sizes) > 1:
+            self.N_I = populations_sizes[1]
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_simulator.coupling.a[0].item()
@@ -123,9 +124,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
         interface.update(kwargs)
         self.spikeNet_to_tvb_interfaces.append(interface)
 
-    @abstractmethod
     def build_default_rate_tvb_to_nest_interfaces(self):
-        raise NotImplementedError
+        self._build_default_rate_tvb_to_nest_interfaces({"R": ["E"]})
 
     @abstractmethod
     def build_default_current_tvb_to_nest_interfaces(self):
@@ -135,9 +135,8 @@ class DefaultInterfaceBuilder(TVBNESTInterfaceBuilder):
     def build_default_param_tvb_to_nest_interfaces(self):
         raise NotImplementedError
 
-    @abstractmethod
     def build_default_nest_to_tvb_interfaces(self):
-        raise NotImplementedError
+        self._build_default_nest_to_tvb_interfaces({"Rin": ["E"]})
 
     def default_build(self, tvb_to_nest_mode="rate", nest_to_tvb=True):
         if tvb_to_nest_mode and \
@@ -172,9 +171,8 @@ class DefaultMultiSynapseInterfaceBuilder(DefaultInterfaceBuilder):
     def receptor_fun(self, source_node, target_node, start=3):
         return receptor_by_source_region(source_node, target_node, start)
 
-    @abstractmethod
     def build_default_rate_tvb_to_nest_interfaces(self):
-        raise NotImplementedError
+        self._build_default_rate_tvb_to_nest_interfaces({"R": ["E"]})
 
     @abstractmethod
     def build_default_current_tvb_to_nest_interfaces(self):
