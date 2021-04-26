@@ -95,7 +95,7 @@ RUN $VENV/bin/pip3 install setuptools; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy numba; \
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy numba dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
