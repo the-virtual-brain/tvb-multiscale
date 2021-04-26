@@ -37,7 +37,7 @@ class NESTNetwork(SpikingNetwork):
                  input_devices=None,
                  config=CONFIGURED):
         if nest_instance is None:
-            nest_instance = load_nest(self.config, LOG)
+            nest_instance = load_nest(config, LOG)
         self.nest_instance = nest_instance
         super(NESTNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
 

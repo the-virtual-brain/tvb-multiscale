@@ -9,22 +9,18 @@ from tvb_multiscale.tvb_nest.nest_models.population import NESTPopulation
 from tvb_multiscale.tvb_nest.nest_models.region_node import NESTRegionNode
 from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import \
-    load_nest, compile_modules, get_populations_neurons, create_conn_spec, create_device, connect_device
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest, \
+    compile_modules, get_populations_neurons, create_conn_spec, create_device, connect_device
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
-from tvb_multiscale.core.spiking_models.builders.base import SpikingModelBuilder
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
-LOG = initialize_logger(__name__)
+class NESTNetworkBuilder(SpikingNetworkBuilder):
 
-
-class NESTModelBuilder(SpikingModelBuilder):
-
-    """This is the base class of a NESTModelBuilder,
+    """This is the base class of a NESTNetworkBuilder,
        which builds a NESTNetwork from user configuration inputs.
        The builder is half way opionionated.
     """
@@ -34,28 +30,18 @@ class NESTModelBuilder(SpikingModelBuilder):
     modules_to_install = []
     _spiking_brain = NESTBrain()
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, logger=LOG):
-        super(NESTModelBuilder, self).__init__(tvb_simulator, nest_nodes_ids, config, logger)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, logger=None):
+        if logger is None:
+            logger = initialize_logger(__name__, config=config)
+        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
+        if nest_instance is None:
+            nest_instance = load_nest(self.config)
         self.nest_instance = nest_instance
         self._spiking_brain = NESTBrain()
-        # Setting NEST defaults from config
-        self.default_kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG
 
-    def _configure_nest_kernel(self):
-        # Setting or loading a nest instance:
-        if self.nest_instance is None:
-            self.nest_instance = load_nest(self.config, self.logger)
-        self.nest_instance.ResetKernel()  # This will restart NEST!
-        self.nest_instance.set_verbosity(self.config.NEST_VERBOCITY)  # don't print all messages from NEST
-        kernel_config = deepcopy(self.default_kernel_config)
-        # Printing the time progress should only be used when the simulation is run on a local machine:
-        #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
-        self._update_spiking_dt()
-        self._update_default_min_delay()
-        kernel_config["resolution"] = self.spiking_dt
-        if "data_path" in kernel_config.keys():
-            safe_makedirs(kernel_config["data_path"])  # Make sure this folder exists
-        self.nest_instance.SetKernelStatus(kernel_config)
+    def configure(self):
+        super(NESTNetworkBuilder, self).configure()
+        self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt})
 
     def _compile_install_nest_module(self, module):
         """This method will try to install the input NEST module.
@@ -108,8 +94,10 @@ class NESTModelBuilder(SpikingModelBuilder):
                 self._compile_install_nest_module(model)
 
     def configure(self):
-        self._configure_nest_kernel()
-        super(NESTModelBuilder, self).configure()
+        super(NESTNetworkBuilder, self).configure()
+
+    def _configure(self):
+        super(NESTNetworkBuilder, self)._configure()
         self.compile_install_nest_modules(self.modules_to_install)
         self.confirm_compile_install_nest_models(self._models)
 
@@ -277,7 +265,7 @@ class NESTModelBuilder(SpikingModelBuilder):
         return build_and_connect_devices(devices, create_device, connect_device,
                                          self._spiking_brain, self.config, nest_instance=self.nest_instance)
 
-    def build(self):
+    def build_spiking_network(self):
         """A method to build the final NESTNetwork class based on the already created constituents."""
         return NESTNetwork(self.nest_instance, self._spiking_brain,
                            self._output_devices, self._input_devices, config=self.config)

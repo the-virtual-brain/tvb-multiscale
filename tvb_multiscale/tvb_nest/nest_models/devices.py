@@ -11,14 +11,14 @@ import xarray as xr
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
+from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header
 
 from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
-from tvb.basic.neotraits.api import HasTraits, Attr, List
+from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
-from tvb.contrib.scripts.utils.file_utils import truncate_ascii_file_after_header
 
 
 # These classes wrap around NEST commands.
@@ -247,6 +247,29 @@ class NESTSpikeGenerator(NESTInputDevice):
         kwargs["model"] = kwargs.pop("model", "spike_generator")
         super(NESTSpikeGenerator, self).__init__(device, nest_instance, *args, **kwargs)
 
+    @property
+    def number_of_devices(self):
+        return len(self.device)
+
+    def _assert_value_size(self, val):
+        try:
+            n_vals = len(val)
+            if n_vals != self.number_of_devices:
+                if n_vals in [0, 1]:
+                    val = [val] * self.number_of_devices
+                else:
+                    raise ValueError("The number of input values %s to set() method of the NESTSpikeGenerator"
+                                     "is neither 0, nor 1 or equal to the number of devices %s!"
+                                     % (n_vals, self.number_of_devices))
+        except:
+            val = [val] * self.number_of_devices
+        return val
+
+    def Set(self, values_dict):
+        for key, vals in values_dict.items():
+            for i_dev, val in enumerate(self._assert_value_size(vals)):
+                self.device[i_dev].set({key: val})
+
 
 class NESTPulsePacketGenerator(NESTInputDevice):
 
@@ -318,33 +341,21 @@ class NESTParrotInputDevice(NESTParrotPopulation, NESTInputDevice):
 
     def Set(self, values_dict, neurons=None):
         if neurons is None:
-            NESTInputDevice.Set(self, values_dict)
+            NESTInputDevice.set(self, values_dict)
         else:
-            NESTParrotPopulation.Set(self, values_dict, neurons)
+            NESTParrotPopulation.set(self, values_dict, neurons)
 
     def Get(self, attrs=None, neurons=None, summary=None):
         if neurons is None:
-            return NESTInputDevice.Get(self, attrs)
+            return NESTInputDevice.get(self, attrs)
         else:
-            return NESTParrotPopulation.Get(self, attrs, neurons, summary)
+            return NESTParrotPopulation.get(self, attrs, neurons, summary)
 
     def get_attributes(self, neurons=None, summary=False):
         if neurons is None:
             return NESTInputDevice.get_attributes(self)
         else:
             return NESTParrotPopulation.get_attributes(self, neurons, summary)
-
-    def _Set(self, values_dict, neurons=None):
-        if neurons is None:
-            NESTInputDevice._Set(self, values_dict)
-        else:
-            NESTParrotPopulation._Set(self, values_dict, neurons)
-
-    def _Get(self, attrs=None, neurons=None):
-        if neurons is None:
-            return NESTInputDevice._Get(self, attrs)
-        else:
-            return NESTParrotPopulation.Get(self, attrs, neurons)
 
     def _default_neurons_and_source_or_target(self, neurons=None, source_or_target=None):
         if neurons is None:
@@ -470,13 +481,20 @@ class NESTParrotDPPDSupGenerator(NESTParrotInputDevice):
         super(NESTParrotDPPDSupGenerator, self).__init__(device, population, nest_instance, *args, **kwargs)
 
 
-class NESTParrotSpikeGenerator(NESTParrotInputDevice):
+class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 
     """NESTParrotSpikeGenerator class to wrap around a NEST spike_generator device"""
 
     def __init__(self, device, population, nest_instance, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "parrot_spike_generator")
         super(NESTParrotSpikeGenerator, self).__init__(device, population, nest_instance, *args, **kwargs)
+        super(NESTSpikeGenerator, self).__init__(device, nest_instance, *args, **kwargs)
+
+    def Set(self, values_dict, neurons=None):
+        if neurons is None:
+            NESTSpikeGenerator.set(self, values_dict)
+        else:
+            NESTParrotPopulation.set(self, values_dict, neurons)
 
 
 class NESTParrotPulsePacketGenerator(NESTParrotInputDevice):
@@ -540,6 +558,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     """NESTOutputDevice class to wrap around a NEST output (recording) device"""
 
+    _output_events_counter = Int(field_type=int, default=0, required=True, label="Number of output events",
+                                 doc="""The number of recorded events that 
+                                          have been given to the output via a get_events() call.""")
+
     def __init__(self, device, nest_instance, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "nest_output_device")
         super(NESTOutputDevice, self).__init__(device, nest_instance, *args, **kwargs)
@@ -574,6 +596,15 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     def _get_events_from_memory(self):
         return self.device.get("events")
 
+    def get_events(self, **kwargs):
+        events = super(NESTOutputDevice, self).get_events(**kwargs)
+        # Advance the _output_events_counter
+        self._output_events_counter = self.device.get("n_events")
+        return events
+
+    def get_new_events(self, variables=None, **filter_kwargs):
+        return self.get_events(variables=variables, events_inds=self._output_events_counter, **filter_kwargs)
+
     @property
     def events(self):
         return self._get_events()
@@ -581,6 +612,10 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     @property
     def number_of_events(self):
         return self.device.get("n_events")
+
+    @property
+    def number_of_new_events(self):
+        return self.device.get("n_events") - self._output_events_counter
 
     @property
     def n_events(self):
@@ -642,7 +677,8 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
     def record_from(self):
         return [str(name) for name in self.device.get('record_from')]
 
-    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
+                 flatten_neurons_inds=True, new=False):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -650,20 +686,28 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
             name: label of output. Default = None, which defaults to the label of the Device
             dims_names: sequence of dimensions' labels (strings) for the output array.
                         Default = ["Time", "Variable", "Neuron"]
-           Returns:
+            flatten_neurons_inds: if true, neurons coordinates are arranged from 1 to number of neurons,
+                                  instead for neurons_inds
+            new: boolean flag. Default = False. If True, we return data only from newly recorded events
+                 (e.g., events recorded after the last call to get_data)
+          Returns:
             a xarray DataArray with the output data
         """
         if name is None:
             name = self.label
-        events = self.events
+        if new:
+            events = self.get_new_events()
+        else:
+            events = self.events
         times = events.pop("times")
         senders = events.pop("senders")
         if len(times) + len(senders):
+            permuted_dims_names = [dims_names[1], dims_names[2], dims_names[0]]
             # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
             # Therefore, we have to re-arrange the output to get all variables separated following time order.
             data = data_xarray_from_continuous_events(events, times, senders,
                                                       variables=self._determine_variables(variables),
-                                                      name=name, dims_names=dims_names)
+                                                      name=name, dims_names=permuted_dims_names).transpose(*dims_names)
             if flatten_neurons_inds:
                 data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
         else:
