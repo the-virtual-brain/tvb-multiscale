@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
 
@@ -25,12 +25,12 @@ class TVBWeightFun(object):
                                 scale=self.global_coupling_scaling)
 
 
-class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
+class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None, config=CONFIGURED, set_defaults=True):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
         self.default_population["model"] = "izhikevich_hamker"
 
         # Common order of neurons' number per population:
@@ -40,16 +40,16 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                               "C_m": 1.0, "I_e": 0.0, "current_stimulus_scale": 1.0, "current_stimulus_mode": 0,
                               "t_ref": 10.0, "tau_rise": 1.0, "tau_rise_AMPA": 10.0, "tau_rise_GABA_A": 10.0,
                               "n0": 140.0, "n1": 5.0, "n2": 0.04,
-                              "v": -72.0, "u": -14.0}
+                              "V_m": -72.0, "U_m": -14.0}
         self._paramsI = deepcopy(self.params_common)
         self._paramsI.update({"a": 0.005, "b": 0.585, "d": 4.0,
-                              "v": -70.0, "u": -18.55})
+                              "V_m": -70.0, "U_m": -18.55})
         self._paramsE = deepcopy(self.params_common)
         self.paramsStr = deepcopy(self.params_common)
         self.paramsStr.update({"V_th": 40.0, "C_m": 50.0,
                                "n0": 61.65119, "n1": 2.594639, "n2": 0.022799,
                                "a": 0.05, "b": -20.0, "c": -55.0, "d": 377.0,
-                               "v": -70.0, "u": -18.55})
+                               "V_m": -70.0, "U_m": -18.55})
 
         self.Igpe_nodes_ids = [0, 1]
         self.Igpi_nodes_ids = [2, 3]
@@ -60,13 +60,11 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.Istr_nodes_ids = [6, 7]
 
         self.scaleBGoptTOtvb = 0.00205875
+        self.global_coupling_scaling = self.scaleBGoptTOtvb
 
         self.Estn_stim = {"rate": 500.0, "weight": 0.009}
         self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
         self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
-
-        if set_defaults:
-            self.set_defaults()
 
     def paramsE(self, node_id):
         # For the moment they are identical, unless you differentiate the noise parameters
@@ -85,6 +83,9 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         elif node_id in self.Igpi_nodes_ids:
             params.update({"I_e": 30.0})
         return params
+
+    def weight_fun(self, w):
+        return w
 
     def tvb_delay_fun(self, source_node, target_node):
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
@@ -119,11 +120,6 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
                      "receptor_type": 0, "nodes": pop["nodes"]})
 
     def set_nodes_connections(self):
-        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.scaleBGoptTOtvb  # self.tvb_simulator.coupling.a[0].item()
-        # if we use Reduced Wong Wang model, we also need to multiply with the global coupling constant G:
-        # self.global_coupling_scaling *= self.tvb_simulator.model.G[0].item()
-
         # Inter-regions'-nodes' connections
         self.nodes_connections = []
         for src_pop, trg_pop, src_nodes, trg_nodes in \
@@ -196,23 +192,23 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
             #  "params": {"rate": self.Estn_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineEstn": ["E"]},  # "Estn"
             #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-            #  "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Estn_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             # {"model": "poisson_generator",
             #  "params": {"rate": self.Igpe_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
             #  "nodes": self.Igpe_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Igpe_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             # {"model": "poisson_generator",
             #  "params": {"rate": self.Igpi_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
             #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Igpi_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             {"model": "dc_generator",
-             "params": {"amplitude": 1.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
+             "params": {"amplitude": -5.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
                         "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
              "connections": {"DBS_GPi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": 1.0, "delays": 0.0}
+             "weights": 1.0, "delays": self.default_min_delay}
         ]  #
 
     def set_defaults(self):
@@ -221,3 +217,8 @@ class BasalGangliaIzhikevichBuilder(NESTModelBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(BasalGangliaIzhikevichBuilder, self).build()

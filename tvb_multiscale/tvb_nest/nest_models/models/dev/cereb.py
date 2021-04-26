@@ -6,7 +6,7 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTModelBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 
 
 class NeuronsFun(object):
@@ -22,7 +22,7 @@ class NeuronsFun(object):
                                                         for x in self.conns]]
 
 
-class CerebBuilder(NESTModelBuilder):
+class CerebBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
@@ -136,16 +136,15 @@ class CerebBuilder(NESTModelBuilder):
     neuron_types = []
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, path_to_network_source_file,
-                 nest_instance=None, config=CONFIGURED, set_defaults=True):
-        super(CerebBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
-        self.nest_nodes_ids = nest_nodes_ids
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[],
+                 nest_instance=None, config=CONFIGURED, set_defaults=True, path_to_network_source_file=""):
+        super(CerebBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+        self.spiking_nodes_inds = spiking_nodes_inds
         self.path_to_network_source_file = path_to_network_source_file
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
         self.modules_to_install = ["cereb"]
-        if set_defaults:
-            self.set_defaults()
+        self.set_defaults_flag = set_defaults
 
     def set_populations(self):
         # Populations' configurations
@@ -274,3 +273,8 @@ class CerebBuilder(NESTModelBuilder):
         self.set_output_devices()
         self.set_input_devices()
         self.net_src_file.close()
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(CerebBuilder, self).build()
