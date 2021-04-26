@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
-from tvb_multiscale.tvb_nest.interfaces.builders.models.default import DefaultInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.models.default import DefaultInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.models import WilsonCowan
 
 
