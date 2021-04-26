@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from six import string_types
+
 from pandas import Series
+from xarray import DataArray
+import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger, LINE
 
@@ -89,6 +92,14 @@ class SpikingRegionNode(Series, HasTraits):
 
     def get_number_of_neurons(self, pop_inds_or_lbls=None):
         return len(self.get_neurons(pop_inds_or_lbls))
+
+    def get_number_of_neurons_per_population(self, pop_inds_or_lbls=None):
+        output = []
+        pop_labels = []
+        for id, lbl, pop in self._loop_generator(pop_inds_or_lbls):
+            pop_labels.append(pop)
+            output.append(pop.get_number_of_neurons())
+        return DataArray(np.array(output), dims=["Population"], coords={"Population": np.array(pop_labels)})
 
     def Set(self, values_dict, pop_inds_or_lbls=None):
         """Method to set attributes of the SpikingRegionNode's populations' neurons.
@@ -266,6 +277,10 @@ class SpikingRegionNode(Series, HasTraits):
         if self._number_of_neurons is None or self._number_of_neurons == 0:
             self._number_of_neurons = self.get_number_of_neurons()
         return self._number_of_neurons
+
+    @property
+    def number_of_neurons_per_population(self):
+        return self.get_number_of_neurons_per_population()
 
     @property
     def attributes(self):
