@@ -154,7 +154,7 @@ def main_example(tvb_sim_model, nest_model_builder, tvb_nest_builder, nest_nodes
 
     # Get the nest instance of the NEST model builder:
     nest = nest_model_builder.nest_instance
-    nest_model_builder._configure_nest_kernel()
+    nest_model_builder.configure_nest_kernel()
 
     # Prepare the NEST kernel:
     # nest.ResetKernel()

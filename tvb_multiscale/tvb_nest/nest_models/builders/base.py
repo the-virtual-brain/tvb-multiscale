@@ -41,7 +41,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         self.nest_instance = nest_instance
         self._spiking_brain = NESTBrain()
 
-    def _configure_nest_kernel(self):
+    def configure_nest_kernel(self):
         # Setting or loading a nest instance:
         if self.nest_instance is None:
             self.nest_instance = load_nest(self.config, self.logger)
@@ -57,7 +57,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def configure(self):
         super(NESTNetworkBuilder, self).configure()
-        self._configure_nest_kernel()
+        self.configure_nest_kernel()
 
     def _compile_install_nest_module(self, module):
         """This method will try to install the input NEST module.
