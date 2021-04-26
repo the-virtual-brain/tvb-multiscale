@@ -50,8 +50,8 @@ class ANNarchyModelBuilder(SpikingModelBuilder):
         self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
-        self._configure_annarchy()
         super(ANNarchyModelBuilder, self).configure()
+        self._configure_annarchy(**kwargs)
 
     @property
     def min_delay(self):
