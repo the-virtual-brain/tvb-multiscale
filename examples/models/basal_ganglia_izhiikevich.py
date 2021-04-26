@@ -1,35 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import os
-import importlib.util
-
 import numpy as np
 
-from tvb.basic.profile import TvbProfile
-TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
 
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_izhikevich \
-    import BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich \
-    import RedWWexcIOBuilder as BasalGangliaRedWWexcIOBuilder
-
-example_core_path = os.path.dirname(__file__)
-example_module = \
-    importlib.util.spec_from_file_location(".example",
-                                           os.path.join(example_core_path, "example.py"))
-example = importlib.util.module_from_spec(example_module)
-example_module.loader.exec_module(example)
-main_example = example.main_example
+from examples.example import main_example
 
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
 
 
-if __name__ == "__main__":
-
-    annarchy_nodes_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_builder, **kwargs):
 
     import os
+
     home_path = os.path.join(os.getcwd().split("tvb-multiscale")[0], "tvb-multiscale")
     DATA_PATH = os.path.join(home_path, "examples/data/basal_ganglia_conn")
     wTVB = np.loadtxt(os.path.join(DATA_PATH, "conn_denis_weights.txt"))
@@ -68,14 +51,12 @@ if __name__ == "__main__":
 
     connectivity = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_lengths=tlTVB)
 
-    tvb_model = ReducedWongWangExcIO  # ReducedWongWangExcIOInhI
+    spiking_proxy_inds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    populations_order = kwargs.pop("populations_order", 200)
 
-    model_params = {}
+    model_params = kwargs.pop("model_params", {})
 
-    main_example(tvb_model, BasalGangliaIzhikevichBuilder, BasalGangliaRedWWexcIOBuilder,
-                 annarchy_nodes_ids,  annarchy_populations_order=200,
-                 tvb_to_annarchy_mode="rate", annarchy_to_tvb=True, exclusive_nodes=True,
-                 connectivity=connectivity, delays_flag=True,
-                 simulation_length=110.0, transient=0.0,
-                 use_numba=True, variables_of_interest=None,
-                 config=None, plot_write=True, **model_params)
+    return main_example(LinearReducedWongWangExcIO, model_params,
+                        spikeNet_model_builder, spiking_proxy_inds, populations_order,
+                        tvb_spikeNet_model_builder,
+                        connectivity=connectivity, **kwargs)
