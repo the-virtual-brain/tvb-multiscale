@@ -77,7 +77,7 @@ class TVBSpikeNetInterfaceBuilder(object):
                     for i_n in self.spiking_nodes_ids:
                         self.tvb_nodes_ids.remove(i_n)
                 except:
-                    raise ValueError("Failed to compute tvb_nodes_ids from nest_nodes_ids %s "
+                    raise ValueError("Failed to compute tvb_nodes_ids from spiking_nodes_inds %s "
                                      "and TVB connectivity of size %s!"
                                      % (str(self.spiking_nodes_ids), self.tvb_connectivity.number_of_regions))
             self.tvb_nodes_ids = np.array(self.tvb_nodes_ids)
@@ -226,7 +226,7 @@ class TVBSpikeNetInterfaceBuilder(object):
         tvb_spikeNet_interface.tvb_model = self.tvb_model
         tvb_spikeNet_interface.dt = self.tvb_dt
         tvb_spikeNet_interface.tvb_nodes_ids = self.tvb_nodes_ids
-        tvb_spikeNet_interface.spiking_nodes_ids = self.spiking_nodes_ids
+        tvb_spikeNet_interface.spiking_nodes_inds = self.spiking_nodes_ids
         tvb_spikeNet_interface.exclusive_nodes = self.exclusive_nodes
         tvb_spikeNet_interface.spiking_network = self.spiking_network
 
