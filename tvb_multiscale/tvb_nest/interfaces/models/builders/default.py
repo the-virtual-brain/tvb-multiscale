@@ -182,6 +182,5 @@ class DefaultMultiSynapseInterfaceBuilder(DefaultInterfaceBuilder):
     def build_default_param_tvb_to_nest_interfaces(self):
         raise NotImplementedError
 
-    @abstractmethod
     def build_default_nest_to_tvb_interfaces(self):
-        raise NotImplementedError
+        self._build_default_nest_to_tvb_interfaces({"Rin": ["E"]})
