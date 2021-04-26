@@ -35,7 +35,7 @@ Models based on Wong-Wang's work.
 
 from numba import guvectorize, float64
 from tvb.simulator.models.wong_wang import ReducedWongWang as TVBReducedWongWang
-from tvb.simulator.models.base import numpy, ModelNumbaDfun
+from tvb.simulator.models.base import numpy
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 

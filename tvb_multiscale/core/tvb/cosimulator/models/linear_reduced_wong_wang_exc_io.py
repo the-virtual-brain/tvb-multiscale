@@ -61,7 +61,7 @@ def _numba_update_non_state_variables_before_integration(S, c, a, b, d, w, jn, r
         newS[3] = S[3]  # Rin
 
 
-@guvectorize([(float64[:],)*6], '(n),(m),(k)' + ',()'*4 + '->(n)', nopython=True)
+@guvectorize([(float64[:],)*8], '(n),(m),(k)' + ',()'*4 + '->(n)', nopython=True)
 def _numba_dfun(S, r, rin, g, t, r_mask, tr, dx):
     "Gufunc for reduced Wong-Wang model equations."
     if r_mask[0] > 0.0:
@@ -172,7 +172,7 @@ class LinearReducedWongWangExcIO(ReducedWongWangExcIO):
             Rin = self._Rin
         if self.use_numba:
             deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R, Rin,
-                                self.gamma, self.tau_s, self.Rin,self.tau_rin).T[..., numpy.newaxis]
+                                self.gamma, self.tau_s, self.Rin, self.tau_rin).T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, R, Rin)
         #  Set them to None so that they are recomputed on subsequent steps

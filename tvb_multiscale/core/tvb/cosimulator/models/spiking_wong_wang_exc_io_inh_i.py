@@ -33,8 +33,7 @@ Models based on Wong-Wang's work.
 
 """
 
-from numba import guvectorize, float64
-from tvb.simulator.models.base import numpy, ModelNumbaDfun, Model
+from tvb.simulator.models.base import numpy, Model
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 

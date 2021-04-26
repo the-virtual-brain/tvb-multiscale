@@ -32,9 +32,9 @@ Generic linear model.
 """
 
 import numpy
-from .base import Model
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 from tvb.simulator.models.linear import Linear
+
 
 class Linear(Linear):
     I_o = NArray(
