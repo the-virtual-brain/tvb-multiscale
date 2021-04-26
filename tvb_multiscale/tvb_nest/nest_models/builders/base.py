@@ -47,7 +47,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             self.nest_instance = load_nest(self.config, self.logger)
         self.nest_instance.ResetKernel()  # This will restart NEST!
         self.nest_instance.set_verbosity(self.config.NEST_VERBOCITY)  # don't print all messages from NEST
-        kernel_config = deepcopy(self.default_kernel_config)
+        kernel_config = self.default_kernel_config.copy()
         # Printing the time progress should only be used when the simulation is run on a local machine:
         #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
         kernel_config["resolution"] = self.spiking_dt
@@ -108,9 +108,6 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         for model in models:  # , module # zip(models, cycle(modules_to_install)):
             if model not in nest_models:
                 self._compile_install_nest_module(model)
-
-    def configure(self):
-        super(NESTNetworkBuilder, self).configure()
 
     def _configure(self):
         super(NESTNetworkBuilder, self)._configure()
