@@ -283,5 +283,4 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         return receptor_by_source_region(source_node, target_node, start=3)
 
     def build(self, set_defaults=True):
-        self.params = self._adjust_multisynapse_params(self.params)
         return super(DefaultExcIOInhIMultisynapseBuilder, self).build(set_defaults)

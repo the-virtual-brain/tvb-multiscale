@@ -17,7 +17,8 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
                  config=CONFIGURED, logger=None, **kwargs):
 
-        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger **kwargs)
+        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+                                                config, logger, **kwargs)
 
         self.default_population["model"] = "iaf_cond_ww_deco"
 
