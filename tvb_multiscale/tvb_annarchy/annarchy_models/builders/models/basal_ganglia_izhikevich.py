@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy.models import Izhikevich_Hamker
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyModelBuilder
+from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
 
@@ -24,7 +24,7 @@ class TVBWeightFun(object):
                                 scale=self.global_coupling_scaling)
 
 
-class BasalGangliaIzhikevichBuilder(ANNarchyModelBuilder):
+class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
 
     def __init__(self, tvb_simulator, nest_nodes_ids, annarchy_instance=None, config=CONFIGURED, set_defaults=True):
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, nest_nodes_ids, annarchy_instance, config)
