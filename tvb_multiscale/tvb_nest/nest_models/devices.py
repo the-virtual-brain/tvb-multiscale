@@ -344,15 +344,15 @@ class NESTParrotInputDevice(NESTParrotPopulation, NESTInputDevice):
 
     def Set(self, values_dict, neurons=None):
         if neurons is None:
-            NESTInputDevice.set(self, values_dict)
+            NESTInputDevice.Set(self, values_dict)
         else:
-            NESTParrotPopulation.set(self, values_dict, neurons)
+            NESTParrotPopulation.Set(self, values_dict, neurons)
 
     def Get(self, attrs=None, neurons=None, summary=None):
         if neurons is None:
-            return NESTInputDevice.get(self, attrs)
+            return NESTInputDevice.Get(self, attrs)
         else:
-            return NESTParrotPopulation.get(self, attrs, neurons, summary)
+            return NESTParrotPopulation.Get(self, attrs, neurons, summary)
 
     def get_attributes(self, neurons=None, summary=False):
         if neurons is None:
