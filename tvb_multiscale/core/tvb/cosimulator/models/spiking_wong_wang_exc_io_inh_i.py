@@ -33,6 +33,8 @@ Models based on Wong-Wang's work.
 
 """
 
+import numpy as np
+
 from tvb.simulator.models.base import numpy, Model
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
