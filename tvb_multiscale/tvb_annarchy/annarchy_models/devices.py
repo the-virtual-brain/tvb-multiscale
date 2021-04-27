@@ -344,9 +344,7 @@ ANNarchyTimedSpikeInputDeviceDict = \
 
 ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
                                 "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
-                                "SpikeSourceArray": ANNarchySpikeSourceArray,
-                                # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
-                                "Poisson_neuron": ANNarchyPoissonNeuron}
+                                "SpikeSourceArray": ANNarchySpikeSourceArray}
 ANNarchySpikeInputDeviceDict.update(ANNarchyTimedSpikeInputDeviceDict)
 
 
