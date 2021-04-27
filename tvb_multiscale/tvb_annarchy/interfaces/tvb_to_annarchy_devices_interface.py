@@ -33,29 +33,23 @@ class TVBtoANNarchyPoissonPopulationInterface(TVBtoANNarchyRateInterface):
     pass
 
 
-class TVBtoANNarchyPoissonNeuronInterface(TVBtoANNarchyRateInterface):
-
-    pass
-
-
-class TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface(TVBtoANNarchyRateInterface):
-
-    pass
-
-
-class TVBtoANNarchyTimedArrayInterface(TVBtoANNarchyDeviceInterface):
-
-    def set(self, values):
-        self.Set({"rates": np.maximum(np.array([[0]]), np.array(self._assert_input_size(values))[:, None, None])})
-
-
-class TVBtoANNarchyTimedPoissonPopulationInterface(TVBtoANNarchyTimedArrayInterface):
+class TVBtoANNarchyTimedArrayInterface(TVBtoANNarchyRateInterface):
 
     def set(self, values):
         values = self._assert_input_size(values)
         n_values = len(values)
-        self.Set({"rates": np.maximum(np.array([[0]]), np.array(values)[:, None, None]),
+        self.Set({"rates": np.maximum(np.array([[0]]), np.array(self._assert_input_size(values))[:, None, None]),
                   "schedule": np.array([self.annarchy_instance.get_time() + self.annarchy_instance.dt()]*n_values)})
+
+
+class TVBtoANNarchyTimedPoissonPopulationInterface(TVBtoANNarchyTimedArrayInterface):
+
+    pass
+
+
+class TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface(TVBtoANNarchyTimedArrayInterface):
+
+    pass
 
 
 class TVBtoANNarchyDCCurrentInjectorInterface(TVBtoANNarchyDeviceInterface):
@@ -67,7 +61,6 @@ class TVBtoANNarchyDCCurrentInjectorInterface(TVBtoANNarchyDeviceInterface):
 INPUT_INTERFACES_DICT = {
     "SpikeSourceArray": TVBtoANNarchySpikeSourceArrayInterface,
     "PoissonPopulation": TVBtoANNarchyPoissonPopulationInterface,
-    "Poisson_neuron": TVBtoANNarchyPoissonNeuronInterface,
     "HomogeneousCorrelatedSpikeTrains": TVBtoANNarchyHomogeneousCorrelatedSpikeTrainsInterface,
     "TimedArray": TVBtoANNarchyTimedArrayInterface,
     "TimedPoissonPopulation": TVBtoANNarchyTimedPoissonPopulationInterface,
