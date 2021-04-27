@@ -281,18 +281,6 @@ class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
         super(ANNarchyTimedArray, self).__init__(device,  label, "TimedArray",
                                                  annarchy_instance, **kwargs)
 
-    def _Get(self, attrs=None, neurons=None):
-        dictionary = {}
-        neurons = self._assert_neurons(neurons)
-        if attrs is None:
-            # If no attribute is specified, return all of them for TimedArray:
-            for attribute in ["rates", "schedule", "period"]:
-                dictionary[attribute] = neurons.get(attribute)
-        else:
-            for attribute in attrs:
-                dictionary[attribute] = neurons.get(attribute)
-        return dictionary
-
 
 class ANNarchyPoissonNeuron(ANNarchyInputDevice):
 
@@ -347,43 +335,16 @@ class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
         super(ANNarchyTimedPoissonPopulation, self).__init__(device, label, "TimedPoissonPopulation",
                                                              annarchy_instance, **kwargs)
 
-    def _Get(self, attrs=None, neurons=None):
-        dictionary = {}
-        neurons = self._assert_neurons(neurons)
-        if attrs is None:
-            # If no attribute is specified, return all of them for TimedArray:
-            for attribute in ["rates", "schedule", "period"]:
-                dictionary[attribute] = neurons.get(attribute)
-        else:
-            for attribute in attrs:
-                dictionary[attribute] = neurons.get(attribute)
-        return dictionary
-
-
-# class ANNarchyTimedHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
-#
-#     """ANNarchyTimedHomogeneousCorrelatedSpikeTrains class to wrap around a rate
-#        ANNarchy.TimedHomogeneousCorrelatedSpikeTrains, in order to act as an input (stimulating) device."""
-#
-#     def __init__(self, device=None, label="", annarchy_instance=None, **kwargs):
-#         super(ANNarchyTimedHomogeneousCorrelatedSpikeTrains, self).__init__(device, label,
-#                                                                             "TimedHomogeneousCorrelatedSpikeTrains"
-#                                                                             annarchy_instance, **kwargs)
-
 
 ANNarchyInputDeviceDict = {}
 
 
 ANNarchyTimedSpikeInputDeviceDict = \
-    {"TimedPoissonPopulation": ANNarchyTimedPoissonPopulation,
-     # "TimedArrayHomogeneousCorrelatedSpikeTrains": ANNarchyTimedArrayHomogeneousCorrelatedSpikeTrains,
-    }
+    {"TimedPoissonPopulation": ANNarchyTimedPoissonPopulation}
 
 ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
                                 "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
-                                "SpikeSourceArray": ANNarchySpikeSourceArray,
-                                # From Maith et al 2020, see anarchy.izhikevich_maith_etal.py:
-                                "Poisson_neuron": ANNarchyPoissonNeuron}
+                                "SpikeSourceArray": ANNarchySpikeSourceArray}
 ANNarchySpikeInputDeviceDict.update(ANNarchyTimedSpikeInputDeviceDict)
 
 
