@@ -158,12 +158,21 @@ class ANNarchyPopulation(SpikingPopulation):
         dictionary = {}
         neurons = self._assert_neurons(neurons)
         if attrs is None:
-            # If no attribute is specified, return all of them
-            for attribute in neurons.attributes:
+            if self.model.lower().find("timed") > -1:
+                attrs = ["rates", "schedule", "period"]
+            elif self.model.lower().find("PoissonPopulation".lower()) > -1:
+                attrs = ["rates", "target"]
+            elif self.model.lower().find("HomogeneousCorrelatedSpikeTrains".lower()) > -1:
+                attrs = ["rates", "corr", "tau", "schedule", "period", "mu", "sigma", "refractory"]
+            elif self.model.lower().find("SpikeSourceArray".lower()) > -1:
+                attrs = ["spike_times"]
+            else:
+                attrs = neurons.attributes
+        for attribute in attrs:
+            try:
                 dictionary[attribute] = neurons.get(attribute)
-        else:
-            for attribute in attrs:
-                dictionary[attribute] = neurons.get(attribute)
+            except:
+                pass
         return dictionary
 
     def _get_projections(self, pre_or_post, neurons):
