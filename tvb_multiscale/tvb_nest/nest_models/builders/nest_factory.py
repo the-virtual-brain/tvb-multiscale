@@ -117,8 +117,8 @@ def get_populations_neurons(population, inds_fun=None):
         NEST.NodeCollection NESTPopulation._population instance
     """
     if inds_fun is None:
-        return population._population
-    return inds_fun(population._population)
+        return population._nodes
+    return inds_fun(population._nodes)
 
 
 def create_conn_spec(n_src=1, n_trg=1, src_is_trg=False, config=CONFIGURED, **kwargs):
@@ -256,9 +256,9 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
         nest_device_node_collection = nest_instance.Create(nest_device_model, number_of_devices, params=default_params)
     default_params["label"] = label
     if parrot:
-        nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance, **default_params)
+        nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance)
         # Connect the input spike device to the parrot neurons' population:
-        nest_instance.Connect(nest_device.device, nest_device._population,
+        nest_instance.Connect(nest_device.device, nest_device._nodes,
                               syn_spec={"weight": 1.0,
                                         "delay": nest_instance.GetKernelStatus("resolution"),
                                         "receptor_type": 0},
@@ -268,9 +268,9 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
             if isinstance(record_parrot, dict):
                 rec_params.update(record_parrot)
             nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
-            nest_instance.Connect(nest_device._population, nest_device._record)
+            nest_instance.Connect(nest_device._nodes, nest_device._record)
     else:
-        nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, **default_params)
+        nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance)
     if return_nest:
         return nest_device, nest_instance
     else:
@@ -334,7 +334,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
             receptors = ensure_list(syn_spec["receptor_type"])
             for receptor in receptors:
                 syn_spec["receptor_type"] = receptor
-                nest_instance.Connect(nest_device._population, neurons, syn_spec=syn_spec, conn_spec=conn_spec)
+                nest_instance.Connect(nest_device._nodes, neurons, syn_spec=syn_spec, conn_spec=conn_spec)
         else:
             nest_instance.Connect(nest_device.device, neurons, syn_spec=syn_spec)
     return nest_device
