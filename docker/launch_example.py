@@ -21,17 +21,10 @@ def launch_example(config_type, example_fun, write_files=True, **kwargs):
     transient = kwargs.pop("simulation_length", 11.0) / 11
     results, simulator = example_fun(config=config, simulation_length=simulation_length, transient=transient, **kwargs)
 
-    results, simulator = \
-        main_example(WilsonCowan, WilsonCowanBuilder, InterfaceWilsonCowanBuilder,
-                     nest_nodes_ids, nest_populations_order=100,
-                     tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
-                     connectivity=connectivity, delays_flag=True,
-                     simulation_length=110.0, transient=10.0,
-                     config=config, **model_params)
-
-    np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)
-    np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), simulator.connectivity.tract_lengths)
-    np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
+    if write_files:
+        np.save(os.path.join(config.out.FOLDER_RES, "connectivity_weights.npy"), simulator.connectivity.weights)
+        np.save(os.path.join(config.out.FOLDER_RES, "connectivity_lengths.npy"), simulator.connectivity.tract_lengths)
+        np.save(os.path.join(config.out.FOLDER_RES, "results.npy"), results[0][1])
 
     return simulator, results[0][1]
 
@@ -53,6 +46,5 @@ def launch_example_annarchy(write_files=True, **kwargs):
 
 
 if __name__ == "__main__":
-    launch_example_annarchy()
     launch_example_nest()
-
+    launch_example_annarchy()
