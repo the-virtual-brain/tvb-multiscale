@@ -124,7 +124,7 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
              "params": {"rates": 6000.0},
              "connections": connections, "nodes": None,
              "weights": 1.0,
-             "delays": 0.0,
+             "delays": self.default_min_delay,
              "receptor_type": "exc"}
         device.update(self.spike_stimulus)
         return device

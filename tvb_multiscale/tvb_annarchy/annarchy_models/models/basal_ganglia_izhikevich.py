@@ -197,19 +197,19 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
                         "geometry": self.population_sizes["E"], "name": "BaselineEstn"},
              "connections": {"BaselineEstn": ["E"]},  # "Estn"
              "nodes": self.Estn_nodes_ids,  # None means apply to all
-             "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+             "weights": self.Estn_stim["weight"], "delays": self.default_min_delay, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpe_stim["rate"],
                         "geometry": self.population_sizes["I"], "name": "BaselineIgpe"},
              "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
              "nodes": self.Igpe_nodes_ids,  # None means apply to all
-             "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": "base"},
+             "weights": self.Igpe_stim["weight"], "delays": self.default_min_delay, "receptor_type": "base"},
             {"model": "PoissonPopulation",
              "params": {"rates": self.Igpi_stim["rate"],
                         "geometry": self.population_sizes["I"], "name": "BaselineIgpi"},
              "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": "base"}
+             "weights": self.Igpi_stim["weight"], "delays": self.default_min_delay, "receptor_type": "base"}
         ]
 
     def set_defaults(self):
