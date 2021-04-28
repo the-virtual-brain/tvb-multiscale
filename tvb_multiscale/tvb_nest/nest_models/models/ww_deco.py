@@ -5,12 +5,12 @@ from copy import deepcopy
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.models.default_exc_io_inh_i import DefaultExcIOInhIMultisynapseBuilder
+from tvb_multiscale.tvb_nest.nest_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
 
-class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
+class WWDeco2013Builder(DefaultExcIOInhIBuilder):
 
     w_EE = np.array([0.9])
 
@@ -173,6 +173,11 @@ class WWDeco2013Builder(DefaultExcIOInhIMultisynapseBuilder):
              "source_nodes": None, "target_nodes": None}
             # None means "all"
         ]
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(DefaultExcIOInhIBuilder, self).build()
 
 
 class WWDeco2014Builder(WWDeco2013Builder):
