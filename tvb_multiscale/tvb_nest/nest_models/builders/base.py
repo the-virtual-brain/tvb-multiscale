@@ -91,9 +91,6 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             if model not in nest_models:
                 self._compile_install_nest_module(model)
 
-    def configure(self):
-        super(NESTNetworkBuilder, self).configure()
-
     def _configure(self):
         super(NESTNetworkBuilder, self)._configure()
         self.compile_install_nest_modules(self.modules_to_install)
@@ -113,7 +110,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             a NESTPopulation class instance
         """
         return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
-                              label, model, brain_region, self.nest_instance)
+                              nest_instance=self.nest_instance, label=label, model=model, brain_region=brain_region)
 
     @property
     def min_delay(self):
@@ -251,7 +248,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
            Returns:
             a SpikingRegionNode class instance
         """
-        return NESTRegionNode(label, input_node, self.nest_instance)
+        return NESTRegionNode(input_node, label=label)
 
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
