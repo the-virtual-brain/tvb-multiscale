@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.utils.data_structures_utils import ensure_list, summarize
+from tvb_multiscale.core.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 
 from tvb.basic.neotraits.api import Attr, Int
@@ -70,25 +70,34 @@ class NESTNodeCollection(SpikingNodeCollection):
 
     def _assert_nodes(self, nodes=None):
         if nodes is None:
-            nodes = self._nodes
+            return self._nodes
         """Method to assert that the node of the network is valid"""
-        assert isinstance(nodes, self.nest_instance.NodeCollection)
+        if not isinstance(nodes, self.nest_instance.NodeCollection):
+            if self._nodes:
+                try:
+                    return self._nodes[nodes]
+                except:
+                    pass
+            return self.nest_instance.NodeCollection(ensure_list(nodes))
         return nodes
-
-    def _print_nodes(self):
-        return str(self._nodes)
 
     def gids(self):
         """Method to get a sequence (list, tuple, array) of the individual gids of nodes's elements"""
-        return self._nodes.global_id
+        if self._nodes:
+            return self._nodes.global_id
+        else:
+            return ()
 
     @property
     def global_id(self):
-        return self._nodes.global_id
+        return self.gids
 
     @property
     def nest_model(self):
-        return str(self._nodes.get("model"))
+        if self._nodes:
+            return str(self._nodes.get("model"))
+        else:
+            return ""
 
     def _Set(self, values_dict, nodes=None):
         """Method to set attributes of the Spikingcollection's nodes.

@@ -54,7 +54,10 @@ class NESTDevice(NESTNodeCollection, Device):
 
     @property
     def virtual_process_id(self):
-        return self.device.get("vp")
+        if self.device:
+            return self.device.get("vp")
+        else:
+            return None
 
     def GetConnections(self):
         """Method to get all connections of the device from neurons.
@@ -157,7 +160,10 @@ class NESTSpikeGenerator(NESTInputDevice):
 
     @property
     def number_of_devices(self):
-        return len(self.device)
+        if self.device:
+            return len(self.device)
+        else:
+            return 0
 
     def _assert_value_size(self, val):
         try:
@@ -506,13 +512,19 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
         return events
 
     def _get_events_from_memory(self):
-        return self.device.get("events")
+        if self.device:
+            return self.device.get("events")
+        else:
+            return {"times": [], "senders": []}
 
     def get_events(self, **kwargs):
-        events = super(NESTOutputDevice, self).get_events(**kwargs)
-        # Advance the _output_events_counter
-        self._output_events_counter = self.device.get("n_events")
-        return events
+        if self.device:
+            events = super(NESTOutputDevice, self).get_events(**kwargs)
+            # Advance the _output_events_counter
+            self._output_events_counter = self.device.get("n_events")
+            return events
+        else:
+            return {"times": [], "senders": []}
 
     def get_new_events(self, variables=None, **filter_kwargs):
         return self.get_events(variables=variables, events_inds=self._output_events_counter, **filter_kwargs)
@@ -523,11 +535,14 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
 
     @property
     def number_of_events(self):
-        return self.device.get("n_events")
+        if self.device:
+            return self.device.get("n_events")
+        else:
+            return 0
 
     @property
     def number_of_new_events(self):
-        return self.device.get("n_events") - self._output_events_counter
+        return self.number_of_events - self._output_events_counter
 
     @property
     def n_events(self):
@@ -540,7 +555,6 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     def _delete_events_in_memory(self):
         # TODO: find how to reset recorders!
         pass
-        # self.device.n_events = 0
 
     def reset(self):
         self._reset()
@@ -581,7 +595,10 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     @property
     def record_from(self):
-        return [str(name) for name in self.device.get('record_from')]
+        if self.device:
+            return [str(name) for name in self.device.get('record_from')]
+        else:
+            return []
 
     def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
                  flatten_neurons_inds=True, new=False):
