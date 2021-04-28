@@ -27,9 +27,9 @@ class TVBWeightFun(object):
 class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None,
-                 config=CONFIGURED, set_defaults=True):
+                 config=CONFIGURED, logger=None):
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
-                                                            annarchy_instance, config)
+                                                            annarchy_instance, config, logger)
         self.default_population["model"] = Izhikevich_Hamker
 
         # Common order of neurons' number per population:
@@ -68,8 +68,6 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         self.Estn_stim = {"rate": 500.0, "weight": 0.009}
         self.Igpe_stim = {"rate": 100.0, "weight": 0.015}
         self.Igpi_stim = {"rate": 700.0, "weight": 0.02}
-
-        self.set_defaults_flag = set_defaults
 
     def paramsE(self, node_id):
         # For the moment they are identical, unless you differentiate the noise parameters
@@ -221,7 +219,7 @@ class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
         self.set_output_devices()
         self.set_input_devices()
 
-    def build(self):
-        if self.set_defaults_flag:
+    def build(self, set_defaults=True):
+        if set_defaults:
             self.set_defaults()
         return super(BasalGangliaIzhikevichBuilder, self).build()

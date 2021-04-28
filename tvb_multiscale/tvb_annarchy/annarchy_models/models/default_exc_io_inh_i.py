@@ -14,8 +14,9 @@ from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weig
 class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None,
-                 config=CONFIGURED, set_defaults=True):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, annarchy_instance, config)
+                 config=CONFIGURED, logger=None):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, annarchy_instance,
+                                                      config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -50,9 +51,6 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.monitor = {}
 
         self.spike_stimulus = {}
-
-        if set_defaults:
-            self.set_defaults()
 
     def set_E_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
@@ -203,3 +201,8 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def build(self, set_defaults=True):
+        if set_defaults:
+            self.set_defaults()
+        return super(DefaultExcIOInhIBuilder, self).build()
