@@ -136,15 +136,14 @@ class CerebBuilder(NESTNetworkBuilder):
     neuron_types = []
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, path_to_network_source_file,
-                 nest_instance=None, config=CONFIGURED, set_defaults=True):
-        super(CerebBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config)
+    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None,
+                 config=CONFIGURED, logger=None, path_to_network_source_file=""):
+        super(CerebBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, logger)
         self.nest_nodes_ids = nest_nodes_ids
         self.path_to_network_source_file = path_to_network_source_file
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
         self.modules_to_install = ["cereb"]
-        self.set_defaults_flag = set_defaults
 
     def set_populations(self):
         # Populations' configurations
@@ -274,7 +273,7 @@ class CerebBuilder(NESTNetworkBuilder):
         self.set_input_devices()
         self.net_src_file.close()
 
-    def build(self):
-        if self.set_defaults_flag:
+    def build(self, set_defaults=True):
+        if set_defaults:
             self.set_defaults()
         return super(CerebBuilder, self).build()

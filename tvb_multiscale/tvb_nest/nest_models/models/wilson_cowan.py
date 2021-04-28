@@ -14,9 +14,9 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
     w_ie = -10.0
     w_ii = -1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
-                 **kwargs):
-        super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, set_defaults)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None, **kwargs):
+        super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
         self.w_ee = kwargs.get("w_ee", kwargs.get("c_ee", np.array([self.w_ee])))[0].item()
         self.w_ei = kwargs.get("w_ei", kwargs.get("c_ei", np.array([self.w_ei])))[0].item()
         self.w_ie = kwargs.get("w_ie", kwargs.get("c_ie", np.array([self.w_ie])))[0].item()
@@ -30,11 +30,11 @@ class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
     w_ie = -10.0
     w_ii = -1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
-                 **kwargs):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None, **kwargs):
 
-        super(WilsonCowanMultisynapseBuilder, self).__init__(
-            tvb_simulator, spiking_nodes_inds, nest_instance, config, set_defaults, **kwargs)
+        super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+                                                             config, logger, **kwargs)
 
         self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 

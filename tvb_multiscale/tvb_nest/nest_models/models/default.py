@@ -15,9 +15,8 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED,
-                 set_defaults=True):
-        super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, logger=None):
+        super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -36,13 +35,6 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         self.multimeter = {}
 
         self.spike_stimulus = {}
-
-        self.set_defaults_flag = set_defaults
-
-    def configure(self):
-        super(DefaultExcIOBuilder, self).configure()
-        if self.set_defaults_flag:
-            self.set_defaults()
 
     def set_population(self):
         pop = {"label": "E", "model": self.default_population["model"],
@@ -165,19 +157,19 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         self.set_output_devices()
         self.set_input_devices()
 
-    def build(self):
-        if self.set_defaults_flag:
+    def build(self, set_defaults=True):
+        if set_defaults:
             self.set_defaults()
         return super(DefaultExcIOBuilder, self).build()
 
 
 class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, set_defaults=True,
-                 **kwargs):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=CONFIGURED, logger=None, **kwargs):
 
-        super(DefaultExcIOMultisynapseBuilder, self).__init__(
-            tvb_simulator, spiking_nodes_inds, nest_instance, config, set_defaults=False)
+        super(DefaultExcIOMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+                                                              config, logger)
 
         self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 
@@ -196,8 +188,6 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
         self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
                                "receptor_type": lambda target_node: target_node + 3}
 
-        self.set_defaults_flag = set_defaults
-
     def _adjust_multisynapse_params(self, params, multi_params=["E_rev", "tau_syn"]):
         for p in multi_params:
             val = params[p].tolist()
@@ -205,14 +195,12 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
             params[p] = np.array(val)
         return params
 
-    def configure(self):
-        super(DefaultExcIOMultisynapseBuilder, self).configure()
-        self.params = self._adjust_multisynapse_params(self.params)
-        if self.set_defaults_flag:
-            self.set_defaults()
-
     def receptor_fun(self):
         return 1
 
     def receptor_by_source_region_fun(self, source_node, target_node):
         return receptor_by_source_region(source_node, target_node, start=3)
+
+    def build(self, set_defaults=True):
+        self.params = self._adjust_multisynapse_params(self.params)
+        return super(DefaultExcIOMultisynapseBuilder, self).build(set_defaults)
