@@ -49,12 +49,12 @@ class Config(ConfigBase):
                                          "PoissonPopulation": {"rates": 0.0},
                                          "Poisson_neuron": {"rates": 0.0},
                                          "HomogeneousCorrelatedSpikeTrains": {"rates": 0.001, "corr": 0.0, "tau": 1.0,
-                                                                              "schedule": None, "period": -1.0,
+                                                                              "schedule": [0.0], "period": -1.0,
                                                                               "refractory": None},
-                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": None, "period": -1.0,
+                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": [0.0], "period": -1.0,
                                                         "proxy": True, "proxy_target": "exc"},
                                          "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
-                                                                    "schedule": None, "period": -1.0},
+                                                                    "schedule": [0.0], "period": -1.0},
                                          }
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
