@@ -69,7 +69,7 @@ class NESTPopulation(SpikingPopulation):
     def _print_neurons(self):
         return "%d neurons: %s" % (self.number_of_neurons, self.summarize_neurons_indices(print=True))
 
-    def _set(self, values_dict, neurons=None):
+    def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -79,7 +79,7 @@ class NESTPopulation(SpikingPopulation):
         """
         self._assert_neurons(neurons).set(values_dict)
 
-    def _get(self, attrs=None, neurons=None):
+    def _Get(self, attrs=None, neurons=None):
         """Method to get attributes of the SpikingPopulation's neurons.
            Arguments:
             attrs: collection (list, tuple, array) of the attributes to be included in the output.

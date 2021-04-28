@@ -72,14 +72,14 @@ class NESTDevice(Device):
     def nest_model(self):
         return str(self.device.get("model"))
 
-    def set(self, values_dict):
+    def Set(self, values_dict):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
         self.device.set(values_dict)
 
-    def get(self, attrs=None):
+    def Get(self, attrs=None):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all neurons' attributes.
@@ -265,7 +265,7 @@ class NESTSpikeGenerator(NESTInputDevice):
             val = [val] * self.number_of_devices
         return val
 
-    def set(self, values_dict):
+    def Set(self, values_dict):
         for key, vals in values_dict.items():
             for i_dev, val in enumerate(self._assert_value_size(vals)):
                 self.device[i_dev].set({key: val})
@@ -330,22 +330,25 @@ class NESTParrotInputDevice(NESTParrotPopulation, NESTInputDevice):
     """NESTParrotInputDevice class to combine a NEST InputDevice with a parrot_neuron population"""
 
     def __init__(self, device, population, nest_instance, *args, **kwargs):
+        label = str(kwargs.pop("label", ""))
+        model = str(kwargs.pop("model", "nest_parrot_input_device"))
+        NESTParrotPopulation.__init__(self, population, nest_instance=nest_instance, **kwargs)
+        NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
         self.nest_instance = nest_instance
-        kwargs["model"] = kwargs.pop("model", "nest_parrot_input_device")
         self.device = device
         self._population = population
-        self.label = str(kwargs.pop("label", ""))
-        self.model = str(kwargs["model"])
+        self.label = label
+        self.model = model
         self._number_of_connections = 0
         self._number_of_neurons = self.get_number_of_neurons()
 
-    def set(self, values_dict, neurons=None):
+    def Set(self, values_dict, neurons=None):
         if neurons is None:
             NESTInputDevice.set(self, values_dict)
         else:
             NESTParrotPopulation.set(self, values_dict, neurons)
 
-    def get(self, attrs=None, neurons=None, summary=None):
+    def Get(self, attrs=None, neurons=None, summary=None):
         if neurons is None:
             return NESTInputDevice.get(self, attrs)
         else:
@@ -374,10 +377,10 @@ class NESTParrotInputDevice(NESTParrotPopulation, NESTInputDevice):
                                               **self._default_neurons_and_source_or_target(neurons,
                                                                                            source_or_target))
 
-    def _GetFromConnections(self, attrs=None, neurons=None, source_or_target=None, summary=None):
-        return NESTParrotPopulation._GetFromConnections(self, attrs=attrs, summary=summary,
-                                                        **self._default_neurons_and_source_or_target(neurons,
-                                                                                                     source_or_target))
+    def GetFromConnections(self, attrs=None, neurons=None, source_or_target=None, summary=None):
+        return NESTParrotPopulation.GetFromConnections(self, attrs=attrs, summary=summary,
+                                                       **self._default_neurons_and_source_or_target(neurons,
+                                                                                                    source_or_target))
 
     def get_weights(self, neurons=None, source_or_target=None, summary=None):
         return NESTParrotPopulation.get_weights(self, summary=summary,
@@ -420,9 +423,9 @@ class NESTParrotInputDevice(NESTParrotPopulation, NESTInputDevice):
 
     def print_str(self, connectivity=False):
         output = ""
-        output += NESTInputDevice.print_str(connectivity=False)
+        output += NESTInputDevice.print_str(self, connectivity=False)
         output += "\n"
-        output += NESTParrotPopulation.print_str(connectivity)
+        output += NESTParrotPopulation.print_str(self, connectivity)
         return output
 
 
@@ -490,7 +493,7 @@ class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
         super(NESTParrotSpikeGenerator, self).__init__(device, population, nest_instance, *args, **kwargs)
         super(NESTSpikeGenerator, self).__init__(device, nest_instance, *args, **kwargs)
 
-    def set(self, values_dict, neurons=None):
+    def Set(self, values_dict, neurons=None):
         if neurons is None:
             NESTSpikeGenerator.set(self, values_dict)
         else:
@@ -702,12 +705,9 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
         times = events.pop("times")
         senders = events.pop("senders")
         if len(times) + len(senders):
-            permuted_dims_names = [dims_names[1], dims_names[2], dims_names[0]]
-            # We assume that the multimeter captures events even for continuous variables as it is the case in NEST.
-            # Therefore, we have to re-arrange the output to get all variables separated following time order.
             data = data_xarray_from_continuous_events(events, times, senders,
                                                       variables=self._determine_variables(variables),
-                                                      name=name, dims_names=permuted_dims_names).transpose(*dims_names)
+                                                      name=name, dims_names=dims_names)
             if flatten_neurons_inds:
                 data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
         else:
