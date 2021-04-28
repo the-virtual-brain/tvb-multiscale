@@ -156,8 +156,8 @@ def get_populations_neurons(population, inds_fun=None):
         ANNarchy Population ANNarchyPopulation._population instance or an ANNarchy PopulationView thereof
     """
     if inds_fun is None:
-        return population._population
-    return inds_fun(population._population)
+        return population._nodes
+    return inds_fun(population._nodes)
 
 
 def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import_path="", **kwargs):
@@ -183,9 +183,9 @@ def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import
         proxy_devices[proxy_label][reg_label] = population_to_connect_to
         # Connect the input proxy to the target population:
         if neurons_inds_fun is None:
-            target_neurons = target_pop._population
+            target_neurons = target_pop._nodes
         else:
-            target_neurons = neurons_inds_fun(target_pop._population)
+            target_neurons = neurons_inds_fun(target_pop._nodes)
         proj = annarchy_instance.CurrentInjection(pre=population_to_connect_to,
                                                   post=target_neurons,
                                                   target=input_device.proxy_target)
@@ -303,16 +303,16 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     if number_of_neurons is not None:
         params["geometry"] = number_of_neurons
     record = params.pop("record", None)
-    annarchy_device._population = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
-                                                    params=params, import_path=import_path, config=config)
-    annarchy_device._population.name = annarchy_device.label
+    annarchy_device._nodes = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
+                                               params=params, import_path=import_path, config=config)
+    annarchy_device._nodes.name = annarchy_device.label
     if record is not None:
         rec_params = {}
         if isinstance(record, dict):
             rec_params = list(record.values())[0]
             record = list(record.keys())[0]
         annarchy_device._record = \
-            annarchy_device.annarchy_instance.Monitor(annarchy_device._population, record, **rec_params)
+            annarchy_device.annarchy_instance.Monitor(annarchy_device._nodes, record, **rec_params)
     return annarchy_device
 
 
@@ -355,7 +355,7 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         default_params.update(params)
         label = default_params.get("name", default_params.pop("label", label))
     # Create the ANNarchy Device class:
-    annarchy_device = devices_dict[device_model](None, label=label, annarchy_instance=annarchy_instance)
+    annarchy_device = devices_dict[device_model](None, annarchy_instance=annarchy_instance, label=label)
     if isinstance(annarchy_device, ANNarchyInputDevice):
         if isinstance(annarchy_device, ANNarchyContinuousInputDevice):
             annarchy_device.proxy = default_params.pop("proxy", annarchy_device.proxy)
@@ -409,7 +409,7 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
     population.projections_post.append(proj)
     # Update the number of connected neurons to the device:
     annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
-    annarchy_device._number_of_neurons = annarchy_device.get_number_of_neurons()
+    annarchy_device._size = annarchy_device.get_size()
     return annarchy_device
 
 
@@ -433,7 +433,7 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
     annarchy_device.device = annarchy_device.monitors
     # Update the number of connections and connected neurons to the device:
     annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
-    annarchy_device._number_of_neurons = annarchy_device.get_number_of_neurons()
+    annarchy_device._size = annarchy_device.get_size()
     return annarchy_device
 
 

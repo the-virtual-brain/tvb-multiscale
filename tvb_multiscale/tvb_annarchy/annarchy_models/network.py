@@ -83,7 +83,7 @@ class ANNarchyNetwork(SpikingNetwork):
             simulation_length = self.dt
         measure_time = kwargs.pop("measure_time", False)
         for dev_name, out_dev_set in self.output_devices.iteritems():
-            out_dev_set.do_for_all_devices("resume")
+            out_dev_set.do_for_all("resume")
         self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
         for dev_name, out_dev_set in self.output_devices.iteritems():
-            out_dev_set.do_for_all_devices("pause")
+            out_dev_set.do_for_all("pause")
