@@ -58,7 +58,7 @@ class NESTInhomogeneousPoissonGeneratorSet(NESTInputDeviceSet):
 
     def send(self, data):
         # Assuming data is of shape (proxy, time)
-        self.target.set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
+        self.target.Set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
@@ -83,7 +83,7 @@ class NESTParrotInhomogeneousPoissonGeneratorSet(NESTInhomogeneousPoissonGenerat
         # spiking_dt = self.spiking_dt
         # if time[0] - self.spiking_time >= spiking_dt:
         #     time -= spiking_dt
-        self.target.set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
+        self.target.Set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
@@ -103,7 +103,7 @@ class NESTSpikeGeneratorSet(NESTInputDeviceSet):
     def send(self, data):
         # TODO: Decide whether to check for the values being in the future...:
         # data[-1] >= self.next_time_step
-        self.target.set({"spike_times": data[-1]})
+        self.target.Set({"spike_times": data[-1]})
 
 
 class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
@@ -131,7 +131,7 @@ class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
         #     for iN, neuron in enumerate(proxy):
         #         if len(neuron) and (neuron[0] - spiking_time) >= spiking_dt:
         #             proxy[iN] = [spike - spiking_dt for spike in neuron]
-        self.target.set({"spike_times": data[-1]})
+        self.target.Set({"spike_times": data[-1]})
 
 
 class NESTStepCurrentGeneratorSet(NESTInputDeviceSet):
@@ -149,7 +149,7 @@ class NESTStepCurrentGeneratorSet(NESTInputDeviceSet):
     _spikeNet_input_device_type = NESTStepCurrentGenerator
 
     def send(self, data):
-        self.target.set({"amplitude_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
+        self.target.Set({"amplitude_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
                          "amplitude_values": data[1].tolist()})
 
 
