@@ -24,7 +24,7 @@ class NESTPopulation(NESTNodeCollection, SpikingPopulation):
         NESTNodeCollection.__init__(self, nodes, nest_instance, **kwargs)
         SpikingPopulation.__init__(self, nodes, **kwargs)
 
-    def _assert_nodes(self, neurons=None):
+    def _assert_neurons(self, neurons=None):
         return self._assert_nodes(neurons)
 
     def _Set(self, values_dict, neurons=None):
