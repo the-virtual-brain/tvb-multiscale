@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
-from six import string_types
 from copy import deepcopy
 from collections import OrderedDict
 
-import pandas as pd
 import xarray as xr
 import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger, LINE
-from tvb_multiscale.core.utils.data_structures_utils import filter_events, summarize, flatten_neurons_inds_in_DataArray
+from tvb_multiscale.core.utils.data_structures_utils import filter_events
+from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
+from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+from tvb.basic.neotraits.api import Attr, Int, List
 
-from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, list_of_dicts_to_dict_of_lists, sort_events_by_x_and_y, data_xarray_from_continuous_events, is_integer
 
@@ -21,7 +20,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 LOG = initialize_logger(__name__)
 
 
-class Device(HasTraits):
+class Device(SpikingNodeCollection):
     __metaclass__ = ABCMeta
 
     """Device class to wrap around an 
@@ -38,41 +37,27 @@ class Device(HasTraits):
     label = Attr(field_type=str, default="", required=True,
                  label="Device label", doc="""Label of Device""")
 
+    brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
+                        doc="""Label of the brain region the Device resides or connects to""")
+    
     _number_of_connections = Int(field_type=int, default=0, required=True, label="Number of connections",
                                  doc="""The number of total device's connections""")
 
     _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
                              doc="""The number of total neurons connected to the device""")
 
-    # Modify accordingly for other simulators than NEST, by settin in the inheriting class:
-    # _weight_attr = "weight"
-    # _delay_attr = "delay"
-    # _receptor_attr = "receptor"
+    _weight_attr = ""
+    _delay_attr = ""
+    _receptor_attr = ""
 
-    def __init__(self, device=None, *args, **kwargs):
-        self.device = device   # a device object, depending on its simulator implementation
-        super(Device, self).__init__()
-        self.label = kwargs.pop("label", "")
-        self.model = kwargs.pop("model", "device")
+    def __init__(self, device=None, **kwargs):
+        self.device = device    # a device object, depending on its simulator implementation
+        SpikingNodeCollection.__init__(self, device, **kwargs)
         self._number_of_connections = 0
-        self._number_of_neurons = 0
-
-    def __repr__(self):
-        output = "%s - Model: %s\n%s" % (self.__class__.__name__, self.model, self.device.__str__())
-        if len(self.label):
-            output = "%s: %s" % (self.label, output)
-        return output
-
-    def __str__(self):
-        return self.print_str()
 
     @property
     def _print_from_to(self):
         return "from/to"
-
-    @abstractmethod
-    def _print_neurons(self):
-        pass
 
     def print_str(self, connectivity=False):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
@@ -94,63 +79,9 @@ class Device(HasTraits):
     @abstractmethod
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
-        pass
+        return self._assert_node
 
     # Methods to get or set attributes for devices and/or their connections:
-
-    @abstractmethod
-    def Set(self, values_dict):
-        """Method to set attributes of the device
-           Arguments:
-            values_dict: dictionary of attributes names' and values.
-        """
-        pass
-
-    @abstractmethod
-    def Get(self, attrs=None):
-        """Method to get attributes of the device.
-           Arguments:
-            attrs: names of attributes to be returned. Default = None, corresponds to all device's attributes.
-           Returns:
-            Dictionary of attributes.
-        """
-        pass
-
-    @abstractmethod
-    def GetConnections(self):
-        """Method to get connections of the device to/from neurons.
-           Returns:
-            connections' objects.
-        """
-        pass
-
-    @abstractmethod
-    def _SetToConnections(self, values_dict, connections=None):
-        """Method to set attributes of the connections from/to the device
-            Arguments:
-             values_dict: dictionary of attributes names' and values.
-             connections: connections' objects. Default = None, corresponding to all device's connections
-        """
-        pass
-
-    @abstractmethod
-    def _GetFromConnections(self, attrs=None, connections=None):
-        """Method to get attributes of the connections from/to the device
-           Arguments:
-            attrs: sequence (list, tuple, array) of the attributes to be included in the output.
-                   Default = None, corresponding to all device's attributes
-            connections: connections' objects. Default = None, corresponding to all device's connections
-           Returns:
-            Dictionary of sequences (tuples, lists, arrays) of connections' attributes.
-        """
-        pass
-
-    def get_attributes(self):
-        """Method to get all attributes of the device.
-           Returns:
-            Dictionary of sequences (tuples, lists, arrays) of neurons' attributes.
-        """
-        return self.Get()
 
     def get_number_of_connections(self):
         """Method to get the number of  connections of the device to/from neurons.
@@ -164,107 +95,21 @@ class Device(HasTraits):
            Returns:
             int: number of connections
         """
-        return len(self.neurons)
-
-    def SetToConnections(self, values_dict):
-        """Method to set attributes of the connections from/to the device.
-           Arguments:
-            values_dict: dictionary of attributes names' and values.
-        """
-        self.SetToConnections(values_dict)
-
-    def GetFromConnections(self, attrs=None, summary=None):
-        """Method to get attributes of the connections from/to the device.
-           Arguments:
-            attrs: sequence (list, tuple, array) of the attributes to be included in the output.
-            summary: if integer, return a summary of unique output values
-                                 within accuracy of the specified number of decimal digits
-                     otherwise, if it is not None or False return
-                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
-                     or a list of unique string entries for all other attributes,
-                     Default = None, corresponds to returning all values
-           Returns:
-            Dictionary of sequences (tuples, lists, arrays) of connections' attributes.
-        """
-        attributes = self._GetFromConnections(attrs)
-        if summary:
-            return summarize(attributes, summary)
+        if self.neurons is not None:
+            return len(ensure_list(self.neurons))
         else:
-            return attributes
+            return 0
 
-    def get_weights(self, summary=None):
-        """Method to get weights of the connections from/to the device.
-           Arguments:
-            summary: if integer, return a summary of unique output values
-                                 within accuracy of the specified number of decimal digits
-                     otherwise, if it is not None or False return
-                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
-                     or a list of unique string entries for all other attributes,
-                     Default = None, corresponds to returning all values
-           Returns:
-            Sequences (tuples, lists, arrays) of connections' weights
-        """
-        return self.GetFromConnections(self._weight_attr, summary)[self._weight_attr]
-
-    def get_delays(self, summary=None):
-        """Method to get delays of the connections from/to the device.
-           Arguments:
-            summary: if integer, return a summary of unique output values
-                                 within accuracy of the specified number of decimal digits
-                     otherwise, if it is not None or False return
-                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
-                     or a list of unique string entries for all other attributes,
-                     Default = None, corresponds to returning all values
-           Returns:
-            Sequences (tuples, lists, arrays) of connections' delays
-        """
-        return self.GetFromConnections(self._delay_attr, summary)[self._delay_attr]
-
-    def get_receptors(self, summary=None):
-        """Method to get the receptors of the connections from/to the device.
-           Arguments:
-            summary: if integer, return a summary of unique output values
-                                 within accuracy of the specified number of decimal digits
-                     otherwise, if it is not None or False return
-                     either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
-                     or a list of unique string entries for all other attributes,
-                     Default = None, corresponds to returning all values
-           Returns:
-            Sequences (tuples, lists, arrays) of connections' receptors
-        """
-        return self.GetFromConnections(self._receptor_attr, summary)[self._receptor_attr]
-
-    # attributes of device connections across all neurons connected to it
-
-    @property
     @abstractmethod
-    def connections(self):
-        """Method to get all connections of the device to/from the device.
-           Returns:
-            connections' objects.
-        """
+    def get_neurons(self):
+        """Method to get the indices of all the neurons the device is connected to/from."""
         pass
-
+    
     @property
     @abstractmethod
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected to/from."""
-        pass
-
-    @property
-    def weights(self):
-        """Method to get all connections' weights of the device to/from the device."""
-        return self.get_weights()
-
-    @property
-    def delays(self):
-        """Method to get all connections' delays of the device to/from the device."""
-        return self.get_delays()
-
-    @property
-    def receptors(self):
-        """Method to get all connections' receptors of the device to/from the device."""
-        return self.get_receptors()
+        return self.get_neurons()
 
     # Summary attributes of device across all neurons connected to it
 
@@ -302,24 +147,12 @@ class InputDevice(Device):
 
     """InputDevice class to wrap around an input (stimulating) device"""
 
-    def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "input_device")
-        super(InputDevice, self).__init__(device, *args, **kwargs)
-
     def GetConnections(self):
         """Method to get connections of the device to neurons.
            Returns:
             connections' objects.
         """
-        return self._GetConnections(source=self.device)
-
-    @property
-    def connections(self):
-        """Method to get all connections of the device to/from neurons.
-           Returns:
-            connections' objects.
-        """
-        return self.GetConnections(source=self.device)
+        return self._GetConnections(self.device, source_or_target="source")
 
     @property
     def _print_from_to(self):
@@ -333,24 +166,12 @@ class OutputDevice(Device):
 
     """OutputDevice class to wrap around an output (recording/measuring/monitoring) device"""
 
-    def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "output_device")
-        super(OutputDevice, self).__init__(device, *args, **kwargs)
-
     def GetConnections(self):
         """Method to get connections of the device from neurons.
            Returns:
             connections' objects.
         """
-        return self._GetConnections(target=self.device)
-
-    @property
-    def connections(self):
-        """Method to get all connections of the device from neurons.
-           Returns:
-            connections' objects.
-        """
-        return self.GetConnections(target=self.device)
+        return self._GetConnections(self.device, source_or_target="target")
 
     @property
     def _print_from_to(self):
@@ -458,9 +279,9 @@ class SpikeRecorder(OutputDevice):
 
     """OutputDevice class to wrap around a spike recording device"""
 
-    def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "spike_recorder")
-        super(SpikeRecorder, self).__init__(device, *args, **kwargs)
+    def __init__(self, device, **kwargs):
+        kwargs["model"] = kwargs.get("model", "spike_recorder")
+        OutputDevice.__init__(self, device, **kwargs)
 
     def get_spikes_events(self, events_inds=None, **filter_kwargs):
         """This method will select/exclude part of the detected spikes' events, depending on user inputs
@@ -624,9 +445,9 @@ class Multimeter(OutputDevice):
     """OutputDevice class to wrap around an output device
        that records continuous time data only."""
 
-    def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "multimeter")
-        super(Multimeter, self).__init__(device, *args, **kwargs)
+    def __init__(self, device, **kwargs):
+        kwargs["model"] = kwargs.get("model", "multimeter")
+        OutputDevice.__init__(self, device, **kwargs)
 
     @property
     @abstractmethod
@@ -831,9 +652,9 @@ class Voltmeter(Multimeter):
 
     # The Voltmeter is just a Multimeter measuring only a voltage quantity
 
-    def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "voltmeter")
-        super(Voltmeter, self).__init__(device, *args, **kwargs)
+    def __init__(self, device, **kwargs):
+        kwargs["model"] = kwargs.get("model", "voltmeter")
+        OutputDevice.__init__(self, device, **kwargs)
 
     @property
     @abstractmethod
@@ -911,9 +732,9 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
        a positive or negative spike floating value, where there is a spike.
     """
 
-    def __init__(self, device, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "spike_multimeter")
-        super(SpikeMultimeter, self).__init__(device, *args, **kwargs)
+    def __init__(self, device, **kwargs):
+        kwargs["model"] = kwargs.get("model", "spike_multimeter")
+        OutputDevice.__init__(self, device, **kwargs)
 
     @property
     def spikes_vars(self):
@@ -1136,7 +957,7 @@ OutputSpikeDeviceDict = {"spike_recorder": SpikeRecorder,
                          "spike_multimeter": SpikeMultimeter}
 
 
-class DeviceSet(pd.Series, HasTraits):
+class DeviceSet(SpikingNodesSet):
 
     """DeviceSet class is a indexed mapping (based on inheritance from a pandas.Series)
        of a set of Device instances, that correspond to input or output devices referencing
@@ -1153,44 +974,21 @@ class DeviceSet(pd.Series, HasTraits):
                                   label="Number of connections",
                                   doc="""The number of total connections of the DeviceSet""")
 
-    def __init__(self, label="", model="", device_set=None, **kwargs):
-        pd.Series.__init__(self, device_set, name=str(label), **kwargs)
-        HasTraits.__init__(self)
-        self.model = str(model)
+    def __init__(self, device_set=None, **kwargs):
+        self.model = str(kwargs.pop("model", ""))
+        SpikingNodesSet.__init__(self, device_set, **kwargs)
         if np.any([not isinstance(device, Device) for device in self]):
             raise ValueError("Input device_set is not a Series of Device objects!:\n%s" %
                              str(device_set))
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
-    @property
-    def label(self):
-        """The region node label."""
-        return self.name
-
-    def __getitem__(self, items):
-        """This method will return a subset of the DeviceSet if the argument is a sequence,
-        or a single Device if the argument is an integer indice or a string label."""
-        if isinstance(items, string_types) or is_integer(items):
-            return super(DeviceSet, self).__getitem__(items)
-        return DeviceSet(name=self.name, model=self.model, device_set=super(DeviceSet, self).__getitem__(items))
-
     def _repr(self):
-        return "%s - Name: %s, Model: %s" % \
-               (self.__class__.__name__, self.name, self.model)
+        return "%s - Label: %s, Model: %s\n%ss: %s" % (self.__class__.__name__, self.label, self.model,
+                                                       self._collection_name, str(self.collections))
 
     def __repr__(self):
         return self._repr()
-
-    def __str__(self):
-        return self.print_str()
-
-    def print_str(self, connectivity=False):
-        output = "\n" + self._repr()
-        output += ",\nDevices:"
-        for node_index, node in self.iteritems():
-            output += LINE + node.print_str(connectivity)
-        return output
 
     def devices(self, input_devices=None):
         """This method returns (a subset of) the DeviceSet devices' labels in a list."""
@@ -1209,79 +1007,13 @@ class DeviceSet(pd.Series, HasTraits):
     def number_of_nodes(self):
         return self.size
 
-    def _return_by_type(self, values_dict, return_type="dict", concatenation_index_name="Region", name=None):
-        """This method returns data collected from the Devices of the DeviceSet in a desired output format, among
-           dict (Default), pandas.Series, xarray.DataArray or a list of values, depending on user input.
-           Arguments:
-            values_dict: dictionary of attributes and values
-            return_type: string selecting one of the return types ["values", "dict", "Series", "DataArray"].
-                         Default = "dict". "values" stands for a list of values, without labelling the output.
-            concatenation_index_name: The dimension name along which the concatenation across devices happens.
-                                      Default = "Region".
-            name: Label of the output data. Default = None.
-           Returns:
-            output data in the selected type.
-        """
-        if return_type == "values":
-            return list(values_dict.values())
-        elif return_type == "dict":
-            return values_dict
-        elif return_type == "Series":
-            return pd.Series(values_dict, name=name)
-        elif return_type == "DataArray":
-            if name is None:
-                name = self.name
-            for key, val in values_dict.items():
-                if isinstance(val, xr.DataArray):
-                    val.name = key
-                else:
-                    raise_value_error("DataArray concatenation not possible! "
-                                      "Not all outputs are DataArrays!:\n %s" % str(values_dict))
-            dims = list(values_dict.keys())
-            values = list(values_dict.values())
-            if len(values) == 0:
-                return xr.DataArray([])
-            output = xr.concat(values, dim=pd.Index(dims, name=concatenation_index_name))
-            output.name = name
-            return output
-        else:
-            return values_dict
-
-    def do_for_all_devices(self, attr, *args, nodes=None, return_type="values",
-                           concatenation_index_name="Region", name=None, **kwargs):
-        """This method will perform the required action (Device method or property),
-           and will return the output data collected from (a subset of) the Devices of the DeviceSet,
-           in a desired output format, among dict (Default), pandas.Series, xarray.DataArray or a list of values,
-           depending on user input.
-           Arguments:
-            attr: the name of the method/property of Device requested
-            *args: possible position arguments of attr
-            nodes: a subselection of Device nodes of the DeviceSet the action should be performed upon
-            return_type: string selecting one of the return types ["values", "dict", "Series", "DataArray"].
-                         Default = "values". "values" stands for a list of values, without labelling the output.
-            concatenation_index_name: The dimension name along which the concatenation across devices happens.
-                                      Default = "Region".
-            name: Label of the output data. Default = None.
-            **kwargs: possible keyword arguments of attr
-           Returns:
-            output data in the selected type.
-        """
-        values_dict = OrderedDict()
-        for device in self.devices(nodes):
-            val = getattr(self[device], attr)
-            if hasattr(val, "__call__"):
-                values_dict.update({device: val(*args, **kwargs)})
-            else:
-                values_dict.update({device: val})
-        return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
-
     @property
     def number_of_connections(self):
         """This method will return the total number of connections of each Device of the DeviceSet.
            Returns:
             a list of Devices' numbers of connections
         """
-        self._number_of_connections = self.do_for_all_devices("number_of_connections")
+        self._number_of_connections = self.do_for_all("number_of_connections")
         if np.sum(self._number_of_connections) == 0:
             self._number_of_connections = 0
         return self._number_of_connections
@@ -1292,7 +1024,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of Devices' numbers of connections
         """
-        self._number_of_neurons = self.do_for_all_devices("number_of_neurons")
+        self._number_of_neurons = self.do_for_all("number_of_neurons")
         if np.sum(self._number_of_neurons) == 0:
             self._number_of_neurons = 0
         return self._number_of_neurons
@@ -1303,7 +1035,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of Devices' events' times
         """
-        return self.do_for_all_devices("times", return_type="values")
+        return self.do_for_all("times", return_type="values")
 
     @property
     def time(self):
@@ -1311,7 +1043,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of Devices' events' time (numpy) arrays
         """
-        return self.do_for_all_devices("time", return_type="values")
+        return self.do_for_all("time", return_type="values")
 
     @property
     def senders(self):
@@ -1319,7 +1051,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of Devices' events' senders neurons' indices
         """
-        return self.do_for_all_devices("senders", return_type="values")
+        return self.do_for_all("senders", return_type="values")
 
     @property
     def weights(self):
@@ -1327,7 +1059,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of (numpy) arrays of the weights of the connections
         """
-        return self.do_for_all_devices("node_weight", return_type="values")
+        return self.do_for_all("node_weight", return_type="values")
 
     @property
     def delays(self):
@@ -1335,7 +1067,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of (numpy) arrays of the delays of the connections
         """
-        return self.do_for_all_devices("node_delay", return_type="values")
+        return self.do_for_all("node_delay", return_type="values")
 
     @property
     def receptors(self):
@@ -1343,7 +1075,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             a list of (numpy) arrays of the receptors of the connections
         """
-        return self.do_for_all_devices("node_receptors", return_type="values")
+        return self.do_for_all("node_receptors", return_type="values")
 
     def record_from_per_node(self, nodes=None, return_type="values"):
         """A method to get the attribute "record_from" from (a subset of) all Devices of the DeviceSet
@@ -1355,7 +1087,7 @@ class DeviceSet(pd.Series, HasTraits):
            Returns:
             the output in the selected type
         """
-        values_dict = self.do_for_all_devices("record_from", nodes=nodes, return_type="dict")
+        values_dict = self.do_for_all("record_from", nodes=nodes, return_type="dict")
         if return_type == "dict":
             return values_dict
         values = np.array(list(values_dict.values()))
@@ -1381,7 +1113,7 @@ class DeviceSet(pd.Series, HasTraits):
     def update_model(self):
         """Assert that all Devices of the set are of the same model."""
         if len(self) > 0:
-            models = self.do_for_all_devices("model")
+            models = self.do_for_all("model")
             if np.any([model != models[0] or model not in self.model for model in models]):
                 raise ValueError("Not all devices of the DeviceSet are of the same model!:\n %s" % str(models))
 
@@ -1389,8 +1121,8 @@ class DeviceSet(pd.Series, HasTraits):
         if device_set:
             super(DeviceSet, self).update(device_set)
         self.update_model()
-        self._number_of_connections = self.do_for_all_devices("get_number_of_connections")
-        self._number_of_neurons = self.do_for_all_devices("get_number_of_neurons")
+        self._number_of_connections = self.do_for_all("get_number_of_connections")
+        self._number_of_neurons = self.do_for_all("get_number_of_neurons")
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DeviceSet.
