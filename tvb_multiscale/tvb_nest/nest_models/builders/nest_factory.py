@@ -256,7 +256,7 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
         nest_device_node_collection = nest_instance.Create(nest_device_model, number_of_devices, params=default_params)
     default_params["label"] = label
     if parrot:
-        nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance)
+        nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance, label=label)
         # Connect the input spike device to the parrot neurons' population:
         nest_instance.Connect(nest_device.device, nest_device._nodes,
                               syn_spec={"weight": 1.0,
@@ -270,7 +270,7 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
             nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
             nest_instance.Connect(nest_device._nodes, nest_device._record)
     else:
-        nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance)
+        nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, label=label)
     if return_nest:
         return nest_device, nest_instance
     else:
