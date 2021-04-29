@@ -89,9 +89,9 @@ class SpikingNetwork(HasTraits):
     _OutputContinuousTimeDeviceDict = OutputContinuousTimeDeviceDict
 
     def __init__(self,
-                 brain_regions=None,
-                 output_devices=None,
-                 input_devices=None,
+                 brain_regions=pd.Series(),
+                 output_devices=pd.Series(),
+                 input_devices=pd.Series(),
                  config=CONFIGURED):
         self.config = config
         self.brain_regions = brain_regions
