@@ -3,10 +3,11 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from collections import OrderedDict
 
+import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_multiscale.core.config import initialize_logger, LINE
+from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import filter_events
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
@@ -30,9 +31,6 @@ class Device(SpikingNodeCollection):
     """
 
     device = None  # a device object, depending on its simulator implementation
-
-    model = Attr(field_type=str, default="device", required=True,
-                 label="Device model", doc="""Label of Device model""")
 
     label = Attr(field_type=str, default="", required=True,
                  label="Device label", doc="""Label of Device""")
@@ -279,7 +277,7 @@ class SpikeRecorder(OutputDevice):
 
     """OutputDevice class to wrap around a spike recording device"""
 
-    def __init__(self, device, **kwargs):
+    def __init__(self, device=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "spike_recorder")
         OutputDevice.__init__(self, device, **kwargs)
 
@@ -445,7 +443,7 @@ class Multimeter(OutputDevice):
     """OutputDevice class to wrap around an output device
        that records continuous time data only."""
 
-    def __init__(self, device, **kwargs):
+    def __init__(self, device=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "multimeter")
         OutputDevice.__init__(self, device, **kwargs)
 
@@ -652,7 +650,7 @@ class Voltmeter(Multimeter):
 
     # The Voltmeter is just a Multimeter measuring only a voltage quantity
 
-    def __init__(self, device, **kwargs):
+    def __init__(self, device=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "voltmeter")
         OutputDevice.__init__(self, device, **kwargs)
 
@@ -732,9 +730,10 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
        a positive or negative spike floating value, where there is a spike.
     """
 
-    def __init__(self, device, **kwargs):
+    def __init__(self, device=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "spike_multimeter")
-        OutputDevice.__init__(self, device, **kwargs)
+        Multimeter.__init__(self, device, **kwargs)
+        SpikeRecorder.__init__(self, device, **kwargs)
 
     @property
     def spikes_vars(self):
@@ -974,7 +973,7 @@ class DeviceSet(SpikingNodesSet):
                                   label="Number of connections",
                                   doc="""The number of total connections of the DeviceSet""")
 
-    def __init__(self, device_set=None, **kwargs):
+    def __init__(self, device_set=pd.Series(), **kwargs):
         self.model = str(kwargs.pop("model", ""))
         SpikingNodesSet.__init__(self, device_set, **kwargs)
         if np.any([not isinstance(device, Device) for device in self]):
