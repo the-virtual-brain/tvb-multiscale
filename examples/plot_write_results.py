@@ -310,24 +310,29 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         if plot_per_neuron:
             mean_field_ts = spikeNet_ts["mean_field_time_series"]  # mean field
             spikeNet_ts = spikeNet_ts["data_by_neuron"]  # per neuron data
-            # Regions in rows
-            row = spikeNet_ts.dims[2] if spikeNet_ts.shape[2] > 1 else None
-            if row is None:
-                # Populations in rows
-                row = spikeNet_ts.dims[3] if spikeNet_ts.shape[3] > 1 else None
-                col = None
-            else:
-                # Populations in cols
-                col = spikeNet_ts.dims[3] if spikeNet_ts.shape[3] > 1 else None
-            for var in spikeNet_ts.coords[spikeNet_ts.dims[1]]:
-                this_var_ts = spikeNet_ts.loc[:, var, :, :, :]
-                this_var_ts.name = var.item()
-                pyplot.figure()
-                this_var_ts.plot(y=spikeNet_ts.dims[4], row=row, col=col, cmap="jet", figsize=figsize)
-                plotter.base._save_figure(
-                    figure_name="Spiking Network variables' time series per neuron: %s" % this_var_ts.name)
-                if not plotter.base.config.SHOW_FLAG:
-                    pyplot.close()
+            if spikeNet_ts.size > 0:
+                # Regions in rows
+                row = spikeNet_ts.dims[2] if spikeNet_ts.shape[2] > 1 else None
+                if row is None:
+                    # Populations in rows
+                    row = spikeNet_ts.dims[3] if spikeNet_ts.shape[3] > 1 else None
+                    col = None
+                else:
+                    # Populations in cols
+                    col = spikeNet_ts.dims[3] if spikeNet_ts.shape[3] > 1 else None
+                for var in spikeNet_ts.coords[spikeNet_ts.dims[1]]:
+                    this_var_ts = spikeNet_ts.loc[:, var, :, :, :]
+                    if this_var_ts.size > 0:
+                        this_var_ts.name = var.item()
+                        pyplot.figure()
+                        try:
+                            this_var_ts.plot(y=spikeNet_ts.dims[4], row=row, col=col, cmap="jet", figsize=figsize)
+                        except:
+                            this_var_ts.plot(y=spikeNet_ts.dims[4], row=row, col=col, cmap="jet", figsize=figsize)
+                        plotter.base._save_figure(
+                            figure_name="Spiking Network variables' time series per neuron: %s" % this_var_ts.name)
+                        if not plotter.base.config.SHOW_FLAG:
+                            pyplot.close()
         else:
             mean_field_ts = spikeNet_ts
         del spikeNet_ts
