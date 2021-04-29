@@ -449,9 +449,9 @@ class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 
     def Set(self, values_dict, neurons=None):
         if neurons is None:
-            NESTSpikeGenerator.set(self, values_dict, self.device)
+            NESTSpikeGenerator.Set(self, values_dict, self.device)
         else:
-            NESTParrotPopulation.set(self, values_dict, neurons)
+            NESTParrotPopulation.Set(self, values_dict, neurons)
 
 
 class NESTParrotPulsePacketGenerator(NESTParrotInputDevice):
