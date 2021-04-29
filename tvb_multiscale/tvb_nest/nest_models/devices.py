@@ -444,8 +444,8 @@ class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_spike_generator")
-        NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
         NESTSpikeGenerator.__init__(self, device, nest_instance, **kwargs)
+        NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
     def Set(self, values_dict, neurons=None):
         if neurons is None:
