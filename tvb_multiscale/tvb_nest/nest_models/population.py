@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
-from tvb_multiscale.tvb_nest.nest_models.node import NESTNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
 
 from tvb.basic.neotraits.api import Attr
 
 
-class NESTPopulation(NESTNodeCollection, SpikingPopulation):
+class NESTPopulation(_NESTNodeCollection, SpikingPopulation):
 
     """NESTPopulation class
        Wraps around a nest.NodeCollection and
@@ -19,9 +19,9 @@ class NESTPopulation(NESTNodeCollection, SpikingPopulation):
     _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
                   label="Population", doc="""NEST population NodeCollection instance""")
 
-    def __init__(self, nodes=None, nest_instance=None, **kwargs):
+    def __init__(self, nodes=NodeCollection(), nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
-        NESTNodeCollection.__init__(self, nodes, nest_instance, **kwargs)
+        _NESTNodeCollection.__init__(self, nodes, nest_instance, **kwargs)
         SpikingPopulation.__init__(self, nodes, **kwargs)
 
     def _assert_neurons(self, neurons=None):
@@ -35,7 +35,7 @@ class NESTPopulation(NESTNodeCollection, SpikingPopulation):
                      or sequence (list, tuple, array) of neurons the attributes of which should be set.
                      Default = None, corresponds to all neurons of the population.
         """
-        NESTNodeCollection._Set(self, values_dict, neurons)
+        _NESTNodeCollection._Set(self, values_dict, neurons)
 
     def _Get(self, attrs=None, neurons=None):
         """Method to get attributes of the SpikingPopulation's neurons.
@@ -48,7 +48,7 @@ class NESTPopulation(NESTNodeCollection, SpikingPopulation):
            Returns:
             Dictionary of tuples of neurons' attributes.
         """
-        return NESTNodeCollection._Get(self, attrs, neurons)
+        return _NESTNodeCollection._Get(self, attrs, neurons)
 
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
@@ -60,14 +60,16 @@ class NESTPopulation(NESTNodeCollection, SpikingPopulation):
            Returns:
             nest.SynapseCollection.
         """
-        return NESTNodeCollection._GetConnections(self, neurons, source_or_target)
+        return _NESTNodeCollection._GetConnections(self, neurons, source_or_target)
 
 
 class NESTParrotPopulation(NESTPopulation):
 
     """NESTParrotPopulation class to wrap around a NEST parrot_neuron population"""
 
-    def __init__(self, nodes=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, nodes=NodeCollection(), nest_instance=None, **kwargs):
         model = kwargs.get("model", "parrot_neuron")
         if len(model) == 0:
             model = "parrot_neuron"

@@ -1,29 +1,25 @@
 # -*- coding: utf-8 -*-
-from abc import ABCMeta
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 
-from tvb.basic.neotraits.api import Attr, Int
+from tvb.basic.neotraits.api import HasTraits, Attr, Int
 
 
 LOG = initialize_logger(__name__)
 
 
-class NESTNodeCollection(SpikingNodeCollection):
-    __metaclass__ = ABCMeta
+class _NESTNodeCollection(HasTraits):
 
-    """NESTNodeCollection is a class that 
-       represents a nodes collection of the spiking network of the same neural model, 
+    """NESTNodeCollection is a class that
+       represents a nodes collection of the spiking network of the same neural model,
        residing at the same brain region.
-       The abstract methods have to be implemented by 
-       spiking simulator specific classes that will inherit this class.
     """
     from nest import NodeCollection
 
     _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
-                  label="NEST NodeCollection ", doc="""NodeCollection instance""")
+                  label="NEST NodeCollection ", doc="""NESTNodeCollection instance""")
 
     label = Attr(field_type=str, default="", required=True,
                  label="Node label", doc="""Label of NESTNodeCollection""")
@@ -42,10 +38,10 @@ class NESTNodeCollection(SpikingNodeCollection):
     _delay_attr = "delay"
     _receptor_attr = "receptor"
 
-    def __init__(self, nodes=None, nest_instance=None, **kwargs):
+    def __init__(self, nodes=NodeCollection(), nest_instance=None, **kwargs):
         """Constructor of a collection class.
            Arguments:
-            nodes: Class instance of a sequence of spiking network elements, 
+            nodes: Class instance of a sequence of spiking network elements,
                   that depends on each spiking simulator. Default=None.
             nest_instance: pyNEST module
             **kwargs that may contain:
@@ -53,8 +49,14 @@ class NESTNodeCollection(SpikingNodeCollection):
                 model: a string with the name of the model of the node
                 brain_region: a string with the name of the brain_region where the node resides
         """
+        self._nodes = nodes
         self.nest_instance = nest_instance
-        SpikingNodeCollection.__init__(self, nodes, **kwargs)
+        self.label = str(kwargs.get("label", self.__class__.__name__))
+        self.model = str(kwargs.get("model", self.__class__.__name__))
+        self.brain_region = str(kwargs.get("brain_region", ""))
+        if self._nodes:
+            self._size = len(self._nodes)
+        HasTraits.__init__(self)
 
     @property
     def spiking_simulator_module(self):
@@ -189,3 +191,13 @@ class NESTNodeCollection(SpikingNodeCollection):
             return connections.get()
         else:
             return connections.get(ensure_list(attrs))
+
+
+class NESTNodeCollection(_NESTNodeCollection, SpikingNodeCollection):
+
+    """NESTNodeCollection is a class that 
+       represents a nodes collection of the spiking network of the same neural model, 
+       residing at the same brain region.
+    """
+
+    pass

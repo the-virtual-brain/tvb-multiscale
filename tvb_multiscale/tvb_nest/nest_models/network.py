@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pandas as pd
+
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
 from tvb_multiscale.tvb_nest.nest_models.devices import NESTOutputSpikeDeviceDict, NESTOutputContinuousTimeDeviceDict
@@ -32,9 +34,9 @@ class NESTNetwork(SpikingNetwork):
     _OutputContinuousTimeDeviceDict = NESTOutputContinuousTimeDeviceDict
 
     def __init__(self, nest_instance=None,
-                 brain_regions=None,
-                 output_devices=None,
-                 input_devices=None,
+                 brain_regions=pd.Series(),
+                 output_devices=pd.Series(),
+                 input_devices=pd.Series(),
                  config=CONFIGURED):
         if nest_instance is None:
             nest_instance = load_nest(self.config, LOG)

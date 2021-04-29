@@ -9,11 +9,11 @@ from numpy.lib.recfunctions import rename_fields
 import xarray as xr
 
 from tvb_multiscale.core.spiking_models.devices import \
-    Device, InputDevice, OutputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
+    Device, InputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter  # OutputDevice,
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header
 
-from tvb_multiscale.tvb_nest.nest_models.node import NESTNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
 from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
 from tvb.basic.neotraits.api import Attr, Int, List
@@ -25,7 +25,7 @@ from tvb.contrib.scripts.utils.data_structures_utils \
 # These classes wrap around NEST commands.
 
 
-class NESTDevice(NESTNodeCollection, Device):
+class NESTDevice(_NESTNodeCollection):
     __metaclass__ = ABCMeta
 
     """NESTDevice class to wrap around a NEST output (recording) or input (stimulating) device"""
@@ -35,14 +35,8 @@ class NESTDevice(NESTNodeCollection, Device):
     device = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
                   label="NEST device ", doc="""Device NodeCollection instance""")
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
-        NESTNodeCollection.__init__(self, device, nest_instance, **kwargs)
-        Device.__init__(self, device, **kwargs)
-
-    def _assert_nest(self):
-        if self.nest_instance is None:
-            raise ValueError("No NEST instance associated to this %s of model %s!" %
-                             (self.__class__.__name__, self.model))
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
+        _NESTNodeCollection.__init__(self, device, nest_instance, **kwargs)
 
     def _assert_device(self):
         self._assert_nodes()
@@ -93,14 +87,20 @@ class NESTInputDevice(NESTDevice, InputDevice):
 
     """NESTInputDevice class to wrap around a NEST input (stimulating) device"""
 
-    pass
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
+        NESTDevice.__init__(self, device, nest_instance, **kwargs)
+        Device.__init__(self, device, **kwargs)
 
 
 class NESTPoissonGenerator(NESTInputDevice):
 
     """NESTPoissonGenerator class to wrap around a NEST poisson_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "poisson_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -109,7 +109,9 @@ class NESTSinusoidalPoissonGenerator(NESTInputDevice):
 
     """NESTSinusoidalPoissonGenerator class to wrap around a NEST sinusoidal_poisson_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "sinusoidal_poisson_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -118,7 +120,9 @@ class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
 
     """NESTInhomogeneousPoissonGenerator class to wrap around a NEST inhomogeneous_poisson_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "inhomogeneous_poisson_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -127,7 +131,9 @@ class NESTMIPGenerator(NESTInputDevice):
 
     """NESTMIPGenerator class to wrap around a NEST mip_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "mip_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -136,7 +142,9 @@ class NESTGammaSupGenerator(NESTInputDevice):
 
     """NESTGammaSupGenerator class to wrap around a NEST gamma_sup_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "gamma_sup_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -145,7 +153,9 @@ class NESTDPPDSupGenerator(NESTInputDevice):
 
     """NESTDPPDSupGenerator class to wrap around a NEST ppd_sup_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "ppd_sup_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -154,7 +164,9 @@ class NESTSpikeGenerator(NESTInputDevice):
 
     """NESTSpikeGenerator class to wrap around a NEST spike_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "spike_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -191,7 +203,9 @@ class NESTPulsePacketGenerator(NESTInputDevice):
 
     """NESTPulsePacketGenerator class to wrap around a NEST pulse_packet_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "pulse_packet_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -200,7 +214,9 @@ class NESTDCGenerator(NESTInputDevice):
 
     """NESTDCGenerator class to wrap around a NEST dc_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "dc_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -209,7 +225,9 @@ class NESTStepCurrentGenerator(NESTInputDevice):
 
     """NESTStepCurrentGenerator class to wrap around a NEST step_current_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "step_current_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -218,7 +236,9 @@ class NESTACGenerator(NESTInputDevice):
 
     """NESTACGenerator class to wrap around a NEST ac_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "ac_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -227,7 +247,9 @@ class NESTStepRateGenerator(NESTInputDevice):
 
     """NESTStepRateGenerator class to wrap around a NEST step_rate_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "step_rate_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -236,7 +258,9 @@ class NESTNoiseGenerator(NESTInputDevice):
 
     """NESTNoiseGenerator class to wrap around a NEST noise_generator device"""
 
-    def __init__(self, device=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "noise_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
 
@@ -245,7 +269,9 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
 
     """NESTParrotInputDevice class to combine a NEST InputDevice with a parrot_neuron population"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         label = str(kwargs.get("label", ""))
         model = str(kwargs.get("model", "nest_parrot_input_device"))
         NESTInputDevice.__init__(self, device=device, nest_instance=nest_instance, **kwargs)
@@ -348,7 +374,9 @@ class NESTParrotPoissonGenerator(NESTParrotInputDevice):
 
     """NESTPoissonGenerator class to wrap around a NEST poisson_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "poisson_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -357,7 +385,9 @@ class NESTParrotSinusoidalPoissonGenerator(NESTParrotInputDevice):
 
     """NESTParrotSinusoidalPoissonGenerator class to wrap around a NEST sinusoidal_poisson_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_sinusoidal_poisson_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -366,7 +396,9 @@ class NESTParrotInhomogeneousPoissonGenerator(NESTParrotInputDevice):
 
     """NESTParrotInhomogeneousPoissonGenerator class to wrap around a NEST inhomogeneous_poisson_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_inhomogeneous_poisson_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -375,7 +407,9 @@ class NESTParrotMIPGenerator(NESTParrotInputDevice):
 
     """NESTParrotMIPGenerator class to wrap around a NEST mip_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_mip_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -384,7 +418,9 @@ class NESTParrotGammaSupGenerator(NESTParrotInputDevice):
 
     """NESTParrotGammaSupGenerator class to wrap around a NEST gamma_sup_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_gamma_sup_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -393,7 +429,9 @@ class NESTParrotDPPDSupGenerator(NESTParrotInputDevice):
 
     """NESTParrotDPPDSupGenerator class to wrap around a NEST ppd_sup_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_ppd_sup_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -402,7 +440,9 @@ class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 
     """NESTParrotSpikeGenerator class to wrap around a NEST spike_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_spike_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
         NESTSpikeGenerator.__init__(self, device, nest_instance, **kwargs)
@@ -418,7 +458,9 @@ class NESTParrotPulsePacketGenerator(NESTParrotInputDevice):
 
     """NESTParrotPulsePacketGenerator class to wrap around a NEST pulse_packet_generator device"""
 
-    def __init__(self, device=None, population=None, nest_instance=None, **kwargs):
+    from nest import NodeCollection
+
+    def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_pulse_packet_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
 
@@ -471,7 +513,7 @@ def read_nest_output_device_data_from_ascii_to_dict(filepath):
     return {name: ensure_list(recarray[name]) for name in recarray.dtype.names}
 
 
-class NESTOutputDevice(NESTDevice, OutputDevice):
+class NESTOutputDevice(NESTDevice):
 
     """NESTOutputDevice class to wrap around a NEST output (recording) device"""
 
@@ -482,7 +524,6 @@ class NESTOutputDevice(NESTDevice, OutputDevice):
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "nest_output_device")
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
-        OutputDevice.__init__(self, device, **kwargs)
         if kwargs.get("record_to", "ascii") == "ascii":
             self._get_events = self._get_events_from_ascii
             self._reset = self._delete_events_in_ascii_files
