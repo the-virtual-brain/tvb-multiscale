@@ -663,9 +663,11 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
     def _compute_times(self, times, data_time_length=None):
         """Method to compute the time vector of ANNarchy.Monitor instances"""
         times_lims = []
+        dt = self.dt
+        period = self.period
         current_step = self.annarchy_instance.get_current_step()
         for var, var_times in times.items():
-            this_steps = [var_times["start"][0], var_times["stop"][-1]]
+            this_steps = [var_times["start"][0] + int(np.round(period / dt)), var_times["stop"][-1]]
             if this_steps[0] == this_steps[1]:
                 this_steps[1] = current_step
             if len(times_lims):
@@ -675,18 +677,16 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                      % (str(this_steps), var, str(times_lims), self.label))
             else:
                 times_lims = this_steps
-        dt = self.dt
-        period = self.period
         if len(times_lims):
             n_times = int(np.ceil((times_lims[1] - times_lims[0]) * dt / period))
             if data_time_length:
-                if data_time_length > n_times:
-                    raise ValueError("Adding data of time length %d bigger than the time vector length %d!" %
+                if data_time_length != n_times:
+                    raise ValueError("Adding data of time length %d different than the time vector length %d!" %
                                      (data_time_length, n_times))
                 else:
                     n_times = data_time_length
             stop_time = times_lims[1] * dt + period
-            start_time = stop_time - n_times * period
+            start_time = np.round((stop_time - n_times * period) / dt) * dt
             return np.arange(start_time, stop_time, period)
         else:
             return np.array(times_lims).astype("f")
@@ -703,7 +703,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                 m_data = m_data.transpose((1, 0, 2))
                 m_data = DataArray(m_data,
                                  dims=["Time", "Variable", "Neuron"],
-                                 coords={"Time": self._compute_times(monitor.times(), data.shape[0]),
+                                 coords={"Time": self._compute_times(monitor.times(), m_data.shape[0]),
                                          "Variable": variables,
                                          "Neuron": self._get_senders(population, population.ranks, True)},
                                  name=self.label)
