@@ -699,7 +699,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         period = self.period
         current_step = self.annarchy_instance.get_current_step()
         for var, var_times in times.items():
-            this_steps = [var_times["start"][0] + int(np.round(period / dt)), var_times["stop"][-1]]
+            this_steps = [var_times["start"][1], var_times["stop"][-1]]
             if this_steps[0] == this_steps[1]:
                 this_steps[1] = current_step
             if len(times_lims):
@@ -717,9 +717,8 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                      (data_time_length, n_times))
                 else:
                     n_times = data_time_length
-            stop_time = times_lims[1] * dt + period
-            start_time = np.round((stop_time - n_times * period) / dt) * dt
-            return np.arange(start_time, stop_time, period)
+            start_time = times_lims[0] * dt
+            return start_time + np.arange(n_times) * period
         else:
             return np.array(times_lims).astype("f")
 
