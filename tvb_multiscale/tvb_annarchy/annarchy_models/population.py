@@ -4,12 +4,12 @@ import numpy as np
 
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
-from tvb.basic.neotraits.api import Attr, Int, List
+from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer
 
 
-class ANNarchyPopulation(SpikingPopulation):
+class _ANNarchyPopulation(HasTraits):
 
     """ANNarchyPopulation class
        Wraps around an ANNarchy.Population class and
@@ -17,12 +17,24 @@ class ANNarchyPopulation(SpikingPopulation):
        residing at the same brain region.
     """
 
-    from ANNarchy import Population, Projection
+    from ANNarchy import Population, PoissonPopulation, Projection
 
     annarchy_instance = None
 
-    _nodes = Attr(field_type=Population, default=None, required=False,
+    _nodes = Attr(field_type=Population, default=PoissonPopulation(geometry=0, rates=0.0), required=False,
                   label="ANNarchy.Population", doc="""Instance of ANNarchy.Population""")
+
+    label = Attr(field_type=str, default="", required=True,
+                 label="Population label", doc="""Label of ANNarchy.Population""")
+
+    model = Attr(field_type=str, default="", required=True, label="Population model",
+                 doc="""Label of neuronal model of ANNarchy.Population's neurons""")
+
+    brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
+                        doc="""Label of the brain region the ANNarchy.Population resides""")
+
+    _size = Int(field_type=int, default=0, required=True, label="Size",
+                doc="""The number of neurons of ANNarchy.Population """)
 
     _population_ind = Int(field_type=int, default=-1, required=True, label="Population indice",
                           doc="""The indice of the population in the ANNarchy network""")
@@ -37,10 +49,10 @@ class ANNarchyPopulation(SpikingPopulation):
     _receptor_attr = "target"
     _default_connection_attrs = [_weight_attr, _delay_attr, _receptor_attr]
 
-    def __init__(self, nodes=None, annarchy_instance=None, **kwargs):
+    def __init__(self, nodes=PoissonPopulation(geometry=0, rates=0.0), annarchy_instance=None, **kwargs):
         self.annarchy_instance = annarchy_instance
         self._nodes = nodes
-        label = kwargs.pop("label", "")
+        label = kwargs.get("label", "")
         if self._nodes is not None:
             if len(label):
                 self._nodes.name = label
@@ -48,9 +60,15 @@ class ANNarchyPopulation(SpikingPopulation):
                 label = self._nodes.name
             if annarchy_instance is not None:
                 self._population_ind = self._get_population_ind()
+        self.label = label
+        self.model = str(kwargs.get("model", self.__class__.__name__))
+        self.brain_region = str(kwargs.get("brain_region", ""))
+        if self._nodes:
+            self._size = len(self._nodes)
+        kwargs["label"] = label
         self.projections_pre = []
         self.projections_post = []
-        super(ANNarchyPopulation, self).__init__(nodes, label=label, **kwargs)
+        HasTraits.__init__(self)
 
     @property
     def spiking_simulator_module(self):
@@ -136,9 +154,6 @@ class ANNarchyPopulation(SpikingPopulation):
                         # Return a Population View:
                         nodes = self._nodes[local_inds]
         return nodes
-
-    def _assert_neurons(self, neurons=None):
-        return self._assert_nodes(neurons)
 
     def _print_nodes(self):
         """ Prints indices of neurons in this population.
@@ -293,3 +308,18 @@ class ANNarchyPopulation(SpikingPopulation):
                 for attribute in attrs:
                     self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
         return dictionary
+
+
+class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
+
+    """ANNarchyPopulation class
+       Wraps around an ANNarchy.Population class and
+       represents a population of neurons of the same neural model,
+       residing at the same brain region.
+    """
+
+    from ANNarchy import PoissonPopulation
+
+    def __init__(self, nodes=PoissonPopulation(geometry=0, rates=0.0), annarchy_instance=None, **kwargs):
+        _ANNarchyPopulation.__init__(self, nodes, annarchy_instance, **kwargs)
+        SpikingPopulation.__init__(self, nodes, **kwargs)

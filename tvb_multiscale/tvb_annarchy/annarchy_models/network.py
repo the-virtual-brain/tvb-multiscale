@@ -41,10 +41,10 @@ class ANNarchyNetwork(SpikingNetwork):
     _OutputContinuousTimeDeviceDict = ANNarchyOutputContinuousTimeDeviceDict
 
     def __init__(self, annarchy_instance=None,
-                 brain_regions=None,
-                 output_devices=None,
-                 input_devices=None,
-                 input_proxies=None,
+                 brain_regions=pd.Series(),
+                 output_devices=pd.Series(),
+                 input_devices=pd.Series(),
+                 input_proxies=pd.Series(),
                  config=CONFIGURED):
         if annarchy_instance is None:
             annarchy_instance = load_annarchy(self.config, LOG)
