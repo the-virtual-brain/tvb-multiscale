@@ -71,14 +71,14 @@ class ANNarchyDevice(HasTraits):
         return self._dt
 
     @abstractmethod
-    def _GetConnections(self):
+    def _GetConnections(self, **kwargs):
         """Method to get connections of the device from/to populations.
             Returns:
              connections' objects.
         """
         pass
 
-    def GetConnections(self):
+    def GetConnections(self, **kwargs):
         """Method to get connections of the device from/to populations.
             Returns:
              connections' objects.
@@ -159,14 +159,14 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
     def device_ind(self):
         return self.population_ind
 
-    def Set(self, values_dict):
+    def Set(self, values_dict, **kwargs):
         """Method to set attributes of the device
            Arguments:
             values_dict: dictionary of attributes names' and values.
         """
         InputDevice.Set(self, values_dict)
 
-    def Get(self, attrs=None):
+    def Get(self, attrs=None, **kwargs):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponds to all device's attributes.
@@ -175,7 +175,7 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
         """
         return InputDevice.Get(self, attrs)
 
-    def _GetConnections(self):
+    def _GetConnections(self, **kwargs):
         """Method to get attributes of the connections from the device
            Return:
             Projections' objects
@@ -235,6 +235,9 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
     @property
     def number_of_connected_neurons(self):
         return self.get_size()
+
+    def print_str(self, connectivity=False):
+        return InputDevice.print_str(self, connectivity, source_or_target="source")
 
 
 """
@@ -534,7 +537,7 @@ class ANNarchyOutputDevice(ANNarchyDevice):
 
     @property
     def gids(self):
-        return None
+        return self.monitors_inds
 
     def _set_attributes_to_dict(self, dictionary, monitor, attribute):
         if attribute in dictionary.keys():
@@ -542,7 +545,7 @@ class ANNarchyOutputDevice(ANNarchyDevice):
         else:
             dictionary[attribute] = [getattr(monitor, attribute)]
 
-    def _Get(self, attrs=None):
+    def _Get(self, attrs=None, **kwargs):
         """Method to get attributes of the device.
            Arguments:
             attrs: names of attributes to be returned. Default = None, corresponding to all devices' attributes.
@@ -559,10 +562,10 @@ class ANNarchyOutputDevice(ANNarchyDevice):
                     self._set_attributes_to_dict(dictionary, monitor, attr)
         return dictionary
 
-    def Get(self, attrs=None):
+    def Get(self, attrs=None, **kwargs):
         return self._Get(attrs)
 
-    def _GetConnections(self):
+    def _GetConnections(self, **kwargs):
         """Method to get attributes of the connections from the device
            Return:
             ANNarchyOutputDeviceConnection' objects
@@ -581,7 +584,7 @@ class ANNarchyOutputDevice(ANNarchyDevice):
         else:
             dictionary[attribute] = [connection.get(attribute)]
 
-    def _GetFromConnections(self, attrs=None, connections=None):
+    def _GetFromConnections(self, attrs=None, connections=None, **kwargs):
         """Method to get attributes of the connections from/to the SpikingPopulation's neurons.
             Arguments:
              connections: a Projection object or a collection (list, tuple, array) thereof.
@@ -643,7 +646,6 @@ class ANNarchyOutputDevice(ANNarchyDevice):
             senders = senders[0]
         return senders
 
-
     @abstractmethod
     def _record(self):
         """Method to get data from ANNarchy.Monitor instances,
@@ -663,6 +665,10 @@ class ANNarchyOutputDevice(ANNarchyDevice):
     @abstractmethod
     def reset(self):
         pass
+
+    @property
+    def nodes(self):
+        return tuple(self.monitors.keys())
 
     def pause(self):
         for monitor in self.monitors.keys():
@@ -847,6 +853,9 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                dims=["Time", "Variable", "Neuron"])
         self._output_events_index = 0
 
+    def print_str(self, connectivity=False):
+        return Multimeter.print_str(self, connectivity, source_or_target="target")
+
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
 
@@ -951,6 +960,9 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         self._data = ()
         self._output_events_counter = ()
 
+    def print_str(self, connectivity=False):
+        return SpikeRecorder.print_str(self, connectivity, source_or_target="target")
+
 
 class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultimeter):
 
@@ -1014,6 +1026,9 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
 
     def reset(self):
         ANNarchyMonitor.reset(self)
+
+    def print_str(self, connectivity=False):
+        return ANNarchyMonitor.print_str(self, connectivity)
 
 
 ANNarchyOutputDeviceDict = {}
