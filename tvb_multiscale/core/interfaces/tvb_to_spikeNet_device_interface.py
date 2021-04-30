@@ -20,7 +20,7 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
 
     def __init__(self, spiking_network, name="", model="", dt=0.1, tvb_sv_id=None,
                  nodes_ids=[], target_nodes=[], scale=np.array([1.0]), device_set=None):
-        super(TVBtoSpikeNetDeviceInterface, self).__init__(name, model, device_set)
+        super(TVBtoSpikeNetDeviceInterface, self).__init__(device_set, label=name, model=model)
         self.spiking_network = spiking_network
         self.dt = dt  # TVB time step
         self.tvb_sv_id = tvb_sv_id  # TVB state variable index linked to this interface
@@ -56,7 +56,8 @@ class TVBtoSpikeNetDeviceInterface(DeviceSet):
     def from_device_set(self, device_set, tvb_sv_id=0, name=None):
         # Generate the interface from a DeviceSet (that corresponds to a collection of devices => proxy-nodes)
         if isinstance(device_set, DeviceSet):
-            super(TVBtoSpikeNetDeviceInterface, self).__init__(device_set.name, device_set.model, device_set)
+            super(TVBtoSpikeNetDeviceInterface, self).__init__(device_set,
+                                                               label=device_set.name, model=device_set.model)
         else:
             raise_value_error("Input device_set is not a DeviceSet!: %s" % str(device_set))
         self.tvb_sv_id = tvb_sv_id

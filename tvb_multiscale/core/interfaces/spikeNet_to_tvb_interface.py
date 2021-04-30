@@ -21,7 +21,7 @@ class SpikeNetToTVBinterface(DeviceSet):
 
     def __init__(self, spiking_network, tvb_sv_id, name="", model="",
                  nodes_ids=[], scale=np.array([1.0]), device_set=None):
-        super(SpikeNetToTVBinterface, self).__init__(name, model, device_set)
+        super(SpikeNetToTVBinterface, self).__init__(device_set, label=name, model=model)
         self.spiking_network = spiking_network
         self.tvb_sv_id = tvb_sv_id  # The index of the TVB state variable linked to this interface
         # The indices of the Spiking Nodes which coincide with the TVB region nodes
@@ -50,7 +50,7 @@ class SpikeNetToTVBinterface(DeviceSet):
 
     def from_device_set(self, device_set, name=None):
         if isinstance(device_set, DeviceSet):
-            super(SpikeNetToTVBinterface, self).__init__(device_set.name, device_set.model, device_set)
+            super(SpikeNetToTVBinterface, self).__init__(device_set, label=device_set.name, model=device_set.model)
         else:
             raise_value_error("Input device_set is not a DeviceSet!: %s" % str(device_set))
         if isinstance(name, string_types):
