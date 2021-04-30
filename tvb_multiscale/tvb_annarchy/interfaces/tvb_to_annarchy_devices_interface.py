@@ -18,7 +18,7 @@ class TVBtoANNarchyDeviceInterface(TVBtoSpikeNetDeviceInterface):
 class TVBtoANNarchySpikeSourceArrayInterface(TVBtoANNarchyDeviceInterface):
 
     def set(self, values):
-        self.do_for_all_devices("reset")  # Reset time to current time, for all devices
+        self.do_for_all("reset")  # Reset time to current time, for all devices
         self.Set({"spikes_times": np.ones((len(values),))})
 
 

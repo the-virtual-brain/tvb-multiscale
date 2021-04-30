@@ -16,13 +16,13 @@ class ANNarchytoTVBinterface(SpikeNetToTVBinterface):
         values = []
         for i_node, node in enumerate(self.devices()):
             values.append(self[node].number_of_events / self[node].number_of_neurons)
-        self.do_for_all_devices("reset")
+        self.do_for_all("reset")
         return np.array(values).flatten()
 
     @property
     def current_population_mean_values(self):
         values = self.do_for_all_devices("get_mean_data", return_type="values")
-        self.do_for_all_devices("reset")
+        self.do_for_all("reset")
         return np.array(values).mean(axis=1).flatten()
 
     @property
