@@ -100,6 +100,7 @@ class _ANNarchyPopulation(HasTraits):
             self._population_ind = self._get_population_ind()
         return self._population_ind
 
+    @property
     def gids(self):
         """Method to get a sequence (list, tuple, array) of the individual gids of nodes's elements"""
         return self._nodes.ranks
