@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from collections import OrderedDict
@@ -57,12 +58,12 @@ class Device(SpikingNodeCollection):
     def _print_from_to(self):
         return "from/to"
 
-    def print_str(self, connectivity=False):
+    def print_str(self, connectivity=False, source_or_target=None):
         output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
             neurons = ensure_list(self.neurons)
             conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
-                                                 summary=3)
+                                                 source_or_target=source_or_target, summary=3)
             output += ",\nconnections %s\n%s," \
                       "\nweights: %s," \
                       "\ndelays: %s," \
@@ -145,7 +146,7 @@ class InputDevice(Device):
 
     """InputDevice class to wrap around an input (stimulating) device"""
 
-    def GetConnections(self):
+    def GetConnections(self, **kwargs):
         """Method to get connections of the device to neurons.
            Returns:
             connections' objects.
@@ -164,7 +165,7 @@ class OutputDevice(Device):
 
     """OutputDevice class to wrap around an output (recording/measuring/monitoring) device"""
 
-    def GetConnections(self):
+    def GetConnections(self, **kwars):
         """Method to get connections of the device from neurons.
            Returns:
             connections' objects.

@@ -102,7 +102,7 @@ class SpikingNodeCollection(HasTraits):
         return extract_integer_intervals(self.gids, print=print)
 
     def _print_nodes(self):
-        return "%d neurons: %s" % (self.number_of_neurons, self.summarize_nodes_indices(print=True))
+        return "%d neurons: %s" % (self.number_of_nodes, self.summarize_nodes_indices(print=True))
 
     def __repr__(self):
         return "%s - Label: %s \nmodel: %s\n%s" % \
@@ -281,15 +281,20 @@ class SpikingNodeCollection(HasTraits):
                      or a list of unique string entries for all other attributes,
                      Default = None, corresponds to returning all values
            Returns:
-            Dictionary of lists of connections' attributes.
+            Dictionary of lists of connections' attributes,
+            or tuple of two such dictionaries for source and target connections
         """
         if source_or_target is None:
             # In case we deal with both source and target connections, treat them separately:
             output = []
             for source_or_target in ["source", "target"]:
                 output.append(self.GetFromConnections(attrs, nodes, source_or_target, summary))
+            if len(output) == 0:
+                return {}
+            if len(output) == 1:
+                return output[0]
             return tuple(output)
-        outputs = self._GetFromConnections(attrs, self.GetConnections(nodes, source_or_target))
+        outputs = self._GetFromConnections(attrs, self.GetConnections(nodes=nodes, source_or_target=source_or_target))
         if summary is not None:
             outputs = summarize(outputs, summary)
         return outputs
