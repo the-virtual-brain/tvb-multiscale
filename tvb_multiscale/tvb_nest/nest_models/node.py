@@ -83,10 +83,11 @@ class _NESTNodeCollection(HasTraits):
             return self.nest_instance.NodeCollection(ensure_list(nodes))
         return nodes
 
+    @property
     def gids(self):
         """Method to get a sequence (list, tuple, array) of the individual gids of nodes's elements"""
         if self._nodes:
-            return self._nodes.global_id
+            return tuple(ensure_list(self._nodes.global_id))
         else:
             return ()
 
@@ -185,7 +186,7 @@ class _NESTNodeCollection(HasTraits):
                 # In case we deal with both source and target connections, treat them separately:
                 outputs = []
                 for connection in connections:
-                    outputs.append(self._GetFromConnections(attrs, connection))
+                    outputs.append(self._GetFromConnections(attrs=attrs, connections=connection))
                 return tuple(outputs)
         if attrs is None:
             return connections.get()

@@ -53,7 +53,7 @@ class NESTDevice(_NESTNodeCollection):
         else:
             return None
 
-    def GetConnections(self):
+    def GetConnections(self, *args, **kwargs):
         """Method to get all connections of the device from neurons.
            Returns:
             SynapseCollection.
@@ -92,6 +92,9 @@ class NESTInputDevice(NESTDevice, InputDevice):
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
         Device.__init__(self, device, **kwargs)
+
+    def print_str(self, connectivity=False):
+        return InputDevice.print_str(self, connectivity, "source")
 
 
 class NESTPoissonGenerator(NESTInputDevice):
@@ -612,7 +615,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
 
     # Only SpikeRecorder is the target of connections with neurons in NEST:
 
-    def GetConnections(self):
+    def GetConnections(self, *args, **kwargs):
         """Method to get connections of the device from neurons.
            Returns:
             connections' objects.
@@ -623,6 +626,9 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected to."""
         return self.get_neurons("source")
+
+    def print_str(self, connectivity=False):
+        return SpikeRecorder.print_str(self, connectivity, "target")
 
 
 class NESTMultimeter(NESTOutputDevice, Multimeter):
@@ -676,8 +682,11 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
             data = xr.DataArray(np.empty((len(times), len(vars), len(senders))), name=name, dims=dims_names,
                                 coords={dims_names[0]: times, dims_names[1]: vars, dims_names[2]: senders})
         return data
-    
-    
+
+    def print_str(self, connectivity=False):
+        return Multimeter.print_str(self, connectivity, "source")
+
+
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
 
     """NESTVoltmeter class to wrap around a NEST voltmeter device"""
@@ -700,7 +709,10 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
     def V_m(self):
         return self.var
     
-    
+    def print_str(self, connectivity=False):
+        return Voltmeter.print_str(self, connectivity, "source")
+
+
 class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
 
     """NESTSpikeMultimeter class to wrap around a NEST multimeter device
@@ -715,6 +727,9 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
         NESTMultimeter.__init__(self, device, nest_instance, **kwargs)
         NESTSpikeRecorder.__init__(self, device, nest_instance, **kwargs)
         SpikeMultimeter.__init__(self, device, **kwargs)
+
+    def print_str(self, connectivity=False):
+        return NESTMultimeter.print_str(self, connectivity)
 
 
 NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder}
