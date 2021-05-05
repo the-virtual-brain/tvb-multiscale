@@ -6,10 +6,7 @@ import pickle  # dill
 import numpy as np
 
 
-def serialize_tvb_cosimulator(input_cosimulator):
-
-    cosimulator = deepcopy(input_cosimulator)
-    cosimulator.configure()
+def serialize_tvb_cosimulator(cosimulator):
 
     d = \
         {"integrator.dt": float(cosimulator.integrator.dt),
@@ -26,6 +23,7 @@ def serialize_tvb_cosimulator(input_cosimulator):
          "monitor.period": float(cosimulator.monitors[0].period),
     }
     d["synchronization_time"] = float(getattr(cosimulator, "synchronization_time", d["integrator.dt"]))
+    d["synchronization_n_step"] = float(getattr(cosimulator, "synchronization_n_step", 1))
     if hasattr(cosimulator.integrator, "noise"):
         d["integrator.noise.nsig"] = cosimulator.integrator.noise.nsig
 
