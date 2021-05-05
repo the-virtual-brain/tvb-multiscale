@@ -57,6 +57,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                doc="Time step of simulation",
                required=True, default=0.0)
 
+    _tvb_delays = None
+
     @property
     @abstractmethod
     def tvb_nodes_inds(self):
@@ -71,6 +73,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     @abstractmethod
     def tvb_dt(self):
         pass
+
+    @property
+    def min_delay(self):
+        return self.spiking_network.min_delay
 
     @property
     @abstractmethod
@@ -102,10 +108,15 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     def tvb_weights(self):
         pass
 
-    @property
     @abstractmethod
-    def tvb_delays(self):
+    def _get_tvb_delays(self):
         pass
+
+    @property
+    def tvb_delays(self):
+        if self._tvb_delays is None:
+            self._tvb_delays = self._get_tvb_delays()
+        return self._tvb_delays
 
     @property
     @abstractmethod
@@ -198,6 +209,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
         delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
         receptor_type_fun = property_to_fun(interface.pop("receptor_type", self._default_receptor_type))
+        syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
+        conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
         # Default behavior for any combination of region nodes and populations
         # is to target all of their neurons:
         neurons_inds_fun = interface.pop("neurons_inds", None)
@@ -208,6 +221,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         weights = np.empty(shape).astype("O")
         delays = np.empty(shape).astype("O")
         receptor_type = np.empty(shape).astype("O")
+        syn_spec = np.tile([None], shape).astype("O")
+        conn_spec = np.tile([None], shape).astype("O")
         neurons_inds = np.tile([None], shape).astype("O")
         device_names = []
         # Apply now possible functions per source and target region node:
@@ -218,6 +233,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 weights[i_src, i_trg] = weight_fun(src_node, trg_node, self.tvb_weights)
                 delays[i_src, i_trg] = delay_fun(src_node, trg_node, self.tvb_delays)
                 receptor_type[i_src, i_trg] = receptor_type_fun(src_node, trg_node)
+                syn_spec[i_src, i_trg] = syn_spec_fun(src_node, trg_node)
+                conn_spec[i_src, i_trg] = conn_spec_fun(src_node, trg_node)
                 if neurons_inds_fun is not None:
                     neurons_inds[i_src, i_trg] = lambda neurons_inds: neurons_inds_fun(src_node, trg_node, neurons_inds)
         _interface = dict()
@@ -225,6 +242,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["weights"] = weights
         _interface["delays"] = delays
         _interface["receptor_type"] = receptor_type
+        _interface["syn_spec"] = syn_spec
+        _interface["conn_spec"] = conn_spec
         _interface["neurons_inds"] = neurons_inds
         _interface["nodes"] = [np.where(self.spiking_nodes_inds == trg_node)[0][0]
                                for trg_node in interface["spiking_proxy_inds"]]
@@ -302,6 +321,14 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         return self.tvb_simulator_serialized.get("integrator.dt", self.config.DEFAULT_DT)
 
     @property
+    def synchronization_time(self):
+        return self.tvb_simulator_serialized.get("synchronization_time", 0.0)
+
+    @property
+    def synchronization_n_step(self):
+        return self.tvb_simulator_serialized.get("synchronization_n_step", 0)
+
+    @property
     def tvb_nsig(self):
         return self.tvb_simulator_serialized.get("integrator.noise.nsig", np.array([0.0]))
 
@@ -333,9 +360,11 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
     def tvb_weights(self):
         return self.tvb_simulator_serialized.get("connectivity.weights", np.zeros((0, 0)))
 
-    @property
-    def tvb_delays(self):
-        return self.tvb_simulator_serialized.get("connectivity.delays", self.tvb_dt * np.ones((0, 0)))
+    def _get_tvb_delays(self):
+        return np.maximum(self.tvb_dt,
+                          np.round(
+                                (self.tvb_simulator_serialized.get("connectivity.delays", self.tvb_dt * np.ones((0, 0)))
+                                 - self.synchronization_time) / self.tvb_dt) * self.tvb_dt).astype("float32")
 
     def _proxy_inds(self, interfaces):
         return np.unique(self._only_inds_for_interfaces(interfaces, "proxy_inds", self.region_labels))
