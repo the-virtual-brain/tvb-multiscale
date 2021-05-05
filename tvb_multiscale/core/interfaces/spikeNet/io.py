@@ -39,6 +39,11 @@ class SpikeNetInputDeviceSet(SetToMemory):
         pass
 
     @property
+    @abstractmethod
+    def next_spiking_time_step(self):
+        pass
+
+    @property
     def next_time_step(self):
         return self.spiking_time + self.dt
 
