@@ -63,12 +63,25 @@ class TVBInterfaceBuilder(InterfaceBuilder):
                            required=True)
 
     _default_out_proxy_inds = np.array([])
+    _tvb_delays = None
 
     @property
     def tvb_dt(self):
         if self.tvb_cosimulator is None:
             return self.config.DEFAULT_DT
         return self.tvb_cosimulator.integrator.dt
+
+    @property
+    def synchronization_time(self):
+        if self.tvb_cosimulator is None:
+            return 0.0
+        return self.tvb_cosimulator.synchronization_time
+
+    @property
+    def synchronization_n_step(self):
+        if self.tvb_cosimulator is None:
+            return 0
+        return self.tvb_cosimulator.synchronization_time
 
     @property
     def tvb_nsig(self):
@@ -119,11 +132,21 @@ class TVBInterfaceBuilder(InterfaceBuilder):
             return np.zeros((0, 0))
         return self.tvb_cosimulator.connectivity.weights
 
+    def _get_tvb_delays(self):
+        if self.tvb_cosimulator is None:
+            delays = self.tvb_dt * np.ones((0, 0))
+        else:
+            delays = self.tvb_cosimulator.connectivity.delays
+        delays = \
+            np.maximum(self.tvb_dt,
+                       np.round((delays - self.synchronization_time) / self.tvb_dt) * self.tvb_dt).astype("float32")
+        return delays
+
     @property
     def tvb_delays(self):
-        if self.tvb_cosimulator is None:
-            return self.tvb_dt * np.ones((0, 0))
-        return self.tvb_cosimulator.connectivity.delays
+        if self._tvb_delays is None:
+            self._tvb_delays = self._get_tvb_delays()
+        return self._tvb_delays
 
     def _proxy_inds(self, interfaces):
         return np.unique(self._only_inds_for_interfaces(interfaces, "proxy_inds", self.region_labels))
