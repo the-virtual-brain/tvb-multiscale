@@ -60,6 +60,7 @@ class RatesToSpikesElephant(RatesToSpikes):
     def _rates_analog_signal(self, rates):
         return self._analog_signal_class(rates*self.rate_unit, sampling_period=self.dt*self.time_unit,
                                          t_start=self._t_start, t_stop=self._t_stop)
+
     @abstractmethod
     def _compute(self, rates, proxy_count, *args, **kwargs):
         """Abstract method for the computation of rates data transformation to spike trains, using elephant software."""
