@@ -35,11 +35,20 @@ class NESTInputDeviceSet(SpikeNetInputDeviceSet):
 
     @property
     def spiking_dt(self):
-        return self.target[0].nest_instance.GetKernelStatus("min_delay")
+        return self.target[0].nest_instance.GetKernelStatus("resolution")
+
+    @property
+    def next_spiking_time_step(self):
+        return self.spiking_time + self.spiking_dt
 
     @abstractmethod
     def send(self, data):
         pass
+
+    def transform_time(self, time):
+        # TODO: Find a solution for NEST first time step
+        # return self.next_spiking_time_step + SpikeNetInputDeviceSet.transform_time(self, time)
+        return np.maximum(self.next_spiking_time_step, SpikeNetInputDeviceSet.transform_time(self, time))
 
 
 class NESTInhomogeneousPoissonGeneratorSet(NESTInputDeviceSet):
