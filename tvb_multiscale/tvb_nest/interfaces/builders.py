@@ -3,6 +3,8 @@
 from logging import Logger
 from enum import Enum
 
+import numpy as np
+
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
@@ -124,6 +126,10 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
         default=initialize_logger(__name__, config=CONFIGURED)
     )
 
+    # def _get_tvb_delays(self):
+    #     return np.maximum(self.min_delay,
+    #                       SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.min_delay).astype("float32")
+
 
 class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
 
@@ -193,3 +199,7 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
 
     def configure(self):
         TVBSpikeNetInterfaceBuilder.configure(self)
+
+    # def _get_tvb_delays(self):
+    #     return np.maximum(self.min_delay,
+    #                       TVBSpikeNetInterfaceBuilder._get_tvb_delays(self) - self.min_delay).astype("float32")
