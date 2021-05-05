@@ -36,6 +36,10 @@ class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
     def spiking_dt(self):
         return self.target[0].dt
 
+    @property
+    def next_spiking_time_step(self):
+        return self.spiking_time + self.spiking_dt
+
     def transform_time(self, time):
         # We need to add a TVB time step to get ANNarchy time in synchronization with TVB time.
         return self.dt * (np.arange(time[0], time[-1] + 1) + 1)
