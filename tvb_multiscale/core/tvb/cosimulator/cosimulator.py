@@ -146,6 +146,8 @@ class CoSimulator(CoSimulatorBase):
            - configure the cosimulation monitor
            - zero connectivity weights to/from nodes modelled exclusively by the other cosimulator
         """
+        self.n_tvb_steps_ran_since_last_synch = None
+        self.n_tvb_steps_sent_to_cosimulator_at_last_synch = None
         self._configure_interfaces_vois_proxy_inds()
         self._configure_cosim_monitors()
         super(CoSimulator, self)._configure_cosimulation()
@@ -162,27 +164,34 @@ class CoSimulator(CoSimulatorBase):
         else:
             super(CoSimulator, self)._prepare_stimulus()
 
-    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+    def _get_cosim_updates(self, cosimulation=True):
+        cosim_updates = None
         if cosimulation and self.input_interfaces:
             # Get the update data from the other cosimulator
             cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape)
             if np.all(np.isnan(cosim_updates[1])):
                 cosim_updates = None
-        else:
-            cosim_updates = None
+        return cosim_updates
+
+    def _send_cosim_coupling(self, cosimulation=True):
+        if cosimulation and self.output_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
+            # Send the data to the other cosimulator
+            self.output_interfaces(
+                self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
+            self.n_tvb_steps_sent_to_cosimulator_at_last_synch = int(self.n_tvb_steps_ran_since_last_synch)
+            self.n_tvb_steps_ran_since_last_synch = 0
+
+    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         # Loop of integration for synchronization_time
+        self._send_cosim_coupling(self._cosimulation_flag)
         current_step = int(self.current_step)
-        for data in self(cosim_updates=cosim_updates, **kwds):
+        for data in self(cosim_updates=self._get_cosim_updates(cosimulation), **kwds):
             for tl, xl, t_x in zip(ts, xs, data):
                 if t_x is not None:
                     t, x = t_x
                     tl.append(t)
                     xl.append(x)
         steps_performed = self.current_step - current_step
-        if cosimulation and self.output_interfaces.interfaces:
-            # Send the data to the other cosimulator
-            self.output_interfaces(
-                self.loop_cosim_monitor_output(steps_performed))
         elapsed_wall_time = time.time() - wall_time_start
         self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
                       elapsed_wall_time * 1e3 / self.simulation_length)
@@ -192,12 +201,16 @@ class CoSimulator(CoSimulatorBase):
         simulated_steps = 0
         simulation_length = self.simulation_length
         synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
+        if self.n_tvb_steps_ran_since_last_synch is None:
+            self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
         remaining_steps = int(np.round(simulation_length / self.integrator.dt))
         while remaining_steps > 0:
-            self.synchronization_n_step = np.minimum(synchronization_n_step, remaining_steps)
-            steps_performed = self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
+            self.synchronization_n_step = np.minimum(remaining_steps, synchronization_n_step)
+            steps_performed = \
+                self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
             simulated_steps += steps_performed
             remaining_steps -= steps_performed
+            self.n_tvb_steps_ran_since_last_synch += steps_performed
             self.log.info("...%.3f%% completed!", 100 * (simulated_steps * self.integrator.dt) / simulation_length)
         self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
         if self._cosimulation_flag:

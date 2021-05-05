@@ -48,6 +48,7 @@ class CoSimulatorSerial(CoSimulator):
         steps_performed = \
             super(CoSimulatorSerial, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation, **kwds)
         if cosimulation and self.simulate_spiking_simulator is not None:
-            self.log.info("Simulating the spiking network for %d time steps...", steps_performed)
-            self.simulate_spiking_simulator(steps_performed*self.integrator.dt)
+            self.log.info("Simulating the spiking network for %d time steps...",
+                          self.n_tvb_steps_sent_to_cosimulator_at_last_synch)
+            self.simulate_spiking_simulator(self.n_tvb_steps_sent_to_cosimulator_at_last_synch * self.integrator.dt)
         return steps_performed

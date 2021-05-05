@@ -283,6 +283,8 @@ class CoSimulatorBuilder(HasTraits):
 
         simulator.log.setLevel(20)
 
+        simulator.configure()
+
         return simulator
 
 
