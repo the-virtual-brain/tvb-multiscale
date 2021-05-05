@@ -62,10 +62,11 @@ class Config(ConfigBase):
                                       "spike_recorder": {"record_to": "memory"},
                                       "spike_multimeter": {'record_from': ["spike"], "record_to": "memory"}}
 
-    NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"allow_offgrid_times": True},
+    NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"shift_now_spikes": True},
                                      "poisson_generator": {},
                                      "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
                                      "inhomogeneous_poisson_generator": {"allow_offgrid_times": True},
+                                     "parrot_spike_generator": {"shift_now_spikes": True},
                                      "parrot_poisson_generator": {},
                                      "parrot_mip_generator": {"p_copy": 0.5, "mother_seed": 0},
                                      "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
