@@ -316,10 +316,11 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
 
     def __call__(self, data):
         for interface in self.interfaces:
-            interface([np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),               #  start_time_step
-                                 np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i"),  #  end_time_step
-                       # data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-                       data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
+            times = np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),                # start_time_step
+                              np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
+            times += times[1] - times[0]  # adding the synchronization time
+            #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
+            interface([times, data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
 
 class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
