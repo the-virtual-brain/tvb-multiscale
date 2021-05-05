@@ -46,8 +46,15 @@ class Transformer(HasTraits):
         default=np.array([]).astype("i")
     )
 
+    time_shift = Float(
+        label="Time shit",
+        doc="""Time shift for output time/spike times, depending on the transformation. Default = 0.0""",
+        required=True,
+        default=0.0
+    )
+
     def compute_time(self):
-        self.output_time = np.copy(self.input_time)
+        self.output_time = np.copy(self.input_time) + np.round(self.time_shift / self.dt).astype("i")
 
     @abstractmethod
     def compute(self, *args, **kwargs):
@@ -297,6 +304,14 @@ class RatesToSpikes(Scale):
     def _number_of_neurons(self):
         return self._assert_size("number_of_neurons")
 
+    @property
+    def _t_start(self):
+        return (self.dt * self.input_time[0] + self.time_shift) * self.ms
+
+    @property
+    def _t_stop(self):
+        return (self.dt * self.input_time[-1] + self.time_shift) * self.ms
+
     @abstractmethod
     def _compute(self, rates, proxy_count, *args, **kwargs):
         """Abstract method for the computation of rates data transformation to spike trains."""
@@ -330,18 +345,26 @@ class SpikesToRates(Scale):
         default=np.array([])
     )
 
-    @abstractmethod
-    def _compute(self, spikes, *args, **kwargs):
-        """Abstract method for the computation of spike trains data transformation
-           to instantaneous mean spiking rates."""
-        pass
-
     @property
     def _scale_factor(self):
         return self._assert_size("scale_factor")
 
     def configure(self):
         super(SpikesToRates, self).configure()
+
+    @property
+    def _t_start(self):
+        return (self.dt * self.input_time[0] + self.time_shift) * self.ms
+
+    @property
+    def _t_stop(self):
+        return (self.dt * self.input_time[-1] + self.time_shift) * self.ms
+
+    @abstractmethod
+    def _compute(self, spikes, *args, **kwargs):
+        """Abstract method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates."""
+        pass
 
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
