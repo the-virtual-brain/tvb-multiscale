@@ -17,7 +17,7 @@ def serialize_tvb_cosimulator(cosimulator):
          "coupling.a": np.copy(cosimulator.coupling.a),
          "model": str(cosimulator.model.__class__.__name__),
          "model.nvar": int(cosimulator.model.nvar),
-         "model.nintvar": int(cosimulator.model.nintvar),
+         "model.nintvar": int(cosimulator.model.nintvar) if cosimulator.model.nintvar is not None else 0,
          "model.state_variables": list(cosimulator.model.state_variables),
          "model.cvar": np.copy(cosimulator.model.cvar),
          "monitor.period": float(cosimulator.monitors[0].period),
