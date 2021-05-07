@@ -50,3 +50,7 @@ class NESTNetwork(SpikingNetwork):
     @property
     def min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
+
+    @property
+    def dt(self):
+        return self.nest_instance.GetKernelStatus("resolution")
