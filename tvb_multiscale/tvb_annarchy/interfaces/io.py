@@ -36,20 +36,30 @@ class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
     def spiking_dt(self):
         return self.target[0].dt
 
-    @property
-    def next_spiking_time_step(self):
-        return self.spiking_time + self.spiking_dt
-
-    def transform_time(self, time):
-        # We need to add a TVB time step to get ANNarchy time in synchronization with TVB time.
-        return self.dt * (np.arange(time[0], time[-1] + 1) + 1)
-
     @abstractmethod
     def send(self, data):
         pass
 
 
-class ANNarchyTimedPoissonPopulationSet(ANNarchyInputDeviceSet):
+class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
+
+    """
+        ANNarchyTimedArraySet class to set data directly to a DeviceSet of ANNarchyTimedArray instances in memory.
+        It comprises of:
+            - a target attribute, i.e., the DeviceSet of ANNarchyTimedArray instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "TimedArray"
+
+    _spikeNet_input_device_type = ANNarchyTimedArray
+
+    def send(self, data):
+        # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
+        self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
+
+
+class ANNarchyTimedPoissonPopulationSet(ANNarchyTimedArraySet):
 
     """
         ANNarchyTimedPoissonPopulationSet class to set data directly to a DeviceSet
@@ -63,14 +73,14 @@ class ANNarchyTimedPoissonPopulationSet(ANNarchyInputDeviceSet):
 
     _spikeNet_input_device_type = ANNarchyTimedPoissonPopulation
 
-    def send(self, data):
-        # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        # Rate times do not need to be advanced by dt,
-        # because they anyway count from the start time of the simulation = dt
-        self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
+    # def send(self, data):
+    #     # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
+    #     # Rate times do not need to be advanced by dt,
+    #     # because they anyway count from the start time of the simulation = dt
+    #     self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
 
 
-class ANNarchyHomogeneousCorrelatedSpikeTrainsSet(ANNarchyInputDeviceSet):
+class ANNarchyHomogeneousCorrelatedSpikeTrainsSet(ANNarchyTimedArraySet):
 
     """
         ANNarchyHomogeneousCorrelatedSpikeTrainsSet class to set data directly to a DeviceSet
@@ -84,12 +94,12 @@ class ANNarchyHomogeneousCorrelatedSpikeTrainsSet(ANNarchyInputDeviceSet):
     model = "HomogeneousCorrelatedSpikeTrains"
 
     _spikeNet_input_device_type = ANNarchyHomogeneousCorrelatedSpikeTrains
-
-    def send(self, data):
-        # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        # Rate times do not need to be advanced by dt,
-        # because they anyway count from the start time of the simulation = dt
-        self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
+    #
+    # def send(self, data):
+    #     # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
+    #     # Rate times do not need to be advanced by dt,
+    #     # because they anyway count from the start time of the simulation = dt
+    #     self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
 
 
 class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
@@ -111,25 +121,8 @@ class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
         # data[-1] >= self.next_time_step
         # Spike times do not need to be advanced by dt,
         # because they anyway count from the start time of the simulation = dt
-        self.target.Set({"spike_times": data[-1]})
-
-
-class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
-
-    """
-        ANNarchyTimedArraySet class to set data directly to a DeviceSet of ANNarchyTimedArray instances in memory.
-        It comprises of:
-            - a target attribute, i.e., the DeviceSet of ANNarchyTimedArray instances to send data to,
-            - a method to set data to the target.
-    """
-
-    model = "TimedArray"
-
-    _spikeNet_input_device_type = ANNarchyTimedArray
-
-    def send(self, data):
-        # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
+        for reg, spikes in zip(self.target, data[-1]):
+            reg.add_spikes(spikes, time_shift=None, sort=False)
 
 
 class ANNarchyOutputDeviceSet(SpikeNetOutputDeviceSet):
@@ -248,7 +241,7 @@ class ANNarchyMonitorSet(ANNarchyOutputDeviceSet):
                                                     fill_value=np.nan, transpose_dims=None)
         # Unlike spikes, the continuous variable's times are recorded at time t for the time step t-dt -> t
         # Therefore, we need to subtract the TVB dt to be at the same time as TVB
-        time = data.coords["Time"].values - self.dt
+        time = data.coords["Time"].values
         # data[0] will be start and end times
         # data[1] will be values array in (time x variables x proxies) shape
         return [np.array([time[0], time[-1]]), data.values]
