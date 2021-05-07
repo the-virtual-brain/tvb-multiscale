@@ -261,6 +261,36 @@ class ANNarchySpikeSourceArray(ANNarchyInputDevice):
         kwargs["model"] = kwargs.get("model", "SpikeSourceArray")
         ANNarchyInputDevice.__init__(self, device, annarchy_instance, **kwargs)
 
+    def add_spikes(self, spikes, time_shift=None, nodes=None, sort=False):
+        if len(spikes):
+            current_time = self.annarchy_instance.get_time()
+            if time_shift:
+                # Apply time_shift, if any
+                new_spikes = []
+                for i_sp, spike in enumerate(spikes):
+                    new_spike = np.array(spike) + time_shift
+                    if len(new_spike.shape):
+                        # if spikes is a sequence of sequences for each neuron
+                        new_spikes.append(ensure_list(new_spike[new_spike >= current_time]))
+                    else:
+                        # if spikes is a sequence of the same spikes for all neurons
+                        if new_spike > current_time:
+                            new_spikes.append(new_spike.item())
+                spikes = new_spikes
+            if len(spikes) != self._size:
+                # Assume we have to add the same spikes to all neurons
+                spikes = ensure_list(spikes) * len(nodes)
+            old_spikes = self.device.get("spike_times")
+            new_spikes = []
+            for old_spike, new_spike in zip(old_spikes, spikes):
+                old_spike = np.array(old_spike)
+                old_spike = old_spike[old_spike >= current_time].tolist()
+                new_spike = old_spike + ensure_list(new_spike)
+                if len(new_spike) and sort:
+                    new_spike = np.sort(new_spike).tolist()
+                new_spikes.append(new_spike)
+            self.device.set({"spike_times": new_spikes})
+
     def reset(self):
         self._nodes.reset()
 
@@ -353,7 +383,7 @@ class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
 
     def __init__(self, device=Population(0, neuron=DCCurrentInjector), annarchy_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "DCCurrentInjector")
-        ANNarchyContinuousInputDevice.__init__(self, device, annarchy_instance, **kwargs)
+        ANNarchyCurrentInjector.__init__(self, device, annarchy_instance, **kwargs)
 
 
 class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
@@ -367,7 +397,7 @@ class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
 
     def __init__(self, device=Population(0, neuron=ACCurrentInjector), annarchy_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "ACCurrentInjector")
-        ANNarchyContinuousInputDevice.__init__(self, device, annarchy_instance, **kwargs)
+        ANNarchyCurrentInjector.__init__(self, device, annarchy_instance, **kwargs)
 
 
 class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
@@ -379,7 +409,7 @@ class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
 
     def __init__(self, device=TimedPoissonPopulation(0, [], []), annarchy_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "TimedPoissonPopulation")
-        ANNarchyContinuousInputDevice.__init__(self, device, annarchy_instance, **kwargs)
+        ANNarchyInputDevice.__init__(self, device, annarchy_instance, **kwargs)
 
 
 ANNarchyInputDeviceDict = {}
