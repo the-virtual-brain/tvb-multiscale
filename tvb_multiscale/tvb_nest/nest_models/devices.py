@@ -36,6 +36,7 @@ class NESTDevice(_NESTNodeCollection):
                   label="NEST device ", doc="""Device NodeCollection instance""")
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
+        self.device = device
         _NESTNodeCollection.__init__(self, device, nest_instance, **kwargs)
 
     def _assert_device(self):
@@ -200,6 +201,36 @@ class NESTSpikeGenerator(NESTInputDevice):
         for key, vals in values_dict.items():
             for i_dev, val in enumerate(self._assert_value_size(vals)):
                 nodes[i_dev].set({key: val})
+
+    def add_spikes(self, spikes, time_shift=None, nodes=None, sort=False):
+        if len(spikes):
+            if nodes is None:
+                nodes = self.device
+            n_neurons = len(nodes)
+            current_time = self.nest_instance.GetKernelStatus("time")
+            if time_shift:
+                # Apply time_shift, if any
+                new_spikes = []
+                for i_sp, spike in enumerate(spikes):
+                    new_spike = np.array(spike) + time_shift
+                    if len(new_spike.shape):
+                        # if spikes is a sequence of sequences for each neuron
+                        new_spikes.append(ensure_list(new_spike[new_spike > current_time]))
+                    else:
+                        # if spikes is a sequence of the same spikes for all neurons
+                        if new_spike > current_time:
+                            new_spikes.append(new_spike.item())
+                spikes = new_spikes
+            if len(spikes) != n_neurons:
+                # Assume we have to add the same spikes to all neurons
+                spikes = ensure_list(spikes) * len(nodes)
+            for neuron, new_spikes in zip(nodes, spikes):
+                old_spikes = np.array(neuron.get("spike_times"))
+                old_spikes = old_spikes[old_spikes > current_time].tolist()
+                these_spikes = old_spikes + ensure_list(new_spikes)
+                if len(these_spikes) and sort:
+                    these_spikes = np.sort(these_spikes).tolist()
+                neuron.set({"spike_times": these_spikes})
 
 
 class NESTPulsePacketGenerator(NESTInputDevice):
@@ -527,12 +558,16 @@ class NESTOutputDevice(NESTDevice):
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "nest_output_device")
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
-        if kwargs.get("record_to", "ascii") == "ascii":
-            self._get_events = self._get_events_from_ascii
-            self._reset = self._delete_events_in_ascii_files
-        else:
-            self._get_events = self._get_events_from_memory
-            self._reset = self._delete_events_in_memory
+        self._update_record_to()
+
+    def _update_record_to(self):
+        if self.device:
+            if self.device.get("record_to") == "ascii":
+                self._get_events = self._get_events_from_ascii
+                self._reset = self._delete_events_in_ascii_files
+            else:
+                self._get_events = self._get_events_from_memory
+                self._reset = self._delete_events_in_memory
 
     @property
     def record_from(self):
@@ -553,10 +588,14 @@ class NESTOutputDevice(NESTDevice):
             this_file_events = read_nest_output_device_data_from_ascii_to_dict(filepath)
             for key in events.keys():
                 events[key] = events[key] + this_file_events[key]
+        # Advance the _output_events_counter
+        self._output_events_counter = self.device.get("n_events")
         return events
 
     def _get_events_from_memory(self):
         if self.device:
+            # Advance the _output_events_counter
+            self._output_events_counter = self.device.get("n_events")
             return self.device.get("events")
         else:
             return {"times": [], "senders": []}
@@ -564,8 +603,6 @@ class NESTOutputDevice(NESTDevice):
     def get_events(self, **kwargs):
         if self.device:
             events = super(NESTOutputDevice, self).get_events(**kwargs)
-            # Advance the _output_events_counter
-            self._output_events_counter = self.device.get("n_events")
             return events
         else:
             return {"times": [], "senders": []}
