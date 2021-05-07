@@ -305,6 +305,7 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     record = params.pop("record", None)
     annarchy_device._nodes = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
                                                params=params, import_path=import_path, config=config)
+    annarchy_device.device = annarchy_device._nodes
     annarchy_device._nodes.name = annarchy_device.label
     if record is not None:
         rec_params = {}
