@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 from tvb.basic.neotraits._core import HasTraits
-from tvb.basic.neotraits._attr import Attr, List
+from tvb.basic.neotraits._attr import Attr, Int, Float, List
 
 from tvb_multiscale.core.config import LINE
 from tvb_multiscale.core.interfaces.base.io import Communicator, Sender, Receiver
@@ -20,6 +20,19 @@ class BaseInterface(HasTraits):
         required=False,
         default=""
     )
+
+    synchronization_time = Float(
+        label="Synchronization Time",
+        default=0.0,
+        required=True,
+        doc="""Cosimulation synchronization time (ms) for exchanging data 
+               in milliseconds, must be an integral multiple of integration-step size.""")
+
+    synchronization_n_step = Int(
+        label="Synchronization time steps",
+        default=0,
+        required=True,
+        doc="""Cosimulation synchronization time steps (int) for exchanging data.""")
 
     @property
     def label(self):
@@ -292,6 +305,19 @@ class BaseInterfaces(HasTraits):
 
     interfaces = List(of=BaseInterface)
 
+    synchronization_time = Float(
+        label="Synchronization Time",
+        default=0.0,
+        required=True,
+        doc="""Cosimulation synchronization time (ms) for exchanging data 
+               in milliseconds, must be an integral multiple of integration-step size.""")
+
+    synchronization_n_step = Int(
+        label="Synchronization time steps",
+        default=0,
+        required=True,
+        doc="""Cosimulation synchronization time steps (int) for exchanging data.""")
+
     @property
     def number_of_interfaces(self):
         return len(self.interfaces)
@@ -307,6 +333,14 @@ class BaseInterfaces(HasTraits):
         super(BaseInterfaces, self).configure()
         for interface in self.interfaces:
             interface.configure()
+            if self.synchronization_time <= 0.0:
+                self.synchronization_time = interface.synchronization_time
+            else:
+                assert self.synchronization_time == interface.synchronization_time
+            if self.synchronization_n_step <= 0:
+                self.synchronization_n_step = interface.synchronization_n_step
+            else:
+                assert self.synchronization_n_step == interface.synchronization_n_step
 
     @property
     def labels(self):
