@@ -149,6 +149,11 @@ class SpikingNetwork(HasTraits):
         pass
 
     @property
+    @abstractmethod
+    def dt(self):
+        pass
+
+    @property
     def nodes_labels(self):
         return list(self.brain_regions.index)
 

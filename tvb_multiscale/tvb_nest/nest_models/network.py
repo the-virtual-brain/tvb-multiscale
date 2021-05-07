@@ -51,6 +51,10 @@ class NESTNetwork(SpikingNetwork):
     def min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
 
+    @property
+    def dt(self):
+        return self.nest_instance.GetKernelStatus("resolution")
+
     def configure(self, *args, **kwargs):
         """Method to configure NEST network simulation.
            It will run nest.Prepare(*args, **kwargs)
