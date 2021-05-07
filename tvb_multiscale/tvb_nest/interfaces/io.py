@@ -37,18 +37,14 @@ class NESTInputDeviceSet(SpikeNetInputDeviceSet):
     def spiking_dt(self):
         return self.target[0].nest_instance.GetKernelStatus("resolution")
 
-    @property
-    def next_spiking_time_step(self):
-        return self.spiking_time + self.spiking_dt
-
     @abstractmethod
     def send(self, data):
         pass
 
     def transform_time(self, time):
         # TODO: Find a solution for NEST first time step
-        # return self.next_spiking_time_step + SpikeNetInputDeviceSet.transform_time(self, time)
-        return np.maximum(self.next_spiking_time_step, SpikeNetInputDeviceSet.transform_time(self, time))
+        return np.maximum(self.next_spiking_time_step,
+                          SpikeNetInputDeviceSet.transform_time(self, time) + self.spiking_dt)
 
 
 class NESTInhomogeneousPoissonGeneratorSet(NESTInputDeviceSet):
@@ -85,15 +81,9 @@ class NESTParrotInhomogeneousPoissonGeneratorSet(NESTInhomogeneousPoissonGenerat
 
     _spikeNet_input_device_type = NESTParrotInhomogeneousPoissonGenerator
 
-    def send(self, data):
-        # Assuming data is of shape (proxy, time)
-        # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
-        # time = self.transform_time(data[0])
-        # spiking_dt = self.spiking_dt
-        # if time[0] - self.spiking_time >= spiking_dt:
-        #     time -= spiking_dt
-        self.target.Set({"rate_times": [self.transform_time(data[0]).tolist()] * data[1].shape[0],
-                         "rate_values": np.maximum([0.0], data[1]).tolist()})
+    # def send(self, data):
+    #     # Assuming data is of shape (proxy, time)
+    #     # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
 
 
 class NESTSpikeGeneratorSet(NESTInputDeviceSet):
@@ -112,7 +102,8 @@ class NESTSpikeGeneratorSet(NESTInputDeviceSet):
     def send(self, data):
         # TODO: Decide whether to check for the values being in the future...:
         # data[-1] >= self.next_time_step
-        self.target.Set({"spike_times": data[-1]})
+        for reg, spikes in zip(self.target, data[-1]):
+            reg.add_spikes(spikes, time_shift=self.spiking_dt, sort=False)
 
 
 class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
@@ -129,18 +120,8 @@ class NESTParrotSpikeGeneratorSet(NESTSpikeGeneratorSet):
 
     _spikeNet_input_device_type = NESTParrotSpikeGenerator
 
-    def send(self, data):
-        # TODO: Decide whether to check for the values being in the future...:
-        # data[-1] >= self.next_time_step
-        # TODO: Decide if this is necessary, given that we can reduce the delays to the target nodes by resolution time
-        # Send the spikes one NEST time step earlier to account for the
-        # spiking_dt = self.spiking_dt
-        # spiking_time = self.spiking_time
-        # for proxy in data[-1]:
-        #     for iN, neuron in enumerate(proxy):
-        #         if len(neuron) and (neuron[0] - spiking_time) >= spiking_dt:
-        #             proxy[iN] = [spike - spiking_dt for spike in neuron]
-        self.target.Set({"spike_times": data[-1]})
+    # def send(self, data):
+    #     # TODO: Decide whether to check for the values being in the future...:
 
 
 class NESTStepCurrentGeneratorSet(NESTInputDeviceSet):
