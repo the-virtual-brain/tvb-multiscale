@@ -306,7 +306,7 @@ class RatesToSpikes(Scale):
 
     @property
     def _t_start(self):
-        return (self.dt * self.input_time[0] + self.time_shift) * self.ms
+        return (self.dt * (self.input_time[0] - 1) + self.time_shift) * self.ms
 
     @property
     def _t_stop(self):
@@ -354,7 +354,7 @@ class SpikesToRates(Scale):
 
     @property
     def _t_start(self):
-        return (self.dt * self.input_time[0] + self.time_shift) * self.ms
+        return (self.dt * (self.input_time[0] - 1) + self.time_shift) * self.ms
 
     @property
     def _t_stop(self):
