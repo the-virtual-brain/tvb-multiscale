@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
+
+from abc import ABCMeta, abstractmethod, ABC
 from logging import Logger
 from six import string_types
 
 import numpy as np
 
 from tvb.basic.neotraits._core import HasTraits
-from tvb.basic.neotraits._attr import Attr, List, NArray
+from tvb.basic.neotraits._attr import Attr, Float, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 
 
-class InterfaceBuilder(HasTraits):
+class InterfaceBuilder(HasTraits, ABC):
+    __metaclass__ = ABCMeta
 
     config = Attr(
         label="Configuration",
@@ -53,6 +56,16 @@ class InterfaceBuilder(HasTraits):
 
     def _loop_to_get_unique_from_interface_configs(self, interfaces, attr):
         return np.unique(self._loop_to_get_from_interface_configs(interfaces, attr))
+
+    @property
+    @abstractmethod
+    def synchronization_time(self):
+        pass
+
+    @property
+    @abstractmethod
+    def synchronization_n_step(self):
+        pass
 
     @property
     def out_proxy_inds(self):
@@ -137,10 +150,14 @@ class InterfaceBuilder(HasTraits):
         return interface
 
     def build_output_interface(self, interface):
-        return self._output_interface_type(**self._get_output_interface_arguments(interface))
+        return self._output_interface_type(synchronization_time=self.synchronization_time,
+                                           synchronization_n_step=self.synchronization_n_step,
+                                           **self._get_output_interface_arguments(interface))
 
     def build_input_interface(self, interface):
-        return self._input_interface_type(**self._get_input_interface_arguments(interface))
+        return self._input_interface_type(synchronization_time=self.synchronization_time,
+                                          synchronization_n_step=self.synchronization_n_step,
+                                          **self._get_input_interface_arguments(interface))
 
     def build_interfaces(self):
         self._output_interfaces = []

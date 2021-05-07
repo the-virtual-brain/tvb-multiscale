@@ -81,7 +81,7 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def synchronization_n_step(self):
         if self.tvb_cosimulator is None:
             return 0
-        return self.tvb_cosimulator.synchronization_time
+        return self.tvb_cosimulator.synchronization_n_step
 
     @property
     def tvb_nsig(self):
@@ -129,18 +129,15 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     @property
     def tvb_weights(self):
         if self.tvb_cosimulator is None:
-            return np.zeros((0, 0))
+            return np.zeros((1, 1))
         return self.tvb_cosimulator.connectivity.weights
 
     def _get_tvb_delays(self):
         if self.tvb_cosimulator is None:
-            delays = self.tvb_dt * np.ones((0, 0))
+            idelays = np.ones((1, 1))
         else:
-            delays = self.tvb_cosimulator.connectivity.delays
-        delays = \
-            np.maximum(self.tvb_dt,
-                       np.round((delays - self.synchronization_time) / self.tvb_dt) * self.tvb_dt).astype("float32")
-        return delays
+            idelays = self.tvb_cosimulator.connectivity.idelays
+        return self.tvb_dt * idelays
 
     @property
     def tvb_delays(self):

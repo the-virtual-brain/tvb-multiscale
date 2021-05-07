@@ -3,6 +3,8 @@
 from logging import Logger
 from enum import Enum
 
+import numpy as np
+
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
@@ -192,3 +194,8 @@ class TVBANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, TVBSpikeNetInterfac
 
     def configure(self):
         TVBSpikeNetInterfaceBuilder.configure(self)
+
+    def _get_tvb_delays(self):
+        return np.maximum(self.spiking_dt,
+                          TVBSpikeNetInterfaceBuilder._get_tvb_delays(self) -
+                          self.synchronization_time + self.tvb_dt)

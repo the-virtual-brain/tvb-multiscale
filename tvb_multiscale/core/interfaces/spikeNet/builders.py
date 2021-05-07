@@ -75,6 +75,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         pass
 
     @property
+    def spiking_dt(self):
+        return self.spiking_network.dt
+
+    @property
     def min_delay(self):
         return self.spiking_network.min_delay
 
@@ -282,7 +286,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         # TODO: Figure out if we ever going to need interfaces for multiple state variables!
         _interface["connections"] = {interface["voi_labels"][0].item(): interface["populations"]}
         # Generate the devices <== "proxy TVB nodes":
-        interface["proxy"] = interface["proxy"](source=self._build_and_connect_devices(_interface)[0])
+        interface["proxy"] = interface["proxy"](dt=self.dt,
+                                                source=self._build_and_connect_devices(_interface)[0])
 
 
 class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC):
@@ -358,13 +363,14 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
 
     @property
     def tvb_weights(self):
-        return self.tvb_simulator_serialized.get("connectivity.weights", np.zeros((0, 0)))
+        return self.tvb_simulator_serialized.get("connectivity.weights", np.zeros((1, 1)))
 
     def _get_tvb_delays(self):
-        return np.maximum(self.tvb_dt,
-                          np.round(
-                                (self.tvb_simulator_serialized.get("connectivity.delays", self.tvb_dt * np.ones((0, 0)))
-                                 - self.synchronization_time) / self.tvb_dt) * self.tvb_dt).astype("float32")
+        # This is good for ANNarchy because one can set the devices' state at time 0.0
+        # For NEST, one has to subtract 1 NEST time step.
+        return np.maximum(1,
+                          self.tvb_simulator_serialized.get("connectivity.idelays", np.ones((1, 1)))
+                          - self.synchronization_n_step + 1) * self.tvb_dt
 
     def _proxy_inds(self, interfaces):
         return np.unique(self._only_inds_for_interfaces(interfaces, "proxy_inds", self.region_labels))

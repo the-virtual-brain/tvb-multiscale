@@ -126,9 +126,9 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
         default=initialize_logger(__name__, config=CONFIGURED)
     )
 
-    # def _get_tvb_delays(self):
-    #     return np.maximum(self.min_delay,
-    #                       SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.min_delay).astype("float32")
+    def _get_tvb_delays(self):
+        return np.maximum(self.spiking_dt,
+                          SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
 
 
 class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
@@ -200,6 +200,8 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
     def configure(self):
         TVBSpikeNetInterfaceBuilder.configure(self)
 
-    # def _get_tvb_delays(self):
-    #     return np.maximum(self.min_delay,
-    #                       TVBSpikeNetInterfaceBuilder._get_tvb_delays(self) - self.min_delay).astype("float32")
+    def _get_tvb_delays(self):
+        return (np.maximum(1,
+                           np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
+                                    - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
+                           ) * self.spiking_dt).astype("float32")
