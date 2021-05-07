@@ -40,15 +40,19 @@ class SpikeNetInputDeviceSet(SetToMemory):
 
     @property
     @abstractmethod
-    def next_spiking_time_step(self):
+    def spiking_dt(self):
         pass
+
+    @property
+    def next_spiking_time_step(self):
+        return self.spiking_time + self.spiking_dt
 
     @property
     def next_time_step(self):
         return self.spiking_time + self.dt
 
     def transform_time(self, time):
-        return self.dt * np.arange(time[0], time[-1] + 1)
+        return self.dt * np.arange(time[0]-1, time[-1])
 
     def configure(self):
         super(SpikeNetInputDeviceSet, self).configure()
@@ -80,6 +84,11 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
                      label="Variables",
                      doc="""List of lists of variables (str) recorded by this SpikeNetOutputDeviceSet instance
                             per device node (proxy)""")
+
+    dt = Float(label="Time step",
+               doc="Time step of simulation",
+               required=True,
+               default=0.1)
 
     _spikeNet_output_device_type = OutputDevice
 
