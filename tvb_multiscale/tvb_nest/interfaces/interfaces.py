@@ -2,8 +2,6 @@
 
 from abc import ABCMeta, abstractmethod
 
-import numpy as np
-
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
@@ -11,6 +9,7 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
+    SpikeNetOutputInterface, SpikeNetInputInterface, \
     SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
@@ -46,25 +45,8 @@ class NESTInterface(HasTraits):
     def time(self):
         return self.nest_instance.GetKernelStatus("time")
 
-    @property
-    @abstractmethod
-    def proxy_gids(self):
-        pass
 
-    def _get_proxy_gids(self, nest_devices):
-        gids = nest_devices.get("global_id")
-        if isinstance(gids, dict):
-            return gids["global_id"]
-
-    @property
-    def number_of_proxy_gids(self):
-        return self.proxy_gids.shape[0]
-
-    def print_str(self):
-        return "\nNEST proxy nodes' gids:\n%s" % extract_integer_intervals(self.proxy_gids, print=True)
-
-
-class NESTOutputInterface(NESTInterface):
+class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
 
     """NESTOutputInterface base class for interfaces sending data from NEST."""
 
@@ -74,38 +56,9 @@ class NESTOutputInterface(NESTInterface):
                  field_type=NESTOutputDeviceSet,
                  required=True)
 
-    dt = Float(label="Time step",
-               doc="Time step of simulation",
-               required=True,
-               default=0.1)
-
-    times = NArray(
-        dtype=np.int,
-        label="Indices of Spiking Network proxy nodes",
-        doc="""Indices of Spiking Network proxy nodes""",
-        required=True,
-        default=np.array([1, 0])
-    )
-
     @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
-
-    def get_proxy_data(self):
-        data = self.proxy()
-        if len(data[0]) == 2:
-            # This will work for multimeters:
-            self.times = np.array([np.round(data[0][0] / self.dt),  # start_time_step
-                                   np.round(data[0][1] / self.dt)]).astype("i")
-        else:
-            # This will work for spike recorders:
-            time = np.int(np.round(self.time/self.dt))
-            times = self.times.copy()
-            if time > times[1]:
-                times[0] = times[1] + 1
-                times[1] = time
-            self.times = times
-        return [self.times, data[-1]]
 
 
 class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
@@ -129,7 +82,7 @@ class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOut
         return self.transform_send(NESTOutputInterface.get_proxy_data(self))
 
 
-class NESTInputInterface(NESTInterface):
+class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
 
     """NESTInputInterface base class for interfaces receiving data to NEST."""
 

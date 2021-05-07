@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from abc import ABCMeta, abstractmethod
+
 import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
@@ -12,6 +14,8 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
 class SpikeNetInterface(HasTraits):
+
+    __metaclass__ = ABCMeta
 
     """SpikeNetInterface abstract base class."""
 
@@ -46,6 +50,20 @@ class SpikeNetInterface(HasTraits):
     def number_of_populations(self):
         return self.populations.shape[0]
 
+    def _get_proxy_gids(self, nest_devices):
+        gids = nest_devices.get("global_id")
+        if isinstance(gids, dict):
+            return gids["global_id"]
+
+    @property
+    @abstractmethod
+    def proxy_gids(self):
+        pass
+
+    @property
+    def number_of_proxy_gids(self):
+        return self.proxy_gids.shape[0]
+
     def print_str(self, sender_not_receiver=None):
         if sender_not_receiver is True:
             spikeNet_source_or_target = "Sender "
@@ -54,9 +72,12 @@ class SpikeNetInterface(HasTraits):
         else:
             spikeNet_source_or_target = ""
         return "\nSpiking Network populations: %s" \
-               "\n%Spiking Network proxy nodes' indices: %s" % \
+               "\n%Spiking Network proxy nodes' \n" \
+               "indices: %s\nand gids: %s" % \
                (str(self.populations.tolist()),
-                spikeNet_source_or_target, extract_integer_intervals(self.spiking_proxy_inds, print=True))
+                spikeNet_source_or_target,
+                extract_integer_intervals(self.spiking_proxy_inds, print=True),
+                extract_integer_intervals(self.proxy_gids, print=True))
 
 
 class SpikeNetOutputInterface(SpikeNetInterface):
@@ -74,6 +95,14 @@ class SpikeNetOutputInterface(SpikeNetInterface):
                required=True,
                default=0.1)
 
+    times = NArray(
+        dtype=np.int,
+        label="Indices of Spiking Network proxy nodes",
+        doc="""Indices of Spiking Network proxy nodes""",
+        required=True,
+        default=np.array([1, 0])
+    )
+
     def configure(self):
         super(SpikeNetOutputInterface, self).configure()
         self.proxy.configure()
@@ -88,8 +117,25 @@ class SpikeNetOutputInterface(SpikeNetInterface):
     def print_str(self):
         super(SpikeNetOutputInterface, self).print_str(self, sender_not_receiver=True)
 
+    @property
+    def proxy_gids(self):
+        return self._get_proxy_gids(self.proxy.source)
+
     def get_proxy_data(self):
-        return self.proxy()
+        data = self.proxy()
+        if len(data[0]) == 2:
+            # This will work for multimeters:
+            self.times = np.array([np.round(data[0][0] / self.dt),  # start_time_step
+                                   np.round(data[0][1] / self.dt)]).astype("i")  # end_time_step
+        else:
+            # This will work for spike recorders:
+            time = np.int(np.round(self.time / self.dt))
+            times = self.times.copy()
+            if time > times[1]:
+                times[0] = times[1] + 1
+                times[1] = time
+            self.times = times
+        return [self.times, data[-1]]
 
 
 class SpikeNetInputInterface(SpikeNetInterface):
@@ -115,6 +161,10 @@ class SpikeNetInputInterface(SpikeNetInterface):
 
     def print_str(self):
         super(SpikeNetInputInterface, self).print_str(self, sender_not_receiver=False)
+
+    @property
+    def proxy_gids(self):
+        return self._get_proxy_gids(self.proxy.target)
 
     def set_proxy_data(self, data):
         return self.proxy(data)

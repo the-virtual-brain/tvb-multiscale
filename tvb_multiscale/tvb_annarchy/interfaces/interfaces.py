@@ -3,15 +3,14 @@
 from enum import Enum
 from abc import ABCMeta, abstractmethod
 
-import numpy as np
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
+from tvb.basic.neotraits.api import HasTraits, Attr, List
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
+    SpikeNetOutputInterface, SpikeNetInputInterface, \
     SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
@@ -51,25 +50,8 @@ class ANNarchyInterface(HasTraits):
     def time(self):
         return self.annarchy_instance.get_time()
 
-    @property
-    @abstractmethod
-    def proxy_gids(self):
-        pass
 
-    def _get_proxy_gids(self, annarchy_devices):
-        gids = annarchy_devices.get("global_id")
-        if isinstance(gids, dict):
-            return gids["global_id"]
-
-    @property
-    def number_of_proxy_gids(self):
-        return self.proxy_gids.shape[0]
-
-    def print_str(self):
-        return "\nANNarchy proxy nodes' gids:\n%s" % extract_integer_intervals(self.proxy_gids, print=True)
-
-
-class ANNarchyOutputInterface(ANNarchyInterface):
+class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
 
     """ANNarchyOutputInterface base class for interfaces sending data from ANNarchy."""
 
@@ -79,39 +61,9 @@ class ANNarchyOutputInterface(ANNarchyInterface):
                  field_type=ANNarchyOutputDeviceSet,
                  required=True)
 
-    dt = Float(label="Time step",
-               doc="Time step of simulation",
-               required=True,
-               default=0.1)
-
-    times = NArray(
-        dtype=np.int,
-        label="Indices of Spiking Network proxy nodes",
-        doc="""Indices of Spiking Network proxy nodes""",
-        required=True,
-        default=np.array([1, 0])
-    )
-
     @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
-
-    def get_proxy_data(self):
-        data = self.proxy()
-        # Only for ANNarchy, we start from time = dt instead for time = 0
-        if len(data[0]) == 2:
-            # This will work for multimeters:
-            self.times = np.array([np.round(data[0][0] / self.dt) - 1,  # start_time_step
-                                   np.round(data[0][1] / self.dt) - 1]).astype("i")
-        else:
-            # This will work for spike recorders:
-            time = np.int(np.round(self.time/self.dt)) - 1
-            times = self.times.copy()
-            if time > times[1]:
-                times[0] = times[1] + 1
-                times[1] = time
-            self.times = times
-        return [self.times, data[-1]]
 
 
 class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
@@ -136,7 +88,7 @@ class ANNarchyTransformerSenderInterface(SpikeNetTransformerSenderInterface, ANN
         return self.transform_send(ANNarchyOutputInterface.get_proxy_data(self))
 
 
-class ANNarchyInputInterface(ANNarchyInterface):
+class ANNarchyInputInterface(ANNarchyInterface, SpikeNetInputInterface):
 
     """ANNarchyInputInterface base class for interfaces receiving data to ANNarchy."""
 
