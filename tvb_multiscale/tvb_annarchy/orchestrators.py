@@ -103,8 +103,6 @@ class ANNarchySerialApp(SpikeNetSerialApp):
     def configure_simulation(self, *args, **kwargs):
         super(ANNarchySerialApp, self).configure_simulation()
         self.compile_network(*args, **kwargs)
-        # Set initial ANNarchy time equal to the first TVB time step:
-        self.annarchy_instance.set_time(self.tvb_dt)
 
     def simulate(self, simulation_length=None):
         if simulation_length is None:
