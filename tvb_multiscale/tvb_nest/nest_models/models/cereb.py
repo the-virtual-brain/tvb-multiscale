@@ -249,7 +249,7 @@ class CerebBuilder(NESTNetworkBuilder):
                 weights = pre_dummy * self.conn_weights[conn_name]
                 delays = pre_dummy * self.conn_delays[conn_name]
             self.populations_connections.append(
-                {"source": self.conn_pre_post[conn_name]["pre"],
+                {"source": pre,
                  "target": self.conn_pre_post[conn_name]["post"],
                  "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
                                                   conn[:, 0].flatten()),
