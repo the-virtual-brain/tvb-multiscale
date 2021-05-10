@@ -130,6 +130,8 @@ RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $VENV/bin/python3 setup.py build_ext install
 
+RUN $VENV/bin/pip3 install plotly
+
 WORKDIR /home/docker/
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
