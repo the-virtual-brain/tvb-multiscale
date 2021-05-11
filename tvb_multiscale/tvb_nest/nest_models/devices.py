@@ -67,13 +67,11 @@ class NESTDevice(_NESTNodeCollection):
            the devices connects to the neurons, and not vice-versa,
            i.e., neurons are the target of the device connection.
         """
-        neurons = []
-        for conn in self.connections:
-            neuron = getattr(conn, source_or_target)
-            if neuron is not None:
-                neurons.append(neuron)
-        return tuple(np.unique(neurons).tolist())
-
+        connections = self.connections
+        if len(connections):
+            return tuple(np.unique(getattr(connections, source_or_target)).tolist())
+        else:
+            return ()
 
     @property
     def neurons(self):
@@ -383,12 +381,16 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
     def _SetToConnections(self, values_dict, connections=None):
         NESTParrotPopulation._SetToConnections(self, values_dict, connections)
 
-    def get_neurons(self, source_or_target="source"):
-        return NESTInputDevice.get_neurons(self, source_or_target)
-
     @property
     def neurons(self):
-        return self._nodes.global_id
+        return self.get_neurons("target")
+
+    def get_devices_neurons(self):
+        return self._nodes
+
+    @property
+    def parrot_neurons(self):
+        return self._nodes
 
     def get_size(self):
         return NESTParrotPopulation.get_size(self)
