@@ -27,7 +27,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
     """
 
     _number_of_nodes = Int(field_type=int, default=0, required=True, label="Number of nodes",
-                           doc="""The number of nodes of SpikingNodesSet """)
+                           doc="""The number of nodes of SpikingNodesSet""")
 
     _collection_name = "Population"
     
