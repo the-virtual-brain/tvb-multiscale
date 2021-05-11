@@ -191,7 +191,7 @@ class CerebBuilder(NESTNetworkBuilder):
     BACKGROUND_FREQ = 4.
 
     ordered_neuron_types = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
-                            "basket_cell", "stellate_cell", 'io_cell', "purkinje_cell",
+                            'io_cell', "basket_cell", "stellate_cell", "purkinje_cell",
                             'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
     neuron_types = []
     start_id_scaffold = []
@@ -244,66 +244,62 @@ class CerebBuilder(NESTNetworkBuilder):
         for conn_name in self.conn_weights.keys():
             conn = np.array(self.net_src_file['cells/connections/'+conn_name])
             pre = self.conn_pre_post[conn_name]["pre"]
-            pre_dummy = np.ones(len(pre))
-            if conn_name == "mossy_to_glomerulus":
-                weights = pre_dummy * self.conn_weights[conn_name]
-                delays = pre_dummy * self.conn_delays[conn_name]
-            elif conn_name == "io_to_basket" or conn_name == "io_to_stellate":
-                weights = pre_dummy * self.conn_weights[conn_name],
-                delays = pre_dummy * self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
-                                                                      std=self.conn_delays[conn_name]["sigma"])
-            else:
-                weights = pre_dummy * self.conn_weights[conn_name]
-                delays = pre_dummy * self.conn_delays[conn_name]
-            self.populations_connections.append(
-                {"source": pre,
-                 "target": self.conn_pre_post[conn_name]["post"],
-                 "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
-                                                  conn[:, 0].flatten()),
+            post = self.conn_pre_post[conn_name]["post"]
+            if self.pops_to_nodes_inds["pre"] == self.pops_to_nodes_inds["post"]:
+                pre_dummy = np.ones(len(pre))
+                if conn_name == "mossy_to_glomerulus":
+                    weights = pre_dummy * self.conn_weights[conn_name]
+                    delays = pre_dummy * self.conn_delays[conn_name]
+                else:
+                    weights = pre_dummy * self.conn_weights[conn_name]
+                    delays = pre_dummy * self.conn_delays[conn_name]
+                self.populations_connections.append(
+                    {"source": pre, "target": post,
+                     "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
+                                                      conn[:, 0].flatten()),
 
-                 "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
-                                                  conn[:, 1].flatten()),
-                 "synapse_model": 'static_synapse',
-                 "conn_spec": self.default_populations_connection["conn_spec"],
-                 "weight": weights,
-                 "delay": delays,
-                 "receptor_type": self.conn_receptors.get(conn_name, 0),
-                 "nodes": None
-                 }
+                     "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
+                                                      conn[:, 1].flatten()),
+                     "synapse_model": 'static_synapse',
+                     "conn_spec": self.default_populations_connection["conn_spec"],
+                     "weight": weights,
+                     "delay": delays,
+                     "receptor_type": self.conn_receptors.get(conn_name, 0),
+                     "nodes": self.pops_to_nodes_inds["pre"]
+                     }
             )
 
     def set_nodes_connections(self):
-        self.default_populations_connection["conn_spec"]["rule"] = "one_to_one"
-        self.populations_connections = []
+        self.default_nodes_connection["conn_spec"]["rule"] = "one_to_one"
+        self.nodes_connections = []
         for conn_name in self.conn_weights.keys():
             conn = np.array(self.net_src_file['cells/connections/'+conn_name])
             pre = self.conn_pre_post[conn_name]["pre"]
-            pre_dummy = np.ones(len(pre))
-            if conn_name == "mossy_to_glomerulus":
-                weights = pre_dummy * self.conn_weights[conn_name]
-                delays = pre_dummy * self.conn_delays[conn_name]
-            elif conn_name == "io_to_basket" or conn_name == "io_to_stellate":
-                weights = pre_dummy * self.conn_weights[conn_name],
-                delays = pre_dummy * self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
-                                                                      std=self.conn_delays[conn_name]["sigma"])
-            else:
-                weights = pre_dummy * self.conn_weights[conn_name]
-                delays = pre_dummy * self.conn_delays[conn_name]
-            self.populations_connections.append(
-                {"source": pre,
-                 "target": self.conn_pre_post[conn_name]["post"],
-                 "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
-                                                  conn[:, 0].flatten()),
+            post = self.conn_pre_post[conn_name]["post"]
+            if self.pops_to_nodes_inds["pre"] != self.pops_to_nodes_inds["post"]:
+                pre_dummy = np.ones(len(pre))
+                if conn_name == "io_to_basket" or conn_name == "io_to_stellate":
+                    weights = pre_dummy * self.conn_weights[conn_name],
+                    delays = pre_dummy * self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
+                                                                          std=self.conn_delays[conn_name]["sigma"])
+                else:
+                    weights = pre_dummy * self.conn_weights[conn_name]
+                    delays = pre_dummy * self.conn_delays[conn_name]
+                self.populations_connections.append(
+                    {"source": pre, "target": post,
+                     "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
+                                                      conn[:, 0].flatten()),
 
-                 "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
-                                                  conn[:, 1].flatten()),
-                 "synapse_model": 'static_synapse',
-                 "conn_spec": self.default_populations_connection["conn_spec"],
-                 "weight": weights,
-                 "delay": delays,
-                 "receptor_type": self.conn_receptors.get(conn_name, 0),
-                 "nodes": None
-                 }
+                     "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
+                                                      conn[:, 1].flatten()),
+                     "synapse_model": 'static_synapse',
+                     "conn_spec": self.default_nodes_connection["conn_spec"],
+                     "weight": weights,
+                     "delay": delays,
+                     "receptor_type": self.conn_receptors.get(conn_name, 0),
+                     "source_nodes": self.pops_to_nodes_inds["pre"],
+                     "target_nodes": self.pops_to_nodes_inds["post"]
+                     }
             )
 
     def neurons_fun(self, population, total_neurons=100):
