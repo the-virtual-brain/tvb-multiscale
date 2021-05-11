@@ -196,10 +196,11 @@ class CerebBuilder(NESTNetworkBuilder):
     neuron_types = []
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator, nest_nodes_ids, nest_instance=None,
+    def __init__(self, tvb_simulator, pops_to_nodes_inds, nest_instance=None,
                  config=CONFIGURED, logger=None, path_to_network_source_file=""):
-        super(CerebBuilder, self).__init__(tvb_simulator, nest_nodes_ids, nest_instance, config, logger)
-        self.nest_nodes_ids = nest_nodes_ids
+        self.pops_to_nodes_inds = pops_to_nodes_inds
+        super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(pops_to_nodes_inds.values())),
+                                           nest_instance, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
@@ -233,11 +234,45 @@ class CerebBuilder(NESTNetworkBuilder):
                 {"label": neuron_name, "model": model,
                  "params": self.neuron_param.get(neuron_name, {}),
                  "scale": n_neurons,
-                 "nodes": None})
+                 "nodes": self.pops_to_nodes_inds[neuron_name]})
             self.start_id_scaffold[neuron_name] = \
                 np.array(self.net_src_file['cells/placement/' + neuron_name + '/identifiers'])[0]
 
     def set_populations_connections(self):
+        self.default_populations_connection["conn_spec"]["rule"] = "one_to_one"
+        self.populations_connections = []
+        for conn_name in self.conn_weights.keys():
+            conn = np.array(self.net_src_file['cells/connections/'+conn_name])
+            pre = self.conn_pre_post[conn_name]["pre"]
+            pre_dummy = np.ones(len(pre))
+            if conn_name == "mossy_to_glomerulus":
+                weights = pre_dummy * self.conn_weights[conn_name]
+                delays = pre_dummy * self.conn_delays[conn_name]
+            elif conn_name == "io_to_basket" or conn_name == "io_to_stellate":
+                weights = pre_dummy * self.conn_weights[conn_name],
+                delays = pre_dummy * self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
+                                                                      std=self.conn_delays[conn_name]["sigma"])
+            else:
+                weights = pre_dummy * self.conn_weights[conn_name]
+                delays = pre_dummy * self.conn_delays[conn_name]
+            self.populations_connections.append(
+                {"source": pre,
+                 "target": self.conn_pre_post[conn_name]["post"],
+                 "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
+                                                  conn[:, 0].flatten()),
+
+                 "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
+                                                  conn[:, 1].flatten()),
+                 "synapse_model": 'static_synapse',
+                 "conn_spec": self.default_populations_connection["conn_spec"],
+                 "weight": weights,
+                 "delay": delays,
+                 "receptor_type": self.conn_receptors.get(conn_name, 0),
+                 "nodes": None
+                 }
+            )
+
+    def set_nodes_connections(self):
         self.default_populations_connection["conn_spec"]["rule"] = "one_to_one"
         self.populations_connections = []
         for conn_name in self.conn_weights.keys():
