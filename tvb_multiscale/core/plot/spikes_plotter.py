@@ -14,8 +14,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 class SpikesPlotter(BasePlotter):
 
-    _y_axes_labels = {}
-
     def __init__(self, config=CONFIGURED.figures):
         if isinstance(config, Config) or issubclass(config.__class__, Config):
             super(SpikesPlotter, self).__init__(config.figures)
@@ -142,48 +140,54 @@ class SpikesPlotter(BasePlotter):
             figsize = self.config.LARGE_SIZE
         return figure_name, figsize
 
-    def _format_time_axis(self, axes, i_region, **kwargs):
+    def _format_time_axis(self, ax, last_plot=False, **kwargs):
         show_time_axis = kwargs.get("show_time_axis", None)
         if self.time_lims is not None:
-            axes.set_xlim(self.time_lims)
+            ax.set_xlim(self.time_lims)
         if self.xticks is not None:
-            axes.set_xticks(self.xticks)
-        if (i_region == self.n_regions - 1 or show_time_axis is True) and show_time_axis is not False:
+            ax.set_xticks(self.xticks)
+        if (last_plot or show_time_axis is True) and show_time_axis is not False:
             if self.xticklabels is not None:
-                axes.set_xticklabels(self.xticklabels)
+                ax.set_xticklabels(self.xticklabels)
             show_time_xlabel = kwargs.get("show_time_xlabel", None)
-            if (i_region == self.n_regions - 1 or show_time_xlabel is True) and show_time_xlabel is not False:
-                axes.set_xlabel("Time (ms)", fontsize=kwargs.get("xlabel_fontsize", self.config.FONTSIZE))
+            if (last_plot or show_time_xlabel is True) and show_time_xlabel is not False:
+                ax.set_xlabel("Time (ms)", fontsize=kwargs.get("xlabel_fontsize", self.config.FONTSIZE))
         elif self.time_lims is not None:
-            axes.set_xticklabels([])
-        return axes
+            ax.set_xticklabels([])
+        return ax
 
-    def _format_axes(self, axes, i_pop, i_region, pop_label, reg_label, **kwargs):
-        if kwargs.get("plot_title", True):
-            title = str(pop_label)
+    def _format_ax(self, ax, pop_label, reg_label, **kwargs):
+        subtitle = kwargs.get("subtitle", "region")
+        if subtitle == "region":
+            subtitle = reg_label
+        elif subtitle == "population":
+            subtitle = pop_label
+        if subtitle:
+            ax.set_title(str(subtitle), fontsize=kwargs.get("subtitle_fontsize", self.config.FONTSIZE))
+        ax.set_ylim(self.ylims)
+        ax.set_yticks(self.yticks)
+        ax.set_yticklabels([])
+        if self._time_series_ytick_labels is not None:
+            ax.set_yticklabels(self._time_series_ytick_labels)
+        ylabel = kwargs.get("ylabel", "population")
+        if isinstance(ylabel, string_types) or self.mean_results is not None:
+            if ylabel == "region":
+                ylabel = reg_label
+            elif ylabel == "population":
+                ylabel = pop_label
+            else:
+                ylabel = str(ylabel)
             if self.mean_results is not None:
                 if self.mean_results.name.lower().find("rate") > -1:
                     mean_results_units = "spikes/s"
                 else:
                     mean_results_units = ""
                 mean_results_units = kwargs.get("mean_results_units", mean_results_units)
-                title += ": %.1f %s" % (self.mean_results.loc[pop_label, reg_label], mean_results_units)
-            axes.set_title(title, fontsize=kwargs.get("title_fontsize", self.config.FONTSIZE))
-        axes = self._format_time_axis(axes, i_region, **kwargs)
-        axes.set_ylim(self.ylims)
-        axes.set_yticks(self.yticks)
-        axes.set_yticklabels([])
-        if self._time_series_ytick_labels is not None:
-            if i_pop == 0:
-                axes.set_yticklabels(self._time_series_ytick_labels)
-        if i_region not in self._y_axes_labels.keys():
-            self._y_axes_labels[i_region] = []
-        if reg_label not in self._y_axes_labels[i_region] and kwargs.get("plot_ylabel", True):
-            self._y_axes_labels[i_region].append(reg_label)
-            axes.set_ylabel("%s neurons" % reg_label, fontsize=kwargs.get("ylabel_fontsize", self.config.FONTSIZE))
-        elif i_pop == 0 and kwargs.get("plot_ylabel", True):
-            axes.set_ylabel("%s neurons" % reg_label, fontsize=kwargs.get("ylabel_fontsize", self.config.FONTSIZE))
-        return axes
+                if len(ylabel):
+                    ylabel += ": "
+                ylabel += "%.1f %s" % (self.mean_results.loc[pop_label, reg_label], mean_results_units)
+            ax.set_ylabel("%s" % ylabel, fontsize=kwargs.get("ylabel_fontsize", self.config.FONTSIZE))
+        return ax
 
     def _scale_time_series_to_axis(self, time_series):
         return time_series / self.max_time_series * self.max_n_neurons + self.min_n_neurons
@@ -201,23 +205,29 @@ class SpikesPlotter(BasePlotter):
         if not self._any_spikes:
             self.time = [0.0, 1.0]
         self._compute_time_axis(**kwargs)
-        for i_pop, pop_axes in enumerate(axes):
-            for i_region, reg_ax in enumerate(pop_axes):
-                axes[i_pop][i_region] = self._format_time_axis(reg_ax, i_region, **kwargs)
         return axes
 
-    def _plot(self, axes, i_pop, i_region, pop_label, reg_label,
+    def _plot(self, i_pop, i_region, pop_label, reg_label,
               spikes_times, spikes_senders, **kwargs):
-        axes[i_pop].append(pyplot.subplot(self.n_regions, self.n_pops, i_region * self.n_pops + i_pop + 1))
+        self.subplot_shape = kwargs.pop("subplot_shape", (self.n_regions*self.n_pops, 1))
+        for i_sub, subplot_shape in enumerate(self.subplot_shape):
+            if subplot_shape == "region":
+                self.subplot_shape[i_sub] = self.n_regions
+            elif subplot_shape == "population":
+                self.subplot_shape[i_sub] = self.n_pops
+        self.subplot_fun = kwargs.pop("subplot_fun",
+                                      lambda i_region, i_pop, n_reg=self.n_regions, n_pop=self.n_pops:
+                                      i_region * self.n_pops + i_pop + 1)
+        ax = pyplot.subplot(self.subplot_shape[0], self.subplot_shape[1], self.subplot_fun(i_region, i_pop))
 
         if kwargs.get("plot_spikes", True):
-            axes[i_pop][i_region].plot(spikes_times, spikes_senders,
-                                       linestyle="None",
-                                       marker=kwargs.get("spikes_marker", "o"),
-                                       markerfacecolor=kwargs.get("spikes_color", "k"),
-                                       markeredgecolor=kwargs.get("spikes_color", "k"),
-                                       markersize=kwargs.get("spikes_markersize", 2.0),
-                                       alpha=kwargs.get("spikes_alpha", 1.0))
+            ax.plot(spikes_times, spikes_senders,
+                    linestyle="None",
+                    marker=kwargs.get("spikes_marker", "o"),
+                    markerfacecolor=kwargs.get("spikes_color", "k"),
+                    markeredgecolor=kwargs.get("spikes_color", "k"),
+                    markersize=kwargs.get("spikes_markersize", 2.0),
+                    alpha=kwargs.get("spikes_alpha", 1.0))
 
         if self.time_series is not None:
             # Adjust time_series values to neurons axis range
@@ -239,12 +249,12 @@ class SpikesPlotter(BasePlotter):
                 markerfacecolor = None
                 markeredgecolor = None
                 markersize = 0.0
-            axes[i_pop][i_region].plot(self.time, time_series,
-                                       linestyle=time_series_linestyle, linewidth=linewidth,
-                                       marker=time_series_marker, markerfacecolor=markerfacecolor,
-                                       markeredgecolor=markeredgecolor, markersize=markersize,
-                                       color=kwargs.get("time_series_color", "k"),
-                                       alpha=kwargs.get("time_series_alpha", 0.5))
+            ax.plot(self.time, time_series,
+                    linestyle=time_series_linestyle, linewidth=linewidth,
+                    marker=time_series_marker, markerfacecolor=markerfacecolor,
+                    markeredgecolor=markeredgecolor, markersize=markersize,
+                    color=kwargs.get("time_series_color", "k"),
+                    alpha=kwargs.get("time_series_alpha", 0.5))
         elif self._adjust_time_axes_flag:
             if len(spikes_times):
                 self._any_spikes = True
@@ -254,16 +264,15 @@ class SpikesPlotter(BasePlotter):
         if self.stimulus is not None:
             # Adjust time_series values to neurons axis range
             for stim in self.stimulus:
-                axes[i_pop][i_region].plot([stim]*2, [0, self.max_n_neurons + self.min_n_neurons],
-                                           linestyle=kwargs.get("stimulus_linestyle", "-"),
-                                           color=kwargs.get("stimulus_color", "r"),
-                                           linewidth=kwargs.get("stimulus_linewidth", 1.0),
-                                           alpha=kwargs.get("stimulus_alpha", 1.0))
+                ax.plot([stim]*2, [0, self.max_n_neurons + self.min_n_neurons],
+                        linestyle=kwargs.get("stimulus_linestyle", "-"),
+                        color=kwargs.get("stimulus_color", "r"),
+                        linewidth=kwargs.get("stimulus_linewidth", 1.0),
+                        alpha=kwargs.get("stimulus_alpha", 1.0))
 
-        axes[i_pop][i_region] = self._format_axes(axes[i_pop][i_region], i_pop, i_region, pop_label, reg_label,
-                                                  **kwargs)
+        ax = self._format_ax(ax, pop_label, reg_label, **kwargs)
 
-        return axes
+        return ax
 
     def _check_show(self):
         pyplot.tight_layout()
@@ -317,7 +326,6 @@ class SpikesPlotter(BasePlotter):
         for i_pop, spikes in enumerate(pop_spikes):
             pop_label = spikes.labels_dimensions[spikes.labels_ordering[1]][0]
             spike_time = self.get_time(spikes, self.time)
-            axes.append([])
             for i_region in range(spikes.number_of_labels):
                 reg_label = spikes.labels_dimensions[spikes.labels_ordering[2]][i_region]
                 # Get spikes
@@ -326,10 +334,13 @@ class SpikesPlotter(BasePlotter):
                 spike_senders_indices = spike_time[indices[:, 1]]
                 spike_senders_indices = self._assert_neurons_indices(spike_senders_indices, n_neurons=None, **kwargs)
                 spike_senders_indices = self._neurons_axis_from_indices(spike_senders_indices, **kwargs)
-                axes = self._plot(axes, i_pop, i_region, pop_label, reg_label,
-                                  this_time, spike_senders_indices, **kwargs)
+                axes.append(self._plot(i_pop, i_region, pop_label, reg_label,
+                                       this_time, spike_senders_indices, **kwargs))
         if self._adjust_time_axes_flag:
             axes = self._adjust_time_axes(axes, **kwargs)
+        n_axes = len(axes)
+        for i_ax, ax in enumerate(axes):
+            axes[i_ax] = self._format_time_axis(ax, i_ax == n_axes-1, **kwargs)
 
         return self._return_figure(axes, figure_name)
 
@@ -351,17 +362,19 @@ class SpikesPlotter(BasePlotter):
         pyplot.figure(figure_name, figsize=figsize)
         # Plot by arranging populations in columns and regions in rows
         for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
-            axes.append([])
             for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
                 # Get spikes
                 senders = region_spike_detector.senders
                 neurons = region_spike_detector.neurons
                 senders = self._assert_neurons_indices(senders, n_neurons=len(neurons), **kwargs)
                 self._neurons_axis_from_indices(neurons, **kwargs)
-                axes = self._plot(axes, i_pop, i_region, pop_label, reg_label,
-                                  region_spike_detector.spikes_times, senders, **kwargs)
+                axes.append(self._plot(i_pop, i_region, pop_label, reg_label,
+                                       region_spike_detector.spikes_times, senders, **kwargs))
         if self._adjust_time_axes_flag:
             axes = self._adjust_time_axes(axes, **kwargs)
+        n_axes = len(axes)
+        for i_ax, ax in enumerate(axes):
+            axes[i_ax] = self._format_time_axis(ax, i_ax == n_axes - 1, **kwargs)
 
         return self._return_figure(axes, figure_name)
 
@@ -383,17 +396,18 @@ class SpikesPlotter(BasePlotter):
         pyplot.figure(figure_name, figsize=figsize)
         # Plot by arranging populations in columns and regions in rows
         for i_pop, (pop_label, pop_spikes_events) in enumerate(spikes_events.iteritems()):
-            axes.append([])
             for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.iteritems()):
                 # Define spike senders and time_series' axis
                 neurons = region_spikes_events["senders"]
                 neurons = self._assert_neurons_indices(neurons, n_neurons=None, **kwargs)
                 self._neurons_axis_from_indices(neurons, **kwargs)
-                axes = self._plot(axes, i_pop, i_region, pop_label, reg_label,
-                                  region_spikes_events["times"], neurons, **kwargs)
-                axes[i_pop][i_region] = self._format_axes(axes[i_pop][i_region], i_pop, i_region, pop_label, reg_label,
-                                                          **kwargs)
+                axes.append(self._plot(i_pop, i_region, pop_label, reg_label,
+                                       region_spikes_events["times"], neurons, **kwargs))
+                axes[-1] = self._format_ax(axes[-1], pop_label, reg_label, **kwargs)
         if self._adjust_time_axes_flag:
             axes = self._adjust_time_axes(axes, **kwargs)
+        n_axes = len(axes)
+        for i_ax, ax in enumerate(axes):
+            axes[i_ax] = self._format_time_axis(ax, i_ax == n_axes - 1, **kwargs)
 
         return self._return_figure(axes, figure_name)
