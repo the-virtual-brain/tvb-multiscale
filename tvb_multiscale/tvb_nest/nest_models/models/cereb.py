@@ -45,6 +45,11 @@ class CerebBuilder(NESTNetworkBuilder):
     # Single neuron parameters:
     Zpos = False
 
+    if Zpos:
+        Ie_pc = 176.26
+    else:
+        Ie_pc = 742.54
+
     neuron_param = {
         'golgi_cell': {'t_ref': 2.0, 'C_m': 145.0, 'tau_m': 44.0, 'V_th': -55.0, 'V_reset': -75.0, 'Vinit': -62.0,
                        'E_L': -62.0, 'Vmin': -150.0,
@@ -185,8 +190,8 @@ class CerebBuilder(NESTNetworkBuilder):
     STIM_IO_FREQ = 500.  # IO Frequency in Hz
     BACKGROUND_FREQ = 4.
 
-    ordered_neuron_types = ['mossy_fibers', 'io_cell', 'glomerulus', "granule_cell", "golgi_cell",
-                            "basket_cell", "stellate_cell", "purkinje_cell",
+    ordered_neuron_types = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
+                            "basket_cell", "stellate_cell", 'io_cell', "purkinje_cell",
                             'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
     neuron_types = []
     start_id_scaffold = []
@@ -203,6 +208,7 @@ class CerebBuilder(NESTNetworkBuilder):
             self.Ie_pc = 176.26
         else:
             self.Ie_pc = 742.54
+        self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
 
     def set_populations(self):
         # Populations' configurations
@@ -277,7 +283,7 @@ class CerebBuilder(NESTNetworkBuilder):
         connections = OrderedDict()
         #          label <- target population
         for pop in self.populations:
-            connections[pop["label"] + "_spikes"] = pop["label"]
+            connections[pop["label"]] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
         params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
@@ -290,7 +296,7 @@ class CerebBuilder(NESTNetworkBuilder):
         #               label    <- target population
         for pop in self.populations:
             if pop["label"] != 'glomerulus' and pop["label"] != 'mossy_fibers':
-                connections[pop["label"]] = pop["label"]
+                connections[pop["label"] + "_ts"] = pop["label"]
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["record_to"] = self.output_devices_record_to
         params["interval"] = self.monitor_period
@@ -306,16 +312,41 @@ class CerebBuilder(NESTNetworkBuilder):
         if self.RECORD_VM:
             self.output_devices.append(self.set_multimeter())
 
-    def set_spike_stimulus(self):
+    def set_spike_stimulus_mf(self):
         connections = OrderedDict()
         #             label <- target population
-        connections["Stimulus"] = ['mossy_fibers']
+        connections["Stimulus_MF"] = ["mossy_fibers"]
         device = \
             {"model": "poisson_generator",
-             "params": {"rate": self.STIM_FREQ, "origin": 0.0, "start": self.STIM_START, "stop": self.STIM_END},
+             "params": {"rate": self.STIM_MF_FREQ,
+                        "origin": 0.0, "start": self.STIM_MF_START, "stop": self.STIM_MF_END},
              "connections": connections, "nodes": None,
              "weights": 1.0,
-             "delays": 0.0,
+             "delays": 0.1,
+             "receptor_type": 0}
+        return device
+
+    def select_microzone_negative(self, neurons):
+        # the current NEST IO belongs to the Z- microzone
+        io_neurons = []
+        for io in neurons:
+            if io - neurons + self.start_id_scaffold['io_cell'] in \
+                    self.net_src_file['labels/placement/microzone-negative']:  # the current NEST IO belongs to the Z- microzone
+                io_neurons.append(io)
+        return self.nest_instance.NodeCollection(io_neurons)
+
+    def set_spike_stimulus_io(self):
+        connections = OrderedDict()
+        #             label <- target population
+        connections["Stimulus_IO"] = ["io_cell"]
+        device = \
+            {"model": "poisson_generator",
+             "params": {"rate": self.STIM_IO_FREQ,
+                        "origin": 0.0, "start": self.STIM_IO_START, "stop": self.STIM_IO_END},
+             # "neurons_fun": lambda node, population: self.select_microzone_negative(population),
+             "connections": connections, "nodes": None,
+             "weights": 25.0,
+             "delays": 0.1,
              "receptor_type": 0}
         return device
 
@@ -333,15 +364,17 @@ class CerebBuilder(NESTNetworkBuilder):
         return device
 
     def set_input_devices(self):
+        self.input_devices = [self.set_spike_stimulus_background()]
         if self.STIMULUS:
-            self.input_devices = [self.set_spike_stimulus(), self.set_spike_stimulus_background()]
+            self.input_devices += [self.set_spike_stimulus_mf(), self.set_spike_stimulus_io()]
 
     def set_defaults(self):
+        self.net_src_file = h5py.File(self.path_to_network_source_file, 'r+')
         if self.Zpos:
             self.Ie_pc = 176.26
         else:
             self.Ie_pc = 742.54
-        self.net_src_file = h5py.File(self.path_to_network_source_file, 'r+')
+        self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
         self.set_populations()
         self.set_populations_connections()
         self.set_output_devices()
