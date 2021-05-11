@@ -4,6 +4,7 @@ import pandas as pd
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
+from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.devices import NESTOutputSpikeDeviceDict, NESTOutputContinuousTimeDeviceDict
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
@@ -40,6 +41,8 @@ class NESTNetwork(SpikingNetwork):
                  config=CONFIGURED):
         if nest_instance is None:
             nest_instance = load_nest(self.config, LOG)
+        if not isinstance(brain_regions, NESTBrain):
+            brain_regions = NESTBrain(brain_regions)
         self.nest_instance = nest_instance
         super(NESTNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
 

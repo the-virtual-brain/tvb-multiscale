@@ -94,7 +94,10 @@ class SpikingNetwork(HasTraits):
                  input_devices=pd.Series(),
                  config=CONFIGURED):
         self.config = config
-        self.brain_regions = brain_regions
+        if not isinstance(brain_regions, SpikingBrain):
+            self.brain_regions = SpikingBrain(brain_regions)
+        else:
+            self.brain_regions = brain_regions
         self.output_devices = output_devices
         self.input_devices = input_devices
 
