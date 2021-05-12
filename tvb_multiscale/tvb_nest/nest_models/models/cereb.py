@@ -1,12 +1,24 @@
 # -*- coding: utf-8 -*-
-import h5py
 
+import os
+import glob
+from shutil import copyfile
+import h5py
 from collections import OrderedDict
 
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
+
+
+def copy_network_source_file(path_to_network_source_file):
+    copypath, extension = os.path.splitext(path_to_network_source_file)
+    while len(glob.glob(copypath+"*")):
+        copypath += "_copy"
+    copypath += extension
+    copyfile(path_to_network_source_file, copypath)
+    return copypath
 
 
 class NeuronsFun(object):
@@ -18,8 +30,7 @@ class NeuronsFun(object):
         self.conns = conns
 
     def __call__(self, population):
-        return population.nest_instance.NodeCollection[[int(x - self.start_id_scaffold + population.tolist()[0])
-                                                        for x in self.conns]]
+        return tuple([int(x - self.start_id_scaffold + population.tolist()[0]) for x in self.conns])
 
 
 class CerebBuilder(NESTNetworkBuilder):
@@ -181,27 +192,36 @@ class CerebBuilder(NESTNetworkBuilder):
 
     RECORD_VM = True
     STIMULUS = True
-    TOT_DURATION = 400.  # mseconds
+    TOT_DURATION = 400.   # ms
     STIM_MF_START = 140.  # beginning of stimulation to MFs
-    STIM_MF_END = 300.  # end of stimulation to MFs
-    STIM_MF_FREQ = 40.  # MF Frequency in Hz
+    STIM_MF_END = 300.    # end of stimulation to MFs
+    STIM_MF_FREQ = 40.    # MF Frequency in Hz
     STIM_IO_START = 290.  # beginning of stimulation to IO
-    STIM_IO_END = 300.  # end of stimulation to IO
-    STIM_IO_FREQ = 500.  # IO Frequency in Hz
-    BACKGROUND_FREQ = 4.
+    STIM_IO_END = 300.    # end of stimulation to IO
+    STIM_IO_FREQ = 500.   # IO Frequency in Hz
+    BACKGROUND_FREQ = 4.  # Background Frequency in Hz
 
-    ordered_neuron_types = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
-                            'io_cell', "basket_cell", "stellate_cell", "purkinje_cell",
-                            'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
-    neuron_types = []
+    ordered_populations_labels = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
+                                  'io_cell', "basket_cell", "stellate_cell", "purkinje_cell",
+                                  'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
+    populations_labels = []
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator, pops_to_nodes_inds, nest_instance=None,
-                 config=CONFIGURED, logger=None, path_to_network_source_file=""):
+    def __init__(self, tvb_simulator, nest_instance=None, config=CONFIGURED, logger=None,
+                 pops_to_nodes_inds={"Cerebellar_Cortex": 0, "Inferior_Olive_Complex": 1, "Cerebellar_Nuclei": 2},
+                 path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
-        super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(pops_to_nodes_inds.values())),
+        super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(self.pops_to_nodes_inds.values())),
                                            nest_instance, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
+        self._initialize()
+
+    def _initialize(self):
+        self.spiking_nodes_inds = np.unique(list(self.pops_to_nodes_inds.values()))
+        if not os.path.isfile(self.path_to_network_source_file):
+            package_folder = __file__.split("tvb_multiscale")[0]
+            self.path_to_network_source_file = \
+                os.path.join(package_folder, "examples/data/cerebellum/300x_200z_DCN_IO.hdf5")
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
         self.modules_to_install = ["cereb"]
@@ -211,61 +231,68 @@ class CerebBuilder(NESTNetworkBuilder):
             self.Ie_pc = 742.54
         self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
 
+    def get_populations_labels_from_file(self):
+        return list(self.net_src_file['cells/placement'].keys())
+
+    def get_n_neurons_from_file(self, pop_name):
+        return np.array(self.net_src_file['cells/placement/' + pop_name + '/identifiers'])[1]
+
+    def get_start_id_scaffold_from_file(self, pop_name):
+        return np.array(self.net_src_file['cells/placement/' + pop_name + '/identifiers'])[0]
+
+    def get_connection_from_file(self, conn_name):
+        return np.array(self.net_src_file['cells/connections/'+conn_name])
+
+    def assert_ordered_populations_labels(self):
+        pop_labels = self.get_populations_labels_from_file()
+        assert np.all([pop_label in self.ordered_populations_labels for pop_label in pop_labels])
+
+    def get_pop_model(self, pop_name):
+        if pop_name != 'glomerulus' and pop_name != 'mossy_fibers':
+            return 'eglif_cond_alpha_multisyn'
+        else:
+            return 'parrot_neuron'
+
     def set_populations(self):
         # Populations' configurations
-        self.neuron_types = list(self.net_src_file['cells/placement'].keys())
-        ordered_neuron_types = []
-        for neuron_type in self.ordered_neuron_types:
-            ordered_neuron_types.append(self.neuron_types.pop(self.neuron_types.index(neuron_type)))
-        ordered_neuron_types += self.neuron_types
-        self.neuron_types = ordered_neuron_types
+        self.assert_ordered_populations_labels()
         self.populations = []
         self.start_id_scaffold = {}
         # All cells are modelled as E-GLIF models;
         # with the only exception of Glomeruli and Mossy Fibers
         # (not cells, just modeled as relays; i.e., parrot neurons)
-        for neuron_name in self.neuron_types:
-            if neuron_name != 'glomerulus' and neuron_name != 'mossy_fibers':
-                model = 'eglif_cond_alpha_multisyn'
-            else:
-                model = 'parrot_neuron'
-            n_neurons = np.array(self.net_src_file['cells/placement/' + neuron_name + '/identifiers'])[1]
+        for pop_name in self.ordered_populations_labels:
             self.populations.append(
-                {"label": neuron_name, "model": model,
-                 "params": self.neuron_param.get(neuron_name, {}),
-                 "scale": n_neurons,
-                 "nodes": self.pops_to_nodes_inds[neuron_name]})
-            self.start_id_scaffold[neuron_name] = \
-                np.array(self.net_src_file['cells/placement/' + neuron_name + '/identifiers'])[0]
+                {"label": pop_name, "model": self.get_pop_model(pop_name),
+                 "params": self.neuron_param.get(pop_name, {}),
+                 "scale": self.get_n_neurons_from_file(pop_name),
+                 "nodes": self.pops_to_nodes_inds[pop_name]})
+            self.start_id_scaffold[pop_name] = self.get_start_id_scaffold_from_file(pop_name)
 
     def set_populations_connections(self):
         self.default_populations_connection["conn_spec"]["rule"] = "one_to_one"
         self.populations_connections = []
         for conn_name in self.conn_weights.keys():
-            conn = np.array(self.net_src_file['cells/connections/'+conn_name])
-            pre = self.conn_pre_post[conn_name]["pre"]
-            post = self.conn_pre_post[conn_name]["post"]
-            if self.pops_to_nodes_inds["pre"] == self.pops_to_nodes_inds["post"]:
-                pre_dummy = np.ones(len(pre))
+            conn = self.get_connection_from_file(conn_name)
+            source = self.conn_pre_post[conn_name]["pre"]
+            target = self.conn_pre_post[conn_name]["post"]
+            if self.pops_to_nodes_inds[source] == self.pops_to_nodes_inds[target]:
                 if conn_name == "mossy_to_glomerulus":
-                    weights = pre_dummy * self.conn_weights[conn_name]
-                    delays = pre_dummy * self.conn_delays[conn_name]
+                    weights = self.conn_weights[conn_name]
+                    delays = self.conn_delays[conn_name]
                 else:
-                    weights = pre_dummy * self.conn_weights[conn_name]
-                    delays = pre_dummy * self.conn_delays[conn_name]
+                    weights = self.conn_weights[conn_name]
+                    delays = self.conn_delays[conn_name]
                 self.populations_connections.append(
-                    {"source": pre, "target": post,
-                     "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
-                                                      conn[:, 0].flatten()),
-
-                     "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
-                                                      conn[:, 1].flatten()),
+                    {"source": source, "target": target,
+                     "source_neurons": NeuronsFun(self.start_id_scaffold[source], conn[:, 0].flatten()),
+                     "target_neurons": NeuronsFun(self.start_id_scaffold[target], conn[:, 1].flatten()),
                      "synapse_model": 'static_synapse',
                      "conn_spec": self.default_populations_connection["conn_spec"],
                      "weight": weights,
                      "delay": delays,
                      "receptor_type": self.conn_receptors.get(conn_name, 0),
-                     "nodes": self.pops_to_nodes_inds["pre"]
+                     "nodes": self.pops_to_nodes_inds[source]
                      }
             )
 
@@ -273,32 +300,28 @@ class CerebBuilder(NESTNetworkBuilder):
         self.default_nodes_connection["conn_spec"]["rule"] = "one_to_one"
         self.nodes_connections = []
         for conn_name in self.conn_weights.keys():
-            conn = np.array(self.net_src_file['cells/connections/'+conn_name])
-            pre = self.conn_pre_post[conn_name]["pre"]
-            post = self.conn_pre_post[conn_name]["post"]
-            if self.pops_to_nodes_inds["pre"] != self.pops_to_nodes_inds["post"]:
-                pre_dummy = np.ones(len(pre))
+            conn = self.get_connection_from_file(conn_name)
+            source = self.conn_pre_post[conn_name]["pre"]
+            target = self.conn_pre_post[conn_name]["post"]
+            if self.pops_to_nodes_inds[source] != self.pops_to_nodes_inds[target]:
                 if conn_name == "io_to_basket" or conn_name == "io_to_stellate":
-                    weights = pre_dummy * self.conn_weights[conn_name],
-                    delays = pre_dummy * self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
-                                                                          std=self.conn_delays[conn_name]["sigma"])
+                    weights = self.conn_weights[conn_name],
+                    delays = self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
+                                                              std=self.conn_delays[conn_name]["sigma"])
                 else:
-                    weights = pre_dummy * self.conn_weights[conn_name]
-                    delays = pre_dummy * self.conn_delays[conn_name]
+                    weights = self.conn_weights[conn_name]
+                    delays = self.conn_delays[conn_name]
                 self.populations_connections.append(
-                    {"source": pre, "target": post,
-                     "source_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["pre"]],
-                                                      conn[:, 0].flatten()),
-
-                     "target_neurons": NeuronsFun(self.start_id_scaffold[self.conn_pre_post[conn_name]["post"]],
-                                                      conn[:, 1].flatten()),
+                    {"source": source, "target": target,
+                     "source_neurons": NeuronsFun(self.start_id_scaffold[source], conn[:, 0].flatten()),
+                     "target_neurons": NeuronsFun(self.start_id_scaffold[target], conn[:, 1].flatten()),
                      "synapse_model": 'static_synapse',
                      "conn_spec": self.default_nodes_connection["conn_spec"],
                      "weight": weights,
                      "delay": delays,
                      "receptor_type": self.conn_receptors.get(conn_name, 0),
-                     "source_nodes": self.pops_to_nodes_inds["pre"],
-                     "target_nodes": self.pops_to_nodes_inds["post"]
+                     "source_nodes": self.pops_to_nodes_inds[source],
+                     "target_nodes": self.pops_to_nodes_inds[target]
                      }
             )
 
@@ -306,7 +329,7 @@ class CerebBuilder(NESTNetworkBuilder):
         # We use this in order to measure up to n_neurons neurons from every population
         n_neurons = len(population)
         if n_neurons > total_neurons:
-            return population[0:-1:int(np.ceil(1.0 * n_neurons / total_neurons))]
+            return population[0:-1:np.maximum(1, int(np.round(1.0 * n_neurons / total_neurons)))]
         else:
             return population
 
@@ -318,7 +341,7 @@ class CerebBuilder(NESTNetworkBuilder):
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
         params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
-                  # "neurons_fun": lambda node, population: self.neurons_fun(population),
+                  "neurons_fun": lambda node, population: self.neurons_fun(population),
                   "connections": connections, "nodes": None}  # None means all here
         return device
 
@@ -387,7 +410,7 @@ class CerebBuilder(NESTNetworkBuilder):
         connections["Background"] = ['mossy_fibers']
         device = \
             {"model": "poisson_generator",
-             "params": {"rate": self.BACKGROUND_FREQ, "origin": 0.0, "start": 0.0}, # not necessary: "stop": self.TOT_DURATION
+             "params": {"rate": self.BACKGROUND_FREQ, "origin": 0.0, "start": 0.0},
              "connections": connections, "nodes": None,
              "weights": 1.0,
              "delays": 0.0,
@@ -400,17 +423,18 @@ class CerebBuilder(NESTNetworkBuilder):
             self.input_devices += [self.set_spike_stimulus_mf(), self.set_spike_stimulus_io()]
 
     def set_defaults(self):
-        self.net_src_file = h5py.File(self.path_to_network_source_file, 'r+')
-        if self.Zpos:
-            self.Ie_pc = 176.26
-        else:
-            self.Ie_pc = 742.54
+        self._initialize()
+        # We create a copy so that the original can be read by another process while it is open here:
+        copypath = copy_network_source_file(self.path_to_network_source_file)
+        self.net_src_file = h5py.File(copypath, 'r+')
         self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
         self.set_populations()
         self.set_populations_connections()
         self.set_output_devices()
         self.set_input_devices()
         self.net_src_file.close()
+        # Remove copy:
+        os.remove(copypath)
 
     def build(self, set_defaults=True):
         if set_defaults:
