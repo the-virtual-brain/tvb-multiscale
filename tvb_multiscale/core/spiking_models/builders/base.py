@@ -406,6 +406,8 @@ class SpikingNetworkBuilder(object):
             self.populations_labels.append(_populations[-1]["label"])
             if _populations[-1]["nodes"] is None:
                 _populations[-1]["nodes"] = self.spiking_nodes_inds
+            else:
+                _populations[-1]["nodes"] = np.array(ensure_list(_populations[-1]["nodes"]))
             _model = _populations[-1]["model"]
             if _model not in self._models:
                 self._models.append(_model)
@@ -457,6 +459,9 @@ class SpikingNetworkBuilder(object):
         for i_conn, connections in enumerate(self.populations_connections):
             if connections["nodes"] is None:
                 _populations_connections[i_conn]["nodes"] = self.spiking_nodes_inds
+            else:
+                _populations_connections[i_conn]["nodes"] = \
+                    np.array(ensure_list(_populations_connections[i_conn]["nodes"]))
         self._populations_connections = _populations_connections
         return self._populations_connections
 
@@ -472,6 +477,8 @@ class SpikingNetworkBuilder(object):
                 this_pop = "%s_nodes" % pop
                 if connections[this_pop] is None:
                     _nodes_connections[i_conn][this_pop] = self.spiking_nodes_inds
+                else:
+                    _nodes_connections[i_conn][this_pop] = np.array(ensure_list(_nodes_connections[i_conn][this_pop]))
         self._nodes_connections = _nodes_connections
         return self._nodes_connections
 
@@ -487,6 +494,7 @@ class SpikingNetworkBuilder(object):
             if spiking_nodes is None:
                 spiking_nodes = self.spiking_nodes_inds
             else:
+                spiking_nodes = np.array(ensure_list(spiking_nodes))
                 assert np.all([trg_node in self.spiking_nodes_inds for trg_node in spiking_nodes])
             # User inputs
             # ..set/converted to functions
@@ -582,8 +590,8 @@ class SpikingNetworkBuilder(object):
                     for pop_trg in ensure_list(conn["target"]):
                         # ...connect the two populations:
                         self.connect_two_populations(
-                            self._spiking_brain[i_node][pop_src], conn["source_inds"],
-                            self._spiking_brain[i_node][pop_trg], conn["target_inds"],
+                            self._spiking_brain[i_node][pop_src], conn["source_neurons"],
+                            self._spiking_brain[i_node][pop_trg], conn["target_neurons"],
                             conn["conn_spec"], syn_spec
                         )
 
@@ -612,8 +620,8 @@ class SpikingNetworkBuilder(object):
                             for conn_trg in ensure_list(conn["target"]):
                                 # ...and target population...
                                 trg_pop = self._spiking_brain[i_target_node][conn_trg]
-                                self.connect_two_populations(src_pop, conn["source_inds"],
-                                                             trg_pop, conn["target_inds"],
+                                self.connect_two_populations(src_pop, conn["source_neurons"],
+                                                             trg_pop, conn["target_neurons"],
                                                              conn['conn_spec'], syn_spec)
 
     def build_spiking_brain(self):

@@ -185,15 +185,15 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
            as well as the fact that rate_connection_instantaneous requires a delay of zero.
         """
         if synapse_model.find("rate") > -1:
-            if synapse_model == "rate_connection_instantaneous" and delay != 0.0:
+            if synapse_model == "rate_connection_instantaneous" and np.any(delay != 0.0):
                 raise_value_error("Coupling neurons with rate_connection_instantaneous synapse "
                                   "and delay = %s != 0.0 is not possible!" % str(delay))
-            elif synapse_model == "rate_connection_delayed" and self._get_min_delay(delay) <= 0.0:
+            elif synapse_model == "rate_connection_delayed" and np.any(self._get_min_delay(delay) <= 0.0):
                 raise_value_error("Coupling neurons with rate_connection_delayed synapse "
                                   "and delay = %s <= 0.0 is not possible!" % str(delay))
-            elif self._get_min_delay(delay) < 0.0:
+            elif np.any(self._get_min_delay(delay) < 0.0):
                 raise_value_error("Coupling rate neurons with negative delay = %s < 0.0 is not possible!" % str(delay))
-        elif self._get_min_delay(delay) < self.spiking_dt:
+        elif np.any(self._get_min_delay(delay) < self.spiking_dt):
             raise_value_error("Coupling spiking neurons with delay = %s < NEST integration step = %f is not possible!:"
                               "\n" % (str(delay), self.spiking_dt))
         return delay
@@ -220,7 +220,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         syn_spec.update(params)
         return syn_spec
 
-    def _prepare_syn_spec(self, syn_spec):
+    def _prepare_syn_spec(self, syn_spec, n_source_neurons=1, rule="all_to_all"):
         # Prepare the parameters of synapses:
         syn_spec["synapse_model"] = self._assert_synapse_model(syn_spec.get("synapse_model",
                                                                             syn_spec.get("model", "static_synapse")),
@@ -230,6 +230,11 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             del syn_spec["delay"]  # For instantaneous rate connections
         else:
             syn_spec["delay"] = self._assert_delay(syn_spec["delay"])
+        if rule == "one_to_one":
+            dummy = np.ones((n_source_neurons))
+            for attr in ["weight", "delay"]:
+                if not isinstance(syn_spec[attr], self.nest_instance.lib.hl_api_types.Parameter):
+                    syn_spec[attr] *= dummy
         return syn_spec
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
@@ -246,15 +251,16 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         """
         # Prepare the parameters of connectivity:
         conn_spec = self._prepare_conn_spec(pop_src, pop_trg, conn_spec)
+        source_neurons = get_populations_neurons(pop_src, src_inds_fun)
+        target_neurons = get_populations_neurons(pop_trg, trg_inds_fun)
         # Prepare the parameters of the synapse:
-        syn_spec = self._prepare_syn_spec(syn_spec)
+        syn_spec = \
+            self._prepare_syn_spec(syn_spec, len(source_neurons), conn_spec.get("rule", "all_to_all"))
         # We might create the same connection multiple times for different synaptic receptors...
         receptors = ensure_list(syn_spec["receptor_type"])
         for receptor in receptors:
             syn_spec["receptor_type"] = receptor
-            self.nest_instance.Connect(get_populations_neurons(pop_src, src_inds_fun),
-                                       get_populations_neurons(pop_trg, trg_inds_fun),
-                                       conn_spec, syn_spec)
+            self.nest_instance.Connect(source_neurons, target_neurons, conn_spec, syn_spec)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a NESTRegionNode instance,
