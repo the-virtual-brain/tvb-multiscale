@@ -30,7 +30,8 @@ class NeuronsFun(object):
         self.conns = conns
 
     def __call__(self, population):
-        return tuple([int(x - self.start_id_scaffold + population.tolist()[0]) for x in self.conns])
+        pop_start_ind  = population.tolist()[0]
+        return tuple([int(x - self.start_id_scaffold + pop_start_ind) for x in self.conns])
 
 
 class CerebBuilder(NESTNetworkBuilder):
@@ -204,7 +205,6 @@ class CerebBuilder(NESTNetworkBuilder):
     ordered_populations_labels = ['mossy_fibers', 'glomerulus', "granule_cell", "golgi_cell",
                                   'io_cell', "basket_cell", "stellate_cell", "purkinje_cell",
                                   'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
-    populations_labels = []
     start_id_scaffold = []
 
     def __init__(self, tvb_simulator, nest_instance=None, config=CONFIGURED, logger=None,
@@ -311,7 +311,7 @@ class CerebBuilder(NESTNetworkBuilder):
                 else:
                     weights = self.conn_weights[conn_name]
                     delays = self.conn_delays[conn_name]
-                self.populations_connections.append(
+                self.nodes_connections.append(
                     {"source": source, "target": target,
                      "source_neurons": NeuronsFun(self.start_id_scaffold[source], conn[:, 0].flatten()),
                      "target_neurons": NeuronsFun(self.start_id_scaffold[target], conn[:, 1].flatten()),
@@ -334,37 +334,36 @@ class CerebBuilder(NESTNetworkBuilder):
             return population
 
     def set_spike_recorder(self):
-        connections = OrderedDict()
-        #          label <- target population
         for pop in self.populations:
+            connections = OrderedDict({})
             connections[pop["label"]] = pop["label"]
-        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
-        params["record_to"] = self.output_devices_record_to
-        device = {"model": "spike_recorder", "params": params,
-                  "neurons_fun": lambda node, population: self.neurons_fun(population),
-                  "connections": connections, "nodes": None}  # None means all here
-        return device
+            params = self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"].copy()
+            params["record_to"] = self.output_devices_record_to
+            self.output_devices.append(
+                {"model": "spike_recorder", "params": params,
+                 "neurons_fun": lambda node, population: self.neurons_fun(population),
+                 "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
     def set_multimeter(self):
-        connections = OrderedDict()
+        params = self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"].copy()
+        params["record_to"] = self.output_devices_record_to
+        params["interval"] = self.monitor_period
         #               label    <- target population
         for pop in self.populations:
             if pop["label"] != 'glomerulus' and pop["label"] != 'mossy_fibers':
+                connections = OrderedDict()
                 connections[pop["label"] + "_ts"] = pop["label"]
-        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
-        params["record_to"] = self.output_devices_record_to
-        params["interval"] = self.monitor_period
-        device = {"model": "multimeter", "params": params,
-                  "neurons_fun": lambda node, population: self.neurons_fun(population),
-                  "connections": connections, "nodes": None}  # None means all here
-        return device
+                self.output_devices.append({"model": "multimeter", "params": params.copy(),
+                                            "neurons_fun": lambda node, population: self.neurons_fun(population),
+                                            "connections": connections, "nodes": pop["nodes"]})  # None means all here
 
     def set_output_devices(self):
         # Creating  devices to be able to observe NEST activity:
         # Labels have to be different
-        self.output_devices = [self.set_spike_recorder()]
+        self.output_devices = []
+        self.set_spike_recorder()
         if self.RECORD_VM:
-            self.output_devices.append(self.set_multimeter())
+            self.set_multimeter()
 
     def set_spike_stimulus_mf(self):
         connections = OrderedDict()
@@ -374,7 +373,7 @@ class CerebBuilder(NESTNetworkBuilder):
             {"model": "poisson_generator",
              "params": {"rate": self.STIM_MF_FREQ,
                         "origin": 0.0, "start": self.STIM_MF_START, "stop": self.STIM_MF_END},
-             "connections": connections, "nodes": None,
+             "connections": connections, "nodes": self.pops_to_nodes_inds["mossy_fibers"],
              "weights": 1.0,
              "delays": 0.1,
              "receptor_type": 0}
@@ -398,10 +397,10 @@ class CerebBuilder(NESTNetworkBuilder):
              "params": {"rate": self.STIM_IO_FREQ,
                         "origin": 0.0, "start": self.STIM_IO_START, "stop": self.STIM_IO_END},
              # "neurons_fun": lambda node, population: self.select_microzone_negative(population),
-             "connections": connections, "nodes": None,
+             "connections": connections, "nodes": self.pops_to_nodes_inds["io_cell"],
              "weights": 25.0,
              "delays": 0.1,
-             "receptor_type": 0}
+             "receptor_type": 1}
         return device
 
     def set_spike_stimulus_background(self):
@@ -411,7 +410,7 @@ class CerebBuilder(NESTNetworkBuilder):
         device = \
             {"model": "poisson_generator",
              "params": {"rate": self.BACKGROUND_FREQ, "origin": 0.0, "start": 0.0},
-             "connections": connections, "nodes": None,
+             "connections": connections, "nodes": self.pops_to_nodes_inds["mossy_fibers"],
              "weights": 1.0,
              "delays": 0.0,
              "receptor_type": 0}
@@ -423,13 +422,14 @@ class CerebBuilder(NESTNetworkBuilder):
             self.input_devices += [self.set_spike_stimulus_mf(), self.set_spike_stimulus_io()]
 
     def set_defaults(self):
-        self._initialize()
         # We create a copy so that the original can be read by another process while it is open here:
         copypath = copy_network_source_file(self.path_to_network_source_file)
         self.net_src_file = h5py.File(copypath, 'r+')
         self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
+        self._initialize()
         self.set_populations()
         self.set_populations_connections()
+        self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
         self.net_src_file.close()
