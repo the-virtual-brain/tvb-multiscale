@@ -461,7 +461,7 @@ class SpikingNetworkBuilder(object):
         _populations_connections = self._configure_connections(self.populations_connections,
                                                                self.default_populations_connection)
         for i_conn, connections in enumerate(self.populations_connections):
-            if connections["nodes"] is None:
+            if connections.get("nodes", None) is None:
                 _populations_connections[i_conn]["nodes"] = self.spiking_nodes_inds
             else:
                 _populations_connections[i_conn]["nodes"] = \
@@ -479,7 +479,7 @@ class SpikingNetworkBuilder(object):
         for i_conn, connections in enumerate(self.nodes_connections):
             for pop in ["source", "target"]:
                 this_pop = "%s_nodes" % pop
-                if connections[this_pop] is None:
+                if connections.get(this_pop, None) is None:
                     _nodes_connections[i_conn][this_pop] = self.spiking_nodes_inds
                 else:
                     _nodes_connections[i_conn][this_pop] = np.array(ensure_list(_nodes_connections[i_conn][this_pop]))
@@ -636,10 +636,11 @@ class SpikingNetworkBuilder(object):
                                 # ...and target population...
                                 trg_pop = self._spiking_brain[i_target_node][conn_trg]
                                 LOG.info("%s -> %s populations ..." %
-                                         (src_pop["label"], trg_pop["label"]))
+                                         (src_pop.label, trg_pop.label))
                                 self.connect_two_populations(src_pop, conn["source_neurons"],
                                                              trg_pop, conn["target_neurons"],
                                                              conn['conn_spec'], syn_spec)
+
 
     def build_spiking_brain(self):
         """Method to build and connect all Spiking brain region nodes,
@@ -662,7 +663,7 @@ class SpikingNetworkBuilder(object):
         for device in devices:
             LOG.info("Generating and connecting %s -> %s device set of model %s\n"
                      "for nodes %s..." % (str(list(device["connections"].keys())),
-                                          str(list(device["connections"].valueds())),
+                                          str(list(device["connections"].values())),
                                           device["model"], str(device["nodes"])))
             _devices = _devices.append(
                             self.build_and_connect_devices(device))
