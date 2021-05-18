@@ -3,7 +3,6 @@
 from logging import Logger
 
 from tvb.basic.neotraits._attr import Attr
-from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
@@ -13,7 +12,7 @@ from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest, configure_nest_kernel
 from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTOutputInterfaces, NESTInputInterfaces
 from tvb_multiscale.tvb_nest.interfaces.builders import NESTProxyNodesBuilder, TVBNESTInterfaceBuilder
 from tvb_multiscale.tvb_nest.interfaces.models.default import \
@@ -72,15 +71,8 @@ class NESTSerialApp(SpikeNetSerialApp):
 
     def configure(self):
         super(NESTSerialApp, self).configure()
-        self._spiking_cosimulator.ResetKernel()  # This will restart NEST!
-        self.spiking_cosimulator.set_verbosity(self.config.NEST_VERBOCITY)  # don't print all messages from NEST
+        self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
         self.spikeNet_builder.nest_instance = self.spiking_cosimulator
-        # Printing the time progress should only be used when the simulation is run on a local machine:
-        #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
-        kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG.copy()
-        if "data_path" in kernel_config.keys():
-            safe_makedirs(kernel_config["data_path"])  # Make sure this folder exists
-        self.spiking_cosimulator.SetKernelStatus(kernel_config)
 
     def configure_simulation(self):
         super(NESTSerialApp, self).configure_simulation()
