@@ -41,6 +41,18 @@ def load_nest(config=CONFIGURED, logger=LOG):
     return nest
 
 
+def configure_nest_kernel(nest_instance, config=CONFIGURED):
+    nest_instance.ResetKernel()  # This will restart NEST!
+    nest_instance.set_verbosity(config.NEST_VERBOCITY)  # don't print all messages from NEST
+    # Printing the time progress should only be used when the simulation is run on a local machine:
+    #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
+    kernel_config = config.DEFAULT_NEST_KERNEL_CONFIG.copy()
+    kernel_config["data_path"] = os.path.join(config.out.FOLDER_RES, os.path.basename(kernel_config["data_path"]))
+    safe_makedirs(kernel_config["data_path"])  # Make sure this folder exists
+    nest_instance.SetKernelStatus(kernel_config)
+    return nest_instance
+
+    
 def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     """Function to compile NEST modules.
        Arguments:
