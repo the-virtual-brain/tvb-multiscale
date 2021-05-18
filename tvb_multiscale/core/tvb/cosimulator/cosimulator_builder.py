@@ -106,7 +106,7 @@ class CoSimulatorBuilder(HasTraits):
                                        a symmetric connectome (weights and delays (tract_lengths)) is forced.
                                        Default = False""",
                                 field_type=bool,
-                                default=True,
+                                default=False,
                                 required=False)
 
     remove_self_connections = Attr(label="Self-connections removal flag",
@@ -205,6 +205,7 @@ class CoSimulatorBuilder(HasTraits):
         # idelays = numpy.rint(delays / dt).astype(numpy.int32)
         # and delays = tract_lengths / speed
         minimum_tract_length = self.dt * self.connectivity.speed
+        self.connectivity.weights[np.isnan(self.connectivity.weights)] = 0.0
         if self.remove_self_connections:
             np.fill_diagonal(self.connectivity.weights, 0.0)
             np.fill_diagonal(self.connectivity.tract_lengths, minimum_tract_length)
