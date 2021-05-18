@@ -380,7 +380,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                                                         "label": pop_name}),
                                       nest_instance=self.nest_instance,
                                       label=pop_name, brain_region=reg_name)
-                self.nest_instance.Connect(self.neurons_fun(self.nest_network.brain_regions[reg_name][pop_name]),
+                self.nest_instance.Connect(self.nest_network.brain_regions[reg_name][pop_name]._nodes,  # self.neurons_fun()
                                            self.nest_network.output_devices[pop_name][reg_name].device)
             self.nest_network.output_devices[pop_name].update()
 
@@ -400,7 +400,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                        nest_instance=self.nest_instance,
                                        label=dev_name, brain_region=reg_name)
                     self.nest_instance.Connect(self.nest_network.output_devices[dev_name][reg_name].device,
-                                               self.neurons_fun(self.nest_network.brain_regions[reg_name][pop_name]))
+                                               self.nest_network.brain_regions[reg_name][pop_name]._nodes) #self.neurons_fun()
                 self.nest_network.output_devices[dev_name].update()
 
     def build_output_devices(self):

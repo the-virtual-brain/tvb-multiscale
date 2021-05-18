@@ -341,7 +341,7 @@ class CerebBuilder(NESTNetworkBuilder):
             params["record_to"] = self.output_devices_record_to
             self.output_devices.append(
                 {"model": "spike_recorder", "params": params,
-                 "neurons_fun": lambda node, population: self.neurons_fun(population),
+                 # "neurons_fun": lambda node, population: self.neurons_fun(population),
                  "connections": connections, "nodes": pop["nodes"]})  # None means apply to "all"
 
     def set_multimeter(self):
@@ -354,7 +354,7 @@ class CerebBuilder(NESTNetworkBuilder):
                 connections = OrderedDict()
                 connections[pop["label"] + "_ts"] = pop["label"]
                 self.output_devices.append({"model": "multimeter", "params": params.copy(),
-                                            "neurons_fun": lambda node, population: self.neurons_fun(population),
+                                            # "neurons_fun": lambda node, population: self.neurons_fun(population),
                                             "connections": connections, "nodes": pop["nodes"]})  # None means all here
 
     def set_output_devices(self):
