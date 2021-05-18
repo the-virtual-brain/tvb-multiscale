@@ -173,6 +173,18 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
     return time, time_with_transient
 
 
+def print_spikes_mean_result(result):
+    print("Mean spike rates:")
+    try:
+        for pop in result.coords["Population"]:
+            for reg in result.coords["Region"]:
+                if not np.isnan(result.loc[pop, reg]):
+                    print("%s - %s: %g" % (pop.values.item().split("_spikes")[0], reg.values.item(),
+                                           result.loc[pop, reg].values.item()))
+    except:
+        print(result)
+
+
 def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                        time=None, transient=0.0, monitor_period=1.0,
                                        plot_per_neuron=False, plotter=None, writer=None, config=CONFIGURED):
@@ -219,7 +231,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                   figsize=figsize)
 
         # Mean rates
-        print(spikes_res["mean_rate"])
+        print_spikes_mean_result(spikes_res["mean_rate"])
 
         # Correlations
         print(spikes_res["spikes_correlation_coefficient"])
@@ -252,7 +264,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                     return_spikes_trains=False, return_devices=False)
 
             if spikes_sync is not None:
-                print(spikes_sync["spikes_sync"])
+                print_spikes_mean_result(spikes_res["spikes_sync"])
                 # Plot spikes' rasters together with mean population's spikes' rates' time series
                 plotter.plot_spike_events(spikes_res["spikes"],
                                           time_series=spikes_sync["spikes_sync_time_series"],
