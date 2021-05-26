@@ -21,7 +21,6 @@ from tvb_multiscale.tvb_nest.nest_models.devices import NESTPoissonGenerator, NE
 from tvb_multiscale.core.spiking_models.devices import DeviceSet
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 
 def copy_network_source_file(path_to_network_source_file):
@@ -279,16 +278,17 @@ class CerebBuilder(NESTNetworkBuilder):
                 model = self.get_pop_model(pop_name)
                 n_neurons = self.get_n_neurons_from_file(pop_name)
                 self.nest_network.brain_regions[reg_name][pop_name] = \
-                    NESTPopulation(self.nest_instance.Create(model, n_neurons),
+                    NESTPopulation(self.nest_instance.Create(model, n_neurons,
+                                                             params=self.neuron_param.get(pop_name, {}),),
                                    self.nest_instance, label=pop_name, brain_region=reg_name)
                 self.logger.info("...created %d neurons of model %s for population %s in brain region %s..." %
                                  (n_neurons, model, pop_name, reg_name))
                 self.start_id_scaffold[pop_name][reg_name] = self.get_start_id_scaffold_from_file(pop_name)
 
     def _get_scaffold(self, conn, pop_name, reg_name):
-        start_id_scaffold = self.start_id_scaffold[pop_name][reg_name]
-        start_id_pop = self.nest_network.brain_regions[reg_name][pop_name].gids[0]
-        return [int(x - start_id_scaffold + start_id_pop) for x in conn]
+        return tuple(np.array(conn
+                              - self.start_id_scaffold[pop_name][reg_name]
+                              + self.nest_network.brain_regions[reg_name][pop_name].gids[0]).astype('i').tolist())
 
     def build_populations_connections(self):
         self.default_populations_connection["conn_spec"]["rule"] = "one_to_one"
@@ -306,20 +306,20 @@ class CerebBuilder(NESTNetworkBuilder):
                 n_pre = len(pre)
                 pre_dummy = np.ones((n_pre,))
                 post = self._get_scaffold(conn[:, 1], target, reg_name)
-                self.logger.info("...connecting populations %s (%s) -> %s (%s) (%s connections)..." %
-                                 (source, reg_name, target, reg_name, n_pre))
                 if conn_name == "mossy_to_glomerulus":
                     weights = pre_dummy * self.conn_weights[conn_name]
                     delays = pre_dummy * self.conn_delays[conn_name]
-                    receptor_type = 0
                 else:
                     weights = pre_dummy * self.conn_weights[conn_name]
                     delays = pre_dummy * self.conn_delays[conn_name]
-                    receptor_type = self.conn_receptors[conn_name]
+                receptor = self.conn_receptors.get(conn_name, 0)
+                self.logger.info("...connecting populations %s (%s) -> %s (%s) (%s connections) at receptor %d..." %
+                                 (source, reg_name, target, reg_name, n_pre, receptor))
                 self.nest_instance.Connect(pre, post,
                                            conn_spec={"rule": self.default_populations_connection["conn_spec"]["rule"]},
-                                           syn_spec={"synapse_model": "static_synapse", "weight": weights,
-                                                     "delay": delays, "receptor_type": receptor_type})
+                                           syn_spec={"synapse_model": "static_synapse",
+                                                     "weight": weights, "delay": delays,
+                                                     "receptor_type": receptor})
 
                 self.logger.info("...done in %g sec..." % (time.time() - tic))
         self.logger.info("...done in %g sec..." % (time.time() - tic1))
@@ -347,15 +347,17 @@ class CerebBuilder(NESTNetworkBuilder):
                     weights = pre_dummy * self.conn_weights[conn_name],
                     delays = self.nest_instance.random.normal(mean=self.conn_delays[conn_name]["mu"],
                                                               std=self.conn_delays[conn_name]["sigma"])
-                    receptor_type = 0
                 else:
                     weights = pre_dummy * self.conn_weights[conn_name]
                     delays = pre_dummy * self.conn_delays[conn_name]
-                    receptor_type = self.conn_receptors[conn_name]
+                receptor = self.conn_receptors.get(conn_name, 0)
+                self.logger.info("...connecting populations %s (%s) -> %s (%s) (%s connections) at receptor %d..." %
+                                 (source, reg_source, target, reg_target, n_pre, receptor))
                 self.nest_instance.Connect(pre, post,
                                            conn_spec={"rule": self.default_nodes_connection["conn_spec"]["rule"]},
-                                           syn_spec={"synapse_model": "static_synapse", "weight": weights,
-                                                     "delay": delays, "receptor_type": receptor_type})
+                                           syn_spec={"synapse_model": "static_synapse",
+                                                     "weight": weights, "delay": delays,
+                                                     "receptor_type": receptor})
                 self.logger.info("...done in %g sec..." % (time.time() - tic))
         self.logger.info("...done in %g sec..." % (time.time() - tic1))
 
@@ -374,12 +376,13 @@ class CerebBuilder(NESTNetworkBuilder):
             self.nest_network.output_devices[pop_name] = DeviceSet(label=pop_name, model="spike_recorder")
             for reg_name in self._populations_to_regions(pop_name):
                 self.logger.info("...at region %s..." % reg_name)
+                label = "%s_%s" % (pop_name, reg_name)
                 self.nest_network.output_devices[pop_name][reg_name] = \
                     NESTSpikeRecorder(self.nest_instance.Create('spike_recorder',
                                                                 params={"record_to": self.output_devices_record_to,
-                                                                        "label": pop_name}),
+                                                                        "label": label}),
                                       nest_instance=self.nest_instance,
-                                      label=pop_name, brain_region=reg_name)
+                                      label=label, brain_region=reg_name)
                 self.nest_instance.Connect(self.nest_network.brain_regions[reg_name][pop_name]._nodes,  # self.neurons_fun()
                                            self.nest_network.output_devices[pop_name][reg_name].device)
             self.nest_network.output_devices[pop_name].update()
@@ -393,12 +396,14 @@ class CerebBuilder(NESTNetworkBuilder):
                 self.nest_network.output_devices[dev_name] = DeviceSet(label=dev_name, model="multimeter")
                 for reg_name in self._populations_to_regions(pop_name):
                     self.logger.info("...at region %s..." % reg_name)
+                    label = "%s_%s" % (dev_name, reg_name)
                     self.nest_network.output_devices[dev_name][reg_name] = \
                         NESTMultimeter(self.nest_instance.Create('multimeter',
-                                                                 params={"record_to": self.output_devices_record_to,
-                                                                         "label": pop_name}),
+                                                                 params={"record_from": ["V_m"],
+                                                                         "record_to": self.output_devices_record_to,
+                                                                         "label": label}),
                                        nest_instance=self.nest_instance,
-                                       label=dev_name, brain_region=reg_name)
+                                       label=label, brain_region=reg_name)
                     self.nest_instance.Connect(self.nest_network.output_devices[dev_name][reg_name].device,
                                                self.nest_network.brain_regions[reg_name][pop_name]._nodes) #self.neurons_fun()
                 self.nest_network.output_devices[dev_name].update()
