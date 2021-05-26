@@ -1004,10 +1004,6 @@ class DeviceSet(SpikingNodesSet):
                 return list(input_devices)
 
     @property
-    def number_of_nodes(self):
-        return self.size
-
-    @property
     def number_of_connections(self):
         """This method will return the total number of connections of each Device of the DeviceSet.
            Returns:
