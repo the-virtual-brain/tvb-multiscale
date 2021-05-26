@@ -228,6 +228,8 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         plotter.plot_spike_events(spikes_res["spikes"],
                                   time_series=spikes_res["mean_rate_time_series"],
                                   mean_results=spikes_res["mean_rate"],
+                                  spikes_markersize=0.5, spikes_alpha=0.5,
+                                  n_y_ticks=3, n_time_ticks=6, show_time_axis=True,
                                   figsize=figsize)
 
         # Mean rates
@@ -269,6 +271,8 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                 plotter.plot_spike_events(spikes_res["spikes"],
                                           time_series=spikes_sync["spikes_sync_time_series"],
                                           mean_results=spikes_sync["spikes_sync"],
+                                          spikes_markersize=0.5, spikes_alpha=0.5,
+                                          n_y_ticks=3, n_time_ticks=6, show_time_axis=True,
                                           figsize=figsize)
                 if writer:
                     writer.write_object(spikes_sync["spikes_sync"].to_dict(),
