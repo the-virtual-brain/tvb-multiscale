@@ -30,8 +30,7 @@ class NeuronsFun(object):
         self.conns = conns
 
     def __call__(self, population):
-        pop_start_ind  = population.tolist()[0]
-        return tuple([int(x - self.start_id_scaffold + pop_start_ind) for x in self.conns])
+        return tuple(np.array(self.conns - self.start_id_scaffold + population.tolist()[0]).astype('i').tolist())
 
 
 class CerebBuilder(NESTNetworkBuilder):
@@ -294,7 +293,7 @@ class CerebBuilder(NESTNetworkBuilder):
                      "receptor_type": self.conn_receptors.get(conn_name, 0),
                      "nodes": self.pops_to_nodes_inds[source]
                      }
-            )
+                )
 
     def set_nodes_connections(self):
         self.default_nodes_connection["conn_spec"]["rule"] = "one_to_one"
@@ -323,7 +322,7 @@ class CerebBuilder(NESTNetworkBuilder):
                      "source_nodes": self.pops_to_nodes_inds[source],
                      "target_nodes": self.pops_to_nodes_inds[target]
                      }
-            )
+                )
 
     def neurons_fun(self, population, total_neurons=100):
         # We use this in order to measure up to n_neurons neurons from every population
