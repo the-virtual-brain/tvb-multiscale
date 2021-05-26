@@ -128,7 +128,9 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
            Returns:
             a NESTPopulation class instance
         """
-        return NESTPopulation(self.nest_instance.Create(model, int(np.round(size)), params=params),
+        n_neurons = int(np.round(size))
+        self.logger.info("...with %d neurons..." % n_neurons)
+        return NESTPopulation(self.nest_instance.Create(model, n_neurons, params=params),
                               nest_instance=self.nest_instance, label=label, model=model, brain_region=brain_region)
 
     @property
@@ -198,10 +200,13 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                               "\n" % (str(delay), self.spiking_dt))
         return delay
 
-    def _prepare_conn_spec(self, pop_src, pop_trg, conn_spec):
-        return create_conn_spec(n_src=pop_src.number_of_neurons, n_trg=pop_trg.number_of_neurons,
-                                src_is_trg=(pop_src.population == pop_trg.population),
-                                config=self.config, **conn_spec)[0]
+    def _prepare_conn_spec(self,  pop_src, pop_trg, conn_spec):
+        n_src = len(pop_src)
+        n_trg = len(pop_trg)
+        conn_spec, n_conns = create_conn_spec(n_src=n_src, n_trg=n_trg,
+                                              src_is_trg=(pop_src == pop_trg),
+                                              config=self.config, **conn_spec)
+        return conn_spec, n_conns, n_src, n_trg
 
     def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
         """Method to set the synaptic model, the weight, the delay,
@@ -250,16 +255,18 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                             including weight, delay and synaptic receptor type ones
         """
         # Prepare the parameters of connectivity:
-        conn_spec = self._prepare_conn_spec(pop_src, pop_trg, conn_spec)
         source_neurons = get_populations_neurons(pop_src, src_inds_fun)
         target_neurons = get_populations_neurons(pop_trg, trg_inds_fun)
+        conn_spec, n_conns, n_source_neurons, n_target_neurons = \
+            self._prepare_conn_spec(source_neurons, target_neurons, conn_spec)
         # Prepare the parameters of the synapse:
         syn_spec = \
-            self._prepare_syn_spec(syn_spec, len(source_neurons), conn_spec.get("rule", "all_to_all"))
+            self._prepare_syn_spec(syn_spec, n_source_neurons, conn_spec["rule"])
         # We might create the same connection multiple times for different synaptic receptors...
         receptors = ensure_list(syn_spec["receptor_type"])
         for receptor in receptors:
             syn_spec["receptor_type"] = receptor
+            self.logger.info("...%d connections to receptor %s" % (n_conns, str(receptor)))
             self.nest_instance.Connect(source_neurons, target_neurons, conn_spec, syn_spec)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
