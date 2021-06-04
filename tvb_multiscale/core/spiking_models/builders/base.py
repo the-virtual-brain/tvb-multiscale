@@ -63,11 +63,23 @@ class SpikingNetworkBuilder(object):
     _spiking_brain = SpikingBrain()
     _models = []
 
-    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=CONFIGURED, logger=None):
-        if logger is None:
-            logger = initialize_logger(__name__, config=config)
+    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=None, logger=None):
         self.logger = logger
         self.config = config
+        self.tvb_serial_sim = tvb_serial_sim
+        self.spiking_nodes_inds = spiking_nodes_inds
+
+    def _assert_tvb_cosimulator(self):
+        if isinstance(self.tvb_serial_sim, os.PathLike):
+            self.tvb_serial_sim = load_serial_tvb_cosimulator(self.tvb_serial_sim)
+        elif not isinstance(self.tvb_serial_sim, dict):
+            self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
+
+    def configure(self):
+        if self.config is None:
+            self.config = CONFIGURED
+        if self.logger is None:
+            self.logger = initialize_logger(__name__, config=self.config)
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
@@ -87,17 +99,6 @@ class SpikingNetworkBuilder(object):
         self.default_devices_connection["delay"] = self.default_min_delay
         self.default_devices_connection["nodes"] = None
 
-        self.tvb_serial_sim = tvb_serial_sim
-        self._assert_tvb_cosimulator()
-        self.spiking_nodes_inds = spiking_nodes_inds
-
-    def _assert_tvb_cosimulator(self):
-        if isinstance(self.tvb_serial_sim, os.PathLike):
-            self.tvb_serial_sim = load_serial_tvb_cosimulator(self.tvb_serial_sim)
-        elif not isinstance(self.tvb_serial_sim, dict):
-            self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
-
-    def configure(self):
         self._assert_tvb_cosimulator()
         self.update_spiking_dt()
         self.update_default_min_delay()

@@ -29,9 +29,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = pd.Series()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=CONFIGURED, logger=None):
-        if logger is None:
-            logger = initialize_logger(__name__, config=config)
+    def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=None, logger=None):
         self.annarchy_instance = annarchy_instance
         super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self._spiking_brain = ANNarchyBrain()
@@ -48,6 +46,10 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
+        if self.config is None:
+            self.config = CONFIGURED
+        if self.logger is None:
+            self.logger = initialize_logger(__name__, config=self.config)
         self._configure_annarchy()
         super(ANNarchyNetworkBuilder, self).configure()
 

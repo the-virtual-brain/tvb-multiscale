@@ -4,7 +4,6 @@ from copy import deepcopy
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
@@ -15,7 +14,7 @@ class WWDeco2013Builder(DefaultExcIOInhIBuilder):
     w_EE = np.array([0.9])
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=CONFIGURED, logger=None, **kwargs):
+                 config=None, logger=None, **kwargs):
 
         super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
@@ -186,7 +185,7 @@ class WWDeco2014Builder(WWDeco2013Builder):
     w_IE = np.array([1.0])
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=CONFIGURED, logger=None, **kwargs):
+                 config=None, logger=None, **kwargs):
 
         super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 

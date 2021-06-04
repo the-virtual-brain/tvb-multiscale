@@ -30,14 +30,16 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
     modules_to_install = []
     _spiking_brain = NESTBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, logger=None):
-        if logger is None:
-            logger = initialize_logger(__name__, config=config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
         super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self.nest_instance = nest_instance
         self._spiking_brain = NESTBrain()
 
     def configure(self):
+        if self.config is None:
+            self.config = CONFIGURED
+        if self.logger is None:
+            self.logger = initialize_logger(__name__, config=self.config)
         super(NESTNetworkBuilder, self).configure()
         self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt})
 
