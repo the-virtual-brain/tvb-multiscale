@@ -8,7 +8,6 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 
 
@@ -38,6 +37,7 @@ class CerebBuilder(NESTNetworkBuilder):
     output_devices_record_to = "ascii"
 
     path_to_network_source_file = ""
+    net_src_file = None
 
     # Synapse parameters: in E-GLIF, 3 synaptic receptors are present:
     # the first is always associated to exc, the second to inh, the third to remaining synapse type
@@ -191,6 +191,7 @@ class CerebBuilder(NESTNetworkBuilder):
                      }
 
     RECORD_VM = True
+    BACKGROUND = True
     STIMULUS = True
     TOT_DURATION = 400.   # ms
     STIM_MF_START = 140.  # beginning of stimulation to MFs
@@ -206,17 +207,20 @@ class CerebBuilder(NESTNetworkBuilder):
                                   'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator, nest_instance=None, config=CONFIGURED, logger=None,
-                 pops_to_nodes_inds={"Cerebellar_Cortex": 0, "Inferior_Olive_Complex": 1, "Cerebellar_Nuclei": 2},
-                 path_to_network_source_file=""):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None,
+                 pops_to_nodes_inds={}, path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
-        super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(self.pops_to_nodes_inds.values())),
+        self.spiking_nodes_inds = np.unique(spiking_nodes_inds)
+        super(CerebBuilder, self).__init__(tvb_simulator, self.spiking_nodes_inds,
                                            nest_instance, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
-        self._initialize()
 
     def _initialize(self):
-        self.spiking_nodes_inds = np.unique(list(self.pops_to_nodes_inds.values()))
+        spiking_nodes_inds = np.unique(list(self.pops_to_nodes_inds.values()))
+        if len(self.spiking_nodes_inds):
+            assert np.all(self.spiking_nodes_inds == spiking_nodes_inds)
+        else:
+            self.spiking_nodes_inds = spiking_nodes_inds
         if not os.path.isfile(self.path_to_network_source_file):
             package_folder = __file__.split("tvb_multiscale")[0]
             self.path_to_network_source_file = \
@@ -353,7 +357,7 @@ class CerebBuilder(NESTNetworkBuilder):
                 connections = OrderedDict()
                 connections[pop["label"] + "_ts"] = pop["label"]
                 self.output_devices.append({"model": "multimeter", "params": params.copy(),
-                                            # "neurons_fun": lambda node, population: self.neurons_fun(population),
+                                            "neurons_fun": lambda node, population: self.neurons_fun(population),
                                             "connections": connections, "nodes": pop["nodes"]})  # None means all here
 
     def set_output_devices(self):
@@ -416,22 +420,27 @@ class CerebBuilder(NESTNetworkBuilder):
         return device
 
     def set_input_devices(self):
-        self.input_devices = [self.set_spike_stimulus_background()]
+        self.input_devices = []
+        if self.BACKGROUND:
+            self.input_devices += [self.set_spike_stimulus_background()]
         if self.STIMULUS:
             self.input_devices += [self.set_spike_stimulus_mf(), self.set_spike_stimulus_io()]
+
+    def configure(self):
+        self._initialize()
+        super(CerebBuilder, self).configure()
 
     def set_defaults(self):
         # We create a copy so that the original can be read by another process while it is open here:
         copypath = copy_network_source_file(self.path_to_network_source_file)
         self.net_src_file = h5py.File(copypath, 'r+')
-        self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
-        self._initialize()
         self.set_populations()
         self.set_populations_connections()
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
         self.net_src_file.close()
+        self.net_src_file = None
         # Remove copy:
         os.remove(copypath)
 
