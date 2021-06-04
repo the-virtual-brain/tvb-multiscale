@@ -43,7 +43,7 @@ from tests.core.test_spikeNet_models import TestSpikeNetModel
 class TestDefault(TestSpikeNetModel):
     model = Linear
     model_params = {}
-    spikeNet_model_builder = DefaultExcIOBuilder
+    spikeNet_model_builder = DefaultExcIOBuilder()
     tvb_spikeNet_model_builder = DefaultTVBNESTInterfaceBuilder
     multisynapse = False
 
@@ -63,7 +63,7 @@ class TestDefault(TestSpikeNetModel):
 class TestDefaultMutisynapse(TestSpikeNetModel):
     model = Linear
     model_params = {}
-    spikeNet_model_builder = DefaultExcIOMultisynapseBuilder
+    spikeNet_model_builder = DefaultExcIOMultisynapseBuilder()
     tvb_spikeNet_model_builder = DefaultMultisynapseTVBNESTInterfaceBuilder
     multisynapse = True
 
@@ -83,7 +83,7 @@ class TestDefaultMutisynapse(TestSpikeNetModel):
 class TestWilsonCowan(TestSpikeNetModel):
     model = WilsonCowan
     model_params = {}
-    spikeNet_model_builder = WilsonCowanBuilder
+    spikeNet_model_builder = WilsonCowanBuilder()
     tvb_spikeNet_model_builder = WilsonCowanTVBNESTInterfaceBuilder
     multisynapse = False
 
@@ -102,7 +102,7 @@ class TestWilsonCowan(TestSpikeNetModel):
 
 class TestWilsonCowanMultisynapse(TestWilsonCowan):
 
-    spikeNet_model_builder = WilsonCowanMultisynapseBuilder
+    spikeNet_model_builder = WilsonCowanMultisynapseBuilder()
     tvb_spikeNet_model_builder = WilsonCowanMultisynapseTVBNESTInterfaceBuilder
     multisynapse = True
 
@@ -115,7 +115,7 @@ class TestWilsonCowanMultisynapse(TestWilsonCowan):
 class TestReducedWongWangExcIO(TestSpikeNetModel):
 
     model = ReducedWongWangExcIO
-    spikeNet_model_builder = WWDeco2013Builder
+    spikeNet_model_builder = WWDeco2013Builder()
     tvb_spikeNet_model_builder = RedWongWangExcIOTVBNESTInterfaceBuilder
 
     def run_fun(self):
@@ -145,7 +145,7 @@ class TestReducedWongWangExcIO(TestSpikeNetModel):
 class TestReducedWongWangExcIOInhI(TestSpikeNetModel):
 
     model = ReducedWongWangExcIOInhI
-    spikeNet_model_builder = WWDeco2014Builder
+    spikeNet_model_builder = WWDeco2014Builder()
     tvb_spikeNet_model_builder = RedWongWangExcIOInhITVBNESTInterfaceBuilder
 
     def run_fun(self):
@@ -175,7 +175,7 @@ class TestReducedWongWangExcIOInhI(TestSpikeNetModel):
 class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
     model = LinearReducedWongWangExcIO
-    spikeNet_model_builder = BasalGangliaIzhikevichBuilder
+    spikeNet_model_builder = BasalGangliaIzhikevichBuilder()
     spiking_proxy_inds = np.arange(10).tolist()
     tvb_spikeNet_model_builder = BasalGangliaIzhikevichTVBNESTInterfaceBuilder
 

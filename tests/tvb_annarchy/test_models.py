@@ -32,7 +32,7 @@ from tests.core.test_spikeNet_models import TestSpikeNetModel
 class TestDefault(TestSpikeNetModel):
     model = Linear
     model_params = {}
-    spikeNet_model_builder = DefaultExcIOBuilder
+    spikeNet_model_builder = DefaultExcIOBuilder()
     tvb_spikeNet_model_builder = DefaultInterfaceBuilder
     multisynapse = False
 
@@ -52,7 +52,7 @@ class TestDefault(TestSpikeNetModel):
 class TestWilsonCowan(TestSpikeNetModel):
     model = WilsonCowan
     model_params = {}
-    spikeNet_model_builder = WilsonCowanBuilder
+    spikeNet_model_builder = WilsonCowanBuilder()
     tvb_spikeNet_model_builder = WilsonCowanTVBANNarchyInterfaceBuilder
     multisynapse = False
 
@@ -72,7 +72,7 @@ class TestWilsonCowan(TestSpikeNetModel):
 class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
     model = LinearReducedWongWangExcIO
-    spikeNet_model_builder = BasalGangliaIzhikevichBuilder
+    spikeNet_model_builder = BasalGangliaIzhikevichBuilder()
     spiking_proxy_inds = np.arange(10).tolist()
     tvb_spikeNet_model_builder = BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder
 
