@@ -97,7 +97,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
             tuple of nodes."""
         output = ()
         for id, lbl, nodes in self._loop_generator(inds_or_lbls):
-            output += tuple(nodes.nodes)
+            output += tuple([nodes.nodes])
         return output
 
     def get_number_of_nodes(self, inds_or_lbls=None):
