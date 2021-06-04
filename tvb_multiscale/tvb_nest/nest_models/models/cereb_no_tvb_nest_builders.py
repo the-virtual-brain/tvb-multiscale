@@ -9,7 +9,6 @@ import h5py
 import numpy as np
 from pandas import Series
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import configure_nest_kernel
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
@@ -190,6 +189,7 @@ class CerebBuilder(NESTNetworkBuilder):
                      }
 
     RECORD_VM = True
+    BACKGROUND = True
     STIMULUS = True
     TOT_DURATION = 400.   # ms
     STIM_MF_START = 140.  # beginning of stimulation to MFs
@@ -207,14 +207,13 @@ class CerebBuilder(NESTNetworkBuilder):
 
     modules_to_install = ["cereb"]
 
-    def __init__(self, tvb_simulator, nest_instance=None, config=CONFIGURED, logger=None,
+    def __init__(self, tvb_simulator={}, nest_instance=None, config=None, logger=None,
                  pops_to_nodes_inds={}, nodes_inds_to_nodes_labels={}, path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
         self.regions_inds_to_regions_labels = nodes_inds_to_nodes_labels
         super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(self.pops_to_nodes_inds.values())),
                                            nest_instance, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
-        self._initialize()
 
     def _initialize(self):
         self.spiking_nodes_inds = np.unique(list(self.pops_to_nodes_inds.values()))
@@ -486,29 +485,29 @@ class CerebBuilder(NESTNetworkBuilder):
 
     def build_input_devices(self):
         self.logger.info("Building input devices...")
-        self.build_spike_stimulus_background()
+        if self.BACKGROUND:
+            self.build_spike_stimulus_background()
         if self.STIMULUS:
             self.build_spike_stimulus_mf()
             self.build_spike_stimulus_io()
 
     def configure(self):
         self.nest_instance = configure_nest_kernel(self.nest_instance, self.config)
+        self._initialize()
         super(CerebBuilder, self).configure()
         self.compile_install_nest_modules(self.modules_to_install)
 
     def build(self, set_defaults=True):
         # We create a copy so that the original can be read by another process while it is open here:
-        copypath = copy_network_source_file(self.path_to_network_source_file)
-        self.net_src_file = h5py.File(copypath, 'r+')
         if set_defaults:
-            self.neuron_param["purkinje_cell"]["I_e"] = self.Ie_pc
-            self._initialize()
-        self.build_populations()
-        self.build_populations_connections()
-        self.build_nodes_connections()
-        self.build_output_devices()
-        self.build_input_devices()
-        self.net_src_file.close()
-        # Remove copy:
-        os.remove(copypath)
+            copypath = copy_network_source_file(self.path_to_network_source_file)
+            self.net_src_file = h5py.File(copypath, 'r+')
+            self.build_populations()
+            self.build_populations_connections()
+            self.build_nodes_connections()
+            self.build_output_devices()
+            self.build_input_devices()
+            self.net_src_file.close()
+            # Remove copy:
+            os.remove(copypath)
         return self.nest_network
