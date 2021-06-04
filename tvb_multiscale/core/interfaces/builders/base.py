@@ -237,7 +237,6 @@ class TVBSpikeNetInterfaceBuilder(object):
         for interface in self.tvb_to_spikeNet_interfaces:
             model = interface.get("model", None)
             if model in self._input_device_dict.keys():
-
                 ids[0] += 1
                 tvb_spikeNet_interface.tvb_to_spikeNet_interfaces = \
                     tvb_spikeNet_interface.tvb_to_spikeNet_interfaces.append(
