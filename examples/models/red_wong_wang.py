@@ -11,7 +11,7 @@ from examples.example import main_example
 def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrator_app, **kwargs):
 
     spiking_proxy_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
-    populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
 
     model_params = kwargs.pop("model_params", {})
 
@@ -20,7 +20,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
     tvb_nest_model_builder.model = model
-    tvb_nest_model_builder.N_E = populations_order
+    tvb_nest_model_builder.N_E = spikeNet_model_builder.populations_order
 
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
@@ -38,7 +38,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     #     transformer_params = {"scale_factor": 1000.0*J_N}
     # else:
     #     voi = "R"
-    #     transformer_params = {"scale_factor": populations_order*np.array([1.0])}
+    #     transformer_params = {"scale_factor": tvb_nest_model_builder.N_E*np.array([1.0])}
     #     proxy_params.update(
     #         {"number_of_neurons": 1,
     #          "receptor_type": lambda source_node, target_node:
@@ -67,7 +67,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     # spikeNet_to_tvb_interfaces = \
     #     [{"voi": ("S", "R"), "populations": "E",
     #       "transformer": spikeNet_to_tvb_transformer,
-    #       "transformer_params": {"scale_factor": np.array([1.0]) / populations_order,
+    #       "transformer_params": {"scale_factor": np.array([1.0]) / tvb_nest_model_builder.N_E,
     #                              "integrator":
     #                                  HeunStochastic(dt=0.1,
     #                                                 noise=Additive(
@@ -82,8 +82,8 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     # spikeNet_to_tvb_interfaces[0]["transformer_params"].update(kwargs.pop("spikeNet_to_tvb_transformer_params", {}))
 
     return main_example(orchestrator_app,
-                        ReducedWongWangExcIO, model_params,
-                        spikeNet_model_builder, spiking_proxy_inds, populations_order,
+                        ReducedWongWangExcIO(), model_params,
+                        spikeNet_model_builder, spiking_proxy_inds,
                         tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
                         **kwargs)
 
@@ -91,7 +91,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
 def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrator_app, **kwargs):
 
     spiking_proxy_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
-    populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
 
     model_params = kwargs.pop("model_params", {})
 
@@ -100,8 +100,8 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     tvb_nest_model_builder.model = model
     tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_nest_model_builder.N_E = int(np.round(1.6*populations_order))
-    tvb_nest_model_builder.N_I = int(np.round(0.4*populations_order))
+    tvb_nest_model_builder.N_E = int(np.round(1.6*spikeNet_model_builder.populations_order))
+    tvb_nest_model_builder.N_I = int(np.round(0.4*spikeNet_model_builder.populations_order))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
 
@@ -112,8 +112,8 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     # lamda = model_params.get("lamda", np.array([0.0]))[0].item()
     # J_N = model_params.get("J_N", np.array([0.15, ]))
     #
-    # N_E = 1.6 * populations_order
-    # N_I = 0.4 * populations_order
+    # N_E = tvb_nest_model_builder.N_E
+    # N_I = tvb_nest_model_builder.N_I
     # tvb_to_spikeNet_proxy_params = \
     #     {"weights": lambda source_node, target_node, tvb_weights:
     #         scale_tvb_weight(source_node, target_node, tvb_weights, global_coupling_scaling)}
@@ -200,7 +200,7 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     #         kwargs.pop("spikeNet_to_tvb_transformer_params_%s" % _pop, {}))
 
     return main_example(orchestrator_app,
-                        ReducedWongWangExcIOInhI, model_params,
-                        spikeNet_model_builder, spiking_proxy_inds, populations_order,
+                        ReducedWongWangExcIOInhI(), model_params,
+                        spikeNet_model_builder, spiking_proxy_inds,
                         tvb_nest_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
                         **kwargs)

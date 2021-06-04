@@ -37,15 +37,15 @@ def wilson_cowan_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orc
 
     model_params.update(kwargs.pop("model_params", {}))
 
-    populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
 
     model = kwargs.pop("model", "RATE").upper()
 
     tvb_spikeNet_model_builder.model = model
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_spikeNet_model_builder.N_E = populations_order
-    tvb_spikeNet_model_builder.N_I = populations_order
+    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.populations_order
+    tvb_spikeNet_model_builder.N_I = spikeNet_model_builder.populations_order
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
 
@@ -94,7 +94,7 @@ def wilson_cowan_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orc
     #
 
     return main_example(orchestrator_app,
-                        WilsonCowan, model_params,
-                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
+                        WilsonCowan(), model_params,
+                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]),
                         tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
 

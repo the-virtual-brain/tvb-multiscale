@@ -8,17 +8,17 @@ import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 
-from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
-from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
-from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
-
-from tvb_multiscale.tvb_annarchy.annarchy_models.models.default import DefaultExcIOBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.models.default import DefaultTVBANNarchyInterfaceBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.models.wilson_cowan import WilsonCowanTVBANNarchyInterfaceBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.models.basal_ganglia_izhikevich import \
-    BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder
+# from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
+# from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
+# from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+#
+# from tvb_multiscale.tvb_annarchy.annarchy_models.models.default import DefaultExcIOBuilder
+# from tvb_multiscale.tvb_annarchy.annarchy_models.models.wilson_cowan import WilsonCowanBuilder
+# from tvb_multiscale.tvb_annarchy.annarchy_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
+# from tvb_multiscale.tvb_annarchy.interfaces.models.default import DefaultTVBANNarchyInterfaceBuilder
+# from tvb_multiscale.tvb_annarchy.interfaces.models.wilson_cowan import WilsonCowanTVBANNarchyInterfaceBuilder
+# from tvb_multiscale.tvb_annarchy.interfaces.models.basal_ganglia_izhikevich import \
+#     BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder
 
 from examples.tvb_annarchy.example import default_example
 from examples.tvb_annarchy.models.wilson_cowan import wilson_cowan_example
@@ -29,10 +29,10 @@ from tests.core.test_spikeNet_models import TestSpikeNetModel
 
 
 class TestDefault(TestSpikeNetModel):
-    model = Linear
-    model_params = {}
-    spikeNet_model_builder = DefaultExcIOBuilder
-    tvb_spikeNet_model_builder = DefaultTVBANNarchyInterfaceBuilder
+    # model = Linear()
+    # model_params = {}
+    # spikeNet_model_builder = DefaultExcIOBuilder()
+    # tvb_spikeNet_model_builder = DefaultTVBANNarchyInterfaceBuilder()
     multisynapse = False
 
     def run_fun(self):
@@ -54,10 +54,10 @@ class TestDefault(TestSpikeNetModel):
 
 
 class TestWilsonCowan(TestSpikeNetModel):
-    model = WilsonCowan
-    model_params = {}
-    spikeNet_model_builder = WilsonCowanBuilder
-    tvb_spikeNet_model_builder = WilsonCowanTVBANNarchyInterfaceBuilder
+    # model = WilsonCowan()
+    # model_params = {}
+    # spikeNet_model_builder = WilsonCowanBuilder()
+    # tvb_spikeNet_model_builder = WilsonCowanTVBANNarchyInterfaceBuilder()
     multisynapse = False
 
     def run_fun(self):
@@ -80,10 +80,10 @@ class TestWilsonCowan(TestSpikeNetModel):
 
 class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
-    model = LinearReducedWongWangExcIO
-    spikeNet_model_builder = BasalGangliaIzhikevichBuilder
+    # model = LinearReducedWongWangExcIO()
+    # spikeNet_model_builder = BasalGangliaIzhikevichBuilder()
+    # tvb_spikeNet_model_builder = BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder()
     spiking_proxy_inds = np.arange(10).tolist()
-    tvb_spikeNet_model_builder = BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder
 
     def run_fun(self):
         basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,

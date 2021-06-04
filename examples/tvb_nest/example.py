@@ -21,10 +21,10 @@ def main_example(model_fun_to_run, ann_model_builder, tvb_ann_model_builder, **k
 def default_example(**kwargs):
 
     if kwargs.pop("multisynapse", False):
-        nest_model_builder = DefaultExcIOMultisynapseBuilder
+        nest_model_builder = DefaultExcIOMultisynapseBuilder()
         tvb_nest_model_builder = DefaultMultisynapseTVBNESTInterfaceBuilder()
     else:
-        nest_model_builder = DefaultExcIOBuilder
+        nest_model_builder = DefaultExcIOBuilder()
         tvb_nest_model_builder = DefaultTVBNESTInterfaceBuilder()
 
     return main_example(default_example_base, nest_model_builder, tvb_nest_model_builder, **kwargs)

@@ -52,7 +52,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     connectivity = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_lengths=tlTVB)
 
     spiking_proxy_inds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    populations_order = kwargs.pop("populations_order", 200)
+    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 200)
 
     model_params = kwargs.pop("model_params", {})
 
@@ -60,7 +60,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     tvb_spikeNet_model_builder.model = model
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_spikeNet_model_builder.N_E = populations_order
+    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.populations_order
     tvb_spikeNet_model_builder.GPe_proxy_inds = np.array([0, 1])
     tvb_spikeNet_model_builder.GPi_proxy_inds = np.array([2, 3])
     tvb_spikeNet_model_builder.STN_proxy_inds = np.array([4, 5])
@@ -75,7 +75,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     # global_coupling_scaling = G * coupling_a
     # tvb_to_spikeNet_transformer = kwargs.pop("tvb_to_spikeNet_transformer",
     #                                          kwargs.pop("tvb_to_spikeNet_transformer_model", None))
-    # tvb_spikeNet_transformer_params = {"scale_factor": populations_order*np.array([1.0])}
+    # tvb_spikeNet_transformer_params = {"scale_factor": tvb_spikeNet_model_builder.N_E*np.array([1.0])}
     # tvb_spikeNet_transformer_params.update(kwargs.pop("tvb_spikeNet_transformer_params", {}))
     #
     # tvb_to_spikeNet_proxy = kwargs.pop("tvb_to_spikeNet_proxy", kwargs.pop("tvb_to_spikeNet_proxy_model", None))
@@ -134,7 +134,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     #         kwargs.pop("spikeNet_to_tvb_transformer_params_%s" % _pop, {}))
 
     return main_example(orchestrator_app,
-                        LinearReducedWongWangExcIO, model_params,
-                        spikeNet_model_builder, spiking_proxy_inds, populations_order,
+                        LinearReducedWongWangExcIO(), model_params,
+                        spikeNet_model_builder, spiking_proxy_inds,
                         tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
                         connectivity=connectivity, **kwargs)

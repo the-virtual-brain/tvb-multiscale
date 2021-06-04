@@ -17,7 +17,7 @@ def main_example(model_fun_to_run, ann_model_builder, tvb_ann_model_builder, **k
 
 
 def default_example(**kwargs):
-    return main_example(default_example_base, DefaultExcIOBuilder, DefaultTVBANNarchyInterfaceBuilder(), **kwargs)
+    return main_example(default_example_base, DefaultExcIOBuilder(), DefaultTVBANNarchyInterfaceBuilder(), **kwargs)
 
 
 if __name__ == "__main__":

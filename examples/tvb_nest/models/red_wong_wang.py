@@ -12,13 +12,13 @@ from examples.models.red_wong_wang import \
 
 def red_wong_wang_excio_example(**kwargs):
     return main_example(red_wong_wang_excio_example_base,
-                        WWDeco2013Builder, RedWongWangExcIOTVBNESTInterfaceBuilder(),
+                        WWDeco2013Builder(), RedWongWangExcIOTVBNESTInterfaceBuilder(),
                         **kwargs)
 
 
 def red_wong_wang_excio_inhi_example(**kwargs):
     return main_example(red_wong_wang_excio_inhi_example_bae,
-                        WWDeco2014Builder, RedWongWangExcIOInhITVBNESTInterfaceBuilder(),
+                        WWDeco2014Builder(), RedWongWangExcIOInhITVBNESTInterfaceBuilder(),
                         **kwargs)
 
 

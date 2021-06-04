@@ -8,7 +8,7 @@ from examples.models.wilson_cowan import wilson_cowan_example as wilson_cowan_ex
 
 
 def wilson_cowan_example(**kwargs):
-    return main_example(wilson_cowan_example_base, WilsonCowanBuilder, WilsonCowanTVBANNarchyInterfaceBuilder(),
+    return main_example(wilson_cowan_example_base, WilsonCowanBuilder(), WilsonCowanTVBANNarchyInterfaceBuilder(),
                         **kwargs)
 
 

@@ -12,7 +12,7 @@ from examples.models.basal_ganglia_izhiikevich import \
 
 def basal_ganglia_izhikevich_example(**kwargs):
     return main_example(basal_ganglia_izhikevich_example_base,
-                        BasalGangliaIzhikevichBuilder, BasalGangliaIzhikevichTVBNESTInterfaceBuilder(),
+                        BasalGangliaIzhikevichBuilder(), BasalGangliaIzhikevichTVBNESTInterfaceBuilder(),
                         **kwargs)
 
 

@@ -24,7 +24,7 @@ def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_t
         else:
             tvb_spikeNet_str = ""
         return os.path.join(CONFIGURED.out.FOLDER_RES.split("/res")[0],
-                            spikeNet_model_builder.__name__.split("Builder")[0] +
+                            spikeNet_model_builder.__class__.__name__.split("Builder")[0] +
                             tvb_spikeNet_str +
                             np.where(spikeNet_to_tvb, "_bidir", "").item()
                             )
@@ -33,7 +33,7 @@ def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_t
 
 
 def main_example(orchestrator_app, tvb_sim_model, model_params={},
-                 spikeNet_model_builder=None, spiking_proxy_inds=[], populations_order=100,
+                 spikeNet_model_builder=None, spiking_proxy_inds=[],
                  tvb_spikeNet_interface_builder=None,
                  tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
@@ -45,9 +45,10 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
             spikeNet_to_tvb = tvb_spikeNet_interface_builder.input_flag
         except:
             spikeNet_to_tvb = len(spikeNet_to_tvb_interfaces) > 0
-        config = \
-            config_type(output_base=results_path_fun(spikeNet_model_builder, tvb_spikeNet_interface_builder.model,
-                                                spikeNet_to_tvb))
+        config = config_type(output_base=results_path_fun(spikeNet_model_builder,
+                                                          tvb_spikeNet_interface_builder.model
+                                                          if tvb_spikeNet_interface_builder is not None else "",
+                                                          spikeNet_to_tvb))
 
     logger = logger_initializer(__name__, config=config)
 
@@ -70,21 +71,18 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     tic = time.time()
 
     # -----------------------------------------a. Configure a TVB simulator builder ------------------------------------
-    orchestrator.tvb_app.cosimulator_builder.model = tvb_sim_model()
+    orchestrator.tvb_app.cosimulator_builder.model = tvb_sim_model
     orchestrator.tvb_app.cosimulator_builder.model_params = model_params
     if not isinstance(connectivity, Connectivity):
         connectivity = Connectivity.from_file(connectivity)
     orchestrator.tvb_app.cosimulator_builder.connectivity = connectivity
     orchestrator.tvb_app.cosimulator_builder.delays_flag = delays_flag
 
-    # -----------------------------------------b. Configure the spiking network model builder---------------------------
-    orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder(config=config,
-                                                                        spiking_nodes_inds=spiking_proxy_inds)
-    orchestrator.spikeNet_app.population_order = populations_order
+    # -----------------------------------------b. Set the spiking network model builder---------------------------
+    orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder
 
     # -----------------------------------------c. Configure the TVB-SpikeNet interface model ---------------------------
-    if tvb_spikeNet_interface_builder is not None:
-        orchestrator.tvb_app.interfaces_builder = tvb_spikeNet_interface_builder
+    orchestrator.tvb_app.interfaces_builder = tvb_spikeNet_interface_builder
     orchestrator.tvb_app.interfaces_builder.output_interfaces = tvb_to_spikeNet_interfaces
     orchestrator.tvb_app.interfaces_builder.input_interfaces = spikeNet_to_tvb_interfaces
 
@@ -158,13 +156,13 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     model_params.update(kwargs.pop("model_params", {}))
 
-    populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
 
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
-    tvb_spikeNet_model_builder.N_E = populations_order
+    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.populations_order
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
 
@@ -173,6 +171,6 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
     # spikeNet_to_tvb_interfaces = [{"voi": "R", "populations": "E"}]
 
     return main_example(orchestrator_app,
-                        Linear, model_params,
-                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
+                        Linear(), model_params,
+                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]),
                         tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
