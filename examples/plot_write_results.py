@@ -266,7 +266,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                     return_spikes_trains=False, return_devices=False)
 
             if spikes_sync is not None:
-                print_spikes_mean_result(spikes_res["spikes_sync"])
+                print_spikes_mean_result(spikes_sync["spikes_sync"])
                 # Plot spikes' rasters together with mean population's spikes' rates' time series
                 plotter.plot_spike_events(spikes_res["spikes"],
                                           time_series=spikes_sync["spikes_sync_time_series"],
