@@ -55,6 +55,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             self.config = CONFIGURED
         if self.logger is None:
             self.logger = initialize_logger(__name__, config=self.config)
+        self.default_kernel_config = self.config.DEFAULT_NEST_KERNEL_CONFIG
         super(NESTNetworkBuilder, self).configure()
         self.configure_nest_kernel()
 
