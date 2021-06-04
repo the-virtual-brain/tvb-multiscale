@@ -32,9 +32,8 @@ def main_example(tvb_sim_model, nest_model_builder,
                  transient=0.0, config=None, plot_write=True, **model_params):
 
     if config is None:
-        config = Config(
-                    output_base=results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb, config)
-                                + "noNestBuilders" if NEST_MODEL_BUILDERS is False else "")
+        config = Config(output_base= results_path_fun(nest_model_builder, tvb_to_nest_mode, nest_to_tvb, config)
+                                     + ("noNestBuilders" if NEST_MODEL_BUILDERS is False else ""))
 
     plotter = Plotter(config)
 
@@ -94,17 +93,13 @@ def main_example(tvb_sim_model, nest_model_builder,
     tic = time.time()
     nest_instance = load_nest(config=config)
     nest_instance = configure_nest_kernel(nest_instance, config)
-    if NEST_MODEL_BUILDERS:
-        nest_model_builder = CerebBuilder(
-            simulator, nest_instance=nest_instance, config=config, logger=None,
-            pops_to_nodes_inds=pops_to_nodes_inds,
-            path_to_network_source_file=os.path.join(data_path, "300x_200z_DCN_IO.hdf5"))
-    else:
-        nest_model_builder = CerebBuilderNoNESTbuilder(
-            simulator, nest_instance=nest_instance, config=config, logger=None,
-            pops_to_nodes_inds=pops_to_nodes_inds,
-            nodes_inds_to_nodes_labels=nodes_inds_to_nodes_labels,
-            path_to_network_source_file=os.path.join(data_path, "300x_200z_DCN_IO.hdf5"))
+    nest_model_builder.tvb_serial_sim = simulator
+    nest_model_builder.nest_instance = nest_instance
+    nest_model_builder.config = config
+    nest_model_builder.pops_to_nodes_inds = pops_to_nodes_inds
+    nest_model_builder.path_to_network_source_file = os.path.join(data_path, "300x_200z_DCN_IO.hdf5")
+    if not NEST_MODEL_BUILDERS:
+        nest_model_builder.nodes_inds_to_nodes_labels = nodes_inds_to_nodes_labels
     nest_model_builder.configure()
     nest_network = nest_model_builder.build()
     print("Done! in %f min" % ((time.time() - tic) / 60))
@@ -158,6 +153,6 @@ if __name__ == "__main__":
     tvb_model = Linear()
     model_params = {"I_o": np.array([0.3]), "G": 0.5 * np.array([256.0]), "gamma": np.array([-0.1])}
 
-    main_example(tvb_model, CerebBuilder, None,
+    main_example(tvb_model, CerebBuilder(), None,
                  tvb_to_nest_mode="rate", nest_to_tvb=True, exclusive_nodes=True,
                  connectivity=connectivity, delays_flag=True, transient=0.0, config=None, **model_params)
