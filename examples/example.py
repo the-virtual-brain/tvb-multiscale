@@ -34,7 +34,7 @@ def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_t
 
 
 def main_example(tvb_sim_model, model_params={},
-                 spikeNet_model_builder=None, spiking_proxy_inds=[], populations_order=100,
+                 spikeNet_model_builder=None, spiking_proxy_inds=[],
                  tvb_spikeNet_interface_builder=None,
                  tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
@@ -64,8 +64,7 @@ def main_example(tvb_sim_model, model_params={},
     tic = time.time()
     # Build a Spiking Network model with the corresponding builder
     # Using all default parameters for this example
-    spikeNet_model_builder = spikeNet_model_builder(simulator, spiking_proxy_inds, config=config, logger=logger)
-    spikeNet_model_builder.population_order = populations_order
+    # spikeNet_model_builder = spikeNet_model_builder(simulator, spiking_proxy_inds, config=config, logger=logger)
     # Common order of neurons' number per population:
     spikeNet_model_builder.configure()
     spiking_network = spikeNet_model_builder.build(set_defaults=True)
@@ -83,9 +82,14 @@ def main_example(tvb_sim_model, model_params={},
         populations_sizes.append(int(np.round(pop["scale"] * spikeNet_model_builder.population_order)))
     # Build a TVB-SpikeNet interface with all the appropriate connections between the TVB and SpikeNet modelled regions
     # Using all default parameters for this example
-    tvb_spikeNet_interface_builder = tvb_spikeNet_interface_builder(simulator, spiking_network, spiking_proxy_inds,
-                                                                    exclusive_nodes,
-                                                                    populations_sizes=populations_sizes)
+    tvb_spikeNet_interface_builder.simulator = simulator
+    tvb_spikeNet_interface_builder.spiking_network = spiking_network
+    tvb_spikeNet_interface_builder.spiking_proxy_inds = spiking_proxy_inds
+    tvb_spikeNet_interface_builder.exclusive_nodes = exclusive_nodes
+    tvb_spikeNet_interface_builder.populations_sizes = populations_sizes
+    # tvb_spikeNet_interface_builder = tvb_spikeNet_interface_builder(simulator, spiking_network, spiking_proxy_inds,
+    #                                                                 exclusive_nodes,
+    #                                                                 populations_sizes=populations_sizes)
     tvb_spikeNet_model = tvb_spikeNet_interface_builder.build_interface(tvb_to_spikeNet_mode=tvb_to_spikeNet_mode,
                                                                         spikeNet_to_tvb=spikeNet_to_tvb)
     print("\nDone! in %f min\n" % ((time.time() - tic)/60))
@@ -156,10 +160,10 @@ def default_example(spikeNet_builder, tvb_spikeNet_builder, **kwargs):
     }
 
     model_params.update(kwargs.pop("model_params", {}))
-    spiking_proxy_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
-    populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_builder.spiking_nodes_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
+    spikeNet_builder.populations_order = kwargs.pop("populations_order", 100)
 
     return main_example(Linear, model_params,
-                        spikeNet_builder, spiking_proxy_inds, populations_order,
+                        spikeNet_builder, spikeNet_builder.spiking_nodes_inds,
                         tvb_spikeNet_builder,
                         **kwargs)

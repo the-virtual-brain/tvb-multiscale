@@ -9,7 +9,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.models.builders.wilson_cowan \
 
 
 def wilson_cowan_example(**kwargs):
-    return main_example(wilson_cowan_example_base, WilsonCowanBuilder, WilsonCowanTVBANNarchyInterfaceBuilder,
+    return main_example(wilson_cowan_example_base, WilsonCowanBuilder(), WilsonCowanTVBANNarchyInterfaceBuilder(),
                         **kwargs)
 
 

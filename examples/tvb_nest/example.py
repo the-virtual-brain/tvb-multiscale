@@ -20,11 +20,11 @@ def main_example(model_fun_to_run, spikeNet_model_builder, tvb_spikeNet_builder,
 def default_example(**kwargs):
 
     if kwargs.pop("multisynapse", False):
-        nest_model_builder = DefaultExcIOMultisynapseBuilder
-        tvb_nest_model_builder = DefaultMultiSynapseInterfaceBuilder
+        nest_model_builder = DefaultExcIOMultisynapseBuilder()
+        tvb_nest_model_builder = DefaultMultiSynapseInterfaceBuilder()
     else:
-        nest_model_builder = DefaultExcIOBuilder
-        tvb_nest_model_builder = DefaultInterfaceBuilder
+        nest_model_builder = DefaultExcIOBuilder()
+        tvb_nest_model_builder = DefaultInterfaceBuilder()
 
     return main_example(default_example_base, nest_model_builder, tvb_nest_model_builder, **kwargs)
 

@@ -11,7 +11,7 @@ from tvb_multiscale.tvb_nest.interfaces.models.builders.red_ww_basal_ganglia_izh
 
 def basal_ganglia_izhikevich_example(**kwargs):
     return main_example(basal_ganglia_izhikevich_example_base,
-                        BasalGangliaIzhikevichBuilder, BasalGangliaIzhikevichTVBNESTInterfaceBuilder,
+                        BasalGangliaIzhikevichBuilder(), BasalGangliaIzhikevichTVBNESTInterfaceBuilder(),
                         **kwargs)
 
 

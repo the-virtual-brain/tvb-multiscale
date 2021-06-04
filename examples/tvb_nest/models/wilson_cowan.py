@@ -14,11 +14,11 @@ from tvb_multiscale.tvb_nest.nest_models.models.wilson_cowan import \
 def wilson_cowan_example(**kwargs):
 
     if kwargs.pop("multisynapse", True):
-        nest_model_builder = WilsonCowanMultisynapseBuilder
-        tvb_nest_model_builder = WilsonCowanMultisynapseTVBNESTInterfaceBuilder
+        nest_model_builder = WilsonCowanMultisynapseBuilder()
+        tvb_nest_model_builder = WilsonCowanMultisynapseTVBNESTInterfaceBuilder()
     else:
-        nest_model_builder = WilsonCowanBuilder
-        tvb_nest_model_builder = WilsonCowanTVBNESTInterfaceBuilder
+        nest_model_builder = WilsonCowanBuilder()
+        tvb_nest_model_builder = WilsonCowanTVBNESTInterfaceBuilder()
 
     return main_example(wilson_cowan_example_base, nest_model_builder, tvb_nest_model_builder, **kwargs)
 

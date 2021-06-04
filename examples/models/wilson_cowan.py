@@ -37,9 +37,10 @@ def wilson_cowan_example(spikeNet_model_builder, tvb_spikeNet_model_builder, **k
 
     model_params.update(kwargs.pop("model_params", {}))
 
-    populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.spiking_nodes_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
 
     return main_example(WilsonCowan, model_params,
-                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]), populations_order,
+                        spikeNet_model_builder, spikeNet_model_builder.spiking_nodes_inds,
                         tvb_spikeNet_model_builder, **kwargs)
 
