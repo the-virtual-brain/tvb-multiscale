@@ -5,7 +5,6 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.tvb_annarchy.config import CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
@@ -13,9 +12,10 @@ from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weig
 
 class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None, config=CONFIGURED, logger=None):
-        super(DefaultExcIOInhIBuilder, self).__init__(
-            tvb_simulator, spiking_nodes_inds, annarchy_instance, config, logger)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None,
+                 config=None, logger=None):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, annarchy_instance,
+                                                      config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -132,7 +132,7 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         return scale_tvb_weight(source_node, target_node, self.tvb_weights, scale)
 
     def tvb_delay_fun(self, source_node, target_node):
-        return np.maximum(tvb_delay(source_node, target_node, self.tvb_delays), self.tvb_dt)
+        return tvb_delay(source_node, target_node, self.tvb_delays)
 
     def set_nodes_connections(self):
         self.nodes_connections = [

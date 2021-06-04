@@ -4,7 +4,6 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
     random_normal_weight, random_normal_tvb_weight, \
@@ -15,8 +14,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=CONFIGURED, logger=None):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
         super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
         # Common order of neurons' number per population:
@@ -166,9 +164,11 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
 class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=CONFIGURED, **kwargs):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+                 config=None, logger=None, **kwargs):
 
-        super(DefaultExcIOMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config)
+        super(DefaultExcIOMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+                                                              config, logger)
 
         self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 

@@ -2,7 +2,6 @@
 
 import numpy as np
 
-from tvb_multiscale.tvb_annarchy.config import CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 
 
@@ -13,7 +12,7 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
     w_ii = -1.0
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=CONFIGURED, logger=None, **kwargs):
+                 config=None, logger=None,  **kwargs):
         super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
         self.w_ee = kwargs.get("w_ee", kwargs.get("c_ee", np.array([self.w_ee])))[0].item()

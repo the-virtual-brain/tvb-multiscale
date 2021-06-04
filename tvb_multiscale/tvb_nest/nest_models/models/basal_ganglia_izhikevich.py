@@ -5,7 +5,6 @@ from copy import deepcopy
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
@@ -30,7 +29,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
     output_devices_record_to = "ascii"
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=CONFIGURED, logger=None):
+                 config=None, logger=None):
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
                                                             config, logger)
         self.default_population["model"] = "izhikevich_hamker"

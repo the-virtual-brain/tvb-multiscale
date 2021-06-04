@@ -64,11 +64,23 @@ class SpikingNetworkBuilder(object):
     _spiking_brain = SpikingBrain()
     _models = []
 
-    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=CONFIGURED, logger=None):
-        if logger is None:
-            logger = initialize_logger(__name__, config=config)
+    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=None, logger=None):
         self.logger = logger
         self.config = config
+        self.tvb_serial_sim = tvb_serial_sim
+        self.spiking_nodes_inds = spiking_nodes_inds
+
+    def _assert_tvb_cosimulator(self):
+        if isinstance(self.tvb_serial_sim, os.PathLike):
+            self.tvb_serial_sim = load_serial_tvb_cosimulator(self.tvb_serial_sim)
+        elif not isinstance(self.tvb_serial_sim, dict):
+            self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
+
+    def configure(self):
+        if self.config is None:
+            self.config = CONFIGURED
+        if self.logger is None:
+            self.logger = initialize_logger(__name__, config=self.config)
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
@@ -88,26 +100,18 @@ class SpikingNetworkBuilder(object):
         self.default_devices_connection["delay"] = self.default_min_delay
         self.default_devices_connection["nodes"] = None
 
-        self.spiking_nodes_inds = np.unique(spiking_nodes_inds)
-        self.tvb_serial_sim = tvb_serial_sim
         self._assert_tvb_cosimulator()
+        self.update_spiking_dt()
+        self.update_default_min_delay()
 
-    def _assert_tvb_cosimulator(self):
-        if isinstance(self.tvb_serial_sim, os.PathLike):
-            self.tvb_serial_sim = load_serial_tvb_cosimulator(self.tvb_serial_sim)
-        elif not isinstance(self.tvb_serial_sim, dict):
-            self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
-
-    def configure(self):
-        self.spiking_nodes_inds = np.unique(self.spiking_nodes_inds)
-        self._assert_tvb_cosimulator()
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
         self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.a", np.array([1]))[0].item()
+
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
         self.monitor_period = self.tvb_serial_sim["monitor.period"]
-        self.update_spiking_dt()
-        self.update_default_min_delay()
+
+        self.spiking_nodes_inds = np.unique(self.spiking_nodes_inds)
 
     @abstractmethod
     def build_spiking_population(self, label, model, brain_region, size, params):
@@ -387,7 +391,9 @@ class SpikingNetworkBuilder(object):
     def update_default_min_delay(self):
         # The Spiking Network min delay should be smaller than half the TVB dt,
         # and an integer multiple of the spiking simulator dt
-        self.default_min_delay = np.maximum(self.default_min_delay_ratio * self.spiking_dt, self.min_delay)
+        self.default_min_delay = np.minimum(
+            np.maximum(self.default_min_delay_ratio * self.spiking_dt, self.min_delay),
+            self.tvb_dt / self.tvb_to_spiking_dt_ratio)
 
     def _configure_populations(self):
         # Every population must have its own model model, label.
@@ -661,7 +667,8 @@ class SpikingNetworkBuilder(object):
                      "for nodes %s..." % (str(list(device["connections"].keys())),
                                           str(list(device["connections"].values())),
                                           device["model"], str(device["nodes"])))
-            _devices = _devices.append(self.build_and_connect_devices(device))
+            _devices = _devices.append(
+                            self.build_and_connect_devices(device))
         return _devices
 
     def build_and_connect_output_devices(self):
