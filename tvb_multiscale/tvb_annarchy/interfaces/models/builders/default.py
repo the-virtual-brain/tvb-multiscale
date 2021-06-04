@@ -41,7 +41,7 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
     def receptor_fun(self, source_node, target_node, start=0):
         return "exc"
 
-    # Spike rates are applied in parallelto neurons...
+    # Spike rates are applied in parallel to neurons...
 
     def _build_default_rate_tvb_to_annarchy_interfaces(self, connections, **kwargs):
         # For spike transmission from TVB to ANNarchy devices as TVB proxy nodes with TVB delays:
@@ -55,7 +55,7 @@ class DefaultInterfaceBuilder(TVBANNarchyInterfaceBuilder):
             {"model": "TimedPoissonPopulation",  # HomogeneousCorrelatedSpikeTrains, Poisson_neuron
              "params": {"period": self.tvb_dt},
         # -------Properties potentially set as function handles with args (tvb_node_id=None, annarchy_node_id=None)-----
-              "interface_weights": 1.0*self.N_E,
+              "interface_weights": 1.0,
         # Applied outside ANNarchy for each interface device
         #                                  Function of TVB connectivity weight:
               "weights": self.tvb_weight_fun,
