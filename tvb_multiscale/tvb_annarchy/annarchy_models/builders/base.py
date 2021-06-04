@@ -50,8 +50,8 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             self.config = CONFIGURED
         if self.logger is None:
             self.logger = initialize_logger(__name__, config=self.config)
-        self._configure_annarchy()
         super(ANNarchyNetworkBuilder, self).configure()
+        self._configure_annarchy()
 
     @property
     def min_delay(self):
