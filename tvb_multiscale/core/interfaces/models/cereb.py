@@ -44,7 +44,7 @@ class CerebTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilder, ABC):
                 interface["transformer_params"] = {"scale_factor": np.array([1.0]),
                                                    "number_of_neurons": np.array([number_of_neurons])}
             else:  # RATE
-                interface["transformer_params"] = {"scale_factor": np.array([0.011])}  # np.array([number_of_neurons])
+                interface["transformer_params"] = {"scale_factor": np.array([1.0])}  # np.array([number_of_neurons])
 
 
 class CerebSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilder, ABC):
