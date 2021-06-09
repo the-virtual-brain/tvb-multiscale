@@ -89,6 +89,17 @@ class TVBOutputInterface(TVBInterface):
                       required=True,
                       default=0)
 
+    coupling_mode = Attr(
+        label="Coupling mode",
+        field_type=str,
+        doc="""Interface coupling mode. 'TVB' indicates that large scale coupling is computed in TVB 
+                   before being sent to a cosimulator. 
+                   Default 'spikeNet', which entails that 
+                   large scale coupling for regions modeled outside TVB is handled by the cosimulator.""",
+        required=True,
+        default="spikeNet"
+    )
+
     @property
     def label(self):
         return "%s: %s (%s) ->" % (self.__class__.__name__, str(self.voi_labels),
