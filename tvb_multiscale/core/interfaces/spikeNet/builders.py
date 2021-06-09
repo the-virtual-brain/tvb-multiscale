@@ -185,33 +185,40 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     def _build_and_connect_devices(self, interface, **kwargs):
         pass
 
-    def _get_spiking_proxy_inds_for_output_interface(self, interface, exclusive_nodes):
-        interface["proxy_inds"] = np.array(self._only_inds(interface.get("proxy_inds", self.tvb_nodes_inds),
-                                                  self.region_labels))
+    def _get_spiking_proxy_inds_for_input_interface(self, interface, exclusive_nodes):
         interface["spiking_proxy_inds"] = \
             np.array(self._only_inds(interface.get("spiking_proxy_inds", self.spiking_nodes_inds), self.region_labels))
-        if exclusive_nodes:
-            # TODO: decide about the following:
-            #  can a TVB node be updated from a SpikeNet node via a SpikeNet -> TVB interface?,
-            #  and get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
+        tvb_coupling_interface = self.is_tvb_coupling_interface(interface)
+        if tvb_coupling_interface:
+            default_proxy_inds = interface["spiking_proxy_inds"]
+        else:
+            default_proxy_inds = self.tvb_nodes_inds
+        interface["proxy_inds"] = np.array(self._only_inds(interface.get("proxy_inds", default_proxy_inds),
+                                                           self.region_labels))
+        if tvb_coupling_interface:
+            assert [proxy_ind in interface["spiking_proxy_inds"] for proxy_ind in interface["proxy_inds"]]
+        if exclusive_nodes and not tvb_coupling_interface:
             # Will it depend on whether there is also a direct coupling of that SpikeNet node with other SpikeNet nodes?
             assert np.all(node not in self.tvb_nodes_ids for node in interface["spiking_proxy_inds"])
             assert np.all(node not in self.spiking_nodes_ids for node in interface["proxy_inds"])
 
-    def _get_spiking_proxy_inds_for_input_interface(self, interface, exclusive_nodes):
+    def _get_spiking_proxy_inds_for_output_interface(self, interface, exclusive_nodes):
         interface["spiking_proxy_inds"] = \
             np.array(self._only_inds(interface.get("proxy_inds",
                                           interface.get("spiking_proxy_inds", self.proxy_inds)), self.region_labels))
-        if exclusive_nodes:
-            # TODO: decide about the following: can a TVB node be updated from a Spiking Network node
-            #  via a SpikeNet -> TVB interface,
+        if exclusive_nodes and not self.is_tvb_coupling_interface(interface):
             # get simulated in TVB and again update SpikeNet via a TVB -> SpikeNet interface?
             # Will it depend on whether there is also a direct coupling of that SpikeNet node with other SpikeNet nodes?
             assert np.all(spiking_node not in self.tvb_nodes_ids for spiking_node in interface["spiking_proxy_inds"])
+        del interface["coupling_mode"]
 
     def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
-        weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
-        delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
+        if self.is_tvb_coupling_interface(interface):
+            weight_fun = property_to_fun(interface.pop("weights", 1.0))
+            delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
+        else:
+            weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
+            delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
         receptor_type_fun = property_to_fun(interface.pop("receptor_type", self._default_receptor_type))
         syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
         conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
@@ -427,13 +434,13 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
     def _get_output_interface_arguments(self, interface):
         self._get_interface_arguments(interface)
         interface["dt"] = self.dt
-        self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
+        self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes)
         self._build_spikeNet_to_tvb_interface_proxy_nodes(interface)
         return interface
 
     def _get_input_interface_arguments(self, interface):
         self._get_interface_arguments(interface)
-        self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes)
+        self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         self._build_tvb_to_spikeNet_interface_proxy_nodes(interface)
         return interface
 

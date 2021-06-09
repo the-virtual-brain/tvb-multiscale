@@ -45,6 +45,16 @@ class InterfaceBuilder(HasTraits, ABC):
     input_interfaces = List(of=dict, default=(), label="Input interfaces configurations",
                             doc="List of dicts of configurations for the input interfaces to be built")
 
+    default_coupling_mode = Attr(
+        label="Default coupling mode",
+        field_type=str,
+        doc="""Default coupling mode. Set to 'TVB' for large scale coupling to be computed in TVB 
+               before being sent to a cosimulator. Default 'spikeNet', which entails that 
+               large scale coupling for regions modeled outside TVB is handled by the cosimulator.""",
+        required=True,
+        default="spikeNet"
+    )
+
     _output_interfaces = None
     _input_interfaces = None
 
@@ -142,6 +152,13 @@ class InterfaceBuilder(HasTraits, ABC):
 
     def _assert_output_interfaces_component_config(self, types_list, component):
         self.output_interfaces = self.assert_interfaces_component_config(self.output_interfaces, types_list, component)
+
+    def set_coupling_mode(self, interface):
+        interface["coupling_mode"] = interface.get("coupling_mode", self.default_coupling_mode)
+        return interface
+
+    def is_tvb_coupling_interface(self, interface):
+        return self.set_coupling_mode(interface)["coupling_mode"].upper() == "TVB"
 
     def _get_output_interface_arguments(self, interface):
         return interface

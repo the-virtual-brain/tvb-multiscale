@@ -7,6 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits._attr import Attr
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimCoupling, CosimMonitorFromCoupling
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
@@ -202,29 +203,91 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def in_voi_labels(self):
         return self.tvb_model_state_variables[self.in_voi_inds]
 
-    def _configure_proxys_vois(self, interfaces, default_proxy_inds):
-        for interface in interfaces:
-            interface["proxy_inds"] = np.array(
-                self._only_inds(
-                    ensure_list(interface.pop("proxy_inds", interface.pop("proxy", default_proxy_inds))),
-                    self.region_labels))
-            assert (interface["proxy_inds"] >= 0).all and (interface["proxy_inds"] <= self.number_of_regions).all
-            voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
-            interface["voi"] = voi_inds
-            interface["voi_labels"] = voi_labels
+    def _configure_proxys_vois(self, interface, default_proxy_inds):
+        interface["proxy_inds"] = np.array(
+            self._only_inds(
+                ensure_list(interface.pop("proxy_inds", interface.pop("proxy", default_proxy_inds))),
+                self.region_labels))
+        assert (interface["proxy_inds"] >= 0).all and (interface["proxy_inds"] <= self.number_of_regions).all
+        voi_inds, voi_labels = self._voi_inds_labels_for_interface(interface)
+        interface["voi"] = voi_inds
+        interface["voi_labels"] = voi_labels
+
+    def _configure_input_proxys_vois(self):
+        for interface in self.input_interfaces:
+            self._configure_proxys_vois(interface, interface.get("spiking_proxy_inds", self.proxy_inds))
+
+    def _configure_output_proxys_vois(self):
+        for interface in self.output_interfaces:
+            if self.is_tvb_coupling_interface(interface):
+                self._configure_proxys_vois(interface, interface.get("spiking_proxy_inds", self.proxy_inds))
+            else:
+                self._configure_proxys_vois(interface, self._default_out_proxy_inds)
+
+    def _vois_to_monitor_mapping(self):
+        raw_vois_to_monitor = {}
+        coupl_vois_to_monitor = {}
+        for iM, cosim_monitor in enumerate(self.tvb_cosimulator.cosim_monitors):
+            if isinstance(cosim_monitor, CosimMonitorFromCoupling):
+                coupl_vois_to_monitor[tuple(cosim_monitor.voi)] = iM
+            else:
+                raw_vois_to_monitor[tuple(cosim_monitor.voi)] = iM
+        return raw_vois_to_monitor, coupl_vois_to_monitor
+
+    def _create_cosim_monitor(self, interface, new_monitor, vois_to_monitor_mapping):
+        # ...set the monitor_ind,
+        interface["monitor_ind"] = len(self.tvb_cosimulator.cosim_monitors)
+        # ...update the current mappings,
+        vois_to_monitor_mapping[tuple(new_monitor.variables_of_interest)] = interface["monitor_ind"]
+        # ...and finally add the monitor to the cosimulator:
+        self.tvb_cosimulator.cosim_monitors += (new_monitor,)
+        return vois_to_monitor_mapping
+
+    def _configure_cosim_monitors(self):
+        """This method will make sure that default RawCosim or CouplingCosim monitors
+           are created if the user hasn't already defined them.
+           It also sets the correct monitor_ind for each interface."""
+        # Loop through the user defined interfaces
+        # and make sure that all vois are being taken care by a suitable monitor
+        for interface in self.output_interfaces:
+            raw_vois_to_monitor, coupl_vois_to_monitor = self._vois_to_monitor_mapping()
+            if self.is_tvb_coupling_interface(interface):  # check if it is a coupling interface
+                # NOTE!!!: interface voi indices correspond to state variables indices,
+                # whereas CosimCoupling monitors point to cvar indices!
+                cvar = self.tvb_cosimulator.model.cvar.tolist()
+                cvoi = [cvar.index(voi) for voi in interface["voi"]]
+                if tuple(cvoi) not in list(coupl_vois_to_monitor.keys()):
+                    # Assuming a CosimCoupling monitor ...create it:
+                    coupl_vois_to_monitor = \
+                        self._create_cosim_monitor(interface,
+                                                   CosimCoupling(variables_of_interest=np.array(cvoi),
+                                                                 period=self.tvb_dt),
+                                                   coupl_vois_to_monitor)
+                else:
+                    interface["monitor_ind"] = coupl_vois_to_monitor[tuple(cvoi)]
+            else:
+                if tuple(interface["voi"]) not in list(raw_vois_to_monitor.keys()):
+                    # # Assuming a RawCosim monitor create it,
+                    raw_vois_to_monitor = \
+                        self._create_cosim_monitor(interface,
+                                                   RawCosim(variables_of_interest=np.array(interface["voi"]),
+                                                            period=self.tvb_dt),
+                                                   raw_vois_to_monitor)
+                else:
+                    interface["monitor_ind"] = raw_vois_to_monitor[tuple(interface["voi"])]
 
     def configure(self):
         super(TVBInterfaceBuilder, self).configure()
         self._default_out_proxy_inds = np.arange(self.number_of_regions).astype('i').tolist()
-        self._configure_proxys_vois(self.input_interfaces, self.proxy_inds)
+        self._configure_input_proxys_vois()
         if self.exclusive_nodes:
             for proxy_ind in self.in_proxy_inds:
                 self._default_out_proxy_inds.remove(proxy_ind)
         self._default_out_proxy_inds = np.array(self._default_out_proxy_inds)
-        self._configure_proxys_vois(self.output_interfaces, self._default_out_proxy_inds)
-    
+        self._configure_output_proxys_vois()
+        self._configure_cosim_monitors()
+
     def _get_output_interface_arguments(self, interface):
-        interface.update({"monitor_ind": interface.get("monitor_ind", 0)})
         return interface
 
     def _get_input_interface_arguments(self, interface):
@@ -376,12 +439,12 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     def _get_spikeNet_output_interface_arguments(self, interface):
         self._get_spikeNet_interface_arguments(interface)
         interface["dt"] = self.tvb_dt
-        self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
+        self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes)
         self._build_spikeNet_to_tvb_interface_proxy_nodes(interface)
 
     def _get_spikeNet_input_interface_arguments(self, interface):
         self._get_spikeNet_interface_arguments(interface)
-        self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes)
+        self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         self._build_tvb_to_spikeNet_interface_proxy_nodes(interface)
 
     def _get_output_interface_arguments(self, interface):
