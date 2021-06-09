@@ -99,30 +99,26 @@ class CoSimulator(CoSimulatorBase):
         self.voi = np.unique(voi).astype(np.int)
         self.proxy_inds = np.unique(proxy_inds).astype(np.int)
 
-    def _configure_cosim_monitors(self):
-        """This method will set a default RawCosim CosimMonitor
-           if there are output interfaces and
-           the user hasn't set until this point any CosimMonitor."""
-        if len(self.cosim_monitors) == 0 and self.output_interfaces:
-            self.cosim_monitors = (RawCosim(), )
-
-    def _assert_cosim_monitors_voi_period(self):
+    def _assert_cosim_monitors_vois_period(self):
         """This method will assert that
-            - there is at least one CosimMonitor instance set for any voi the ouput interfaces need,
             - the period of all CosimMonitor instances set is equal to the integrator's dt.
+            - there is at least one CosimMonitor instance set for any voi the output interfaces need,
          """
-        cosim_monitors_voi = []
-        periods = []
-        for cosim_monitor in self.cosim_monitors:
-            if isinstance(cosim_monitor, CosimMonitorFromCoupling):
-                vois = [self.model.cvar[voi] for voi in cosim_monitor.voi]
-            else:
-                vois = cosim_monitor.voi.tolist()
-            cosim_monitors_voi += vois
-            periods.append(cosim_monitor.period)
-        cosim_monitors_voi = np.unique(cosim_monitors_voi).tolist()
-        assert np.all([voi in cosim_monitors_voi for voi in self.output_interfaces.voi_unique])
+        periods = [cosim_monitor.period for cosim_monitor in self.cosim_monitors]
         assert np.allclose(periods, self.integrator.dt, 1e-6)
+        if self.output_interfaces:
+            n_cosim_monitors = len(self.cosim_monitors)
+            assert n_cosim_monitors > 0
+            for interface in self.output_interfaces.interfaces:
+                assert n_cosim_monitors > interface.monitor_ind
+                monitor = self.cosim_monitors[interface.monitor_ind]
+                if interface.coupling_mode.upper() == "TVB":
+                    assert isinstance(monitor, CosimMonitorFromCoupling)
+                    cvar = self.model.cvar.tolist()
+                    assert [cvar.index(voi) in monitor.voi for voi in interface.voi]
+                else:
+                    assert not isinstance(monitor, CosimMonitorFromCoupling)
+                    assert [voi in monitor.voi for voi in interface.voi]
 
     def _configure_local_vois_and_proxy_inds_per_interface(self):
         """This method will set the local -per cosimulation and interface- voi and spiking_proxy_inds indices,
@@ -135,7 +131,7 @@ class CoSimulator(CoSimulatorBase):
         if self.input_interfaces:
             # Method to get the correct indices of voi and spiking_proxy_inds, for each cosimulation,
             # adjusted to the contents, shape etc of the cosim_updates,
-            # based on TVB CoSmulators' vois and spiking_proxy_inds, i.e., good_cosim_update_values_shape
+            # based on TVB CoSimulators' vois and spiking_proxy_inds, i.e., good_cosim_update_values_shape
             self.input_interfaces.set_local_indices(self.voi, self.proxy_inds)
 
     def _configure_cosimulation(self):
@@ -149,10 +145,9 @@ class CoSimulator(CoSimulatorBase):
         self.n_tvb_steps_ran_since_last_synch = None
         self.n_tvb_steps_sent_to_cosimulator_at_last_synch = None
         self._configure_interfaces_vois_proxy_inds()
-        self._configure_cosim_monitors()
         super(CoSimulator, self)._configure_cosimulation()
         if self._cosimulation_flag:
-            self._assert_cosim_monitors_voi_period()
+            self._assert_cosim_monitors_vois_period()
             self._configure_local_vois_and_proxy_inds_per_interface()
 
     def _prepare_stimulus(self):
