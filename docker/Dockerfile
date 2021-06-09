@@ -106,7 +106,7 @@ RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_
 RUN git clone --depth 1 --branch tvb-cosim-consensus-dp https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
-    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
+    git pull origin tvb-cosim-consensus-dp --allow-unrelated-histories; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop; \
     cd ../framework_tvb; \
