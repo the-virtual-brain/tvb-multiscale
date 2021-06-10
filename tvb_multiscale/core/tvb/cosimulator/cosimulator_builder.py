@@ -219,7 +219,7 @@ class CoSimulatorBuilder(HasTraits):
             min_tract_length = self.dt * self.connectivity.speed
         else:
             if self.min_tract_length == 0.0:
-                self.min_tract_length = self.dt * self.connectivity.speed
+                self.min_tract_length = self.dt * self.connectivity.speed.item()
             min_tract_length = self.min_tract_length
             # Force minimum tract length to connectome
             self.connectivity.tract_lengths = np.maximum(self.min_tract_length, self.connectivity.tract_lengths)
