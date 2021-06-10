@@ -59,7 +59,7 @@ class SpikesPlotter(BasePlotter):
                 return neurons_inds
 
     def _neurons_axis_from_indices(self, neurons, **kwargs):
-        if len(neurons) > 0:
+        if len(ensure_list(neurons)) > 0:
             self.max_n_neurons = np.max(neurons)
             self.min_n_neurons = np.min(neurons)
             if self.max_n_neurons == self.min_n_neurons:
