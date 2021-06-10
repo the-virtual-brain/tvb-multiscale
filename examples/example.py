@@ -37,7 +37,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
                  tvb_spikeNet_interface_builder=None,
                  tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=110.0, transient=10.0,
+                 simulation_length=110.0, transient=10.0, initial_conditions=0.0,
                  config=None, plot_write=True, config_type=Config, logger_initializer=initialize_logger):
 
     if config is None:
@@ -77,6 +77,8 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
         connectivity = Connectivity.from_file(connectivity)
     orchestrator.tvb_app.cosimulator_builder.connectivity = connectivity
     orchestrator.tvb_app.cosimulator_builder.delays_flag = delays_flag
+    if initial_conditions is not None:
+        orchestrator.tvb_app.cosimulator_builder.initial_conditions = initial_conditions
 
     # -----------------------------------------b. Set the spiking network model builder---------------------------
     orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder
