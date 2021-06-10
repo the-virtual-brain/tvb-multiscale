@@ -173,13 +173,13 @@ class CoSimulator(CoSimulatorBase):
         return cosim_updates
 
     def _send_cosim_coupling(self, cosimulation=True):
-        if cosimulation and self.output_interfaces and \
-                self.output_interfaces.number_of_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
-            # Send the data to the other cosimulator
-            self.output_interfaces(
-                self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
-        self.n_tvb_steps_sent_to_cosimulator_at_last_synch = int(self.n_tvb_steps_ran_since_last_synch)
-        self.n_tvb_steps_ran_since_last_synch = 0
+        if cosimulation and self.output_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
+            if self.output_interfaces.number_of_interfaces:
+                # Send the data to the other cosimulator
+                self.output_interfaces(
+                    self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
+            self.n_tvb_steps_sent_to_cosimulator_at_last_synch = int(self.n_tvb_steps_ran_since_last_synch)
+            self.n_tvb_steps_ran_since_last_synch = 0
 
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         # Loop of integration for synchronization_time
