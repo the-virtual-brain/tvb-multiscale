@@ -90,7 +90,7 @@ class CoSimulatorBuilder(HasTraits):
 
     scale_connectivity_weights_by_percentile = Float(
         label="Percentile of weights to scale",
-        default=95.0,
+        default=99.0,
         required=False,
         doc="""Percentile of connectivity weights to divide the whole weights' matrix for normalization. 
                Default = 95.""")
