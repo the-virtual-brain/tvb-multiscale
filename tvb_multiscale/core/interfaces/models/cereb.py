@@ -92,7 +92,6 @@ class CerebTVBTransfomerInterfaceBuilder(CerebTVBInterfaceBuilder,
                                                           CerebSpikeNetToTVBTransformerBuilder,
                                                           DefaultTVBTransfomerInterfaceBuilder):
 
-
     def default_output_config(self):
         CerebTVBInterfaceBuilder.default_output_config(self)
         CerebTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.output_interfaces)
