@@ -123,6 +123,16 @@ class CoSimulatorBuilder(HasTraits):
                        default=True,
                        required=True)
 
+    min_tract_length = Float(
+        label="Minimum tract length",
+        default=0.0,
+        required=True,
+        doc="""Minimum tract length to be forced to the connectom. 
+               If it is equal to 0.0 (default value), it will be computed as equal to the length that 
+               corresponds to one integration time step, dt, given the default connectivity.speed.
+               if positive, the value will be used.
+               If negative, no minimum tract length will be forced.""")
+
     coupling = Attr(
         field_type=Coupling,
         label="Long-range coupling function",
@@ -202,11 +212,19 @@ class CoSimulatorBuilder(HasTraits):
         # Given that
         # idelays = numpy.rint(delays / dt).astype(numpy.int32)
         # and delays = tract_lengths / speed
-        minimum_tract_length = self.dt * self.connectivity.speed
+        if self.min_tract_length < 0.0:
+            # Just compute min_tract_length for other processing
+            min_tract_length = self.dt * self.connectivity.speed
+        else:
+            if self.min_tract_length == 0.0:
+                self.min_tract_length = self.dt * self.connectivity.speed
+            min_tract_length = self.min_tract_length
+            # Force minimum tract length to connectome
+            self.connectivity.tract_lengths = np.maximum(self.min_tract_length, self.connectivity.tract_lengths)
         self.connectivity.weights[np.isnan(self.connectivity.weights)] = 0.0
         if self.remove_self_connections:
             np.fill_diagonal(self.connectivity.weights, 0.0)
-            np.fill_diagonal(self.connectivity.tract_lengths, minimum_tract_length)
+            np.fill_diagonal(self.connectivity.tract_lengths, min_tract_length)
         if isinstance(self.scale_connectivity_weights, string_types):
             self.connectivity.weights = self.connectivity.scaled_weights(mode=self.scale_connectivity_weights)
         if self.symmetric_connectome:
@@ -221,7 +239,7 @@ class CoSimulatorBuilder(HasTraits):
         self.connectivity.weights[np.isnan(self.connectivity.weights)] = 0.0
         if not self.delays_flag:
             self.connectivity.configure()  # to set speed
-            self.connectivity.tract_lengths = minimum_tract_length * np.ones(self.connectivity.tract_lengths.shape)
+            self.connectivity.tract_lengths = min_tract_length * np.ones(self.connectivity.tract_lengths.shape)
         self.connectivity.configure()
         return self.connectivity
 
