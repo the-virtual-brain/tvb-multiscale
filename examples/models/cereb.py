@@ -16,9 +16,12 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     import h5py
     work_path = os.getcwd()
     data_path = os.path.join(work_path.split("tvb_nest")[0], "data", "cerebellum")
-    WHOLE_BRAIN_CONN_FILE = "Connectivity_res100_596_regions.h5"
-    MERGED_BRAIN_CONN_FILE = "Connectivity_res100_summ49regions_IOsplit.h5"
-    tvb_conn_filepath = os.path.join(data_path, WHOLE_BRAIN_CONN_FILE)
+    WHOLE_BRAIN = True
+    if WHOLE_BRAIN:
+        BRAIN_CONN_FILE = "Connectivity_res100_596_regions.h5"
+    else:
+        BRAIN_CONN_FILE = "Connectivity_res100_summ49regions_IOsplit.h5"
+    tvb_conn_filepath = os.path.join(data_path, BRAIN_CONN_FILE)
     f = h5py.File(tvb_conn_filepath)
     connectivity = Connectivity(weights=np.array(f["weights"][()]), tract_lengths=np.array(f["tract_lengths"][()]),
                                 centres=np.array(f["centres"][()]),  # hemispheres=np.array(f["hemispheres"][()]),
@@ -69,10 +72,15 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
         print("\n%d. %s, w = %g" %
               (conn_id, connectivity.region_labels[conn_id], connections_from_cereb[conn_id]))
 
-    model_params = {"I_o": np.array([1.0]), "G": np.array([1.0]),  # *256,
-                    "tau": np.array([10.0]), "gamma": np.array([-1.0])}
+    if WHOLE_BRAIN:
+        G = 0.5
+    else:
+        G = 4.0
+    model_params = {"I_o": np.array([1.0]), "G": np.array([G]), "tau": np.array([10.0]), "gamma": np.array([-1.0])}
 
     model_params.update(kwargs.pop("model_params", {}))
+
+    initial_conditions = kwargs.pop("initial_conditions", np.array([0.0]))
 
     spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 1)
     spikeNet_model_builder.spiking_nodes_inds = spiking_proxy_inds
@@ -95,7 +103,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     tvb_spikeNet_model_builder.IO_proxy_inds = np.array(ensure_list(io_id))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
-    tvb_spikeNet_model_builder.output_flag = False
+    tvb_spikeNet_model_builder.output_flag = True
 
 
     # An example of a configuration:
@@ -166,4 +174,4 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
                         Linear(), model_params,
                         spikeNet_model_builder, spiking_proxy_inds,
                         tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces,
-                        connectivity=connectivity, **kwargs)
+                        connectivity=connectivity, initial_conditions=initial_conditions, **kwargs)
