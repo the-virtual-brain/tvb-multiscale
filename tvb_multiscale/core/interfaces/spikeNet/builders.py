@@ -26,7 +26,7 @@ from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 
 
 class DefaultTVBtoSpikeNetModels(Enum):
-    RATE = "RATE_TO_SPIKES"
+    RATE = "RATE"
     SPIKES = "SPIKES"
     CURRENT = "CURRENT"
 
