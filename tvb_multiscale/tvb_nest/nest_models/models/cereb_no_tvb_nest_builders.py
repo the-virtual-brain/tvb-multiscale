@@ -208,9 +208,9 @@ class CerebBuilder(NESTNetworkBuilder):
     modules_to_install = ["cereb"]
 
     def __init__(self, tvb_simulator={}, nest_instance=None, config=None, logger=None,
-                 pops_to_nodes_inds={}, nodes_inds_to_nodes_labels={}, path_to_network_source_file=""):
+                 pops_to_nodes_inds={}, regions_inds_to_regions_labels={}, path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
-        self.regions_inds_to_regions_labels = nodes_inds_to_nodes_labels
+        self.regions_inds_to_regions_labels = regions_inds_to_regions_labels
         super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(self.pops_to_nodes_inds.values())),
                                            nest_instance, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
@@ -269,24 +269,25 @@ class CerebBuilder(NESTNetworkBuilder):
         # with the only exception of Glomeruli and Mossy Fibers
         # (not cells, just modeled as relays; i.e., parrot neurons)
         self.logger.info("Creating populations:\n%s..." % str(self.ordered_populations_labels))
-        for pop_name in self.ordered_populations_labels:
-            self.start_id_scaffold[pop_name] = {}
-            for reg_name in self._populations_to_regions(pop_name):
-                if reg_name not in self.nest_network.brain_regions.keys():
-                    self.nest_network.brain_regions[reg_name] = NESTRegionNode()
-                model = self.get_pop_model(pop_name)
-                n_neurons = self.get_n_neurons_from_file(pop_name)
-                self.nest_network.brain_regions[reg_name][pop_name] = \
-                    NESTPopulation(self.nest_instance.Create(model, n_neurons,
-                                                             params=self.neuron_param.get(pop_name, {}),),
-                                   self.nest_instance, label=pop_name, brain_region=reg_name)
-                self.logger.info("...created %d neurons of model %s for population %s in brain region %s..." %
-                                 (n_neurons, model, pop_name, reg_name))
-                self.start_id_scaffold[pop_name][reg_name] = self.get_start_id_scaffold_from_file(pop_name)
+        self.start_id_scaffold = {}
+        for node_id, node_label in zip(self.spiking_nodes_inds, self.spiking_nodes_labels):
+            self.nest_network.brain_regions[node_label] = NESTRegionNode(label=node_label)
+            self.start_id_scaffold[node_label] = {}
+            for pop_name in self.ordered_populations_labels:
+                if self.pops_to_nodes_inds[pop_name] == node_id:
+                    model = self.get_pop_model(pop_name)
+                    n_neurons = self.get_n_neurons_from_file(pop_name)
+                    self.nest_network.brain_regions[node_label][pop_name] = \
+                        NESTPopulation(self.nest_instance.Create(model, n_neurons,
+                                                                 params=self.neuron_param.get(pop_name, {}),),
+                                       self.nest_instance, label=pop_name, brain_region=node_label)
+                    self.logger.info("...created %d neurons of model %s for population %s in brain region %s..." %
+                                     (n_neurons, model, pop_name, node_label))
+                    self.start_id_scaffold[node_label][pop_name] = self.get_start_id_scaffold_from_file(pop_name)
 
     def _get_scaffold(self, conn, pop_name, reg_name):
         return tuple(np.array(conn
-                              - self.start_id_scaffold[pop_name][reg_name]
+                              - self.start_id_scaffold[reg_name][pop_name]
                               + self.nest_network.brain_regions[reg_name][pop_name].gids[0]).astype('i').tolist())
 
     def build_populations_connections(self):
@@ -439,7 +440,7 @@ class CerebBuilder(NESTNetworkBuilder):
         # the current NEST IO belongs to the Z- microzone
         io_neurons = []
         for io in neurons:
-            if io - neurons + self.start_id_scaffold['io_cell'] in \
+            if io - neurons + self.start_id_scaffold[self._populations_to_regions['io_cell'][0]]['io_cell'] in \
                     self.net_src_file['labels/placement/microzone-negative']:  # the current NEST IO belongs to the Z- microzone
                 io_neurons.append(io)
         return self.nest_instance.NodeCollection(io_neurons)
