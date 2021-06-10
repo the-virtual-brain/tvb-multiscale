@@ -95,9 +95,9 @@ class CoSimulatorBuilder(HasTraits):
 
     ceil_connectivity = Float(
         label="Connectivity ceiling",
-        default=1.0,
+        default=0.0,
         required=False,
-        doc="""Value to ceil connectivity weights to. Default = 1.0""")
+        doc="""Value to ceil connectivity weights to. Default = 0.0, which will not ceil connectivity""")
 
     symmetric_connectome = Attr(label="Symmetric connectome flag",
                                 doc="""Boolean flag that if True 
@@ -112,7 +112,7 @@ class CoSimulatorBuilder(HasTraits):
                                           self-connections of brain region nodes are forced to a zero weight.
                                           Default = True""",
                                    field_type=bool,
-                                   default=True,
+                                   default=False,
                                    required=True)
 
     delays_flag = Attr(label="Delays' flag",
