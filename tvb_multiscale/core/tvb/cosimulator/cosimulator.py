@@ -89,13 +89,15 @@ class CoSimulator(CoSimulatorBase):
             self.output_interfaces.dt = self.integrator.dt
             # Configure all TVB to Cosim interfaces:
             self.output_interfaces.configure()
-            voi += self.output_interfaces.voi_unique.tolist()
-            proxy_inds += self.output_interfaces.proxy_inds_unique.tolist()
+            if self.n_output_interfaces:
+                voi += self.output_interfaces.voi_unique.tolist()
+                proxy_inds += self.output_interfaces.proxy_inds_unique.tolist()
         if self.input_interfaces:
             # Configure all Cosim to TVB interfaces:
             self.input_interfaces.configure()
-            voi += self.input_interfaces.voi_unique.tolist()
-            proxy_inds += self.input_interfaces.proxy_inds_unique.tolist()
+            if self.n_input_interfaces:
+                voi += self.input_interfaces.voi_unique.tolist()
+                proxy_inds += self.input_interfaces.proxy_inds_unique.tolist()
         self.voi = np.unique(voi).astype(np.int)
         self.proxy_inds = np.unique(proxy_inds).astype(np.int)
 
@@ -106,7 +108,7 @@ class CoSimulator(CoSimulatorBase):
          """
         periods = [cosim_monitor.period for cosim_monitor in self.cosim_monitors]
         assert np.allclose(periods, self.integrator.dt, 1e-6)
-        if self.output_interfaces:
+        if self.n_output_interfaces:
             n_cosim_monitors = len(self.cosim_monitors)
             assert n_cosim_monitors > 0
             for interface in self.output_interfaces.interfaces:
@@ -125,10 +127,10 @@ class CoSimulator(CoSimulatorBase):
            based on the voi of each linked cosimulation monitor, for TVB to Cosimulator interfaces,
            and on the expected shape of ths cosimulation updates data for Cosimulator to TVB interfaces.
         """
-        if self.output_interfaces:
+        if self.n_output_interfaces:
             # Set the correct voi indices with reference to the linked TVB CosimMonitor, for each cosimulation:
             self.output_interfaces.set_local_indices(self.cosim_monitors)
-        if self.input_interfaces:
+        if self.n_input_interfaces:
             # Method to get the correct indices of voi and spiking_proxy_inds, for each cosimulation,
             # adjusted to the contents, shape etc of the cosim_updates,
             # based on TVB CoSimulators' vois and spiking_proxy_inds, i.e., good_cosim_update_values_shape
@@ -144,6 +146,8 @@ class CoSimulator(CoSimulatorBase):
         """
         self.n_tvb_steps_ran_since_last_synch = None
         self.n_tvb_steps_sent_to_cosimulator_at_last_synch = None
+        self.n_output_interfaces = self.output_interfaces.number_of_interfaces if self.output_interfaces else 0
+        self.n_input_interfaces = self.input_interfaces.number_of_interfaces if self.input_interfaces else 0
         self._configure_interfaces_vois_proxy_inds()
         super(CoSimulator, self)._configure_cosimulation()
         if self._cosimulation_flag:
@@ -169,12 +173,13 @@ class CoSimulator(CoSimulatorBase):
         return cosim_updates
 
     def _send_cosim_coupling(self, cosimulation=True):
-        if cosimulation and self.output_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
+        if cosimulation and self.output_interfaces and \
+                self.output_interfaces.number_of_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
             # Send the data to the other cosimulator
             self.output_interfaces(
                 self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
-            self.n_tvb_steps_sent_to_cosimulator_at_last_synch = int(self.n_tvb_steps_ran_since_last_synch)
-            self.n_tvb_steps_ran_since_last_synch = 0
+        self.n_tvb_steps_sent_to_cosimulator_at_last_synch = int(self.n_tvb_steps_ran_since_last_synch)
+        self.n_tvb_steps_ran_since_last_synch = 0
 
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         # Loop of integration for synchronization_time
