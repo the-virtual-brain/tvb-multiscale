@@ -16,7 +16,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     import h5py
     work_path = os.getcwd()
     data_path = os.path.join(work_path.split("tvb_nest")[0], "data", "cerebellum")
-    WHOLE_BRAIN = True
+    WHOLE_BRAIN = False
     if WHOLE_BRAIN:
         BRAIN_CONN_FILE = "Connectivity_res100_596_regions.h5"
     else:
@@ -87,7 +87,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     spikeNet_model_builder.pops_to_nodes_inds = pops_to_nodes_inds
     spikeNet_model_builder.regions_inds_to_regions_labels = regions_inds_to_regions_labels
     spikeNet_model_builder.BACKGROUND = True
-    spikeNet_model_builder.STIMULUS = True
+    spikeNet_model_builder.STIMULUS = False
 
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
@@ -103,7 +103,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     tvb_spikeNet_model_builder.IO_proxy_inds = np.array(ensure_list(io_id))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
-    tvb_spikeNet_model_builder.output_flag = True
+    tvb_spikeNet_model_builder.output_flag = False
 
 
     # An example of a configuration:
