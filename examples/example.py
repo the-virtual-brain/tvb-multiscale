@@ -38,7 +38,7 @@ def main_example(tvb_sim_model, model_params={},
                  tvb_spikeNet_interface_builder=None,
                  tvb_to_spikeNet_mode="rate", spikeNet_to_tvb=True, exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=110.0, transient=10.0,
+                 simulation_length=110.0, transient=10.0, initial_conditions=None,
                  config=None, plot_write=True, config_type=Config,  logger_initializer=initialize_logger):
 
     if config is None:
@@ -56,6 +56,8 @@ def main_example(tvb_sim_model, model_params={},
     if not isinstance(connectivity, Connectivity):
         simulator_builder.connectivity = Connectivity.from_file(connectivity)
     simulator_builder.delays_flag = delays_flag
+    if initial_conditions is not None:
+        simulator_builder.initial_conditions = initial_conditions
     simulator = simulator_builder.build(**model_params)
 
     # ----2. Build the Spiking Network model (fine-scale regions' nodes, stimulation devices, spike_detectors etc)------
