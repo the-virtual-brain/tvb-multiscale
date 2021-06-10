@@ -16,7 +16,9 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     import h5py
     work_path = os.getcwd()
     data_path = os.path.join(work_path.split("tvb_nest")[0], "data", "cerebellum")
-    tvb_conn_filepath = os.path.join(data_path, "Connectivity_res100_summ49regions_IOsplit.h5")
+    WHOLE_BRAIN_CONN_FILE = "Connectivity_res100_596_regions.h5"
+    MERGED_BRAIN_CONN_FILE = "Connectivity_res100_summ49regions_IOsplit.h5"
+    tvb_conn_filepath = os.path.join(data_path, MERGED_BRAIN_CONN_FILE)
     f = h5py.File(tvb_conn_filepath)
     connectivity = Connectivity(weights=np.array(f["weights"][()]), tract_lengths=np.array(f["tract_lengths"][()]),
                                 centres=np.array(f["centres"][()]),  # hemispheres=np.array(f["hemispheres"][()]),
@@ -49,9 +51,9 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
         pops_to_nodes_inds[dcn] = cereberal_nucleus_id
     spiking_proxy_inds = np.unique(list(pops_to_nodes_inds.values())).astype("i")
 
-    nodes_inds_to_nodes_labels = dict(zip(spiking_proxy_inds, connectivity.region_labels[spiking_proxy_inds]))
+    regions_inds_to_regions_labels = dict(zip(spiking_proxy_inds, connectivity.region_labels[spiking_proxy_inds]))
 
-    print(nodes_inds_to_nodes_labels)
+    print(regions_inds_to_regions_labels)
     print(pops_to_nodes_inds)
 
     connections_to_cereb = connectivity.weights[:, spiking_proxy_inds[0]]
@@ -75,8 +77,8 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 1)
     spikeNet_model_builder.spiking_nodes_inds = spiking_proxy_inds
     spikeNet_model_builder.pops_to_nodes_inds = pops_to_nodes_inds
-    spikeNet_model_builder.pops_to_nodes_inds = pops_to_nodes_inds
-    spikeNet_model_builder.BACKGROUND = False
+    spikeNet_model_builder.regions_inds_to_regions_labels = regions_inds_to_regions_labels
+    spikeNet_model_builder.BACKGROUND = True
     spikeNet_model_builder.STIMULUS = True
 
     model = kwargs.pop("model", "RATE").upper()
@@ -93,7 +95,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     tvb_spikeNet_model_builder.IO_proxy_inds = np.array(ensure_list(io_id))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
-    tvb_spikeNet_model_builder.output_flag = True
+    tvb_spikeNet_model_builder.output_flag = False
 
 
     # An example of a configuration:
