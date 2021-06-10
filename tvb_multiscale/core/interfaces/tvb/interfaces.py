@@ -329,7 +329,8 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         for interface in self.interfaces:
             times = np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),                # start_time_step
                               np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
-            times += self.synchronization_n_step  # adding the synchronization time
+            if interface.coupling_mode.upper() != "TVB":
+                times += self.synchronization_n_step  # adding the synchronization time when not a coupling interface
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
             interface([times, data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
