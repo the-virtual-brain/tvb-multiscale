@@ -18,7 +18,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     data_path = os.path.join(work_path.split("tvb_nest")[0], "data", "cerebellum")
     WHOLE_BRAIN_CONN_FILE = "Connectivity_res100_596_regions.h5"
     MERGED_BRAIN_CONN_FILE = "Connectivity_res100_summ49regions_IOsplit.h5"
-    tvb_conn_filepath = os.path.join(data_path, MERGED_BRAIN_CONN_FILE)
+    tvb_conn_filepath = os.path.join(data_path, WHOLE_BRAIN_CONN_FILE)
     f = h5py.File(tvb_conn_filepath)
     connectivity = Connectivity(weights=np.array(f["weights"][()]), tract_lengths=np.array(f["tract_lengths"][()]),
                                 centres=np.array(f["centres"][()]),  # hemispheres=np.array(f["hemispheres"][()]),
@@ -69,7 +69,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
         print("\n%d. %s, w = %g" %
               (conn_id, connectivity.region_labels[conn_id], connections_from_cereb[conn_id]))
 
-    model_params = {"I_o": np.array([1.0]), "G": np.array([4.0]),  # *256,
+    model_params = {"I_o": np.array([1.0]), "G": np.array([1.0]),  # *256,
                     "tau": np.array([10.0]), "gamma": np.array([-1.0])}
 
     model_params.update(kwargs.pop("model_params", {}))
