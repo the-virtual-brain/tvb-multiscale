@@ -27,12 +27,12 @@
 #   Frontiers in Neuroinformatics (7:10. doi: 10.3389/fninf.2013.00010)
 
 """
-Models based on Wong-Wang's work.
+Models based on Izhikevich's work.
 .. moduleauthor:: Dionysios Perdikis <dionysios.perdikis@charite.de>
-
-
+.. moduleauthor:: André Blickensdörfer <andre.blickensdoerfer@charite.de>
 """
-from numba import guvectorize, float64
+
+# from numba import guvectorize, float64
 from tvb.simulator.models.base import numpy, ModelNumbaDfun
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
