@@ -289,7 +289,7 @@ class IzhikevichExcIO(ModelNumbaDfun):
     def _f(self):
         sqrtJj = numpy.sqrt(4 * (self._J + 0j) - 65)
         # print("\nsqrtJj = \n", sqrtJj)
-        _f =  numpy.maximum(1.0/(self._T(sqrtJj, self.v_th) - self._T(sqrtJj, self.c)), self.fmin)
+        _f = numpy.maximum(1.0/(self._T(sqrtJj, self.v_th) - self._T(sqrtJj, self.c)), self.fmin)
         # print("\n_f = \n", _f)
         return _f
 
@@ -314,7 +314,7 @@ class IzhikevichExcIO(ModelNumbaDfun):
 
         # coupling is large scale coupling coming from other brain regions, state_variables[cvar], see cvar above:
         # coupling shape: (cvars, brain regions, modes)
-        c_0 = coupling[0, :]  # c_0 shape: (brain regions, modes)
+        c_0 = coupling[0, :]  # c_0 shape: (brain regions, modes) = sum(w_ij * S_j) for linear additive coupling
 
         # local coupling for surface simulations, if applicable
         lc_0 = local_coupling * S
@@ -372,26 +372,26 @@ class IzhikevichExcIO(ModelNumbaDfun):
 
         return numpy.array([dS, dV, dU])
 
-    def dfun(self, x, c, local_coupling=0.0):
+    def dfun(self, x, c, local_coupling=0.0):  # x = [S, V, U]
         if self._R is None:
             # Compute intermediate values for this step
             # Form the whole state_variables vector from integration_variables (i.e., x)
-            state_variables = self._integration_to_state_variables(x)
+            state_variables = self._integration_to_state_variables(x)  # [S, V, U] + [R, I]
             state_variables = \
                 self.update_state_variables_before_integration(state_variables, c, local_coupling, self._stimulus)
             R = state_variables[3]  # Rates
-            I = state_variables[4]  # Currents
+            # I = state_variables[4]  # Currents
         else:
             # Just set the intermediate values necessary for dfun
             R = self._R
-            I = self._I
+            # I = self._I
         # if self.use_numba:
         #     deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T, I.reshape(x.shape[:-1]).T,
         #                         self.tau_s, self.n0, self.n1, self.n2, self.a, self.b, self.c, self.d,
         #                         self.kappa, self._ckappa, self._dnck)
         #     deriv = deriv.T[..., numpy.newaxis]
         # else:
-        deriv = self._numpy_dfun(x, R)
+        deriv = self._numpy_dfun(x, R)  # x = [S, V, U]
         #  Set them to None so that they are recomputed on subsequent steps
         #  for multistep integration schemes such as Runge-Kutta:
         self._R = None
