@@ -74,7 +74,11 @@ class CoSimulator(CoSimulatorBase):
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
         if self.synchronization_time == 0.0:
-            self.synchronization_n_step = np.min(self.connectivity.idelays[np.nonzero(self.connectivity.weights)])
+            idelays = self.connectivity.idelays[np.nonzero(self.connectivity.weights)]
+            if idelays.size > 0:
+                self.synchronization_n_step = np.min(idelays)
+            else:
+                self.synchronization_n_step = 1
             self.synchronization_time = self.synchronization_n_step * self.integrator.dt
         super(CoSimulator, self)._configure_synchronization_time()
 
