@@ -105,7 +105,7 @@ class SpikingNetworkBuilder(object):
         self.update_default_min_delay()
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.a", np.array([1]))[0].item()
+        self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.a", np.array([1.0/256]))[0].item()
 
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
@@ -193,24 +193,28 @@ class SpikingNetworkBuilder(object):
     def tvb_dt(self):
         if self.tvb_serial_sim is None:
             return self.default_tvb_dt
+        self._assert_tvb_cosimulator()
         return self.tvb_serial_sim.get("integrator.dt", self.default_tvb_dt)
 
     @property
     def tvb_model(self):
         if self.tvb_serial_sim is None:
             return ""
+        self._assert_tvb_cosimulator()
         return self.tvb_serial_sim.get("model", "")
 
     @property
     def number_of_regions(self):
         if self.tvb_serial_sim is None:
             return 1
+        self._assert_tvb_cosimulator()
         return self.tvb_serial_sim.get("connectivity.number_of_regions", 1)
 
     @property
     def region_labels(self):
         if self.tvb_serial_sim is None:
             return np.array(["%d" % reg for reg in np.arange(self.number_of_regions)])
+        self._assert_tvb_cosimulator()
         return self.tvb_serial_sim.get("connectivity.region_labels",
                                        np.array(["%d" % reg for reg in np.arange(self.number_of_regions)]))
 
@@ -218,6 +222,7 @@ class SpikingNetworkBuilder(object):
     def tvb_weights(self):
         if self.tvb_serial_sim is None:
             return np.ones((self.number_of_regions, self.number_of_regions))
+        self._assert_tvb_cosimulator()
         return self.tvb_serial_sim.get("connectivity.weights",
                                        np.ones((self.number_of_regions, self.number_of_regions)))
 
@@ -225,6 +230,7 @@ class SpikingNetworkBuilder(object):
     def tvb_delays(self):
         if self.tvb_serial_sim is None:
             return self.tvb_dt * np.ones((self.number_of_regions, self.number_of_regions))
+        self._assert_tvb_cosimulator()
         return self.tvb_serial_sim.get("connectivity.delays",
                                        self.tvb_dt * np.ones((self.number_of_regions, self.number_of_regions)))
 
