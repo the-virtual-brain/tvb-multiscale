@@ -93,7 +93,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
             {"source": "E", "target": "E",  # # E -> E This is a self-connection for population "E"
              "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.weight_fun(self.w_ee),
+             "weight": self.w_ee,  # self.weight_fun(self.w_ee),
              "delay": self.d_ee,
              "receptor_type": self.receptor_E_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns_EE)
@@ -104,7 +104,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
             {"source": "E", "target": "I",  # E -> I
              "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.weight_fun(self.w_ei),
+             "weight": self.w_ei,  # self.weight_fun(self.w_ei),
              "delay": self.d_ei,
              "receptor_type": self.receptor_E_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns_EI)
@@ -115,7 +115,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
             {"source": "I", "target": "E",  # I -> E
              "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.weight_fun(self.w_ie),
+             "weight": self.w_ie,  # self.weight_fun(self.w_ie),
              "delay": self.d_ie,
              "receptor_type": self.receptor_I_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns_IE)
@@ -126,7 +126,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
             {"source": "I", "target": "I",  # I -> I This is a self-connection for population "I"
              "synapse_model": self.default_populations_connection["synapse_model"],
              "conn_spec": self.default_populations_connection["conn_spec"],
-             "weight": self.weight_fun(self.w_ii),
+             "weight": self.w_ii,  # self.weight_fun(self.w_ii),
              "delay": self.d_ii,
              "receptor_type": self.receptor_I_fun(), "nodes": None}  # None means "all"
         connections.update(self.pop_conns_II)
@@ -144,14 +144,16 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
     def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
         if scale is None:
             scale = self.global_coupling_scaling
-        return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
+        # return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
+        return scale * self.tvb_weights[source_node, target_node].item()
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         if low is None:
             low = self.tvb_dt
         if high is None:
             high = 2 * self.tvb_dt
-        return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
+        # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
+        return np.maximum(self.tvb_dt, self.tvb_delays[source_node, target_node].item())
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -160,7 +162,6 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
              "conn_spec": self.default_nodes_connection["conn_spec"],
              "weight": self.tvb_weight_fun,
              "delay": self.tvb_delay_fun,
-             # Each region emits spikes in its own port:
              "receptor_type": 0, "source_nodes": None, "target_nodes": None}  # None means "all"
         ]
         self.nodes_connections[0].update(self.nodes_conns)
@@ -168,9 +169,9 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
     def set_spike_recorder(self):
         connections = OrderedDict()
         #          label <- target population
-        connections["E_spikes"] = "E"
-        connections["I spikes"] = "I"
-        params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"])
+        connections["E"] = "E"
+        connections["I"] = "I"
+        params = self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"].copy()
         params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
                   "neurons_fun": lambda node_id, neurons_inds:
@@ -182,8 +183,8 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
     def set_multimeter(self):
         connections = OrderedDict()
         #               label    <- target population
-        connections["E"] = "E"
-        connections["I"] = "I"
+        connections["Excitatory"] = "E"
+        connections["Inhibitory"] = "I"
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
         params["interval"] = self.monitor_period
         params["record_to"] = self.output_devices_record_to
@@ -207,7 +208,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
              "params": {"rate": 6000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": self.weight_fun(1.0),
-             "delays": random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
+             "delays": self.tvb_dt,  # random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device
