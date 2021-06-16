@@ -1139,7 +1139,10 @@ class DeviceSet(SpikingNodesSet):
             for attr in ensure_list(attrs):
                 this_attr = []
                 for node in self.devices(nodes):
-                    this_attr.append(self[node].Get(attr))
+                    value = self[node].Get(attr)
+                    if isinstance(value, dict):
+                        value = value[attr]
+                    this_attr.append(value)
                 values_dict.update({attr: this_attr})
         return self._return_by_type(values_dict, return_type, name)
 
