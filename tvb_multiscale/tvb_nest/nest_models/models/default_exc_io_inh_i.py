@@ -207,7 +207,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
             {"model": "poisson_generator",
              "params": {"rate": 6000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
              "connections": connections, "nodes": None,
-             "weights": self.weight_fun(1.0),
+             "weights": 1.0,  # self.weight_fun(1.0),
              "delays": self.tvb_dt,  # random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
