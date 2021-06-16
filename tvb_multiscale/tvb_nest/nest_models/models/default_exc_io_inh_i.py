@@ -205,7 +205,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
         connections["Stimulus"] = ["E"]
         device = \
             {"model": "poisson_generator",
-             "params": {"rate": 6000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+             "params": {"rate": 7000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": 1.0,  # self.weight_fun(1.0),
              "delays": self.tvb_dt,  # random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
