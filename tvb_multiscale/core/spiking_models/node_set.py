@@ -341,7 +341,11 @@ class SpikingNodesSet(pd.Series, HasTraits):
         if not isinstance(concatenation_index_name, string_types):
             concatenation_index_name = self._collection_name
         if return_type == "values":
-            return list(values_dict.values())
+            output = list(values_dict.values())
+            if len(output) == 1:
+                return output[0]
+            else:
+                return output
         elif return_type == "dict":
             return values_dict
         elif return_type == "Series":
