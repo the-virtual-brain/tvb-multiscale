@@ -973,6 +973,7 @@ class DeviceSet(SpikingNodesSet):
                               label="Number of neurons",
                               doc="""The number of total connected neurons of the DeviceSet""")
 
+    _collection_name = "Device"
 
     def __init__(self, device_set=pd.Series(), **kwargs):
         self.model = str(kwargs.pop("model", ""))
@@ -982,13 +983,6 @@ class DeviceSet(SpikingNodesSet):
                              str(device_set))
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
-
-    def _repr(self):
-        return "%s - Label: %s, Model: %s\n%ss: %s" % (self.__class__.__name__, self.label, self.model,
-                                                       self._collection_name, str(self.collections))
-
-    def __repr__(self):
-        return self._repr()
 
     def devices(self, input_devices=None):
         """This method returns (a subset of) the DeviceSet devices' labels in a list."""
