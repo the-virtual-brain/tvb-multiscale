@@ -69,14 +69,14 @@ class TVBInterface(HasTraits):
 
     def print_str(self, sender_not_receiver=None):
         if sender_not_receiver is True:
-            tvb_source_or_target = "Sender "
+            tvb_source_or_target = "Sender"
         elif sender_not_receiver is False:
-            tvb_source_or_target = "Receiver "
+            tvb_source_or_target = "Receiver"
         else:
             tvb_source_or_target = ""
         return "\nTVB state variable indices: %s" \
-               "\n%sTVB proxy nodes' indices: %s" % \
-               (str(self.vois.tolist()),
+               "\nTVB %s proxy nodes' indices: %s" % \
+               (str(self.voi.tolist()),
                 tvb_source_or_target, extract_integer_intervals(self.proxy_inds, print=True))
 
 
@@ -109,7 +109,7 @@ class TVBOutputInterface(TVBInterface):
         self.set_local_voi_indices(monitor_voi)
 
     def print_str(self):
-        super(TVBOutputInterface, self).print_str(self, sender_not_receiver=True)
+        return super(TVBOutputInterface, self).print_str(sender_not_receiver=True)
 
     def __call__(self, data):
         # Assume a single voi and a single mode,
@@ -133,7 +133,7 @@ class TVBInputInterface(TVBInterface):
         self.proxy_inds_loc = self._set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
     def print_str(self):
-        super(TVBInputInterface, self).print_str(self, sender_not_receiver=False)
+        return super(TVBInputInterface, self).print_str(sender_not_receiver=False)
 
     def __call__(self, data):
         # Assume a single mode,
@@ -217,6 +217,7 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
     def print_str(self):
         return BaseInterface.print_str(self) + \
                TVBOutputInterface.print_str(self) + \
+               self.transformer.print_str() + \
                SpikeNetInputInterface.print_str(self)
 
     def configure(self):
@@ -255,6 +256,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
 
     def print_str(self):
         return TVBInputInterface.print_str(self) + \
+               self.transformer.print_str() + \
                SpikeNetOutputInterface.print_str(self)
 
     def __call__(self):

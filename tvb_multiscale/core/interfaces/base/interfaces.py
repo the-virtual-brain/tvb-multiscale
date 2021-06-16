@@ -178,7 +178,8 @@ class CommunicatorTransformerInterface(BaseInterface):
             comm_str = "Communicator"
         out = super(CommunicatorTransformerInterface, self).print_str()
         out += "\n%s: %s" % (comm_str, str(self.communicator1))
-        out += "\nTransformer: %s" % str(self.transformer)
+        out += "\nTransformer: %s" % self.transformer.print_str()
+        return out
 
 
 class TransformerSenderInterface(CommunicatorTransformerInterface):
@@ -210,7 +211,7 @@ class TransformerSenderInterface(CommunicatorTransformerInterface):
         return self.transform_send(data)
 
     def print_str(self):
-        super(TransformerSenderInterface, self).print_str(sender_not_receiver=True)
+        return super(TransformerSenderInterface, self).print_str(sender_not_receiver=True)
 
 
 class ReceiverTransformerInterface(CommunicatorTransformerInterface):
@@ -243,7 +244,7 @@ class ReceiverTransformerInterface(CommunicatorTransformerInterface):
         return self.receive_transform()
 
     def print_str(self):
-        super(ReceiverTransformerInterface, self).print_str(sender_not_receiver=False)
+        return super(ReceiverTransformerInterface, self).print_str(sender_not_receiver=False)
 
 
 class RemoteTransformerInterface(BaseInterface):
@@ -294,8 +295,9 @@ class RemoteTransformerInterface(BaseInterface):
     def print_str(self):
         out = super(RemoteTransformerInterface, self).print_str()
         out += "\nReceiver: %s" % str(self.receiver)
-        out += "\nTransformer: %s" % str(self.transformer)
+        out += "\nTransformer: %s" % self.transformer.print_str()
         out += "\nSender: %s" % str(self.sender)
+        return out
 
 
 class BaseInterfaces(HasTraits):

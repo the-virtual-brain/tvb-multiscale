@@ -61,6 +61,12 @@ class RedWongWangExc(Integration):
         self.output_buffer = self.output_buffer.T  # (time, voi, proxy) -> (proxy, voi, time)
         return self.output_buffer
 
+    def print_str(self):
+        return super(RedWongWangExc, self).print_str() + \
+               "\n     - tau_s = %s" % str(self.tau_s) + \
+               "\n     - tau_r = %s" % str(self.tau_r) + \
+               "\n     - gamma = %s" % str(self.gamma)
+
 
 class ElephantSpikesHistogramRateRedWongWangExc(ElephantSpikesHistogramRate, RedWongWangExc):
 
@@ -72,6 +78,9 @@ class ElephantSpikesHistogramRateRedWongWangExc(ElephantSpikesHistogramRate, Red
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
         return RedWongWangExc.compute(self, input_buffer=ElephantSpikesHistogramRate.compute(self))
+
+    def print_str(self):
+        return RedWongWangExc.print_str(self) + ElephantSpikesHistogramRate.print_str(self)
 
 
 class ElephantSpikesRateRedWongWangExc(ElephantSpikesRate, RedWongWangExc):
@@ -85,6 +94,9 @@ class ElephantSpikesRateRedWongWangExc(ElephantSpikesRate, RedWongWangExc):
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
         input_buffer = ElephantSpikesRate.compute(self)
         return RedWongWangExc.compute(self, input_buffer=input_buffer)
+
+    def print_str(self):
+        return RedWongWangExc.print_str(self) + ElephantSpikesRate.print_str(self)
 
 
 class RedWongWangInh(RedWongWangExc):
@@ -123,6 +135,9 @@ class ElephantSpikesHistogramRateRedWongWangInh(ElephantSpikesHistogramRate, Red
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
         return RedWongWangInh.compute(self, input_buffer=ElephantSpikesHistogramRate.compute(self))
 
+    def print_str(self):
+        return RedWongWangInh.print_str(self) + ElephantSpikesHistogramRate.print_str(self)
+
 
 class ElephantSpikesRateRedWongWangInh(ElephantSpikesRate, RedWongWangInh):
 
@@ -135,3 +150,6 @@ class ElephantSpikesRateRedWongWangInh(ElephantSpikesRate, RedWongWangInh):
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
         input_buffer = ElephantSpikesRate.compute(self)
         return RedWongWangInh.compute(self, input_buffer=input_buffer)
+
+    def print_str(self):
+        return RedWongWangInh.print_str(self) + ElephantSpikesRate.print_str(self)

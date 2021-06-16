@@ -48,7 +48,7 @@ class NESTOutputProxyModels(Enum):
 
 class DefaultTVBtoNESTModels(Enum):
     RATE = NESTInputProxyModels.RATE.name
-    SPIKES = NESTInputProxyModels.PARROT_SPIKES.name
+    SPIKES = NESTInputProxyModels.SPIKES.name
     CURRENT = NESTInputProxyModels.CURRENT.name
 
 

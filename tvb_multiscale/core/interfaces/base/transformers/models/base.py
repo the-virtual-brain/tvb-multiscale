@@ -80,11 +80,7 @@ class Transformer(HasTraits):
         return value
 
     def print_str(self):
-        output = "\n%s, dt = %g" % (self.__repr__(), self.dt)
-        if self.receiver:
-            output += "\nReceiver: %s" % str(self.receiver)
-        if self.sender:
-            output += "\nSender: %s" % str(self.sender)
+        return "\nTransformer: %s \n     - dt = %g" % (self.__repr__(), self.dt)
 
 
 # A few basic examples:
@@ -137,6 +133,10 @@ class Scale(Transformer):
             self.output_buffer = []
             for scale_factor, input_buffer in zip(self._scale_factor, self.input_buffer):
                 self.output_buffer.append(scale_factor * input_buffer)
+
+    def print_str(self):
+        return super(Scale, self).print_str() + \
+               "\n     - scale_factor = %s" % str(self.scale_factor)
 
 
 class ScaleRate(Scale):
@@ -197,6 +197,10 @@ class DotProduct(Transformer):
     def compute(self):
         """Method that just scales input buffer data to compute the output buffer data."""
         self.output_buffer = np.dot(self._dot_factor * self.input_buffer)
+
+    def print_str(self):
+        return super(DotProduct, self).print_str() + \
+               "\n     - dot_factor = %s" % str(self.dot_factor)
 
 
 class Integration(Transformer):
@@ -267,6 +271,10 @@ class Integration(Transformer):
         self.loop_integrate(np.array(kwargs.get("input_buffer", self.input_buffer)))
         return self.transpose()
 
+    def print_str(self):
+        return super(Integration, self).print_str() + \
+               "\n     - integrator = %s" % str(self.integrator)
+
 
 class RatesToSpikes(Scale):
     __metaclass__ = ABCMeta
@@ -323,6 +331,10 @@ class RatesToSpikes(Scale):
         self.output_buffer = []
         for iP, (scale_factor, proxy_buffer) in enumerate(zip(self._scale_factor, self.input_buffer)):
             self.output_buffer.append(self._compute(scale_factor*proxy_buffer, iP, *args, **kwargs))
+
+    def print_str(self):
+        return super(RatesToSpikes, self).print_str() + \
+               "\n     - number_of_neurons = %s" % str(self.number_of_neurons)
 
 
 class SpikesToRates(Scale):

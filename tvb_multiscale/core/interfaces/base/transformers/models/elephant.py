@@ -58,6 +58,11 @@ class RatesToSpikesElephant(RatesToSpikes):
         """Abstract method for the computation of rates data transformation to spike trains, using elephant software."""
         pass
 
+    def print_str(self):
+        return super(RatesToSpikesElephant, self).print_str() + \
+               "\n     - time_unit = %s" % str(self.time_unit) + \
+               "\n     - rate_unit = %s" % str(self.rate_unit)
+
 
 class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
     """
@@ -102,6 +107,10 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (in)homogeneous_poisson_process functions."""
         return self._compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count])
+
+    def print_str(self):
+        return super(RatesToSpikesElephantPoisson, self).print_str() + \
+               "\n     - refractory_period = %s" % str(self.refractory_period)
 
 
 class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
@@ -158,6 +167,10 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
             return shared_spiketrain * n_spiketrains
         else:
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
+
+    def print_str(self):
+        return super(RatesToSpikesElephantPoissonInteraction, self).print_str() + \
+               "\n     - refractory_period = %s" % str(self.correlation_factor)
 
 
 class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonInteraction):
@@ -262,6 +275,11 @@ class SpikesToRatesElephant(SpikesToRates):
            to instantaneous mean spiking rates, using elephant software."""
         pass
 
+    def print_str(self):
+        return super(SpikesToRatesElephant, self).print_str() + \
+               "\n     - time_unit = %s" % str(self.time_unit) + \
+               "\n     - rate_unit = %s" % str(self.rate_unit)
+
 
 class ElephantSpikesHistogram(SpikesToRatesElephant):
 
@@ -340,6 +358,10 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
         else:
             # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
             return np.array(ElephantSpikesHistogramRate._compute_fun(spiketrain).flatten())
+
+    def print_str(self):
+        return super(ElephantSpikesRate, self).print_str() \
+               + "\n     - kernel = %s" % str(self.kernel)
 
 
 class ElephantRatesToSpikesTransformers(Enum):

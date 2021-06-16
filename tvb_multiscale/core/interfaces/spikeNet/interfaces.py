@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
+from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals, list_of_dicts_to_dict_of_lists
 
 from tvb_multiscale.core.interfaces.base.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
@@ -51,9 +51,7 @@ class SpikeNetInterface(HasTraits):
         return self.populations.shape[0]
 
     def _get_proxy_gids(self, nest_devices):
-        gids = nest_devices.get("global_id")
-        if isinstance(gids, dict):
-            return gids["global_id"]
+        return np.array(nest_devices.do_for_all("gids", return_type="values")).flatten()
 
     @property
     @abstractmethod
@@ -66,13 +64,13 @@ class SpikeNetInterface(HasTraits):
 
     def print_str(self, sender_not_receiver=None):
         if sender_not_receiver is True:
-            spikeNet_source_or_target = "Sender "
+            spikeNet_source_or_target = "Sender"
         elif sender_not_receiver is False:
-            spikeNet_source_or_target = "Receiver "
+            spikeNet_source_or_target = "Receiver"
         else:
             spikeNet_source_or_target = ""
         return "\nSpiking Network populations: %s" \
-               "\n%Spiking Network proxy nodes' \n" \
+               "\nSpiking Network %s proxy nodes' \n" \
                "indices: %s\nand gids: %s" % \
                (str(self.populations.tolist()),
                 spikeNet_source_or_target,
@@ -115,7 +113,7 @@ class SpikeNetOutputInterface(SpikeNetInterface):
                                    extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        super(SpikeNetOutputInterface, self).print_str(self, sender_not_receiver=True)
+        return super(SpikeNetOutputInterface, self).print_str(sender_not_receiver=True)
 
     @property
     def proxy_gids(self):
@@ -160,7 +158,7 @@ class SpikeNetInputInterface(SpikeNetInterface):
                                    extract_integer_intervals(self.spiking_proxy_inds))
 
     def print_str(self):
-        super(SpikeNetInputInterface, self).print_str(self, sender_not_receiver=False)
+        return super(SpikeNetInputInterface, self).print_str(sender_not_receiver=False)
 
     @property
     def proxy_gids(self):

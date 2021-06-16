@@ -71,7 +71,7 @@ class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
     """ANNarchySenderInterface"""
 
     def print_str(self):
-        SpikeNetSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
+        return SpikeNetSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
 
     def __call__(self):
         return self.send(ANNarchyOutputInterface.get_proxy_data(self))
@@ -82,7 +82,7 @@ class ANNarchyTransformerSenderInterface(SpikeNetTransformerSenderInterface, ANN
     """ANNarchyTransformerSenderInterface"""
 
     def print_str(self):
-        SpikeNetTransformerSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
+        return SpikeNetTransformerSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
 
     def __call__(self):
         return self.transform_send(ANNarchyOutputInterface.get_proxy_data(self))
@@ -108,7 +108,7 @@ class ANNarchyReceiverInterface(SpikeNetReceiverInterface, ANNarchyInputInterfac
     """ANNarchyReceiverInterface"""
 
     def print_str(self):
-        SpikeNetReceiverInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+        return SpikeNetReceiverInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
 
 
 class ANNarchyReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, ANNarchyInputInterface):
@@ -116,7 +116,7 @@ class ANNarchyReceiverTransformerInterface(SpikeNetReceiverTransformerInterface,
     """ANNarchyReceiverTransformerInterface"""
 
     def print_str(self):
-        SpikeNetReceiverTransformerInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+        return SpikeNetReceiverTransformerInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
 
 
 class TVBtoANNarchyInterface(TVBtoSpikeNetInterface, ANNarchyInputInterface):
@@ -126,7 +126,7 @@ class TVBtoANNarchyInterface(TVBtoSpikeNetInterface, ANNarchyInputInterface):
     """
 
     def print_str(self):
-        TVBtoSpikeNetInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+        return TVBtoSpikeNetInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
 
 
 class ANNarchyToTVBInterface(SpikeNetToTVBInterface, ANNarchyOutputInterface):
@@ -139,7 +139,7 @@ class ANNarchyToTVBInterface(SpikeNetToTVBInterface, ANNarchyOutputInterface):
         return ANNarchyOutputInterface.get_proxy_data(self)
 
     def print_str(self):
-        SpikeNetToTVBInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
+        return SpikeNetToTVBInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
 
 
 class ANNarchyInterfaces(HasTraits):

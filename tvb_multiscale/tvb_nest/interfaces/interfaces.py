@@ -66,7 +66,7 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
     """NESTSenderInterface"""
 
     def print_str(self):
-        SpikeNetSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
+        return SpikeNetSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
     def __call__(self):
         return self.send(NESTOutputInterface.get_proxy_data(self))
@@ -76,7 +76,7 @@ class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOut
     """NESTTransformerSenderInterface"""
 
     def print_str(self):
-        SpikeNetTransformerSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
+        return SpikeNetTransformerSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
     def __call__(self):
         return self.transform_send(NESTOutputInterface.get_proxy_data(self))
@@ -101,14 +101,14 @@ class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
     """NESTReceiverInterface"""
 
     def print_str(self):
-        SpikeNetReceiverInterface.print_str(self) + NESTInputInterface.print_str(self)
+        return SpikeNetReceiverInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
 class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
     """NESTReceiverTransformerInterface"""
 
     def print_str(self):
-        SpikeNetReceiverTransformerInterface.print_str(self) + NESTInputInterface.print_str(self)
+        return SpikeNetReceiverTransformerInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
 class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
@@ -118,7 +118,7 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
     """
 
     def print_str(self):
-        TVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
+        return TVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
 class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
@@ -131,7 +131,7 @@ class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
         return NESTOutputInterface.get_proxy_data(self)
 
     def print_str(self):
-        SpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)
+        return SpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
 
 class NESTInterfaces(HasTraits):

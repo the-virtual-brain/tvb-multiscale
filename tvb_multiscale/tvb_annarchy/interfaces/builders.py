@@ -32,6 +32,7 @@ ANNarchyToTVBModels = SpikeNetToTVBModels
 
 
 class ANNarchyInputProxyModels(Enum):
+    RATE = ANNarchyTimedPoissonPopulationSet
     RATE_TO_SPIKES = ANNarchyTimedPoissonPopulationSet
     SPIKES = ANNarchySpikeSourceArraySet
     CURRENT = ANNarchyTimedArraySet
@@ -44,7 +45,7 @@ class ANNarchyOutputProxyModels(Enum):
 
 
 class DefaultTVBtoANNarchyModels(Enum):
-    RATE = ANNarchyInputProxyModels.RATE_TO_SPIKES.name
+    RATE = ANNarchyInputProxyModels.RATE.name
     SPIKES = ANNarchyInputProxyModels.SPIKES.name
     CURRENT =ANNarchyInputProxyModels.CURRENT.name
 
