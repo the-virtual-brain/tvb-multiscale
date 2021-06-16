@@ -144,7 +144,7 @@ class IzhikevichExcIO(ModelNumbaDfun):
         doc="[?]. Slope parameter of u nullcline.")
 
     c = NArray(
-        label=":math:`d`",
+        label=":math:`c`",
         default=numpy.array([-55.0, ]),
         domain=Range(lo=-100.0, hi=0.0, step=5.0),
         doc="""[mV]. Reset value after spike 
@@ -154,7 +154,8 @@ class IzhikevichExcIO(ModelNumbaDfun):
         label=":math:`d`",
         default=numpy.array([2.0, ]),
         domain=Range(lo=0.05, hi=8.0, step=0.05),
-        doc="""[?]. Increment of u after spike.""")
+        doc="""[?]. Increment of u after spike
+                for the original Izhikevich spiking neuronal model.""")
 
     fmin = NArray(
         label=":math:`f_{min}`",
@@ -191,7 +192,7 @@ class IzhikevichExcIO(ModelNumbaDfun):
         label=r":math:`\g_{max}`",
         default=numpy.array([0.002, ]),
         domain=Range(lo=0.0, hi=0.1, step=0.001),
-        doc="""[?] Maximum conductance""")
+        doc="""[nS] Maximum conductance""")
 
     tau_s = NArray(
         label=r":math:`\tau_S`",
@@ -203,19 +204,19 @@ class IzhikevichExcIO(ModelNumbaDfun):
         label=r":math:`w`",
         default=numpy.array([0.1, ]),
         domain=Range(lo=0.0, hi=1.0, step=0.01),
-        doc="""Excitatory recurrence""")
+        doc="""Excitatory recurrence weight.""")
 
     I_ext = NArray(
         label=":math:`I_{ext}`",
         default=numpy.array([0.0, ]),
         domain=Range(lo=-100.0, hi=100.0, step=0.1),
-        doc="""[nA?] Constant applied background current""")
+        doc="""[pA] Constant applied background current.""")
 
     G = NArray(
         label=":math:`G`",
         default=numpy.array([1.0, ]),
         domain=Range(lo=0.0, hi=10.0, step=0.01),
-        doc="""Global coupling scaling""")
+        doc="""Global coupling scaling.""")
 
     # Used for phase-plane axis ranges and to bound random initial() conditions.
     state_variable_boundaries = Final(
