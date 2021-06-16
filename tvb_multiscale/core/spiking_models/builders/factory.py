@@ -133,7 +133,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
         for i_node, node in enumerate(device_target_nodes):
             # ...and populations' group...
             # ...create a device and connect it:
-            kwargs.update({"label": "%s_%s" % (dev_var, node.label)})
+            kwargs.update({"label": "%s - %s" % (dev_var, node.label)})
             if node.label not in devices[dev_var].keys():
                 devices[dev_var][node.label] = build_device(device_dict, create_device_fun, config=config, **kwargs)
             for pop in populations:
