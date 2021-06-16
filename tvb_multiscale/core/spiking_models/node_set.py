@@ -45,14 +45,14 @@ class SpikingNodesSet(pd.Series, HasTraits):
         return None
 
     def __repr__(self):
-        return "%s - Label: %s\n%ss: %s" % (self.__class__.__name__, self.label,
+        return "\n%s - Label: %s\n%ss: %s" % (self.__class__.__name__, self.label,
                                             self._collection_name,  str(self.collections))
 
     def __str__(self):
         return self.print_str()
 
     def print_str(self, connectivity=False):
-        output = self.__repr__() + "%ss:\n" % self._collection_name
+        output = self.__repr__()
         for pop in self.collections:
             output += LINE + self[pop].print_str(connectivity)
         return output
