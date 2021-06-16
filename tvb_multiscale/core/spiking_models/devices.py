@@ -53,13 +53,17 @@ class Device(SpikingNodeCollection):
         self.device = device    # a device object, depending on its simulator implementation
         SpikingNodeCollection.__init__(self, device, **kwargs)
         self._number_of_connections = 0
+        self._number_of_neurons = 0
 
     @property
     def _print_from_to(self):
         return "from/to"
 
     def print_str(self, connectivity=False, source_or_target=None):
-        output = "\n" + self.__repr__() + "\nparameters: %s" % str(self.get_attributes())
+        output = "\n" + self.__repr__() + \
+                 "\nnumber of connections: %d" % self.number_of_connections + \
+                 "\nnumber of connected neurons: %d" % self.number_of_neurons + \
+                 "\nparameters: %s" % str(self.get_attributes())
         if connectivity:
             neurons = ensure_list(self.neurons)
             conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
@@ -974,6 +978,11 @@ class DeviceSet(SpikingNodesSet):
                                   label="Number of connections",
                                   doc="""The number of total connections of the DeviceSet""")
 
+    _number_of_neurons = List(of=int, default=(),
+                              label="Number of neurons",
+                              doc="""The number of total connected neurons of the DeviceSet""")
+
+
     def __init__(self, device_set=pd.Series(), **kwargs):
         self.model = str(kwargs.pop("model", ""))
         SpikingNodesSet.__init__(self, device_set, **kwargs)
@@ -1009,20 +1018,18 @@ class DeviceSet(SpikingNodesSet):
            Returns:
             a list of Devices' numbers of connections
         """
-        self._number_of_connections = self.do_for_all("number_of_connections")
-        if np.sum(self._number_of_connections) == 0:
-            self._number_of_connections = 0
+        if len(self._number_of_connections) == 0:
+            self._number_of_connections = ensure_list(self.do_for_all("number_of_connections"))
         return self._number_of_connections
 
     @property
     def number_of_neurons(self):
-        """This method will return the total number of connections of each Device of the DeviceSet.
+        """This method will return the total number of connected neurons of each Device of the DeviceSet.
            Returns:
-            a list of Devices' numbers of connections
+            a list of Devices' numbers of connected neurons
         """
-        self._number_of_neurons = self.do_for_all("number_of_neurons")
-        if np.sum(self._number_of_neurons) == 0:
-            self._number_of_neurons = 0
+        if len(self._number_of_neurons) == 0:
+            self._number_of_neurons = ensure_list(self.do_for_all("number_of_neurons"))
         return self._number_of_neurons
 
     @property
@@ -1109,16 +1116,17 @@ class DeviceSet(SpikingNodesSet):
     def update_model(self):
         """Assert that all Devices of the set are of the same model."""
         if len(self) > 0:
-            models = self.do_for_all("model")
+            models = ensure_list(self.do_for_all("model"))
             if np.any([model != models[0] or model not in self.model for model in models]):
-                raise ValueError("Not all devices of the DeviceSet are of the same model!:\n %s" % str(models))
+                raise ValueError("Not all devices of the DeviceSet %s are of the same model!:\n %s"
+                                 % (self.name, str(models)))
 
     def update(self, device_set=None):
         if device_set:
             super(DeviceSet, self).update(device_set)
         self.update_model()
-        self._number_of_connections = self.do_for_all("number_of_connections")
-        self._number_of_neurons = self.do_for_all("number_of_neurons")
+        self._number_of_connections = ensure_list(self.do_for_all("number_of_connections"))
+        self._number_of_neurons = ensure_list(self.do_for_all("number_of_neurons"))
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DeviceSet.
