@@ -32,7 +32,7 @@ Models based on Izhikevich's work.
 .. moduleauthor:: André Blickensdörfer <andre.blickensdoerfer@charite.de>
 """
 
-#from numba import guvectorize, float64
+# from numba import guvectorize, float64
 from tvb.simulator.models.base import numpy, ModelNumbaDfun
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
@@ -70,7 +70,6 @@ from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 
 class IzhikevichExcIOInhI(ModelNumbaDfun):
-
     r"""
     TODO: update equations in simple exc version, then copy here as well
     """
@@ -136,18 +135,6 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
         doc="""[mV]. For excitatory population. Membrane potential threshold 
                 value for spiking for the original Izhikevich spiking neuronal model.""")
 
-    E_exc = NArray(
-        label=":math:`E_{exc}`",
-        default=numpy.array([0.0, ]),
-        domain=Range(lo=0.0, hi=100.0, step=5.0),
-        doc="""[mV]. Reversal synaptic potential value in excitatory population.""")
-
-    we = NArray(
-        label=r":math:`w_e`",
-        default=numpy.array([0.1, ]),
-        domain=Range(lo=0.0, hi=1.0, step=0.01),
-        doc="""Excitatory recurrence weight.""")
-
     # Attributes of inhibitory population.
     ni0 = NArray(
         label=":math:`n_i_0`",
@@ -206,20 +193,45 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
         doc="""[mV]. For inhibitory population. Membrane potential threshold 
                 value for spiking for the original Izhikevich spiking neuronal model.""")
 
+    # Connection weights.
+    wee = NArray(
+        label=r":math:`w_ee`",
+        default=numpy.array([0.1, ]),
+        domain=Range(lo=0.0, hi=1.0, step=0.01),
+        doc="""Excitatory recurrence weight (E->E).""")
+
+    wei = NArray(
+        label=r":math:`w_ei`",
+        default=numpy.array([0.1, ]),
+        domain=Range(lo=0.0, hi=1.0, step=0.01),
+        doc="""Weight of connection I->E.""")
+
+    wii = NArray(
+        label=r":math:`w_ii`",
+        default=numpy.array([0.1, ]),
+        domain=Range(lo=0.0, hi=1.0, step=0.01),
+        doc="""Inhibitory recurrence weight.""")
+
+    wie = NArray(
+        label=r":math:`w_ie`",
+        default=numpy.array([0.1, ]),
+        domain=Range(lo=0.0, hi=1.0, step=0.01),
+        doc="""Weight of connection E->I.""")
+
+    # Shared attributes.
+    E_exc = NArray(
+        label=":math:`E_{exc}`",
+        default=numpy.array([0.0, ]),
+        domain=Range(lo=0.0, hi=100.0, step=5.0),
+        doc="""[mV]. Reversal potential in excitatory synapses.""")
+
     # TODO: check if reversal potential is ok
     E_inh = NArray(
         label=":math:`E_{inh}`",
         default=numpy.array([-90.0, ]),
         domain=Range(lo=-100.0, hi=0.0, step=5.0),
-        doc="""[mV]. Reversal synaptic potential value in inhibitory population.""")
+        doc="""[mV]. Reversal potential in inhibitory synapses.""")
 
-    wi = NArray(
-        label=r":math:`w_i`",
-        default=numpy.array([0.1, ]),
-        domain=Range(lo=0.0, hi=1.0, step=0.01),
-        doc="""Inhibitory recurrence weight.""")
-
-    # Shared attributes.
     kappa = NArray(
         label=":math:`\kappa`",
         default=numpy.array([0.8, ]),
@@ -278,36 +290,50 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
                  "U_i": numpy.array([None, None]),
                  "R_e": numpy.array([0.0, None]),
                  "R_i": numpy.array([0.0, None]),
-                 "I_syne": numpy.array([None, None]),
-                 "I_syni": numpy.array([None, None])
+                 "I_e": numpy.array([None, None]),
+                 "I_i": numpy.array([None, None])
                  },
         label="State Variable boundaries [lo, hi]",
         doc="""The values for each state-variable should be set to encompass
             the boundaries of the dynamic range of that state-variable. 
             Set None for one-sided boundaries""")
-###################### worked until here
     state_variable_range = Final(
         default={"S_e": numpy.array([0.0, 1.0]),
                  "S_i": numpy.array([0.0, 1.0]),
+                 "V_e": numpy.array([-80.0, 30.0]),
+                 "V_i": numpy.array([-80.0, 30.0]),
+                 "U_e": numpy.array([-15.0, 5.0]),
+                 "U_i": numpy.array([-15.0, 5.0]),
                  "R_e": numpy.array([0.0, 1000.0]),
-                 "R_i": numpy.array([0.0, 1000.0])},
+                 "R_i": numpy.array([0.0, 1000.0]),
+                 "I_e": numpy.array([-10.0, 10.0]),
+                 "I_i": numpy.array([-10.0, 10.0])
+                 },
+
         label="State variable ranges [lo, hi]",
         doc="Population firing rate")
 
     variables_of_interest = List(
         of=str,
         label="Variables watched by Monitors",
-        choices=('S_e', 'S_i', 'R_e', 'R_i'),
-        default=('S_e', 'S_i', 'R_e', 'R_i'),
+        choices=('S_e', 'S_i', 'V_e', 'V_i', 'U_e', 'U_i', 'R_e', 'R_i', 'I_e', 'I_i'),
+        default=('S_e', 'S_i', 'V_e', 'V_i', 'U_e', 'U_i', 'R_e', 'R_i', 'I_e', 'I_i'),
         doc="""default state variables to be monitored""")
 
-    state_variables = ['S_e', 'S_i', 'R_e', 'R_i']
-    non_integrated_variables = ['R_e', 'R_i']
-    _nvar = 4
+    state_variables = ['S_e', 'S_i', 'V_e', 'V_i', 'U_e', 'U_i', 'R_e', 'R_i', 'I_e', 'I_i']
+    non_integrated_variables = ['R_e', 'R_i', 'I_e', 'I_i']
+    _nvar = 10
     cvar = numpy.array([0], dtype=numpy.int32)
-    _R = None
+    _R_e = None
+    _R_i = None
+    _I_e = None
+    _I_i = None
+    _J_e = None
+    _J_i = None
+    _nc_e = None
+    _nc_i = None
     _stimulus = 0.0
-    use_numba = True
+    use_numba = False
 
     def update_derived_parameters(self):
         """
@@ -318,60 +344,112 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
         safely called on any model, whether it's used or not.
         """
         self.n_nonintvar = self.nvar - self.nintvar
-        self._R = None
+        self._R_e = None
+        self._R_i = None
+        self._I_e = None  # = I_ext - I_syn
+        self._I_i = None
+        self._J_e = None  # = I - U
+        self._J_i = None
+        self._nc_e = None
+        self._nc_i = None
+        self._ckappa_e = self.ce + self.kappa  # c + kappa
+        self._ckappa_i = self.ci + self.kappa
+        self._dnck_e = 2 * self.ne2 * self._ckappa_e + self.ne1  # derivative of _nfun at point c + kappa
+        self._dnck_i = 2 * self.ni2 * self._ckappa_i + self.ni1
         self._stimulus = 0.0
 
+    def _nfun_e(self, x):
+        """This method computes the polynomial term of the dV/dt function"""
+        return self.ne2 * x * x + self.ne1 * x + self.ne0 + self._J_e
+
+    def _nfun_i(self, x):
+        """This method computes the polynomial term of the dV/dt function"""
+        return self.ni2 * x * x + self.ni1 * x + self.ni0 + self._J_i
+
+    def _T(self, sqrtJj, v):
+        _T = (10 / sqrtJj) * numpy.arctan(((2 * v) + 125) / (5 * sqrtJj))
+        # print("\n_T = \n", _T)
+        return _T
+
+    def _f_e(self):
+        sqrtJj = numpy.sqrt(4 * (self._J_e + 0j) - 65)
+        # print("\nsqrtJj = \n", sqrtJj)
+        _f = numpy.maximum(1.0 / (self._T(sqrtJj, self.v_the) - self._T(sqrtJj, self.ce)), self.fmine)
+        # print("\n_f = \n", _f)
+        return _f
+
+    def _f_i(self):
+        sqrtJj = numpy.sqrt(4 * (self._J_i + 0j) - 65)
+        # print("\nsqrtJj = \n", sqrtJj)
+        _f = numpy.maximum(1.0 / (self._T(sqrtJj, self.v_thi) - self._T(sqrtJj, self.ci)), self.fmini)
+        # print("\n_f = \n", _f)
+        return _f
+
     def update_state_variables_before_integration(self, state_variables, coupling, local_coupling=0.0, stimulus=0.0):
+        """This method computes intermediate -non integrated- state variables
+           to be used for the computation of the dfun of the dynamical - i.e., integrated - state variables"""
         self._stimulus = stimulus
-        if self.use_numba:
-            state_variables = \
-                _numba_update_non_state_variables_before_integration(
-                    state_variables.reshape(state_variables.shape[:-1]).T,
-                    coupling.reshape(coupling.shape[:-1]).T +
-                    local_coupling * state_variables[0],
-                    self.a_e, self.b_e, self.d_e,  self.w_p, self.W_e, self.J_N,
-                    self.a_i, self.b_i, self.d_i, self.W_i, self.J_i,
-                    self.G, self.lamda, self.I_o, self.I_ext)
-            return state_variables.T[..., numpy.newaxis]
+        # if self.use_numba:
+        #     state_variables = \
+        #         _numba_update_non_state_variables_before_integration(
+        #             state_variables.reshape(state_variables.shape[:-1]).T,
+        #             coupling.reshape(coupling.shape[:-1]).T +
+        #             local_coupling * state_variables[0],
+        #             self.n0, self.n1, self.n2, self.c, self.omega, self.fmin,
+        #             self.v_th, self.E_rev, self.g_max, self.w, self.G, self.I_ext)
+        #     return state_variables.T[..., numpy.newaxis]
 
-        # In this case, rates (H_e, H_i) are non-state variables,
-        # i.e., they form part of state_variables but have no dynamics assigned on them
-        # Most of the computations of this dfun aim at computing rates, including coupling considerations.
-        # Therefore, we compute and update them only once a new state is computed,
-        # and we consider them constant for any subsequent possible call to this function,
-        # by any integration scheme
+        # state_variables shape: (var, brain regions, modes)
+        S_e = state_variables[0, :]  # synaptic gating dynamics, shape: (brain regions, modes)
+        S_i = state_variables[1, :]
+        V_e = state_variables[2, :]  # membrane potential, shape: (brain regions, modes)
+        V_i = state_variables[3, :]
+        U_e = state_variables[4, :]  # recovery variable, shape: (brain regions, modes)
+        U_i = state_variables[5, :]
 
-        S = state_variables[:2, :]  # synaptic gating dynamics
+        # coupling is large scale coupling coming from other brain regions, state_variables[cvar], see cvar above:
+        # coupling shape: (cvars, brain regions, modes)
+        c_0 = coupling[0, :]  # c_0 shape: (brain regions, modes) = sum(w_ij * S_j) for linear additive coupling
 
-        c_0 = coupling[0, :]
+        # local coupling for surface simulations, if applicable
+        lc_0 = local_coupling * S_e
 
-        # if applicable
-        lc_0 = local_coupling * S[0]
+        # Total current = Iext - Synaptic current
+        # = Iext -  (w*S + G*coupling) * g * (V - E_rev)
+        self._I_e = self.I_ext - (self.wee * S_e + self.G * (c_0 + lc_0)) * self.g_maxe * (V_e - self.E_exc) \
+                    - self.wei * S_i * self.g_maxi * (V_e - self.E_inh)
+        self._I_i = - self.wii * S_i * self.g_maxi * (V_i - self.E_inh) \
+                    - self.wie * S_e * self.g_maxe * (V_i - self.E_exc)
 
-        coupling = self.G * self.J_N * (c_0 + lc_0)
+        # Sigmoidal synaptic function:
+        He = 1.0 / (1 + numpy.exp(-self.omega * (V_e - (self.ce))))
+        Hi = 1.0 / (1 + numpy.exp(-self.omega * (V_i - (self.ci))))
+        # print("\nH = \n", H)
 
-        J_N_S_e = self.J_N * S[0]
+        # These two will be used later as well for dfun:
+        self._J_e = self._I_e - U_e
+        self._nc_e = self._nfun_e(self.ce)
 
-        # TODO: Confirm that this computation is correct for this model depending on the r_e and r_i values!
-        I_e = self.w_p * J_N_S_e - self.J_i * S[1] + self.W_e * self.I_o + coupling + self.I_ext
-        x_e = self.a_e * I_e - self.b_e
-        R_e =  x_e / (1 - numpy.exp(-self.d_e * x_e))
+        self._J_i = self._I_i - U_i
+        self._nc_i = self._nfun_i(self.ci)
 
-        I_i = J_N_S_e - S[1] + self.W_i * self.I_o + self.lamda * coupling
-        x_i = self.a_i * I_i - self.b_i
-        R_i = x_i / (1 - numpy.exp(-self.d_i * x_i))
-
-        # We now update the state_variable vector with the new rates:
-        state_variables[2, :] = R_e
-        state_variables[3, :] = R_i
+        # Rate computation:
+        self._R_e = numpy.real(He * numpy.where(self._nc_e > 0.0, self._f_e(), self.fmine))
+        self._R_i = numpy.real(Hi * numpy.where(self._nc_i > 0.0, self._f_i(), self.fmini))
+        # print("\n_R = \n", self._R)
+        # We now update the state_variables vector with the new rate and current:
+        state_variables[6, :] = self._R_e.copy()
+        state_variables[7, :] = self._R_i.copy()
+        state_variables[8, :] = self._I_e.copy()
+        state_variables[9, :] = self._I_i.copy()
 
         return state_variables
 
     def _integration_to_state_variables(self, integration_variables):
-        return numpy.array(integration_variables.tolist() + [0.0*integration_variables[0]] * self.n_nonintvar)
+        return numpy.array(integration_variables.tolist() + [0.0 * integration_variables[0]] * self.n_nonintvar)
 
-    def _numpy_dfun(self, integration_variables, R):
-        r"""
+    def _numpy_dfun(self, integration_variables, R_e, R_i):
+        r""" TODO: update equations here as well
         Equations taken from [DPA_2013]_ , page 11242
 
         .. math::
@@ -385,29 +463,65 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
 
         """
 
-        S = integration_variables[:2, :]     # Synaptic gating dynamics
+        S_e = integration_variables[0, :]  # synaptic gating dynamics, shape: (brain regions, modes)
+        S_i = integration_variables[1, :]
+        V_e = integration_variables[2, :]  # membrane potential, shape: (brain regions, modes)
+        V_i = integration_variables[3, :]
+        U_e = integration_variables[4, :]  # recovery variable, shape: (brain regions, modes)
+        U_i = integration_variables[5, :]
+
+        # Membrane potential dynamics
+        ncknc_e = self._nfun_e(self._ckappa_e) - self._nc_e
+        eta_e = self._dnck_e / ncknc_e
+        xi_e = ncknc_e / numpy.exp(eta_e * self.kappa)
+        dV_e = self._nfun_e(V_e) - xi_e * numpy.exp(eta_e * (V_e - self.ce))
+
+        ncknc_i = self._nfun_i(self._ckappa_i) - self._nc_i
+        eta_i = self._dnck_i / ncknc_i
+        xi_i = ncknc_i / numpy.exp(eta_i * self.kappa)
+        dV_i = self._nfun_i(V_i) - xi_i * numpy.exp(eta_i * (V_i - self.ci))
+
+        # Recovery dynamics
+        dU_e = self.ae * (self.be * V_e - U_e) + R_e * self.de
+        dU_i = self.ai * (self.bi * V_i - U_i) + R_i * self.di
 
         # Synaptic gating dynamics
-        dS_e = - (S[0] / self.tau_e) + (1 - S[0]) * R[0] * self.gamma_e
-        dS_i = - (S[1] / self.tau_i) + R[1] * self.gamma_i
+        dS_e = R_e - S_e / self.tau_exc
+        dS_i = R_i - S_i / self.tau_inh
 
-        return numpy.array([dS_e, dS_i])
+        return numpy.array([dS_e, dS_i, dV_e, dV_i, dU_e, dU_i])
 
-    def dfun(self, x, c, local_coupling=0.0):
-        if self._R is None:
+    def dfun(self, x, c, local_coupling=0.0): # c here is coupling
+        if self._R_e is None:
+            # Compute intermediate values for this step
+            # Form the whole state_variables vector from integration_variables (i.e., x)
             state_variables = self._integration_to_state_variables(x)
+            # [S_e, S_i, V_e, V_i, U_e, U_i] + [R_e, R_i, I_e, I_i]
             state_variables = \
                 self.update_state_variables_before_integration(state_variables, c, local_coupling, self._stimulus)
-            R = state_variables[2:4]  # Rates
+            R_e = state_variables[6]  # Rates
+            R_i = state_variables[7]
+            # I_e = state_variables[8]  # Currents
         else:
-            R = self._R
-        if self.use_numba:
-            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T,
-                                self.gamma_e, self.tau_e, self.gamma_i, self.tau_i).T[..., numpy.newaxis]
-        else:
-            deriv = self._numpy_dfun(x, R)
+            # Just set the intermediate values necessary for dfun
+            R_e = self._R_e
+            R_i = self.R_i
+            # I_e = self._I_e
+            # if self.use_numba:
+            #     deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T, I.reshape(x.shape[:-1]).T,
+            #                         self.tau_s, self.n0, self.n1, self.n2, self.a, self.b, self.c, self.d,
+            #                         self.kappa, self._ckappa, self._dnck)
+            #     deriv = deriv.T[..., numpy.newaxis]
+            # else:
+        deriv = self._numpy_dfun(x, R_e, R_i)  # x = [S, V, U]
         #  Set them to None so that they are recomputed on subsequent steps
         #  for multistep integration schemes such as Runge-Kutta:
-        self._R = None
+        self._R_e = None
+        self.R_i = None
+        self._I_e = None
+        self.I_i = None
+        self._J_e = None
+        self.J_i = None
+        self._nc_e = None
+        self.nc_i = None
         return deriv
-
