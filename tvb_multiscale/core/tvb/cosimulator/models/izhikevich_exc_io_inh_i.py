@@ -422,8 +422,8 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
                     - self.wie * S_e * self.g_maxe * (V_i - self.E_exc)
 
         # Sigmoidal synaptic function:
-        He = 1.0 / (1 + numpy.exp(-self.omega * (V_e - (self.ce))))
-        Hi = 1.0 / (1 + numpy.exp(-self.omega * (V_i - (self.ci))))
+        He = 1.0 / (1 + numpy.exp(-self.omega * (V_e - self.ce)))
+        Hi = 1.0 / (1 + numpy.exp(-self.omega * (V_i - self.ci)))
         # print("\nH = \n", H)
 
         # These two will be used later as well for dfun:
@@ -505,7 +505,7 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
         else:
             # Just set the intermediate values necessary for dfun
             R_e = self._R_e
-            R_i = self.R_i
+            R_i = self._R_i
             # I_e = self._I_e
             # if self.use_numba:
             #     deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T, I.reshape(x.shape[:-1]).T,
