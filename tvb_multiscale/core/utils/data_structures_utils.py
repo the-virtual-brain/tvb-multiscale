@@ -8,12 +8,20 @@ from enum import Enum
 
 import numpy as np
 from scipy.stats import describe
-from pandas import unique
+import pandas as pd
 from xarray import DataArray
 
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, flatten_list, is_integer, extract_integer_intervals
+
+
+def is_iterable(obj):
+    try:
+        iter(obj)
+        return True
+    except:
+        return False
 
 
 def get_caller_fun_name(caller_id=1):
@@ -107,6 +115,20 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
 
 def summarize(results, digits=None):
 
+    def unique(values, astype=None):
+        if len(values):
+            if astype is None:
+                astype = str(np.array(values).dtype)
+            try:
+                return pd.unique(vals).astype(astype)
+            except:
+                return np.unique(vals).astype(astype)
+        else:
+            return np.array(values)
+
+    def unique_dicts(list_of_dicts):
+        return [dict(t) for t in {tuple(d.items()) for d in list_of_dicts}]
+
     def unique_floats_fun(vals):
         scale = 10 ** np.floor(np.log10(np.percentile(np.abs(vals), 95)))
         return scale * unique(np.around(vals / scale, decimals=digits))
@@ -125,13 +147,17 @@ def summarize(results, digits=None):
         vals = ensure_list(val)
         try:
             val_type = str(np.array(vals).dtype)
-            if isinstance(vals[0], string_types) or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o":
+            if np.all([isinstance(val, dict) for val in vals]):
+                # If they are all dicts:
+                output[attr] = np.array(unique_dicts(vals))
+            elif isinstance(vals[0], string_types) \
+                    or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o" or val_type[:2] == "<U":
                 # String, integer or boolean values
-                unique_vals = list(unique(vals).astype(val_type))
+                unique_vals = list(unique(vals, val_type))
                 n_unique_vals = len(unique_vals)
                 if n_unique_vals < 2:
                     # If they are all of the same value, just set this value:
-                    output[attr] = unique_vals[0]
+                    output[attr] = np.array(unique_vals[0])
                 elif n_unique_vals <= 10:
                     # Otherwise, return a summary dictionary with the indices of each value:
                     output[attr] = OrderedDict()
@@ -159,8 +185,8 @@ def summarize(results, digits=None):
                         output[attr] = unique_vals[0]
                     output[attr] = unique_vals
         except:
-            # Something went wrong, return the original propety
-            output[attr] = list(vals)
+            # Something went wrong, return the original property
+            output[attr] = np.array(vals)
     return output
 
 
