@@ -5,6 +5,7 @@ from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Int
+from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 
 LOG = initialize_logger(__name__)
@@ -215,6 +216,8 @@ class SpikingNodeCollection(HasTraits):
             Dictionary of sequences (lists, tuples, or arrays) of nodes' attributes.
         """
         attributes = self._Get(attrs, nodes)
+        if isinstance(attributes, (tuple, list)):
+            attributes = list_of_dicts_to_dicts_of_ndarrays(attributes)
         if summary:
             return summarize(attributes, summary)
         else:
