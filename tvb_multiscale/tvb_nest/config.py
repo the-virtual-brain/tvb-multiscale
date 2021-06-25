@@ -38,20 +38,12 @@ class Config(ConfigBase):
     NEST_VERBOCITY = 40
 
     DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS = 1
+    DEFAULT_LOCAL_NUM_THREADS = 1
 
-    DEFAULT_NEST_KERNEL_CONFIG = {"data_path": RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
-                                  'grng_seed': MASTER_SEED + DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS,
-                                  'rng_seeds': range(MASTER_SEED + 1 + DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS,
-                                                     MASTER_SEED + 1 + (2 * DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS))}
     DEFAULT_MODEL = "iaf_cond_alpha"
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_SYNAPSE = "static_synapse"
-    DEFAULT_CONNECTION = {"synapse_model": DEFAULT_SYNAPSE, "weight": 1.0, "delay": 1.0, 'receptor_type': 0,
-                          "source_inds": None, "target_inds": None, "params": {},
-                          "syn_spec": {"synapse_model": DEFAULT_SYNAPSE, "params": {}},
-                          "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
-                                        "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
     DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
@@ -91,32 +83,50 @@ class Config(ConfigBase):
         self.MYMODULES_DIR = MYMODULES_DIR
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
+    @property
+    def DEFAULT_NEST_KERNEL_CONFIG(self):
+        # TODO: Find how to compute this:
+        TOTAL_NUM_VIRTUAL_PROCS = self.DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS * self.DEFAULT_LOCAL_NUM_THREADS
+        return {"data_path": self.RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
+                'grng_seed': self.MASTER_SEED + TOTAL_NUM_VIRTUAL_PROCS,
+                'rng_seeds': range(self.MASTER_SEED + 1 + TOTAL_NUM_VIRTUAL_PROCS,
+                                   self.MASTER_SEED + 1 + (2 * TOTAL_NUM_VIRTUAL_PROCS)),
+                "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS}
+
+    @property
+    def DEFAULT_CONNECTION(self):
+        return {"synapse_model": self.DEFAULT_SYNAPSE, "weight": 1.0, "delay": 1.0, 'receptor_type': 0,
+                "source_inds": None, "target_inds": None, "params": {},
+                "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
+                "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
+                              "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+
     def configure_nest_path(self, logger=None):
-        if logger is None:
-            logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
-        logger.info("Loading a NEST instance...")
-        nest_path = self.NEST_PATH
-        os.environ['NEST_INSTALL_DIR'] = nest_path
-        log_path('NEST_INSTALL_DIR', logger)
-        os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-        log_path('NEST_DATA_DIR', logger)
-        os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-        log_path('NEST_DOC_DIR', logger)
-        os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-        log_path('NEST_MODULE_PATH', logger)
-        os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-        log_path('PATH', logger)
-        LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-        if len(LD_LIBRARY_PATH) > 0:
-            LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-        os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-        log_path('LD_LIBRARY_PATH', logger)
-        os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
-        log_path('SLI_PATH', logger)
-        os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
-        log_path('NEST_PYTHON_PREFIX', logger)
-        sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-        logger.info("%s: %s" % ("system path", sys.path))
+            if logger is None:
+                logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
+            logger.info("Loading a NEST instance...")
+            nest_path = self.NEST_PATH
+            os.environ['NEST_INSTALL_DIR'] = nest_path
+            log_path('NEST_INSTALL_DIR', logger)
+            os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
+            log_path('NEST_DATA_DIR', logger)
+            os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
+            log_path('NEST_DOC_DIR', logger)
+            os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
+            log_path('NEST_MODULE_PATH', logger)
+            os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
+            log_path('PATH', logger)
+            LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
+            if len(LD_LIBRARY_PATH) > 0:
+                LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
+            os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
+            log_path('LD_LIBRARY_PATH', logger)
+            os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
+            log_path('SLI_PATH', logger)
+            os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
+            log_path('NEST_PYTHON_PREFIX', logger)
+            sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
+            logger.info("%s: %s" % ("system path", sys.path))
 
 
 CONFIGURED = Config(initialize_logger=False)
