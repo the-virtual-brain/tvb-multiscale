@@ -95,7 +95,7 @@ RUN $VENV/bin/pip3 install setuptools; \
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy numba dill; \
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
@@ -114,11 +114,7 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 --branch dev https://github.com/the-virtual-brain/tvb-multiscale.git
-ARG LAST_SHA_MULTISCALE=LATEST
-RUN cd tvb-multiscale; \
-    git pull; \
-    $VENV/bin/python setup.py develop --no-deps;
+# Install TVB-multiscale specific packages
 
 RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
 RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
@@ -129,6 +125,16 @@ RUN $VENV/bin/pip3 install nose
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $VENV/bin/python3 setup.py build_ext install
+
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install elephant dill starlette uvicorn 'ray[default]'==1.4.0 'ray[server]'==1.4.0; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints
+
+RUN git clone --depth 1 --branch dev https://github.com/the-virtual-brain/tvb-multiscale.git
+ARG LAST_SHA_MULTISCALE=LATEST
+RUN cd tvb-multiscale; \
+    git pull; \
+    $VENV/bin/python setup.py develop --no-deps;
 
 RUN $VENV/bin/pip3 install plotly
 
