@@ -3,8 +3,11 @@
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.nest_ray import RayNodeCollection
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Int
+
+from nest import NodeCollection
 
 
 LOG = initialize_logger(__name__)
@@ -16,10 +19,10 @@ class _NESTNodeCollection(HasTraits):
        represents a nodes collection of the spiking network of the same neural model,
        residing at the same brain region.
     """
-    from nest import NodeCollection
 
-    _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
-                  label="NEST NodeCollection ", doc="""NESTNodeCollection instance""")
+
+    # _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
+    #               label="NEST NodeCollection ", doc="""NESTNodeCollection instance""")
 
     label = Attr(field_type=str, default="", required=True,
                  label="Node label", doc="""Label of NESTNodeCollection""")
@@ -74,7 +77,7 @@ class _NESTNodeCollection(HasTraits):
         if nodes is None:
             return self._nodes
         """Method to assert that the node of the network is valid"""
-        if not isinstance(nodes, self.nest_instance.NodeCollection):
+        if not isinstance(nodes, (NodeCollection, RayNodeCollection)):
             if self._nodes:
                 try:
                     return self._nodes[nodes]
