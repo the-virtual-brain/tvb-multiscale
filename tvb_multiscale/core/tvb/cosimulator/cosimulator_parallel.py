@@ -37,9 +37,45 @@ It inherits the Simulator class.
 
 """
 
+import time
+
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
 class CoSimulatorParallel(CoSimulator):
 
     pass
+
+
+class CoSimulatorRay(CoSimulatorParallel):
+
+    spiking_simulator_client = None
+
+    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+        # Loop of integration for synchronization_time
+        # Communicate TVB -> spikeNet
+        self._send_cosim_coupling(self._cosimulation_flag)
+        # Communicate TVB <- spikeNet
+        cosim_updates = self._get_cosim_updates(cosimulation)
+        # Integrate spikeNet
+        if cosimulation and self.spiking_simulator_client is not None:
+            self.log.info("Simulating the spiking network for %d time steps...",
+                          self.n_tvb_steps_sent_to_cosimulator_at_last_synch)
+            self.spiking_simulator_client.Run(self.n_tvb_steps_sent_to_cosimulator_at_last_synch * self.integrator.dt)
+        # Integrate TVB
+        current_step = int(self.current_step)
+        for data in self(cosim_updates=cosim_updates, **kwds):
+            for tl, xl, t_x in zip(ts, xs, data):
+                if t_x is not None:
+                    t, x = t_x
+                    tl.append(t)
+                    xl.append(x)
+        steps_performed = self.current_step - current_step
+        # Wait until spikeNet integration has stopped
+        while self.spiking_simulator_client.is_running:
+            time.sleep(0.001)
+        elapsed_wall_time = time.time() - wall_time_start
+        msg = "%.3f s elapsed, %.3fx real time" % (elapsed_wall_time, elapsed_wall_time * 1e3 / self.simulation_length)
+        self.log.info(msg)
+        print(msg)
+        return steps_performed
