@@ -37,8 +37,8 @@ class Config(ConfigBase):
     # M_QUIET=100, suppress all messages
     NEST_VERBOCITY = 40
 
-    DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS = 1
-    DEFAULT_LOCAL_NUM_THREADS = 1
+    DEFAULT_NUM_PROCS = 1
+    DEFAULT_LOCAL_NUM_THREADS = 2
 
     DEFAULT_MODEL = "iaf_cond_alpha"
 
@@ -84,9 +84,13 @@ class Config(ConfigBase):
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
     @property
+    def TOTAL_NUM_VIRTUAL_PROCS(self):
+        return self.DEFAULT_NUM_PROCS * self.DEFAULT_LOCAL_NUM_THREADS
+
+    @property
     def DEFAULT_NEST_KERNEL_CONFIG(self):
         # TODO: Find how to compute this:
-        TOTAL_NUM_VIRTUAL_PROCS = self.DEFAULT_NEST_TOTAL_NUM_VIRTUAL_PROCS * self.DEFAULT_LOCAL_NUM_THREADS
+        TOTAL_NUM_VIRTUAL_PROCS = self.TOTAL_NUM_VIRTUAL_PROCS
         return {"data_path": self.RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
                 'grng_seed': self.MASTER_SEED + TOTAL_NUM_VIRTUAL_PROCS,
                 'rng_seeds': range(self.MASTER_SEED + 1 + TOTAL_NUM_VIRTUAL_PROCS,
