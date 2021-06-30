@@ -43,7 +43,7 @@ from tvb.simulator.simulator import Simulator
 from tvb.simulator import models
 from tvb.basic.neotraits.api import Attr
 
-from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
+from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
 
 
 class CoSimulator(Simulator):
