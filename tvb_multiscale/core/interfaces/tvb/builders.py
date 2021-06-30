@@ -412,12 +412,8 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     _input_interface_type = SpikeNetToTVBInterface
 
     @property
-    def tvb_nodes_inds(self):
+    def tvb_proxy_nodes_inds(self):
         return self._default_out_proxy_inds
-
-    @property
-    def spiking_nodes_inds(self):
-        return self.in_proxy_inds
 
     def configure(self):
         if self.dt == 0.0:
