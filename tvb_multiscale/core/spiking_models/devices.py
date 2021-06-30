@@ -224,16 +224,16 @@ class OutputDevice(Device):
             if events_inds is not None:
                 if hasattr(events_inds, "__len__") or isinstance(events_inds, slice):
                     # events_inds are numerical or boolean indices, or a slice:
-                    select_fun = lambda x, events_inds: np.array(x)[events_inds].tolist()
+                    select_fun = lambda x, events_inds: np.array(x)[events_inds]
                 else: # events_inds is a scalar to start indexing from:
-                    select_fun = lambda x, events_inds: np.array(x)[events_inds:].tolist()
+                    select_fun = lambda x, events_inds: np.array(x)[events_inds:]
                 for var in variables:
                     events[var] = select_fun(events[var], events_inds)
             if len(filter_kwargs) > 0:
                 return filter_events(events, **filter_kwargs)
         else:
             for var in variables:
-                events[var] = []
+                events[var] = np.array([])
         return events
 
     @abstractmethod
@@ -638,14 +638,14 @@ class Multimeter(OutputDevice):
 
     def current_data_mean_values(self, variables=None):
         """This method returns the last time point of the data recorded by the multimeter, averaged across neurons,
-           in a list of values
+           in a an array of values
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
                        Default = None, corresponds to all variables the multimeter records from.
            Returns:
-            a list of values with output data
+            a numpy.array of values with output data
         """
-        return self.current_data_mean(variables).values.tolist()
+        return self.current_data_mean(variables).values
 
 
 class Voltmeter(Multimeter):
@@ -718,14 +718,14 @@ class Voltmeter(Multimeter):
 
     def current_data_mean_values(self, name=None, dim_name="Variable"):
         """This method returns the last time point of the membrane's voltage data recorded by the voltmeter,
-           averaged across neurons, in a list of values.
+           averaged across neurons, in a numpy.array of values.
            Arguments:
             name: label of output. Default = None
             dim_name: the dimension label (string) for the output array. Default = "Variable"
            Returns:
-            list of values with the output data
+            numpy.array of values with the output data
         """
-        return self.current_data_mean(name, dim_name).values.tolist()
+        return self.current_data_mean(name, dim_name).values
 
 
 class SpikeMultimeter(Multimeter, SpikeRecorder):
@@ -815,7 +815,7 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
                           to slice the event attributes. Default = None, i.e., it doesn't apply.
              filter_kwargs: see filter_events method for its possible keyword arguments
             Returns:
-             the spikes' times in a list
+             the spikes' times in a numpy.array
         """
         return self.get_spikes_events(events_inds=events_inds, variables="times", **filter_kwargs)["times"]
 
@@ -827,7 +827,7 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
                           to slice the event attributes. Default = None, i.e., it doesn't apply.
              filter_kwargs: see filter_events method for its possible keyword arguments
             Returns:
-             the spikes' times in a list
+             the spikes' times in a numpy.array
         """
         return self.get_spikes_events(events_inds=events_inds, variables="senders", **filter_kwargs)["senders"]
 
@@ -842,7 +842,7 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
                           to slice the event attributes. Default = None, i.e., it doesn't apply.
              filter_kwargs: see filter_events method for its possible keyword arguments
             Returns:
-             the spikes' weights in a list
+             the spikes' weights in a numpy.array
            Returns:
             float: total spikes' activity
         """
