@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import os
-from abc import ABCMeta
-import glob
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from numpy.lib.recfunctions import rename_fields
 import xarray as xr
 
 from tvb_multiscale.core.spiking_models.devices import \
     Device, InputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter  # OutputDevice,
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
-from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header
+from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header, \
+    read_nest_output_device_data_from_ascii_to_dict
 
 from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
 from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
-from tvb.basic.neotraits.api import Attr, Int, List
+from tvb.basic.neotraits.api import Int, List  #  Attr
 
+from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
 
@@ -86,8 +85,6 @@ class NESTInputDevice(NESTDevice, InputDevice):
 
     """NESTInputDevice class to wrap around a NEST input (stimulating) device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
         Device.__init__(self, device, **kwargs)
@@ -100,8 +97,6 @@ class NESTPoissonGenerator(NESTInputDevice):
 
     """NESTPoissonGenerator class to wrap around a NEST poisson_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "poisson_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -110,8 +105,6 @@ class NESTPoissonGenerator(NESTInputDevice):
 class NESTSinusoidalPoissonGenerator(NESTInputDevice):
 
     """NESTSinusoidalPoissonGenerator class to wrap around a NEST sinusoidal_poisson_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "sinusoidal_poisson_generator")
@@ -122,8 +115,6 @@ class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
 
     """NESTInhomogeneousPoissonGenerator class to wrap around a NEST inhomogeneous_poisson_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "inhomogeneous_poisson_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -132,8 +123,6 @@ class NESTInhomogeneousPoissonGenerator(NESTInputDevice):
 class NESTMIPGenerator(NESTInputDevice):
 
     """NESTMIPGenerator class to wrap around a NEST mip_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "mip_generator")
@@ -144,8 +133,6 @@ class NESTGammaSupGenerator(NESTInputDevice):
 
     """NESTGammaSupGenerator class to wrap around a NEST gamma_sup_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "gamma_sup_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -155,8 +142,6 @@ class NESTDPPDSupGenerator(NESTInputDevice):
 
     """NESTDPPDSupGenerator class to wrap around a NEST ppd_sup_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "ppd_sup_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -165,8 +150,6 @@ class NESTDPPDSupGenerator(NESTInputDevice):
 class NESTSpikeGenerator(NESTInputDevice):
 
     """NESTSpikeGenerator class to wrap around a NEST spike_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "spike_generator")
@@ -235,8 +218,6 @@ class NESTPulsePacketGenerator(NESTInputDevice):
 
     """NESTPulsePacketGenerator class to wrap around a NEST pulse_packet_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "pulse_packet_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -245,8 +226,6 @@ class NESTPulsePacketGenerator(NESTInputDevice):
 class NESTDCGenerator(NESTInputDevice):
 
     """NESTDCGenerator class to wrap around a NEST dc_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "dc_generator")
@@ -257,8 +236,6 @@ class NESTStepCurrentGenerator(NESTInputDevice):
 
     """NESTStepCurrentGenerator class to wrap around a NEST step_current_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "step_current_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -267,8 +244,6 @@ class NESTStepCurrentGenerator(NESTInputDevice):
 class NESTACGenerator(NESTInputDevice):
 
     """NESTACGenerator class to wrap around a NEST ac_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "ac_generator")
@@ -279,8 +254,6 @@ class NESTStepRateGenerator(NESTInputDevice):
 
     """NESTStepRateGenerator class to wrap around a NEST step_rate_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "step_rate_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -290,8 +263,6 @@ class NESTNoiseGenerator(NESTInputDevice):
 
     """NESTNoiseGenerator class to wrap around a NEST noise_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "noise_generator")
         NESTInputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -300,8 +271,6 @@ class NESTNoiseGenerator(NESTInputDevice):
 class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
 
     """NESTParrotInputDevice class to combine a NEST InputDevice with a parrot_neuron population"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         label = str(kwargs.get("label", ""))
@@ -410,8 +379,6 @@ class NESTParrotPoissonGenerator(NESTParrotInputDevice):
 
     """NESTPoissonGenerator class to wrap around a NEST poisson_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "poisson_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
@@ -420,8 +387,6 @@ class NESTParrotPoissonGenerator(NESTParrotInputDevice):
 class NESTParrotSinusoidalPoissonGenerator(NESTParrotInputDevice):
 
     """NESTParrotSinusoidalPoissonGenerator class to wrap around a NEST sinusoidal_poisson_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_sinusoidal_poisson_generator")
@@ -432,8 +397,6 @@ class NESTParrotInhomogeneousPoissonGenerator(NESTParrotInputDevice):
 
     """NESTParrotInhomogeneousPoissonGenerator class to wrap around a NEST inhomogeneous_poisson_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_inhomogeneous_poisson_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
@@ -442,8 +405,6 @@ class NESTParrotInhomogeneousPoissonGenerator(NESTParrotInputDevice):
 class NESTParrotMIPGenerator(NESTParrotInputDevice):
 
     """NESTParrotMIPGenerator class to wrap around a NEST mip_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_mip_generator")
@@ -454,8 +415,6 @@ class NESTParrotGammaSupGenerator(NESTParrotInputDevice):
 
     """NESTParrotGammaSupGenerator class to wrap around a NEST gamma_sup_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_gamma_sup_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
@@ -465,8 +424,6 @@ class NESTParrotDPPDSupGenerator(NESTParrotInputDevice):
 
     """NESTParrotDPPDSupGenerator class to wrap around a NEST ppd_sup_generator device"""
 
-    from nest import NodeCollection
-
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_ppd_sup_generator")
         NESTParrotInputDevice.__init__(self, device, population, nest_instance, **kwargs)
@@ -475,8 +432,6 @@ class NESTParrotDPPDSupGenerator(NESTParrotInputDevice):
 class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 
     """NESTParrotSpikeGenerator class to wrap around a NEST spike_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_spike_generator")
@@ -493,8 +448,6 @@ class NESTParrotSpikeGenerator(NESTParrotInputDevice, NESTSpikeGenerator):
 class NESTParrotPulsePacketGenerator(NESTParrotInputDevice):
 
     """NESTParrotPulsePacketGenerator class to wrap around a NEST pulse_packet_generator device"""
-
-    from nest import NodeCollection
 
     def __init__(self, device=NodeCollection(), population=NodeCollection(), nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "parrot_pulse_packet_generator")
@@ -537,110 +490,136 @@ NESTInputDeviceDict.update(NESTSpikeInputDeviceDict)
 NESTInputDeviceDict.update(NESTCurrentInputDeviceDict)
 
 
-def read_nest_output_device_data_from_ascii_to_dict(filepath):
-    """This function reads data from a NEST recording device ascii file into an events dictionary
-       Arguments:
-        - filepath: absolute or relative path to the file (string)
-       Returns:
-        the events dictionary of the recorded data
-    """
-    recarray = rename_fields(np.genfromtxt(filepath, names=True, skip_header=2),
-                             {"sender": "senders", "time_ms": "times"})
-    return {name: ensure_list(recarray[name]) for name in recarray.dtype.names}
-
-
 class NESTOutputDevice(NESTDevice):
+    __metaclass__ = ABCMeta
 
     """NESTOutputDevice class to wrap around a NEST output (recording) device"""
 
-    _output_events_counter = Int(field_type=int, default=0, required=True, label="Number of output events",
-                                 doc="""The number of recorded events that 
-                                          have been given to the output via a get_events() call.""")
+    _total_num_virtual_procs = Int(field_type=int, default=1, required=True,
+                                   label="Total number of NEST virtual processes",
+                                   doc="""Total number of NEST virtual processes""")
 
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "nest_output_device")
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
+        self._total_num_virtual_procs = self.nest_instance.GetKernelStatus("total_num_virtual_procs")
         self._update_record_to()
-
-    def _update_record_to(self):
-        if self.device:
-            if self.device.get("record_to") == "ascii":
-                self._get_events = self._get_events_from_ascii
-                self._reset = self._delete_events_in_ascii_files
-            else:
-                self._get_events = self._get_events_from_memory
-                self._reset = self._delete_events_in_memory
 
     @property
     def record_from(self):
         return []
 
-    def _get_filenames(self):
-        return glob.glob(os.path.join(self.nest_instance.GetKernelStatus("data_path"), "%s*" % self.label))
+    def _update_record_to(self):
+        if self.device:
+            if self.device.get("record_to") == "ascii":
+                self._get_events = self._get_events_from_ascii
+                self._number_of_events = self._number_of_events_in_ascii_files
+                self.delete_events = self._delete_events_in_ascii_files
+                self._get_new_events = self._get_new_events_from_ascii
+                self._output_events_counter = [0] * self._total_num_virtual_procs
+            else:
+                self._get_events = self._get_events_from_memory
+                self._number_of_events = self._number_of_events_in_memory
+                self.delete_events = self._delete_events_in_memory
+                self._get_new_events = self._get_new_events_from_memory
+                self._output_events_counter = 0
 
     @property
     def _empty_events(self):
         keys = ["times", "senders"] + self.record_from
-        return dict(zip(keys, [[]]*len(keys)))
+        return dict(zip(keys, [np.array([])]*len(keys)))
 
     def _get_events_from_ascii(self):
         events = self._empty_events
-        filenames = self._get_filenames()
-        for filepath in filenames:
+        for iF, filepath in enumerate(self.Get("filenames")["filenames"]):
+            # Reading all events:
             this_file_events = read_nest_output_device_data_from_ascii_to_dict(filepath)
-            for key in events.keys():
-                events[key] = events[key] + this_file_events[key]
-        # Advance the _output_events_counter
-        self._output_events_counter = self.device.get("n_events")
+            # Compute the new number of total events for this process...
+            self._output_events_counter[iF] = len(this_file_events["senders"])
+            if self._output_events_counter[iF]:
+                # Merge file data, if any:
+                for key in events.keys():
+                    events[key] = np.concatenate([events[key], this_file_events[key]])
         return events
 
     def _get_events_from_memory(self):
         if self.device:
-            # Advance the _output_events_counter
-            self._output_events_counter = self.device.get("n_events")
             return self.device.get("events")
         else:
-            return {"times": [], "senders": []}
+            return self._empty_events
 
     def get_events(self, **kwargs):
         if self.device:
             events = super(NESTOutputDevice, self).get_events(**kwargs)
             return events
         else:
-            return {"times": [], "senders": []}
+            return self._empty_events
+
+    def _get_new_events_from_ascii(self):
+        events = self._empty_events
+        for iF, filepath in enumerate(self.Get("filenames")["filenames"]):  #
+            # We read only new events from files:
+            this_file_new_events = read_nest_output_device_data_from_ascii_to_dict(filepath,
+                                                                               self._output_events_counter[iF])
+            number_of_new_events = len(this_file_new_events.get("senders", []))
+            if number_of_new_events:
+                # Advance the _output_events_counter
+                self._output_events_counter[iF] += number_of_new_events
+                # Merge file data:
+                for key in events.keys():
+                    events[key] = np.concatenate([events[key], this_file_new_events[key]])
+        return events
+
+    @abstractmethod
+    def _get_new_events_from_memory(self):
+        pass
 
     def get_new_events(self, variables=None, **filter_kwargs):
-        return self.get_events(variables=variables, events_inds=self._output_events_counter, **filter_kwargs)
+        return super(NESTOutputDevice, self).get_events(events=self._get_new_events(),
+                                                        variables=variables, **filter_kwargs)
 
     @property
     def events(self):
         return self._get_events()
 
+    def _number_of_events_in_ascii_files(self):
+        return len(self._get_events()["senders"])
+
+    def _number_of_events_in_memory(self):
+        return self.device.get("n_events")
+
     @property
     def number_of_events(self):
         if self.device:
-            return self.device.get("n_events")
+            return self._number_of_events()
         else:
             return 0
 
     @property
     def number_of_new_events(self):
-        return self.number_of_events - self._output_events_counter
+        if self.device:
+            return len(self.get_new_events()["senders"])
+        else:
+            return 0
 
     @property
     def n_events(self):
         return self.number_of_events
 
     def _delete_events_in_ascii_files(self):
-        for filepath in self._get_filenames():
+        for filepath in self.Get("filenames")["filenames"]:  #
             truncate_ascii_file_after_header(filepath, header_chars="#")
+        self._output_events_counter = [0] * self._total_num_virtual_procs
 
     def _delete_events_in_memory(self):
-        # TODO: find how to reset recorders!
-        pass
+        try:
+            self.device.n_events = 0
+            self._output_events_counter = 0
+        except Exception as e:
+            warning(e)
 
     def reset(self):
-        self._reset()
+        self.delete_events()
 
 
 class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
@@ -651,6 +630,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         kwargs["model"] = kwargs.get("model", "spike_recorder")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
         SpikeRecorder.__init__(self, device, **kwargs)
+        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
 
     # Only SpikeRecorder is the target of connections with neurons in NEST:
 
@@ -666,8 +646,39 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         """Method to get the indices of all the neurons the device is connected to."""
         return self.get_neurons("source")
 
+    def __get_events_from_memory(self):
+        events = NESTOutputDevice._get_events_from_memory(self)
+        n_total_events = self.device.n_events
+        number_of_new_events = n_total_events - self._output_events_counter
+        if number_of_new_events:
+            self._output_events_counter = n_total_events
+            self._last_spike_time = np.max(events["times"])
+        return events, number_of_new_events
+
+    def _get_events_from_memory(self):
+        return self.__get_events_from_memory()[0]
+
+    def _get_new_events_from_memory(self):
+        old_last_spike_time = float(self._last_spike_time)
+        events, number_of_new_events = self.__get_events_from_memory()
+        if number_of_new_events:
+            if self._total_num_virtual_procs > 1:
+                new_spike_inds = np.where(np.array(events["times"]) > old_last_spike_time)
+                for key, vals in events.items():
+                    events[key] = vals[new_spike_inds]
+            else:
+                for key, vals in events.items():
+                    events[key] = vals[-number_of_new_events:]
+            return events
+        else:
+            return self._empty_events
+
     def print_str(self, connectivity=False):
         return SpikeRecorder.print_str(self, connectivity, "target")
+
+    def reset(self):
+        NESTOutputDevice.reset(self)
+        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
 
 
 class NESTMultimeter(NESTOutputDevice, Multimeter):
@@ -678,6 +689,7 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
         kwargs["model"] = kwargs.get("model", "multimeter")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
         Multimeter.__init__(self, device, **kwargs)
+        self._output_events_counter = [0] * self._total_num_virtual_procs
 
     @property
     def record_from(self):
@@ -685,6 +697,36 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
             return [str(name) for name in self.device.get('record_from')]
         else:
             return []
+
+    def _get_events_from_memory(self):
+        events = NESTOutputDevice._get_events_from_memory(self)
+        n_total_events = self.device.n_events
+        if n_total_events > np.sum(self._output_events_counter):
+            self._output_events_counter = \
+                [n_total_events / self._total_num_virtual_procs] * self._total_num_virtual_procs
+        return events
+
+    def _get_new_events_from_memory(self):
+        events = NESTOutputDevice._get_events_from_memory(self)
+        n_total_events = self.device.n_events
+        number_of_new_events = np.sum(self._output_events_counter) - n_total_events
+        if number_of_new_events:
+            self._output_events_counter = \
+                [n_total_events / self._total_num_virtual_procs] * self._total_num_virtual_procs
+            if self._total_num_virtual_procs > 1:
+                number_of_new_events = number_of_new_events / self._total_num_virtual_procs
+                new_events_indices = []
+                for iP in range(self._total_num_virtual_procs):
+                    new_events_indices += np.arange(self._output_events_counter[iP] - number_of_new_events,
+                                                    self._output_events_counter[iP]).astype('i')
+                # Select new data:
+                for key in events.keys():
+                    events[key] = events[key][new_events_indices]
+            else:
+                # Select new data:
+                for key in events.keys():
+                    events[key] =events[key][-number_of_new_events:]
+        return events
 
     def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
                  flatten_neurons_inds=True, new=False):
@@ -724,6 +766,10 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     def print_str(self, connectivity=False):
         return Multimeter.print_str(self, connectivity, "source")
+
+    def reset(self):
+        NESTOutputDevice.reset(self)
+        self._output_events_counter = [0] * self._total_num_virtual_procs
 
 
 class NESTVoltmeter(NESTMultimeter, Voltmeter):
