@@ -109,7 +109,7 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
             output_events[var] = events[var][inds]
     else:
         for var in ensure_list(variables):
-            output_events[var] = []
+            output_events[var] = np.array([])
     return output_events
 
 
