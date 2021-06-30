@@ -166,3 +166,5 @@ class WilsonCowan(TVBWilsonCowan):
         choices=('E', 'I'),
         default=('E', 'I'),
         doc="""default state variables to be monitored""")
+
+    cvar = numpy.array([0], dtype=numpy.int32)
