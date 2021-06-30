@@ -38,7 +38,7 @@ class Config(ConfigBase):
     NEST_VERBOCITY = 40
 
     DEFAULT_NUM_PROCS = 1
-    DEFAULT_LOCAL_NUM_THREADS = 2
+    DEFAULT_LOCAL_NUM_THREADS = 4
 
     DEFAULT_MODEL = "iaf_cond_alpha"
 
@@ -48,11 +48,7 @@ class Config(ConfigBase):
     DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
 
-    # Available NEST output devices for the interface and their default properties
-    NEST_OUTPUT_DEVICES_PARAMS_DEF = {"multimeter": {"record_from": ["V_m"], "record_to": "memory"},
-                                      "voltmeter": {"record_to": "memory"},
-                                      "spike_recorder": {"record_to": "memory"},
-                                      "spike_multimeter": {'record_from': ["spike"], "record_to": "memory"}}
+    DEFAULT_DEVICE_RECORD_TO = "memory"  # "ascii"  # "memory"
 
     NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"allow_offgrid_times": True,
                                                          # "shift_now_spikes": True
@@ -104,6 +100,14 @@ class Config(ConfigBase):
                 "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
                 "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
                               "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+
+    @property
+    def NEST_OUTPUT_DEVICES_PARAMS_DEF(self):
+        # Available NEST output devices for the interface and their default properties
+        return {"multimeter": {"record_from": ["V_m"], "record_to": self.DEFAULT_DEVICE_RECORD_TO},
+                "voltmeter": {"record_to": self.DEFAULT_DEVICE_RECORD_TO},
+                "spike_recorder": {"record_to": self.DEFAULT_DEVICE_RECORD_TO},
+                "spike_multimeter": {'record_from': ["spike"], "record_to": self.DEFAULT_DEVICE_RECORD_TO}}
 
     def configure_nest_path(self, logger=None):
             if logger is None:
