@@ -12,10 +12,12 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
     w_ii = -1.0
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=None, logger=None,  **kwargs):
+                 config=None, logger=None):
         super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
 
-        self.w_ee = kwargs.get("w_ee", kwargs.get("c_ee", np.array([self.w_ee])))[0].item()
-        self.w_ei = kwargs.get("w_ei", kwargs.get("c_ei", np.array([self.w_ei])))[0].item()
-        self.w_ie = kwargs.get("w_ie", kwargs.get("c_ie", np.array([self.w_ie])))[0].item()
-        self.w_ii = kwargs.get("w_ii", kwargs.get("c_ii", np.array([self.w_ii])))[0].item()
+    def set_defaults(self, **kwargs):
+        self.w_ee = kwargs.get("w_ee", self.tvb_serial_sim.get("model.c_ee", np.array([self.w_ee])))[0].item()
+        self.w_ei = kwargs.get("w_ei", self.tvb_serial_sim.get("model.c_ei", np.array([self.w_ei])))[0].item()
+        self.w_ie = kwargs.get("w_ie", self.tvb_serial_sim.get("model.c_ie", np.array([self.w_ie])))[0].item()
+        self.w_ii = kwargs.get("w_ii", self.tvb_serial_sim.get("model.c_ii", np.array([self.w_ii])))[0].item()
+        super(WilsonCowanBuilder, self).set_defaults()
