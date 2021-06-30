@@ -19,6 +19,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     tvb_nest_model_builder = tvb_spikeNet_model_builder
     tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
+    tvb_spikeNet_model_builder.default_coupling_mode = "TVB"
     tvb_nest_model_builder.model = model
     tvb_nest_model_builder.N_E = spikeNet_model_builder.populations_order
 
