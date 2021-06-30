@@ -196,6 +196,7 @@ class WilsonCowan(TVBWilsonCowan):
 
     state_variables = ['E', 'I', 'Ein', 'Iin']
     _nvar = 4
+    cvar = numpy.array([0], dtype=numpy.int32)
 
     def update_derived_parameters(self):
         """
