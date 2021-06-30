@@ -61,12 +61,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
 
     @property
     @abstractmethod
-    def tvb_nodes_inds(self):
-        pass
-
-    @property
-    @abstractmethod
-    def spiking_nodes_inds(self):
+    def tvb_proxy_nodes_inds(self):
         pass
 
     @property
@@ -187,12 +182,12 @@ class SpikeNetProxyNodesBuilder(HasTraits):
 
     def _get_spiking_proxy_inds_for_input_interface(self, interface, exclusive_nodes):
         interface["spiking_proxy_inds"] = \
-            np.array(self._only_inds(interface.get("spiking_proxy_inds", self.spiking_nodes_inds), self.region_labels))
+            np.array(self._only_inds(interface.get("spiking_proxy_inds", self.proxy_inds), self.region_labels))
         tvb_coupling_interface = self.is_tvb_coupling_interface(interface)
         if tvb_coupling_interface:
             default_proxy_inds = interface["spiking_proxy_inds"]
         else:
-            default_proxy_inds = self.tvb_nodes_inds
+            default_proxy_inds = self.tvb_proxy_nodes_inds
         interface["proxy_inds"] = np.array(self._only_inds(interface.get("proxy_inds", default_proxy_inds),
                                                            self.region_labels))
         if tvb_coupling_interface:
@@ -256,7 +251,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["syn_spec"] = syn_spec
         _interface["conn_spec"] = conn_spec
         _interface["neurons_inds"] = neurons_inds
-        _interface["nodes"] = [np.where(self.spiking_nodes_inds == trg_node)[0][0]
+        _interface["nodes"] = [np.where(self.proxy_inds == trg_node)[0][0]
                                for trg_node in interface["spiking_proxy_inds"]]
         _interface["model"] = interface["proxy"].model
         _interface["params"] = interface.pop("proxy_params", {})
@@ -286,7 +281,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["delays"] = delays
         _interface["neurons_inds"] = neurons_inds
         # Convert TVB node index to interface SpikeNet node index:
-        _interface["nodes"] = [np.where(self.spiking_nodes_inds == spiking_node)[0][0]
+        _interface["nodes"] = [np.where(self.proxy_inds == spiking_node)[0][0]
                                for spiking_node in interface["spiking_proxy_inds"]]
         _interface["model"] = interface["proxy"].model
         _interface["params"] = interface.pop("proxy_params", {})
@@ -402,12 +397,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         return self.region_labels[self.in_proxy_inds]
 
     @property
-    def spiking_nodes_inds(self):
-        return np.unique(self._proxy_inds(self.output_interfaces).tolist() +
-                         self._proxy_inds(self.input_interfaces).tolist())
-
-    @property
-    def tvb_nodes_inds(self):
+    def tvb_proxy_nodes_inds(self):
         return self._default_tvb_out_proxy_inds
 
     def configure(self):
@@ -423,7 +413,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
             assert self.in_proxy_labels in self.region_labels
         self._default_tvb_out_proxy_inds = np.arange(self.number_of_regions).astype('i').tolist()
         if self.exclusive_nodes:
-            for proxy_ind in self.spiking_nodes_inds:
+            for proxy_ind in self.proxy_inds:
                 self._default_tvb_out_proxy_inds.remove(proxy_ind)
         self._default_tvb_out_proxy_inds = np.array(self._default_tvb_out_proxy_inds)
 
