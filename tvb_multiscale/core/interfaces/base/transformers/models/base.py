@@ -291,7 +291,7 @@ class RatesToSpikes(Scale):
     )
 
     output_buffer = List(
-        of=list,
+        of=np.ndarray,
         doc="""List of spiketrains (lists) storing temporarily the generated spikes.""",
         default=(())
     )
@@ -345,7 +345,7 @@ class SpikesToRates(Scale):
     """
 
     input_buffer = List(
-        of=list,
+        of=np.ndarray,
         doc="""List of spiketrains (lists) storing temporarily the spikes to be transformed into rates.""",
         default=(())
     )
