@@ -93,14 +93,14 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
             for iS in range(number_of_spiketrains):
                 spiketrains.append(
                     self._spike_gen_fun_inh(
-                        this_rates, as_array=True, refractory_period=self.refractory_period).tolist())
+                        this_rates, as_array=True, refractory_period=self.refractory_period))
         else:
             this_rates = rates * self.rate_unit
             for iS in range(number_of_spiketrains):
                 spiketrains.append(
                     self._spike_gen_fun_inh(this_rates,
                                             t_start=self._t_start, t_stop=self._t_stop,
-                                            as_array=True, refractory_period=self.refractory_period).tolist())
+                                            as_array=True, refractory_period=self.refractory_period))
         return spiketrains
 
     def _compute(self, rates, proxy_count):
@@ -197,7 +197,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
             super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
                                                                         rates * (1 - correlation_factor), n_spiketrains)
         for iSP, spiketrain in enumerate(spiketrains):
-            spiketrains[iSP] = np.sort(spiketrain + shared_spiketrain).tolist()
+            spiketrains[iSP] = np.sort(spiketrain + shared_spiketrain)
         return spiketrains
 
 
@@ -225,7 +225,7 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         select = np.random.binomial(n=1, p=correlation_factor, size=(n_spiketrains, len(shared_spiketrain)))
         spiketrains = []
         for spiketrain_mask in np.repeat([shared_spiketrain], n_spiketrains, axis=0)*select:
-            spiketrains.append(np.sort(spiketrain_mask[np.where(spiketrain_mask != 0)]).tolist())
+            spiketrains.append(np.sort(spiketrain_mask[np.where(spiketrain_mask != 0)]))
         return spiketrains
 
 
