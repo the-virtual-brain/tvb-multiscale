@@ -174,8 +174,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
         params = self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"].copy()
         params["record_to"] = self.output_devices_record_to
         device = {"model": "spike_recorder", "params": params,
-                  "neurons_fun": lambda node_id, neurons_inds:
-                                            tuple(np.array(neurons_inds)[:np.minimum(100, len(neurons_inds))]),
+                  "neurons_fun": lambda node_id, population: population[:np.minimum(100, len(population))],
                   "connections": connections, "nodes": None}  # None means all here
         device.update(self.spike_recorder)
         return device
@@ -232,7 +231,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
-                 config=None, logger=None, **kwargs):
+                 config=None, logger=None):
 
         super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
                                                                   config, logger)
@@ -242,10 +241,10 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         self.w_ie = 1.0
         self.w_ii = 1.0
 
-        E_ex = kwargs.get("E_ex", 0.0)
-        E_in = kwargs.get("E_in", -85.0)
-        tau_syn_ex = kwargs.get("tau_syn_ex", 0.2)
-        tau_syn_in = kwargs.get("tau_syn_in", 2.0)
+        E_ex = 0.0
+        E_in = -85.0
+        tau_syn_ex = 0.2
+        tau_syn_in = 2.0
         E_rev = np.array([E_ex] +  # exc local spikes
                          [E_in])  # inh local spikes
         tau_syn = np.array([tau_syn_ex] +  # exc spikes
