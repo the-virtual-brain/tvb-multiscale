@@ -941,8 +941,8 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                 if self.store_data:
                     self._output_events_counter[i_m][sender] = len(events["times"])
         inds = np.argsort(events["times"])
-        events["times"] = np.array(events["times"])[inds].tolist()
-        events["senders"] = np.array(events["senders"])[inds].tolist()
+        events["times"] = np.array(events["times"])[inds]
+        events["senders"] = np.array(events["senders"])[inds]
         return events
 
     def get_new_events(self):
