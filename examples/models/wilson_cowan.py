@@ -44,6 +44,7 @@ def wilson_cowan_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orc
     tvb_spikeNet_model_builder.model = model
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
+    tvb_spikeNet_model_builder.default_coupling_mode = "TVB"
     tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.populations_order
     tvb_spikeNet_model_builder.N_I = spikeNet_model_builder.populations_order
     tvb_to_spikeNet_interfaces = []
