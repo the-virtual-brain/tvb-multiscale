@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
+import uuid
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals
@@ -55,6 +56,35 @@ class SpikingNodeCollection(HasTraits):
         self.brain_region = str(kwargs.get("brain_region", ""))
         self._size = self.get_size()
         HasTraits.__init__(self)
+        self.configure()
+
+    def __getstate__(self):
+        return {"_nodes": self._nodes,
+                "label": self.label,
+                "model": self.model,
+                "brain_region": self.brain_region,
+                "_size": self._size,
+                "_weight_attr": self._weight_attr,
+                "_delay_attr": self._delay_attr,
+                "_receptor_attr": self._receptor_attr,
+                "gid": self.gid,
+                "title": self.title,
+                "tags": self.tags}
+
+    def __setstate__(self, d):
+        self._nodes = d.get("_nodes", None)
+        self.label = d.get("label", "")
+        self.model = d.get("model", "")
+        self.title = d.get("_size", self.get_size())
+        self.brain_region = d.get("brain_region", "")
+        self._weight_attr = d.get("_weight_attr", "")
+        self._delay_attr = d.get("_delay_attr", "")
+        self._receptor_attr = d.get("_receptor_attr", "")
+        self.gid = d.get("gid", uuid.uuid4())
+        self.title = d.get("title",
+                           '{} gid: {}'.format(self.__class__.__name__, self.gid))
+        self.tags = d.get("tags", {})
+        self.configure()
 
     def __getitem__(self, keys):
         """Slice specific nodes (keys) of this SpikingNodeCollection.
