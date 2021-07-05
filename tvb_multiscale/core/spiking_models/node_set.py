@@ -2,6 +2,7 @@
 
 from six import string_types
 from collections import OrderedDict
+import uuid
 
 import pandas as pd
 import xarray as xr
@@ -36,6 +37,26 @@ class SpikingNodesSet(pd.Series, HasTraits):
         pd.Series.__init__(self, nodes, **kwargs)
         self._number_of_nodes = self.get_number_of_nodes()
         HasTraits.__init__(self)
+        self.configure()
+
+    def __getstate__(self):
+        d = super(SpikingNodesSet, self).__getstate__()
+        d["_number_of_nodes"] = self.number_of_nodes
+        d["_collection_name"] = self._collection_name
+        d["gid"] = self.gid
+        d["title"] = self.title
+        d["tags"] = self.tags
+        return d
+
+    def __setstate__(self, d):
+        super(SpikingNodesSet, self).__setstate__(d)
+        self._number_of_nodes = self.number_of_nodes
+        self._collection_name = d.get("_collection_name", self._collection_name)
+        self.gid = d.get("gid", uuid.uuid4())
+        self.title = d.get("title",
+                           '{} gid: {}'.format(self.__class__.__name__, self.gid))
+        self.tag = d.get("tags", {})
+        self.configure()
 
     @property
     def spiking_simulator_module(self):
