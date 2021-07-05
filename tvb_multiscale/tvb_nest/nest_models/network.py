@@ -39,8 +39,6 @@ class NESTNetwork(SpikingNetwork):
                  output_devices=pd.Series(),
                  input_devices=pd.Series(),
                  config=CONFIGURED):
-        if nest_instance is None:
-            nest_instance = load_nest(self.config, LOG)
         if not isinstance(brain_regions, NESTBrain):
             brain_regions = NESTBrain(brain_regions)
         self.nest_instance = nest_instance
@@ -49,6 +47,19 @@ class NESTNetwork(SpikingNetwork):
     @property
     def spiking_simulator_module(self):
         return self.nest_instance
+
+    def Run(self, time):
+        if self.nest_instance is not None:
+            self.nest_instance.Run(time)
+
+    def Simulate(self, time):
+        if self.nest_instance is not None:
+            self.nest_instance.Prepare()
+            self.nest_instance.Run(time)
+
+    def Cleanup(self):
+        if self.nest_instance is not None:
+            self.nest_instance.Cleanup()
 
     @property
     def min_delay(self):
