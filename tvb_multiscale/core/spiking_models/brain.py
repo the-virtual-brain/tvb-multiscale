@@ -32,6 +32,12 @@ class SpikingBrain(SpikingNodesSet):
 
     _collection_name = "Region"
 
+    def __getstate__(self):
+        return super(SpikingBrain, self).__getstate__()
+
+    def __setstate__(self, d):
+        super(SpikingBrain, self).__setstate__(d)
+
     def get_number_of_neurons_per_region(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None, fill_value=0):
         output = Series()
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
