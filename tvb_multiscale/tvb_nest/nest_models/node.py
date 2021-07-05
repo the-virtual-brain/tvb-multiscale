@@ -3,8 +3,11 @@
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.nest_ray import RayNodeCollection
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Int
+
+from nest import NodeCollection
 
 
 LOG = initialize_logger(__name__)
@@ -57,10 +60,40 @@ class _NESTNodeCollection(HasTraits):
         if self._nodes:
             self._size = len(self._nodes)
         HasTraits.__init__(self)
+        self.configure()
 
     @property
     def spiking_simulator_module(self):
         return self.nest_instance
+
+    def __getstate__(self):
+        return {"nest_instance": self.nest_instance,
+                "_nodes": self._nodes,
+                "label": self.label,
+                "model": self.model,
+                "brain_region": self.brain_region,
+                "_size": self._size,
+                "_weight_attr": self._weight_attr,
+                "_delay_attr": self._delay_attr,
+                "_receptor_attr": self._receptor_attr,
+                "gid": self.gid,
+                "title": self.title,
+                "tags": self.tags}
+
+    def __setstate__(self, d):
+        self.nest_instance = d.get("nest_instance", None)
+        self._nodes = d.get("_nodes", None)
+        self.label = d.get("label", "")
+        self.model = d.get("model", "")
+        self.title = d.get("_size", self.get_size())
+        self.brain_region = d.get("brain_region", "")
+        self._weight_attr = d.get("_weight_attr", "")
+        self._delay_attr = d.get("_delay_attr", "")
+        self._receptor_attr = d.get("_receptor_attr", "")
+        self.gid = d.get("gid", uuid.uuid4())
+        self.title = d.get("title",
+                           '{} gid: {}'.format(self.__class__.__name__, self.gid))
+        self.tags = d.get("tags", {})
 
     def _assert_spiking_simulator(self):
         if self.nest_instance is None:
