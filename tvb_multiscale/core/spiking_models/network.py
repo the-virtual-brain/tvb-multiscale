@@ -126,6 +126,12 @@ class SpikingNetwork(HasTraits):
 
         LOG.info("%s created!" % self.__class__)
 
+    def __getattribute__(self, item):
+        return super(SpikingNetwork, self).__getattribute__(item)
+
+    def __setattr__(self, key, value):
+        return super(SpikingNetwork, self).__setattr__(key, value)
+
     def __repr__(self):
         return self.__class__.__name__
 
