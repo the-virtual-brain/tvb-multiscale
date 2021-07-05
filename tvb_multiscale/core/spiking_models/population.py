@@ -31,6 +31,12 @@ class SpikingPopulation(SpikingNodeCollection):
     _size = Int(field_type=int, default=0, required=True, label="Size",
                 doc="""The number of neurons of SpikingPopulation """)
 
+    def __getstate__(self):
+        return super(SpikingPopulation, self).__getstate__()
+
+    def __setstate__(self, d):
+        super(SpikingPopulation, self).__setstate__(d)
+
     def print_str(self, connectivity=False):
         output = self.__str__()
         if connectivity is True:
