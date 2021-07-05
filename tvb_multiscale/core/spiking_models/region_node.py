@@ -27,6 +27,12 @@ class SpikingRegionNode(SpikingNodesSet):
 
     # Methods to get or set attributes for neurons and/or their connections:
 
+    def __getstate__(self):
+        return super(SpikingRegionNode, self).__getstate__()
+
+    def __setstate__(self, d):
+        super(SpikingRegionNode, self).__setstate__(d)
+
     def get_neurons(self, inds_or_lbls=None):
         """Method to get the neurons indices of the SpikingRegionNode's populations.
            Argument:
