@@ -22,11 +22,19 @@ class CerebNESTProxyNodesBuilder(NESTProxyNodesBuilder, CerebSpikeNetProxyNodesB
 
 class CerebNESTInterfaceBuilder(CerebNESTProxyNodesBuilder, NESTInterfaceBuilder, CerebSpikeNetInterfaceBuilder):
 
-    pass
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
 
 class CerebNESTRemoteInterfaceBuilder(
     CerebNESTInterfaceBuilder, NESTRemoteInterfaceBuilder, CerebSpikeNetRemoteInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         CerebSpikeNetRemoteInterfaceBuilder.default_output_config(self)
@@ -38,6 +46,11 @@ class CerebNESTRemoteInterfaceBuilder(
 class CerebNESTOutputTransformerInterfaceBuilder(
     CerebNESTInterfaceBuilder, NESTOutputTransformerInterfaceBuilder, CerebSpikeNetOutputTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         CerebSpikeNetOutputTransformerInterfaceBuilder.default_output_config(self)
 
@@ -47,6 +60,11 @@ class CerebNESTOutputTransformerInterfaceBuilder(
 
 class CerebNESTInputTransformerInterfaceBuilder(
     CerebNESTInterfaceBuilder, NESTInputTransformerInterfaceBuilder, CerebSpikeNetInputTransformerInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         CerebSpikeNetInputTransformerInterfaceBuilder.default_output_config(self)
@@ -58,6 +76,11 @@ class CerebNESTInputTransformerInterfaceBuilder(
 class CerebNESTTransformerInterfaceBuilder(
     CerebNESTInterfaceBuilder, NESTTransformerInterfaceBuilder, CerebSpikeNetTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         CerebSpikeNetTransformerInterfaceBuilder.default_output_config(self)
 
@@ -67,6 +90,11 @@ class CerebNESTTransformerInterfaceBuilder(
 
 class CerebTVBNESTInterfaceBuilder(
     CerebNESTProxyNodesBuilder, TVBNESTInterfaceBuilder,  CerebTVBSpikeNetInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         CerebTVBSpikeNetInterfaceBuilder.default_output_config(self)

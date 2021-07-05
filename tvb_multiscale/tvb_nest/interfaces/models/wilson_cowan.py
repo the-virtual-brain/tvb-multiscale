@@ -7,6 +7,7 @@ from tvb_multiscale.core.interfaces.models.wilson_cowan import WilsonCowanTVBSpi
     WilsonCowanSpikeNetOutputTransformerInterfaceBuilder, WilsonCowanSpikeNetInputTransformerInterfaceBuilder, \
     WilsonCowanSpikeNetInterfaceBuilder, WilsonCowanSpikeNetProxyNodesBuilder
 
+from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.builders import NESTProxyNodesBuilder, NESTInterfaceBuilder, \
     NESTRemoteInterfaceBuilder, TVBNESTInterfaceBuilder, \
     NESTTransformerInterfaceBuilder, NESTOutputTransformerInterfaceBuilder, NESTInputTransformerInterfaceBuilder
@@ -22,11 +23,20 @@ class WilsonCowanNESTProxyNodesBuilder(NESTProxyNodesBuilder, WilsonCowanSpikeNe
 
 class WilsonCowanNESTInterfaceBuilder(WilsonCowanNESTProxyNodesBuilder, NESTInterfaceBuilder,
                                       WilsonCowanSpikeNetInterfaceBuilder):
-    pass
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
 
 class WilsonCowanNESTRemoteInterfaceBuilder(WilsonCowanNESTInterfaceBuilder, NESTRemoteInterfaceBuilder,
                                             WilsonCowanSpikeNetRemoteInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         WilsonCowanSpikeNetRemoteInterfaceBuilder.default_output_config(self)
@@ -39,6 +49,11 @@ class WilsonCowanNESNetOutputTransformerInterfaceBuilder(WilsonCowanNESTInterfac
                                                          NESTOutputTransformerInterfaceBuilder,
                                                          WilsonCowanSpikeNetOutputTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         WilsonCowanSpikeNetOutputTransformerInterfaceBuilder.default_output_config(self)
 
@@ -50,6 +65,11 @@ class WilsonCowanNESTInputTransformerInterfaceBuilder(WilsonCowanNESTInterfaceBu
                                                       NESTInputTransformerInterfaceBuilder,
                                                       WilsonCowanSpikeNetInputTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         WilsonCowanSpikeNetInputTransformerInterfaceBuilder.default_output_config(self)
 
@@ -60,6 +80,11 @@ class WilsonCowanNESTInputTransformerInterfaceBuilder(WilsonCowanNESTInterfaceBu
 class WilsonCowanNESTTransformerInterfaceBuilder(WilsonCowanNESTInterfaceBuilder, NESTTransformerInterfaceBuilder,
                                                  WilsonCowanSpikeNetTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         WilsonCowanSpikeNetTransformerInterfaceBuilder.default_output_config(self)
 
@@ -69,6 +94,11 @@ class WilsonCowanNESTTransformerInterfaceBuilder(WilsonCowanNESTInterfaceBuilder
 
 class WilsonCowanTVBNESTInterfaceBuilder(WilsonCowanNESTProxyNodesBuilder, TVBNESTInterfaceBuilder,
                                          WilsonCowanTVBSpikeNetInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         WilsonCowanTVBSpikeNetInterfaceBuilder.default_output_config(self)
@@ -87,12 +117,20 @@ class WilsonCowanMultisynapseNESTProxyNodesBuilder(WilsonCowanNESTProxyNodesBuil
 class WilsonCowanMultisynapseNESTInterfaceBuilder(WilsonCowanMultisynapseNESTProxyNodesBuilder,
                                                   WilsonCowanNESTInterfaceBuilder):
 
-    pass
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
 
 class WilsonCowanMultisynapseNESTRemoteInterfaceBuilder(WilsonCowanMultisynapseNESTInterfaceBuilder,
                                                         NESTRemoteInterfaceBuilder,
                                                         WilsonCowanSpikeNetRemoteInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         WilsonCowanSpikeNetRemoteInterfaceBuilder.default_output_config(self)
@@ -105,6 +143,11 @@ class WilsonCowanMultisynapseNESTOutputTransformerInterfaceBuilder(
     WilsonCowanMultisynapseNESTInterfaceBuilder, NESTOutputTransformerInterfaceBuilder,
     WilsonCowanSpikeNetOutputTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         WilsonCowanSpikeNetOutputTransformerInterfaceBuilder.default_output_config(self)
 
@@ -115,6 +158,11 @@ class WilsonCowanMultisynapseNESTOutputTransformerInterfaceBuilder(
 class WilsonCowanMultisynapseNESTInputTransformerInterfaceBuilder(WilsonCowanMultisynapseNESTInterfaceBuilder,
                                                                   NESTInputTransformerInterfaceBuilder,
                                                                   WilsonCowanSpikeNetInputTransformerInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         WilsonCowanSpikeNetInputTransformerInterfaceBuilder.default_output_config(self)
@@ -127,6 +175,11 @@ class WilsonCowanMultisynapseNESTTransformerInterfaceBuilder(WilsonCowanMultisyn
                                                              NESTTransformerInterfaceBuilder,
                                                              WilsonCowanSpikeNetTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         WilsonCowanSpikeNetTransformerInterfaceBuilder.default_output_config(self)
 
@@ -137,6 +190,11 @@ class WilsonCowanMultisynapseNESTTransformerInterfaceBuilder(WilsonCowanMultisyn
 class WilsonCowanMultisynapseTVBNESTInterfaceBuilder(WilsonCowanMultisynapseNESTProxyNodesBuilder,
                                                      TVBNESTInterfaceBuilder,
                                                      WilsonCowanTVBSpikeNetInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         WilsonCowanTVBSpikeNetInterfaceBuilder.default_output_config(self)

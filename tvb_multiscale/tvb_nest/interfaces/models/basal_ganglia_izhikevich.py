@@ -24,12 +24,20 @@ class BasalGangliaIzhikevichNESTProxyNodesBuilder(NESTProxyNodesBuilder,
 class BasalGangliaIzhikevichNESTInterfaceBuilder(BasalGangliaIzhikevichNESTProxyNodesBuilder, NESTInterfaceBuilder, 
                                                  BasalGangliaIzhikevichSpikeNetInterfaceBuilder):
 
-    pass
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
 
 class BasalGangliaIzhikevichNESTRemoteInterfaceBuilder(BasalGangliaIzhikevichNESTInterfaceBuilder,
                                                        NESTRemoteInterfaceBuilder,
                                                        BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder.default_output_config(self)
@@ -42,6 +50,11 @@ class BasalGangliaIzhikevichNESTOutputTransformerInterfaceBuilder(
     BasalGangliaIzhikevichNESTInterfaceBuilder, NESTOutputTransformerInterfaceBuilder,
     BasalGangliaIzhikevichSpikeNetOutputTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         BasalGangliaIzhikevichSpikeNetOutputTransformerInterfaceBuilder.default_output_config(self)
 
@@ -52,6 +65,11 @@ class BasalGangliaIzhikevichNESTOutputTransformerInterfaceBuilder(
 class BasalGangliaIzhikevichNESTInputTransformerInterfaceBuilder(
     BasalGangliaIzhikevichNESTInterfaceBuilder, NESTInputTransformerInterfaceBuilder,
     BasalGangliaIzhikevichSpikeNetInputTransformerInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         BasalGangliaIzhikevichSpikeNetInputTransformerInterfaceBuilder.default_output_config(self)
@@ -64,6 +82,11 @@ class BasalGangliaIzhikevichNESTTransformerInterfaceBuilder(
     BasalGangliaIzhikevichNESTInterfaceBuilder, NESTTransformerInterfaceBuilder,
     BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder.default_output_config(self)
 
@@ -74,6 +97,11 @@ class BasalGangliaIzhikevichNESTTransformerInterfaceBuilder(
 class BasalGangliaIzhikevichTVBNESTInterfaceBuilder(
     BasalGangliaIzhikevichNESTProxyNodesBuilder, TVBNESTInterfaceBuilder,
     BasalGangliaIzhikevichTVBSpikeNetInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         BasalGangliaIzhikevichTVBSpikeNetInterfaceBuilder.default_output_config(self)
