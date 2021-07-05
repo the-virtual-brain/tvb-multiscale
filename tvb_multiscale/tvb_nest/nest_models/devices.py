@@ -11,6 +11,7 @@ from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds
 from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header, \
     read_nest_output_device_data_from_ascii_to_dict
 
+from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
 from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
@@ -500,19 +501,39 @@ class NESTOutputDevice(NESTDevice):
                                    label="Total number of NEST virtual processes",
                                    doc="""Total number of NEST virtual processes""")
 
+    _record_to = None
+
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "nest_output_device")
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
         self._total_num_virtual_procs = self.nest_instance.GetKernelStatus("total_num_virtual_procs")
         self._update_record_to()
 
+    def __getstate__(self):
+        d = super(NESTOutputDevice, self).__getstate__()
+        d["_total_num_virtual_procs"] = self._total_num_virtual_procs
+        d["_record_to"] = self.record_to
+        return d
+
+    def __setstate__(self, d):
+        super(NESTOutputDevice, self).__setstate__(d)
+        self._total_num_virtual_procs = d.get("_total_num_virtual_procs", 1)
+        self._record_to = d["_record_to"]
+        self._update_record_to()
+
     @property
     def record_from(self):
         return []
 
+    @property
+    def record_to(self):
+        if self._record_to is None and self.device is not None:
+            self._record_to = self.device.get("record_to")
+        return self._record_to
+
     def _update_record_to(self):
         if self.device:
-            if self.device.get("record_to") == "ascii":
+            if self.record_to == "ascii":
                 self._get_events = self._get_events_from_ascii
                 self._number_of_events = self._number_of_events_in_ascii_files
                 self.delete_events = self._delete_events_in_ascii_files
@@ -627,6 +648,8 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
 
     """NESTSpikeRecorder class to wrap around a NEST spike_recorder device"""
 
+    _last_spike_time = 0.0
+
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "spike_recorder")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
@@ -634,6 +657,17 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         self._last_spike_time = self.nest_instance.GetKernelStatus("time")
 
     # Only SpikeRecorder is the target of connections with neurons in NEST:
+
+    def __getstate__(self):
+        d = SpikeRecorder.__getstate__(self)
+        d.update(NESTOutputDevice.__getstate__(self))
+        d["_last_spike_time"] = self._last_spike_time
+        return d
+
+    def __setstate__(self, d):
+        SpikeRecorder.__setstate__(self, d)
+        NESTOutputDevice.__setstate__(self, d)
+        self._last_spike_time = d["_last_spike_time"]
 
     def GetConnections(self, *args, **kwargs):
         """Method to get connections of the device from neurons.
@@ -686,11 +720,24 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     """NESTMultimeter class to wrap around a NEST multimeter device"""
 
+    _output_events_counter = [0]
+
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "multimeter")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
         Multimeter.__init__(self, device, **kwargs)
         self._output_events_counter = [0] * self._total_num_virtual_procs
+
+    def __getstate__(self):
+        d = Multimeter.__getstate__(self)
+        d.update(NESTOutputDevice.__getstate__(self))
+        d["_output_events_counter"] = self._output_events_counter
+        return d
+
+    def __setstate__(self, d):
+        Multimeter.__setstate__(self, d)
+        NESTOutputDevice.__setstate__(self, d)
+        self._output_events_counter = d.get("_output_events_counter", [0])
 
     @property
     def record_from(self):
@@ -782,7 +829,16 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
         NESTMultimeter.__init__(self, device, nest_instance, **kwargs)
         Voltmeter.__init__(self, device, **kwargs)
         assert self.var in self.record_from
-        
+
+    def __getstate__(self):
+        d = Voltmeter.__getstate__(self)
+        d.update(NESTMultimeter.__getstate__(self))
+        return d
+
+    def __setstate__(self, d):
+        Voltmeter.__setstate__(self, d)
+        NESTMultimeter.__setstate__(self, d)
+
     @property
     def var(self):
         return "V_m"
@@ -813,6 +869,19 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
         NESTMultimeter.__init__(self, device, nest_instance, **kwargs)
         NESTSpikeRecorder.__init__(self, device, nest_instance, **kwargs)
         SpikeMultimeter.__init__(self, device, **kwargs)
+
+    def __getstate__(self):
+        d = SpikeMultimeter.__getstate__(self)
+        d.update(NESTSpikeRecorder.__getstate__(self))
+        d.update(NESTMultimeter.__getstate__(self))
+        d["spike_vars"] = self.spike_vars
+        return d
+
+    def __setstate__(self, d):
+        SpikeMultimeter.__setstate__(self, d)
+        NESTSpikeRecorder.__setstate__(self, d)
+        NESTMultimeter.__setstate__(self, d)
+        self.spike_vars = d.get("spike_vars", self.spike_vars)
 
     def print_str(self, connectivity=False):
         return NESTMultimeter.print_str(self, connectivity)
