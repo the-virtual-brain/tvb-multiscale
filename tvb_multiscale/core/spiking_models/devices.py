@@ -55,6 +55,15 @@ class Device(SpikingNodeCollection):
         self._number_of_connections = 0
         self._number_of_neurons = 0
 
+    def __getstate__(self):
+        d = super(Device, self).__getstate__()
+        d["device"] = self.device
+        return d
+
+    def __setstate__(self, d):
+        super(Device, self).__setstate__(d)
+        self.device = d.get("device", None)
+
     @property
     def _print_from_to(self):
         return "from/to"
@@ -984,6 +993,20 @@ class DeviceSet(SpikingNodesSet):
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 
+    def __getstate__(self):
+        d = super(DeviceSet, self).__getstate__()
+        d["model"] = self.model
+        d["_number_of_connections"] = self._number_of_connections
+        d["_number_of_neurons"] = self._number_of_neurons
+        d["_collection_name"] = self._collection_name
+        return d
+
+    def __setstate__(self, d):
+        super(DeviceSet, self).__setstate__(d)
+        self.model = d.get("model", self.model)
+        self._number_of_connections = d.get("_number_of_connections", self.number_of_connections)
+        self._number_of_neurons = d.get("_number_of_neurons",  self.number_of_neurons)
+
     def devices(self, input_devices=None):
         """This method returns (a subset of) the DeviceSet devices' labels in a list."""
         if input_devices is None:
@@ -1102,9 +1125,10 @@ class DeviceSet(SpikingNodesSet):
         """Assert that all Devices of the set are of the same model."""
         if len(self) > 0:
             models = ensure_list(self.do_for_all("model"))
-            if np.any([model != models[0] or model not in self.model for model in models]):
+            if np.any([model != models[0] for model in models]):
                 raise ValueError("Not all devices of the DeviceSet %s are of the same model!:\n %s"
                                  % (self.name, str(models)))
+            self.model = models[0]
 
     def update(self, device_set=None):
         if device_set:
@@ -1112,6 +1136,7 @@ class DeviceSet(SpikingNodesSet):
         self.update_model()
         self._number_of_connections = ensure_list(self.do_for_all("number_of_connections"))
         self._number_of_neurons = ensure_list(self.do_for_all("number_of_neurons"))
+        self.configure()
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):
         """A method to get attributes from (a subset of) all Devices of the DevoceSet.
