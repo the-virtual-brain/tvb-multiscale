@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
+from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
@@ -28,10 +27,16 @@ class NESTInterface(HasTraits):
 
     """NESTInterface base class for interfaces sending/receiving data from/to NEST."""
 
-    spiking_network = Attr(label="NEST Network",
-                           doc="""The instance of NESTNetwork class""",
-                           field_type=NESTNetwork,
-                           required=True)
+    spiking_network = None
+    # spiking_network = Attr(label="NEST Network",
+    #                        doc="""The instance of NESTNetwork class""",
+    #                        field_type=NESTNetwork,
+    #                        required=True)
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     @property
     def nest_network(self):
@@ -56,6 +61,11 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
                  field_type=NESTOutputDeviceSet,
                  required=True)
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
@@ -64,6 +74,11 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
 class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
 
     """NESTSenderInterface"""
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def print_str(self):
         return SpikeNetSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
@@ -74,6 +89,11 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
 
 class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOutputInterface):
     """NESTTransformerSenderInterface"""
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def print_str(self):
         return SpikeNetTransformerSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
@@ -92,6 +112,11 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
                  field_type=NESTInputDeviceSet,
                  required=True)
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.target)
@@ -100,12 +125,22 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
 class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
     """NESTReceiverInterface"""
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def print_str(self):
         return SpikeNetReceiverInterface.print_str(self) + NESTInputInterface.print_str(self)
 
 
 class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
     """NESTReceiverTransformerInterface"""
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def print_str(self):
         return SpikeNetReceiverTransformerInterface.print_str(self) + NESTInputInterface.print_str(self)
@@ -117,6 +152,11 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
        and finally set them to NEST, all processes taking place in shared memmory.
     """
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def print_str(self):
         return TVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
 
@@ -126,6 +166,11 @@ class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
     """
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def get_proxy_data(self):
         return NESTOutputInterface.get_proxy_data(self)

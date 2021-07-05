@@ -60,11 +60,16 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
 
     """NESTProxyNodesBuilder class"""
 
-    spiking_network = Attr(label="NEST Network",
-                           doc="""The instance of NESTNetwork class""",
-                           field_type=NESTNetwork,
-                           required=True)
+    spiking_network = None
+    # spiking_network = Attr(label="NEST Network",
+    #                        doc="""The instance of NESTNetwork class""",
+    #                        field_type=NESTNetwork,
+    #                        required=True)
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     @property
     def nest_network(self):
@@ -126,6 +131,11 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
         default=initialize_logger(__name__, config=CONFIGURED)
     )
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def _get_tvb_delays(self):
         return np.maximum(self.spiking_dt,
                           SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
@@ -138,6 +148,11 @@ class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBu
     _output_interface_type = NESTSenderInterface
     _input_interface_type = NESTReceiverInterface
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
 
@@ -148,6 +163,11 @@ class NESTTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetTransformerI
 
     _output_interface_type = NESTTransformerSenderInterface
     _input_interface_type = NESTReceiverTransformerInterface
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def configure(self):
         SpikeNetTransformerInterfaceBuilder.configure(self)
@@ -163,6 +183,11 @@ class NESTOutputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetOutput
     _output_interface_type = NESTTransformerSenderInterface
     _input_interface_type = NESTReceiverInterface
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def configure(self):
         SpikeNetOutputTransformerInterfaceBuilder.configure(self)
 
@@ -176,6 +201,11 @@ class NESTInputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetInputTr
 
     _output_interface_type = NESTSenderInterface
     _input_interface_type = NESTReceiverTransformerInterface
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def configure(self):
         SpikeNetInputTransformerInterfaceBuilder.configure(self)
@@ -196,6 +226,11 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
 
     _output_interface_type = TVBtoNESTInterface
     _input_interface_type = NESTtoTVBInterface
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def configure(self):
         TVBSpikeNetInterfaceBuilder.configure(self)

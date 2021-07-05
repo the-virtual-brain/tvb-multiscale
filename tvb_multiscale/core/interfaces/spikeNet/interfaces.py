@@ -19,10 +19,11 @@ class SpikeNetInterface(HasTraits):
 
     """SpikeNetInterface abstract base class."""
 
-    spiking_network = Attr(label="Spiking Network",
-                           doc="""The instance of SpikingNetwork class""",
-                           field_type=SpikingNetwork,
-                           required=True)
+    spiking_network = None
+    # spiking_network = Attr(label="Spiking Network",
+    #                        doc="""The instance of SpikingNetwork class""",
+    #                        field_type=SpikingNetwork,
+    #                        required=True)
 
     spiking_proxy_inds = NArray(
         dtype=np.int,

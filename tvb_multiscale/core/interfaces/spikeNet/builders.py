@@ -40,6 +40,12 @@ class SpikeNetProxyNodesBuilder(HasTraits):
 
     """SpikeNetProxyNodesBuilder abstract base class"""
 
+    spiking_network = None
+    # spiking_network = Attr(label="Spiking Network",
+    #                        doc="""The instance of SpikingNetwork class""",
+    #                        field_type=SpikingNetwork,
+    #                        required=True)
+
     global_coupling_scaling = NArray(
         dtype=np.float,
         label="Global coupling scaling",
@@ -47,11 +53,6 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         required=True,
         default=np.array([], dtype="f")
     )
-
-    spiking_network = Attr(label="Spiking Network",
-                           doc="""The instance of SpikingNetwork class""",
-                           field_type=SpikingNetwork,
-                           required=True)
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
