@@ -240,12 +240,20 @@ class RayNodeCollection(object):
     def __getattr__(self, attr):
         if self.nest_instance:
             return self.get(attr)
+        raise AttributeError("type object %s has no attribute %s" % (self.__class__.__name__, attr))
 
     def __setattr__(self, attr, value):
         if attr in ["nest_instance", "gids"]:
             super(RayNodeCollection, self).__setattr__(attr, value)
         elif self.nest_instance:
             return self.set({"attr": value})
+
+    def __getstate__(self):
+        return {"gids": self.gids, "nest_instance": self.nest_instance}
+
+    def __setstate__(self, d):
+        super(RayNodeCollection, self).__setattr__("gids", d.get("gids", ()))
+        super(RayNodeCollection, self).__setattr__("nest_instance", d.get("nest_instance", None))
 
     def __iter__(self):
         return RayNodeCollectionIterator(self)
@@ -384,6 +392,17 @@ class RaySynapseCollection(object):
         for attr in keys:
             output[attr] = getattr(self, attr)
         return output
+
+    def __getstate__(self):
+        d = self.todict()
+        d["nest_instance"] = self.nest_instance
+        d["_attributes"] = self._attributes
+        return d
+
+    def __setstate__(self, d):
+        super(RaySynapseCollection, self).__setattr__("nest_instance", d.pop("nest_instance", None))
+        super(RaySynapseCollection, self).__setattr__("_attributes", d.pop("_attributes", self._attributes))
+        self.fromdict(d)
 
     def __iter__(self):
         return RaySynapseCollectionIterator(self)
@@ -556,10 +575,18 @@ class RaySynapseCollection(object):
 
 
 class RayNESTClient(object):
+
     _run_ref = None
 
     def __init__(self, nest_server):
         self.nest_server = nest_server
+
+    def __getstate__(self):
+        return {"nest_server": self.nest_server, "_run_ref": self._run_ref}
+
+    def __setstate__(self, d):
+        self.nest_server = d.get("nest_server", None)
+        self._run_ref = d.get("_run_ref", None)
 
     @property
     def is_running(self):
