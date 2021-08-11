@@ -39,6 +39,10 @@ class SpikeNetInterface(HasTraits):
         required=True)
 
     @property
+    def spiking_simulator(self):
+        return self.spiking_network.spiking_simulator
+
+    @property
     def label(self):
         return "%s: %s (%s)" % (self.__class__.__name__, str(self.populations),
                                 extract_integer_intervals(self.spiking_proxy_inds))
@@ -287,8 +291,10 @@ class SpikeNetOutputRemoteInterfaces(SpikeNetOutputInterfaces):
     """SpikeNetOutputRemoteInterfaces"""
 
     def __call__(self):
+        outputs = []
         for interface in self.interfaces:
-            interface()
+            outputs.append(interface())
+        return outputs
 
 
 class SpikeNetInputInterfaces(BaseInterfaces, SpikeNetInterfaces):
@@ -303,5 +309,7 @@ class SpikeNetInputRemoteInterfaces(SpikeNetInputInterfaces):
     """SpikeNetInputRemoteInterfaces"""
 
     def __call__(self, *args):
+        results = []
         for interface in self.interfaces:
-            interface(*args)
+            results.append(interface(*args))
+        return results
