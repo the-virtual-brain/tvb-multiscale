@@ -224,9 +224,12 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         super(TVBtoSpikeNetInterface, self).configure()
         self.transformer.configure()
 
+    def reshape_data(self, data):
+        return TVBOutputInterface.__call__(self, data[1])
+
     def __call__(self, data):
         self.transformer.input_time = data[0]
-        self.transformer.input_buffer = TVBOutputInterface.__call__(self, data[1])
+        self.transformer.input_buffer = self.reshape_data(data[1])
         self.transformer()
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
@@ -259,6 +262,9 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
                self.transformer.print_str() + \
                SpikeNetOutputInterface.print_str(self)
 
+    def reshape_data(self):
+        return TVBInputInterface.__call__(self, self.transformer.output_buffer)
+
     def __call__(self):
         data = self.get_proxy_data()
         if data[0][1] < data[0][0]:
@@ -266,7 +272,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
-        return [self.transformer.output_time, TVBInputInterface.__call__(self, self.transformer.output_buffer)]
+        return [self.transformer.output_time, self.reshape_data()]
 
 
 class TVBInterfaces(HasTraits):
@@ -327,14 +333,22 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         for interface in self.interfaces:
             interface.set_local_indices(cosim_monitors[interface.monitor_ind].voi)
 
+    def _compute_interface_times(self, interface, data):
+        times = np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),  # start_time_step
+                          np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
+        if interface.coupling_mode.upper() != "TVB":
+            times += self.synchronization_n_step  # adding the synchronization time when not a coupling interface
+        return times
+
+    def _run_interface(self, interface, times, data):
+        interface([times, data])
+
     def __call__(self, data):
         for interface in self.interfaces:
-            times = np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),                # start_time_step
-                              np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
-            if interface.coupling_mode.upper() != "TVB":
-                times += self.synchronization_n_step  # adding the synchronization time when not a coupling interface
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-            interface([times, data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
+            self._run_interface(interface,
+                                self._compute_interface_times(interface, data),
+                                data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0])
 
 
 class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
@@ -350,26 +364,46 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
         for interface in self.interfaces:
             interface.set_local_indices(simulator_voi, simulator_proxy_inds)
 
-    def __call__(self, good_cosim_update_values_shape):
+    def _set_data_from_interface(self, cosim_updates, interface, data, good_cosim_update_values_shape):
+        # Convert start and end input_time step to a vector of integer input_time steps:
+        time_steps = np.arange(data[0][0], data[0][1] + 1).astype("i")
+        cosim_updates[
+            (time_steps % good_cosim_update_values_shape[0])[:, None, None],
+            interface.voi_loc[None, :, None],  # indices specific to cosim_updates needed here
+            interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
+            0] = np.copy(data[1])  # !!! assuming only 1 mode!!!
+        return cosim_updates, time_steps
+
+    def _get_from_interface(self, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape):
+        data = interface()  # [start_and_time_steps, values]
+        if data is not None:
+            cosim_updates, time_steps = \
+                self._set_data_from_interface(cosim_updates, interface, data, good_cosim_update_values_shape)
+            all_time_steps += time_steps.tolist()
+            return cosim_updates, all_time_steps
+        else:
+            return cosim_updates, all_time_steps
+
+    def _prepare_cosim_upadate(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
         cosim_updates[:] = np.NAN
         all_time_steps = []
-        for interface in self.interfaces:
-            data = interface()  # [start_and_time_steps, values]
-            if data is not None:
-                # Convert start and end input_time step to a vector of integer input_time steps:
-                time_steps = np.arange(data[0][0], data[0][1] + 1).astype("i")
-                cosim_updates[
-                    (time_steps % good_cosim_update_values_shape[0])[:, None, None],
-                    interface.voi_loc[None, :, None],         # indices specific to cosim_updates needed here
-                    interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
-                    0] = np.copy(data[1])                     # !!! assuming only 1 mode!!!
-                all_time_steps += time_steps.tolist()
+        return cosim_updates, all_time_steps
+
+    def get_inputs(self, cosim_updates, all_time_steps, good_cosim_update_values_shape):
         if len(all_time_steps):
             all_time_steps = np.unique(all_time_steps)
             return [all_time_steps, cosim_updates[all_time_steps % good_cosim_update_values_shape[0]]]
         else:
             return [all_time_steps, cosim_updates]
+
+    def __call__(self, good_cosim_update_values_shape):
+        cosim_updates, all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
+        for interface in self.interfaces:
+            cosim_updates, all_time_steps = \
+                self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
+        return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
+
 
 
 class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
