@@ -64,6 +64,13 @@ class Transformer(HasTraits):
     def __call__(self):
         self.compute_time()
         self.compute()
+        return [self.output_time, self.output_buffer]
+
+    def __getattribute__(self, attr):
+        return super().__getattribute__(attr)
+
+    def __setattr__(self, attr, val):
+        return super().__setattr__(attr, val)
 
     def _assert_size(self, attr, buffer="input", dim=0):
         value = getattr(self, attr)
