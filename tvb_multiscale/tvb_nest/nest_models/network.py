@@ -45,7 +45,7 @@ class NESTNetwork(SpikingNetwork):
         super(NESTNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
 
     @property
-    def spiking_simulator_module(self):
+    def spiking_simulator(self):
         return self.nest_instance
 
     def Run(self, time):
