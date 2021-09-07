@@ -225,7 +225,7 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         self.transformer.configure()
 
     def reshape_data(self, data):
-        return TVBOutputInterface.__call__(self, data[1])
+        return TVBOutputInterface.__call__(self, data)
 
     def __call__(self, data):
         self.transformer.input_time = data[0]
@@ -340,15 +340,11 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
             times += self.synchronization_n_step  # adding the synchronization time when not a coupling interface
         return times
 
-    def _run_interface(self, interface, times, data):
-        interface([times, data])
-
     def __call__(self, data):
         for interface in self.interfaces:
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-            self._run_interface(interface,
-                                self._compute_interface_times(interface, data),
-                                data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0])
+            interface([self._compute_interface_times(interface, data),
+                       data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
 
 class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
