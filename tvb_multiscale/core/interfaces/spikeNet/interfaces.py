@@ -99,8 +99,8 @@ class SpikeNetOutputInterface(SpikeNetInterface):
 
     times = NArray(
         dtype=np.int,
-        label="Indices of Spiking Network proxy nodes",
-        doc="""Indices of Spiking Network proxy nodes""",
+        label="Time step indices.",
+        doc="""Time step indices of last Spiking Network output values.""",
         required=True,
         default=np.array([1, 0])
     )
