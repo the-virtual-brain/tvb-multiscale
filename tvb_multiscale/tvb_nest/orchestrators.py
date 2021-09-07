@@ -26,7 +26,7 @@ class NESTSerialApp(SpikeNetSerialApp):
     config = Attr(
         label="Configuration",
         field_type=Config,
-        doc="""Configuration class instance.""",
+        doc="""Config class instance.""",
         required=True,
         default=CONFIGURED
     )
