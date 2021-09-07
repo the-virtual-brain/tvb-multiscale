@@ -175,9 +175,6 @@ class TVBApp(App):
     def simulate(self):
         self.results = self._cosimulator.run()
 
-    def clean_up(self):
-        pass
-
     def run(self):
         self.configure()
         self.build()
@@ -187,6 +184,9 @@ class TVBApp(App):
     def reset(self):
         self.cosimulator = None
         self._interfaces_built = False
+
+    def clean_up(self):
+        pass
 
     def stop(self):
         pass
