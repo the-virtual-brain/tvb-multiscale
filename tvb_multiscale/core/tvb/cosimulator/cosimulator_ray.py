@@ -48,15 +48,24 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulator
 
 class CoSimulatorRay(CoSimulatorParallel):
 
-    spiking_simulator_client = None
+    spiking_simulator = None
+
+    def _send_cosim_coupling(self, cosimulation=True, outputs=[], block=False):
+        if len(outputs) == 0:
+            return super(CoSimulatorRay, self)._send_cosim_coupling(cosimulation)
+        else:
+            return self.output_interfaces(block=block)
 
     def _get_cosim_updates(self, cosimulation=True, block=False, cosim_updates=None):
         # Get the update data from the other cosimulator, including any transformations
         if cosim_updates is None and cosimulation and self.input_interfaces:
             cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
-        elif isinstance(cosim_updates[-1], ray._raylet.ObjectRef):
-            cosim_updates = self._get_cosim_updates(cosimulation, block=block)
-        if cosim_updates is not None and np.all(np.isnan(cosim_updates[-1])):
+        else:
+            for cosim_update in cosim_updates:
+                if isinstance(cosim_update, ray._raylet.ObjectRef):
+                    cosim_updates = self._get_cosim_updates(cosimulation, block=block)
+                    break
+        if cosim_updates is not None and np.all(np.isnan(cosim_updates)):
             cosim_updates = None
         return cosim_updates
 
@@ -76,23 +85,32 @@ class CoSimulatorRay(CoSimulatorParallel):
         # The order of events for spikeNet is:
         # 1. spikeNet output, 2. spikeNet input, 3. spikeNet integration
         # So, we submit these remote jobs in that order:
-        # 1. Get data from spikeNet and start processing them
-        # Communicate and transform TVB <- spikeNet
-        cosim_updates = self._get_cosim_updates(cosimulation, block=False)  # NON BLOCKING
-        # 2. Start processing TVB data and send them to spikeNet when ready
-        # Transform and communicate TVB -> spikeNet
+
+        # 1. Start processing TVB data and send them to spikeNet when the latter is ready
+        # Transform and send TVB -> spikeNet
         tvb_to_spikeNet_locks = self._send_cosim_coupling(self._cosimulation_flag)  # NON BLOCKING
+
+        # -----------------BLOCK at this point for the spikeNet simulator to finish integrating----------------------:
+        if self.spiking_simulator is not None:
+            ray.get(self.spiking_simulator.run_task_ref_obj)
+
+        # 2. Get data from spikeNet and start processing them
+        # Receive and transform TVB <- spikeNet
+        cosim_updates = self._get_cosim_updates(cosimulation, block=False)  # NON BLOCKING
+
         # 3. Start simulating spikeNet as long as the TVB data have arrived.
         # Integrate spikeNet
-        if cosimulation and self.spiking_simulator_client is not None:
+        if cosimulation and self.spiking_simulator is not None:
             self.log.info("Simulating the spiking network for %d time steps...",
                           self.n_tvb_steps_sent_to_cosimulator_at_last_synch)
             spike_net_Run_lock = \
-                self.spiking_simulator_client.RunLock(
+                self.spiking_simulator.RunLock(
                     self.n_tvb_steps_sent_to_cosimulator_at_last_synch * self.integrator.dt,
-                    tvb_to_spikeNet_locks)  # tvb_to_spikeNet_locks are used in order to block
+                    self._send_cosim_coupling(self._cosimulation_flag, tvb_to_spikeNet_locks, block=True)
+                )  # tvb_to_spikeNet_locks are used in order to block spikeNet simulator from starting to integrate
         else:
             spike_net_Run_lock = None
+
         # 4. Start simulating TVB as long as the spikeNet data have been processed.
         # Integrate TVB
         current_step = int(self.current_step)
