@@ -3,8 +3,6 @@
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
-from tvb_multiscale.tvb_nest.nest_models.nest_ray import RayNodeCollection
-
 from tvb.basic.neotraits.api import HasTraits, Attr, Int
 
 from nest import NodeCollection
@@ -19,7 +17,6 @@ class _NESTNodeCollection(HasTraits):
        represents a nodes collection of the spiking network of the same neural model,
        residing at the same brain region.
     """
-    from nest import NodeCollection
 
     _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
                   label="NEST NodeCollection ", doc="""NESTNodeCollection instance""")

@@ -6,20 +6,21 @@ import numpy as np
 import xarray as xr
 
 from tvb_multiscale.core.spiking_models.devices import \
-    Device, InputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter  # OutputDevice,
+    Device, InputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header, \
     read_nest_output_device_data_from_ascii_to_dict
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
 from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
-from tvb.basic.neotraits.api import Int, List  #  Attr
+from tvb.basic.neotraits.api import Int, List, Attr
 
 from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
+
+from nest import NodeCollection
 
 
 # These classes wrap around NEST commands.
@@ -29,8 +30,6 @@ class NESTDevice(_NESTNodeCollection):
     __metaclass__ = ABCMeta
 
     """NESTDevice class to wrap around a NEST output (recording) or input (stimulating) device"""
-
-    from nest import NodeCollection
 
     device = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
                   label="NEST device ", doc="""Device NodeCollection instance""")
