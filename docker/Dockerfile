@@ -127,7 +127,7 @@ RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     $VENV/bin/python3 setup.py build_ext install
     
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install elephant dill starlette uvicorn 'ray[default]'==1.4.0 'ray[server]'==1.4.0; \
+RUN $VENV/bin/pip3 install elephant dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 RUN git clone --depth 1 --branch parallel https://github.com/the-virtual-brain/tvb-multiscale.git
