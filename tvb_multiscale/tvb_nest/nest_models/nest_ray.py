@@ -576,27 +576,27 @@ class RaySynapseCollection(object):
 
 class RayNESTClient(object):
 
-    _run_ref = None
+    run_task_ref_obj = None
 
     def __init__(self, nest_server):
         self.nest_server = nest_server
 
     def __getstate__(self):
-        return {"nest_server": self.nest_server, "_run_ref": self._run_ref}
+        return {"nest_server": self.nest_server, "_run_ref": self.run_task_ref_obj}
 
     def __setstate__(self, d):
         self.nest_server = d.get("nest_server", None)
-        self._run_ref = d.get("_run_ref", None)
+        self.run_task_ref_obj = d.get("_run_ref", None)
 
     @property
     def is_running(self):
-        if self._run_ref:
-            done, running = ray.wait([self._run_ref], timeout=0)
+        if self.run_task_ref_obj:
+            done, running = ray.wait([self.run_task_ref_obj], timeout=0)
             if len(running):
-                return self._run_ref
+                return self.run_task_ref_obj
             else:
-                self._run_ref = None
-        return self._run_ref
+                self.run_task_ref_obj = None
+        return self.run_task_ref_obj
 
     def _gids(self, gids):
         return tuple(ensure_list(gids))
@@ -762,13 +762,13 @@ class RayNESTClient(object):
         return ray.get(self.nest_server.nest.remote("get_argv"))
 
     def _run(self, method, time):
-        if self._run_ref is None:
+        if self.run_task_ref_obj is None:
             if method.lower() == "simulate":
                 method = "Simulate"
             else:
                 method = "Run"
-            self._run_ref = self.nest_server.nest.remote(method, time)
-            return self._run_ref
+            self.run_task_ref_obj = self.nest_server.nest.remote(method, time)
+            return self.run_task_ref_obj
         else:
             return self.is_running
 
@@ -776,6 +776,11 @@ class RayNESTClient(object):
         return self.nest_server.nest.remote("Prepare")
 
     def Run(self, time):
+        return self._run("Run", time)
+
+    def RunLock(self, time, ref_objs=[]):
+        if len(ref_objs):
+            ray.get(ref_objs)
         return self._run("Run", time)
 
     def Simulate(self, time):
