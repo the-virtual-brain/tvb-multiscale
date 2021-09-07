@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from logging import Logger
+import inspect
 from enum import Enum
 from abc import ABCMeta, abstractmethod
 from six import string_types
@@ -69,8 +70,7 @@ class TransformerBuilder(HasTraits):
                doc="Time step of simulation",
                required=True, default=0.0)
 
-    @staticmethod
-    def _configure_transformer_model(interface, interface_models, default_transformer_models, transformer_models):
+    def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
         # Return a model or an Enum
         model = interface.get("transformer", interface.pop("transformer_model", None))
         if model is None:
@@ -78,23 +78,29 @@ class TransformerBuilder(HasTraits):
             model = model.upper()
             assert model in interface_models
             model = getattr(default_transformer_models, model).value
-        if isinstance(model, string_types):
-            # String input:
-            model = model.upper()
-            model = getattr(transformer_models, model)
-        elif isinstance(model, Enum):
+        if isinstance(model, Enum):
             # Enum input:
             assert model in transformer_models
-        elif not isinstance(model, Transformer):
-            # assume model is a Transformer type
-            model = model()
+        elif isinstance(model, string_types):
+            # String input:
+            model = model.upper()
+            model = getattr(transformer_models, model)  # Get an Enum
+        elif inspect.isclass(model):
+            # if it is a Transformer type
+            assert issubclass(model, Transformer)
+        else:
+            # or it has to be a Transformer model
             assert isinstance(model, Transformer)
         interface["transformer"] = model
+
+    def build_transformer(self, model, **kwargs):
+        return model(**kwargs)
 
     def set_transformer_parameters(self, transformer, params):
         for p, pval in params.items():
             setattr(transformer, p, pval)
 
+    build_transformer
     @abstractmethod
     def configure_and_build_transformer(self, interfaces):
         pass
@@ -120,26 +126,28 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
                 if interface["transformer"] == DefaultTVBtoSpikeNetTransformers.SPIKES:
                     # If the transformer is "SPIKES", but there are parameters that concern correlations...
                     correlation_factor = params.pop("correlation_factor", None)
-                    scale_factor = params.pop("scale_factor", np.array([1.0]))
                     if correlation_factor:
                         interaction = params.pop("interaction", "multiple")
                         if interaction == "single":
                             interface["transformer"] = \
-                                DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.value(
-                                    scale_factor=scale_factor,
-                                    correlation_factor=correlation_factor, **params)
+                                self.build_transformer(DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.value,
+                                                       correlation_factor=correlation_factor, **params)
                         else:
                             interface["transformer"] = \
-                                DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value(
-                                    scale_factor=scale_factor,
+                                self.build_transformer(
+                                    DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value,
                                     correlation_factor=correlation_factor, **params)
                     else:
-                        interface["transformer"] = interface["transformer"].value(scale_factor=scale_factor,
-                                                                                  **params)
+                        # SPIKES without correlations:
+                        interface["transformer"] = self.build_transformer(interface["transformer"].value, **params)
                 else:
-                    interface["transformer"] = interface["transformer"].value(**params)
+                    # Other than SPIKES, e.g., RATE, CURRENT
+                    interface["transformer"] = self.build_transformer(interface["transformer"].value, **params)
+            elif inspect.isclass(interface["transformer"]):
+                # ...or a Transformer type:
+                interface["transformer"] = self.build_transformer(interface["transformer"], **params)
             else:
-                # ...or a model
+                # ...or an already built model
                 self.set_transformer_parameters(interface["transformer"], params)
 
 
