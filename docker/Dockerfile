@@ -1,20 +1,20 @@
 #
 # TVB & NEST simulations environment
 #
-# Install Python 3.7, NEST, then tvb-library from Pypi
+# Install Python 3.9, NEST, then tvb-library from Pypi
 # Finally link tvb-multiscale from Github sources
 #
 
-FROM neurodebian:buster
+FROM neurodebian:bullseye
 MAINTAINER lia.domide@codemart.ro
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
 RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
-                       wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
-                       python3.7-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
-                       ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
+                       python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
+                       ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
                        subversion cmake zip unzip make; \
     apt-get clean
 
@@ -54,26 +54,26 @@ RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$VENV/bin/python $HOME/packages/libneurosim/configure --prefix=$VENV; \
     make; make install; ls $VENV/lib $VENV/include; \
-    ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
+    ln -s /usr/lib/python3.9/config-x86_64-linux-gnu/libpython3.9.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
 ARG NEST_VER=dev
 ARG NEST=nest-simulator
 ARG NEST_SRC=$HOME/packages/$NEST
 ARG NEST_INSTALL_DIR=$VENV/nest_build
-ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.9/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
-RUN git clone https://github.com/nest/nest-simulator.git
+RUN git clone --branch v3.0 https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
-    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
+    # git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
-          -DPYTHON_INCLUDE_DIR=/usr/include/python3.7m \
+          -DPYTHON_INCLUDE_DIR=/usr/include/python3.9m \
           ${NEST_SRC}; \
     make; make install
 
@@ -81,7 +81,7 @@ RUN cd $NEST; \
 RUN $VENV/bin/pip3 install setuptools; \
     git clone https://github.com/nest/nestml.git; \
     cd nestml; \
-    git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
+    # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
 
 # Install pyNN
