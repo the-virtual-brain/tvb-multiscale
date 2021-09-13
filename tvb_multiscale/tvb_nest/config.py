@@ -23,7 +23,7 @@ class Config(ConfigBase):
     MYMODULES_DIR = MYMODULES_DIR
     MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
-    MASTER_SEED = 0
+    MASTER_SEED = 1
 
     # NEST properties:
     # M_ALL=0,  display all messages
@@ -85,13 +85,8 @@ class Config(ConfigBase):
 
     @property
     def DEFAULT_NEST_KERNEL_CONFIG(self):
-        # TODO: Find how to compute this:
-        TOTAL_NUM_VIRTUAL_PROCS = self.TOTAL_NUM_VIRTUAL_PROCS
         return {"data_path": self.RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
-                'grng_seed': self.MASTER_SEED + TOTAL_NUM_VIRTUAL_PROCS,
-                'rng_seeds': range(self.MASTER_SEED + 1 + TOTAL_NUM_VIRTUAL_PROCS,
-                                   self.MASTER_SEED + 1 + (2 * TOTAL_NUM_VIRTUAL_PROCS)),
-                "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS}
+                'rng_seed': self.MASTER_SEED, "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS}
 
     @property
     def DEFAULT_CONNECTION(self):
