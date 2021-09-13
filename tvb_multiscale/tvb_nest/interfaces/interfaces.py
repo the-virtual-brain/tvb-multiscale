@@ -43,7 +43,7 @@ class NESTInterface(HasTraits):
 
     @property
     def time(self):
-        return self.nest_instance.GetKernelStatus("time")
+        return self.nest_instance.GetKernelStatus("biological_time")
 
 
 class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
