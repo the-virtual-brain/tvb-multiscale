@@ -175,6 +175,9 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #    done
 # ----------------------------------------------------------------------------------------------------------------------
 
+RUN $VENV/bin/pip3 install ipywidgets ipympl
+RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension
+
 # Final configurations
 # tvb42
 RUN $VENV/bin/jupyter notebook --generate-config; \
