@@ -29,7 +29,7 @@ class NeuronsFun(object):
         self.conns = conns
 
     def __call__(self, population):
-        return tuple(np.array(self.conns - self.start_id_scaffold + population.tolist()[0]).astype('i').tolist())
+        return np.array(self.conns - self.start_id_scaffold + population.tolist()[0]).astype('i')
 
 
 class CerebBuilder(NESTNetworkBuilder):
