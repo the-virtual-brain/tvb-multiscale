@@ -162,10 +162,11 @@ class CoSimulator(CoSimulatorBase):
         if self.simulation_length != self.synchronization_time:
             simulation_length = float(self.simulation_length)
             self.simulation_length = float(self.synchronization_time)
-            super(CoSimulator, self)._prepare_stimulus()
+            stimulus = super(CoSimulator, self)._prepare_stimulus()
             self.simulation_length = simulation_length
         else:
-            super(CoSimulator, self)._prepare_stimulus()
+            stimulus = super(CoSimulator, self)._prepare_stimulus()
+        return stimulus
 
     def _get_cosim_updates(self, cosimulation=True):
         cosim_updates = None
