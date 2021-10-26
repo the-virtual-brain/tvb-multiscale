@@ -43,7 +43,7 @@ def print_conn(d={}, prnt="", maxrow=200, printit=True):
     return prnt
 
 
-def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn=None, nperseg=256):
+def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn=None, nperseg=256, figsize=(15, 5)):
     n_regions = int(len(inds) / 2)
     data = source_ts[transient:, 0, inds, 0].squeeze().T
     if conn is None:
@@ -51,7 +51,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn
     fs = 1000/source_ts.sample_period
     f, Pxx_den = signal.welch(data, fs, nperseg=nperseg)
     print(np.mean(np.diff(f)))
-    fig, axes = plt.subplots(n_regions, 2, figsize=(15, 5*n_regions))
+    fig, axes = plt.subplots(n_regions, 2, figsize=(figsize[0], figsize[1]*n_regions))
     for ii in range(n_regions):
         iR = ii*2
         iL = ii*2 + 1
@@ -71,7 +71,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn
     plt.show()
 
     n_regions2 = int(n_regions * (n_regions - 1)/2)
-    fig, axes = plt.subplots(n_regions2, 2, figsize=(15, 5*n_regions2))
+    fig, axes = plt.subplots(n_regions2, 2, figsize=(figsize[0], figsize[1]*n_regions))
     if len(axes.shape) < 2:
         axes = axes[np.newaxis, :]
     ii = 0
@@ -117,9 +117,9 @@ def compute_plot_ica(data, time, variable="BOLD", n_components=10, plotter=None)
         ics_ts.plot_timeseries(plotter_config=plotter.config,
                                hue="ICA" if ics_ts.shape[2] > plotter.config.MAX_REGIONS_IN_ROWS else None,
                                per_variable=ics_ts.shape[1] > plotter.config.MAX_VARS_IN_COLS,
-                               figsize=plotter.config.FIGSIZE, figname="%s ICA components Time Series" % variable)
+                               figsize=plotter.config.DEFAULT_SIZE, figname="%s ICA components Time Series" % variable)
 
-        plt.figure(figsize=(plotter.config.FIGSIZE[0], 5))
+        plt.figure(figsize=(plotter.config.DEFAULT_SIZE[0], 5))
         plt.imshow(ica.components_)
         plt.xlabel("Region")
         plt.ylabel("ICA component")
