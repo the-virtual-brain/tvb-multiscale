@@ -6,8 +6,7 @@ from enum import Enum
 import numpy as np
 from pandas import Series
 
-from tvb.contrib.scripts.utils.data_structures_utils import \
-    data_xarray_from_continuous_events, concatenate_heterogeneous_DataArrays
+from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
 
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
