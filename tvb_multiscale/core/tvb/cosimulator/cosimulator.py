@@ -90,13 +90,10 @@ class CoSimulator(CoSimulatorBase):
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
         if self.synchronization_time == 0.0:
-            idelays = self.connectivity.idelays[numpy.logical_and(self.connectivity.weights != 0,
-                                                                  self.connectivity.idelays != 0)]
-            if idelays.size > 0:
-                self.synchronization_n_step = numpy.min(idelays)
-            else:
-                self.synchronization_n_step = 1
-            self.synchronization_time = self.synchronization_n_step * self.integrator.dt
+            existing_connections = self.connectivity.weights != 0
+            if numpy.any(existing_connections):
+                self.synchronization_n_step = self.connectivity.idelays[existing_connections].min()
+                self.synchronization_time = self.synchronization_n_step * self.integrator.dt
 
     def _preconfigure_interfaces_vois_proxy_inds(self):
         """This method will
