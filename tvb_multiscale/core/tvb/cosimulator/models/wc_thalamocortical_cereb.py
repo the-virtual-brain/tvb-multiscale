@@ -379,7 +379,7 @@ class WilsonCowanThalamoCortical(Model):
         self._SR_dels.append(self._SR_del.copy())
 
         self._stim_e[self._stim_e_inds] = self._M_e * np.sin(self._omega_e * time)
-        self._stim_s[self._stim_s_inds] = self._M_s * np.sin(self._omega_e * time)
+        self._stim_s[self._stim_s_inds] = self._M_s * np.sin(self._omega_s * time)
 
         # Firing rate/activity of E:
         state_variables[4] = self.__A(state_variables[0, :],  # E, exc
