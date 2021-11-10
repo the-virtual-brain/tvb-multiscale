@@ -341,10 +341,10 @@ class WilsonCowanThalamoCortical(Model):
         self._update_buffers(S, self._sr_buffers)
         self._update_buffers(S, self._sc_buffers)
 
-    def __A(self, E, I, S, c_e):
+    def __A(self, E, I, c_e):
         # local cortico-cortical exc -> exc
         # local cortico-cortical inh -> exc
-        # long-range thalamo->cortical relay -> exc
+        # long-range delayed thalamo->cortical relay -> exc
         # zero for subcortical structures
         # long-range cortico-cortical exc -> exc
         return self.w_ee * self.sigm_activ(E) + \
@@ -384,7 +384,6 @@ class WilsonCowanThalamoCortical(Model):
         # Firing rate/activity of E:
         state_variables[4] = self.__A(state_variables[0, :],  # E, exc
                                       state_variables[1, :],  # I, inh
-                                      state_variables[3, :],  # S, thal relay
                                       coupling[0, :])  # c, long-range coupling, Cortical exc
         self._A = state_variables[4]
         return state_variables
