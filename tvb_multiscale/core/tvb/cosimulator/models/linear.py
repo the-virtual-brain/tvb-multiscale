@@ -85,7 +85,7 @@ class Linear(Model):
     _nvar = 1
     cvar = numpy.array([0], dtype=numpy.int32)
 
-    def dfun(self, state, coupling, local_coupling=0.0):
+    def dfun(self, state, coupling, local_coupling=0.0, time=0.0):
         """
         .. math::
             dR = ({\gamma}R + G * coupling + local_coupling * R)/{\tau} + I_o

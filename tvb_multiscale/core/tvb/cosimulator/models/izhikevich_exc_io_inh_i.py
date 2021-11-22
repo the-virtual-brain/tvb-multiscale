@@ -491,7 +491,7 @@ class IzhikevichExcIOInhI(ModelNumbaDfun):
 
         return numpy.array([dS_e, dS_i, dV_e, dV_i, dU_e, dU_i])
 
-    def dfun(self, x, c, local_coupling=0.0): # c here is coupling
+    def dfun(self, x, c, local_coupling=0.0, time=0.0):  # c here is coupling
         if self._R_e is None:
             # Compute intermediate values for this step
             # Form the whole state_variables vector from integration_variables (i.e., x)

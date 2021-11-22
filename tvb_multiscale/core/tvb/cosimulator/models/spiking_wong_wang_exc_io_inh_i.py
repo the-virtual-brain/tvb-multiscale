@@ -759,5 +759,5 @@ class SpikingWongWangExcIOInhI(Model):
 
         return derivative
 
-    def dfun(self, x, c, local_coupling=0.0):
+    def dfun(self, x, c, local_coupling=0.0, time=0.0):
         return self._numpy_dfun(x, c, local_coupling)

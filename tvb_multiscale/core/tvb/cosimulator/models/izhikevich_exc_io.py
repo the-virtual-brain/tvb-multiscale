@@ -373,7 +373,7 @@ class IzhikevichExcIO(ModelNumbaDfun):
 
         return numpy.array([dS, dV, dU])
 
-    def dfun(self, x, c, local_coupling=0.0):  # x = [S, V, U]
+    def dfun(self, x, c, local_coupling=0.0, time=0.0):  # x = [S, V, U]
         if self._R is None:
             # Compute intermediate values for this step
             # Form the whole state_variables vector from integration_variables (i.e., x)

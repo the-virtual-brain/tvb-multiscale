@@ -274,7 +274,7 @@ class Generic2dOscillator(TVBGeneric2dOscillator):
 
         return derivative
 
-    def dfun(self, vw, c, local_coupling=0.0):
+    def dfun(self, vw, c, local_coupling=0.0, time=0.0):
         lc_0 = local_coupling * vw[0, :, 0]
         vw_ = vw.reshape(vw.shape[:-1]).T
         c_ = c.reshape(c.shape[:-1]).T

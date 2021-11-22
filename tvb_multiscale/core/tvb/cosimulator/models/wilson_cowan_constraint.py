@@ -168,3 +168,6 @@ class WilsonCowan(TVBWilsonCowan):
         doc="""default state variables to be monitored""")
 
     cvar = numpy.array([0], dtype=numpy.int32)
+
+    def dfun(self, state, coupling, local_coupling=0.0, time=0.0):
+        return super(WilsonCowan, self).dfun( state, coupling, local_coupling)

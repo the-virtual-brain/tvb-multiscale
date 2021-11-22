@@ -71,7 +71,7 @@ class LinearReducedWongWangExcIO(ReducedWongWangExcIO):
 
         return numpy.array([dS])
 
-    def dfun(self, x, c, local_coupling=0.0):
+    def dfun(self, x, c, local_coupling=0.0, time=0.0):
         if self._R is None:
             state_variables = self._integration_to_state_variables(x)
             state_variables = \
