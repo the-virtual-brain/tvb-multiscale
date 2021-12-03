@@ -43,7 +43,9 @@ def print_conn(d={}, prnt="", maxrow=200, printit=True):
     return prnt
 
 
-def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn=None, nperseg=256, figsize=(15, 5)):
+def compute_plot_selected_spectra_coherence(source_ts, inds,
+                                            transient=0.0, conn=None, nperseg=256, fmin=0.0, fmax=100.0,
+                                            figsize=(15, 5)):
     n_regions = int(len(inds) / 2)
     data = source_ts[transient:, 0, inds, 0].squeeze().T
     if conn is None:
@@ -55,15 +57,17 @@ def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn
     for ii in range(n_regions):
         iR = ii*2
         iL = ii*2 + 1
-        axes[ii, 0].plot(f, Pxx_den[0], label="%.1fHz, %s" % (f[np.argmax(Pxx_den[0])], conn.region_labels[inds[iR]]))
-        axes[ii, 0].plot(f, Pxx_den[1], label="%.1fHz, %s" % (f[np.argmax(Pxx_den[0])], conn.region_labels[inds[iL]]))
-        axes[ii, 0].set_xlim([0, 100])
+        axes[ii, 0].plot(f, Pxx_den[iR],
+                         label="%.1fHz, %s" % (f[np.argmax(Pxx_den[0])], conn.region_labels[inds[iR]]))
+        axes[ii, 0].plot(f, Pxx_den[iL],
+                         label="%.1fHz, %s" % (f[np.argmax(Pxx_den[1])], conn.region_labels[inds[iL]]))
+        axes[ii, 0].set_xlim([fmin, fmax])
         axes[ii, 0].set_xlabel('frequency [Hz]')
         axes[ii, 0].set_ylabel('PSD [V**2/Hz]')
         axes[ii, 0].legend()
-        axes[ii, 1].semilogy(f, Pxx_den[0], label=conn.region_labels[inds[iR]])
-        axes[ii, 1].semilogy(f, Pxx_den[1], label=conn.region_labels[inds[iL]])
-        axes[ii, 1].set_xlim([0, 100])
+        axes[ii, 1].semilogy(f, Pxx_den[iR], label=conn.region_labels[inds[iR]])
+        axes[ii, 1].semilogy(f, Pxx_den[iL], label=conn.region_labels[inds[iL]])
+        axes[ii, 1].set_xlim([fmin, fmax])
         axes[ii, 1].set_xlabel('frequency [Hz]')
         axes[ii, 1].set_ylabel('PSD [log(V**2/Hz)]')
         axes[ii, 1].legend()
@@ -87,7 +91,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn
                              label="%s - %s" % (conn.region_labels[inds[iR1]], conn.region_labels[inds[iR2]]))
             axes[ii, 0].plot(fL, CxyL.T,
                              label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
-            axes[ii, 0].set_xlim([0, 100])
+            axes[ii, 0].set_xlim([fmin, fmax])
             axes[ii, 0].set_xlabel('frequency [Hz]')
             axes[ii, 0].set_ylabel('Coherence')
             axes[ii, 0].legend()
@@ -95,7 +99,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds, transient=0.0, conn
                                  label="%s - %s" % (conn.region_labels[inds[iR1]], conn.region_labels[inds[iR2]]))
             axes[ii, 1].semilogy(fL, CxyL.T,
                                  label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
-            axes[ii, 1].set_xlim([0, 100])
+            axes[ii, 1].set_xlim([fmin, fmax])
             axes[ii, 1].set_xlabel('frequency [Hz]')
             axes[ii, 1].set_ylabel('log10(Coherence)')
             axes[ii, 1].legend()
