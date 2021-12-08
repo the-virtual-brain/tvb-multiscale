@@ -121,7 +121,7 @@ def create_inds_flags(connectivity, data_path, sim_constants, files, model_param
     if sim_constants["model_mode"]:
         flags["is_thalamic"] = np.array([False] * connectivity.region_labels.shape[0]).astype("bool")
         flags["is_thalamic"][inds["thalspec"]] = True
-        flags["is_subcortical_not_thalamic"] = np.logical_and(flags["is_subcortical"],
+    flags["is_subcortical_not_thalamic"] = np.logical_and(flags["is_subcortical"],
                                                               np.logical_not(flags["is_thalamic"]))
 
     return major_structs_labels, voxel_count, inds, flags, model_params
@@ -216,6 +216,7 @@ def build_simulator(connectivity, sim_constants, inds, flags, model_params, conf
 
     if sim_constants["model_mode"]:
         simulator.model = WilsonCowanThalamoCortical(is_thalamic=flags["is_thalamic"][:, np.newaxis],
+                                                     is_cortical=flags["is_cortical"][:, np.newaxis],
                                                      **model_params)
 
         # Specific thalamic relay -> nonspecific subcortical structures connections' weights:
@@ -341,7 +342,7 @@ def build_simulator(connectivity, sim_constants, inds, flags, model_params, conf
     simulator.integrator.dt = sim_constants["dt"]
     simulator.integrator.noise.nsig = np.array([NOISE] * (simulator.model.nvar - 1) + [0.0])
 
-    simulator.initial_conditions = np.zeros((1, simulator.model.nvar, connectivity.number_of_regions, 1))
+    simulator.initial_conditions = np.zeros((1000, simulator.model.nvar, connectivity.number_of_regions, 1))
 
     mon_raw = Raw(period=1.0)  # ms
     bold = Bold(period=128.0,  # !!! Set a proper (1-2 sec??) TR time in ms !!!
