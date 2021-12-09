@@ -751,7 +751,7 @@ class WilsonCowanThalamoCortical(Model):
     cvar = np.array([0], dtype=np.int32)
     stvar = np.array([0], dtype=np.int32)
 
-    test_mode = False
+    test_mode = False  # 1 or 2 for error in coupling!
 
     dt = 0.1
     _n_regions = 1
@@ -1005,20 +1005,21 @@ class WilsonCowanThalamoCortical(Model):
                 self._SR_dels.append(self._SR_del.copy())
                 self._cET.append(coupling[0, self.is_thalamic[:, 0]].squeeze())  # only for testing
                 self._cSC.append(coupling[2, self.is_cortical[:, 0]].squeeze())  # only for testing
-                try:
-                    ET_del_sigm = self.sigm_activ(self._ET_dels[-1]).squeeze()
-                    assert np.any(np.abs(ET_del_sigm - self._cET[-1]) < 0.001)
-                except:
-                    print("Compare ET(%g):\n%s" %
-                          (time, str(np.vstack([ET_del_sigm, self._cET[-1]]).T)))
-                    raise
-                try:
-                    SC_del_sigm = self.sigm_activ(self._SC_dels[-1]).squeeze()
-                    assert np.any(np.abs(SC_del_sigm - self._cSC[-1]) < 0.001)
-                except:
-                    print("Compare SC(%g):\n%s" %
-                          (time, str(np.vstack([SC_del_sigm, self._cSC[-1]]).T)))
-                    raise
+                if int(self.test_mode) > 1:
+                    try:
+                        ET_del_sigm = self.sigm_activ(self._ET_dels[-1]).squeeze()
+                        assert np.any(np.abs(ET_del_sigm - self._cET[-1]) < 0.001)
+                    except:
+                        print("Compare ET(%g):\n%s" %
+                              (time, str(np.vstack([ET_del_sigm, self._cET[-1]]).T)))
+                        raise
+                    try:
+                        SC_del_sigm = self.sigm_activ(self._SC_dels[-1]).squeeze()
+                        assert np.any(np.abs(SC_del_sigm - self._cSC[-1]) < 0.001)
+                    except:
+                        print("Compare SC(%g):\n%s" %
+                              (time, str(np.vstack([SC_del_sigm, self._cSC[-1]]).T)))
+                        raise
 
             # Firing rate/activity of thalamic relay S (Exc):
             state_variables[2, self.is_thalamic[:, 0]] = \
