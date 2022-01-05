@@ -52,15 +52,15 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
         conn = source_ts.connectivity
     fs = 1000/source_ts.sample_period
     f, Pxx_den = signal.welch(data, fs, nperseg=nperseg)
-    print(np.mean(np.diff(f)))
+
     fig, axes = plt.subplots(n_regions, 2, figsize=(figsize[0], figsize[1]*n_regions))
     for ii in range(n_regions):
         iR = ii*2
         iL = ii*2 + 1
         axes[ii, 0].plot(f, Pxx_den[iR],
-                         label="%.1fHz, %s" % (f[np.argmax(Pxx_den[0])], conn.region_labels[inds[iR]]))
+                         label="%.1fHz, %s" % (f[np.argmax(Pxx_den[iR])], conn.region_labels[inds[iR]]))
         axes[ii, 0].plot(f, Pxx_den[iL],
-                         label="%.1fHz, %s" % (f[np.argmax(Pxx_den[1])], conn.region_labels[inds[iL]]))
+                         label="%.1fHz, %s" % (f[np.argmax(Pxx_den[iL])], conn.region_labels[inds[iL]]))
         axes[ii, 0].set_xlim([fmin, fmax])
         axes[ii, 0].set_xlabel('frequency [Hz]')
         axes[ii, 0].set_ylabel('PSD [V**2/Hz]')
