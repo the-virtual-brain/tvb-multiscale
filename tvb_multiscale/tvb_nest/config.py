@@ -85,7 +85,7 @@ class Config(ConfigBase):
 
     @property
     def DEFAULT_NEST_KERNEL_CONFIG(self):
-        return {"data_path": self.RECORDINGS_DIR, "overwrite_files": True, "print_time": True,
+        return {"data_path": self.RECORDINGS_DIR, "overwrite_files": True,
                 'rng_seed': self.MASTER_SEED, "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS}
 
     @property
