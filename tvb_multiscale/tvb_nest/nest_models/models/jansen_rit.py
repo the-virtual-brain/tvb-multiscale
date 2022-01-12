@@ -42,7 +42,9 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.pop_conns_IP = {}
 
         self.nodes_conns = {}
-        self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.cmax", np.array([2.0 * 0.0025]))[0].item()
+        self.global_coupling_scaling = \
+            self.tvb_serial_sim.get("coupling.cmax", np.array([2.0 * 0.0025]))[0].item() * \
+            self.tvb_serial_sim.get("coupling.a", np.array([0.56]))[0].item()
 
         self.spike_recorder = {}
         self.multimeter = {}
