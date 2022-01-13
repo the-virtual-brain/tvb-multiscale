@@ -55,7 +55,7 @@ class CoSimulatorSerial(CoSimulator):
 
     def _loop_update_cosim_history(self, step, state):
         if self.cosim_history is not None:
-            super(CoSimulatorSerial, self)._loop_update_cosim_history(step, state)
+            state = super(CoSimulatorSerial, self)._loop_update_cosim_history(step, state)
         else:
             super(CoSimulatorSerial, self)._loop_update_history(step, np.copy(state))
         return state
