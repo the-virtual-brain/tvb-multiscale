@@ -130,13 +130,6 @@ class JansenRitCouplingRatesToSpikesElephantPoissonMultipleInteraction(RatesToSp
 
 class JansenRitInverseSigmoidal(HasTraits):
 
-    model = Attr(
-        field_type=JansenRit,
-        label="JansenRit TVB model",
-        default=JansenRit(),
-        required=True,
-        doc="""JansenRit TVB model""")
-
     Rmax = NArray(
         label=r":math:`\R_max`",
         default=np.array([12., ]),
@@ -147,20 +140,27 @@ class JansenRitInverseSigmoidal(HasTraits):
         default=np.array([0.1, ]),
         doc="""[Hz]. Maximum rate.""")
 
-    def configure(self):
-        super(JansenRitInverseSigmoidal, self).configure()
-        self.model.configure()
+    v0 = NArray(
+        label=r":math:`\v_0`",
+        default=np.array([5.52, ]),
+        doc="""[mV] Firing threshold (PSP) for which a 50% firing rate is achieved.
+                In other words, it is the value of the average membrane potential
+                corresponding to the inflection point of the sigmoid.
+                The usual value for this parameter is around 6.0.""")
+
+    r = NArray(
+        label=r":math:`\v_0`",
+        default=np.array([0.56, ]),
+        doc="""[mV^-1] Steepness of the sigmoidal transformation .""")
 
     def _compute(self, input_buffer):
-        return self.model.v0 - np.log(2*self.Rmax / np.maximum(np.minimum(input_buffer,
-                                                                          self.Rmin), self.Rmax) - 1)/self.model.r
+        return self.v0 - np.log(2*self.Rmax / np.minimum(np.maximum(input_buffer,
+                                                                    self.Rmin), self.Rmax) - 1)/self.r
 
     def print_str(self):
         out = ""
-        for p in ['Rmin', 'Rmax']:
+        for p in ['Rmin', 'Rmax', 'v0', 'r']:
             out += "\n     - %s = %s" % (p, str(getattr(self, p)))
-        for p in ['v0', 'r']:
-            out += "\n     - JansenRit model.%s = %s" % (p, str(getattr(self.model, p)))
         return out
 
 
@@ -177,8 +177,7 @@ class SpikesToRatesJansenRitInverseSigmoidal(SpikesToRates, JansenRitInverseSigm
         output_buffer = []
         for scale_factor, proxy_buffer in zip(self._scale_factor, self.input_buffer):
             output_buffer.append(
-                scale_factor * JansenRitInverseSigmoidal._compute(self,
-                                                                  self._compute(proxy_buffer, *args, **kwargs))
+                JansenRitInverseSigmoidal._compute(self, scale_factor * self._compute(proxy_buffer, *args, **kwargs))
             )
         self.output_buffer = np.array(output_buffer)
         return self.output_buffer
