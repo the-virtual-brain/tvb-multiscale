@@ -6,8 +6,6 @@ from enum import Enum
 from abc import ABCMeta, abstractmethod
 from six import string_types
 
-import numpy as np
-
 from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Float
 
@@ -100,7 +98,6 @@ class TransformerBuilder(HasTraits):
         for p, pval in params.items():
             setattr(transformer, p, pval)
 
-    build_transformer
     @abstractmethod
     def configure_and_build_transformer(self, interfaces):
         pass
@@ -123,19 +120,20 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
-                if interface["transformer"] == DefaultTVBtoSpikeNetTransformers.SPIKES:
+                if interface["transformer"] == self._default_tvb_to_spikeNet_models.SPIKES:
                     # If the transformer is "SPIKES", but there are parameters that concern correlations...
                     correlation_factor = params.pop("correlation_factor", None)
                     if correlation_factor:
                         interaction = params.pop("interaction", "multiple")
                         if interaction == "single":
                             interface["transformer"] = \
-                                self.build_transformer(DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.value,
-                                                       correlation_factor=correlation_factor, **params)
+                                self.build_transformer(
+                                    self._default_tvb_to_spikeNet_models.SPIKES_SINGLE_INTERACTION.value,
+                                    correlation_factor=correlation_factor, **params)
                         else:
                             interface["transformer"] = \
                                 self.build_transformer(
-                                    DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value,
+                                    self._default_tvb_to_spikeNet_models.SPIKES_MULTIPLE_INTERACTION.value,
                                     correlation_factor=correlation_factor, **params)
                     else:
                         # SPIKES without correlations:
@@ -169,6 +167,9 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
                 interface["transformer"] = interface["transformer"].value(**params)
+            elif inspect.isclass(interface["transformer"]):
+                # ...or a Transformer type:
+                interface["transformer"] = self.build_transformer(interface["transformer"], **params)
             else:
                 # ...or a model
                 self.set_transformer_parameters(interface["transformer"], params)
