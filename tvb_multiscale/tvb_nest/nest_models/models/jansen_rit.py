@@ -5,9 +5,6 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, random_normal_tvb_weight, \
-    random_uniform_delay, random_uniform_tvb_delay, receptor_by_source_region
 
 
 class JansenRitBuilder(NESTNetworkBuilder):
@@ -83,7 +80,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
     # By default we choose random jitter on weights and delays
 
     def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return random_normal_weight(w, scale, sigma)
+        return w
 
     def within_node_delay(self):
         return self.tvb_dt
