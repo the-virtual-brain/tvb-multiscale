@@ -107,13 +107,15 @@ class Elementary(Transformer):
         self.output_buffer = deepcopy(self.input_buffer)
 
 
-class Scale(Transformer):
+class Linear(Transformer):
     """
-        Scale Transformer scales the input with a scale factor in order to compute the output.
+        Linear Transformer scales the input with a scale factor and translates it by a constant
+        in order to compute the output.
         It comprises of:
             - an input buffer data numpy.array,
             - an output buffer data numpy.array,
             - a scale factor numpy.array,
+            - a translation factor numpy.array,
             - a method to multiply the input buffer data by the scale factor for the output buffer data to result.
     """
 
@@ -124,90 +126,61 @@ class Scale(Transformer):
         default=np.array([1.0])
     )
 
+    translation_factor = NArray(
+        label="Translation factor",
+        doc="""Array to translate input buffer.""",
+        required=True,
+        default=np.array([0.0])
+    )
+
     @property
     def _scale_factor(self):
         return self._assert_size("scale_factor")
 
+    @property
+    def _translation_factor(self):
+        return self._assert_size("translation_factor")
+
     def configure(self):
-        super(Scale, self).configure()
+        super(Linear, self).configure()
         self._scale_factor
+        self._translation_factor
 
     def compute(self):
-        """Method that just scales input buffer data to compute the output buffer data."""
+        """Method that just scales and translates input buffer data to compute the output buffer data."""
         if isinstance(self.input_buffer, np.ndarray):
-            self.output_buffer = self.scale_factor * self.input_buffer
+            self.output_buffer = self.scale_factor * self.input_buffer + self.translation_factor
         else:
             self.output_buffer = []
-            for scale_factor, input_buffer in zip(self._scale_factor, self.input_buffer):
-                self.output_buffer.append(scale_factor * input_buffer)
+            for scale_factor, translation_factor, input_buffer in \
+                    zip(self.input_buffer, self._scale_factor, self._translation_factor):
+                self.output_buffer.append(scale_factor * input_buffer + translation_factor)
 
     def print_str(self):
-        return super(Scale, self).print_str() + \
+        return super(Linear, self).print_str() + \
                "\n     - scale_factor = %s" % str(self.scale_factor)
 
 
-class ScaleRate(Scale):
+class LinearRate(Linear):
 
-    """ScaleRate class that just scales mean field rates to spiking rates,
+    """LinearRate class that just scales and translates mean field rates,
        including any unit conversions and conversions from mean field to total rates"""
 
     pass
 
 
-class ScaleCurrent(Scale):
-    """ScaleCurrent class that just scales mean field currents to spiking network ScaleCurrent,
+class LinearCurrent(Linear):
+    """LinearCurrent class that just scales and translates mean field currents,
        including any unit conversions and conversions from mean field to total rates"""
 
     pass
 
 
-class DotProduct(Transformer):
-    """
-        DotProduct Transformer computes the dot product of the input with a scale factor
-        in order to compute the output.
-        It comprises of:
-            - an input buffer data numpy.array,
-            - an output buffer data numpy.array,
-            - a dot factor numpy.array,
-            - a method to perform the left dot product upon the input buffer for the output buffer data to result.
-    """
+class LinearVoltage(Linear):
+    """LinearVoltage class that just scales and translates mean field voltages
+       including any unit conversions and conversions from mean field to total rates"""
 
-    input_buffer = NArray(
-        label="Input buffer",
-        doc="""Array to store temporarily the data to be transformed.""",
-        required=True,
-        default=np.array([])
-    )
-
-    output_buffer = NArray(
-        label="Output buffer",
-        doc="""Array to store temporarily the transformed data.""",
-        required=True,
-        default=np.array([])
-    )
-
-    dot_factor = NArray(
-        label="Dot factor",
-        doc="""Array to perform the left dot product upon the input buffer.""",
-        required=True,
-        default=np.array([[1.0]])
-    )
-
-    @property
-    def _dot_factor(self):
-        return self._assert_size("dot_factor", dim=1)
-
-    def configure(self):
-        super(DotProduct, self).configure()
-        self._dot_factor
-
-    def compute(self):
-        """Method that just scales input buffer data to compute the output buffer data."""
-        self.output_buffer = np.dot(self._dot_factor * self.input_buffer)
-
-    def print_str(self):
-        return super(DotProduct, self).print_str() + \
-               "\n     - dot_factor = %s" % str(self.dot_factor)
+    pass
 
 
 class Integration(Transformer):
@@ -283,7 +256,7 @@ class Integration(Transformer):
                "\n     - integrator = %s" % str(self.integrator)
 
 
-class RatesToSpikes(Scale):
+class RatesToSpikes(Linear):
     __metaclass__ = ABCMeta
 
     """
@@ -336,15 +309,17 @@ class RatesToSpikes(Scale):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
         self.output_buffer = []
-        for iP, (scale_factor, proxy_buffer) in enumerate(zip(self._scale_factor, self.input_buffer)):
-            self.output_buffer.append(self._compute(scale_factor*proxy_buffer, iP, *args, **kwargs))
+        for iP, (proxy_buffer, scale_factor, translation_factor) in \
+                enumerate(zip(self.input_buffer, self._scale_factor, self._translation_factor)):
+            self.output_buffer.append(
+                self._compute(scale_factor * proxy_buffer + translation_factor, iP, *args, **kwargs))
 
     def print_str(self):
         return super(RatesToSpikes, self).print_str() + \
                "\n     - number_of_neurons = %s" % str(self.number_of_neurons)
 
 
-class SpikesToRates(Scale):
+class SpikesToRates(Linear):
     __metaclass__ = ABCMeta
 
     """
@@ -389,7 +364,9 @@ class SpikesToRates(Scale):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
         output_buffer = []
-        for scale_factor, proxy_buffer in zip(self._scale_factor, self.input_buffer):  # At this point we assume that input_buffer has shape (proxy,)
-            output_buffer.append(scale_factor * self._compute(proxy_buffer, *args, **kwargs))
+        for proxy_buffer, scale_factor, translation_factor in \
+                zip(self.input_buffer, self._scale_factor, self._translation_factor):
+            # At this point we assume that input_buffer has shape (proxy,)
+            output_buffer.append(scale_factor * self._compute(proxy_buffer, *args, **kwargs) + translation_factor)
         self.output_buffer = np.array(output_buffer)
         return self.output_buffer
