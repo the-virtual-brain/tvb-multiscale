@@ -46,32 +46,13 @@ class CoSimulatorSerial(CoSimulator):
 
     simulate_spiking_simulator = None
 
-    def configure(self, full_configure=True):
-        super(CoSimulatorSerial, self).configure(full_configure=full_configure)
-        if self.simulate_spiking_simulator is not None and self.synchronization_n_step == 0:
-            self._cosimulation_flag = True
-            self.synchronization_time = self.simulation_length
-            self.synchronization_n_step = int(np.round(self.synchronization_time / self.integrator.dt))
-
-    def _loop_update_cosim_history(self, step, state):
-        if self.cosim_history is not None:
-            state = super(CoSimulatorSerial, self)._loop_update_cosim_history(step, state)
-        else:
-            super(CoSimulatorSerial, self)._loop_update_history(step, np.copy(state))
-        return state
-
-    def _update_cosim_history(self, current_steps, cosim_updates):
-        if self.cosim_history is not None:
-            super(CoSimulatorSerial, self)._update_cosim_history(current_steps, cosim_updates)
-
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         steps_performed = \
             super(CoSimulatorSerial, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation, **kwds)
-        if cosimulation and self.simulate_spiking_simulator is not None:
-            if self.n_tvb_steps_sent_to_cosimulator_at_last_synch is None:
-                steps_to_run = steps_performed
-            else:
-                steps_to_run = self.n_tvb_steps_sent_to_cosimulator_at_last_synch
+        if self.simulate_spiking_simulator is not None:
+            steps_to_run = np.where(self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
+                                    self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
+                                    steps_performed).item()
             self.log.info("Simulating the spiking network for %d time steps...", steps_to_run)
             self.simulate_spiking_simulator(steps_to_run * self.integrator.dt)
         return steps_performed
