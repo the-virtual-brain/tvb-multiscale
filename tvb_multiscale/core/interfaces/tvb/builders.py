@@ -296,8 +296,15 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def build(self):
         self.build_interfaces()
         self.tvb_cosimulator.exclusive = self.exclusive_nodes
-        self.tvb_cosimulator.output_interfaces = self._output_interfaces_type(interfaces=self._output_interfaces)
-        self.tvb_cosimulator.input_interfaces = self._input_interfaces_type(interfaces=self._input_interfaces)
+        self.tvb_cosimulator.output_interfaces = \
+            self._output_interfaces_type(interfaces=self._output_interfaces,
+                                         synchronization_time=self.synchronization_time,
+                                         synchronization_n_step=self.synchronization_n_step)
+        self.tvb_cosimulator.input_interfaces = \
+            self._input_interfaces_type(interfaces=self._input_interfaces,
+                                        synchronization_time=self.synchronization_time,
+                                        synchronization_n_step=self.synchronization_n_step)
+        self.tvb_cosimulator.configure()
         return self.tvb_cosimulator
 
 
