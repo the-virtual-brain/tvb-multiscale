@@ -6,126 +6,158 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits
-from tvb.basic.neotraits._attr import Attr, NArray
+from tvb.basic.neotraits._attr import Int, NArray, Range
 
-from tvb_multiscale.core.tvb.cosimulator.models.jansen_rit import JansenRit, SigmoidalJansenRit
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
-    ScaleCurrent, ScaleRate, RatesToSpikes, SpikesToRates
+from tvb_multiscale.core.interfaces.base.transformers.models.base import LinearRate, RatesToSpikes, SpikesToRates
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonSingleInteraction, \
     RatesToSpikesElephantPoissonMultipleInteraction, \
     ElephantSpikesHistogram, ElephantSpikesHistogramRate, ElephantSpikesRate
 
 
-class JansenRitCoupling(HasTraits):
+class JansenRitSigmoidal(HasTraits):
 
-    coupling = Attr(
-        field_type=SigmoidalJansenRit,
-        label="Long-range coupling function",
-        default=SigmoidalJansenRit(),
-        required=True,
-        doc="""The coupling function is applied to the activity propagated
-                   between regions by the ``Long-range connectivity`` before it enters the local
-                   dynamic equations of the Model. Its primary purpose is to 'rescale' the
-                   incoming activity to a level appropriate to Model.""")
+    cmin = NArray(
+        label=":math:`c_{min}`",
+        default=np.array([0.0, ]),
+        domain=Range(lo=-1000.0, hi=1000.0, step=10.0),
+        doc="Minimum of the sigmoid function", )
+
+    cmax = NArray(
+        label=":math:`c_{max}`",
+        default=np.array([2.0 * 0.0025, ]),
+        domain=Range(lo=-1000.0, hi=1000.0, step=10.0),
+        doc="Maximum of the sigmoid function", )
+
+    midpoint = NArray(
+        label="midpoint",
+        default=np.array([6.0, ]),
+        domain=Range(lo=-1000.0, hi=1000.0, step=10.0),
+        doc="Midpoint of the linear portion of the sigmoid", )
+
+    r = NArray(
+        label=r":math:`r`",
+        default=np.array([1.0, ]),
+        domain=Range(lo=0.01, hi=1000.0, step=10.0),
+        doc="the steepness of the sigmoidal transformation", )
+
+    ind_Ein = Int(default=1,
+                  field_type=int,
+                  label="Excitatory interneurons Index",
+                  doc="""Index of excitatory interneurons coupling state variable""")
+
+    ind_Iin = Int(default=2,
+                  field_type=int,
+                  label="Inhibitory interneurons Index",
+                  doc="""Index of inhibitory interneurons coupling state variable""")
 
     def configure(self):
-        super(JansenRitCoupling, self).configure()
-        self.coupling.configure()
+        super(JansenRitSigmoidal, self).configure()
 
     def _compute(self, input_buffer):
-        return self.coupling(input_buffer).squeeze()
+        return self.cmax / (1.0 + np.exp(self.r * (self.midpoint - (input_buffer[:, self.ind_Ein] -
+                                                                    input_buffer[:, self.ind_Iin]))))
 
     def print_str(self):
         out = ""
-        for p in self.coupling._own_declarative_attrs:
-            out += "\n     - SigmoidalJansenRit coupling.%s = %s" % (p, str(getattr(self.coupling, p)))
+        for p in ["cmin", "cmax", "midpoint", "r", "ind_Ein", "ind_Iin"]:
+            out += "\n     - %s = %s" % (p, str(getattr(self, p)))
         return out
 
 
-class JansenRitCouplingScaleRate(ScaleRate, JansenRitCoupling):
+class JansenRitSigmoidalLinearRate(LinearRate, JansenRitSigmoidal):
 
     def configure(self):
-        ScaleRate.configure(self)
-        JansenRitCoupling.configure(self)
+        LinearRate.configure(self)
+        JansenRitSigmoidal.configure(self)
 
     def compute(self):
-        """Method that just scales input buffer data to compute the output buffer data."""
-        self.output_buffer = self.scale_factor * JansenRitCoupling._compute(self, self.input_buffer)
+        """Method that just scales and translates the input buffer data to compute the output buffer data."""
+        if isinstance(self.input_buffer, np.ndarray):
+            self.output_buffer = \
+                self.scale_factor * JansenRitSigmoidal._compute(self, self.input_buffer) + self.translation_factor
+        else:
+            self.output_buffer = []
+            for scale_factor, translation_factor, input_buffer in \
+                    zip(self.input_buffer, self._scale_factor, self._translation_factor):
+                self.output_buffer.append(
+                    scale_factor * JansenRitSigmoidal._compute(self, input_buffer) + translation_factor)
 
     def print_str(self):
-        return ScaleRate.print_str(self) + \
-               "\n" + JansenRitCoupling.print_str(self)
+        return LinearRate.print_str(self) + \
+               "\n" + JansenRitSigmoidal.print_str(self)
 
 
-class JansenRitCouplingRatesToSpikes(RatesToSpikes, JansenRitCoupling, ABC):
+class JansenRitSigmoidalRatesToSpikes(RatesToSpikes, JansenRitSigmoidal, ABC):
     __metaclass__ = ABCMeta
 
     def configure(self):
         RatesToSpikes.configure(self)
-        JansenRitCoupling.configure(self)
+        JansenRitSigmoidal.configure(self)
 
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
         self.output_buffer = []
-        for iP, (scale_factor, proxy_buffer) in enumerate(zip(self._scale_factor, self.input_buffer)):
-            self.output_buffer.append(self._compute(scale_factor*JansenRitCoupling._compute(self, proxy_buffer),
-                                                    iP, *args, **kwargs))
+        for iP, (proxy_buffer, scale_factor, translation_factor) in \
+                enumerate(zip(self.input_buffer, self._scale_factor, self._translation_factor)):
+            self.output_buffer.append(
+                self._compute(scale_factor * JansenRitSigmoidal._compute(self, proxy_buffer) + translation_factor,
+                              iP, *args, **kwargs))
 
 
-class JansenRitCouplingRatesToSpikesElephantPoisson(RatesToSpikesElephantPoisson,
-                                                    JansenRitCouplingRatesToSpikes,
-                                                    JansenRitCoupling):
+class JansenRitSigmoidalRatesToSpikesElephantPoisson(RatesToSpikesElephantPoisson,
+                                                     JansenRitSigmoidalRatesToSpikes,
+                                                     JansenRitSigmoidal):
 
     def configure(self):
         RatesToSpikesElephantPoisson.configure(self)
-        JansenRitCoupling.configure(self)
+        JansenRitSigmoidal.configure(self)
 
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        JansenRitCouplingRatesToSpikes.compute(self, *args, **kwargs)
+        JansenRitSigmoidalRatesToSpikes.compute(self, *args, **kwargs)
 
     def print_str(self):
         return RatesToSpikesElephantPoisson.print_str(self) + \
-               JansenRitCoupling.print_str(self)
+               JansenRitSigmoidal.print_str(self)
 
 
-class JansenRitCouplingRatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonSingleInteraction,
-                                                                     JansenRitCouplingRatesToSpikes,
-                                                                     JansenRitCoupling):
+class JansenRitSigmoidalRatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonSingleInteraction,
+                                                                      JansenRitSigmoidalRatesToSpikes,
+                                                                      JansenRitSigmoidal):
 
     def configure(self):
         RatesToSpikesElephantPoissonSingleInteraction.configure(self)
-        JansenRitCoupling.configure(self)
+        JansenRitSigmoidal.configure(self)
 
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        JansenRitCouplingRatesToSpikes.compute(self, *args, **kwargs)
+        JansenRitSigmoidalRatesToSpikes.compute(self, *args, **kwargs)
 
     def print_str(self):
         return RatesToSpikesElephantPoissonSingleInteraction.print_str(self) + \
-               JansenRitCoupling.print_str(self)
+               JansenRitSigmoidal.print_str(self)
 
 
-class JansenRitCouplingRatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonMultipleInteraction,
-                                                                       JansenRitCouplingRatesToSpikes,
-                                                                       JansenRitCoupling):
+class JansenRitSigmoidalRatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonMultipleInteraction,
+                                                                        JansenRitSigmoidalRatesToSpikes,
+                                                                        JansenRitSigmoidal):
 
     def configure(self):
         RatesToSpikesElephantPoissonMultipleInteraction.configure(self)
-        JansenRitCoupling.configure(self)
+        JansenRitSigmoidal.configure(self)
 
     def compute(self, *args, **kwargs):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        JansenRitCouplingRatesToSpikes.compute(self, *args, **kwargs)
+        JansenRitSigmoidalRatesToSpikes.compute(self, *args, **kwargs)
 
     def print_str(self):
         return RatesToSpikesElephantPoissonMultipleInteraction.print_str(self) + \
-               JansenRitCoupling.print_str(self)
+               JansenRitSigmoidal.print_str(self)
 
 
 class JansenRitInverseSigmoidal(HasTraits):
@@ -155,7 +187,8 @@ class JansenRitInverseSigmoidal(HasTraits):
 
     def _compute(self, input_buffer):
         return self.v0 - np.log(2*self.Rmax / np.minimum(np.maximum(input_buffer,
-                                                                    self.Rmin), self.Rmax) - 1)/self.r
+                                                                    self.Rmin),
+                                                         self.Rmax) - 1)/self.r
 
     def print_str(self):
         out = ""
@@ -175,9 +208,11 @@ class SpikesToRatesJansenRitInverseSigmoidal(SpikesToRates, JansenRitInverseSigm
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
         output_buffer = []
-        for scale_factor, proxy_buffer in zip(self._scale_factor, self.input_buffer):
+        for proxy_buffer, scale_factor, translation_factor in \
+                zip(self.input_buffer, self._scale_factor, self._translation_factor):
             output_buffer.append(
-                JansenRitInverseSigmoidal._compute(self, scale_factor * self._compute(proxy_buffer, *args, **kwargs))
+                JansenRitInverseSigmoidal._compute(self, scale_factor * self._compute(proxy_buffer, *args, **kwargs)
+                                                         + translation_factor)
             )
         self.output_buffer = np.array(output_buffer)
         return self.output_buffer
@@ -238,10 +273,10 @@ class ElephantSpikesRateJansenRitInverseSigmoidal(ElephantSpikesRate,
 
 
 class DefaultTVBtoSpikeNetTransformersJansenRitCoupling(Enum):
-    RATE = JansenRitCouplingScaleRate
-    SPIKES = JansenRitCouplingRatesToSpikesElephantPoisson
-    SPIKES_SINGLE_INTERACTION = JansenRitCouplingRatesToSpikesElephantPoissonSingleInteraction
-    SPIKES_MULTIPLE_INTERACTION = JansenRitCouplingRatesToSpikesElephantPoissonMultipleInteraction
+    RATE = JansenRitSigmoidalLinearRate
+    SPIKES = JansenRitSigmoidalRatesToSpikesElephantPoisson
+    SPIKES_SINGLE_INTERACTION = JansenRitSigmoidalRatesToSpikesElephantPoissonSingleInteraction
+    SPIKES_MULTIPLE_INTERACTION = JansenRitSigmoidalRatesToSpikesElephantPoissonMultipleInteraction
 
 
 class DefaultSpikeNetToTVBTransformersJansenRitInverseSigmoidal(Enum):
