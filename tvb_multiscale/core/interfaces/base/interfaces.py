@@ -21,19 +21,6 @@ class BaseInterface(HasTraits):
         default=""
     )
 
-    synchronization_time = Float(
-        label="Synchronization Time",
-        default=0.0,
-        required=True,
-        doc="""Cosimulation synchronization time (ms) for exchanging data 
-               in milliseconds, must be an integral multiple of integration-step size.""")
-
-    synchronization_n_step = Int(
-        label="Synchronization time steps",
-        default=0,
-        required=True,
-        doc="""Cosimulation synchronization time steps (int) for exchanging data.""")
-
     @property
     def label(self):
         return self.__class__.__name__
@@ -46,7 +33,7 @@ class BaseInterface(HasTraits):
         return self.__class__.__name__
 
     def print_str(self, *args):
-        return "\nLabel: %s, Type: %s, Model: %s" % (self.label, self.__repr__(), self.model)
+        return "\nLabel: %s \nType: %s, Model: %s" % (self.label, self.__repr__(), self.model)
 
     def __str__(self):
         return self.print_str()
@@ -333,16 +320,6 @@ class BaseInterfaces(HasTraits):
     def configure(self):
         """Method to configure the interfaces"""
         super(BaseInterfaces, self).configure()
-        for interface in self.interfaces:
-            interface.configure()
-            if self.synchronization_time <= 0.0:
-                self.synchronization_time = interface.synchronization_time
-            else:
-                assert self.synchronization_time == interface.synchronization_time
-            if self.synchronization_n_step <= 0:
-                self.synchronization_n_step = interface.synchronization_n_step
-            else:
-                assert self.synchronization_n_step == interface.synchronization_n_step
 
     @property
     def labels(self):
@@ -363,6 +340,9 @@ class BaseInterfaces(HasTraits):
 
     def print_str(self):
         output = 2 * LINE + "%s\n\n" % self.__repr__()
+        output += "synchronization_time = %g, synchronization_n_step = %g" % \
+                  (self.synchronization_time, self.synchronization_n_step)
+        output += LINE + "\n"
         for ii, interface in enumerate(self.interfaces):
             output += "%d. %s" % (ii, interface.print_str())
             output += LINE + "\n"
