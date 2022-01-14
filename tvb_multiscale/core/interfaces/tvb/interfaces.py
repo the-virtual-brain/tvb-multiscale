@@ -112,9 +112,13 @@ class TVBOutputInterface(TVBInterface):
         return super(TVBOutputInterface, self).print_str(sender_not_receiver=True)
 
     def __call__(self, data):
-        # Assume a single voi and a single mode,
-        # and reshape from TVB (time, voi, proxy) to (proxy, time)
-        return data[:, 0, :].T
+        # Assume a single mode, and reshape from TVB (time, voi, proxy)...
+        if data.shape[1] == 1:
+            # ...to (proxy, time)
+            return data[:, 0, :].T
+        else:
+            # ...or (proxy, voi, time)
+            return np.transpose(data, (2, 1, 0))
 
 
 class TVBInputInterface(TVBInterface):
@@ -136,11 +140,14 @@ class TVBInputInterface(TVBInterface):
         return super(TVBInputInterface, self).print_str(sender_not_receiver=False)
 
     def __call__(self, data):
-        # Assume a single mode,
-        data = data.T  # and reshape from (proxy, (voi,) time) to TVB (time, (voi,) proxy)
+        # Assume a single mode, and reshape from (proxy, (voi,) time) to TVB (time, voi, proxy)
         if data.ndim < 3:
-            # and reshape from (proxy, time) to TVB (time, voi, proxy) if there was only one voi
+            # if there was no voi dimension
+            data = data.T
             data = data[:, None, :]
+        else:
+            # or if there was already a voi dimension
+            data = np.transpose(data, (2, 1, 0))
         return data
 
 
