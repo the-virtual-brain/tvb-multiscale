@@ -6,8 +6,8 @@ import numpy as np
 
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, random_normal_tvb_weight, \
-    random_uniform_delay, random_uniform_tvb_delay, receptor_by_source_region
+    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
+    random_uniform_delay, tvb_delay, random_uniform_tvb_delay, receptor_by_source_region
 
 
 class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
@@ -145,7 +145,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
         if scale is None:
             scale = self.global_coupling_scaling
         # return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
-        return scale * self.tvb_weights[source_node, target_node].item()
+        return scale * tvb_weight(source_node, target_node, self.tvb_weights)
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         if low is None:
@@ -153,7 +153,7 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
         if high is None:
             high = 2 * self.tvb_dt
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
-        return np.maximum(self.tvb_dt, self.tvb_delays[source_node, target_node].item())
+        return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
 
     def set_nodes_connections(self):
         self.nodes_connections = [
