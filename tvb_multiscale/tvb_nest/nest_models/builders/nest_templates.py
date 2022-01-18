@@ -20,8 +20,8 @@ or their nodes ranges
 
 
 def set_within_node_connection_random_normal_weight(node, mu=1.0, sigma=0.1):
-    return {"distribution": "normal", "mu": mu, "sigma": sigma}
-    # return float or dict
+    import nest
+    return nest.random.normal(mean=mu, std=sigma)
 
 
 def set_within_node_connection_receptor_type(node):
@@ -47,11 +47,12 @@ or in their source_nodes and target_nodes ranges
 
 
 def random_normal_weight(weight, scale=1.0, sigma=0.1):
+    import nest
     if weight == 0:
         return 0
     if scale != 1.0:
         weight *= scale
-    return {"distribution": "normal", "mu": weight, "sigma": sigma * np.abs(weight)}
+    return nest.random.normal(mean=weight, std=sigma*np.abs(weight))
 
 
 def random_normal_tvb_weight(source_node, target_node, tvb_weights, scale=1.0, sigma=0.1):
@@ -59,6 +60,7 @@ def random_normal_tvb_weight(source_node, target_node, tvb_weights, scale=1.0, s
 
 
 def random_uniform_delay(delay, low=0.0, high=1.0, sigma=0.1):
+    import nest
     if delay == 0:
         return delay
     if sigma is not None and sigma > 0.0:
@@ -66,7 +68,7 @@ def random_uniform_delay(delay, low=0.0, high=1.0, sigma=0.1):
         high = np.maximum(high, (1 + sigma) * delay)
     if high <= low:
         raise ValueError("Maximum delay %f is not larger than the minimum one %f!" % (high, low))
-    return {"distribution": "uniform", "low": low, "high": high}
+    return nest.random.uniform(min=low, max=high)
 
 
 def random_uniform_tvb_delay(source_node, target_node, tvb_delays, low=0.0, high=1.0, sigma=0.1):
@@ -98,5 +100,5 @@ or their target nodes ranges
 
 
 def set_input_device_connection_random_normal_weight(node, mu=1.0, sigma=0.1):
-    return {"distribution": "normal", "mu": mu, "sigma": sigma}
-    # return float or dict
+    import nest
+    return nest.random.normal(mean=mu, std=sigma)
