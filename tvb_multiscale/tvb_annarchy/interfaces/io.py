@@ -4,11 +4,11 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 import numpy as np
-from pandas import Series
 
-from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
-
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
+from tvb_multiscale.core.interfaces.spikeNet.io import \
+    SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
+    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDevice, ANNarchySpikeSourceArray, \
@@ -140,28 +140,8 @@ class ANNarchyOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     _spikeNet_output_device_type = ANNarchyOutputDevice
 
-    def device_variables(self, *args):
-        return ["times", "senders"]
 
-    def reset(self):
-       pass
-
-    def configure(self):
-        super(ANNarchyOutputDeviceSet, self).configure()
-        self.reset()
-
-    @property
-    def data(self):
-        data = []
-        # We need to get only the newly recorded events since last time:
-        for i_node, node in enumerate(self.source.devices()):
-            data.append({})
-            for var, val in self.source[node].get_new_events(self.variables).items():
-                data[i_node][var] = val
-        return [[], data]
-
-
-class ANNarchySpikeMonitorSet(ANNarchyOutputDeviceSet):
+class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDeviceSet):
 
     """
         ANNarchySpikeMonitorSet class to read events' data (spike times and senders)
@@ -175,46 +155,23 @@ class ANNarchySpikeMonitorSet(ANNarchyOutputDeviceSet):
 
     _spikeNet_output_device_type = ANNarchySpikeMonitor
 
-    @property
-    def data(self):
-        spike_data = []
-        for node in self.source.devices():
-            spike_data.append([])
-            spike_data[-1] = self.source[node].get_spikes_times_by_neurons(full_senders=True, new=True)
-        return [[], spike_data]
 
-
-class ANNarchySpikeMonitorMeanSet(ANNarchySpikeMonitorSet):
+class ANNarchySpikeMonitorTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, ANNarchyOutputDeviceSet):
 
     """
-        ANNarchySpikeMonitorSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        ANNarchySpikeMonitorTotalSet class to read events' data with no reference to spike senders (i.e., only spike times)
         from a DeviceSet of ANNarchySpikeMonitor instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of ANNarchySpikeMonitor instances to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
 
-    @property
-    def data(self):
-        spike_data = []
-        for node in self.source.devices():
-            spike_data.append([])
-            spike_data[-1] = self.source[node].new_spikes_times
-        return [[], spike_data]
+    model = "SpikeMonitor"
+
+    _spikeNet_output_device_type = ANNarchySpikeMonitor
 
 
-class ANNarchySpikeMonitorTotalSet(ANNarchySpikeMonitorMeanSet):
-
-    """
-        ANNarchySpikeMonitorSet class to read events' data with no reference to spike senders (i.e., only spike times)
-        from a DeviceSet of ANNarchySpikeMonitor instances in memory.
-        It comprises of:
-            - a source attribute, i.e., the DeviceSet of ANNarchySpikeMonitor instances to get (i.e., copy) data from,
-            - an abstract method to get data from the source.
-    """
-
-
-class ANNarchyMonitorSet(ANNarchyOutputDeviceSet):
+class ANNarchyMonitorSet(SpikeNetMultimeterDeviceSet, ANNarchyOutputDeviceSet):
 
     """
         ANNarchyMonitorSet class to read events' data (times, senders and variable values)
@@ -224,30 +181,12 @@ class ANNarchyMonitorSet(ANNarchyOutputDeviceSet):
             - an abstract method to get data from the source.
     """
 
-    model = "multimeter"
+    model = "monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
 
-    def device_variables(self, device):
-        return super(ANNarchyMonitorSet, self).device_variables() + list(device.record_from)
 
-    @property
-    def data(self):
-        data = Series()
-        for node in self.source.devices():
-            data[node.label] = self.source[node].get_new_data(flatten_neurons_inds=True)
-        data = concatenate_heterogeneous_DataArrays(data, "Proxy",
-                                                    data_keys=None, name=self.source.name,
-                                                    fill_value=np.nan, transpose_dims=None)
-        # Unlike spikes, the continuous variable's times are recorded at time t for the time step t-dt -> t
-        # Therefore, we need to subtract the TVB dt to be at the same time as TVB
-        time = data.coords["Time"].values
-        # data[0] will be start and end times
-        # data[1] will be values array in (time x variables x proxies) shape
-        return [np.array([time[0], time[-1]]), data.values]
-
-
-class ANNarchyMonitorMeanSet(ANNarchyMonitorSet):
+class ANNarchyMonitorMeanSet(SpikeNetMultimeterMeanDeviceSet, ANNarchyOutputDeviceSet):
     """
             ANNarchyMonitorMeanSet class to read population mean events' data (times and variable values)
             from a DeviceSet of ANNarchyMonitor instances in memory.
@@ -256,14 +195,12 @@ class ANNarchyMonitorMeanSet(ANNarchyMonitorSet):
                 - an abstract method to get data from the source.
         """
 
-    @property
-    def data(self):
-        data = super(ANNarchyMonitorMeanSet, self).data
-        data[1] = data[1].mean(dim="Neuron")
-        return data
+    model = "monitor"
+
+    _spikeNet_output_device_type = ANNarchyMonitor
 
 
-class ANNarchyMonitorTotalSet(ANNarchyMonitorSet):
+class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDeviceSet):
     """
             ANNarchyMonitorTotalSet class to read population total (summed across neurons) events' data
             (times and variable values) from a DeviceSet of ANNarchyMonitor instances in memory.
@@ -272,16 +209,13 @@ class ANNarchyMonitorTotalSet(ANNarchyMonitorSet):
                 - an abstract method to get data from the source.
         """
 
-    @property
-    def data(self):
-        data = super(ANNarchyMonitorTotalSet, self).data
-        data[1] = data[1].sum(dim="Neuron")
-        return data
+    model = "monitor"
+
+    _spikeNet_output_device_type = ANNarchyMonitor
 
 
 class ANNarchyOutputDeviceGetters(Enum):
     SPIKE_MONITOR = ANNarchySpikeMonitorSet
-    SPIKE_MONITOR_MEAN = ANNarchySpikeMonitorMeanSet
     SPIKE_MONITOR_TOTAL = ANNarchySpikeMonitorTotalSet
     MONITOR = ANNarchyMonitorSet
     MONITOR_MEAN = ANNarchyMonitorMeanSet
