@@ -4,11 +4,11 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 import numpy as np
-from pandas import Series
 
-from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
-
-from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
+from tvb_multiscale.core.interfaces.spikeNet.io import \
+    SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
+    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_nest.nest_models.devices import \
     NESTInputDevice, NESTSpikeGenerator, NESTInhomogeneousPoissonGenerator, NESTStepCurrentGenerator, \
@@ -157,28 +157,8 @@ class NESTOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     _spikeNet_output_device_type = NESTOutputDevice
 
-    def device_variables(self, *args):
-        return ["times", "senders"]
 
-    def reset(self):
-       pass
-
-    def configure(self):
-        super(NESTOutputDeviceSet, self).configure()
-        self.reset()
-
-    @property
-    def data(self):
-        data = []
-        # We need to get only the newly recorded events since last time:
-        for i_node, node in enumerate(self.source.devices()):
-            data.append({})
-            for var, val in self.source[node].get_new_events(self.variables).items():
-                data[i_node][var] = val
-        return [[], data]
-
-
-class NESTSpikeRecorderSet(NESTOutputDeviceSet):
+class NESTSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NESTOutputDeviceSet):
 
     """
         NESTSpikeRecorderSet class to read events' data (spike times and senders)
@@ -192,16 +172,8 @@ class NESTSpikeRecorderSet(NESTOutputDeviceSet):
 
     _spikeNet_output_device_type = NESTSpikeRecorder
 
-    @property
-    def data(self):
-        spike_data = []
-        for node in self.source.devices():
-            spike_data.append([])
-            spike_data[-1] = self.source[node].get_spikes_times_by_neurons(full_senders=True, new=True)
-        return [[], spike_data]
 
-
-class NESTSpikeRecorderMeanSet(NESTSpikeRecorderSet):
+class NESTSpikeRecorderTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, NESTOutputDeviceSet):
 
     """
         NESTSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
@@ -211,27 +183,12 @@ class NESTSpikeRecorderMeanSet(NESTSpikeRecorderSet):
             - an abstract method to get data from the source.
     """
 
-    @property
-    def data(self):
-        spike_data = []
-        for node in self.source.devices():
-            spike_data.append([])
-            spike_data[-1] = self.source[node].new_spikes_times
-        return [[], spike_data]
+    model = "spike_recorder"
+
+    _spikeNet_output_device_type = NESTSpikeRecorder
 
 
-class NESTSpikeRecorderTotalSet(NESTSpikeRecorderMeanSet):
-
-    """
-        NESTSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
-        from a DeviceSet of NESTSpikeRecorder instances in memory.
-        It comprises of:
-            - a source attribute, i.e., the DeviceSet of NESTSpikeRecorder instances to get (i.e., copy) data from,
-            - an abstract method to get data from the source.
-    """
-
-
-class NESTMultimeterSet(NESTOutputDeviceSet):
+class NESTMultimeterSet(SpikeNetMultimeterDeviceSet, NESTOutputDeviceSet):
 
     """
         NESTMultimeterSet class to read events' data (times, senders and variable values)
@@ -245,24 +202,8 @@ class NESTMultimeterSet(NESTOutputDeviceSet):
 
     _spikeNet_output_device_type = NESTMultimeter
 
-    def device_variables(self, device):
-        return super(NESTMultimeterSet, self).device_variables() + list(device.record_from)
 
-    @property
-    def data(self):
-        data = Series()
-        for node in self.source.devices():
-            data[node.label] = self.source[node].get_new_data(flatten_neurons_inds=True)
-        data = concatenate_heterogeneous_DataArrays(data, "Proxy",
-                                                    data_keys=None, name=self.source.name,
-                                                    fill_value=np.nan, transpose_dims=None)
-        time = data.coords["Time"].values
-        # data[0] will be start and end times
-        # data[1] will be values array in (time x variables x proxies) shape
-        return [np.array([time[0], time[-1]]), data.values]
-
-
-class NESTMultimeterMeanSet(NESTMultimeterSet):
+class NESTMultimeterMeanSet(SpikeNetMultimeterMeanDeviceSet, NESTOutputDeviceSet):
     """
             NESTMultimeterMeanSet class to read population mean events' data (times and variable values)
             from a DeviceSet of NESTMultimeter instances in memory.
@@ -271,14 +212,10 @@ class NESTMultimeterMeanSet(NESTMultimeterSet):
                 - an abstract method to get data from the source.
         """
 
-    @property
-    def data(self):
-        data = super(NESTMultimeterMeanSet, self).data
-        data[1] = data[1].mean(dim="Neuron")
-        return data
+    _spikeNet_output_device_type = NESTMultimeter
 
 
-class NESTMultimeterTotalSet(NESTMultimeterSet):
+class NESTMultimeterTotalSet(SpikeNetMultimeterTotalDeviceSet, NESTOutputDeviceSet):
     """
             NESTMultimeterTotalSet class to read population total (summed across neurons) events' data
             (times and variable values) from a DeviceSet of NESTMultimeter instances in memory.
@@ -287,11 +224,7 @@ class NESTMultimeterTotalSet(NESTMultimeterSet):
                 - an abstract method to get data from the source.
         """
 
-    @property
-    def data(self):
-        data = super(NESTMultimeterTotalSet, self).data
-        data[1] = data[1].sum(dim="Neuron")
-        return data
+    _spikeNet_output_device_type = NESTMultimeter
 
 
 class NESTVoltmeterSet(NESTMultimeterSet):
@@ -341,7 +274,6 @@ class NESTVoltmeterTotalSet(NESTMultimeterTotalSet):
 
 class NESTOutputDeviceGetters(Enum):
     SPIKE_RECORDER = NESTSpikeRecorderSet
-    SPIKE_RECORDER_MEAN = NESTSpikeRecorderMeanSet
     SPIKE_RECORDER_TOTAL = NESTSpikeRecorderTotalSet
     MULTIMETER = NESTMultimeterSet
     MULTIMETER_MEAN = NESTMultimeterMeanSet
