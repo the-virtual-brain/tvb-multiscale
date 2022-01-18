@@ -6,13 +6,12 @@ from enum import Enum
 from abc import ABCMeta, abstractmethod
 from six import string_types
 
-import numpy as np
-
 from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Float
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer, ScaleRate, ScaleCurrent
+from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+    Transformer, LinearRate, LinearCurrent, LinearVoltage
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -21,11 +20,11 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, S
 
 
 class DefaultTVBtoSpikeNetTransformers(Enum):
-    RATE = ScaleRate
+    RATE = LinearRate
     SPIKES = RatesToSpikesElephantPoisson
     SPIKES_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
     SPIKES_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
-    CURRENT = ScaleCurrent
+    CURRENT = LinearCurrent
 
 
 class DefaultSpikeNetToTVBTransformers(Enum):
@@ -33,6 +32,7 @@ class DefaultSpikeNetToTVBTransformers(Enum):
     SPIKES_TO_RATE = ElephantSpikesRate
     SPIKES_TO_HIST = ElephantSpikesHistogram
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
+    VOLTAGE = LinearVoltage
 
 
 class DefaultTVBtoSpikeNetModels(Enum):
@@ -43,6 +43,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 class DefaultSpikeNetToTVBModels(Enum):
     SPIKES = DefaultSpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
+    VOLTAGE = DefaultSpikeNetToTVBTransformers.VOLTAGE.name
 
 
 class TransformerBuilder(HasTraits):
@@ -100,7 +101,6 @@ class TransformerBuilder(HasTraits):
         for p, pval in params.items():
             setattr(transformer, p, pval)
 
-    build_transformer
     @abstractmethod
     def configure_and_build_transformer(self, interfaces):
         pass
@@ -123,19 +123,20 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
-                if interface["transformer"] == DefaultTVBtoSpikeNetTransformers.SPIKES:
+                if interface["transformer"] == self._default_tvb_to_spikeNet_models.SPIKES:
                     # If the transformer is "SPIKES", but there are parameters that concern correlations...
                     correlation_factor = params.pop("correlation_factor", None)
                     if correlation_factor:
                         interaction = params.pop("interaction", "multiple")
                         if interaction == "single":
                             interface["transformer"] = \
-                                self.build_transformer(DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.value,
-                                                       correlation_factor=correlation_factor, **params)
+                                self.build_transformer(
+                                    self._default_tvb_to_spikeNet_models.SPIKES_SINGLE_INTERACTION.value,
+                                    correlation_factor=correlation_factor, **params)
                         else:
                             interface["transformer"] = \
                                 self.build_transformer(
-                                    DefaultTVBtoSpikeNetTransformers.SPIKES_MULTIPLE_INTERACTION.value,
+                                    self._default_tvb_to_spikeNet_models.SPIKES_MULTIPLE_INTERACTION.value,
                                     correlation_factor=correlation_factor, **params)
                     else:
                         # SPIKES without correlations:
@@ -169,6 +170,9 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
                 interface["transformer"] = interface["transformer"].value(**params)
+            elif inspect.isclass(interface["transformer"]):
+                # ...or a Transformer type:
+                interface["transformer"] = self.build_transformer(interface["transformer"], **params)
             else:
                 # ...or a model
                 self.set_transformer_parameters(interface["transformer"], params)

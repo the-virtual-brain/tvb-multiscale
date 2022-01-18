@@ -16,7 +16,7 @@ from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
 from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, list_of_dicts_to_dict_of_lists, sort_events_by_x_and_y, data_xarray_from_continuous_events, is_integer
+    ensure_list, list_of_dicts_to_dict_of_lists, sort_events_by_x_and_y
 
 
 LOG = initialize_logger(__name__)
