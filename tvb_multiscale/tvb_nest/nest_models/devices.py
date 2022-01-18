@@ -582,7 +582,7 @@ class NESTOutputDevice(NESTDevice):
         for iF, filepath in enumerate(self.Get("filenames")["filenames"]):  #
             # We read only new events from files:
             this_file_new_events = read_nest_output_device_data_from_ascii_to_dict(filepath,
-                                                                               self._output_events_counter[iF])
+                                                                                   self._output_events_counter[iF])
             number_of_new_events = len(this_file_new_events.get("senders", []))
             if number_of_new_events:
                 # Advance the _output_events_counter
@@ -720,13 +720,10 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     """NESTMultimeter class to wrap around a NEST multimeter device"""
 
-    _output_events_counter = [0]
-
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "multimeter")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
         Multimeter.__init__(self, device, **kwargs)
-        self._output_events_counter = [0] * self._total_num_virtual_procs
 
     def __getstate__(self):
         d = Multimeter.__getstate__(self)
@@ -748,32 +745,29 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
 
     def _get_events_from_memory(self):
         events = NESTOutputDevice._get_events_from_memory(self)
-        n_total_events = self.device.n_events
-        if n_total_events > np.sum(self._output_events_counter):
-            self._output_events_counter = \
-                [n_total_events / self._total_num_virtual_procs] * self._total_num_virtual_procs
+        self._output_events_counter = self.device.n_events
         return events
 
     def _get_new_events_from_memory(self):
         events = NESTOutputDevice._get_events_from_memory(self)
         n_total_events = self.device.n_events
-        number_of_new_events = np.sum(self._output_events_counter) - n_total_events
-        if number_of_new_events:
-            self._output_events_counter = \
-                [n_total_events / self._total_num_virtual_procs] * self._total_num_virtual_procs
-            if self._total_num_virtual_procs > 1:
-                number_of_new_events = number_of_new_events / self._total_num_virtual_procs
-                new_events_indices = []
-                for iP in range(self._total_num_virtual_procs):
-                    new_events_indices += np.arange(self._output_events_counter[iP] - number_of_new_events,
-                                                    self._output_events_counter[iP]).astype('i')
-                # Select new data:
-                for key in events.keys():
-                    events[key] = events[key][new_events_indices]
+        if n_total_events:
+            number_of_new_events_per_proc = \
+                (n_total_events - self._output_events_counter) / self._total_num_virtual_procs
+            self._output_events_counter = n_total_events
+            new_events_indices = []
+            n_total_events_per_proc = n_total_events / self._total_num_virtual_procs
+            for ii in range(self._total_num_virtual_procs):
+                proc_end = (ii + 1)*n_total_events_per_proc
+                new_events_indices += \
+                    np.arange(proc_end - number_of_new_events_per_proc, proc_end).astype('i').tolist()
+            if number_of_new_events_per_proc:
+               # Select new data:
+               for key in events.keys():
+                   events[key] = events[key][new_events_indices]
             else:
-                # Select new data:
-                for key in events.keys():
-                    events[key] =events[key][-number_of_new_events:]
+                keys = list(events.keys())
+                events = dict(zip(keys, []*len(keys)))
         return events
 
     def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],

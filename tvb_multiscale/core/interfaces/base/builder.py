@@ -167,14 +167,10 @@ class InterfaceBuilder(HasTraits, ABC):
         return interface
 
     def build_output_interface(self, interface):
-        return self._output_interface_type(synchronization_time=self.synchronization_time,
-                                           synchronization_n_step=self.synchronization_n_step,
-                                           **self._get_output_interface_arguments(interface))
+        return self._output_interface_type(**self._get_output_interface_arguments(interface))
 
     def build_input_interface(self, interface):
-        return self._input_interface_type(synchronization_time=self.synchronization_time,
-                                          synchronization_n_step=self.synchronization_n_step,
-                                          **self._get_input_interface_arguments(interface))
+        return self._input_interface_type(**self._get_input_interface_arguments(interface))
 
     def build_interfaces(self):
         self._output_interfaces = []

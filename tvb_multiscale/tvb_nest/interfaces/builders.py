@@ -21,9 +21,10 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTTransformerSenderInterface, NESTReceiverTransformerInterface, \
     TVBtoNESTInterface, NESTtoTVBInterface
 from tvb_multiscale.tvb_nest.interfaces.io import \
-    NESTSpikeRecorderSet, NESTSpikeRecorderMeanSet, NESTSpikeRecorderTotalSet, \
+    NESTSpikeRecorderSet, NESTSpikeRecorderTotalSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
-    NESTParrotSpikeGeneratorSet, NESTParrotInhomogeneousPoissonGeneratorSet
+    NESTParrotSpikeGeneratorSet, NESTParrotInhomogeneousPoissonGeneratorSet, \
+    NESTVoltmeterSet, NESTVoltmeterMeanSet, NESTVoltmeterTotalSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
@@ -42,8 +43,10 @@ class NESTInputProxyModels(Enum):
 
 class NESTOutputProxyModels(Enum):
     SPIKES = NESTSpikeRecorderSet
-    SPIKES_MEAN = NESTSpikeRecorderMeanSet
-    SPIKES_TOTAL = NESTSpikeRecorderTotalSet
+    SPIKES_MEAN = NESTSpikeRecorderTotalSet
+    VOLTAGE = NESTVoltmeterSet
+    VOLTAGE_MEAN = NESTVoltmeterMeanSet
+    VOLTAGE_TOTAL = NESTVoltmeterTotalSet
 
 
 class DefaultTVBtoNESTModels(Enum):
@@ -54,6 +57,7 @@ class DefaultTVBtoNESTModels(Enum):
 
 class DefaultNESTtoTVBModels(Enum):
     SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
+    VOLTAGE = NESTOutputProxyModels.VOLTAGE_MEAN.name
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
@@ -88,6 +92,8 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.nest_instance.GetKernelStatus("min_delay")
 
     def _build_and_connect_devices(self, interface, **kwargs):
+        if "meter" in interface["model"]:  # TODO: Find a better way to do this!
+            interface["params"]["interval"] = interface["params"].get("interval", self.tvb_dt)
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
                                          self.config, nest_instance=self.nest_instance, **kwargs)

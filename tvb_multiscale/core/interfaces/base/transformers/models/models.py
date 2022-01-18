@@ -3,7 +3,7 @@
 from enum import Enum
 
 from tvb_multiscale.core.interfaces.base.transformers.models.base import \
-    Elementary, Scale, DotProduct, ScaleRate, ScaleCurrent
+    Elementary, Linear, LinearRate, LinearCurrent, LinearVoltage
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantRatesToSpikesTransformers, ElephantSpikesToRatesTransformers
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
@@ -11,8 +11,7 @@ from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 class BasicTransformers(Enum):
     ELEMENTARY = Elementary
-    SCALE = Scale
-    DOT_PRODUCT = DotProduct
+    LINEAR = Linear
 
 
 RatesToSpikesTransformers = combine_enums("RatesToSpikesTransformers", ElephantRatesToSpikesTransformers)
@@ -21,10 +20,11 @@ RatesToSpikesTransformers = combine_enums("RatesToSpikesTransformers", ElephantR
 SpikesToRatesTransformers = combine_enums("SpikesToRatesTransformers", ElephantSpikesToRatesTransformers)
 
 
-class ScaleTransformers(Enum):
-    RATE = ScaleRate
-    CURRENT = ScaleCurrent
+class LinearTransformers(Enum):
+    RATE = LinearRate
+    CURRENT = LinearCurrent
+    VOLTAGE = LinearVoltage
 
 
 Transformers = combine_enums("Transformers",
-                             BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers, ScaleTransformers)
+                             BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers, LinearTransformers)

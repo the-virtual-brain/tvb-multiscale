@@ -85,15 +85,66 @@ class CoSimulator(CoSimulatorBase):
 
     PRINT_PROGRESSION_MESSAGE = True
 
+    n_output_interfaces = 0
+    n_input_interfaces = 0
+
+    def _configure_synchronization_time(self):
+        """This method will set the synchronization time and number of steps,
+           and certainly longer or equal to the integration time step.
+           Moreover, the synchronization time must be equal or shorter
+           than the minimum delay of all existing connections.
+           Existing connections are considered those with nonzero weights.
+        """
+        # The synchronization time should be at least equal to integrator.dt:
+        self.synchronization_time = numpy.maximum(self.synchronization_time, self.integrator.dt)
+        if self.synchronization_time < self.integrator.dt:
+            self.log.warning("synchronization time =  %g is smaller than the time step integrator.dt = %g\n"
+                             "Setting synchronization time equal to integrator.dt!"
+                             % (self.synchronization_time, self.integrator.dt))
+            self.synchronization_time = self.integrator.dt
+        # Compute the number of synchronization time steps:
+        self.synchronization_n_step = int(numpy.round(self.synchronization_time / self.integrator.dt).item())
+        synchronization_time = self.integrator.dt * self.synchronization_n_step
+        if synchronization_time != self.synchronization_time:
+            self.log.warning("Slightly adjusting synchronization time from %g to %g\n"
+                             "to be an integer multiple of integrator.dt = %g!" %
+                             (self.synchronization_time, synchronization_time, self.integrator.dt))
+        self.synchronization_time = synchronization_time
+        # Check if the synchronization time is smaller than the minimum delay of the connectivity:
+        if self.synchronization_n_step > self._default_synchronization_n_step:
+            raise ValueError('The synchronization time %g is longer than '
+                             'the minimum delay time %g '
+                             'of all existing connections (i.e., of nonzero weight)!'
+                             % (self.synchronization_time, self._default_synchronization_time))
+        if self.n_output_interfaces:
+            self.output_interfaces.synchronization_time = self.synchronization_time
+            self.output_interfaces.synchronization_n_step = self.synchronization_n_step
+        if self.n_input_interfaces:
+            self.input_interfaces.synchronization_time = self.synchronization_time
+            self.input_interfaces.synchronization_n_step = self.synchronization_n_step
+
     def _preconfigure_synchronization_time(self):
         """This method will default synchronization time
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
+        existing_connections = self.connectivity.weights != 0
+        if numpy.any(existing_connections):
+            self._default_synchronization_n_step = self.connectivity.idelays[existing_connections].min()
+            self._default_synchronization_time = self._default_synchronization_n_step * self.integrator.dt
+        else:
+            self._default_synchronization_n_step = 1
+            self._default_synchronization_time = self.integrator.dt
         if self.synchronization_time == 0.0:
-            existing_connections = self.connectivity.weights != 0
-            if numpy.any(existing_connections):
-                self.synchronization_n_step = self.connectivity.idelays[existing_connections].min()
-                self.synchronization_time = self.synchronization_n_step * self.integrator.dt
+            self.synchronization_time = self._default_synchronization_time
+        try:
+            self._configure_synchronization_time()
+        except Exception as e:
+            if self.synchronization_time > self._default_synchronization_time:
+                self.log.warning(e)
+                self.log.warning('Resetting it equal to minimum delay time!')
+                self.synchronization_time = self._default_synchronization_time
+            else:
+                raise e
 
     def _preconfigure_interfaces_vois_proxy_inds(self):
         """This method will
@@ -179,8 +230,8 @@ class CoSimulator(CoSimulatorBase):
         self.n_output_interfaces = self.output_interfaces.number_of_interfaces if self.output_interfaces else 0
         self.n_input_interfaces = self.input_interfaces.number_of_interfaces if self.input_interfaces else 0
         self._preconfigure_interfaces_vois_proxy_inds()
+        self._preconfigure_synchronization_time()
         if self.voi.shape[0] * self.proxy_inds.shape[0] != 0:
-            self._preconfigure_synchronization_time()
             self._cosimulation_flag = True
             self._configure_cosimulation()
             self._assert_cosim_monitors_vois_period()
@@ -191,6 +242,7 @@ class CoSimulator(CoSimulatorBase):
         else:
             self._cosimulation_flag = False
             self.synchronization_n_step = 0
+            self.synchronization_time = 0.0
 
     def _prepare_stimulus(self):
         if self.simulation_length != self.synchronization_time:
@@ -244,6 +296,7 @@ class CoSimulator(CoSimulatorBase):
                 self._update_cosim_history(cosim_updates[0], cosim_updates[1])
 
             self.simulation_length = n_steps * self.integrator.dt
+
         else:
             # Normal TVB simulation - no cosimulation:
             if cosim_updates is not None:
@@ -255,6 +308,7 @@ class CoSimulator(CoSimulatorBase):
                 if not numpy.issubdtype(type(n_steps), numpy.integer):
                     raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
                 self.simulation_length = n_steps * self.integrator.dt
+
 
         # Initialization
         if self._compute_requirements or recompute_requirements:
@@ -283,7 +337,7 @@ class CoSimulator(CoSimulatorBase):
 
         self.current_state = state
         self.current_step = self.current_step + n_steps
-
+        
     def _get_cosim_updates(self, cosimulation=True):
         cosim_updates = None
         if cosimulation and self.input_interfaces:
