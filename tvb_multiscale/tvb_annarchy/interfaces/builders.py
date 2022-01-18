@@ -21,7 +21,8 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     ANNarchyTransformerSenderInterface, ANNarchyReceiverTransformerInterface, \
     TVBtoANNarchyInterface, ANNarchyToTVBInterface
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
-    ANNarchySpikeMonitorSet, ANNarchySpikeMonitorMeanSet, ANNarchySpikeMonitorTotalSet, \
+    ANNarchySpikeMonitorSet, ANNarchySpikeMonitorTotalSet, \
+    ANNarchyMonitorSet, ANNarchyMonitorMeanSet, ANNarchyMonitorTotalSet, \
     ANNarchyTimedPoissonPopulationSet, ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
@@ -40,8 +41,10 @@ class ANNarchyInputProxyModels(Enum):
 
 class ANNarchyOutputProxyModels(Enum):
     SPIKES = ANNarchySpikeMonitorSet
-    SPIKES_MEAN = ANNarchySpikeMonitorMeanSet
-    SPIKES_TOTAL = ANNarchySpikeMonitorTotalSet
+    SPIKES_MEAN = ANNarchySpikeMonitorTotalSet
+    VOLTAGE = ANNarchyMonitorSet
+    VOLTAGE_MEAN = ANNarchyMonitorMeanSet
+    VOLTAGE_TOTAL = ANNarchyMonitorTotalSet
 
 
 class DefaultTVBtoANNarchyModels(Enum):
@@ -52,6 +55,7 @@ class DefaultTVBtoANNarchyModels(Enum):
 
 class DefaultANNarchytoTVBModels(Enum):
     SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
+    VOLTAGE = ANNarchyOutputProxyModels.VOLTAGE_MEAN.name
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
@@ -81,6 +85,7 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.annarchy_instance.dt()
 
     def _build_and_connect_devices(self, interface, **kwargs):
+        interface["params"]["period"] = interface["params"].get("period", self.tvb_dt)
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
                                          self.config, annarchy_instance=self.annarchy_instance,
