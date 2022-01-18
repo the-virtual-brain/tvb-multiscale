@@ -8,7 +8,8 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits
 from tvb.basic.neotraits._attr import Int, NArray, Range
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import LinearRate, RatesToSpikes, SpikesToRates
+from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+    LinearRate, RatesToSpikes, SpikesToRates, LinearVoltage
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonSingleInteraction, \
     RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -55,8 +56,8 @@ class JansenRitSigmoidal(HasTraits):
         super(JansenRitSigmoidal, self).configure()
 
     def _compute(self, input_buffer):
-        return self.cmax / (1.0 + np.exp(self.r * (self.midpoint - (input_buffer[:, self.ind_Ein] -
-                                                                    input_buffer[:, self.ind_Iin]))))
+        return self.cmax / (1.0 + np.exp(self.r * (self.midpoint - (input_buffer[..., self.ind_Ein] -
+                                                                    input_buffer[..., self.ind_Iin]))))
 
     def print_str(self):
         out = ""
@@ -284,3 +285,4 @@ class DefaultSpikeNetToTVBTransformersJansenRitInverseSigmoidal(Enum):
     SPIKES_TO_RATE = ElephantSpikesRateJansenRitInverseSigmoidal
     SPIKES_TO_HIST = ElephantSpikesHistogramJansenRitInverseSigmoidal
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRateJansenRitInverseSigmoidal
+    VOLTAGE = LinearVoltage
