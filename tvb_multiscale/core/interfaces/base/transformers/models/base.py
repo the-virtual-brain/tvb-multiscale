@@ -152,7 +152,7 @@ class Linear(Transformer):
             self.output_buffer = self.scale_factor * self.input_buffer + self.translation_factor
         else:
             self.output_buffer = []
-            for scale_factor, translation_factor, input_buffer in \
+            for input_buffer, scale_factor, translation_factor in \
                     zip(self.input_buffer, self._scale_factor, self._translation_factor):
                 self.output_buffer.append(scale_factor * input_buffer + translation_factor)
 
