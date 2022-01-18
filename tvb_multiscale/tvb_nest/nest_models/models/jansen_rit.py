@@ -5,6 +5,9 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
+    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
+    random_uniform_delay, tvb_delay, random_uniform_tvb_delay
 
 
 class JansenRitBuilder(NESTNetworkBuilder):
@@ -39,9 +42,6 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.pop_conns_IP = {}
 
         self.nodes_conns = {}
-        self.global_coupling_scaling = \
-            self.tvb_serial_sim.get("coupling.cmax", np.array([2.0 * 0.0025]))[0].item() * \
-            self.tvb_serial_sim.get("coupling.a", np.array([0.56]))[0].item()
 
         self.spike_recorder = {}
         self.multimeter = {}
@@ -80,7 +80,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
     # By default we choose random jitter on weights and delays
 
     def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return w
+        return scale * w
 
     def within_node_delay(self):
         return self.tvb_dt
@@ -151,7 +151,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
         if scale is None:
             scale = self.global_coupling_scaling
         # return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
-        return scale * self.tvb_weights[source_node, target_node].item()
+        return scale * tvb_weight(source_node, target_node, self.tvb_weights)
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         # if low is None:
@@ -159,7 +159,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
         # if high is None:
         #     high = 2 * self.tvb_dt
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
-        return np.maximum(self.tvb_dt, self.tvb_delays[source_node, target_node].item())
+        return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -242,6 +242,12 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.set_nodes_connections()
         self.set_output_devices()
         self.set_input_devices()
+
+    def configure(self):
+        super(JansenRitBuilder, self).configure()
+        self.global_coupling_scaling = \
+            self.tvb_serial_sim.get("coupling.cmax", np.array([2.0 * 0.0025]))[0].item() * \
+            self.tvb_serial_sim.get("coupling.a", np.array([0.56]))[0].item()
 
     def build(self, set_defaults=True):
         if set_defaults:
