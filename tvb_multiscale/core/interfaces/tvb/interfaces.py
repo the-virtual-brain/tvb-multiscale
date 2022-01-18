@@ -117,8 +117,8 @@ class TVBOutputInterface(TVBInterface):
             # ...to (proxy, time)
             return data[:, 0, :].T
         else:
-            # ...or (proxy, voi, time)
-            return np.transpose(data, (2, 1, 0))
+            # ...or (proxy, time, voi)
+            return np.transpose(data, (2, 0, 1))
 
 
 class TVBInputInterface(TVBInterface):
@@ -147,7 +147,7 @@ class TVBInputInterface(TVBInterface):
             data = data[:, None, :]
         else:
             # or if there was already a voi dimension
-            data = np.transpose(data, (2, 1, 0))
+            data = np.transpose(data, (1, 2, 0))
         return data
 
 
@@ -274,7 +274,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
 
     def __call__(self):
         data = self.get_proxy_data()
-        if data[0][1] < data[0][0]:
+        if data[0][1] <= data[0][0]:
             return None
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
@@ -430,4 +430,5 @@ class TVBtoSpikeNetModels(Enum):
 
 
 class SpikeNetToTVBModels(Enum):
-    SPIKES = 1
+    SPIKES = 0
+    VOLTAGE = 1
