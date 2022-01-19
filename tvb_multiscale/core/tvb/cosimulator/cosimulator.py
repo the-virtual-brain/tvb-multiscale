@@ -38,6 +38,7 @@ It inherits the Simulator class.
 """
 
 import time
+
 import numpy
 
 from tvb.basic.neotraits.api import Attr
@@ -381,6 +382,7 @@ class CoSimulator(CoSimulatorBase):
         if self.n_tvb_steps_ran_since_last_synch is None:
             self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
         remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
+        self._tic = time.time()
         while remaining_steps > 0:
             self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
             steps_performed = \
@@ -388,7 +390,11 @@ class CoSimulator(CoSimulatorBase):
             simulated_steps += steps_performed
             remaining_steps -= steps_performed
             self.n_tvb_steps_ran_since_last_synch += steps_performed
-            self.log.info("...%.3f%% completed!", 100 * (simulated_steps * self.integrator.dt) / simulation_length)
+            log_msg = "...%.3f%% completed in %g sec!" % \
+                      ((100 * (simulated_steps * self.integrator.dt) / simulation_length), time.time() - self._tic)
+            self.log.info(log_msg)
+            if self.PRINT_PROGRESSION_MESSAGE:
+                print("\r" + log_msg, end="")
         self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
         if self._cosimulation_flag:
             # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
