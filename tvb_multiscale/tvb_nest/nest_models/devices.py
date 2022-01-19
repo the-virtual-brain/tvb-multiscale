@@ -500,12 +500,14 @@ class NESTOutputDevice(NESTDevice):
                                    doc="""Total number of NEST virtual processes""")
 
     _record_to = None
+    reset_upon_record = False
 
     def __init__(self, device=None, nest_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "nest_output_device")
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
         self._total_num_virtual_procs = self.nest_instance.GetKernelStatus("total_num_virtual_procs")
         self._update_record_to()
+        self.reset_upon_record = kwargs.get('reset_upon_record', self.reset_upon_record)
 
     def __getstate__(self):
         d = super(NESTOutputDevice, self).__getstate__()
@@ -553,9 +555,15 @@ class NESTOutputDevice(NESTDevice):
         events = self._empty_events
         for iF, filepath in enumerate(self.Get("filenames")["filenames"]):
             # Reading all events:
-            this_file_events = read_nest_output_device_data_from_ascii_to_dict(filepath)
+            this_file_events = read_nest_output_device_data_from_ascii_to_dict(filepath,
+                                                                               n_lines_to_skip=0,
+                                                                               empty_file=self.reset_upon_record)
+            n_events = len(this_file_events["senders"])
             # Compute the new number of total events for this process...
-            self._output_events_counter[iF] = len(this_file_events["senders"])
+            if n_events:
+                self._output_events_counter[iF] = np.where(self.reset_upon_record,
+                                                           self._output_events_counter[iF] + n_events,
+                                                           n_events).item()
             if self._output_events_counter[iF]:
                 # Merge file data, if any:
                 for key in events.keys():
@@ -579,8 +587,10 @@ class NESTOutputDevice(NESTDevice):
         events = self._empty_events
         for iF, filepath in enumerate(self.Get("filenames")["filenames"]):  #
             # We read only new events from files:
-            this_file_new_events = read_nest_output_device_data_from_ascii_to_dict(filepath,
-                                                                                   self._output_events_counter[iF])
+            this_file_new_events = read_nest_output_device_data_from_ascii_to_dict(
+                filepath,
+                n_lines_to_skip=np.where(self.reset_upon_record, 0, self._output_events_counter[iF]).item(),
+                empty_file=self.reset_upon_record)
             number_of_new_events = len(this_file_new_events.get("senders", []))
             if number_of_new_events:
                 # Advance the _output_events_counter
@@ -628,7 +638,7 @@ class NESTOutputDevice(NESTDevice):
 
     def _delete_events_in_ascii_files(self):
         for filepath in self.Get("filenames")["filenames"]:  #
-            truncate_ascii_file_after_header(filepath, header_chars="#")
+            truncate_ascii_file_after_header(filepath, header="#")
         self._output_events_counter = [0] * self._total_num_virtual_procs
 
     def _delete_events_in_memory(self):
