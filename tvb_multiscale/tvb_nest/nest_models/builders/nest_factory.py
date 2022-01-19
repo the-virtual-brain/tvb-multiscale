@@ -260,6 +260,7 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
         label = default_params.pop("label", label)
     else:
         label = default_params.get("label", label)
+        reset_upon_record = default_params.pop("reset_upon_record", False)
     # TODO: a better solution for the strange error with inhomogeneous poisson generator
     try:
         nest_device_node_collection = nest_instance.Create(nest_device_model, number_of_devices, params=default_params)
@@ -282,7 +283,11 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
             nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
             nest_instance.Connect(nest_device._nodes, nest_device._record)
     else:
-        nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, label=label)
+        if input_device:
+            nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, label=label)
+        else:
+            nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance,
+                                                     label=label, reset_upon_record=reset_upon_record)
     if return_nest:
         return nest_device, nest_instance
     else:
