@@ -10,6 +10,11 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb.datatypes import cortex, connectivity
 from tvb.simulator.plot.config import FiguresConfig
+from tvb.simulator.models.wilson_cowan import WilsonCowan
+from tvb.simulator.coupling import Linear
+from tvb.simulator.integrators import HeunDeterministic, HeunStochastic, EulerDeterministic
+from tvb.simulator.noise import Additive
+from tvb.simulator.monitors import Raw
 
 import tvb_data
 
@@ -104,12 +109,15 @@ class Config(object):
     MIN_SPIKING_DT = 0.001
     MIN_DELAY = 0.001
 
-    from tvb.simulator.integrators import HeunStochastic
-    from tvb.simulator.noise import Additive
-
-    DEFAULT_INTEGRATOR = HeunStochastic
+    DEFAULT_TVB_MODEL = WilsonCowan
+    DEFAULT_TVB_COUPLING_MODEL = Linear
+    DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
+    DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
+    DEFAULT_INTEGRATOR = DEFAULT_STOCHASTIC_INTEGRATOR
+    DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
     DEFAULT_NOISE = Additive
     DEFAULT_NSIG = 1e-3
+    DEFAULT_MONITOR = Raw
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
