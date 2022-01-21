@@ -7,10 +7,9 @@ import numpy as np
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray, List
 from tvb.datatypes.connectivity import Connectivity
-from tvb.simulator.coupling import Coupling, Linear
+from tvb.simulator.coupling import Coupling
 from tvb.simulator.models.base import Model
-from tvb.simulator.models.wilson_cowan import WilsonCowan
-from tvb.simulator.integrators import Integrator, HeunStochastic
+from tvb.simulator.integrators import Integrator, IntegratorStochastic
 from tvb.simulator.monitors import Monitor, Raw, Bold  # , EEG
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
@@ -53,7 +52,7 @@ class CoSimulatorBuilder(HasTraits):
     model = Attr(
         field_type=Model,
         label="Local dynamic model",
-        default=WilsonCowan(),
+        default=CONFIGURED.DEFAULT_TVB_MODEL(),
         required=True,
         doc="""A tvb.simulator.Model object which describe the local dynamic
             equations, their parameters, and, to some extent, where connectivity
@@ -139,7 +138,7 @@ class CoSimulatorBuilder(HasTraits):
     coupling = Attr(
         field_type=Coupling,
         label="Long-range coupling function",
-        default=Linear(),
+        default=CONFIGURED.DEFAULT_TVB_COUPLING_MODEL(),
         required=True,
         doc="""The coupling function is applied to the activity propagated
             between regions by the ``Long-range connectivity`` before it enters the local
@@ -162,7 +161,7 @@ class CoSimulatorBuilder(HasTraits):
     noise_strength = NArray(
         label=":math:`D`",
         required=True,
-        default=np.array([-1.0]),
+        default=np.array([CONFIGURED.DEFAULT_NSIG]),
         doc="""The noise dispersion, it is the standard deviation of the
                 distribution from which the Gaussian random variates are drawn. NOTE:
                 Sensible values are typically ~<< 1% of the dynamic range of a Model's
@@ -172,7 +171,7 @@ class CoSimulatorBuilder(HasTraits):
     integrator = Attr(
         field_type=Integrator,
         label="Integration scheme",
-        default=HeunStochastic(),
+        default=CONFIGURED.DEFAULT_INTEGRATOR(),
         required=True,
         doc="""A tvb.simulator.Integrator object which is
                 an integration scheme with supporting attributes such as
@@ -183,7 +182,7 @@ class CoSimulatorBuilder(HasTraits):
     monitors = List(
         of=Monitor,
         label="Monitor(s)",
-        default=(Raw(), ),
+        default=(CONFIGURED.DEFAULT_MONITOR, ),
         doc="""A tvb.simulator.Monitor or a list of tvb.simulator.Monitor
             objects that 'know' how to record relevant data from the simulation. Two
             main types exist: 1) simple, spatial and temporal, reductions (subsets
@@ -258,10 +257,13 @@ class CoSimulatorBuilder(HasTraits):
 
     def configure_integrator(self):
         # Build integrator
+        if np.any(self.noise_strength > 0.0):
+            self.integrator.noise.nsig = np.array(ensure_list(self.noise_strength))
+            if self.integrator.noise.nsig.size == 1 and self.model.nvar > 1:
+                self.integrator.noise.nsig = np.repeat(self.integrator.noise.nsig.size, self.model.nvar)
+            if not isinstance(self.integrator, IntegratorStochastic):
+                self.integrator = self.config.DEFAULT_STOCHASTIC_INTEGRATOR()
         self.integrator.dt = self.dt
-        if np.all(self.noise_strength < 0.0):
-            self.noise_strength = np.array([self.config.DEFAULT_NSIG])
-        self.integrator.noise.nsig = np.array(ensure_list(self.noise_strength))
         return self.integrator
 
     def configure_monitors(self):
