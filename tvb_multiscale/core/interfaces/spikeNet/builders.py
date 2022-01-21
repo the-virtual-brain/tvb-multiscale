@@ -33,7 +33,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 class DefaultSpikeNetToTVBModels(Enum):
     SPIKES = "SPIKES_MEAN"
-    VOLTAGE = "VOLTAGE_MEAN"
+    POTENTIAL = "POTENTIAL_MEAN"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
