@@ -40,7 +40,7 @@ class Config(ConfigBase):
     DEFAULT_NUM_PROCS = 1
     DEFAULT_LOCAL_NUM_THREADS = 4
 
-    DEFAULT_MODEL = "iaf_cond_alpha"
+    DEFAULT_SPIKING_MODEL = "iaf_cond_alpha"
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_SYNAPSE = "static_synapse"
