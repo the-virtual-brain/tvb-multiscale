@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, ABC
 from enum import Enum
 
 import numpy as np
@@ -21,7 +21,7 @@ class ElephantFunctions(Enum):
     INSTANTANEOUS_RATE = instantaneous_rate
 
 
-class RatesToSpikesElephant(RatesToSpikes):
+class RatesToSpikesElephant(RatesToSpikes, ABC):
     __metaclass__ = ABCMeta
 
     """
@@ -52,16 +52,6 @@ class RatesToSpikesElephant(RatesToSpikes):
     def _rates_analog_signal(self, rates):
         return self._analog_signal_class(rates*self.rate_unit, sampling_period=self.dt*self.time_unit,
                                          t_start=self._t_start, t_stop=self._t_stop)
-
-    @abstractmethod
-    def _compute(self, rates, proxy_count, *args, **kwargs):
-        """Abstract method for the computation of rates data transformation to spike trains, using elephant software."""
-        pass
-
-    def print_str(self):
-        return super(RatesToSpikesElephant, self).print_str() + \
-               "\n     - time_unit = %s" % str(self.time_unit) + \
-               "\n     - rate_unit = %s" % str(self.rate_unit)
 
 
 class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
@@ -103,14 +93,10 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
                                             as_array=True, refractory_period=self.refractory_period))
         return spiketrains
 
-    def _compute(self, rates, proxy_count):
+    def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (in)homogeneous_poisson_process functions."""
         return self._compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count])
-
-    def print_str(self):
-        return super(RatesToSpikesElephantPoisson, self).print_str() + \
-               "\n     - refractory_period = %s" % str(self.refractory_period)
 
 
 class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
@@ -156,7 +142,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
     def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, *args):
         pass
 
-    def _compute(self, rates, proxy_count):
+    def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to interacting spike trains,
            using (in)homogeneous_poisson_process functions.
         """
@@ -167,10 +153,6 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
             return shared_spiketrain * n_spiketrains
         else:
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
-
-    def print_str(self):
-        return super(RatesToSpikesElephantPoissonInteraction, self).print_str() + \
-               "\n     - refractory_period = %s" % str(self.correlation_factor)
 
 
 class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonInteraction):
@@ -229,7 +211,7 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         return spiketrains
 
 
-class SpikesToRatesElephant(SpikesToRates):
+class SpikesToRatesElephant(SpikesToRates, ABC):
     __metaclass__ = ABCMeta
 
     """
@@ -269,18 +251,6 @@ class SpikesToRatesElephant(SpikesToRates):
         return self._spike_train_class(spikes * self.time_unit, t_start=self._t_start, t_stop=self._t_stop)
 
 
-    @abstractmethod
-    def _compute(self, spikes, *args, **kwargs):
-        """Abstract method for the computation of spike trains data transformation
-           to instantaneous mean spiking rates, using elephant software."""
-        pass
-
-    def print_str(self):
-        return super(SpikesToRatesElephant, self).print_str() + \
-               "\n     - time_unit = %s" % str(self.time_unit) + \
-               "\n     - rate_unit = %s" % str(self.rate_unit)
-
-
 class ElephantSpikesHistogram(SpikesToRatesElephant):
 
     """
@@ -295,7 +265,7 @@ class ElephantSpikesHistogram(SpikesToRatesElephant):
     def _compute_fun(self, spiketrains):
         return self._time_hist_fun(spiketrains, self.dt * self.time_unit, output="counts").flatten()
 
-    def _compute(self, spikes):
+    def _compute_rates(self, spikes, *args, **kwargs):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
         return np.array(self._compute_fun(self._spiketrain(spikes)))
@@ -346,7 +316,7 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
         self.output_type = "rate"
         super(ElephantSpikesRate, self).configure()
 
-    def _compute(self, spikes, *args, **kwargs):
+    def _compute_rates(self, spikes, *args, **kwargs):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.instantaneous_rate function."""
         spiketrain = self._spiketrain(spikes)
@@ -359,9 +329,6 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
             # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
             return np.array(ElephantSpikesHistogramRate._compute_fun(spiketrain).flatten())
 
-    def print_str(self):
-        return super(ElephantSpikesRate, self).print_str() \
-               + "\n     - kernel = %s" % str(self.kernel)
 
 
 class ElephantRatesToSpikesTransformers(Enum):
