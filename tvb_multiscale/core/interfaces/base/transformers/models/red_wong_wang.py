@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta
-
 import numpy as np
 
 from tvb.basic.neotraits._attr import NArray
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Integration
+from tvb_multiscale.core.interfaces.base.transformers.models.integration import Integration
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantSpikesHistogramRate, ElephantSpikesRate
 
@@ -57,16 +55,6 @@ class RedWongWangExc(Integration):
         self.state[0] = np.where(self.state[0] > 1.0, 1.0, self.state[0])  # S <= 1.0
         return self._state
 
-    def transpose(self):
-        self.output_buffer = self.output_buffer.T  # (time, voi, proxy) -> (proxy, voi, time)
-        return self.output_buffer
-
-    def print_str(self):
-        return super(RedWongWangExc, self).print_str() + \
-               "\n     - tau_s = %s" % str(self.tau_s) + \
-               "\n     - tau_r = %s" % str(self.tau_r) + \
-               "\n     - gamma = %s" % str(self.gamma)
-
 
 class ElephantSpikesHistogramRateRedWongWangExc(ElephantSpikesHistogramRate, RedWongWangExc):
 
@@ -74,13 +62,10 @@ class ElephantSpikesHistogramRateRedWongWangExc(ElephantSpikesHistogramRate, Red
         ElephantSpikesHistogramRate.configure(self)
         RedWongWangExc.configure(self)
 
-    def compute(self, *args, **kwargs):
+    def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
-        return RedWongWangExc.compute(self, input_buffer=ElephantSpikesHistogramRate.compute(self))
-
-    def print_str(self):
-        return RedWongWangExc.print_str(self) + ElephantSpikesHistogramRate.print_str(self)
+        return RedWongWangExc._compute(self, ElephantSpikesHistogramRate._compute(self, input_buffer))
 
 
 class ElephantSpikesRateRedWongWangExc(ElephantSpikesRate, RedWongWangExc):
@@ -89,14 +74,10 @@ class ElephantSpikesRateRedWongWangExc(ElephantSpikesRate, RedWongWangExc):
         ElephantSpikesRate.configure(self)
         RedWongWangExc.configure(self)
 
-    def compute(self, *args, **kwargs):
+    def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
-        input_buffer = ElephantSpikesRate.compute(self)
-        return RedWongWangExc.compute(self, input_buffer=input_buffer)
-
-    def print_str(self):
-        return RedWongWangExc.print_str(self) + ElephantSpikesRate.print_str(self)
+        return RedWongWangExc._compute(self, ElephantSpikesRate._compute(self, input_buffer))
 
 
 class RedWongWangInh(RedWongWangExc):
@@ -130,13 +111,10 @@ class ElephantSpikesHistogramRateRedWongWangInh(ElephantSpikesHistogramRate, Red
         ElephantSpikesHistogramRate.configure(self)
         RedWongWangInh.configure(self)
 
-    def compute(self, *args, **kwargs):
+    def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
-        return RedWongWangInh.compute(self, input_buffer=ElephantSpikesHistogramRate.compute(self))
-
-    def print_str(self):
-        return RedWongWangInh.print_str(self) + ElephantSpikesHistogramRate.print_str(self)
+        return RedWongWangInh.compute(self, ElephantSpikesHistogramRate._compute(self, input_buffer, *args, **kwargs))
 
 
 class ElephantSpikesRateRedWongWangInh(ElephantSpikesRate, RedWongWangInh):
@@ -145,11 +123,7 @@ class ElephantSpikesRateRedWongWangInh(ElephantSpikesRate, RedWongWangInh):
         ElephantSpikesRate.configure(self)
         RedWongWangInh.configure(self)
 
-    def compute(self, *args, **kwargs):
+    def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
-        input_buffer = ElephantSpikesRate.compute(self)
-        return RedWongWangInh.compute(self, input_buffer=input_buffer)
-
-    def print_str(self):
-        return RedWongWangInh.print_str(self) + ElephantSpikesRate.print_str(self)
+        return RedWongWangInh._compute(self, ElephantSpikesRate.compute(self, input_buffer, *args, **kwargs))
