@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
+from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
