@@ -88,7 +88,7 @@ class SpikingNetworkBuilder(object):
 
         # Setting SpikingNetwork defaults from config
         # to be further specified in the each Spiking simulator's specific builder class.
-        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
+        self.default_population = {"model": self.config.DEFAULT_SPIKING_MODEL, "scale": 1, "params": {}, "nodes": None}
 
         self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["nodes"] = None
