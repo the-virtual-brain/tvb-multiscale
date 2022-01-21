@@ -44,9 +44,9 @@ class NESTInputProxyModels(Enum):
 class NESTOutputProxyModels(Enum):
     SPIKES = NESTSpikeRecorderSet
     SPIKES_MEAN = NESTSpikeRecorderTotalSet
-    VOLTAGE = NESTVoltmeterSet
-    VOLTAGE_MEAN = NESTVoltmeterMeanSet
-    VOLTAGE_TOTAL = NESTVoltmeterTotalSet
+    POTENTIAL = NESTVoltmeterSet
+    POTENTIAL_MEAN = NESTVoltmeterMeanSet
+    POTENTIAL_TOTAL = NESTVoltmeterTotalSet
 
 
 class DefaultTVBtoNESTModels(Enum):
@@ -57,7 +57,7 @@ class DefaultTVBtoNESTModels(Enum):
 
 class DefaultNESTtoTVBModels(Enum):
     SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
-    VOLTAGE = NESTOutputProxyModels.VOLTAGE_MEAN.name
+    POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
