@@ -21,22 +21,15 @@ class BaseInterface(HasTraits):
         default=""
     )
 
-    @property
-    def label(self):
-        return self.__class__.__name__
-
     @abstractmethod
     def __call__(self, *args):
         pass
 
-    def __repr__(self):
-        return self.__class__.__name__
+    def info(self):
+        return self.__str__()
 
-    def print_str(self, *args):
-        return "\nLabel: %s \nType: %s, Model: %s" % (self.label, self.__repr__(), self.model)
-
-    def __str__(self):
-        return self.print_str()
+    def info_details(self, **kwargs):
+        return self.info()
 
 
 class CommunicatorInterface(BaseInterface):
@@ -61,14 +54,9 @@ class CommunicatorInterface(BaseInterface):
     def __call__(self, *args):
         pass
 
-    def print_str(self, sender_not_receiver=None):
-        out = super(CommunicatorInterface, self).print_str()
-        if sender_not_receiver is True:
-            return out + "\nSender: %s" % str(self.communicator)
-        elif sender_not_receiver is False:
-            return out + "\nReceiver: %s" % str(self.communicator)
-        else:
-            return out + "\nCommunicator: %s" % str(self.communicator)
+    def info_details(self):
+        out = self.info()
+        out +=
 
 
 class SenderInterface(CommunicatorInterface):
@@ -94,9 +82,6 @@ class SenderInterface(CommunicatorInterface):
     def __call__(self, data):
         return self.communicator(data)
 
-    def print_str(self):
-        return super(SenderInterface, self).print_str(sender_not_receiver=True)
-
 
 class ReceiverInterface(CommunicatorInterface):
 
@@ -120,9 +105,6 @@ class ReceiverInterface(CommunicatorInterface):
 
     def __call__(self):
         return self.communicator()
-
-    def print_str(self):
-        return super(ReceiverInterface, self).print_str(sender_not_receiver=False)
 
 
 class CommunicatorTransformerInterface(BaseInterface):
@@ -156,18 +138,6 @@ class CommunicatorTransformerInterface(BaseInterface):
     def __call__(self, *args):
         pass
 
-    def print_str(self, sender_not_receiver=None):
-        if sender_not_receiver is True:
-            comm_str = "Sender"
-        elif sender_not_receiver is False:
-            comm_str = "Receiver"
-        else:
-            comm_str = "Communicator"
-        out = super(CommunicatorTransformerInterface, self).print_str()
-        out += "\n%s: %s" % (comm_str, str(self.communicator1))
-        out += "\nTransformer: %s" % self.transformer.print_str()
-        return out
-
 
 class TransformerSenderInterface(CommunicatorTransformerInterface):
     """TransformerSenderInterface base class
@@ -196,9 +166,6 @@ class TransformerSenderInterface(CommunicatorTransformerInterface):
 
     def __call__(self, data):
         return self.transform_send(data)
-
-    def print_str(self):
-        return super(TransformerSenderInterface, self).print_str(sender_not_receiver=True)
 
 
 class ReceiverTransformerInterface(CommunicatorTransformerInterface):
@@ -282,7 +249,7 @@ class RemoteTransformerInterface(BaseInterface):
     def print_str(self):
         out = super(RemoteTransformerInterface, self).print_str()
         out += "\nReceiver: %s" % str(self.receiver)
-        out += "\nTransformer: %s" % self.transformer.print_str()
+        out += "\nTransformer: %s" % self.transformer.info_details()
         out += "\nSender: %s" % str(self.sender)
         return out
 
@@ -346,6 +313,6 @@ class BaseInterfaces(HasTraits):
                   (self.synchronization_time, self.synchronization_n_step)
         output += LINE + "\n"
         for ii, interface in enumerate(self.interfaces):
-            output += "%d. %s" % (ii, interface.print_str())
+            output += "%d. %s" % (ii, interface.info_details())
             output += LINE + "\n"
         return output

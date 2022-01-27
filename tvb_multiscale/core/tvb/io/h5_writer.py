@@ -33,7 +33,7 @@ class H5Writer(object):
         if h5_file is None:
             if self.write_mode == "w":
                 path = change_filename_or_overwrite(path, self.force_overwrite)
-            self.logger.info("Starting to write %s to: %s" % (name, path))
+            self.logger.info_details("Starting to write %s to: %s" % (name, path))
             h5_file = h5py.File(path, self.write_mode, libver='latest')
         return h5_file, path
 
@@ -43,7 +43,7 @@ class H5Writer(object):
 
     def _log_success(self, name, path=None):
         if path is not None:
-            self.logger.info("%s has been written to file: %s" % (name, path))
+            self.logger.info_details("%s has been written to file: %s" % (name, path))
 
     def _determine_datasets_and_attributes(self, object, datasets_size=None):
         datasets_dict = {}
@@ -86,7 +86,7 @@ class H5Writer(object):
         except:
             msg = "Failed to decompose group object: " + str(object) + "!"
             try:
-                self.logger.info(str(object.__dict__))
+                self.logger.info_details(str(object.__dict__))
             except:
                 msg += "\n It has no __dict__ attribute!"
             warning(msg, self.logger)

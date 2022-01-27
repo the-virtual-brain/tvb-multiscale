@@ -70,8 +70,8 @@ class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
 
     """ANNarchySenderInterface"""
 
-    def print_str(self):
-        return SpikeNetSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
+    def __str__(self):
+        return SpikeNetSenderInterface.__str__(self) + ANNarchyOutputInterface.print_str(self)
 
     def __call__(self):
         return self.send(ANNarchyOutputInterface.get_proxy_data(self))
@@ -107,8 +107,8 @@ class ANNarchyReceiverInterface(SpikeNetReceiverInterface, ANNarchyInputInterfac
 
     """ANNarchyReceiverInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+    def __str__(self):
+        return SpikeNetReceiverInterface.__str__(self) + ANNarchyInputInterface.print_str(self)
 
 
 class ANNarchyReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, ANNarchyInputInterface):

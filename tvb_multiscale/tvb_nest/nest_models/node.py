@@ -236,4 +236,5 @@ class NESTNodeCollection(_NESTNodeCollection, SpikingNodeCollection):
        residing at the same brain region.
     """
 
-    pass
+    def __str__(self):
+        return SpikingNodeCollection.__str__(self)

@@ -13,7 +13,7 @@ from tvb_multiscale.core.config import initialize_logger, LINE
 from tvb.basic.neotraits.api import HasTraits, Int
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
+from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer, trait_object_str
 
 
 LOG = initialize_logger(__name__)
@@ -58,25 +58,15 @@ class SpikingNodesSet(pd.Series, HasTraits):
         self.tag = d.get("tags", {})
         self.configure()
 
+    def __str__(self):
+        return trait_object_str(self.info)
+
     @property
     def spiking_simulator_module(self):
         for i_n, nod_lbl, nodes in self._loop_generator():
             if nodes.spiking_simulator is not None:
                 return nodes.spiking_simulator
         return None
-
-    def __repr__(self):
-        return "\n%s - Label: %s\n%ss: %s" % (self.__class__.__name__, self.label,
-                                            self._collection_name,  str(self.collections))
-
-    def __str__(self):
-        return self.print_str()
-
-    def print_str(self, connectivity=False):
-        output = self.__repr__()
-        for pop in self.collections:
-            output += LINE + self[pop].print_str(connectivity)
-        return output
 
     def __len__(self):
         return pd.Series.__len__(self)
@@ -417,3 +407,15 @@ class SpikingNodesSet(pd.Series, HasTraits):
             else:
                 values_dict.update({device: val})
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
+
+    def info(self):
+        info = OrderedDict(self.summary_info())
+        info[self._collection_name] = str(self.collections)
+        return info
+
+    def info_details(self, connectivity=False, source_or_target=None):
+        info = self.self.info()
+        for pop in self.collections:
+            info[pop] = ['{} ('.format(self[pop].__class__.__name__)]
+            info.update(self[pop].info_details(connectivity, source_or_target))
+        return info

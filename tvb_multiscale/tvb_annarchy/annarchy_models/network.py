@@ -65,7 +65,8 @@ class ANNarchyNetwork(SpikingNetwork):
     @property
     def network(self):
         if self._network is None:
-            self._network = self.annarchy_instance.Network(everything=True)
+            if self.annarchy_instance is not None:
+                self._network = self.annarchy_instance.Network(everything=True)
         return self._network
 
     @property
@@ -90,3 +91,9 @@ class ANNarchyNetwork(SpikingNetwork):
         self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all("pause")
+
+    def info(self):
+        info = super(ANNarchyNetwork, self).info()
+        if self.network is not None:
+            info["ANNarchy_Network"] = "%s" % str(self.network)
+        return info

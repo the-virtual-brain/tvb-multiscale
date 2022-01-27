@@ -21,7 +21,7 @@ class H5Reader(object):
             if not os.path.isfile(path):
                 raise ValueError("%s file %s does not exist" % (name, path))
 
-            self.logger.info("Starting to read %s from: %s" % (name, path))
+            self.logger.info_details("Starting to read %s from: %s" % (name, path))
             h5_file = h5py.File(path, 'r', libver='latest')
         return h5_file
 
@@ -31,7 +31,7 @@ class H5Reader(object):
 
     def _log_success(self, name, path=None):
         if path is not None:
-            self.logger.info("Successfully read %s from: %s" % (name, path))
+            self.logger.info_details("Successfully read %s from: %s" % (name, path))
 
     def read_dictionary(self, path=None, h5_file=None, close_file=True):  # type=None,
         """

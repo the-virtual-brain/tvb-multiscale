@@ -79,9 +79,6 @@ class NESTDevice(_NESTNodeCollection):
         """Method to get the indices of all the neurons the device is connected to."""
         return self.get_neurons("target")
 
-    def _print_neurons(self, neurons):
-        return "%d neurons: %s" % (self.number_of_neurons, extract_integer_intervals(neurons, print=True))
-
 
 class NESTInputDevice(NESTDevice, InputDevice):
 
@@ -91,8 +88,14 @@ class NESTInputDevice(NESTDevice, InputDevice):
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
         Device.__init__(self, device, **kwargs)
 
-    def print_str(self, connectivity=False):
-        return InputDevice.print_str(self, connectivity, "source")
+    def info(self):
+        return InputDevice.info(self)
+
+    def info_neurons(self, **kwargs):
+        return self.info_connections("source")
+
+    def info_details(self, connectivity=False, **kwargs):
+        return InputDevice.info_details(self, connectivity, source_or_target="source")
 
 
 class NESTPoissonGenerator(NESTInputDevice):
@@ -366,15 +369,17 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
     def get_size(self):
         return NESTParrotPopulation.get_size(self)
 
-    def _print_nodes(self):
-        return NESTParrotPopulation._print_nodes(self)
+    def info_nodes(self):
+        return NESTParrotPopulation.info_nodes(self)
 
-    def print_str(self, connectivity=False):
-        output = ""
-        output += NESTInputDevice.print_str(self, connectivity=False)
-        output += "\n"
-        output += NESTParrotPopulation.print_str(self, connectivity)
-        return output
+    def info(self):
+        return NESTInputDevice.info(self)
+
+    def info_neurons(self, **kwargs):
+        return NESTParrotPopulation.info_connections(self, "source")
+
+    def info_details(self, connectivity=False, **kwargs):
+        return self.info_details(connectivity=False) + NESTParrotPopulation.info_details(self, connectivity, "source")
 
 
 class NESTParrotPoissonGenerator(NESTParrotInputDevice):
@@ -718,8 +723,14 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         else:
             return self._empty_events
 
-    def print_str(self, connectivity=False):
-        return SpikeRecorder.print_str(self, connectivity, "target")
+    def info(self):
+        return SpikeRecorder.info(self)
+
+    def info_neurons(self, **kwargs):
+        return SpikeRecorder.info_connections(self, "target")
+
+    def info_details(self, connectivity=False, **kwargs):
+        return SpikeRecorder.info_details(self, connectivity, source_or_target="target")
 
     def reset(self):
         NESTOutputDevice.reset(self)
@@ -816,8 +827,14 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
                                 coords={dims_names[0]: times, dims_names[1]: vars, dims_names[2]: senders})
         return data
 
-    def print_str(self, connectivity=False):
-        return Multimeter.print_str(self, connectivity, "source")
+    def info(self):
+        return Multimeter.info(self)
+
+    def info_neurons(self, **kwargs):
+        return Multimeter.info_connections(self, "source")
+
+    def info_details(self, connectivity=False, **kwargs):
+        return Multimeter.info_details(self, connectivity, "source")
 
     def reset(self):
         NESTOutputDevice.reset(self)
@@ -855,8 +872,14 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
     def V_m(self):
         return self.var
     
-    def print_str(self, connectivity=False):
-        return Voltmeter.print_str(self, connectivity, "source")
+    def info(self):
+        return Voltmeter.info(self)
+
+    def info_neurons(self, **kwargs):
+        return Voltmeter.info_connections(self, "source")
+
+    def info_details(self, connectivity=False, **kwargs):
+        return Voltmeter.info_details(self, connectivity, "source")
 
 
 class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
@@ -887,8 +910,14 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
         NESTMultimeter.__setstate__(self, d)
         self.spike_vars = d.get("spike_vars", self.spike_vars)
 
-    def print_str(self, connectivity=False):
-        return NESTMultimeter.print_str(self, connectivity)
+    def info(self):
+        return NESTMultimeter.info(self)
+
+    def info_neurons(self, **kwargs):
+        return NESTMultimeter.info_connections(self, **kwargs)
+
+    def info_details(self, connectivity=False, **kwargs):
+        return NESTMultimeter.info_details(self, connectivity)
 
 
 NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder}
