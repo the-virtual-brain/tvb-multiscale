@@ -33,6 +33,9 @@ class NESTPopulation(_NESTNodeCollection, SpikingPopulation):
         SpikingPopulation.__setstate__(self, d)
         _NESTNodeCollection.__setstate__(self, d)
 
+    def __str__(self):
+        return SpikingPopulation.__str__(self)
+
     def _assert_neurons(self, neurons=None):
         return self._assert_nodes(neurons)
 

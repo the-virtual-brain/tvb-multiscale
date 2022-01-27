@@ -143,7 +143,7 @@ def initialize_logger(name="tvb-multiscale", target_folder=None, config=CONFIGUR
 
 
 def log_path(name, logger):
-    logger.info("%s: %s" % (name, os.environ.get(name, "")))
+    logger.info_details("%s: %s" % (name, os.environ.get(name, "")))
 
 
 # Used for nice __str__() outputs

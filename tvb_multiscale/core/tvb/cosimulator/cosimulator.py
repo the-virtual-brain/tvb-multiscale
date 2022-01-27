@@ -438,9 +438,9 @@ class CoSimulator(CoSimulatorBase):
         if self.output_interfaces or self.input_interfaces:
             output += 3 * LINE + "TVB <-> interfaces:\n\n"
             if self.output_interfaces:
-                output += self.output_interfaces.print_str()
+                output += self.output_interfaces.info_details()
             if self.input_interfaces:
-                output += self.input_interfaces.print_str()
+                output += self.input_interfaces.info_details()
             output += 2 * LINE
         return output
 

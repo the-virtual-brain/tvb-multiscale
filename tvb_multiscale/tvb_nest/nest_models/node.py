@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import uuid
+
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
@@ -231,4 +233,5 @@ class NESTNodeCollection(_NESTNodeCollection, SpikingNodeCollection):
        residing at the same brain region.
     """
 
-    pass
+    def __str__(self):
+        return SpikingNodeCollection.__str__(self)

@@ -159,8 +159,8 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
     def __call__(self, data):
         return self.send(TVBOutputInterface.__call__(self, data))
 
-    def print_str(self):
-        return SenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
+    def __str__(self):
+        return SenderInterface.__str__(self) + TVBOutputInterface.print_str(self)
 
 
 class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterface):
@@ -184,8 +184,8 @@ class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
     def __call__(self):
         return TVBInputInterface.__call__(self, self.receive())
 
-    def print_str(self):
-        return ReceiverInterface.print_str(self) + TVBInputInterface.print_str(self)
+    def __str__(self):
+        return ReceiverInterface.__str__(self) + TVBInputInterface.print_str(self)
 
 
 class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInterface):
@@ -224,7 +224,7 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
     def print_str(self):
         return BaseInterface.print_str(self) + \
                TVBOutputInterface.print_str(self) + \
-               self.transformer.print_str() + \
+               self.transformer.info_details() + \
                SpikeNetInputInterface.print_str(self)
 
     def configure(self):
@@ -266,7 +266,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
 
     def print_str(self):
         return TVBInputInterface.print_str(self) + \
-               self.transformer.print_str() + \
+               self.transformer.info_details() + \
                SpikeNetOutputInterface.print_str(self)
 
     def reshape_data(self):

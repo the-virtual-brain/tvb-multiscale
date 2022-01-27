@@ -183,8 +183,8 @@ class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
     def __call__(self):
         return self.send(self.get_proxy_data())
 
-    def print_str(self):
-        return SenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
+    def __str__(self):
+        return SenderInterface.__str__(self) + SpikeNetOutputInterface.print_str(self)
 
 
 class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
@@ -198,8 +198,8 @@ class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
     def __call__(self):
         return self.set_proxy_data(self.receive())
 
-    def print_str(self):
-        return ReceiverInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
+    def __str__(self):
+        return ReceiverInterface.__str__(self) + SpikeNetInputInterface.print_str(self)
 
 
 class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSenderInterface):

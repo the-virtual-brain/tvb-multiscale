@@ -108,17 +108,6 @@ class ANNarchyDevice(HasTraits):
         """Method to get the indices of all the neurons the device connects from/to."""
         return self.get_neurons()
 
-    def _print_neurons(self, neurons):
-        neurons = np.array(neurons)
-        number_of_neurons = len(neurons)
-        output = "%d neurons: [" % number_of_neurons
-        populations_inds = np.unique(neurons[:, 0])
-        for pop_ind in populations_inds:
-            pop_neurons = neurons[neurons[:, 0] == pop_ind, 1]
-        output += "(%d, %s)" % (pop_ind, extract_integer_intervals(pop_neurons, print=True))
-        output += "]"
-        return output
-
 
 class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
 
@@ -236,8 +225,14 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
     def number_of_connected_neurons(self):
         return self.get_size()
 
-    def print_str(self, connectivity=False):
-        return InputDevice.print_str(self, connectivity, source_or_target="source")
+    def _info_neurons(self, neurons=None):
+        return _ANNarchyPopulation.info_neurons(self, neurons)
+
+    def info(self):
+        return InputDevice.info(self)
+
+    def info_details(self, connectivity=False, **kwargs):
+        return InputDevice.info_details(self, connectivity, source_or_target="source")
 
 
 """
@@ -708,6 +703,19 @@ class ANNarchyOutputDevice(ANNarchyDevice):
         for monitor in self.monitors.keys():
             monitor.resume()
 
+    def _info_neurons(self, neurons=None):
+        if neurons:
+            neurons = np.array(neurons)
+        else:
+            neurons = np.array(self.neurons)
+        info = "{"
+        populations_inds = np.unique(neurons[:, 0])
+        for pop_ind in populations_inds:
+            pop_neurons = neurons[neurons[:, 0] == pop_ind, 1]
+            info += "(%d, %s)" % (pop_ind, extract_integer_intervals(pop_neurons, print=True))
+        info = "}"
+        return info
+
 
 class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
 
@@ -727,6 +735,9 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         kwargs["model"] = kwargs.get("model", "Monitor")
         ANNarchyOutputDevice.__init__(self, device, annarchy_instance, **kwargs)
         Multimeter.__init__(self, device, **kwargs)
+
+    def __str__(self):
+        return Multimeter.__str__(self)
 
     def _compute_times(self, times, data_time_length=None):
         """Method to compute the time vector of ANNarchy.Monitor instances"""
@@ -883,8 +894,8 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                dims=["Time", "Variable", "Neuron"])
         self._output_events_index = 0
 
-    def print_str(self, connectivity=False):
-        return Multimeter.print_str(self, connectivity, source_or_target="target")
+    def info_details(self, connectivity=False, **kwargs):
+        return Multimeter.info_details(self, connectivity, source_or_target="target")
 
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
@@ -904,6 +915,9 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         kwargs["model"] = kwargs.get("model", "SpikeMonitor")
         ANNarchyOutputDevice.__init__(self, device, annarchy_instance, **kwargs)
         SpikeRecorder.__init__(self, device, **kwargs)
+
+    def __str__(self):
+        return SpikeRecorder.__str__(self)
 
     def _record(self):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,
@@ -990,8 +1004,8 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         self._data = ()
         self._output_events_counter = ()
 
-    def print_str(self, connectivity=False):
-        return SpikeRecorder.print_str(self, connectivity, source_or_target="target")
+    def info_details(self, connectivity=False, **kwargs):
+        return SpikeRecorder.info_details(self, connectivity, source_or_target="target")
 
 
 class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultimeter):
@@ -1056,9 +1070,6 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
 
     def reset(self):
         ANNarchyMonitor.reset(self)
-
-    def print_str(self, connectivity=False):
-        return ANNarchyMonitor.print_str(self, connectivity)
 
 
 ANNarchyOutputDeviceDict = {}

@@ -34,6 +34,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self._spiking_brain = ANNarchyBrain()
 
+    def __str__(self):
+        return super(ANNarchyNetworkBuilder, self) + "\nnest simulator: %s" % self.annarchy_instance
+
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
             self.annarchy_instance = load_annarchy(self.config, self.logger)

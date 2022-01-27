@@ -18,17 +18,8 @@ class Communicator(HasTraits):
         Abstract Communicator class to transfer data (time and values).
     """
 
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def print_str(self, sender_not_receiver_flag=None):
-        if sender_not_receiver_flag is True:
-            source_or_target = "\nSource: %s" % str(self.source)
-        elif sender_not_receiver_flag is False:
-            source_or_target = "\nTarget: %s" % str(self.target)
-        else:
-            source_or_target = ""
-        return "\n%s:%s" % (self.__repr__(), source_or_target)
+    def info(self):
+        return self.__str__()
 
     @abstractmethod
     def __call__(self, *args):
@@ -54,6 +45,15 @@ class Sender(Communicator):
     def __call__(self, data):
         self.send(data)
 
+    def info(self):
+        return super(Sender, self).__str__() + "\nTarget: %s" % str(self.target)
+
+    def info_details(self, connectivity=False):
+        out = self.info()
+        if self.target is not None:
+            out += self.target.info_details(connectivity)
+        return out
+
     def print_str(self):
         return super(Sender, self).print_str(True)
 
@@ -77,8 +77,14 @@ class Receiver(Communicator):
     def __call__(self):
         return self.receive()
 
-    def print_str(self):
-        return super(Receiver, self).print_str(False)
+    def info(self):
+        return super(Receiver, self).__str__() + "\nSource: %s" % str(self.source)
+
+    def info_details(self, connectivity=False):
+        out = self.info()
+        if self.source is not None:
+            out += self.source.info_details(connectivity)
+        return out
 
 
 class SetToMemory(Sender):

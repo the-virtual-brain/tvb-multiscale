@@ -12,7 +12,7 @@ from tvb_multiscale.core.spiking_models.devices import DeviceSet, OutputSpikeDev
 
 from tvb.basic.neotraits.api import HasTraits, Attr
 
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, trait_object_str
 
 
 LOG = initialize_logger(__name__)
@@ -124,7 +124,7 @@ class SpikingNetwork(HasTraits):
 
         super(SpikingNetwork, self).__init__()
 
-        LOG.info("%s created!" % self.__class__)
+        LOG.info_details("%s created!" % self.__class__)
 
     def __getattribute__(self, item):
         return super(SpikingNetwork, self).__getattribute__(item)
@@ -132,25 +132,12 @@ class SpikingNetwork(HasTraits):
     def __setattr__(self, key, value):
         return super(SpikingNetwork, self).__setattr__(key, value)
 
-    def __repr__(self):
-        return self.__class__.__name__
-
     def __str__(self):
-        return self.print_str()
+        return trait_object_str(self.info)
 
-    def print_str(self, connectivity=False):
-        spiking_brain = LINE + self.brain_regions.print_str(connectivity)
-        input_devices = 2*LINE + "\n\nInput Devices:\n"
-        for node_name, node in self.input_devices.iteritems():
-            input_devices += LINE + node.print_str(connectivity)
-        output_devices = 2*LINE + "\n\nOutput Devices:\n"
-        for node_name, node in self.output_devices.iteritems():
-            output_devices += LINE + node.print_str(connectivity)
-        outputs = 3*LINE + "%s:\n" % self.__class__.__name__
-        for output_name, output in zip(["Spiking Brain Regions", "Input Devices", "Output Devices"],
-                                       [spiking_brain, input_devices, output_devices]):
-            outputs += output
-        return outputs
+    @property
+    def spiking_simulator_module(self):
+        return None
 
     @property
     @abstractmethod
@@ -298,3 +285,18 @@ class SpikingNetwork(HasTraits):
             data[pop_label] = \
                 pop_device.do_for_all("get_data", **kwargs)
         return data
+
+    def info(self):
+        info = self.summary_info()
+        info["spiking_simulator"] = str(self.spiking_simulator_module)
+        return info
+
+    def info_details(self, connectivity=False):
+        info = self.info()
+        info.update(self.brain_regions.info_details(connectivity))
+        info.update(self.brain_regions.info_details(connectivity))
+        for node_name, node in self.input_devices.iteritems():
+            info.update(node.info_details(connectivity))
+        for node_name, node in self.output_devices.iteritems():
+            info.update(node.info_details(connectivity))
+        return info

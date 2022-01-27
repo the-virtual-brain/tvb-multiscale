@@ -234,3 +234,11 @@ def combine_enums(enum_name, *args):
             d[name] = member.value
     return Enum(enum_name, d)
 
+
+def trait_object_str(class_name, summary):
+    result = ['{} ('.format(class_name)]
+    maxlenk = max(len(k) for k in summary)
+    for k in summary:
+        result.append('  {:.<{}} {}'.format(k + ' ', maxlenk, summary[k]))
+    result.append(')')
+    return '\n'.join(result)

@@ -64,8 +64,8 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
 
     """NESTSenderInterface"""
 
-    def print_str(self):
-        return SpikeNetSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
+    def __str__(self):
+        return SpikeNetSenderInterface.__str__(self) + NESTOutputInterface.print_str(self)
 
     def __call__(self):
         return self.send(NESTOutputInterface.get_proxy_data(self))
@@ -99,8 +99,8 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
 class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
     """NESTReceiverInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverInterface.print_str(self) + NESTInputInterface.print_str(self)
+    def __str__(self):
+        return SpikeNetReceiverInterface.__str__(self) + NESTInputInterface.print_str(self)
 
 
 class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
