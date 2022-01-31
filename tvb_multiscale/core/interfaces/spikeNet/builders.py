@@ -7,9 +7,9 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits._attr import NArray, Attr, Float
-from tvb.basic.neotraits._core import HasTraits
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
@@ -443,6 +443,22 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
                self._spikeNet_intput_interfaces_type(interfaces=self._input_interfaces,
                                                      synchronization_time=self.synchronization_time,
                                                      synchronization_n_step=self.synchronization_n_step)
+
+    def info(self):
+        info = super(SpikeNetInterfaceBuilder, self).info()
+        info['synchronization_time'] = self.synchronization_time
+        info['synchronization_n_step'] = self.synchronization_n_step
+        info['number_of_input_interfaces'] = self.number_of_input_interfaces
+        info['number_of_output_interfaces'] = self.number_of_output_interfaces
+        info['number_of_in_proxy_nodes'] = self.number_of_in_proxy_nodes
+        info['number_of_out_proxy_nodes'] = self.number_of_out_proxy_nodes
+        info["tvb_dt"] = self.tvb_dt
+        info['number_of_regions'] = self.number_of_regions
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(SpikeNetInterfaceBuilder, self).info_details(**kwargs)
+        return info
 
 
 class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, ABC):

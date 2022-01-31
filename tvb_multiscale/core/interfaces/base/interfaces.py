@@ -1,9 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
-from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Int, Float, List
 
-from tvb_multiscale.core.config import LINE
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.interfaces.base.io import Communicator, Sender, Receiver
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 
@@ -24,12 +23,6 @@ class BaseInterface(HasTraits):
     @abstractmethod
     def __call__(self, *args):
         pass
-
-    def info(self):
-        return self.__str__()
-
-    def info_details(self, **kwargs):
-        return self.info()
 
 
 class CommunicatorInterface(BaseInterface):
@@ -54,9 +47,15 @@ class CommunicatorInterface(BaseInterface):
     def __call__(self, *args):
         pass
 
-    def info_details(self):
-        out = self.info()
-        out +=
+    def info(self):
+        info = super(CommunicatorInterface, self).info()
+        info.update(self.communicator.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(CommunicatorInterface, self).info_details()
+        info.update(self.communicator.info_details(**kwargs))
+        return info
 
 
 class SenderInterface(CommunicatorInterface):
@@ -138,6 +137,18 @@ class CommunicatorTransformerInterface(BaseInterface):
     def __call__(self, *args):
         pass
 
+    def info(self):
+        info = super(CommunicatorTransformerInterface, self).info()
+        info.update(self.communicator.info())
+        info.update(self.transformer.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(CommunicatorTransformerInterface, self).info_details()
+        info.update(self.communicator.info_details(**kwargs))
+        info.update(self.transformer.info_details())
+        return info
+
 
 class TransformerSenderInterface(CommunicatorTransformerInterface):
     """TransformerSenderInterface base class
@@ -166,6 +177,18 @@ class TransformerSenderInterface(CommunicatorTransformerInterface):
 
     def __call__(self, data):
         return self.transform_send(data)
+
+    def info(self):
+        info = super(TransformerSenderInterface, self).info()
+        info.update(self.transformer.info())
+        info.update(self.communicator.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(TransformerSenderInterface, self).info_details()
+        info.update(self.transformer.info_details())
+        info.update(self.communicator.info_details(**kwargs))
+        return info
 
 
 class ReceiverTransformerInterface(CommunicatorTransformerInterface):
@@ -196,9 +219,6 @@ class ReceiverTransformerInterface(CommunicatorTransformerInterface):
 
     def __call__(self):
         return self.receive_transform()
-
-    def print_str(self):
-        return super(ReceiverTransformerInterface, self).print_str(sender_not_receiver=False)
 
 
 class RemoteTransformerInterface(BaseInterface):
@@ -246,12 +266,19 @@ class RemoteTransformerInterface(BaseInterface):
     def __call__(self):
         self.receive_transform_send()
 
-    def print_str(self):
-        out = super(RemoteTransformerInterface, self).print_str()
-        out += "\nReceiver: %s" % str(self.receiver)
-        out += "\nTransformer: %s" % self.transformer.info_details()
-        out += "\nSender: %s" % str(self.sender)
-        return out
+    def info(self):
+        info = super(RemoteTransformerInterface, self).info()
+        info.update(self.receiver.info())
+        info.update(self.transformer.info())
+        info.update(self.sender.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(RemoteTransformerInterface, self).info_details()
+        info.update(self.receiver.info_details(**kwargs))
+        info.update(self.transformer.info_details())
+        info.update(self.sender.info_details(**kwargs))
+        return info
 
 
 class BaseInterfaces(HasTraits):
@@ -301,18 +328,15 @@ class BaseInterfaces(HasTraits):
     def __call__(self, *args):
         pass
 
-    def __repr__(self):
-        return self.__class__.__name__
+    def info(self):
+        info = super(BaseInterfaces, self).info()
+        info["number_of_interfaces"] = self.number_of_interfaces
+        for interface in self.interfaces:
+            info.update(interface.info())
+        return info
 
-    def __str__(self):
-        return self.print_str()
-
-    def print_str(self):
-        output = 2 * LINE + "%s\n\n" % self.__repr__()
-        output += "synchronization_time = %g, synchronization_n_step = %g" % \
-                  (self.synchronization_time, self.synchronization_n_step)
-        output += LINE + "\n"
-        for ii, interface in enumerate(self.interfaces):
-            output += "%d. %s" % (ii, interface.info_details())
-            output += LINE + "\n"
-        return output
+    def info_details(self, **kwargs):
+        info = super(BaseInterfaces, self).info_details()
+        for interface in self.interfaces:
+            info.update(interface.info_details(**kwargs))
+        return info

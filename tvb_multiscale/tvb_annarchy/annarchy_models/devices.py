@@ -6,15 +6,16 @@ from collections import OrderedDict
 from xarray import DataArray, combine_by_coords
 import numpy as np
 
-from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
-from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 
-from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     flatten_list, ensure_list, extract_integer_intervals, is_integer
+
+from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
+from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
+from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation
 
 
 # These classes wrap around ANNarchy commands.
@@ -225,8 +226,8 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
     def number_of_connected_neurons(self):
         return self.get_size()
 
-    def _info_neurons(self, neurons=None):
-        return _ANNarchyPopulation.info_neurons(self, neurons)
+    def info_neurons(self):
+        return _ANNarchyPopulation.info_neurons(self)
 
     def info(self):
         return InputDevice.info(self)
@@ -703,19 +704,6 @@ class ANNarchyOutputDevice(ANNarchyDevice):
         for monitor in self.monitors.keys():
             monitor.resume()
 
-    def _info_neurons(self, neurons=None):
-        if neurons:
-            neurons = np.array(neurons)
-        else:
-            neurons = np.array(self.neurons)
-        info = "{"
-        populations_inds = np.unique(neurons[:, 0])
-        for pop_ind in populations_inds:
-            pop_neurons = neurons[neurons[:, 0] == pop_ind, 1]
-            info += "(%d, %s)" % (pop_ind, extract_integer_intervals(pop_neurons, print=True))
-        info = "}"
-        return info
-
 
 class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
 
@@ -735,9 +723,6 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         kwargs["model"] = kwargs.get("model", "Monitor")
         ANNarchyOutputDevice.__init__(self, device, annarchy_instance, **kwargs)
         Multimeter.__init__(self, device, **kwargs)
-
-    def __str__(self):
-        return Multimeter.__str__(self)
 
     def _compute_times(self, times, data_time_length=None):
         """Method to compute the time vector of ANNarchy.Monitor instances"""
@@ -915,9 +900,6 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         kwargs["model"] = kwargs.get("model", "SpikeMonitor")
         ANNarchyOutputDevice.__init__(self, device, annarchy_instance, **kwargs)
         SpikeRecorder.__init__(self, device, **kwargs)
-
-    def __str__(self):
-        return SpikeRecorder.__str__(self)
 
     def _record(self):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,

@@ -5,9 +5,10 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, Int, NArray
+from tvb.basic.neotraits.api import Attr, Float, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
@@ -78,6 +79,12 @@ class TVBInterface(HasTraits):
                "\nTVB %s proxy nodes' indices: %s" % \
                (str(self.voi.tolist()),
                 tvb_source_or_target, extract_integer_intervals(self.proxy_inds, print=True))
+
+    def info(self):
+        info = super(TVBInterface, self).info()
+        info["n_voi"] = self.n_voi
+        info["number_of_proxy_nodes"] = self.number_of_proxy_nodes
+        return info
 
 
 class TVBOutputInterface(TVBInterface):
@@ -159,8 +166,15 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
     def __call__(self, data):
         return self.send(TVBOutputInterface.__call__(self, data))
 
-    def __str__(self):
-        return SenderInterface.__str__(self) + TVBOutputInterface.print_str(self)
+    def info(self):
+        info = SenderInterface.info(self)
+        info.update(TVBOutputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = SenderInterface.info_details(self, **kwargs)
+        info.update(TVBOutputInterface.info_details(self))
+        return info
 
 
 class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterface):
@@ -172,8 +186,15 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterfa
     def __call__(self, data):
         return self.transform_send(TVBOutputInterface.__call__(self, data))
 
-    def print_str(self):
-        return TransformerSenderInterface.print_str(self) + TVBOutputInterface.print_str(self)
+    def info(self):
+        info = TransformerSenderInterface.info(self)
+        info.update(TVBOutputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = TransformerSenderInterface.info_details(self, **kwargs)
+        info.update(TVBOutputInterface.info_details(self))
+        return info
 
 
 class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
@@ -184,8 +205,15 @@ class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
     def __call__(self):
         return TVBInputInterface.__call__(self, self.receive())
 
-    def __str__(self):
-        return ReceiverInterface.__str__(self) + TVBInputInterface.print_str(self)
+    def info(self):
+        info = ReceiverInterface.info(self)
+        info.update(TVBInputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = ReceiverInterface.info_details(self, **kwargs)
+        info.update(TVBInputInterface.info_details(self))
+        return info
 
 
 class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInterface):
@@ -197,9 +225,15 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
     def __call__(self):
         return TVBInputInterface.__call__(self, self.receive_transform())
 
-    def print_str(self):
-        return ReceiverTransformerInterface.print_str(self) + \
-               TVBInputInterface.print_str(self)
+    def info(self):
+        info = ReceiverTransformerInterface.info(self)
+        info.update(TVBInputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = ReceiverTransformerInterface.info_details(self, **kwargs)
+        info.update(TVBInputInterface.info_details(self))
+        return info
 
 
 class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInterface):
@@ -221,12 +255,6 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
                                            extract_integer_intervals(self.proxy_inds),
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
-    def print_str(self):
-        return BaseInterface.print_str(self) + \
-               TVBOutputInterface.print_str(self) + \
-               self.transformer.info_details() + \
-               SpikeNetInputInterface.print_str(self)
-
     def configure(self):
         super(TVBtoSpikeNetInterface, self).configure()
         self.transformer.configure()
@@ -239,6 +267,18 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         self.transformer.input_buffer = self.reshape_data(data[1])
         self.transformer()
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
+
+    def info(self):
+        info = BaseInterface.info(self)
+        info.update(SpikeNetInputInterface.info(self))
+        info.update(TVBOutputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = BaseInterface.info_details(self)
+        info.update(SpikeNetInputInterface.info_details(self, **kwargs))
+        info.update(TVBOutputInterface.info_details(self))
+        return info
 
 
 class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInterface):
@@ -264,11 +304,6 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
                                            extract_integer_intervals(self.proxy_inds),
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
-    def print_str(self):
-        return TVBInputInterface.print_str(self) + \
-               self.transformer.info_details() + \
-               SpikeNetOutputInterface.print_str(self)
-
     def reshape_data(self):
         return TVBInputInterface.__call__(self, self.transformer.output_buffer)
 
@@ -280,6 +315,18 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         self.transformer.input_buffer = data[1]
         self.transformer()
         return [self.transformer.output_time, self.reshape_data()]
+
+    def info(self):
+        info = BaseInterface.info(self)
+        info.update(SpikeNetOutputInterface.info(self))
+        info.update(TVBInputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = BaseInterface.info_details(self)
+        info.update(SpikeNetOutputInterface.info_details(self, **kwargs))
+        info.update(TVBInputInterface.info_details(self))
+        return info
 
 
 class TVBInterfaces(HasTraits):
@@ -323,6 +370,19 @@ class TVBInterfaces(HasTraits):
     def set_local_indices(self, *args):
         pass
 
+    def info(self):
+        info = super(TVBInterfaces, self).info()
+        info["n_vois"] = self.n_vois
+        info["voi"] = self.voi_unique
+        info["voi_labels"] = self.voi_labels_unique
+        info["number_of_proxy_nodes"] = self.number_of_proxy_nodes
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(TVBInterfaces, self).info_details(**kwargs)
+        info["proxy_inds_unique"] = self.proxy_inds_unique
+        return info
+
 
 class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
 
@@ -352,6 +412,16 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
             interface([self._compute_interface_times(interface, data),
                        data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
+
+    def info(self):
+        info = BaseInterfaces.info()
+        info.update(TVBInterfaces.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = BaseInterfaces.info_details(self, **kwargs)
+        info.update(TVBInterfaces.info_details(self, **kwargs))
+        return info
 
 
 class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
@@ -407,20 +477,45 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
                 self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
         return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
 
+    def info(self):
+        info = BaseInterfaces.info()
+        info.update(TVBInterfaces.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = BaseInterfaces.info_details(self, **kwargs)
+        info.update(TVBInterfaces.info_details(self, **kwargs))
+        return info
 
 
 class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
 
     """TVBtoSpikeNetInterfaces"""
 
-    pass
+    def info(self):
+        info = SpikeNetInputInterfaces.info()
+        info.update(TVBOutputInterfaces.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = SpikeNetInputInterfaces.info_details(self, **kwargs)
+        info.update(TVBOutputInterfaces.info_details(self))
+        return info
 
 
 class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
 
     """SpikeNetToTVBInterfaces"""
 
-    pass
+    def info(self):
+        info = SpikeNetOutputInterfaces.info()
+        info.update(TVBInputInterfaces.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = SpikeNetOutputInterfaces.info_details(self, **kwargs)
+        info.update(TVBInputInterfaces.info_details(self))
+        return info
 
 
 class TVBtoSpikeNetModels(Enum):

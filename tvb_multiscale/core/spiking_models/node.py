@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 import uuid
-
 from collections import OrderedDict
 
-from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals, trait_object_str
+import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Int
+from tvb_multiscale.core.config import initialize_logger
+from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals, summary_info
+
+from tvb.basic.neotraits.api import Attr, Int
 from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 
@@ -38,6 +40,8 @@ class SpikingNodeCollection(HasTraits):
     _size = Int(field_type=int, default=0, required=True, label="Size",
                 doc="""The number of elements of SpikingNodeCollection """)
 
+    _source_conns_attr = ""
+    _target_conns_attr = ""
     _weight_attr = ""
     _delay_attr = ""
     _receptor_attr = ""
@@ -97,9 +101,6 @@ class SpikingNodeCollection(HasTraits):
         """
         return self._nodes[keys]
 
-    def __str__(self):
-        return trait_object_str(self.info)
-
     @property
     def node_collection(self):
         return self._nodes
@@ -128,14 +129,6 @@ class SpikingNodeCollection(HasTraits):
     @property
     def nodes(self):
         return self._nodes
-
-    def summarize_nodes_indices(self, print=False):
-        """Method to summarize nodes' indices' intervals.
-        Arguments:
-         print: if True, a string is returned, Default = False
-        Returns:
-         a list of intervals' limits, or of single indices, or a string of the list if print = True"""
-        return extract_integer_intervals(self.gids, print=print)
 
     # Methods to get or set attributes for nodes and/or their connections:
 
@@ -344,7 +337,7 @@ class SpikingNodeCollection(HasTraits):
                    Arguments:
                     attr: the attribute to be returned
                     nodes: instance of a nodes class,
-                             or sequence (list, tuple, array) of nodes the attributes of which should be set.
+                             or sequence (list, tuple, array) of nodes the attributes of which should be returned.
                              Default = None, corresponds to all nodes.
                     source_or_target: Direction of connections relative to the populations' nodes
                                       "source", "target" or None (Default; corresponds to both source and target)
@@ -370,6 +363,47 @@ class SpikingNodeCollection(HasTraits):
             return self.GetFromConnections(attr, nodes=nodes, source_or_target=source_or_target,
                                            summary=summary).get(attr, [])
         else:
+            return self.GetFromConnections(attr, connections=connections, summary=summary).get(attr, [])
+
+    def get_connected_nodes(self, nodes=None, source_or_target=None, connections=None, summary=None):
+        """Method to get the connected nodes of the SpikingNodeCollections's nodes.
+            Arguments:
+                nodes: instance of a nodes class,
+                       or sequence (list, tuple, array) of nodes the attributes of which should be set.
+                       Default = None, corresponds to all nodes.
+                source_or_target: Direction of connections relative to the populations' nodes
+                                  "source", "target" or None (Default; corresponds to both source and target)
+                connections: connections' objects, identical to the output of the GetConnections() method
+                             Default = None, in which the arguments above are taken into consideration.
+                summary: if integer, return a summary of unique output values
+                         within accuracy of the specified number of decimal digits
+                         otherwise, if it is not None or False return
+                         either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                         or a list of unique string entries for all other attributes,
+                        Default = None, corresponds to returning all values
+                Returns:
+                    Sequence (list, tuple, or array) of connected nodes' gids.
+                """
+        if connections is None:
+            if source_or_target is None:
+                # In case we deal with both source and target connections, treat them separately:
+                outputs = []
+                for source_or_target in ["source", "target"]:
+                    outputs.append(self.get_connected_nodes(nodes=nodes, source_or_target=source_or_target,
+                                                            ummary=summary))
+                return tuple(outputs)
+            # In this case the connections are found based on source_or_target,
+            # and we need to reverse source_or_target to determines the nodes to return:
+            if source_or_target == "target":
+                attr = self._source_conns_attr
+            else:
+                attr = self._target_conns_attr
+            return self.GetFromConnections(attr, nodes=nodes, source_or_target=source_or_target,
+                                           summary=summary).get(attr, [])
+        else:
+            # In this case the connections have already been found,
+            # and the source_or_target determines if we want the sources or targets of those connections.
+            attr = getattr(self, "_%s_conns_attr" % source_or_target)
             return self.GetFromConnections(attr, connections=connections, summary=summary).get(attr, [])
 
     def get_weights(self, nodes=None, source_or_target=None, connections=None, summary=None):
@@ -486,18 +520,12 @@ class SpikingNodeCollection(HasTraits):
 
     def info_nodes(self):
         info = OrderedDict()
-        if self._nodes is not None:
-            info['number_of_nodes'] = "%d" % self.number_of_nodes
-            info["nodes"] = str(self.nodes)
-            info["gids"] = self._info_neurons(self.gids)
-        else:
-            info['number_of_nodes'] = "0"
-            info["nodes"] = ""
-            info["gids"] = ""
+        info['number_of_nodes'] = self.number_of_nodes
+        info["nodes"] = self.nodes
         return info
 
-    def _info_neurons(self, neurons):
-        return str(summarize(neurons, 1))
+    def info_neurons(self):
+        return {"gids": np.array(self.gids)}
 
     def _info_connectivity(self, source_or_target, attributes=True):
         source_or_target = source_or_target.lower()
@@ -505,18 +533,17 @@ class SpikingNodeCollection(HasTraits):
         conns = self.GetConnections(source_or_target=source_or_target)
         if source_or_target == "target":
             source_or_target = "to"
+            source_or_target_reverse = "source"
         else:
             source_or_target = "from"
-        info["connections_%s" % source_or_target] = self._info_neurons(conns)
+            source_or_target_reverse = "target"
         if attributes:
             if attributes == True:
-                attributes = [self._weight_attr, self._delay_attr, self._receptor_attr]
-            conn_attrs = self.GetFromConnections(attrs=attributes, connections=conns, summary=3)
-            for key, val in zip([self._weight_attr, self._delay_attr, self._receptor_attr],
-                                [str(conn_attrs.get(self._weight_attr, "")),
-                                 str(conn_attrs.get(self._delay_attr, "")),
-                                 str(conn_attrs.get(self._receptor_attr, ""))]):
-                info["key_%s" % source_or_target] = val
+                attributes = [getattr(self, "_%s_conns_attr" % source_or_target_reverse),
+                              self._weight_attr, self._delay_attr, self._receptor_attr]
+            conn_attrs = self.GetFromConnections(attrs=attributes, connections=conns)
+            for attr in attributes:
+                info["key_%s" % source_or_target] = conn_attrs.get(attr, np.array([]))
         return info
 
     def _info_connections(self, source_or_target):
@@ -539,14 +566,15 @@ class SpikingNodeCollection(HasTraits):
         return info
 
     def info(self):
-        info = OrderedDict(self.summary_info())
+        info = super(SpikingNodeCollection, self).info()
         info.update(self.info_nodes())
         return info
 
     def info_details(self, connectivity=False, source_or_target=None):
-        info = self.info()
+        info = super(SpikingNodeCollection, self).info_details()
+        info.update(self.info_neurons())
         if self._nodes is not None:
-            info.update(self.get_attributes(summary=True))
+            info.update(summary_info(self.get_attributes(summary=False)))
             if connectivity:
                 info.update(self.info_connectivity(source_or_target))
         return info

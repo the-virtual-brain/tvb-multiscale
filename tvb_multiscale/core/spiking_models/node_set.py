@@ -8,12 +8,15 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_multiscale.core.config import initialize_logger, LINE
+from tvb_multiscale.core.config import initialize_logger
 
-from tvb.basic.neotraits.api import HasTraits, Int
+from tvb.basic.neotraits.api import Int
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer, trait_object_str
+from tvb.contrib.scripts.utils.data_structures_utils import \
+    series_loop_generator, is_integer, trait_object_str, summary_info
+
+from tvb_multiscale.core.datatypes import HasTraits
 
 
 LOG = initialize_logger(__name__)
@@ -57,9 +60,6 @@ class SpikingNodesSet(pd.Series, HasTraits):
                            '{} gid: {}'.format(self.__class__.__name__, self.gid))
         self.tag = d.get("tags", {})
         self.configure()
-
-    def __str__(self):
-        return trait_object_str(self.info)
 
     @property
     def spiking_simulator_module(self):
@@ -409,13 +409,12 @@ class SpikingNodesSet(pd.Series, HasTraits):
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
     def info(self):
-        info = OrderedDict(self.summary_info())
-        info[self._collection_name] = str(self.collections)
+        info = super(SpikingNodesSet, self).info()
+        info[self._collection_name] = self.collections
         return info
 
     def info_details(self, connectivity=False, source_or_target=None):
-        info = self.self.info()
+        info = super(SpikingNodesSet, self).info_details()
         for pop in self.collections:
-            info[pop] = ['{} ('.format(self[pop].__class__.__name__)]
             info.update(self[pop].info_details(connectivity, source_or_target))
         return info

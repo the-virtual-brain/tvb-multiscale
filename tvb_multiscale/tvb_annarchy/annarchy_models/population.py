@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+
 import numpy as np
 
-from tvb_multiscale.core.spiking_models.population import SpikingPopulation
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer, extract_integer_intervals
+
+from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
 
 class _ANNarchyPopulation(HasTraits):
@@ -304,21 +307,13 @@ class _ANNarchyPopulation(HasTraits):
                     self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
         return dictionary
 
-    def _info_neurons(self, neurons=None):
-        if neurons:
-            neurons = np.array(neurons)
-        if neurons is None or neurons.ndim < 2:
-            if neurons is None:
-                neurons = self.gids
-            return "(%d, %s)" % (self._population_ind, extract_integer_intervals(neurons, print=True))
-        else:
-            info = "{"
-            populations_inds = np.unique(neurons[:, 0])
-            for pop_ind in populations_inds:
-                pop_neurons = neurons[neurons[:, 0] == pop_ind, 1]
-                info += "(%d, %s)" % (pop_ind, extract_integer_intervals(pop_neurons, print=True))
-            info = "}"
-            return info
+    def info_neurons(self):
+        neurons = self.neurons
+        populations_inds = np.unique(neurons[:, 0])
+        info = OrderedDict()
+        for pop_ind in populations_inds:
+            info["nodes_gids_of_population_%d" % pop_ind] = np.array(neurons[neurons[:, 0] == pop_ind, 1])
+        return info
 
 
 class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
@@ -335,8 +330,8 @@ class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
         _ANNarchyPopulation.__init__(self, nodes, annarchy_instance, **kwargs)
         SpikingPopulation.__init__(self, nodes, **kwargs)
 
-    def __str__(self):
-        return SpikingPopulation.__str__(self)
+    def info(self):
+        return SpikingPopulation.info(self)
 
-    def _info_neurons(self, neurons=None):
-        return _ANNarchyPopulation.info_neurons(self, neurons)
+    def info_details(self, **kwargs):
+        return SpikingPopulation.info_details(self, **kwargs)

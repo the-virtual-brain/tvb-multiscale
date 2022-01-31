@@ -63,6 +63,12 @@ class SpikeNetInputDeviceSet(SetToMemory):
     def send(self, data):
         pass
 
+    def info_details(self, connectivity=False):
+        out = self.info()
+        if self.target is not None:
+            out += self.target.info_details(connectivity)
+        return out
+
 
 class SpikeNetOutputDeviceSet(GetFromMemory):
 
@@ -121,6 +127,12 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
 
     def receive(self):
         return self.data
+
+    def info_details(self, connectivity=False):
+        out = self.info()
+        if self.source is not None:
+            out += self.source.info_details(connectivity)
+        return out
 
 
 class SpikeNetSpikeRecorderDeviceSet(SpikeNetOutputDeviceSet):

@@ -5,8 +5,9 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr
+from tvb.basic.neotraits.api import Attr
 
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
@@ -17,9 +18,6 @@ class Communicator(HasTraits):
     """
         Abstract Communicator class to transfer data (time and values).
     """
-
-    def info(self):
-        return self.__str__()
 
     @abstractmethod
     def __call__(self, *args):
@@ -46,16 +44,18 @@ class Sender(Communicator):
         self.send(data)
 
     def info(self):
-        return super(Sender, self).__str__() + "\nTarget: %s" % str(self.target)
-
-    def info_details(self, connectivity=False):
-        out = self.info()
+        info = super(Sender, self).info()
         if self.target is not None:
-            out += self.target.info_details(connectivity)
-        return out
+            info.update(self.target.info())
+        else:
+            info["target"] = str(self.target)
+        return info
 
-    def print_str(self):
-        return super(Sender, self).print_str(True)
+    def info_details(self, **kwargs):
+        info = super(Sender, self).info_details()
+        if self.target is not None:
+            info.update(self.target.info_details(**kwargs))
+        return info
 
 
 class Receiver(Communicator):
@@ -78,13 +78,18 @@ class Receiver(Communicator):
         return self.receive()
 
     def info(self):
-        return super(Receiver, self).__str__() + "\nSource: %s" % str(self.source)
-
-    def info_details(self, connectivity=False):
-        out = self.info()
+        info = super(Receiver, self).info()
         if self.source is not None:
-            out += self.source.info_details(connectivity)
-        return out
+            info.update(self.source.info())
+        else:
+            info["source"] = str(self.source)
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(Receiver, self).info_details()
+        if self.source is not None:
+            info.update(self.source.info_details(**kwargs))
+        return info
 
 
 class SetToMemory(Sender):

@@ -94,6 +94,5 @@ class ANNarchyNetwork(SpikingNetwork):
 
     def info(self):
         info = super(ANNarchyNetwork, self).info()
-        if self.network is not None:
-            info["ANNarchy_Network"] = "%s" % str(self.network)
+        info["ANNarchy_Network"] = self.network
         return info
