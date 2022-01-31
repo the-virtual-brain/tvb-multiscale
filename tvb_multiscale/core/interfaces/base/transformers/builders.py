@@ -9,7 +9,7 @@ from six import string_types
 from tvb.basic.neotraits._attr import Attr, Float
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.transformers.models.base import \
     Transformer, LinearRate, LinearCurrent, LinearPotential
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \

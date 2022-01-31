@@ -235,8 +235,8 @@ class NESTNodeCollection(_NESTNodeCollection, SpikingNodeCollection):
        residing at the same brain region.
     """
 
-    def info(self):
-        return SpikingNodeCollection.info(self)
+    def info(self, recursive=0):
+        return SpikingNodeCollection.info(self, recursive=recursive)
 
-    def info_details(self, **kwargs):
-        return SpikingNodeCollection.info_details(self, **kwargs)
+    def info_details(self, recursive=0, **kwargs):
+        return SpikingNodeCollection.info_details(self, recursive=recursive, **kwargs)

@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits.api import Attr
 
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
@@ -43,18 +43,22 @@ class Sender(Communicator):
     def __call__(self, data):
         self.send(data)
 
-    def info(self):
-        info = super(Sender, self).info()
-        if self.target is not None:
-            info.update(self.target.info())
+    def info(self, recursive=0):
+        info = super(Sender, self).info(recursive=recursive)
+        if isinstance(self.target, HasTraits):
+            if recursive > 0:
+                info.update(self.target.info(recursive-1))
+            else:
+                info["target"] = getattr(self.target, "title", "")
         else:
             info["target"] = str(self.target)
         return info
 
-    def info_details(self, **kwargs):
-        info = super(Sender, self).info_details()
-        if self.target is not None:
-            info.update(self.target.info_details(**kwargs))
+    def info_details(self, recursive=0, **kwargs):
+        info = super(Sender, self).info_details(recursive=recursive)
+        if isinstance(self.target, HasTraits):
+            if recursive > 0:
+                info.update(self.target.info_details(recursive-1, **kwargs))
         return info
 
 
@@ -77,18 +81,22 @@ class Receiver(Communicator):
     def __call__(self):
         return self.receive()
 
-    def info(self):
-        info = super(Receiver, self).info()
-        if self.source is not None:
-            info.update(self.source.info())
+    def info(self, recursive=0):
+        info = super(Receiver, self).info(recursive=recursive)
+        if isinstance(self.source, HasTraits):
+            if recursive > 0:
+                info.update(self.source.info(recursive - 1))
+            else:
+                info["target"] = getattr(self.source, "title", "")
         else:
-            info["source"] = str(self.source)
+            info["target"] = str(self.source)
         return info
 
-    def info_details(self, **kwargs):
-        info = super(Receiver, self).info_details()
-        if self.source is not None:
-            info.update(self.source.info_details(**kwargs))
+    def info_details(self, recursive=0, **kwargs):
+        info = super(Receiver, self).info_details(recursive=recursive)
+        if isinstance(self.source, HasTraits):
+            if recursive > 0:
+                info.update(self.source.info_details(recursive - 1, **kwargs))
         return info
 
 

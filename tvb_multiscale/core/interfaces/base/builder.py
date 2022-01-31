@@ -11,7 +11,7 @@ from tvb.basic.neotraits._attr import Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summary_info
 
 
@@ -187,8 +187,8 @@ class InterfaceBuilder(HasTraits, ABC):
         self.build_interfaces()
         return self._output_interfaces, self._input_interfaces
 
-    def info(self):
-        info = super(InterfaceBuilder, self).info()
+    def info(self, recursive=0):
+        info = super(InterfaceBuilder, self).info(recursive=recursive)
         info['synchronization_time'] = self.synchronization_time
         info['synchronization_n_step'] = self.synchronization_n_step
         info['number_of_input_interfaces'] = self.number_of_input_interfaces
@@ -204,8 +204,8 @@ class InterfaceBuilder(HasTraits, ABC):
             info.update(summary_info(interface))
         return info
 
-    def info_details(self, **kwargs):
-        info = super(InterfaceBuilder, self).info_details(**kwargs)
+    def info_details(self, recursive=0, **kwargs):
+        info = super(InterfaceBuilder, self).info_details(recursive=recursive, **kwargs)
         for input_or_output in ["input", "output"]:
             info.update(self._info_details_interfaces(getattr(self, "%s_interfaces" % input_or_output),
                                                       input_or_output))

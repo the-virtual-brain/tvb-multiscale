@@ -8,7 +8,7 @@ import numpy as np
 from tvb.basic.neotraits.api import Attr, Float, Int, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
@@ -68,20 +68,8 @@ class TVBInterface(HasTraits):
     def set_local_indices(self, *args):
         pass
 
-    def print_str(self, sender_not_receiver=None):
-        if sender_not_receiver is True:
-            tvb_source_or_target = "Sender"
-        elif sender_not_receiver is False:
-            tvb_source_or_target = "Receiver"
-        else:
-            tvb_source_or_target = ""
-        return "\nTVB state variable indices: %s" \
-               "\nTVB %s proxy nodes' indices: %s" % \
-               (str(self.voi.tolist()),
-                tvb_source_or_target, extract_integer_intervals(self.proxy_inds, print=True))
-
-    def info(self):
-        info = super(TVBInterface, self).info()
+    def info(self, recursive=0):
+        info = super(TVBInterface, self).info(recursive=recursive)
         info["n_voi"] = self.n_voi
         info["number_of_proxy_nodes"] = self.number_of_proxy_nodes
         return info
@@ -115,9 +103,6 @@ class TVBOutputInterface(TVBInterface):
     def set_local_indices(self, monitor_voi):
         self.set_local_voi_indices(monitor_voi)
 
-    def print_str(self):
-        return super(TVBOutputInterface, self).print_str(sender_not_receiver=True)
-
     def __call__(self, data):
         # Assume a single mode, and reshape from TVB (time, voi, proxy)...
         if data.shape[1] == 1:
@@ -143,9 +128,6 @@ class TVBInputInterface(TVBInterface):
         self.set_local_voi_indices(simulator_voi)
         self.proxy_inds_loc = self._set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
-    def print_str(self):
-        return super(TVBInputInterface, self).print_str(sender_not_receiver=False)
-
     def __call__(self, data):
         # Assume a single mode, and reshape from (proxy, (voi,) time) to TVB (time, voi, proxy)
         if data.ndim < 3:
@@ -166,14 +148,14 @@ class TVBSenderInterface(SenderInterface, TVBOutputInterface):
     def __call__(self, data):
         return self.send(TVBOutputInterface.__call__(self, data))
 
-    def info(self):
-        info = SenderInterface.info(self)
-        info.update(TVBOutputInterface.info(self))
+    def info(self, recursive=0):
+        info = SenderInterface.info(self, recursive=recursive)
+        info.update(TVBOutputInterface.info(self, recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = SenderInterface.info_details(self, **kwargs)
-        info.update(TVBOutputInterface.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = SenderInterface.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBOutputInterface.info_details(self, recursive=recursive))
         return info
 
 
@@ -186,14 +168,14 @@ class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterfa
     def __call__(self, data):
         return self.transform_send(TVBOutputInterface.__call__(self, data))
 
-    def info(self):
-        info = TransformerSenderInterface.info(self)
-        info.update(TVBOutputInterface.info(self))
+    def info(self, recursive=0):
+        info = TransformerSenderInterface.info(self, recursive=recursive)
+        info.update(TVBOutputInterface.info(self, recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = TransformerSenderInterface.info_details(self, **kwargs)
-        info.update(TVBOutputInterface.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = TransformerSenderInterface.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBOutputInterface.info_details(self, recursive=recursive))
         return info
 
 
@@ -205,14 +187,14 @@ class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
     def __call__(self):
         return TVBInputInterface.__call__(self, self.receive())
 
-    def info(self):
-        info = ReceiverInterface.info(self)
-        info.update(TVBInputInterface.info(self))
+    def info(self, recursive=0):
+        info = ReceiverInterface.info(self, recursive=recursive)
+        info.update(TVBInputInterface.info(self, recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = ReceiverInterface.info_details(self, **kwargs)
-        info.update(TVBInputInterface.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = ReceiverInterface.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBInputInterface.info_details(self, recursive=recursive))
         return info
 
 
@@ -225,14 +207,14 @@ class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInte
     def __call__(self):
         return TVBInputInterface.__call__(self, self.receive_transform())
 
-    def info(self):
-        info = ReceiverTransformerInterface.info(self)
-        info.update(TVBInputInterface.info(self))
+    def info(self, recursive=0):
+        info = ReceiverTransformerInterface.info(self, recursive=recursive)
+        info.update(TVBInputInterface.info(self, recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = ReceiverTransformerInterface.info_details(self, **kwargs)
-        info.update(TVBInputInterface.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = ReceiverTransformerInterface.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBInputInterface.info_details(self, recursive=recursive))
         return info
 
 
@@ -268,16 +250,16 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         self.transformer()
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
-    def info(self):
-        info = BaseInterface.info(self)
-        info.update(SpikeNetInputInterface.info(self))
-        info.update(TVBOutputInterface.info(self))
+    def info(self, recursive=0):
+        info = BaseInterface.info(self, recursive=recursive)
+        info.update(SpikeNetInputInterface.info(self, recursive=recursive))
+        info.update(TVBOutputInterface.info(self, recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = BaseInterface.info_details(self)
-        info.update(SpikeNetInputInterface.info_details(self, **kwargs))
-        info.update(TVBOutputInterface.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = BaseInterface.info_details(self, recursive=recursive)
+        info.update(SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs))
+        info.update(TVBOutputInterface.info_details(self, recursive=recursive))
         return info
 
 
@@ -316,16 +298,16 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         self.transformer()
         return [self.transformer.output_time, self.reshape_data()]
 
-    def info(self):
-        info = BaseInterface.info(self)
-        info.update(SpikeNetOutputInterface.info(self))
-        info.update(TVBInputInterface.info(self))
+    def info(self, recursive=0):
+        info = BaseInterface.info(self, recursive=recursive)
+        info.update(SpikeNetOutputInterface.info(self, recursive=recursive))
+        info.update(TVBInputInterface.info(self, recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = BaseInterface.info_details(self)
-        info.update(SpikeNetOutputInterface.info_details(self, **kwargs))
-        info.update(TVBInputInterface.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = BaseInterface.info_details(self, recursive=recursive)
+        info.update(SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs))
+        info.update(TVBInputInterface.info_details(self, recursive=recursive))
         return info
 
 
@@ -370,16 +352,16 @@ class TVBInterfaces(HasTraits):
     def set_local_indices(self, *args):
         pass
 
-    def info(self):
-        info = super(TVBInterfaces, self).info()
+    def info(self, recursive=0):
+        info = super(TVBInterfaces, self).info(recursive=recursive)
         info["n_vois"] = self.n_vois
         info["voi"] = self.voi_unique
         info["voi_labels"] = self.voi_labels_unique
         info["number_of_proxy_nodes"] = self.number_of_proxy_nodes
         return info
 
-    def info_details(self, **kwargs):
-        info = super(TVBInterfaces, self).info_details(**kwargs)
+    def info_details(self, recursive=0, **kwargs):
+        info = super(TVBInterfaces, self).info_details(recursive=recursive, **kwargs)
         info["proxy_inds_unique"] = self.proxy_inds_unique
         return info
 
@@ -413,14 +395,14 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
             interface([self._compute_interface_times(interface, data),
                        data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
-    def info(self):
-        info = BaseInterfaces.info()
-        info.update(TVBInterfaces.info())
+    def info(self, recursive=0):
+        info = BaseInterfaces.info(recursive=recursive)
+        info.update(TVBInterfaces.info(recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = BaseInterfaces.info_details(self, **kwargs)
-        info.update(TVBInterfaces.info_details(self, **kwargs))
+    def info_details(self, recursive=0, **kwargs):
+        info = BaseInterfaces.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBInterfaces.info_details(self, recursive=recursive, **kwargs))
         return info
 
 
@@ -477,14 +459,14 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
                 self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
         return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
 
-    def info(self):
-        info = BaseInterfaces.info()
-        info.update(TVBInterfaces.info())
+    def info(self, recursive=0):
+        info = BaseInterfaces.info(recursive=recursive)
+        info.update(TVBInterfaces.info(recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = BaseInterfaces.info_details(self, **kwargs)
-        info.update(TVBInterfaces.info_details(self, **kwargs))
+    def info_details(self, recursive=0, **kwargs):
+        info = BaseInterfaces.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBInterfaces.info_details(self, recursive=recursive, **kwargs))
         return info
 
 
@@ -492,14 +474,14 @@ class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
 
     """TVBtoSpikeNetInterfaces"""
 
-    def info(self):
-        info = SpikeNetInputInterfaces.info()
-        info.update(TVBOutputInterfaces.info())
+    def info(self, recursive=0):
+        info = SpikeNetInputInterfaces.info(recursive=recursive)
+        info.update(TVBOutputInterfaces.info(recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = SpikeNetInputInterfaces.info_details(self, **kwargs)
-        info.update(TVBOutputInterfaces.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = SpikeNetInputInterfaces.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBOutputInterfaces.info_details(self, recursive=recursive))
         return info
 
 
@@ -507,14 +489,14 @@ class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
 
     """SpikeNetToTVBInterfaces"""
 
-    def info(self):
-        info = SpikeNetOutputInterfaces.info()
-        info.update(TVBInputInterfaces.info())
+    def info(self, recursive=0):
+        info = SpikeNetOutputInterfaces.info(recursive=recursive)
+        info.update(TVBInputInterfaces.info(recursive=recursive))
         return info
 
-    def info_details(self, **kwargs):
-        info = SpikeNetOutputInterfaces.info_details(self, **kwargs)
-        info.update(TVBInputInterfaces.info_details(self))
+    def info_details(self, recursive=0, **kwargs):
+        info = SpikeNetOutputInterfaces.info_details(self, recursive=recursive, **kwargs)
+        info.update(TVBInputInterfaces.info_details(self, recursive=recursive))
         return info
 
 

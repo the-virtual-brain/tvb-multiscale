@@ -49,13 +49,13 @@ from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
 
 from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimMonitorFromCoupling
 
-from tvb_multiscale.core.config import LINE
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBOutputInterfaces
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBInputInterfaces
 
 
-class CoSimulator(CoSimulatorBase):
+class CoSimulator(CoSimulatorBase, HasTraits):
 
     model: Model = Attr(
         field_type=Model,
@@ -433,16 +433,16 @@ class CoSimulator(CoSimulatorBase):
             xs[i] = numpy.array(xs[i])
         return list(zip(ts, xs))
 
-    def interfaces_str(self):
-        output = ""
-        if self.output_interfaces or self.input_interfaces:
-            output += 3 * LINE + "TVB <-> interfaces:\n\n"
-            if self.output_interfaces:
-                output += self.output_interfaces.info_details()
-            if self.input_interfaces:
-                output += self.input_interfaces.info_details()
-            output += 2 * LINE
-        return output
+    def info(self, recursive=0):
+        info = HasTraits.info(self, recursive=recursive)
+        return info
 
-    def print_interfaces(self):
-        print(self.interfaces_str())
+    def info_details(self, recursive=0, **kwargs):
+        info = HasTraits.info_details(recursive=recursive, **kwargs)
+        return info
+
+    def summary_info(self, recursive=0):
+        return HasTraits.summary_info(self, recursive=recursive)
+
+    def summary_info_details(self, recursive=0, **kwargs):
+        return HasTraits.summary_info_details(self, recursive=recursive, **kwargs)

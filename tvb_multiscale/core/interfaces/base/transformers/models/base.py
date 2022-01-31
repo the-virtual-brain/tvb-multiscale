@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits.api import Float, NArray, List
 
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 
 
 class Transformer(HasTraits):
@@ -92,8 +92,8 @@ class Transformer(HasTraits):
                 setattr(self, attr, value)
         return value
 
-    def info(self):
-        info = super(Transformer, self).info()
+    def info(self, recursive=0):
+        info = super(Transformer, self).info(recursive=recursive)
         keys = list(info.keys())
         for buffer in ["input_buffer", "output_buffer"]:
             if buffer not in keys:
