@@ -5,14 +5,15 @@ from abc import ABCMeta, abstractmethod
 import pandas as pd
 import numpy as np
 
-from tvb_multiscale.core.config import CONFIGURED, initialize_logger, LINE
+from tvb.basic.neotraits.api import Attr
+
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, trait_object_str, summary_info
+
+from tvb_multiscale.core.config import CONFIGURED, initialize_logger
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb_multiscale.core.spiking_models.devices import DeviceSet, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
-
-from tvb.basic.neotraits.api import HasTraits, Attr
-
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, trait_object_str
 
 
 LOG = initialize_logger(__name__)
@@ -131,9 +132,6 @@ class SpikingNetwork(HasTraits):
 
     def __setattr__(self, key, value):
         return super(SpikingNetwork, self).__setattr__(key, value)
-
-    def __str__(self):
-        return trait_object_str(self.info)
 
     @property
     def spiking_simulator_module(self):
@@ -287,12 +285,12 @@ class SpikingNetwork(HasTraits):
         return data
 
     def info(self):
-        info = self.summary_info()
-        info["spiking_simulator"] = str(self.spiking_simulator_module)
+        info = super(SpikingNetwork, self).info()
+        info["spiking_simulator"] = self.spiking_simulator_module
         return info
 
     def info_details(self, connectivity=False):
-        info = self.info()
+        info = super(SpikingNetwork, self).info_details()
         info.update(self.brain_regions.info_details(connectivity))
         info.update(self.brain_regions.info_details(connectivity))
         for node_name, node in self.input_devices.iteritems():

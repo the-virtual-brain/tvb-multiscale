@@ -5,7 +5,9 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Float, NArray, List
+from tvb.basic.neotraits.api import Float, NArray, List
+
+from tvb_multiscale.core.datatypes import HasTraits
 
 
 class Transformer(HasTraits):
@@ -90,8 +92,13 @@ class Transformer(HasTraits):
                 setattr(self, attr, value)
         return value
 
-    def __str__(self):
-        return self.summary_info()
+    def info(self):
+        info = super(Transformer, self).info()
+        keys = list(info.keys())
+        for buffer in ["input_buffer", "output_buffer"]:
+            if buffer not in keys:
+                info[buffer] = getattr(self, buffer)
+        return info
 
 
 # A few basic examples:

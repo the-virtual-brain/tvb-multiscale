@@ -132,12 +132,12 @@ class Device(SpikingNodeCollection):
 
     def info(self):
         info = super(Device, self).info()
-        info["number_of_connections"] = "%d" % self.number_of_connections
-        info["number of connected neurons"] = "%d" % self.number_of_neurons
+        info["number_of_connections"] = self.number_of_connections
+        info["number of connected neurons"] = self.number_of_neurons
         return info
 
-    def info_neurons(self, source_or_target=None):
-        return self.info_connections(source_or_target)
+    def info_neurons(self):
+        return {"connected_nodes_gids": np.array(self.neurons)}
 
 
 class InputDevice(Device):

@@ -307,6 +307,24 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         self.tvb_cosimulator.configure()
         return self.tvb_cosimulator
 
+    def info(self):
+        info = super(TVBInterfaceBuilder, self).info()
+        info['synchronization_time'] = self.synchronization_time
+        info['synchronization_n_step'] = self.synchronization_n_step
+        info['number_of_input_interfaces'] = self.number_of_input_interfaces
+        info['number_of_output_interfaces'] = self.number_of_output_interfaces
+        info['number_of_in_voi'] = self.number_of_in_voi
+        info['number_of_out_voi'] = self.number_of_out_voi
+        info['number_of_in_proxy_nodes'] = self.number_of_in_proxy_nodes
+        info['number_of_out_proxy_nodes'] = self.number_of_out_proxy_nodes
+        info["tvb_dt"] = self.tvb_dt
+        info['number_of_regions'] = self.number_of_regions
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(TVBInterfaceBuilder, self).info_details(**kwargs)
+        return info
+
 
 class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
 

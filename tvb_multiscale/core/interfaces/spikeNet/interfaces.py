@@ -4,9 +4,10 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
+from tvb.basic.neotraits.api import Attr, Float, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals, list_of_dicts_to_dict_of_lists
 
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import \
     SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
@@ -67,20 +68,14 @@ class SpikeNetInterface(HasTraits):
     def number_of_proxy_gids(self):
         return self.proxy_gids.shape[0]
 
-    def print_str(self, sender_not_receiver=None):
-        if sender_not_receiver is True:
-            spikeNet_source_or_target = "Sender"
-        elif sender_not_receiver is False:
-            spikeNet_source_or_target = "Receiver"
-        else:
-            spikeNet_source_or_target = ""
-        return "\nSpiking Network populations: %s" \
-               "\nSpiking Network %s proxy nodes' \n" \
-               "indices: %s\nand gids: %s" % \
-               (str(self.populations.tolist()),
-                spikeNet_source_or_target,
-                extract_integer_intervals(self.spiking_proxy_inds, print=True),
-                extract_integer_intervals(self.proxy_gids, print=True))
+    def info(self):
+        info = super(SpikeNetInterface, self).info()
+        info["populations"] = self.populations
+        info["number_of_proxy_nodes"] = self.number_of_proxy_nodes
+        info["spiking_proxy_inds"] = self.spiking_proxy_inds
+        info["number_of_proxy_gids"] = self.number_of_proxy_gids
+        info["proxy_gids"] = self.proxy_gids
+        return info
 
 
 class SpikeNetOutputInterface(SpikeNetInterface):
@@ -140,6 +135,16 @@ class SpikeNetOutputInterface(SpikeNetInterface):
             self.times = times
         return [self.times, data[-1]]
 
+    def info(self):
+        info = super(SpikeNetOutputInterface, self).info()
+        info.update(self.proxy.info())
+        return
+
+    def info_details(self, **kwargs):
+        info = super(SpikeNetOutputInterface, self).info_details()
+        info.update(self.proxy.info_details(**kwargs))
+        return info
+
 
 class SpikeNetInputInterface(SpikeNetInterface):
 
@@ -172,6 +177,16 @@ class SpikeNetInputInterface(SpikeNetInterface):
     def set_proxy_data(self, data):
         return self.proxy(data)
 
+    def info(self):
+        info = super(SpikeNetInputInterface, self).info()
+        info.update(self.proxy.info())
+        return
+
+    def info_details(self, **kwargs):
+        info = super(SpikeNetInputInterface, self).info_details()
+        info.update(self.proxy.info_details(**kwargs))
+        return info
+
 
 class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
 
@@ -184,8 +199,15 @@ class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
     def __call__(self):
         return self.send(self.get_proxy_data())
 
-    def __str__(self):
-        return SenderInterface.__str__(self) + SpikeNetOutputInterface.print_str(self)
+    def info(self):
+        info = SenderInterface.info(self)
+        info.update(SpikeNetOutputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = SenderInterface.info_details(self)
+        info.update(SpikeNetOutputInterface.info_details(self, **kwargs))
+        return info
 
 
 class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
@@ -199,8 +221,15 @@ class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
     def __call__(self):
         return self.set_proxy_data(self.receive())
 
-    def __str__(self):
-        return ReceiverInterface.__str__(self) + SpikeNetInputInterface.print_str(self)
+    def info(self):
+        info = ReceiverInterface.info(self)
+        info.update(SpikeNetInputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = ReceiverInterface.info_details(self)
+        info.update(SpikeNetInputInterface.info_details(self, **kwargs))
+        return info
 
 
 class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSenderInterface):
@@ -214,8 +243,15 @@ class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSen
     def __call__(self):
         return self.transform_send(self.get_proxy_data())
 
-    def print_str(self):
-        return TransformerSenderInterface.print_str(self) + SpikeNetOutputInterface.print_str(self)
+    def info(self):
+        info = TransformerSenderInterface.info(self)
+        info.update(SpikeNetOutputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = TransformerSenderInterface.info_details(self)
+        info.update(SpikeNetOutputInterface.info_details(self, **kwargs))
+        return info
 
 
 class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTransformerInterface):
@@ -229,8 +265,15 @@ class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTrans
     def __call__(self):
         return self.set_proxy_data(self.receive_transform())
 
-    def print_str(self):
-        return ReceiverTransformerInterface.print_str(self) + SpikeNetInputInterface.print_str(self)
+    def info(self):
+        info = ReceiverTransformerInterface.info(self)
+        info.update(SpikeNetInputInterface.info(self))
+        return info
+
+    def info_details(self, **kwargs):
+        info = ReceiverTransformerInterface.info_details(self)
+        info.update(SpikeNetInputInterface.info_details(self, **kwargs))
+        return info
 
 
 class SpikeNetInterfaces(HasTraits):
@@ -277,6 +320,22 @@ class SpikeNetInterfaces(HasTraits):
     @property
     def spiking_proxy_senders(self):
         return self._loop_get_from_interfaces("spiking_proxy_sender")
+
+    def info(self):
+        info = super(SpikeNetInterfaces, self).info()
+        info["number_of_interfaces"] = self.number_of_interfaces
+        info["number_of_populations"] = self.number_of_populations
+        info["populations_unique"] = self.populations_unique
+        info["spiking_proxy_inds"] = self.spiking_proxy_inds
+        for interface in self.interfaces:
+            info.update(interface.info())
+        return info
+
+    def info_details(self, **kwargs):
+        info = super(SpikeNetInterfaces, self).info_details()
+        for interface in self.interfaces:
+            info.update(interface.info_details(**kwargs))
+        return info
 
 
 class SpikeNetOutputInterfaces(BaseInterfaces, SpikeNetInterfaces):

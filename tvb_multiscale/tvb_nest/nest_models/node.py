@@ -2,14 +2,14 @@
 
 import uuid
 
-from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.utils.data_structures_utils import ensure_list
-from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
-from tvb_multiscale.tvb_nest.nest_models.nest_ray import RayNodeCollection
+from nest import NodeCollection
 
 from tvb.basic.neotraits.api import HasTraits, Attr, Int
 
-from nest import NodeCollection
+from tvb_multiscale.core.config import initialize_logger
+from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.utils.data_structures_utils import ensure_list
+from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 
 
 LOG = initialize_logger(__name__)
@@ -236,5 +236,8 @@ class NESTNodeCollection(_NESTNodeCollection, SpikingNodeCollection):
        residing at the same brain region.
     """
 
-    def __str__(self):
-        return SpikingNodeCollection.__str__(self)
+    def info(self):
+        return SpikingNodeCollection.info(self)
+
+    def info_details(self, **kwargs):
+        return SpikingNodeCollection.info_details(self, **kwargs)

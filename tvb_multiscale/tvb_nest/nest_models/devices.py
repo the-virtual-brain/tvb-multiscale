@@ -5,23 +5,21 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import xarray as xr
 
-from tvb_multiscale.core.spiking_models.devices import \
-    Device, InputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter  # OutputDevice,
-from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
-from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header, \
-    read_nest_output_device_data_from_ascii_to_dict
-
-from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
-from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
-
-from tvb.basic.neotraits.api import Int, List  #  Attr
+from tvb.basic.neotraits.api import Int, List, Attr
 
 from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb.contrib.scripts.utils.data_structures_utils \
     import ensure_list, extract_integer_intervals, data_xarray_from_continuous_events
 
 from nest import NodeCollection
+
+from tvb_multiscale.core.spiking_models.devices import \
+    Device, InputDevice, SpikeRecorder, Multimeter, Voltmeter, SpikeMultimeter
+from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
+from tvb_multiscale.core.utils.file_utils import truncate_ascii_file_after_header, \
+    read_nest_output_device_data_from_ascii_to_dict
+from tvb_multiscale.tvb_nest.nest_models.node import _NESTNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.population import NESTParrotPopulation
 
 
 # These classes wrap around NEST commands.
@@ -87,6 +85,9 @@ class NESTInputDevice(NESTDevice, InputDevice):
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         NESTDevice.__init__(self, device, nest_instance, **kwargs)
         Device.__init__(self, device, **kwargs)
+
+    def __str__(self):
+        return InputDevice.__str__(self)
 
     def info(self):
         return InputDevice.info(self)
@@ -372,14 +373,12 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
     def info_nodes(self):
         return NESTParrotPopulation.info_nodes(self)
 
-    def info(self):
-        return NESTInputDevice.info(self)
-
     def info_neurons(self, **kwargs):
         return NESTParrotPopulation.info_connections(self, "source")
 
     def info_details(self, connectivity=False, **kwargs):
-        return self.info_details(connectivity=False) + NESTParrotPopulation.info_details(self, connectivity, "source")
+        return NESTInputDevice.info_details(connectivity=False) + \
+               NESTParrotPopulation.info_details(self, connectivity, "source")
 
 
 class NESTParrotPoissonGenerator(NESTParrotInputDevice):
@@ -757,6 +756,9 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
         NESTOutputDevice.__setstate__(self, d)
         self._output_events_counter = d.get("_output_events_counter", [0])
 
+    def __str__(self):
+        return Multimeter.__str__(self)
+
     @property
     def record_from(self):
         if self.device:
@@ -871,15 +873,6 @@ class NESTVoltmeter(NESTMultimeter, Voltmeter):
     @property
     def V_m(self):
         return self.var
-    
-    def info(self):
-        return Voltmeter.info(self)
-
-    def info_neurons(self, **kwargs):
-        return Voltmeter.info_connections(self, "source")
-
-    def info_details(self, connectivity=False, **kwargs):
-        return Voltmeter.info_details(self, connectivity, "source")
 
 
 class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
@@ -909,15 +902,6 @@ class NESTSpikeMultimeter(NESTMultimeter, NESTSpikeRecorder, SpikeMultimeter):
         NESTSpikeRecorder.__setstate__(self, d)
         NESTMultimeter.__setstate__(self, d)
         self.spike_vars = d.get("spike_vars", self.spike_vars)
-
-    def info(self):
-        return NESTMultimeter.info(self)
-
-    def info_neurons(self, **kwargs):
-        return NESTMultimeter.info_connections(self, **kwargs)
-
-    def info_details(self, connectivity=False, **kwargs):
-        return NESTMultimeter.info_details(self, connectivity)
 
 
 NESTOutputSpikeDeviceDict = {"spike_recorder": NESTSpikeRecorder}

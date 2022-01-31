@@ -329,6 +329,10 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
             # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
             return np.array(ElephantSpikesHistogramRate._compute_fun(spiketrain).flatten())
 
+    def info(self):
+        info = super(ElephantSpikesRate, self).info()
+        info['kernel'] = self.kernel
+        return info
 
 
 class ElephantRatesToSpikesTransformers(Enum):
