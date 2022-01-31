@@ -229,11 +229,12 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
     def info_neurons(self):
         return _ANNarchyPopulation.info_neurons(self)
 
-    def info(self):
-        return InputDevice.info(self)
+    def info(self, recursive=0):
+        return InputDevice.info(self, recursive=recursive)
 
-    def info_details(self, connectivity=False, **kwargs):
-        return InputDevice.info_details(self, connectivity, source_or_target="source")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return InputDevice.info_details(self, recursive=recursive,
+                                        connectivity=connectivity, source_or_target="source")
 
 
 """
@@ -879,8 +880,9 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                dims=["Time", "Variable", "Neuron"])
         self._output_events_index = 0
 
-    def info_details(self, connectivity=False, **kwargs):
-        return Multimeter.info_details(self, connectivity, source_or_target="target")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return Multimeter.info_details(self, recursive=recursive,
+                                       connectivity=connectivity, source_or_target="target")
 
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
@@ -986,8 +988,9 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         self._data = ()
         self._output_events_counter = ()
 
-    def info_details(self, connectivity=False, **kwargs):
-        return SpikeRecorder.info_details(self, connectivity, source_or_target="target")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return SpikeRecorder.info_details(self, recursive=recursive,
+                                          connectivity=connectivity, source_or_target="target")
 
 
 class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultimeter):

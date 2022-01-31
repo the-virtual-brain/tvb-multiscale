@@ -6,7 +6,7 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals, summary_info
 
 from tvb.basic.neotraits.api import Attr, Int
@@ -565,13 +565,13 @@ class SpikingNodeCollection(HasTraits):
             info.update(self._info_connections("target"))
         return info
 
-    def info(self):
-        info = super(SpikingNodeCollection, self).info()
+    def info(self, recursive=0):
+        info = super(SpikingNodeCollection, self).info(recursive=recursive)
         info.update(self.info_nodes())
         return info
 
-    def info_details(self, connectivity=False, source_or_target=None):
-        info = super(SpikingNodeCollection, self).info_details()
+    def info_details(self, recursive=0, connectivity=False, source_or_target=None):
+        info = super(SpikingNodeCollection, self).info_details(recursive=recursive)
         info.update(self.info_neurons())
         if self._nodes is not None:
             info.update(summary_info(self.get_attributes(summary=False)))

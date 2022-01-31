@@ -140,6 +140,11 @@ class SpikeNetApp(NonTVBApp, ABC):
     def reset(self):
         self.spiking_network = None
 
+    def info(self, recursive=0):
+        info = super(SpikeNetApp, self).info(recursive=recursive)
+        info["spiking_cosimulator"] = self.spiking_cosimulator
+        return info
+
 
 class SpikeNetSerialApp(SpikeNetApp, ABC):
     __metaclass__ = ABCMeta

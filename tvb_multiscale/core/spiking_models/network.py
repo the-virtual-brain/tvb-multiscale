@@ -10,7 +10,7 @@ from tvb.basic.neotraits.api import Attr
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, trait_object_str, summary_info
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb_multiscale.core.spiking_models.devices import DeviceSet, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
@@ -284,17 +284,7 @@ class SpikingNetwork(HasTraits):
                 pop_device.do_for_all("get_data", **kwargs)
         return data
 
-    def info(self):
-        info = super(SpikingNetwork, self).info()
+    def info(self, recursive=False):
+        info = super(SpikingNetwork, self).info(recursive)
         info["spiking_simulator"] = self.spiking_simulator_module
-        return info
-
-    def info_details(self, connectivity=False):
-        info = super(SpikingNetwork, self).info_details()
-        info.update(self.brain_regions.info_details(connectivity))
-        info.update(self.brain_regions.info_details(connectivity))
-        for node_name, node in self.input_devices.iteritems():
-            info.update(node.info_details(connectivity))
-        for node_name, node in self.output_devices.iteritems():
-            info.update(node.info_details(connectivity))
         return info

@@ -6,10 +6,11 @@ from logging import Logger
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray
+from tvb.basic.neotraits.api import Attr, Float, NArray
 from tvb.contrib.scripts.utils.log_error_utils import warning
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     load_serial_tvb_cosimulator
 

@@ -330,8 +330,8 @@ class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
         _ANNarchyPopulation.__init__(self, nodes, annarchy_instance, **kwargs)
         SpikingPopulation.__init__(self, nodes, **kwargs)
 
-    def info(self):
-        return SpikingPopulation.info(self)
+    def info(self, recursive=0):
+        return SpikingPopulation.info(self, recursive=recursive)
 
-    def info_details(self, **kwargs):
-        return SpikingPopulation.info_details(self, **kwargs)
+    def info_details(self, recursive=0, **kwargs):
+        return SpikingPopulation.info_details(self, recursive=recursive, **kwargs)

@@ -89,14 +89,15 @@ class NESTInputDevice(NESTDevice, InputDevice):
     def __str__(self):
         return InputDevice.__str__(self)
 
-    def info(self):
-        return InputDevice.info(self)
+    def info(self, recursive=0):
+        return InputDevice.info(self, recursive=recursive)
 
     def info_neurons(self, **kwargs):
         return self.info_connections("source")
 
-    def info_details(self, connectivity=False, **kwargs):
-        return InputDevice.info_details(self, connectivity, source_or_target="source")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return InputDevice.info_details(self, recursive=recursive,
+                                        connectivity=connectivity, source_or_target="source")
 
 
 class NESTPoissonGenerator(NESTInputDevice):
@@ -376,9 +377,10 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
     def info_neurons(self, **kwargs):
         return NESTParrotPopulation.info_connections(self, "source")
 
-    def info_details(self, connectivity=False, **kwargs):
-        return NESTInputDevice.info_details(connectivity=False) + \
-               NESTParrotPopulation.info_details(self, connectivity, "source")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return NESTInputDevice.info_details(recursive=recursive, connectivity=False) + \
+               NESTParrotPopulation.info_details(self, recursive=recursive,
+                                                 connectivity=connectivity, source_or_target="source")
 
 
 class NESTParrotPoissonGenerator(NESTParrotInputDevice):
@@ -722,14 +724,15 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         else:
             return self._empty_events
 
-    def info(self):
-        return SpikeRecorder.info(self)
+    def info(self, recursive=0):
+        return SpikeRecorder.info(self, recursive=recursive)
 
     def info_neurons(self, **kwargs):
         return SpikeRecorder.info_connections(self, "target")
 
-    def info_details(self, connectivity=False, **kwargs):
-        return SpikeRecorder.info_details(self, connectivity, source_or_target="target")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return SpikeRecorder.info_details(self, recursive=recursive,
+                                          connectivity=connectivity, source_or_target="target")
 
     def reset(self):
         NESTOutputDevice.reset(self)
@@ -829,14 +832,15 @@ class NESTMultimeter(NESTOutputDevice, Multimeter):
                                 coords={dims_names[0]: times, dims_names[1]: vars, dims_names[2]: senders})
         return data
 
-    def info(self):
-        return Multimeter.info(self)
+    def info(self, recursive=0):
+        return Multimeter.info(self, recursive=recursive)
 
     def info_neurons(self, **kwargs):
         return Multimeter.info_connections(self, "source")
 
-    def info_details(self, connectivity=False, **kwargs):
-        return Multimeter.info_details(self, connectivity, "source")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return Multimeter.info_details(self, recursive=recursive,
+                                       connectivity=connectivity, source_or_target="source")
 
     def reset(self):
         NESTOutputDevice.reset(self)

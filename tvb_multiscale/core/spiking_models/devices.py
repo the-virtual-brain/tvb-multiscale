@@ -130,8 +130,8 @@ class Device(SpikingNodeCollection):
         """Method to get all unique connections' receptors of the device to/from neurons."""
         return np.unique(self.receptors)
 
-    def info(self):
-        info = super(Device, self).info()
+    def info(self, recursive=0):
+        info = super(Device, self).info(recursive=recursive)
         info["number_of_connections"] = self.number_of_connections
         info["number of connected neurons"] = self.number_of_neurons
         return info

@@ -5,7 +5,7 @@ from six import string_types
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, NArray, List
+from tvb.basic.neotraits.api import Attr, Float, NArray, List
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.coupling import Coupling
 from tvb.simulator.models.base import Model
@@ -14,6 +14,7 @@ from tvb.simulator.monitors import Monitor, Raw, Bold  # , EEG
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel

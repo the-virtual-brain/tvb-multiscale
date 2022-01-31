@@ -16,7 +16,7 @@ from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import \
     series_loop_generator, is_integer, trait_object_str, summary_info
 
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 
 
 LOG = initialize_logger(__name__)
@@ -408,13 +408,16 @@ class SpikingNodesSet(pd.Series, HasTraits):
                 values_dict.update({device: val})
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
-    def info(self):
-        info = super(SpikingNodesSet, self).info()
+    def info(self, recursive=0):
+        info = super(SpikingNodesSet, self).info(recursive)
         info[self._collection_name] = self.collections
+        if recursive > 0:
+            for pop in self.collections:
+                info.update(self[pop].info(recursive - 1))
         return info
 
-    def info_details(self, connectivity=False, source_or_target=None):
-        info = super(SpikingNodesSet, self).info_details()
+    def info_details(self, recursive=0, connectivity=False, source_or_target=None):
+        info = super(SpikingNodesSet, self).info_details(recursive)
         for pop in self.collections:
-            info.update(self[pop].info_details(connectivity, source_or_target))
+            info.update(self[pop].info_details(recursive-1, connectivity, source_or_target))
         return info

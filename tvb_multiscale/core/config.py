@@ -18,6 +18,7 @@ from tvb.simulator.monitors import Raw
 
 import tvb_data
 
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
@@ -47,7 +48,7 @@ except:
     DEFAULT_SUBJECT = None
 
 
-class OutputConfig(object):
+class OutputConfig(HasTraits):
     subfolder = None
 
     def __init__(self, out_base=None, separate_by_run=False, initialize_logger=True):
@@ -86,8 +87,13 @@ class OutputConfig(object):
         safe_makedirs(folder)
         return folder
 
+    def info(self, recursive=0):
+        info = super(OutputConfig, self).info(recursive=recursive)
+        info.update(self._info_dict('OutputConfig as dict', dict(self)))
+        return info
 
-class CalculusConfig(object):
+
+class CalculusConfig(HasTraits):
     # Normalization configuration
     WEIGHTS_NORM_PERCENT = 99
 
@@ -99,8 +105,13 @@ class CalculusConfig(object):
     MAX_INT_VALUE = numpy.iinfo(numpy.int64).max
     MIN_INT_VALUE = numpy.iinfo(numpy.int64).max
 
+    def info(self, recursive=0):
+        info = super(CalculusConfig, self).info(recursive=recursive)
+        info.update(self._info_dict('CalculusConfig as dict', dict(self)))
+        return info
 
-class Config(object):
+
+class Config(HasTraits):
     calcul = CalculusConfig()
 
     DEFAULT_DT = 0.1
@@ -125,12 +136,18 @@ class Config(object):
                           "syn_spec": {}, "conn_spec": {}}
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+        super(Config, self).__init__()
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
         self.TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
+
+    def info(self, recursive=0):
+        info = super(Config, self).info(recursive=recursive)
+        info.update(self._info_dict('Config as dict', dict(self)))
+        return info
 
 
 CONFIGURED = Config(initialize_logger=False)
@@ -144,7 +161,3 @@ def initialize_logger(name="tvb-multiscale", target_folder=None, config=CONFIGUR
 
 def log_path(name, logger):
     logger.info_details("%s: %s" % (name, os.environ.get(name, "")))
-
-
-# Used for nice __str__() outputs
-LINE = "\n" + "-" * 100 + "\n"

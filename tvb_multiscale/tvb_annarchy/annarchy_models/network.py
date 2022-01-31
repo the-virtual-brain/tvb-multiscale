@@ -92,7 +92,7 @@ class ANNarchyNetwork(SpikingNetwork):
         for dev_name, out_dev_set in self.output_devices.iteritems():
             out_dev_set.do_for_all("pause")
 
-    def info(self):
-        info = super(ANNarchyNetwork, self).info()
+    def info(self, recursive=0):
+        info = super(ANNarchyNetwork, self).info(recursive=recursive)
         info["ANNarchy_Network"] = self.network
         return info
