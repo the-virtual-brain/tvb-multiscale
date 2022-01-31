@@ -5,11 +5,14 @@ from itertools import product
 from collections import OrderedDict
 from six import string_types
 from enum import Enum
+import typing
 
 import numpy as np
 from scipy.stats import describe
 import pandas as pd
 from xarray import DataArray
+
+from tvb.basic.neotraits.api import HasTraits
 
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
@@ -113,7 +116,7 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
     return output_events
 
 
-def summarize(results, digits=None):
+def summarize_value(value, digits=3):
 
     def unique(values, astype=None):
         if len(values):
@@ -135,59 +138,87 @@ def summarize(results, digits=None):
 
     def stats_fun(vals):
         d = describe(vals)
-        summary = {}
-        summary["n"] = d.nobs
+        summary = OrderedDict()
+        # summary["n"] = d.nobs
+        summary["min"] = d.minmax[0]
+        summary["median"] = np.median(vals)
+        summary["max"] = d.minmax[1]
         summary["mean"] = d.mean
-        summary["minmax"] = d.minmax
         summary["var"] = d.variance
         return summary
 
-    output = {}
-    for attr, val in results.items():
-        vals = ensure_list(val)
-        try:
-            val_type = str(np.array(vals).dtype)
-            if np.all([isinstance(val, dict) for val in vals]):
-                # If they are all dicts:
-                output[attr] = np.array(unique_dicts(vals))
-            elif isinstance(vals[0], string_types) \
-                    or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o" or val_type[:2] == "<U":
-                # String, integer or boolean values
-                unique_vals = list(unique(vals, val_type))
-                n_unique_vals = len(unique_vals)
-                if n_unique_vals < 2:
-                    # If they are all of the same value, just set this value:
-                    output[attr] = np.array(unique_vals[0])
-                elif n_unique_vals <= 10:
-                    # Otherwise, return a summary dictionary with the indices of each value:
-                    output[attr] = OrderedDict()
-                    vals = np.array(vals)
-                    for unique_val in unique_vals:
-                        output[attr][unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
+    vals = ensure_list(value)
+    try:
+        val_type = str(np.array(vals).dtype)
+        if np.all([isinstance(val, dict) for val in vals]):
+            # If they are all dicts:
+            return np.array(unique_dicts(vals))
+        elif isinstance(vals[0], string_types) \
+                or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o" or val_type[:2] == "<U":
+            # String, integer or boolean values
+            unique_vals = list(unique(vals, val_type))
+            n_unique_vals = len(unique_vals)
+            if n_unique_vals < 2:
+                # If they are all of the same value, just set this value:
+                return np.array(unique_vals[0])
+            elif n_unique_vals <= 10:
+                # Otherwise, return a summary dictionary with the indices of each value:
+                output = OrderedDict()
+                vals = np.array(vals)
+                for unique_val in unique_vals:
+                    output[unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
+                return output
+            else:
+                if val_type[0] == "i":
+                    return extract_integer_intervals(vals)
                 else:
-                    if val_type[0] == "i":
-                        output[attr] = extract_integer_intervals(vals)
+                    return unique_vals
+        else:  # Assuming floats or arbitrary objects...
+            unique_vals = unique(vals)
+            if len(unique_vals) > 3:
+                # If there are more than three different values, try to summarize them...
+                try:
+                    if is_integer(digits):
+                        return unique_floats_fun(unique_vals)
                     else:
-                        output[attr] = unique_vals
-            else:  # Assuming floats or arbitrary objects...
-                unique_vals = unique(vals)
-                if len(unique_vals) > 3:
-                    # If there are more than three different values, try to summarize them...
-                    try:
-                        if is_integer(digits):
-                            output[attr] = unique_floats_fun(unique_vals)
-                        else:
-                            output[attr] = stats_fun(np.array(vals))
-                    except:
-                        output[attr] = unique_vals
-                else:
-                    if len(unique_vals) == 1:
-                        output[attr] = unique_vals[0]
-                    output[attr] = unique_vals
-        except:
-            # Something went wrong, return the original property
-            output[attr] = np.array(vals)
-    return output
+                        return stats_fun(np.array(vals))
+                except:
+                    return unique_vals
+            else:
+                if len(unique_vals) == 1:
+                    return unique_vals[0]
+                return unique_vals
+    except:
+        # Something went wrong, return the original property
+        return value
+
+
+def summarize(results, digits=None):
+    outputs = {}
+    for attr, val in results.items():
+        output = summarize_value(val, digits)
+        if output is None:
+            outputs[attr] = val
+        else:
+            outputs[attr] = output
+    return outputs
+
+
+def summary_value_to_string_dict(summary):
+    if isinstance(summary, dict):
+        key = []
+        val = []
+        for ikey, ival in summary.items():
+            key.append(ikey)
+            if isinstance(ival, string_types):
+                val.append(ival)
+            else:
+                val.append('{:g}'.format(ival))
+        key = "[%s]" % ", ".join(key)
+        val = "[%s]" % ", ".join(val)
+        return {key: val}
+    else:
+        return {"unique values": summary}
 
 
 def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
@@ -235,6 +266,48 @@ def combine_enums(enum_name, *args):
     return Enum(enum_name, d)
 
 
+def narray_summary_info(ar, ar_name='', omit_shape=False):
+    # type: (np.ndarray, str, bool) -> typing.Dict[str, str]
+    """
+    A 2 column table represented as a dict of str->str
+    """
+    if ar is None:
+        return {'is None': 'True'}
+
+    ret = {}
+    if not omit_shape:
+        ret.update({'shape': str(ar.shape), 'dtype': str(ar.dtype)})
+
+    if ar.size == 0:
+        ret['is empty'] = 'True'
+        return ret
+
+    if ar.dtype.kind in 'iufc':
+        has_nan = np.isnan(ar).any()
+        if has_nan:
+            ret['has NaN'] = 'True'
+
+    summary = summary_value_to_string_dict(summarize_value(ar, digits=3))
+    if isinstance(summary, dict):
+        ret.update(summary)
+    else:
+        ret.update({'values': "failed to summarize!"})
+
+    if ar_name:
+        return {ar_name + ' ' + k: v for k, v in ret.items()}
+    else:
+        return ret
+
+
+def narray_describe(ar):
+    # type: (numpy.ndarray) -> str
+    summary = narray_summary_info(ar)
+    ret = []
+    for k in summary:
+        ret.append('{:<12}{}'.format(k, summary[k]))
+    return '\n'.join(ret)
+
+
 def trait_object_str(class_name, summary):
     result = ['{} ('.format(class_name)]
     maxlenk = max(len(k) for k in summary)
@@ -242,3 +315,38 @@ def trait_object_str(class_name, summary):
         result.append('  {:.<{}} {}'.format(k + ' ', maxlenk, summary[k]))
     result.append(')')
     return '\n'.join(result)
+
+
+def trait_object_repr_html(class_name, summary):
+    result = [
+        '<table>',
+        '<h3>{}</h3>'.format(class_name),
+        '<thead><tr><th></th><th style="text-align:left;width:40%">value</th></tr></thead>',
+        '<tbody>',
+    ]
+    for k in summary:
+        row_fmt = '<tr><td>{}</td><td style="text-align:left;"><pre>{}</pre></td>'
+        result.append(row_fmt.format(k, summary[k]))
+    result += ['</tbody></table>']
+    return '\n'.join(result)
+
+
+def summary_info(info):
+    """
+    A more structured __str__
+    A 2 column table represented as a dict of str->str
+    The default __str__ and html representations of this object are derived from
+    this table.
+    Override this method and return such a table filled with instance information
+    that informs the user about your instance
+    """
+    ret = OrderedDict()
+    for aname, attr_field in dict(info).items():
+        if isinstance(attr_field, np.ndarray):
+            ret.update(narray_summary_info(attr_field, ar_name=aname))
+        elif isinstance(attr_field, HasTraits):
+            ret[aname] = attr_field.title
+        else:
+            ret[aname] = repr(attr_field)
+    return ret
+
