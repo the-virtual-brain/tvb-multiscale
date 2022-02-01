@@ -111,9 +111,6 @@ class SpikeNetOutputInterface(SpikeNetInterface):
         return "%s: %s (%s) ->" % (self.__class__.__name__, str(self.populations),
                                    extract_integer_intervals(self.spiking_proxy_inds))
 
-    def print_str(self):
-        return super(SpikeNetOutputInterface, self).print_str(sender_not_receiver=True)
-
     @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
@@ -155,9 +152,6 @@ class SpikeNetInputInterface(SpikeNetInterface):
     def label(self):
         return "%s: %s (%s) <-" % (self.__class__.__name__, str(self.populations),
                                    extract_integer_intervals(self.spiking_proxy_inds))
-
-    def print_str(self):
-        return super(SpikeNetInputInterface, self).print_str(sender_not_receiver=False)
 
     @property
     def proxy_gids(self):

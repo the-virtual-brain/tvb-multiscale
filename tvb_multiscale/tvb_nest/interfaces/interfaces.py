@@ -64,18 +64,12 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
 
     """NESTSenderInterface"""
 
-    def __str__(self):
-        return SpikeNetSenderInterface.__str__(self) + NESTOutputInterface.print_str(self)
-
     def __call__(self):
         return self.send(NESTOutputInterface.get_proxy_data(self))
 
 
 class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOutputInterface):
     """NESTTransformerSenderInterface"""
-
-    def print_str(self):
-        return SpikeNetTransformerSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
     def __call__(self):
         return self.transform_send(NESTOutputInterface.get_proxy_data(self))
@@ -99,15 +93,13 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
 class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
     """NESTReceiverInterface"""
 
-    def __str__(self):
-        return SpikeNetReceiverInterface.__str__(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
     """NESTReceiverTransformerInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverTransformerInterface.print_str(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
@@ -116,8 +108,7 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
        and finally set them to NEST, all processes taking place in shared memmory.
     """
 
-    def print_str(self):
-        return TVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
@@ -129,8 +120,7 @@ class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
     def get_proxy_data(self):
         return NESTOutputInterface.get_proxy_data(self)
 
-    def print_str(self):
-        return SpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)
+    pass
 
 
 class NESTInterfaces(HasTraits):
