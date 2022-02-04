@@ -62,7 +62,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         logger: logger object. Default: local LOG object.
     """
     # ...unless we need to first compile it:
-    logger.info_details("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
+    logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
     lib_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "lib", "nest")
     include_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "include")
@@ -88,20 +88,20 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
                 shutil.rmtree(module_bld_dir)
             # Create a  module build directory and copy there the source files:
             source_path = os.path.join(config.MYMODULES_DIR, module)
-            logger.info_details("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
+            logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
             shutil.copytree(source_path, module_bld_dir)
             # Now compile:
-            logger.info_details("Compiling %s..." % module)
-            logger.info_details("in build directory %s..." % module_bld_dir)
+            logger.info("Compiling %s..." % module)
+            logger.info("in build directory %s..." % module_bld_dir)
             success_message = "DONE compiling and installing %s!" % module
             from pynestml.frontend.pynestml_frontend import install_nest
             try:
                 install_nest(module_bld_dir, config.NEST_PATH)
             except Exception as e:
                 raise e
-            logger.info_details("Compiling finished without errors...")
+            logger.info("Compiling finished without errors...")
         else:
-            logger.info_details("Installing precompiled module %s..." % module)
+            logger.info("Installing precompiled module %s..." % module)
             success_message = "DONE installing precompiled module %s!" % module
             # Just copy the .h, .so, and .dylib files to the appropriate NEST build paths:
             shutil.copyfile(solib_file, installed_solib_file)
@@ -112,7 +112,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         for file in [installed_solib_file, installed_dylib_file, installed_h_file]:
             installed_files[file] = os.path.isfile(file)
         if all(installed_files.values()):
-            logger.info_details(success_message)
+            logger.info(success_message)
         else:
             logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
                         "\n Installed files (not) found (True (False) respectively)!:\n%s"
