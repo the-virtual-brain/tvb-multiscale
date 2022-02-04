@@ -47,6 +47,8 @@ class _ANNarchyPopulation(HasTraits):
 
     projections_post = List(of=Projection, default=(), label="Incoming projections",
                             doc="""A list of population's incoming ANNarchy.Projection instances""")
+    _source_conns_attr = "pre"
+    _target_conns_attr = "post"
     _weight_attr = "w"
     _delay_attr = "delay"
     _receptor_attr = "target"

@@ -56,6 +56,7 @@ class OutputConfig(HasTraits):
         :param work_folder: Base folder where logs/figures/results should be kept
         :param separate_by_run: Set TRUE, when you want logs/results/figures to be in different files / each run
         """
+        super(OutputConfig, self).__init__()
         self._out_base = out_base or os.path.join(os.getcwd(), "outputs")
         self._separate_by_run = separate_by_run
         if initialize_logger:
@@ -146,7 +147,8 @@ class Config(HasTraits):
 
     def info(self, recursive=0):
         info = super(Config, self).info(recursive=recursive)
-        info.update(self._info_dict('Config as dict', dict(self)))
+        for key, val in self.__dict__.items():
+            info["config.%s" % key] = val
         return info
 
 
@@ -160,4 +162,4 @@ def initialize_logger(name="tvb-multiscale", target_folder=None, config=CONFIGUR
 
 
 def log_path(name, logger):
-    logger.info_details("%s: %s" % (name, os.environ.get(name, "")))
+    logger.info("%s: %s" % (name, os.environ.get(name, "")))

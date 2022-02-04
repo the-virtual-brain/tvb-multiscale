@@ -4,11 +4,12 @@ import uuid
 
 from nest import NodeCollection
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Int
+from tvb.basic.neotraits.api import Attr, Int
+
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.datatypes import HasTraits
-from tvb_multiscale.core.utils.data_structures_utils import ensure_list
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 
 
@@ -38,6 +39,8 @@ class _NESTNodeCollection(HasTraits):
                 doc="""The number of elements of NESTNodeCollection """)
 
     nest_instance = None
+    _source_conns_attr = "source"
+    _target_conns_attr = "target"
     _weight_attr = "weight"
     _delay_attr = "delay"
     _receptor_attr = "receptor"

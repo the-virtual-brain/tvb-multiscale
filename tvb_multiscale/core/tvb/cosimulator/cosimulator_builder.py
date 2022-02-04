@@ -182,7 +182,7 @@ class CoSimulatorBuilder(HasTraits):
     monitors = List(
         of=Monitor,
         label="Monitor(s)",
-        default=(CONFIGURED.DEFAULT_MONITOR, ),
+        default=(CONFIGURED.DEFAULT_MONITOR(), ),
         doc="""A tvb.simulator.Monitor or a list of tvb.simulator.Monitor
             objects that 'know' how to record relevant data from the simulation. Two
             main types exist: 1) simple, spatial and temporal, reductions (subsets

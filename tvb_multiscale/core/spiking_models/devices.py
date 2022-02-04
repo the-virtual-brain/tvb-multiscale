@@ -1177,3 +1177,14 @@ class DeviceSet(SpikingNodesSet):
                 # Good for amplitude of dc generator and rate of poisson generator
                 value_dict_i_n = get_scalar_dict2(value_dict, i_n)
                 self[node].Set(value_dict_i_n)
+
+
+class DeviceSets(SpikingNodesSet):
+
+    """DeviceSets is an indexed mapping (based on inheriting from pandas.Series class)
+       between DeviceSet instances' labels and those instances.
+    """
+
+    _collection_name = "DeviceSet"
+
+    pass

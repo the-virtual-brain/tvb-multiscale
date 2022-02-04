@@ -116,111 +116,6 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
     return output_events
 
 
-def summarize_value(value, digits=3):
-
-    def unique(values, astype=None):
-        if len(values):
-            if astype is None:
-                astype = str(np.array(values).dtype)
-            try:
-                return pd.unique(vals).astype(astype)
-            except:
-                return np.unique(vals).astype(astype)
-        else:
-            return np.array(values)
-
-    def unique_dicts(list_of_dicts):
-        return [dict(t) for t in {tuple(d.items()) for d in list_of_dicts}]
-
-    def unique_floats_fun(vals):
-        scale = 10 ** np.floor(np.log10(np.percentile(np.abs(vals), 95)))
-        return scale * unique(np.around(vals / scale, decimals=digits))
-
-    def stats_fun(vals):
-        d = describe(vals)
-        summary = OrderedDict()
-        # summary["n"] = d.nobs
-        summary["min"] = d.minmax[0]
-        summary["median"] = np.median(vals)
-        summary["max"] = d.minmax[1]
-        summary["mean"] = d.mean
-        summary["var"] = d.variance
-        return summary
-
-    vals = ensure_list(value)
-    try:
-        val_type = str(np.array(vals).dtype)
-        if np.all([isinstance(val, dict) for val in vals]):
-            # If they are all dicts:
-            return np.array(unique_dicts(vals))
-        elif isinstance(vals[0], string_types) \
-                or val_type[0] == "i" or val_type[0] == "b" or val_type[0] == "o" or val_type[:2] == "<U":
-            # String, integer or boolean values
-            unique_vals = list(unique(vals, val_type))
-            n_unique_vals = len(unique_vals)
-            if n_unique_vals < 2:
-                # If they are all of the same value, just set this value:
-                return np.array(unique_vals[0])
-            elif n_unique_vals <= 10:
-                # Otherwise, return a summary dictionary with the indices of each value:
-                output = OrderedDict()
-                vals = np.array(vals)
-                for unique_val in unique_vals:
-                    output[unique_val] = extract_integer_intervals(np.where(vals == unique_val)[0])
-                return output
-            else:
-                if val_type[0] == "i":
-                    return extract_integer_intervals(vals)
-                else:
-                    return unique_vals
-        else:  # Assuming floats or arbitrary objects...
-            unique_vals = unique(vals)
-            if len(unique_vals) > 3:
-                # If there are more than three different values, try to summarize them...
-                try:
-                    if is_integer(digits):
-                        return unique_floats_fun(unique_vals)
-                    else:
-                        return stats_fun(np.array(vals))
-                except:
-                    return unique_vals
-            else:
-                if len(unique_vals) == 1:
-                    return unique_vals[0]
-                return unique_vals
-    except:
-        # Something went wrong, return the original property
-        return value
-
-
-def summarize(results, digits=None):
-    outputs = {}
-    for attr, val in results.items():
-        output = summarize_value(val, digits)
-        if output is None:
-            outputs[attr] = val
-        else:
-            outputs[attr] = output
-    return outputs
-
-
-def summary_value_to_string_dict(summary):
-    if isinstance(summary, dict):
-        key = []
-        val = []
-        for ikey, ival in summary.items():
-            key.append(ikey)
-            if isinstance(ival, string_types):
-                val.append(ival)
-            else:
-                val.append('{:g}'.format(ival))
-        key = "[%s]" % ", ".join(key)
-        val = "[%s]" % ", ".join(val)
-        return {key: val}
-    else:
-        return {"unique values": summary}
-
-
 def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
     from pandas import MultiIndex
     stacked_dims = "-".join(dims)
@@ -266,8 +161,156 @@ def combine_enums(enum_name, *args):
     return Enum(enum_name, d)
 
 
+def summarize_value(value, digits=3):
+
+    def unique(values, astype=None):
+        values = np.array(values)
+        if values.size:
+            if astype is None:
+                astype = str(values.dtype)
+            try:
+                unique_vals = pd.unique(values).astype(astype)
+            except:
+                unique_vals = np.unique(values).astype(astype)
+            if unique_vals.ndim < values.ndim:
+                return unique_vals[np.newaxis, ...]
+            else:
+                return unique_vals
+        return values
+
+    def unique_dicts(list_of_dicts):
+        return [dict(t) for t in {tuple(d.items()) for d in list_of_dicts}]
+
+    def unique_floats_fun(vals):
+        scale = 10 ** np.floor(np.log10(np.percentile(np.abs(vals), 95)))
+        return scale * unique(np.around(vals / scale, decimals=digits))
+
+    def stats_fun(vals):
+        d = describe(vals)
+        summary = OrderedDict()
+        # summary["n"] = d.nobs
+        summary["min"] = d.minmax[0]
+        summary["median"] = np.median(vals)
+        summary["max"] = d.minmax[1]
+        summary["mean"] = d.mean
+        summary["var"] = d.variance
+        return summary
+
+    vals = ensure_list(value)
+    n_vals = len(vals)
+    try:
+        val_type = str(np.array(vals).dtype)
+        if np.all([isinstance(val, dict) for val in vals]):
+            # If they are all dicts:
+            return np.array(vals)
+        else:
+            unique_vals = unique(vals, val_type)
+            if unique_vals.ndim > 1 and np.prod(unique_vals.shape[1:]) > 5:
+                return summarize_value(np.array(vals).flatten(), digits)
+            n_unique_vals = unique_vals.shape[0]
+            if n_unique_vals < 2:
+                # If they are all of the same value, just set this value:
+                return unique_vals[0]
+            else:
+                val_type = str(unique_vals.dtype)
+                if val_type[0] == 'f' and n_unique_vals > 5:
+                    # If unique_vals is a vector of more than 5 values...
+                    try:
+                        if is_integer(digits):
+                            # ...either try to further reduce it by approximation...
+                            temp_unique_vals = unique_floats_fun(unique_vals)
+                            n_temp_unique_vals = temp_unique_vals.shape[0]
+                            if n_temp_unique_vals.shape[0] == 1:
+                                return temp_unique_vals[0]
+                        else:
+                            temp_unique_vals = unique_vals
+                            n_temp_unique_vals = n_unique_vals
+                        if n_temp_unique_vals > 5:
+                            # ...or compute summary statistics
+                            return stats_fun(np.array(vals))
+                        else:
+                            unique_vals = temp_unique_vals
+                            n_unique_vals = n_temp_unique_vals
+                    except:
+                        pass
+            if n_unique_vals < n_vals and n_unique_vals <= 5:
+                # If it is not a vector of floats, or there are (now) less than 5 values,
+                # return a summary dictionary with the indices of each value:
+                output = OrderedDict()
+                vals = np.array(vals)
+                if val_type[0] == 'f':
+                    indices = OrderedDict()
+                    for unique_val in unique_vals:
+                        indices[unique_val] = []
+                    for iV, val in enumerate(vals):
+                        indices[unique_vals[np.argmin(np.abs(val - unique_vals))]].append(iV)
+                    for unique_val, val_indices in indices.items():
+                        intervals = extract_integer_intervals(val_indices, print=True)
+                        if len(intervals) <= 50:
+                            output["=%s" % str(unique_val)] = "{%s}" % intervals
+                        else:
+                            output["=%s" % str(unique_val)] = "%d total instances" % len(val_indices)
+                else:
+                    for unique_val in unique_vals:
+                        indices = np.where(vals == unique_val)[0]
+                        intervals = extract_integer_intervals(indices, print=True)
+                        if len(intervals) <= 48:
+                            output["=%s" % str(unique_val)] = "{%s}" % intervals
+                        else:
+                            output["=%s" % str(unique_val)] = "%d total instances" % len(indices)
+                return output
+            else:
+                # If there are still more than 5 non-float values
+                if val_type[0] == "i":
+                    # Summarize them if they are integer:
+                    return extract_integer_intervals(vals)
+                else:
+                    # Or just return them...
+                    return unique_vals
+    except Exception as e:
+        # Something went wrong, return the original property
+        print(e)
+        raise
+        # return np.array(vals)
+
+
+def summarize(results, digits=None):
+    outputs = {}
+    for attr, val in results.items():
+        output = summarize_value(val, digits)
+        if output is None:
+            outputs[attr] = val
+        else:
+            outputs[attr] = output
+    return outputs
+
+
+def summary_value_to_string_dict(summary, arname):
+    string_dict = OrderedDict()
+    string_dict[arname] = "-" * 20
+    if isinstance(summary, dict):
+        for ikey, ival in summary.items():
+            key = str(ikey)
+            if isinstance(ival, string_types):
+                string_dict[key] = ival
+            else:
+                try:
+                    string_dict[key] = '{:g}'.format(ival)
+                except:
+                    string_dict[key] = str(ival)
+        # key = "[%s]" % ", ".join(key)
+        # val = "[%s]" % ", ".join(val)
+        # return {key: val}
+    else:
+        try:
+            string_dict["\tunique values"] = '{:g}'.format(summary)
+        except:
+            string_dict["\tunique values"] = str(summary)
+    return string_dict
+
+
 def narray_summary_info(ar, ar_name='', omit_shape=False):
-    # type: (np.ndarray, str, bool) -> typing.Dict[str, str]
+    # type: (np.ndarray, str, bool) -> typing.Dict[str, Any]
     """
     A 2 column table represented as a dict of str->str
     """
@@ -276,7 +319,7 @@ def narray_summary_info(ar, ar_name='', omit_shape=False):
 
     ret = {}
     if not omit_shape:
-        ret.update({'shape': str(ar.shape), 'dtype': str(ar.dtype)})
+        ret.update({'shape': ar.shape, 'dtype': ar.dtype})
 
     if ar.size == 0:
         ret['is empty'] = 'True'
@@ -287,25 +330,24 @@ def narray_summary_info(ar, ar_name='', omit_shape=False):
         if has_nan:
             ret['has NaN'] = 'True'
 
-    summary = summary_value_to_string_dict(summarize_value(ar, digits=3))
+    summary = summarize_value(ar, digits=3)
     if isinstance(summary, dict):
         ret.update(summary)
     else:
-        ret.update({'values': "failed to summarize!"})
+        if np.array(summary).size < ar.size:
+            ret.update({'unique_values': summary})
+        else:
+            ret.update({'values': summary})
 
     if ar_name:
-        return {ar_name + ' ' + k: v for k, v in ret.items()}
+        return {ar_name + ': ' + str(k): v for k, v in ret.items()}
     else:
         return ret
 
 
-def narray_describe(ar):
+def narray_describe(ar, arname='', omit_shape=False):
     # type: (numpy.ndarray) -> str
-    summary = narray_summary_info(ar)
-    ret = []
-    for k in summary:
-        ret.append('{:<12}{}'.format(k, summary[k]))
-    return '\n'.join(ret)
+    return summary_value_to_string_dict(narray_summary_info(ar, arname, omit_shape), arname)
 
 
 def trait_object_str(class_name, summary):
@@ -331,7 +373,7 @@ def trait_object_repr_html(class_name, summary):
     return '\n'.join(result)
 
 
-def summary_info(info):
+def summary_info(info, to_string=False):
     """
     A more structured __str__
     A 2 column table represented as a dict of str->str
@@ -340,13 +382,30 @@ def summary_info(info):
     Override this method and return such a table filled with instance information
     that informs the user about your instance
     """
+    if to_string:
+        array_fun = narray_describe
+    else:
+        array_fun = narray_summary_info
     ret = OrderedDict()
-    for aname, attr_field in dict(info).items():
-        if isinstance(attr_field, np.ndarray):
-            ret.update(narray_summary_info(attr_field, ar_name=aname))
-        elif isinstance(attr_field, HasTraits):
-            ret[aname] = attr_field.title
-        else:
-            ret[aname] = repr(attr_field)
+    for aname, attr in dict(info).items():
+        try:
+            if isinstance(attr, np.ndarray):
+                ret.update(array_fun(attr, aname))
+            elif isinstance(attr, HasTraits):
+                ret[aname] = attr.title
+            elif isinstance(attr, (list, tuple)):
+                ret.update(array_fun(np.array(attr), aname))
+            elif isinstance(attr, dict):
+                new_dict = OrderedDict()
+                for key, val in attr.items():
+                    new_dict["%s[%s]" % (aname, key)] = val
+                ret.update(summary_info(new_dict, to_string))
+            else:
+                ret[aname] = repr(attr)
+        except Exception as e:
+            print("Failed to summarize: ")
+            print(aname)
+            print(attr.__class__.__name__)
+            print(Warning(e))
     return ret
 

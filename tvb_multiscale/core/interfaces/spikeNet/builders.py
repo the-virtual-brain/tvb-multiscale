@@ -289,8 +289,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         # TODO: Figure out if we ever going to need interfaces for multiple state variables!
         _interface["connections"] = {str(interface["voi_labels"]): interface["populations"]}
         # Generate the devices <== "proxy TVB nodes":
-        interface["proxy"] = interface["proxy"](dt=self.dt,
-                                                source=self._build_and_connect_devices(_interface)[0])
+        interface["proxy"] = \
+            interface["proxy"](dt=self.dt,
+                               source=self._build_and_connect_devices(_interface,
+                                                                      devices=self.spiking_network.output_proxies)[0])
 
 
 class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC):
