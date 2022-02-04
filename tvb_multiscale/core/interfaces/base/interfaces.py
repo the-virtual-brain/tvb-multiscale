@@ -48,7 +48,6 @@ class CommunicatorInterface(BaseInterface):
         pass
 
 
-
 class SenderInterface(CommunicatorInterface):
 
     """SenderInterface base class sending data to/from a transformer/cosimulator
@@ -284,12 +283,4 @@ class BaseInterfaces(HasTraits):
     def info(self, recursive=0):
         info = super(BaseInterfaces, self).info(recursive=recursive)
         info["number_of_interfaces"] = self.number_of_interfaces
-        for interface in self.interfaces:
-            info.update(interface.info(recursive=recursive-1))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = super(BaseInterfaces, self).info_details(recursive=recursive)
-        for interface in self.interfaces:
-            info.update(interface.info_details(recursive=recursive-1, **kwargs))
         return info

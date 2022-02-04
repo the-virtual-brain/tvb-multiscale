@@ -438,7 +438,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info = HasTraits.info_details(recursive=recursive, **kwargs)
+        info = HasTraits.info_details(self, recursive=recursive, **kwargs)
         return info
 
     def summary_info(self, recursive=0):

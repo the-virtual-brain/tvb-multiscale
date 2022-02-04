@@ -5,12 +5,12 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb.basic.neotraits.api import Attr, Int
+from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
+
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals, summary_info
-
-from tvb.basic.neotraits.api import Attr, Int
-from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 
 LOG = initialize_logger(__name__)
@@ -532,10 +532,10 @@ class SpikingNodeCollection(HasTraits):
         info = OrderedDict()
         conns = self.GetConnections(source_or_target=source_or_target)
         if source_or_target == "target":
-            source_or_target = "to"
+            source_or_target = "in"
             source_or_target_reverse = "source"
         else:
-            source_or_target = "from"
+            source_or_target = "out"
             source_or_target_reverse = "target"
         if attributes:
             if attributes == True:
@@ -543,7 +543,7 @@ class SpikingNodeCollection(HasTraits):
                               self._weight_attr, self._delay_attr, self._receptor_attr]
             conn_attrs = self.GetFromConnections(attrs=attributes, connections=conns)
             for attr in attributes:
-                info["key_%s" % source_or_target] = conn_attrs.get(attr, np.array([]))
+                info["%s_%s" % (attr, source_or_target)] = conn_attrs.get(attr, np.array([]))
         return info
 
     def _info_connections(self, source_or_target):
@@ -572,9 +572,10 @@ class SpikingNodeCollection(HasTraits):
 
     def info_details(self, recursive=0, connectivity=False, source_or_target=None):
         info = super(SpikingNodeCollection, self).info_details(recursive=recursive)
+        info.update(self.info_nodes())
         info.update(self.info_neurons())
         if self._nodes is not None:
-            info.update(summary_info(self.get_attributes(summary=False)))
+            info["parameters"] = self.get_attributes(summary=False)
             if connectivity:
-                info.update(self.info_connectivity(source_or_target))
+                info["connectivity"] = self.info_connectivity(source_or_target)
         return info

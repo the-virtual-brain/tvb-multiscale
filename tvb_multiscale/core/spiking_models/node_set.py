@@ -13,8 +13,7 @@ from tvb_multiscale.core.config import initialize_logger
 from tvb.basic.neotraits.api import Int
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import \
-    series_loop_generator, is_integer, trait_object_str, summary_info
+from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
 
 from tvb_multiscale.core.neotraits import HasTraits
 
@@ -60,6 +59,13 @@ class SpikingNodesSet(pd.Series, HasTraits):
                            '{} gid: {}'.format(self.__class__.__name__, self.gid))
         self.tag = d.get("tags", {})
         self.configure()
+
+    @property
+    def label(self):
+        label = ""
+        for pop in self.collections:
+            label = self[pop].brain_region
+        return label
 
     @property
     def spiking_simulator_module(self):
@@ -410,14 +416,23 @@ class SpikingNodesSet(pd.Series, HasTraits):
 
     def info(self, recursive=0):
         info = super(SpikingNodesSet, self).info(recursive)
-        info[self._collection_name] = self.collections
+        info["label"] = self.label
+        info["%ss" % self._collection_name] = self.collections
         if recursive > 0:
             for pop in self.collections:
-                info.update(self[pop].info(recursive - 1))
+                info[pop] = "-" * 20
+                for key, val in self[pop].info(recursive - 1).items():
+                    info["[%s].%s" % (pop, key)] = val
         return info
 
     def info_details(self, recursive=0, connectivity=False, source_or_target=None):
         info = super(SpikingNodesSet, self).info_details(recursive)
-        for pop in self.collections:
-            info.update(self[pop].info_details(recursive-1, connectivity, source_or_target))
+        info["label"] = self.label
+        info["%ss" % self._collection_name] = self.collections
+        if recursive > 0:
+            for pop in self.collections:
+                info[pop] = "-" * 20
+                for key, val in self[pop].info_details(recursive=recursive-1, connectivity=connectivity,
+                                                       source_or_target=source_or_target).items():
+                    info["[%s].%s" % (pop, key)] = val
         return info

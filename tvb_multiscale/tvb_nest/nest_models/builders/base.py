@@ -17,6 +17,9 @@ from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuild
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
+
+
 
 class NESTNetworkBuilder(SpikingNetworkBuilder):
 
@@ -59,17 +62,17 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             module = module + "module"
         try:
             # Try to install it...
-            self.logger.info_details("Trying to install module %s..." % module)
+            self.logger.info("Trying to install module %s..." % module)
             self.nest_instance.Install(module)
-            self.logger.info_details("DONE installing module %s!" % module)
+            self.logger.info("DONE installing module %s!" % module)
         except:
-            self.logger.info_details("FAILED! We need to first compile it!")
+            self.logger.info("FAILED! We need to first compile it!")
             # ...unless we need to first compile it:
             compile_modules(module_name, recompile=False, config=self.config)
             # and now install it...
-            self.logger.info_details("Installing now module %s..." % module)
+            self.logger.info("Installing now module %s..." % module)
             self.nest_instance.Install(module)
-            self.logger.info_details("DONE installing module %s!" % module)
+            self.logger.info("DONE installing module %s!" % module)
 
     def compile_install_nest_modules(self, modules_to_install):
         """This method will try to install the input NEST modules, also compiling them, if necessary.
@@ -78,7 +81,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                                  of the modules to be installed and, possibly, compiled
         """
         if len(modules_to_install) > 0:
-            self.logger.info_details("Starting to compile modules %s!" % str(modules_to_install))
+            self.logger.info("Starting to compile modules %s!" % str(modules_to_install))
             while len(modules_to_install) > 0:
                 self._compile_install_nest_module(modules_to_install.pop())
 
@@ -115,7 +118,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
             a NESTPopulation class instance
         """
         n_neurons = int(np.round(size))
-        self.logger.info_details("...with %d neurons..." % n_neurons)
+        self.logger.info("...with %d neurons..." % n_neurons)
         return NESTPopulation(self.nest_instance.Create(model, n_neurons, params=params),
                               nest_instance=self.nest_instance, label=label, model=model, brain_region=brain_region)
 
@@ -252,12 +255,12 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         receptors = ensure_list(syn_spec["receptor_type"])
         for receptor in receptors:
             syn_spec["receptor_type"] = receptor
-            self.logger.info_details("...%d connections to receptor %s" % (n_conns, str(receptor)))
+            self.logger.info("...%d connections to receptor %s" % (n_conns, str(receptor)))
             self.nest_instance.Connect(source_neurons, target_neurons, conn_spec, syn_spec)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a NESTRegionNode instance,
-           which consists of a pandas.Series of all SpikingPopulation instances,
+           which consists of all SpikingPopulation instances,
            residing at a particular brain region node.
            Arguments:
             label: name (string) of the region node. Default = ""
@@ -270,9 +273,9 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
-           - the variable they measure or stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target.
+           - the variable they measure or stimulate, and the
+           - population(s), and
+           - brain region nodes they target.
            See tvb_multiscale.core.spiking_models.builders.factory
            and tvb_multiscale.tvb_nest.nest_models.builders.nest_factory"""
         return build_and_connect_devices(devices, create_device, connect_device,
@@ -280,5 +283,5 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def build_spiking_network(self):
         """A method to build the final NESTNetwork class based on the already created constituents."""
-        return NESTNetwork(self.nest_instance, self._spiking_brain,
-                           self._output_devices, self._input_devices, config=self.config)
+        return NESTNetwork(nest_instance=self.nest_instance, brain_regions=self._spiking_brain,
+                           output_devices=self._output_devices, input_devices=self._input_devices, config=self.config)

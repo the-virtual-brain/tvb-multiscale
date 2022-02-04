@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-import os
 
 import numpy as np
-from pandas import Series
 from six import string_types
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.spiking_models.devices import DeviceSet
+from tvb_multiscale.core.spiking_models.devices import DeviceSet, DeviceSets
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
@@ -117,7 +115,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
     """This function will create a DeviceSet for a measuring (output) or input (stimulating) quantity,
        whereby each device will target one and only SpikingRegionNode,
        e.g. as it is the case for measuring Spiking populations from specific TVB nodes."""
-    devices = kwargs.get("devices", Series())
+    devices = kwargs.get("devices", DeviceSets())
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
@@ -156,7 +154,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
        whereby each device will target more than one SpikingRegionNode instances,
        e.g. as it is the case a TVB "proxy" node,
        stimulating several of the SpikingRegionNodes in the spiking network."""
-    devices = kwargs.get("devices", Series())
+    devices = kwargs.get("devices", DeviceSets())
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
@@ -195,12 +193,10 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
 
 def build_and_connect_devices(devices_input_dicts, create_device_fun, connect_device_fun, spiking_nodes,
                               config=CONFIGURED, **kwargs):
-    """A method to build the final ANNarchyNetwork class based on the already created constituents.
-       Build and connect devices by
-       the variable they measure or stimulate, and population(s) they target (pandas.Series)
-       and target node (pandas.Series) where they refer to.
+    """A method to build and connect devices by the variable they measure or stimulate,
+       and population(s) they target and target node (where they refer to.
     """
-    devices = kwargs.pop("devices", Series())
+    devices = kwargs.pop("devices", DeviceSets())
     for device_dict in ensure_list(devices_input_dicts):
         # For every distinct quantity to be measured from Spiking or stimulated towards Spiking nodes...
         dev_names = device_dict.get("names", None)
@@ -212,5 +208,4 @@ def build_and_connect_devices(devices_input_dicts, create_device_fun, connect_de
             devices = build_and_connect_devices_one_to_many(device_dict, create_device_fun, connect_device_fun,
                                                             spiking_nodes, dev_names, devices=devices, config=config,
                                                             **kwargs)
-
     return devices

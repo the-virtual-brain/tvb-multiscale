@@ -98,6 +98,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
+    print(orchestrator.info_details(recursive=100, connectivity=True))
     print(orchestrator.spikeNet_app.spiking_network.info_details(connectivity=False))
     print(orchestrator.tvb_cosimulator.output_interfaces)
     print(orchestrator.tvb_cosimulator.input_interfaces)

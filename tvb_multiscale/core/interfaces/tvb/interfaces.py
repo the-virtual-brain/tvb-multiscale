@@ -140,82 +140,42 @@ class TVBInputInterface(TVBInterface):
         return data
 
 
-class TVBSenderInterface(SenderInterface, TVBOutputInterface):
+class TVBSenderInterface(TVBOutputInterface, SenderInterface):
 
     """TVBSenderInterface class to send data to a remote transformer or cosimulator.
     """
 
     def __call__(self, data):
-        return self.send(TVBOutputInterface.__call__(self, data))
-
-    def info(self, recursive=0):
-        info = SenderInterface.info(self, recursive=recursive)
-        info.update(TVBOutputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = SenderInterface.info_details(self, recursive=recursive, **kwargs)
-        info.update(TVBOutputInterface.info_details(self, recursive=recursive))
-        return info
+        return SenderInterface.send(self, TVBOutputInterface.__call__(self, data))
 
 
-class TVBTransformerSenderInterface(TransformerSenderInterface, TVBOutputInterface):
+class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterface):
 
     """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
        and, then, send them to a -potentially remote- cosimulator.
     """
 
     def __call__(self, data):
-        return self.transform_send(TVBOutputInterface.__call__(self, data))
-
-    def info(self, recursive=0):
-        info = TransformerSenderInterface.info(self, recursive=recursive)
-        info.update(TVBOutputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = TransformerSenderInterface.info_details(self, recursive=recursive, **kwargs)
-        info.update(TVBOutputInterface.info_details(self, recursive=recursive))
-        return info
+        return TransformerSenderInterface.transform_send(self, TVBOutputInterface.__call__(self, data))
 
 
-class TVBReceiverInterface(ReceiverInterface, TVBInputInterface):
+class TVBReceiverInterface(TVBInputInterface, ReceiverInterface):
 
     """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
     """
 
     def __call__(self):
-        return TVBInputInterface.__call__(self, self.receive())
-
-    def info(self, recursive=0):
-        info = ReceiverInterface.info(self, recursive=recursive)
-        info.update(TVBInputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = ReceiverInterface.info_details(self, recursive=recursive, **kwargs)
-        info.update(TVBInputInterface.info_details(self, recursive=recursive))
-        return info
+        return TVBInputInterface.__call__(self, ReceiverInterface.receive(self))
 
 
-class TVBReceiverTransformerInterface(ReceiverTransformerInterface, TVBInputInterface):
+class TVBReceiverTransformerInterface(TVBInputInterface, ReceiverTransformerInterface):
 
     """TVBReceiverTransformerInterface class receive data from a -potentially remote- cosimulator,
        and, then, transform them and set them to TVB locally.
     """
 
     def __call__(self):
-        return TVBInputInterface.__call__(self, self.receive_transform())
-
-    def info(self, recursive=0):
-        info = ReceiverTransformerInterface.info(self, recursive=recursive)
-        info.update(TVBInputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = ReceiverTransformerInterface.info_details(self, recursive=recursive, **kwargs)
-        info.update(TVBInputInterface.info_details(self, recursive=recursive))
-        return info
+        return TVBInputInterface.__call__(self, ReceiverTransformerInterface.receive_transform(self))
 
 
 class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInterface):
@@ -396,8 +356,8 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
                        data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]])
 
     def info(self, recursive=0):
-        info = BaseInterfaces.info(recursive=recursive)
-        info.update(TVBInterfaces.info(recursive=recursive))
+        info = BaseInterfaces.info(self, recursive=recursive)
+        info.update(TVBInterfaces.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
@@ -460,8 +420,8 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
         return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
 
     def info(self, recursive=0):
-        info = BaseInterfaces.info(recursive=recursive)
-        info.update(TVBInterfaces.info(recursive=recursive))
+        info = BaseInterfaces.info(self, recursive=recursive)
+        info.update(TVBInterfaces.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
@@ -475,8 +435,8 @@ class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
     """TVBtoSpikeNetInterfaces"""
 
     def info(self, recursive=0):
-        info = SpikeNetInputInterfaces.info(recursive=recursive)
-        info.update(TVBOutputInterfaces.info(recursive=recursive))
+        info = SpikeNetInputInterfaces.info(self, recursive=recursive)
+        info.update(TVBOutputInterfaces.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
@@ -490,8 +450,8 @@ class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
     """SpikeNetToTVBInterfaces"""
 
     def info(self, recursive=0):
-        info = SpikeNetOutputInterfaces.info(recursive=recursive)
-        info.update(TVBInputInterfaces.info(recursive=recursive))
+        info = SpikeNetOutputInterfaces.info(self, recursive=recursive)
+        info.update(TVBInputInterfaces.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):

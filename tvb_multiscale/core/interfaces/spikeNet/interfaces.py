@@ -173,16 +173,6 @@ class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
     def __call__(self):
         return self.send(self.get_proxy_data())
 
-    def info(self, recursive=0):
-        info = SenderInterface.info(self, recursive=recursive)
-        info.update(SpikeNetOutputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive, **kwargs):
-        info = SenderInterface.info_details(self, recursive=recursive)
-        info.update(SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs))
-        return info
-
 
 class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
 
@@ -194,16 +184,6 @@ class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
 
     def __call__(self):
         return self.set_proxy_data(self.receive())
-
-    def info(self, recursive=0):
-        info = ReceiverInterface.info(self, recursive=recursive)
-        info.update(SpikeNetInputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = ReceiverInterface.info_details(self, recursive=recursive)
-        info.update(SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs))
-        return info
 
 
 class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSenderInterface):
@@ -217,16 +197,6 @@ class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSen
     def __call__(self):
         return self.transform_send(self.get_proxy_data())
 
-    def info(self, recursive=0):
-        info = TransformerSenderInterface.info(self, recursive=recursive)
-        info.update(SpikeNetOutputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = TransformerSenderInterface.info_details(self, recursive=recursive)
-        info.update(SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs))
-        return info
-
 
 class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTransformerInterface):
 
@@ -238,16 +208,6 @@ class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTrans
 
     def __call__(self):
         return self.set_proxy_data(self.receive_transform())
-
-    def info(self, recursive=0):
-        info = ReceiverTransformerInterface.info(self, recursive=recursive)
-        info.update(SpikeNetInputInterface.info(self, recursive=recursive))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = ReceiverTransformerInterface.info_details(self, recursive=recursive)
-        info.update(SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs))
-        return info
 
 
 class SpikeNetInterfaces(HasTraits):
@@ -301,14 +261,6 @@ class SpikeNetInterfaces(HasTraits):
         info["number_of_populations"] = self.number_of_populations
         info["populations_unique"] = self.populations_unique
         info["spiking_proxy_inds"] = self.spiking_proxy_inds
-        for interface in self.interfaces:
-            info.update(interface.info(recursive=recursive-1))
-        return info
-
-    def info_details(self, recursive=0, **kwargs):
-        info = super(SpikeNetInterfaces, self).info_details(recursive=recursive)
-        for interface in self.interfaces:
-            info.update(interface.info_details(recursive=recursive-1, **kwargs))
         return info
 
 
