@@ -91,7 +91,6 @@ class Config(ConfigBase):
                 'grng_seed': self.MASTER_SEED + TOTAL_NUM_VIRTUAL_PROCS,
                 'rng_seeds': range(self.MASTER_SEED + 1 + TOTAL_NUM_VIRTUAL_PROCS,
                                    self.MASTER_SEED + 1 + (2 * TOTAL_NUM_VIRTUAL_PROCS)),
-                "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS}
                 "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS}  # 'rng_seed': self.MASTER_SEED,
 
     @property

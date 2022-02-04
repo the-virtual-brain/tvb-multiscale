@@ -15,7 +15,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.utils.data_structures_utils import get_caller_fun_name
 
 
