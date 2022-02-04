@@ -118,13 +118,15 @@ class Elementary(Transformer):
         return deepcopy(input_buffer)
 
 
-class Scale(Transformer):
+class Linear(Transformer):
     """
-        Scale Transformer scales the input with a scale factor in order to compute the output.
+        Linear Transformer scales the input with a scale factor and translates it by a constant
+        in order to compute the output.
         It comprises of:
             - an input buffer data numpy.array,
             - an output buffer data numpy.array,
             - a scale factor numpy.array,
+            - a translation factor numpy.array,
             - a method to multiply the input buffer data by the scale factor for the output buffer data to result.
     """
 
@@ -133,6 +135,13 @@ class Scale(Transformer):
         doc="""Array to scale input buffer.""",
         required=True,
         default=np.array([1.0])
+    )
+
+    translation_factor = NArray(
+        label="Translation factor",
+        doc="""Array to translate input buffer.""",
+        required=True,
+        default=np.array([0.0])
     )
 
     @property
@@ -163,8 +172,8 @@ class LinearRate(Linear):
     pass
 
 
-class ScaleCurrent(Scale):
-    """ScaleCurrent class that just scales mean field currents to spiking network ScaleCurrent,
+class LinearCurrent(Linear):
+    """LinearCurrent class that just scales and translates mean field currents,
        including any unit conversions and conversions from mean field to total rates"""
 
     pass
