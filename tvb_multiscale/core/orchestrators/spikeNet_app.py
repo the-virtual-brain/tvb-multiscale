@@ -34,7 +34,7 @@ class SpikeNetApp(NonTVBApp, ABC):
 
     population_order = Int(
         label="Spiking Network populations' order",
-        doc="""Instance of Spiking Network class.""",
+        doc="""Size of spiking populations.""",
         required=True,
         default=100
     )
@@ -139,6 +139,16 @@ class SpikeNetApp(NonTVBApp, ABC):
 
     def reset(self):
         self.spiking_network = None
+
+    def info(self, recursive=0):
+        info = super(SpikeNetApp, self).info(recursive=recursive)
+        info["spiking_cosimulator"] = self.spiking_cosimulator
+        return info
+
+    def info_details(self, recursive=0, **kwargs):
+        info = super(SpikeNetApp, self).info_details(recursive=recursive, **kwargs)
+        info["spiking_cosimulator"] = self.spiking_cosimulator
+        return info
 
 
 class SpikeNetSerialApp(SpikeNetApp, ABC):

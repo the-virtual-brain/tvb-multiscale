@@ -5,15 +5,16 @@ import importlib
 from six import string_types
 
 import numpy as np
-import pandas as pd
-
-from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyContinuousInputDevice
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs, delete_folder_safely
+
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
+from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
+    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyContinuousInputDevice
+
 
 
 LOG = initialize_logger(__name__)
@@ -163,7 +164,7 @@ def get_populations_neurons(population, inds_fun=None):
 def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import_path="", **kwargs):
     annarchy_instance = input_device.annarchy_instance
     population_to_connect_to = kwargs.get("proxy", None)  # in case proxy is provided already
-    proxy_devices = kwargs.get("input_proxies", pd.Series())
+    proxy_devices = kwargs.get("input_proxies", DeviceSets())
     if population_to_connect_to is None:
         # Check if proxy has been already created for this ANNArchyNetwork:
         proxy_label = "%s_proxy" % target_pop.label
@@ -175,7 +176,7 @@ def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import
             from tvb_multiscale.core.spiking_models.devices import DeviceSet
             proxy_devices[proxy_label] = DeviceSet(label=proxy_label, model=input_device.proxy_type)
     if population_to_connect_to is None:
-        # Create the and add it to this ANNArchyNetwork:
+        # Create the population and add it to this ANNArchyNetwork:
         population_to_connect_to = create_population(input_device.proxy_type, annarchy_instance,
                                                      size=target_pop.number_of_neurons,
                                                      params=kwargs.get("proxy_params", {}),

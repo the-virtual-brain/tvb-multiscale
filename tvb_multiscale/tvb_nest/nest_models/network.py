@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
+from tvb.basic.neotraits.api import Attr
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
+from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.devices import NESTOutputSpikeDeviceDict, NESTOutputContinuousTimeDeviceDict
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -29,23 +28,33 @@ class NESTNetwork(SpikingNetwork):
         residing in region node "rh-insula".
     """
 
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    brain_regions = Attr(
+        field_type=NESTBrain,
+        label="NEST brain regions",
+        default=None,
+        required=True,
+        doc="""A NESTBrain instance holding all NEST neural populations 
+               organized per brain region they reside and neural model""")  # spiking_brain['rh-insula']['E']
+
     nest_instance = None
 
     _OutputSpikeDeviceDict = NESTOutputSpikeDeviceDict
     _OutputContinuousTimeDeviceDict = NESTOutputContinuousTimeDeviceDict
 
-    def __init__(self, nest_instance=None,
-                 brain_regions=pd.Series(),
-                 output_devices=pd.Series(),
-                 input_devices=pd.Series(),
-                 config=CONFIGURED):
-        if not isinstance(brain_regions, NESTBrain):
-            brain_regions = NESTBrain(brain_regions)
+    def __init__(self, nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
-        super(NESTNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
+        super(NESTNetwork, self).__init__(**kwargs)
 
     @property
-    def spiking_simulator(self):
+    def spiking_simulator_module(self):
         return self.nest_instance
 
     def Run(self, time):

@@ -6,12 +6,12 @@ from enum import Enum
 from abc import ABCMeta, abstractmethod
 from six import string_types
 
-from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Float
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.transformers.models.base import \
-    Transformer, LinearRate, LinearCurrent, LinearVoltage
+    Transformer, LinearRate, LinearCurrent, LinearPotential
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -32,7 +32,7 @@ class DefaultSpikeNetToTVBTransformers(Enum):
     SPIKES_TO_RATE = ElephantSpikesRate
     SPIKES_TO_HIST = ElephantSpikesHistogram
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
-    VOLTAGE = LinearVoltage
+    POTENTIAL = LinearPotential
 
 
 class DefaultTVBtoSpikeNetModels(Enum):
@@ -43,7 +43,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 class DefaultSpikeNetToTVBModels(Enum):
     SPIKES = DefaultSpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
-    VOLTAGE = DefaultSpikeNetToTVBTransformers.VOLTAGE.name
+    POTENTIAL = DefaultSpikeNetToTVBTransformers.POTENTIAL.name
 
 
 class TransformerBuilder(HasTraits):

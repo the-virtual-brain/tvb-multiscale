@@ -8,12 +8,14 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from tvb_multiscale.core.config import initialize_logger, LINE
+from tvb_multiscale.core.config import initialize_logger
 
-from tvb.basic.neotraits.api import HasTraits, Int
+from tvb.basic.neotraits.api import Int
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
+
+from tvb_multiscale.core.neotraits import HasTraits
 
 
 LOG = initialize_logger(__name__)
@@ -59,24 +61,18 @@ class SpikingNodesSet(pd.Series, HasTraits):
         self.configure()
 
     @property
+    def label(self):
+        label = ""
+        for pop in self.collections:
+            label = self[pop].brain_region
+        return label
+
+    @property
     def spiking_simulator_module(self):
         for i_n, nod_lbl, nodes in self._loop_generator():
             if nodes.spiking_simulator is not None:
                 return nodes.spiking_simulator
         return None
-
-    def __repr__(self):
-        return "\n%s - Label: %s\n%ss: %s" % (self.__class__.__name__, self.label,
-                                            self._collection_name,  str(self.collections))
-
-    def __str__(self):
-        return self.print_str()
-
-    def print_str(self, connectivity=False):
-        output = self.__repr__()
-        for pop in self.collections:
-            output += LINE + self[pop].print_str(connectivity)
-        return output
 
     def __len__(self):
         return pd.Series.__len__(self)
@@ -417,3 +413,26 @@ class SpikingNodesSet(pd.Series, HasTraits):
             else:
                 values_dict.update({device: val})
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
+
+    def info(self, recursive=0):
+        info = super(SpikingNodesSet, self).info(recursive)
+        info["label"] = self.label
+        info["%ss" % self._collection_name] = self.collections
+        if recursive > 0:
+            for pop in self.collections:
+                info[pop] = "-" * 20
+                for key, val in self[pop].info(recursive - 1).items():
+                    info["[%s].%s" % (pop, key)] = val
+        return info
+
+    def info_details(self, recursive=0, connectivity=False, source_or_target=None):
+        info = super(SpikingNodesSet, self).info_details(recursive)
+        info["label"] = self.label
+        info["%ss" % self._collection_name] = self.collections
+        if recursive > 0:
+            for pop in self.collections:
+                info[pop] = "-" * 20
+                for key, val in self[pop].info_details(recursive=recursive-1, connectivity=connectivity,
+                                                       source_or_target=source_or_target).items():
+                    info["[%s].%s" % (pop, key)] = val
+        return info

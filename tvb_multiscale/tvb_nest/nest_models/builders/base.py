@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
-
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
@@ -16,6 +14,9 @@ from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuild
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
+
 
 
 class NESTNetworkBuilder(SpikingNetworkBuilder):
@@ -34,6 +35,9 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self.nest_instance = nest_instance
         self._spiking_brain = NESTBrain()
+
+    def __str__(self):
+        return super(NESTNetworkBuilder, self) + "\nnest simulator: %s" % self.nest_instance
 
     def configure(self):
         if self.config is None:
@@ -125,16 +129,19 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def _get_minmax_delay(self, delay, minmax):
         """A method to get the minimum or maximum delay from a distribution dictionary."""
-        if isinstance(delay, dict):
-            if "distribution" in delay.keys():
-                if delay["distribution"] == "uniform":
-                    return delay[minmax]
-                else:
-                    raise_value_error("Only uniform distribution is allowed for delays to make sure that > min_delay!\n"
-                                      "Distribution given is %s!" % delay["distribution"])
-            else:
-                raise_value_error("If delay is a dictionary it has to be a distribution dictionary!\n"
-                                  "Instead, the delay given is %s\n" % str(delay))
+        from nest.lib.hl_api_types import Parameter
+        if isinstance(delay, Parameter):
+            return delay.GetValue()
+            # TODO: Find a way to check the boundaries of the delay Parameter!
+            # if "distribution" in delay.keys():
+            #     if delay["distribution"] == "uniform":
+            #         return delay[minmax]
+            #     else:
+            #         raise_value_error("Only uniform distribution is allowed for delays to make sure that > min_delay!\n"
+            #                           "Distribution given is %s!" % delay["distribution"])
+            # else:
+            #     raise_value_error("If delay is a dictionary it has to be a distribution dictionary!\n"
+            #                       "Instead, the delay given is %s\n" % str(delay))
         else:
             return delay
 
@@ -254,7 +261,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a NESTRegionNode instance,
-           which consists of a pandas.Series of all SpikingPopulation instances,
+           which consists of all SpikingPopulation instances,
            residing at a particular brain region node.
            Arguments:
             label: name (string) of the region node. Default = ""
@@ -267,9 +274,9 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
-           - the variable they measure or stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target.
+           - the variable they measure or stimulate, and the
+           - population(s), and
+           - brain region nodes they target.
            See tvb_multiscale.core.spiking_models.builders.factory
            and tvb_multiscale.tvb_nest.nest_models.builders.nest_factory"""
         return build_and_connect_devices(devices, create_device, connect_device,
@@ -277,5 +284,5 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def build_spiking_network(self):
         """A method to build the final NESTNetwork class based on the already created constituents."""
-        return NESTNetwork(self.nest_instance, self._spiking_brain,
-                           self._output_devices, self._input_devices, config=self.config)
+        return NESTNetwork(nest_instance=self.nest_instance, brain_regions=self._spiking_brain,
+                           output_devices=self._output_devices, input_devices=self._input_devices, config=self.config)

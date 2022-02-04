@@ -3,14 +3,16 @@
 from abc import ABCMeta, abstractmethod, ABC
 from logging import Logger
 from six import string_types
+from collections import OrderedDict
 
 import numpy as np
 
-from tvb.basic.neotraits._core import HasTraits
-from tvb.basic.neotraits._attr import Attr, Float, List, NArray
+from tvb.basic.neotraits._attr import Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.utils.data_structures_utils import summary_info
 
 
 class InterfaceBuilder(HasTraits, ABC):
@@ -57,6 +59,7 @@ class InterfaceBuilder(HasTraits, ABC):
 
     _output_interfaces = None
     _input_interfaces = None
+
 
     def _loop_to_get_from_interface_configs(self, interfaces, attr):
         output = []
@@ -183,3 +186,27 @@ class InterfaceBuilder(HasTraits, ABC):
     def build(self):
         self.build_interfaces()
         return self._output_interfaces, self._input_interfaces
+
+    def info(self, recursive=0):
+        info = super(InterfaceBuilder, self).info(recursive=recursive)
+        info['synchronization_time'] = self.synchronization_time
+        info['synchronization_n_step'] = self.synchronization_n_step
+        info['number_of_input_interfaces'] = self.number_of_input_interfaces
+        info['number_of_output_interfaces'] = self.number_of_output_interfaces
+        info['number_of_in_proxy_nodes'] = self.number_of_in_proxy_nodes
+        info['number_of_out_proxy_nodes'] = self.number_of_out_proxy_nodes
+        return info
+
+    def _info_details_interfaces(self, interfaces, input_or_output):
+        info = OrderedDict()
+        for interface in interfaces:
+            info.update({"%s_interfaces" % input_or_output: "properties:"})
+            info.update(summary_info(interface))
+        return info
+
+    def info_details(self, recursive=0, **kwargs):
+        info = super(InterfaceBuilder, self).info_details(recursive=recursive, **kwargs)
+        for input_or_output in ["input", "output"]:
+            info.update(self._info_details_interfaces(getattr(self, "%s_interfaces" % input_or_output),
+                                                      input_or_output))
+        return info

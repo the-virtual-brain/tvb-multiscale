@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from enum import Enum
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 from tvb.basic.neotraits.api import HasTraits, Attr, List
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
@@ -70,9 +69,6 @@ class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
 
     """ANNarchySenderInterface"""
 
-    def print_str(self):
-        return SpikeNetSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
-
     def __call__(self):
         return self.send(ANNarchyOutputInterface.get_proxy_data(self))
 
@@ -80,9 +76,6 @@ class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
 class ANNarchyTransformerSenderInterface(SpikeNetTransformerSenderInterface, ANNarchyOutputInterface):
     
     """ANNarchyTransformerSenderInterface"""
-
-    def print_str(self):
-        return SpikeNetTransformerSenderInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
 
     def __call__(self):
         return self.transform_send(ANNarchyOutputInterface.get_proxy_data(self))
@@ -107,16 +100,14 @@ class ANNarchyReceiverInterface(SpikeNetReceiverInterface, ANNarchyInputInterfac
 
     """ANNarchyReceiverInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+    pass
 
 
 class ANNarchyReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, ANNarchyInputInterface):
 
     """ANNarchyReceiverTransformerInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverTransformerInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+    pass
 
 
 class TVBtoANNarchyInterface(TVBtoSpikeNetInterface, ANNarchyInputInterface):
@@ -125,8 +116,7 @@ class TVBtoANNarchyInterface(TVBtoSpikeNetInterface, ANNarchyInputInterface):
        and finally set them to ANNarchy, all processes taking place in shared memory.
     """
 
-    def print_str(self):
-        return TVBtoSpikeNetInterface.print_str(self) + ANNarchyInputInterface.print_str(self)
+    pass
 
 
 class ANNarchyToTVBInterface(SpikeNetToTVBInterface, ANNarchyOutputInterface):
@@ -137,9 +127,6 @@ class ANNarchyToTVBInterface(SpikeNetToTVBInterface, ANNarchyOutputInterface):
 
     def get_proxy_data(self):
         return ANNarchyOutputInterface.get_proxy_data(self)
-
-    def print_str(self):
-        return SpikeNetToTVBInterface.print_str(self) + ANNarchyOutputInterface.print_str(self)
 
 
 class ANNarchyInterfaces(HasTraits):

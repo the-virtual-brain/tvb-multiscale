@@ -7,15 +7,16 @@ import numpy as np
 from pandas import Series
 from xarray import DataArray
 
-from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.spiking_models.network import SpikingNetwork
-from tvb_multiscale.core.utils.data_structures_utils import get_caller_fun_name
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Float
+from tvb.basic.neotraits.api import Attr, Float
 from tvb.datatypes import connectivity
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, concatenate_heterogeneous_DataArrays, sort_events_by_x_and_y
+
+from tvb_multiscale.core.config import initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.spiking_models.network import SpikingNetwork
+from tvb_multiscale.core.utils.data_structures_utils import get_caller_fun_name
 
 
 LOG = initialize_logger(__name__)

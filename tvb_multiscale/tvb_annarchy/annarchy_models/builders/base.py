@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
+from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
@@ -9,8 +11,6 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
-from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
-from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 
 
 class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
@@ -26,13 +26,16 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
 
-    _input_proxies = pd.Series()
+    _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
     def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=None, logger=None):
         self.annarchy_instance = annarchy_instance
         super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self._spiking_brain = ANNarchyBrain()
+
+    def __str__(self):
+        return super(ANNarchyNetworkBuilder, self) + "\nnest simulator: %s" % self.annarchy_instance
 
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
@@ -146,7 +149,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
            - the variable they stimulate (pandas.Series), and the
            - population(s) (pandas.Series), and
            - brain region nodes (pandas.Series) they target."""
-        _devices = pd.Series()
+        _devices = DeviceSets()
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
             _devices = _devices.append(
@@ -167,6 +170,6 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     def build_spiking_network(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""
-        return ANNarchyNetwork(self.annarchy_instance, self._spiking_brain,
-                               self._output_devices, self._input_devices,
-                               self._input_proxies, config=self.config)
+        return ANNarchyNetwork(annarchy_instance=self.annarchy_instance, brain_regions=self._spiking_brain,
+                               output_devices=self._output_devices, input_devices=self._input_devices,
+                               input_proxies=self._input_proxies, config=self.config)

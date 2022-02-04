@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 import uuid
+from collections import OrderedDict
+
+import numpy as np
+
+from tvb.basic.neotraits.api import Attr, Int
+from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Int
-from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.utils.data_structures_utils import summarize, extract_integer_intervals, summary_info
 
 
 LOG = initialize_logger(__name__)
@@ -36,6 +40,8 @@ class SpikingNodeCollection(HasTraits):
     _size = Int(field_type=int, default=0, required=True, label="Size",
                 doc="""The number of elements of SpikingNodeCollection """)
 
+    _source_conns_attr = ""
+    _target_conns_attr = ""
     _weight_attr = ""
     _delay_attr = ""
     _receptor_attr = ""
@@ -75,7 +81,7 @@ class SpikingNodeCollection(HasTraits):
         self._nodes = d.get("_nodes", None)
         self.label = d.get("label", "")
         self.model = d.get("model", "")
-        self.title = d.get("_size", self.get_size())
+        self._size = d.get("_size", self.get_size())
         self.brain_region = d.get("brain_region", "")
         self._weight_attr = d.get("_weight_attr", "")
         self._delay_attr = d.get("_delay_attr", "")
@@ -123,26 +129,6 @@ class SpikingNodeCollection(HasTraits):
     @property
     def nodes(self):
         return self._nodes
-
-    def summarize_nodes_indices(self, print=False):
-        """Method to summarize nodes' indices' intervals.
-        Arguments:
-         print: if True, a string is returned, Default = False
-        Returns:
-         a list of intervals' limits, or of single indices, or a string of the list if print = True"""
-        return extract_integer_intervals(self.gids, print=print)
-
-    def _print_nodes(self):
-        return "%d neurons: %s" % (self.number_of_nodes, self.summarize_nodes_indices(print=True))
-
-    def __repr__(self):
-        return "%s - Label: %s \nmodel: %s\n%s" % \
-               (self.__class__.__name__, self.label, self.model, self._print_nodes())
-
-    def __str__(self):
-        return "\n%s" \
-               "\nparameters: %s," % \
-                          (self.__repr__(), str(self.get_attributes(summary=True)))
 
     # Methods to get or set attributes for nodes and/or their connections:
 
@@ -196,7 +182,7 @@ class SpikingNodeCollection(HasTraits):
         pass
 
     @abstractmethod
-    def _GetFromConnections(self, attr=None, connections=None):
+    def _GetFromConnections(self, attrs=None, connections=None):
         """Method to get attributes of the connections from/to the SpikingNodeCollection's nodes.
             Arguments:
              attrs: sequence (list, tuple, array) of the attributes to be included in the output.
@@ -281,7 +267,7 @@ class SpikingNodeCollection(HasTraits):
         """
         return self._GetConnections(nodes, source_or_target)
 
-    def SetToConnections(self, values_dict, nodes=None, source_or_target=None):
+    def SetToConnections(self, values_dict, nodes=None, source_or_target=None, connections=None):
         """Method to set attributes of the connections from/to the SpikingNodeCollection's nodes.
            Arguments:
             values_dict: dictionary of attributes names' and values.
@@ -290,14 +276,20 @@ class SpikingNodeCollection(HasTraits):
                      Default = None, corresponds to all nodes.
             source_or_target: Direction of connections relative to the populations' nodes
                               "source", "target" or None (Default; corresponds to both source and target)
+            connections: connections' objects, identical to the output of the GetConnections() method
+                         Default = None, in which the arguments above are taken into consideration.
         """
-        if source_or_target is None:
-            # In case we deal with both source and target connections, treat them separately:
-            for source_or_target in ["source", "target"]:
-                self.SetToConnections(values_dict, nodes, source_or_target)
-        self._SetToConnections(values_dict, self.GetConnections(nodes, source_or_target))
+        if connections is None:
+            if source_or_target is None:
+                # In case we deal with both source and target connections, treat them separately:
+                for source_or_target in ["source", "target"]:
+                    self.SetToConnections(values_dict, nodes, source_or_target)
+            else:
+                connections = self.GetConnections(nodes, source_or_target)
+                self._SetToConnections(values_dict, connections)
+        self._SetToConnections(values_dict, connections)
 
-    def GetFromConnections(self, attrs=None, nodes=None, source_or_target=None, summary=None):
+    def GetFromConnections(self, attrs=None, nodes=None, source_or_target=None, connections=None, summary=None):
         """Method to get attributes of the connections from/to the SpikingNodeCollection's nodes.
            Arguments:
             attrs: sequence (list, tuple, array) of the attributes to be included in the output.
@@ -307,6 +299,8 @@ class SpikingNodeCollection(HasTraits):
                      Default = None, corresponds to all nodes.
             source_or_target: Direction of connections relative to the populations' nodes
                               "source", "target" or None (Default; corresponds to both source and target)
+            connections: connections' objects, identical to the output of the GetConnections() method
+                         Default = None, in which the arguments above are taken into consideration.
             summary: if integer, return a summary of unique output values
                                  within accuracy of the specified number of decimal digits
                      otherwise, if it is not None or False return
@@ -317,22 +311,102 @@ class SpikingNodeCollection(HasTraits):
             Dictionary of lists of connections' attributes,
             or tuple of two such dictionaries for source and target connections
         """
-        if source_or_target is None:
-            # In case we deal with both source and target connections, treat them separately:
-            output = []
-            for source_or_target in ["source", "target"]:
-                output.append(self.GetFromConnections(attrs, nodes, source_or_target, summary))
-            if len(output) == 0:
-                return {}
-            if len(output) == 1:
-                return output[0]
-            return tuple(output)
-        outputs = self._GetFromConnections(attrs, self.GetConnections(nodes=nodes, source_or_target=source_or_target))
+        if connections is None:
+            if source_or_target is None:
+                # In case we deal with both source and target connections, treat them separately:
+                output = []
+                for source_or_target in ["source", "target"]:
+                    output.append(self.GetFromConnections(attrs=attrs, nodes=nodes,
+                                                          source_or_target=source_or_target, summary=summary))
+                if len(output) == 0:
+                    return {}
+                if len(output) == 1:
+                    return output[0]
+                return tuple(output)
+            else:
+                outputs = self._GetFromConnections(attrs,
+                                                   self.GetConnections(nodes=nodes, source_or_target=source_or_target))
+        else:
+            outputs = self._GetFromConnections(attrs, connections)
         if summary is not None:
             outputs = summarize(outputs, summary)
         return outputs
 
-    def get_weights(self, nodes=None, source_or_target=None, summary=None):
+    def _get_connection_attribute(self, attr, nodes=None, source_or_target=None, connections=None, summary=None):
+        """Method to get a single connections' attribute of the SpikingNodeCollections's nodes.
+                   Arguments:
+                    attr: the attribute to be returned
+                    nodes: instance of a nodes class,
+                             or sequence (list, tuple, array) of nodes the attributes of which should be returned.
+                             Default = None, corresponds to all nodes.
+                    source_or_target: Direction of connections relative to the populations' nodes
+                                      "source", "target" or None (Default; corresponds to both source and target)
+                    connections: connections' objects, identical to the output of the GetConnections() method
+                                 Default = None, in which the arguments above are taken into consideration.
+                    summary: if integer, return a summary of unique output values
+                                         within accuracy of the specified number of decimal digits
+                             otherwise, if it is not None or False return
+                             either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                             or a list of unique string entries for all other attributes,
+                             Default = None, corresponds to returning all values
+                   Returns:
+                    Sequence (list, tuple, or array) of nodes's connections' attribute.
+                """
+        if connections is None:
+            if source_or_target is None:
+                # In case we deal with both source and target connections, treat them separately:
+                outputs = []
+                for source_or_target in ["source", "target"]:
+                    outputs.append(self._get_connection_attribute(attr, nodes=nodes, source_or_target=source_or_target,
+                                                                  summary=summary))
+                return tuple(outputs)
+            return self.GetFromConnections(attr, nodes=nodes, source_or_target=source_or_target,
+                                           summary=summary).get(attr, [])
+        else:
+            return self.GetFromConnections(attr, connections=connections, summary=summary).get(attr, [])
+
+    def get_connected_nodes(self, nodes=None, source_or_target=None, connections=None, summary=None):
+        """Method to get the connected nodes of the SpikingNodeCollections's nodes.
+            Arguments:
+                nodes: instance of a nodes class,
+                       or sequence (list, tuple, array) of nodes the attributes of which should be set.
+                       Default = None, corresponds to all nodes.
+                source_or_target: Direction of connections relative to the populations' nodes
+                                  "source", "target" or None (Default; corresponds to both source and target)
+                connections: connections' objects, identical to the output of the GetConnections() method
+                             Default = None, in which the arguments above are taken into consideration.
+                summary: if integer, return a summary of unique output values
+                         within accuracy of the specified number of decimal digits
+                         otherwise, if it is not None or False return
+                         either a dictionary of a statistical summary of mean, minmax, and variance for numerical attributes,
+                         or a list of unique string entries for all other attributes,
+                        Default = None, corresponds to returning all values
+                Returns:
+                    Sequence (list, tuple, or array) of connected nodes' gids.
+                """
+        if connections is None:
+            if source_or_target is None:
+                # In case we deal with both source and target connections, treat them separately:
+                outputs = []
+                for source_or_target in ["source", "target"]:
+                    outputs.append(self.get_connected_nodes(nodes=nodes, source_or_target=source_or_target,
+                                                            ummary=summary))
+                return tuple(outputs)
+            # In this case the connections are found based on source_or_target,
+            # and we need to reverse source_or_target to determines the nodes to return:
+            if source_or_target == "target":
+                attr = self._source_conns_attr
+            else:
+                attr = self._target_conns_attr
+            return self.GetFromConnections(attr, nodes=nodes, source_or_target=source_or_target,
+                                           summary=summary).get(attr, [])
+        else:
+            # In this case the connections have already been found,
+            # and the source_or_target determines if we want the sources or targets of those connections.
+            attr = getattr(self, "_%s_conns_attr" % source_or_target)
+            return self.GetFromConnections(attr, connections=connections, summary=summary).get(attr, [])
+
+    def get_weights(self, nodes=None, source_or_target=None, connections=None, summary=None):
         """Method to get the connections' weights of the SpikingNodeCollections's nodes.
            Arguments:
             nodes: instance of a nodes class,
@@ -340,6 +414,8 @@ class SpikingNodeCollection(HasTraits):
                      Default = None, corresponds to all nodes.
             source_or_target: Direction of connections relative to the populations' nodes
                               "source", "target" or None (Default; corresponds to both source and target)
+            connections: connections' objects, identical to the output of the GetConnections() method
+                         Default = None, in which the arguments above are taken into consideration.
             summary: if integer, return a summary of unique output values
                                  within accuracy of the specified number of decimal digits
                      otherwise, if it is not None or False return
@@ -349,15 +425,9 @@ class SpikingNodeCollection(HasTraits):
            Returns:
             Sequence (list, tuple, or array) of nodes's connections' weights.
         """
-        if source_or_target is None:
-            # In case we deal with both source and target connections, treat them separately:
-            outputs = []
-            for source_or_target in ["source", "target"]:
-                outputs.append(self.get_weights(nodes, source_or_target, summary))
-            return tuple(outputs)
-        return self.GetFromConnections(self._weight_attr, nodes, source_or_target, summary).get(self._weight_attr, [])
+        return self._get_connection_attribute(self._weight_attr, nodes, source_or_target, connections, summary)
 
-    def get_delays(self, nodes=None, source_or_target=None, summary=None):
+    def get_delays(self, nodes=None, source_or_target=None, connections=None, summary=None):
         """Method to get the connections' delays of the SpikingNodeCollections's nodes.
            Arguments:
             nodes: instance of a nodes class,
@@ -365,6 +435,8 @@ class SpikingNodeCollection(HasTraits):
                      Default = None, corresponds to all nodes.
             source_or_target: Direction of connections relative to the populations' nodes
                               "source", "target" or None (Default; corresponds to both source and target)
+            connections: connections' objects, identical to the output of the GetConnections() method
+                         Default = None, in which the arguments above are taken into consideration.
             summary: if integer, return a summary of unique output values
                                  within accuracy of the specified number of decimal digits
                      otherwise, if it is not None or False return
@@ -374,21 +446,17 @@ class SpikingNodeCollection(HasTraits):
            Returns:
             Sequence (list, tuple, or array) of nodes's connections' delays.
         """
-        if source_or_target is None:
-            # In case we deal with both source and target connections, treat them separately:
-            outputs = []
-            for source_or_target in ["source", "target"]:
-                outputs.append(self.get_delays(nodes, source_or_target, summary))
-            return tuple(outputs)
-        return self.GetFromConnections(self._delay_attr, nodes, source_or_target, summary).get(self._delay_attr, [])
+        return self._get_connection_attribute(self._delay_attr, nodes, source_or_target, connections, summary)
 
-    def get_receptors(self, nodes=None, source_or_target=None, summary=None):
+    def get_receptors(self, nodes=None, source_or_target=None, connections=None, summary=None):
         """Method to get the connections' receptors of the SpikingNodeCollections's nodes.
             nodes: instance of a nodes class,
                      or sequence (list, tuple, array) of nodes the attributes of which should be set.
                      Default = None, corresponds to all nodes.
             source_or_target: Direction of connections relative to the populations' nodes
                               "source", "target" or None (Default; corresponds to both source and target)
+            connections: connections' objects, identical to the output of the GetConnections() method
+                         Default = None, in which the arguments above are taken into consideration.
             summary: if integer, return a summary of unique output values
                                  within accuracy of the specified number of decimal digits
                      otherwise, if it is not None or False return
@@ -398,14 +466,7 @@ class SpikingNodeCollection(HasTraits):
            Returns:
             Sequence (list, tuple, or array) of nodes's connections' receptors.
         """
-        if source_or_target is None:
-            # In case we deal with both source and target connections, treat them separately:
-            outputs = []
-            for source_or_target in ["source", "target"]:
-                outputs.append(self.get_receptors(nodes, source_or_target, summary))
-            return tuple(outputs)
-        return \
-            self.GetFromConnections(self._receptor_attr, nodes, source_or_target, summary).get(self._receptor_str, [])
+        return self._get_connection_attribute(self._receptor_attr, nodes, source_or_target, connections, summary)
 
     @property
     def number_of_nodes(self):
@@ -456,3 +517,65 @@ class SpikingNodeCollection(HasTraits):
             Dictionary of sequences (lists, tuples, or arrays) of nodes's connections' receptors.
         """
         return self.get_receptors()
+
+    def info_nodes(self):
+        info = OrderedDict()
+        info['number_of_nodes'] = self.number_of_nodes
+        info["nodes"] = self.nodes
+        return info
+
+    def info_neurons(self):
+        return {"gids": np.array(self.gids)}
+
+    def _info_connectivity(self, source_or_target, attributes=True):
+        source_or_target = source_or_target.lower()
+        info = OrderedDict()
+        conns = self.GetConnections(source_or_target=source_or_target)
+        if source_or_target == "target":
+            source_or_target = "in"
+            source_or_target_reverse = "source"
+        else:
+            source_or_target = "out"
+            source_or_target_reverse = "target"
+        if attributes:
+            if attributes == True:
+                attributes = [getattr(self, "_%s_conns_attr" % source_or_target_reverse),
+                              self._weight_attr, self._delay_attr, self._receptor_attr]
+            conn_attrs = self.GetFromConnections(attrs=attributes, connections=conns)
+            for attr in attributes:
+                info["%s_%s" % (attr, source_or_target)] = conn_attrs.get(attr, np.array([]))
+        return info
+
+    def _info_connections(self, source_or_target):
+        return self._info_connectivity(source_or_target, False)
+
+    def info_connectivity(self, source_or_target=None):
+        info = OrderedDict()
+        if source_or_target is None or source_or_target.lower() == "source":
+            info.update(self._info_connectivity("source"))
+        if source_or_target is None or source_or_target.lower() == "target":
+            info.update(self._info_connectivity("target"))
+        return info
+
+    def info_connections(self, source_or_target=None):
+        info = OrderedDict()
+        if source_or_target is None or source_or_target.lower() == "source":
+            info.update(self._info_connections("source"))
+        if source_or_target is None or source_or_target.lower() == "target":
+            info.update(self._info_connections("target"))
+        return info
+
+    def info(self, recursive=0):
+        info = super(SpikingNodeCollection, self).info(recursive=recursive)
+        info.update(self.info_nodes())
+        return info
+
+    def info_details(self, recursive=0, connectivity=False, source_or_target=None):
+        info = super(SpikingNodeCollection, self).info_details(recursive=recursive)
+        info.update(self.info_nodes())
+        info.update(self.info_neurons())
+        if self._nodes is not None:
+            info["parameters"] = self.get_attributes(summary=False)
+            if connectivity:
+                info["connectivity"] = self.info_connectivity(source_or_target)
+        return info

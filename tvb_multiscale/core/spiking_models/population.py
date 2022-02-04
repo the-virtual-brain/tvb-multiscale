@@ -37,25 +37,6 @@ class SpikingPopulation(SpikingNodeCollection):
     def __setstate__(self, d):
         super(SpikingPopulation, self).__setstate__(d)
 
-    def print_str(self, connectivity=False):
-        output = self.__str__()
-        if connectivity is True:
-            conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
-                                                 source_or_target="source", summary=3)
-            output += "\nconnections from %s:\nweights: %s,\ndelays: %s,\nreceptors: %s" % \
-                      (self.label,
-                       str(conn_attrs.get(self._weight_attr, "")),
-                       str(conn_attrs.get(self._delay_attr, "")),
-                       str(conn_attrs.get(self._receptor_attr, "")))
-            conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
-                                                 source_or_target="target", summary=3)
-            output += "\nconnections to %s:\nweights: %s,\ndelays: %s,\nreceptors: %s" % \
-                      (self.label,
-                       str(conn_attrs.get(self._weight_attr, "")),
-                       str(conn_attrs.get(self._delay_attr, "")),
-                       str(conn_attrs.get(self._receptor_attr, "")))
-        return output
-
     # Methods to get or set attributes for neurons and/or their connections:
 
     @property
