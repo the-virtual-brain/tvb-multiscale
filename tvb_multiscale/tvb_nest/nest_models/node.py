@@ -11,6 +11,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.nest_ray import RayNodeCollection
 
 
 LOG = initialize_logger(__name__)
