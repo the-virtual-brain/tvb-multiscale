@@ -30,7 +30,7 @@ class NESTInputDeviceSet(SpikeNetInputDeviceSet):
 
     @property
     def spiking_time(self):
-        return self.target[0].nest_instance.GetKernelStatus("biological_time")
+        return self.target[0].nest_instance.GetKernelStatus("time")
 
     @property
     def spiking_dt(self):

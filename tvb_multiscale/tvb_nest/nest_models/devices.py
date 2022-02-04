@@ -671,7 +671,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         kwargs["model"] = kwargs.get("model", "spike_recorder")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
         SpikeRecorder.__init__(self, device, **kwargs)
-        self._last_spike_time = self.nest_instance.GetKernelStatus("biological_time")
+        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
 
     # Only SpikeRecorder is the target of connections with neurons in NEST:
 
@@ -737,7 +737,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
 
     def reset(self):
         NESTOutputDevice.reset(self)
-        self._last_spike_time = self.nest_instance.GetKernelStatus("biological_time")
+        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
 
 
 class NESTMultimeter(NESTOutputDevice, Multimeter):
