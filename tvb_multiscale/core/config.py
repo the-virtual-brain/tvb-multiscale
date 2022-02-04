@@ -10,9 +10,15 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb.datatypes import cortex, connectivity
 from tvb.simulator.plot.config import FiguresConfig
+from tvb.simulator.models.wilson_cowan import WilsonCowan
+from tvb.simulator.coupling import Linear
+from tvb.simulator.integrators import HeunDeterministic, HeunStochastic, EulerDeterministic
+from tvb.simulator.noise import Additive
+from tvb.simulator.monitors import Raw
 
 import tvb_data
 
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
@@ -42,7 +48,7 @@ except:
     DEFAULT_SUBJECT = None
 
 
-class OutputConfig(object):
+class OutputConfig(HasTraits):
     subfolder = None
 
     def __init__(self, out_base=None, separate_by_run=False, initialize_logger=True):
@@ -50,6 +56,7 @@ class OutputConfig(object):
         :param work_folder: Base folder where logs/figures/results should be kept
         :param separate_by_run: Set TRUE, when you want logs/results/figures to be in different files / each run
         """
+        super(OutputConfig, self).__init__()
         self._out_base = out_base or os.path.join(os.getcwd(), "outputs")
         self._separate_by_run = separate_by_run
         if initialize_logger:
@@ -81,8 +88,13 @@ class OutputConfig(object):
         safe_makedirs(folder)
         return folder
 
+    def info(self, recursive=0):
+        info = super(OutputConfig, self).info(recursive=recursive)
+        info.update(self._info_dict('OutputConfig as dict', dict(self)))
+        return info
 
-class CalculusConfig(object):
+
+class CalculusConfig(HasTraits):
     # Normalization configuration
     WEIGHTS_NORM_PERCENT = 99
 
@@ -94,8 +106,13 @@ class CalculusConfig(object):
     MAX_INT_VALUE = numpy.iinfo(numpy.int64).max
     MIN_INT_VALUE = numpy.iinfo(numpy.int64).max
 
+    def info(self, recursive=0):
+        info = super(CalculusConfig, self).info(recursive=recursive)
+        info.update(self._info_dict('CalculusConfig as dict', dict(self)))
+        return info
 
-class Config(object):
+
+class Config(HasTraits):
     calcul = CalculusConfig()
 
     DEFAULT_DT = 0.1
@@ -104,12 +121,15 @@ class Config(object):
     MIN_SPIKING_DT = 0.001
     MIN_DELAY = 0.001
 
-    from tvb.simulator.integrators import HeunStochastic
-    from tvb.simulator.noise import Additive
-
-    DEFAULT_INTEGRATOR = HeunStochastic
+    DEFAULT_TVB_MODEL = WilsonCowan
+    DEFAULT_TVB_COUPLING_MODEL = Linear
+    DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
+    DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
+    DEFAULT_INTEGRATOR = DEFAULT_STOCHASTIC_INTEGRATOR
+    DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
     DEFAULT_NOISE = Additive
     DEFAULT_NSIG = 1e-3
+    DEFAULT_MONITOR = Raw
 
     # Delays should be at least equal to NEST time resolution
     DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
@@ -117,12 +137,19 @@ class Config(object):
                           "syn_spec": {}, "conn_spec": {}}
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+        super(Config, self).__init__()
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
         self.TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
+
+    def info(self, recursive=0):
+        info = super(Config, self).info(recursive=recursive)
+        for key, val in self.__dict__.items():
+            info["config.%s" % key] = val
+        return info
 
 
 CONFIGURED = Config(initialize_logger=False)
@@ -136,7 +163,3 @@ def initialize_logger(name="tvb-multiscale", target_folder=None, config=CONFIGUR
 
 def log_path(name, logger):
     logger.info("%s: %s" % (name, os.environ.get(name, "")))
-
-
-# Used for nice __str__() outputs
-LINE = "\n" + "-" * 100 + "\n"

@@ -8,7 +8,7 @@ from pandas import Series
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
 
-from tvb.basic.neotraits.api import HasTraits, Int
+from tvb.basic.neotraits.api import Int
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     series_loop_generator, is_integer, concatenate_heterogeneous_DataArrays

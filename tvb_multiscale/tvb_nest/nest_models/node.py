@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.utils.data_structures_utils import ensure_list
-from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
-from tvb.basic.neotraits.api import HasTraits, Attr, Int
+import uuid
 
 from nest import NodeCollection
+
+from tvb.basic.neotraits.api import Attr, Int
+
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.config import initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 
 
 LOG = initialize_logger(__name__)
@@ -34,6 +39,8 @@ class _NESTNodeCollection(HasTraits):
                 doc="""The number of elements of NESTNodeCollection """)
 
     nest_instance = None
+    _source_conns_attr = "source"
+    _target_conns_attr = "target"
     _weight_attr = "weight"
     _delay_attr = "delay"
     _receptor_attr = "receptor"
@@ -231,4 +238,8 @@ class NESTNodeCollection(_NESTNodeCollection, SpikingNodeCollection):
        residing at the same brain region.
     """
 
-    pass
+    def info(self, recursive=0):
+        return SpikingNodeCollection.info(self, recursive=recursive)
+
+    def info_details(self, recursive=0, **kwargs):
+        return SpikingNodeCollection.info_details(self, recursive=recursive, **kwargs)

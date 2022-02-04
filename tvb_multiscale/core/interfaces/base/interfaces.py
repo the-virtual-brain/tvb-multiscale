@@ -1,9 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
-from tvb.basic.neotraits._core import HasTraits
 from tvb.basic.neotraits._attr import Attr, Int, Float, List
 
-from tvb_multiscale.core.config import LINE
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.io import Communicator, Sender, Receiver
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 
@@ -21,22 +20,9 @@ class BaseInterface(HasTraits):
         default=""
     )
 
-    @property
-    def label(self):
-        return self.__class__.__name__
-
     @abstractmethod
     def __call__(self, *args):
         pass
-
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def print_str(self, *args):
-        return "\nLabel: %s \nType: %s, Model: %s" % (self.label, self.__repr__(), self.model)
-
-    def __str__(self):
-        return self.print_str()
 
 
 class CommunicatorInterface(BaseInterface):
@@ -60,15 +46,6 @@ class CommunicatorInterface(BaseInterface):
     @abstractmethod
     def __call__(self, *args):
         pass
-
-    def print_str(self, sender_not_receiver=None):
-        out = super(CommunicatorInterface, self).print_str()
-        if sender_not_receiver is True:
-            return out + "\nSender: %s" % str(self.communicator)
-        elif sender_not_receiver is False:
-            return out + "\nReceiver: %s" % str(self.communicator)
-        else:
-            return out + "\nCommunicator: %s" % str(self.communicator)
 
 
 class SenderInterface(CommunicatorInterface):
@@ -94,9 +71,6 @@ class SenderInterface(CommunicatorInterface):
     def __call__(self, data):
         return self.communicator(data)
 
-    def print_str(self):
-        return super(SenderInterface, self).print_str(sender_not_receiver=True)
-
 
 class ReceiverInterface(CommunicatorInterface):
 
@@ -120,9 +94,6 @@ class ReceiverInterface(CommunicatorInterface):
 
     def __call__(self):
         return self.communicator()
-
-    def print_str(self):
-        return super(ReceiverInterface, self).print_str(sender_not_receiver=False)
 
 
 class CommunicatorTransformerInterface(BaseInterface):
@@ -156,18 +127,6 @@ class CommunicatorTransformerInterface(BaseInterface):
     def __call__(self, *args):
         pass
 
-    def print_str(self, sender_not_receiver=None):
-        if sender_not_receiver is True:
-            comm_str = "Sender"
-        elif sender_not_receiver is False:
-            comm_str = "Receiver"
-        else:
-            comm_str = "Communicator"
-        out = super(CommunicatorTransformerInterface, self).print_str()
-        out += "\n%s: %s" % (comm_str, str(self.communicator1))
-        out += "\nTransformer: %s" % self.transformer.print_str()
-        return out
-
 
 class TransformerSenderInterface(CommunicatorTransformerInterface):
     """TransformerSenderInterface base class
@@ -196,9 +155,6 @@ class TransformerSenderInterface(CommunicatorTransformerInterface):
 
     def __call__(self, data):
         return self.transform_send(data)
-
-    def print_str(self):
-        return super(TransformerSenderInterface, self).print_str(sender_not_receiver=True)
 
 
 class ReceiverTransformerInterface(CommunicatorTransformerInterface):
@@ -229,9 +185,6 @@ class ReceiverTransformerInterface(CommunicatorTransformerInterface):
 
     def __call__(self):
         return self.receive_transform()
-
-    def print_str(self):
-        return super(ReceiverTransformerInterface, self).print_str(sender_not_receiver=False)
 
 
 class RemoteTransformerInterface(BaseInterface):
@@ -279,13 +232,6 @@ class RemoteTransformerInterface(BaseInterface):
     def __call__(self):
         self.receive_transform_send()
 
-    def print_str(self):
-        out = super(RemoteTransformerInterface, self).print_str()
-        out += "\nReceiver: %s" % str(self.receiver)
-        out += "\nTransformer: %s" % self.transformer.print_str()
-        out += "\nSender: %s" % str(self.sender)
-        return out
-
 
 class BaseInterfaces(HasTraits):
     __metaclass__ = ABCMeta
@@ -320,6 +266,8 @@ class BaseInterfaces(HasTraits):
     def configure(self):
         """Method to configure the interfaces"""
         super(BaseInterfaces, self).configure()
+        for interface in self.interfaces:
+            interface.configure()
 
     @property
     def labels(self):
@@ -332,18 +280,7 @@ class BaseInterfaces(HasTraits):
     def __call__(self, *args):
         pass
 
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def __str__(self):
-        return self.print_str()
-
-    def print_str(self):
-        output = 2 * LINE + "%s\n\n" % self.__repr__()
-        output += "synchronization_time = %g, synchronization_n_step = %g" % \
-                  (self.synchronization_time, self.synchronization_n_step)
-        output += LINE + "\n"
-        for ii, interface in enumerate(self.interfaces):
-            output += "%d. %s" % (ii, interface.print_str())
-            output += LINE + "\n"
-        return output
+    def info(self, recursive=0):
+        info = super(BaseInterfaces, self).info(recursive=recursive)
+        info["number_of_interfaces"] = self.number_of_interfaces
+        return info

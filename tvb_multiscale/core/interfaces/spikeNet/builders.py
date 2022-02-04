@@ -7,9 +7,9 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits._attr import NArray, Attr, Float
-from tvb.basic.neotraits._core import HasTraits
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
@@ -33,7 +33,7 @@ class DefaultTVBtoSpikeNetModels(Enum):
 
 class DefaultSpikeNetToTVBModels(Enum):
     SPIKES = "SPIKES_MEAN"
-    VOLTAGE = "VOLTAGE_MEAN"
+    POTENTIAL = "POTENTIAL_MEAN"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
@@ -131,7 +131,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     def _default_tvb_delay_fun(self, source_node, target_node, delays=None):
         if delays is None:
             delays = self.tvb_delays
-        return delays[target_node, source_node]
+        return delays[source_node, target_node]
 
     @abstractmethod
     def _default_receptor_type(self, source_node, target_node):
@@ -289,8 +289,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         # TODO: Figure out if we ever going to need interfaces for multiple state variables!
         _interface["connections"] = {str(interface["voi_labels"]): interface["populations"]}
         # Generate the devices <== "proxy TVB nodes":
-        interface["proxy"] = interface["proxy"](dt=self.dt,
-                                                source=self._build_and_connect_devices(_interface)[0])
+        interface["proxy"] = \
+            interface["proxy"](dt=self.dt,
+                               source=self._build_and_connect_devices(_interface,
+                                                                      devices=self.spiking_network.output_proxies)[0])
 
 
 class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC):
@@ -443,6 +445,18 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
                self._spikeNet_intput_interfaces_type(interfaces=self._input_interfaces,
                                                      synchronization_time=self.synchronization_time,
                                                      synchronization_n_step=self.synchronization_n_step)
+
+    def info(self, recursive=0):
+        info = super(SpikeNetInterfaceBuilder, self).info(recursive=recursive)
+        info['synchronization_time'] = self.synchronization_time
+        info['synchronization_n_step'] = self.synchronization_n_step
+        info['number_of_input_interfaces'] = self.number_of_input_interfaces
+        info['number_of_output_interfaces'] = self.number_of_output_interfaces
+        info['number_of_in_proxy_nodes'] = self.number_of_in_proxy_nodes
+        info['number_of_out_proxy_nodes'] = self.number_of_out_proxy_nodes
+        info["tvb_dt"] = self.tvb_dt
+        info['number_of_regions'] = self.number_of_regions
+        return info
 
 
 class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, ABC):

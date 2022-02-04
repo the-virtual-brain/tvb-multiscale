@@ -6,15 +6,16 @@ from collections import OrderedDict
 from xarray import DataArray, combine_by_coords
 import numpy as np
 
-from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
-from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 
-from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
     flatten_list, ensure_list, extract_integer_intervals, is_integer
+
+from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
+from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
+from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation
 
 
 # These classes wrap around ANNarchy commands.
@@ -107,17 +108,6 @@ class ANNarchyDevice(HasTraits):
     def neurons(self):
         """Method to get the indices of all the neurons the device connects from/to."""
         return self.get_neurons()
-
-    def _print_neurons(self, neurons):
-        neurons = np.array(neurons)
-        number_of_neurons = len(neurons)
-        output = "%d neurons: [" % number_of_neurons
-        populations_inds = np.unique(neurons[:, 0])
-        for pop_ind in populations_inds:
-            pop_neurons = neurons[neurons[:, 0] == pop_ind, 1]
-        output += "(%d, %s)" % (pop_ind, extract_integer_intervals(pop_neurons, print=True))
-        output += "]"
-        return output
 
 
 class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
@@ -236,8 +226,15 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
     def number_of_connected_neurons(self):
         return self.get_size()
 
-    def print_str(self, connectivity=False):
-        return InputDevice.print_str(self, connectivity, source_or_target="source")
+    def info_neurons(self):
+        return _ANNarchyPopulation.info_neurons(self)
+
+    def info(self, recursive=0):
+        return InputDevice.info(self, recursive=recursive)
+
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return InputDevice.info_details(self, recursive=recursive,
+                                        connectivity=connectivity, source_or_target="source")
 
 
 """
@@ -883,8 +880,9 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                dims=["Time", "Variable", "Neuron"])
         self._output_events_index = 0
 
-    def print_str(self, connectivity=False):
-        return Multimeter.print_str(self, connectivity, source_or_target="target")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return Multimeter.info_details(self, recursive=recursive,
+                                       connectivity=connectivity, source_or_target="target")
 
 
 class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
@@ -990,8 +988,9 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         self._data = ()
         self._output_events_counter = ()
 
-    def print_str(self, connectivity=False):
-        return SpikeRecorder.print_str(self, connectivity, source_or_target="target")
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        return SpikeRecorder.info_details(self, recursive=recursive,
+                                          connectivity=connectivity, source_or_target="target")
 
 
 class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultimeter):
@@ -1056,9 +1055,6 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
 
     def reset(self):
         ANNarchyMonitor.reset(self)
-
-    def print_str(self, connectivity=False):
-        return ANNarchyMonitor.print_str(self, connectivity)
 
 
 ANNarchyOutputDeviceDict = {}

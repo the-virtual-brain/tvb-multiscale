@@ -42,9 +42,9 @@ class ANNarchyInputProxyModels(Enum):
 class ANNarchyOutputProxyModels(Enum):
     SPIKES = ANNarchySpikeMonitorSet
     SPIKES_MEAN = ANNarchySpikeMonitorTotalSet
-    VOLTAGE = ANNarchyMonitorSet
-    VOLTAGE_MEAN = ANNarchyMonitorMeanSet
-    VOLTAGE_TOTAL = ANNarchyMonitorTotalSet
+    POTENTIAL = ANNarchyMonitorSet
+    POTENTIAL_MEAN = ANNarchyMonitorMeanSet
+    POTENTIAL_TOTAL = ANNarchyMonitorTotalSet
 
 
 class DefaultTVBtoANNarchyModels(Enum):
@@ -55,7 +55,7 @@ class DefaultTVBtoANNarchyModels(Enum):
 
 class DefaultANNarchytoTVBModels(Enum):
     SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
-    VOLTAGE = ANNarchyOutputProxyModels.VOLTAGE_MEAN.name
+    POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN.name
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):

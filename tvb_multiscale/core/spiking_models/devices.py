@@ -64,30 +64,6 @@ class Device(SpikingNodeCollection):
         super(Device, self).__setstate__(d)
         self.device = d.get("device", None)
 
-    @property
-    def _print_from_to(self):
-        return "from/to"
-
-    def print_str(self, connectivity=False, source_or_target=None):
-        output = "\n" + self.__repr__() + \
-                 "\nnumber of connections: %d" % self.number_of_connections + \
-                 "\nnumber of connected neurons: %d" % self.number_of_neurons + \
-                 "\nparameters: %s" % str(self.get_attributes())
-        if connectivity:
-            neurons = ensure_list(self.neurons)
-            conn_attrs = self.GetFromConnections(attrs=[self._weight_attr, self._delay_attr, self._receptor_attr],
-                                                 source_or_target=source_or_target, summary=3)
-            output += ",\nconnections %s\n%s," \
-                      "\nweights: %s," \
-                      "\ndelays: %s," \
-                      "\nreceptors: %s" % \
-                      (self._print_from_to,
-                       self._print_neurons(neurons),
-                       str(conn_attrs.get(self._weight_attr, "")),
-                       str(conn_attrs.get(self._delay_attr, "")),
-                       str(conn_attrs.get(self._receptor_attr, "")))
-        return output
-
     @abstractmethod
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
@@ -154,6 +130,15 @@ class Device(SpikingNodeCollection):
         """Method to get all unique connections' receptors of the device to/from neurons."""
         return np.unique(self.receptors)
 
+    def info(self, recursive=0):
+        info = super(Device, self).info(recursive=recursive)
+        info["number_of_connections"] = self.number_of_connections
+        info["number of connected neurons"] = self.number_of_neurons
+        return info
+
+    def info_neurons(self):
+        return {"connected_nodes_gids": np.array(self.neurons)}
+
 
 class InputDevice(Device):
 
@@ -165,10 +150,6 @@ class InputDevice(Device):
             connections' objects.
         """
         return self._GetConnections(self.device, source_or_target="source")
-
-    @property
-    def _print_from_to(self):
-        return "to"
 
 
 InputDeviceDict = {}
@@ -184,10 +165,6 @@ class OutputDevice(Device):
             connections' objects.
         """
         return self._GetConnections(self.device, source_or_target="target")
-
-    @property
-    def _print_from_to(self):
-        return "from"
 
     def filter_events(self, events, variables=None, times=None, exclude_times=[]):
         """This method will select/exclude part of the measured events, depending on user inputs
@@ -1200,3 +1177,14 @@ class DeviceSet(SpikingNodesSet):
                 # Good for amplitude of dc generator and rate of poisson generator
                 value_dict_i_n = get_scalar_dict2(value_dict, i_n)
                 self[node].Set(value_dict_i_n)
+
+
+class DeviceSets(SpikingNodesSet):
+
+    """DeviceSets is an indexed mapping (based on inheriting from pandas.Series class)
+       between DeviceSet instances' labels and those instances.
+    """
+
+    _collection_name = "DeviceSet"
+
+    pass

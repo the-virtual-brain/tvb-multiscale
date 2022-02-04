@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
-from tvb.basic.neotraits.api import HasTraits, Attr, Float, List, NArray
-from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
+from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
@@ -43,7 +42,7 @@ class NESTInterface(HasTraits):
 
     @property
     def time(self):
-        return self.nest_instance.GetKernelStatus("time")
+        return self.nest_instance.GetKernelStatus("biological_time")
 
 
 class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
@@ -65,18 +64,12 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
 
     """NESTSenderInterface"""
 
-    def print_str(self):
-        return SpikeNetSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
-
     def __call__(self):
         return self.send(NESTOutputInterface.get_proxy_data(self))
 
 
 class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOutputInterface):
     """NESTTransformerSenderInterface"""
-
-    def print_str(self):
-        return SpikeNetTransformerSenderInterface.print_str(self) + NESTOutputInterface.print_str(self)
 
     def __call__(self):
         return self.transform_send(NESTOutputInterface.get_proxy_data(self))
@@ -100,15 +93,13 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
 class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
     """NESTReceiverInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverInterface.print_str(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
     """NESTReceiverTransformerInterface"""
 
-    def print_str(self):
-        return SpikeNetReceiverTransformerInterface.print_str(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
@@ -117,8 +108,7 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
        and finally set them to NEST, all processes taking place in shared memmory.
     """
 
-    def print_str(self):
-        return TVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
@@ -130,8 +120,7 @@ class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
     def get_proxy_data(self):
         return NESTOutputInterface.get_proxy_data(self)
 
-    def print_str(self):
-        return SpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)
+    pass
 
 
 class NESTInterfaces(HasTraits):

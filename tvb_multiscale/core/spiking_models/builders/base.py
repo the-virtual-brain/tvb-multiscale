@@ -5,14 +5,15 @@ from abc import ABCMeta, abstractmethod
 from six import string_types
 from collections import OrderedDict
 import numpy as np
-from pandas import Series
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, property_to_fun
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     serialize_tvb_cosimulator, load_serial_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
-from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, property_to_fun
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
 
 LOG = initialize_logger(__name__, config=CONFIGURED)
@@ -88,7 +89,7 @@ class SpikingNetworkBuilder(object):
 
         # Setting SpikingNetwork defaults from config
         # to be further specified in the each Spiking simulator's specific builder class.
-        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
+        self.default_population = {"model": self.config.DEFAULT_SPIKING_MODEL, "scale": 1, "params": {}, "nodes": None}
 
         self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["nodes"] = None
@@ -132,7 +133,7 @@ class SpikingNetworkBuilder(object):
     @abstractmethod
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a SpikingRegionNode instance,
-           which consists of a pandas.Series of all SpikingPopulation instances,
+           which consists of all SpikingPopulation instances,
            residing at a particular brain region node.
            Arguments:
             label: name (string) of the region node. Default = ""
@@ -372,6 +373,25 @@ class SpikingNetworkBuilder(object):
     def nodes_connections_target_nodes(self):
         return self._nodes_connection_property_per_node("target_nodes")
 
+    def _info_properties(self):
+        output = ""
+        for prop in ["min_delay", "tvb_dt", "monitor_period", "tvb_model",
+                     "number_of_regions", "tvb_weights", "tvb_delays", "region_labels",
+                     "number_of_populations", "populations_models", "populations_nodes",
+                     "populations_scales", "populations_sizes", "populations_params",
+                     "populations_connections_labels", "populations_connections_models",
+                     "populations_connections_nodes",
+                     "populations_connections_weights", "populations_connections_delays",
+                     "populations_connections_receptor_types", "populations_connections_conn_spec",
+                     "nodes_connections_labels", "nodes_connections_models",
+                     "nodes_connections_source_nodes", "nodes_connections_target_nodes",
+                     "nodes_connections_weights", "nodes_connections_delays", "nodes_connections_receptor_types",
+                     "nodes_connections_conn_spec"]:
+            output += "\n%s:\n%s\n" % (prop, str(getattr(self, prop, None)))
+
+    def info(self):
+        return self.__str__() + self._info_properties()
+
     def _assert_delay(self, delay):
         assert delay >= 0.0
         return delay
@@ -496,8 +516,8 @@ class SpikingNetworkBuilder(object):
 
     def _configure_devices(self, devices):
         # Configure devices by
-        # the variable model they measure or stimulate, and population(s) they target (pandas.Series)
-        # and brain region node (pandas.Series) where they refer to.
+        # the variable model they measure or stimulate, and population(s) they target
+        # and brain region node where they refer to.
         # "weight", "delay" and "receptor_type" are set as functions, following user input
         _devices = list()
         for device in devices:
@@ -594,7 +614,7 @@ class SpikingNetworkBuilder(object):
         # For every different type of connections between distinct Spiking nodes' populations
         for i_conn, conn in enumerate(ensure_list(self._populations_connections)):
             LOG.info("Connecting %s -> %s populations \nfor spiking region nodes\n%s..." %
-                     (str(conn["source"]), str(conn["target"]), str(conn["nodes"])))
+                             (str(conn["source"]), str(conn["target"]), str(conn["nodes"])))
             # ...and for every brain region node where this connection will be created:
             for node_index in conn["nodes"]:
                 i_node = np.where(self.spiking_nodes_inds == node_index)[0][0]
@@ -635,7 +655,7 @@ class SpikingNetworkBuilder(object):
                                                 )
                     if source_index != target_index:
                         LOG.info("Connecting for %s -> %s spiking region nodes ..." %
-                                 (str(source_index), str(target_index)))
+                                         (str(source_index), str(target_index)))
                         # ...and as long as this is not a within node connection...
                         for conn_src in ensure_list(conn["source"]):
                             # ...and for every combination of source...
@@ -644,11 +664,10 @@ class SpikingNetworkBuilder(object):
                                 # ...and target population...
                                 trg_pop = self._spiking_brain[i_target_node][conn_trg]
                                 LOG.info("%s -> %s populations ..." %
-                                         (src_pop.label, trg_pop.label))
+                                                 (src_pop.label, trg_pop.label))
                                 self.connect_two_populations(src_pop, conn["source_neurons"],
                                                              trg_pop, conn["target_neurons"],
                                                              conn['conn_spec'], syn_spec)
-
 
     def build_spiking_brain(self):
         """Method to build and connect all Spiking brain region nodes,
@@ -664,31 +683,31 @@ class SpikingNetworkBuilder(object):
 
     def _build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
-           - the variable they measure or stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target."""
-        _devices = Series()
+           - the variable they measure or stimulate, and the
+           - population(s), and
+           - brain region nodes they target."""
+        _devices = DeviceSets()
         for device in devices:
             LOG.info("Generating and connecting %s -> %s device set of model %s\n"
                      "for nodes %s..." % (str(list(device["connections"].keys())),
                                           str(list(device["connections"].values())),
                                           device["model"], str(device["nodes"])))
-            _devices = _devices.append(
-                            self.build_and_connect_devices(device))
-        return _devices
+            _devices = _devices.append(self.build_and_connect_devices(device))
+        return DeviceSets(_devices)
 
     def build_and_connect_output_devices(self):
         """Method to build and connect output devices, organized by
-          - the variable they measure (pandas.Series), and the
-          - population(s) (pandas.Series), and
-          - brain region nodes (pandas.Series) they target."""
-        return self._build_and_connect_devices(self._output_devices)
+          - the variable they measure, and the
+          - population(s), and
+          - brain region nodes they target."""
+        devices = self._build_and_connect_devices(self._output_devices)
+        return devices
 
     def build_and_connect_input_devices(self):
         """Method to build and connect input devices, organized by
-           - the variable they stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target."""
+           - the variable they stimulate, and the
+           - population(s), and
+           - brain region nodes they target."""
         return self._build_and_connect_devices(self._input_devices)
 
     def build(self):

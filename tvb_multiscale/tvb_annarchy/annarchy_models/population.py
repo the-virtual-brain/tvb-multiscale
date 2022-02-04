@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+
 import numpy as np
 
+from tvb.basic.neotraits.api import Attr, Int, List
+
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer, extract_integer_intervals
+
+from tvb_multiscale.core.datatypes import HasTraits
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
-
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
-
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer
 
 
 class _ANNarchyPopulation(HasTraits):
@@ -44,6 +47,8 @@ class _ANNarchyPopulation(HasTraits):
 
     projections_post = List(of=Projection, default=(), label="Incoming projections",
                             doc="""A list of population's incoming ANNarchy.Projection instances""")
+    _source_conns_attr = "pre"
+    _target_conns_attr = "post"
     _weight_attr = "w"
     _delay_attr = "delay"
     _receptor_attr = "target"
@@ -155,12 +160,6 @@ class _ANNarchyPopulation(HasTraits):
                         # Return a Population View:
                         nodes = self._nodes[local_inds]
         return nodes
-
-    def _print_nodes(self):
-        """ Prints indices of neurons in this population.
-            Currently we get only local indices.
-        """
-        return "%d neurons in population with index: %d" % (self.number_of_neurons, self._population_ind)
 
     def _Set(self, values_dict, neurons=None):
         """Method to set attributes of the SpikingPopulation's neurons.
@@ -310,6 +309,14 @@ class _ANNarchyPopulation(HasTraits):
                     self._set_attributes_of_connection_to_dict(dictionary, connection, attribute)
         return dictionary
 
+    def info_neurons(self):
+        neurons = self.neurons
+        populations_inds = np.unique(neurons[:, 0])
+        info = OrderedDict()
+        for pop_ind in populations_inds:
+            info["nodes_gids_of_population_%d" % pop_ind] = np.array(neurons[neurons[:, 0] == pop_ind, 1])
+        return info
+
 
 class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
 
@@ -324,3 +331,9 @@ class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
     def __init__(self, nodes=PoissonPopulation(geometry=0, rates=0.0), annarchy_instance=None, **kwargs):
         _ANNarchyPopulation.__init__(self, nodes, annarchy_instance, **kwargs)
         SpikingPopulation.__init__(self, nodes, **kwargs)
+
+    def info(self, recursive=0):
+        return SpikingPopulation.info(self, recursive=recursive)
+
+    def info_details(self, recursive=0, **kwargs):
+        return SpikingPopulation.info_details(self, recursive=recursive, **kwargs)

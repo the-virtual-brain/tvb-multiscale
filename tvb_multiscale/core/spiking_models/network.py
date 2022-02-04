@@ -5,14 +5,14 @@ from abc import ABCMeta, abstractmethod
 import pandas as pd
 import numpy as np
 
-from tvb_multiscale.core.config import CONFIGURED, initialize_logger, LINE
-from tvb_multiscale.core.spiking_models.region_node import SpikingRegionNode
-from tvb_multiscale.core.spiking_models.brain import SpikingBrain
-from tvb_multiscale.core.spiking_models.devices import DeviceSet, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
-
-from tvb.basic.neotraits.api import HasTraits, Attr
-
+from tvb.basic.neotraits.api import Attr
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.spiking_models.brain import SpikingBrain
+from tvb_multiscale.core.spiking_models.devices import \
+    DeviceSet, DeviceSets, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
 
 
 LOG = initialize_logger(__name__)
@@ -37,6 +37,14 @@ class SpikingNetwork(HasTraits):
         residing in region node "rh-insula".
     """
 
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
     brain_regions = Attr(
         field_type=SpikingBrain,
         label="Spiking brain regions",
@@ -47,83 +55,49 @@ class SpikingNetwork(HasTraits):
 
     # These devices are distinct from the ones for the TVB-Spiking Network interface
     output_devices = Attr(
-        field_type=pd.Series,
+        field_type=DeviceSets,
         label="Output devices.",
-        default=pd.Series(),
+        default=DeviceSets(),
         required=True,
-        doc="""A pandas.Series of output (recording) devices of the SpikingNetwork, 
+        doc="""A DeviceSets of output (recording) devices of the SpikingNetwork, 
                organized by recorded population and brain region.""")
-    # output_devices['Excitatory']['rh-insula']
+    # e.g., output_devices['Excitatory']['rh-insula']
 
     input_devices = Attr(
-        field_type=pd.Series,
+        field_type=DeviceSets,
         label="Input devices.",
-        default=pd.Series(),
+        default=DeviceSets(),
         required=True,
-        doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
+        doc="""A DeviceSets of input (stimulating) devices of the SpikingNetwork, 
                organized by target population and brain region.""")
-    # input_devices['Inhibitory']['rh-insula']
+    # e.g., input_devices['Stimulus']['rh-insula']
 
     # These devices are distinct from the ones for the TVB-Spiking Network interface
     output_proxies = Attr(
-        field_type=pd.Series,
+        field_type=DeviceSets,
         label="Output proxies.",
-        default=pd.Series(),
+        default=DeviceSets(),
         required=True,
-        doc="""A pandas.Series of output (recording) devices of the SpikingNetwork, 
+        doc="""A DeviceSets of output (recording) devices of the SpikingNetwork, 
                which record data to send to a co-simulator, organized by 
                co-simulator recorded variable (e.g., TVB state variable) and brain region.""")
-    # output_proxies['Excitatory']['rh-insula']
+    # e.g., output_proxies['Excitatory']['rh-insula']
 
     input_proxies = Attr(
-        field_type=pd.Series,
+        field_type=DeviceSets,
         label="Intput proxies of the SpikingNetwork.",
-        default=pd.Series(),
+        default=DeviceSets(),
         required=False,
         doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
                that mimick a co-simulator's activity (e.g., TVB mean field state variables) 
-                   organized by brain region and population.""")
-    # input_proxies['Inhibitory']['rh-insula']
+               organized by brain region and population.""")
+    # e.g., input_proxies['Inhibitory']['rh-insula']
 
     _OutputSpikeDeviceDict = OutputSpikeDeviceDict
     _OutputContinuousTimeDeviceDict = OutputContinuousTimeDeviceDict
 
-    def __init__(self,
-                 brain_regions=pd.Series(),
-                 output_devices=pd.Series(),
-                 input_devices=pd.Series(),
-                 config=CONFIGURED):
-        self.config = config
-        if not isinstance(brain_regions, SpikingBrain):
-            self.brain_regions = SpikingBrain(brain_regions)
-        else:
-            self.brain_regions = brain_regions
-        self.output_devices = output_devices
-        self.input_devices = input_devices
-
-        if isinstance(brain_regions, pd.Series):
-            if len(brain_regions) > 0 and \
-                    np.any([not isinstance(node, SpikingRegionNode) for node in brain_regions]):
-                raise ValueError("Input spiking_brain is neither a SpikingRegionNode "
-                                 "nor a pandas.Series of SpikingRegionNode objects!: \n %s" %
-                                 str(brain_regions))
-            self.brain_regions = brain_regions
-
-        if isinstance(output_devices, pd.Series):
-            if len(output_devices) > 0 \
-                    and np.any([not isinstance(dev, DeviceSet) for dev in output_devices]):
-                raise ValueError("Input output_devices is not a pandas.Series of output DeviceSet objects!:\n %s" %
-                                 str(output_devices))
-            self.output_devices = output_devices
-        if isinstance(input_devices, pd.Series):
-            if len(input_devices) > 0 and \
-                    np.any([not isinstance(dev, DeviceSet) for dev in input_devices]):
-                raise ValueError("Input input_devices is not a pandas.Series of input DeviceSet objects!:\n %s" %
-                                 str(input_devices))
-            self.input_devices = input_devices
-
-        super(SpikingNetwork, self).__init__()
-
+    def __init__(self, **kwargs):
+        super(SpikingNetwork, self).__init__(**kwargs)
         LOG.info("%s created!" % self.__class__)
 
     def __getattribute__(self, item):
@@ -132,25 +106,9 @@ class SpikingNetwork(HasTraits):
     def __setattr__(self, key, value):
         return super(SpikingNetwork, self).__setattr__(key, value)
 
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def __str__(self):
-        return self.print_str()
-
-    def print_str(self, connectivity=False):
-        spiking_brain = LINE + self.brain_regions.print_str(connectivity)
-        input_devices = 2*LINE + "\n\nInput Devices:\n"
-        for node_name, node in self.input_devices.iteritems():
-            input_devices += LINE + node.print_str(connectivity)
-        output_devices = 2*LINE + "\n\nOutput Devices:\n"
-        for node_name, node in self.output_devices.iteritems():
-            output_devices += LINE + node.print_str(connectivity)
-        outputs = 3*LINE + "%s:\n" % self.__class__.__name__
-        for output_name, output in zip(["Spiking Brain Regions", "Input Devices", "Output Devices"],
-                                       [spiking_brain, input_devices, output_devices]):
-            outputs += output
-        return outputs
+    @property
+    def spiking_simulator_module(self):
+        return None
 
     @property
     @abstractmethod
@@ -184,7 +142,7 @@ class SpikingNetwork(HasTraits):
             - a Series of selected DeviceSet instances
         """
         # Get all devices set of a given model
-        devices = pd.Series()
+        devices = DeviceSet()
         if regions is None:
             get_device = lambda device, regions: device
         else:
@@ -208,9 +166,9 @@ class SpikingNetwork(HasTraits):
                                    Default = None, corresponding to returning the devices of all populations.
             - **kwargs: other keyword arguments. See get_spikes_devices method.
            Returns:
-            - a Series of selected DeviceSet instances
+            - a DeviceSets instance of selected DeviceSet instances
         """
-        devices = pd.Series()
+        devices = DeviceSets()
         mode = kwargs.get("mode", None)
         if mode and mode.find("activity") > -1:
             devices = self.spiking_network.get_devices_by_model("spike_multimeter", regions=regions)
@@ -241,7 +199,7 @@ class SpikingNetwork(HasTraits):
                                    populations' devices' labels to be selected.
                                    Default = None, corresponding to returning the devices of all populations.
            Returns:
-            - a Series of selected DeviceSet instances
+            - a DeviceSets of selected DeviceSet instances
         """
         return self._get_devices(self._OutputSpikeDeviceDict, "spikes'",
                                  regions, populations_devices, mode=mode)
@@ -255,7 +213,7 @@ class SpikingNetwork(HasTraits):
                                    populations' devices' labels to be selected.
                                    Default = None, corresponding to returning the devices of all populations.
            Returns:
-            - a Series of selected DeviceSet instances
+            - a DeviceSets of selected DeviceSet instances
         """
         return self._get_devices(self._OutputContinuousTimeDeviceDict, "continuous_time_data",
                                  regions, populations_devices)
@@ -298,3 +256,8 @@ class SpikingNetwork(HasTraits):
             data[pop_label] = \
                 pop_device.do_for_all("get_data", **kwargs)
         return data
+
+    def info(self, recursive=False):
+        info = super(SpikingNetwork, self).info(recursive)
+        info["spiking_simulator"] = self.spiking_simulator_module
+        return info

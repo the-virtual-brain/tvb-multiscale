@@ -5,8 +5,9 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import HasTraits, Attr
+from tvb.basic.neotraits.api import Attr
 
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
@@ -17,18 +18,6 @@ class Communicator(HasTraits):
     """
         Abstract Communicator class to transfer data (time and values).
     """
-
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def print_str(self, sender_not_receiver_flag=None):
-        if sender_not_receiver_flag is True:
-            source_or_target = "\nSource: %s" % str(self.source)
-        elif sender_not_receiver_flag is False:
-            source_or_target = "\nTarget: %s" % str(self.target)
-        else:
-            source_or_target = ""
-        return "\n%s:%s" % (self.__repr__(), source_or_target)
 
     @abstractmethod
     def __call__(self, *args):
@@ -54,8 +43,23 @@ class Sender(Communicator):
     def __call__(self, data):
         self.send(data)
 
-    def print_str(self):
-        return super(Sender, self).print_str(True)
+    def info(self, recursive=0):
+        info = super(Sender, self).info(recursive=recursive)
+        if isinstance(self.target, HasTraits):
+            if recursive > 0:
+                info.update(self.target.info(recursive-1))
+            else:
+                info["target"] = getattr(self.target, "title", "")
+        else:
+            info["target"] = str(self.target)
+        return info
+
+    def info_details(self, recursive=0, **kwargs):
+        info = super(Sender, self).info_details(recursive=recursive)
+        if isinstance(self.target, HasTraits):
+            if recursive > 0:
+                info.update(self.target.info_details(recursive-1, **kwargs))
+        return info
 
 
 class Receiver(Communicator):
@@ -77,8 +81,23 @@ class Receiver(Communicator):
     def __call__(self):
         return self.receive()
 
-    def print_str(self):
-        return super(Receiver, self).print_str(False)
+    def info(self, recursive=0):
+        info = super(Receiver, self).info(recursive=recursive)
+        if isinstance(self.source, HasTraits):
+            if recursive > 0:
+                info.update(self.source.info(recursive - 1))
+            else:
+                info["target"] = getattr(self.source, "title", "")
+        else:
+            info["target"] = str(self.source)
+        return info
+
+    def info_details(self, recursive=0, **kwargs):
+        info = super(Receiver, self).info_details(recursive=recursive)
+        if isinstance(self.source, HasTraits):
+            if recursive > 0:
+                info.update(self.source.info_details(recursive - 1, **kwargs))
+        return info
 
 
 class SetToMemory(Sender):
