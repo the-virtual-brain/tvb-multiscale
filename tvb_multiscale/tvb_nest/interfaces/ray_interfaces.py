@@ -5,8 +5,6 @@ from tvb_multiscale.core.interfaces.tvb.ray_interfaces import \
 from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTOutputInterface, NESTInputInterface, NESTOutputInterfaces, NESTInputInterfaces
 
-from tvb.basic.neotraits.api import List
-
 
 class RayTVBtoNESTInterface(RayTVBtoSpikeNetInterface, NESTInputInterface):
 
@@ -19,8 +17,7 @@ class RayTVBtoNESTInterface(RayTVBtoSpikeNetInterface, NESTInputInterface):
     #         self.spiking_network = spiking_network
     #     super().__init__(**kwargs)
 
-    def print_str(self):
-        return RayTVBtoSpikeNetInterface.print_str(self) + NESTInputInterface.print_str(self)
+    pass
 
 
 class RayNESTtoTVBInterface(RaySpikeNetToTVBInterface, NESTOutputInterface):
@@ -34,8 +31,7 @@ class RayNESTtoTVBInterface(RaySpikeNetToTVBInterface, NESTOutputInterface):
     #         self.spiking_network = spiking_network
     #     super().__init__(**kwargs)
 
-    def print_str(self):
-        return RaySpikeNetToTVBInterface.print_str(self) + NESTOutputInterface.print_str(self)
+    pass
 
 
 class RayTVBtoNESTInterfaces(RayTVBOutputInterfaces, NESTInputInterfaces):
