@@ -4,7 +4,9 @@ import os
 from abc import ABCMeta, abstractmethod
 from six import string_types
 from collections import OrderedDict
+
 import numpy as np
+from pandas import concat
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, property_to_fun
@@ -686,22 +688,21 @@ class SpikingNetworkBuilder(object):
            - the variable they measure or stimulate, and the
            - population(s), and
            - brain region nodes they target."""
-        _devices = DeviceSets()
+        _devices = []
         for device in devices:
             LOG.info("Generating and connecting %s -> %s device set of model %s\n"
                      "for nodes %s..." % (str(list(device["connections"].keys())),
                                           str(list(device["connections"].values())),
                                           device["model"], str(device["nodes"])))
-            _devices = _devices.append(self.build_and_connect_devices(device))
-        return DeviceSets(_devices)
+            _devices.append(self.build_and_connect_devices(device))
+        return DeviceSets(concat(_devices))
 
     def build_and_connect_output_devices(self):
         """Method to build and connect output devices, organized by
           - the variable they measure, and the
           - population(s), and
           - brain region nodes they target."""
-        devices = self._build_and_connect_devices(self._output_devices)
-        return devices
+        return self._build_and_connect_devices(self._output_devices)
 
     def build_and_connect_input_devices(self):
         """Method to build and connect input devices, organized by
