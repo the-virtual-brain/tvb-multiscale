@@ -106,7 +106,6 @@ def build_and_connect_device(device, create_device_fun, connect_device_fun, node
     for pop in ensure_list(populations):
         device = connect_device_fun(device, node[pop], inds_fun,
                                     weight, delay, receptor_type, syn_spec, conn_spec, config=config, **kwargs)
-    device._number_of_connections = device.number_of_connections
     return device
 
 
