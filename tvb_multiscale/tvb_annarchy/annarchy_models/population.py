@@ -8,7 +8,7 @@ from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer, extract_integer_intervals
 
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
 
@@ -36,9 +36,6 @@ class _ANNarchyPopulation(HasTraits):
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the ANNarchy.Population resides""")
 
-    _size = Int(field_type=int, default=0, required=True, label="Size",
-                doc="""The number of neurons of ANNarchy.Population """)
-
     _population_ind = Int(field_type=int, default=-1, required=True, label="Population indice",
                           doc="""The indice of the population in the ANNarchy network""")
 
@@ -47,6 +44,7 @@ class _ANNarchyPopulation(HasTraits):
 
     projections_post = List(of=Projection, default=(), label="Incoming projections",
                             doc="""A list of population's incoming ANNarchy.Projection instances""")
+
     _source_conns_attr = "pre"
     _target_conns_attr = "post"
     _weight_attr = "w"
@@ -68,8 +66,6 @@ class _ANNarchyPopulation(HasTraits):
         self.label = label
         self.model = str(kwargs.get("model", self.__class__.__name__))
         self.brain_region = str(kwargs.get("brain_region", ""))
-        if self._nodes:
-            self._size = len(self._nodes)
         kwargs["label"] = label
         self.projections_pre = []
         self.projections_post = []
