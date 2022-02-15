@@ -126,9 +126,9 @@ class WWDeco2013Builder(DefaultExcIOInhIBuilder):
         params["record_from"] = record_from
         params["record_to"] = self.output_devices_record_to
         self.multimeter["params"] = params
-        self.spike_stimulus = {"params": {"rate": self.stimulus_spike_rate, "origin": 0.0, "start": 0.1},
+        self.spike_stimulus = {"params": {"rate": self.stimulus_spike_rate, "origin": 0.0, "start": self.spiking_dt},
                                "connections": {"Stimulus": ["E", "I"]},
-                               "weights": 1.0, "delays": self.tvb_dt,
+                               "weights": 1.0, "delays": self.spiking_dt,
                                "receptor_type": lambda target_node: target_node + 1}
         super(WWDeco2013Builder, self).set_defaults()
 
