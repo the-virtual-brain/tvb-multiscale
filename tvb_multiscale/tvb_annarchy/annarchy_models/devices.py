@@ -12,7 +12,7 @@ from tvb.basic.neotraits.api import Attr, Int, List
 from tvb.contrib.scripts.utils.data_structures_utils import \
     flatten_list, ensure_list, extract_integer_intervals, is_integer
 
-from tvb_multiscale.core.datatypes import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation
@@ -37,11 +37,8 @@ class ANNarchyDevice(HasTraits):
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the ANNarchyDevice resides or connects to""")
 
-    _number_of_connections = Int(field_type=int, default=0, required=True, label="Number of connections",
-                                 doc="""The number of total ANNarchyDevice's connections""")
-
-    _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
-                             doc="""The number of total neurons connected to the ANNarchyDevice""")
+    _number_of_connections = None
+    _number_of_neurons = None
 
     annarchy_instance = None
 
@@ -52,8 +49,6 @@ class ANNarchyDevice(HasTraits):
         self.label = str(kwargs.get("label", self.__class__.__name__))
         self.model = str(kwargs.get("model", self.__class__.__name__))
         self.brain_region = str(kwargs.get("brain_region", ""))
-        if self.device:
-            self._size = len(self._nodes)
         self.annarchy_instance = annarchy_instance
         super(ANNarchyDevice, self).__init__()
 
@@ -207,15 +202,6 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
                 populations.append(conn.post)
         return populations
 
-    def get_size(self):
-        """Method to compute the total number of ANNarchyDevice's connected neurons.
-            Returns:
-                int: number of neurons.
-        """
-        if self._nodes is None:
-            return 0
-        return InputDevice.get_number_of_neurons(self)
-
     @property
     def number_of_devices_neurons(self):
         if self._nodes is None:
@@ -223,8 +209,12 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
         return self._nodes.size
 
     @property
+    def number_of_neurons(self):
+        return InputDevice.number_of_neurons.fget(self)
+
+    @property
     def number_of_connected_neurons(self):
-        return self.get_size()
+        return self.number_of_neurons
 
     def info_neurons(self):
         return _ANNarchyPopulation.info_neurons(self)
