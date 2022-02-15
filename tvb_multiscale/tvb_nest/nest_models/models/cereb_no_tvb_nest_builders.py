@@ -432,7 +432,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                        self.nest_network.brain_regions[reg_name]["mossy_fibers"]._nodes,
                                        conn_spec={"rule": "all_to_all"},
                                        syn_spec={"synapse_model": "static_synapse", "weight": 1.0,
-                                                 "delay": 0.1, "receptor_type": 0}
+                                                 "delay": self.spiking_dt, "receptor_type": 0}
                                        )
         self.nest_network.input_devices["STIM_MF"].update()
 
@@ -462,7 +462,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                        self.nest_network.brain_regions[reg_name]["io_cell"]._nodes,
                                        conn_spec={"rule": "all_to_all"},
                                        syn_spec={"synapse_model": "static_synapse", "weight": 25.0,
-                                                 "delay": 0.1, "receptor_type": 1})
+                                                 "delay": self.spiking_dt, "receptor_type": 1})
         self.nest_network.input_devices["STIM_IO"].update()
 
     def build_spike_stimulus_background(self):
@@ -473,14 +473,15 @@ class CerebBuilder(NESTNetworkBuilder):
             self.nest_network.input_devices["BACKGROUND"][reg_name] = \
                 NESTPoissonGenerator(self.nest_instance.Create('poisson_generator',
                                                                params={'rate': self.BACKGROUND_FREQ,
-                                                                       'start': 0.0, 'stop': self.TOT_DURATION}),
+                                                                       'start': self.spiking_dt,
+                                                                       'stop': self.TOT_DURATION}),
                                      nest_instance=self.nest_instance,
                                      label="BACKGROUND", brain_region=reg_name)
             self.nest_instance.Connect(self.nest_network.input_devices["BACKGROUND"][reg_name].device,
                                        self.nest_network.brain_regions[reg_name]["mossy_fibers"]._nodes,
                                        conn_spec={"rule": "all_to_all"},
                                        syn_spec={"synapse_model": "static_synapse", "weight": 1.0,
-                                                 "delay": 0.1, "receptor_type": 0}
+                                                 "delay": self.spiking_dt, "receptor_type": 0}
                                        )
         self.nest_network.input_devices["BACKGROUND"].update()
 

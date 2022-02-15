@@ -168,7 +168,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
     def set_multimeters(self):
         # Labels have to be different for every connection to every distinct population
         params = dict(self.config.NEST_OUTPUT_DEVICES_PARAMS_DEF["multimeter"])
-        params.update({"interval": 1.0, "record_to": self.output_devices_record_to,
+        params.update({"interval": self.monitor_period, "record_to": self.output_devices_record_to,
                        'record_from': ["V_m", "U_m", "I", "I_syn", "I_syn_ex", "I_syn_in",
                                        "g_AMPA", "g_GABA_A", "g_L"]})
         for pop in self.populations:
@@ -209,7 +209,7 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
                         "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
              "connections": {"DBS_GPi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": 1.0, "delays": 0.0}
+             "weights": 1.0, "delays": self.spiking_dt}
         ]  #
 
     def set_defaults(self):

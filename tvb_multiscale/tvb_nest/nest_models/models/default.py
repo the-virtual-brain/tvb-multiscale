@@ -138,10 +138,10 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         connections["Stimulus"] = ["E"]
         device = \
             {"model": "poisson_generator",
-             "params": {"rate": 10000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+             "params": {"rate": 10000.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": self.weight_fun(1.0),
-             "delays": random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
+             "delays": random_uniform_delay(self.spiking_dt, self.spiking_dt, 2*self.spiking_dt, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device
@@ -184,7 +184,7 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
         self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
 
-        self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": 0.1},  # "stop": 100.0
+        self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
                                "receptor_type": lambda target_node: target_node + 3}
 
     def _adjust_multisynapse_params(self, params, multi_params=["E_rev", "tau_syn"]):
