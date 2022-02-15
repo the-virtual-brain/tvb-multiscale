@@ -39,11 +39,8 @@ class Device(SpikingNodeCollection):
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the Device resides or connects to""")
     
-    _number_of_connections = Int(field_type=int, default=0, required=True, label="Number of connections",
-                                 doc="""The number of total device's connections""")
-
-    _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
-                             doc="""The number of total neurons connected to the device""")
+    _number_of_connections = None
+    _number_of_neurons = None
 
     _weight_attr = ""
     _delay_attr = ""
@@ -52,8 +49,6 @@ class Device(SpikingNodeCollection):
     def __init__(self, device=None, **kwargs):
         self.device = device    # a device object, depending on its simulator implementation
         SpikingNodeCollection.__init__(self, device, **kwargs)
-        self._number_of_connections = 0
-        self._number_of_neurons = 0
 
     def __getstate__(self):
         d = super(Device, self).__getstate__()
@@ -116,6 +111,10 @@ class Device(SpikingNodeCollection):
         return self._number_of_neurons
 
     @property
+    def number_of_connected_neurons(self):
+        return self.number_of_neurons
+
+    @property
     def node_weight(self):
         """Method to get the mean of all connections' weights of the device to/from neurons."""
         return np.mean(self.weights)
@@ -129,12 +128,6 @@ class Device(SpikingNodeCollection):
     def node_receptors(self):
         """Method to get all unique connections' receptors of the device to/from neurons."""
         return np.unique(self.receptors)
-
-    def info(self, recursive=0):
-        info = super(Device, self).info(recursive=recursive)
-        info["number_of_connections"] = self.number_of_connections
-        info["number of connected neurons"] = self.number_of_neurons
-        return info
 
     def info_neurons(self):
         return {"connected_nodes_gids": np.array(self.neurons)}
@@ -331,7 +324,7 @@ class SpikeRecorder(OutputDevice):
             Returns:
              float: total number of spikes divided by the total number of connected neurons
         """
-        n_neurons = self.get_number_of_neurons()
+        n_neurons = self.number_of_neurons
         if n_neurons > 0:
             return len(self.get_spikes_times(events_inds=events_inds, **filter_kwargs)) / n_neurons
         else:
@@ -842,7 +835,7 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
            Returns:
             float: mean spikes' activity
         """
-        n_neurons = self.get_number_of_neurons()
+        n_neurons = self.number_of_neurons
         if n_neurons > 0:
             spikes_sum = ensure_list(self.get_total_spikes_activity(events_inds=events_inds, **filter_kwargs))
             for ii in range(len(spikes_sum)):
@@ -951,13 +944,9 @@ class DeviceSet(SpikingNodesSet):
     model = Attr(field_type=str, default="", required=True,
                  label="DeviceSet's model", doc="""Label of DeviceSet's devices' model""")
 
-    _number_of_connections = List(of=int, default=(),
-                                  label="Number of connections",
-                                  doc="""The number of total connections of the DeviceSet""")
+    _number_of_connections = []
 
-    _number_of_neurons = List(of=int, default=(),
-                              label="Number of neurons",
-                              doc="""The number of total connected neurons of the DeviceSet""")
+    _number_of_neurons = []
 
     _collection_name = "Device"
 
@@ -973,16 +962,12 @@ class DeviceSet(SpikingNodesSet):
     def __getstate__(self):
         d = super(DeviceSet, self).__getstate__()
         d["model"] = self.model
-        d["_number_of_connections"] = self._number_of_connections
-        d["_number_of_neurons"] = self._number_of_neurons
         d["_collection_name"] = self._collection_name
         return d
 
     def __setstate__(self, d):
         super(DeviceSet, self).__setstate__(d)
         self.model = d.get("model", self.model)
-        self._number_of_connections = d.get("_number_of_connections", self.number_of_connections)
-        self._number_of_neurons = d.get("_number_of_neurons",  self.number_of_neurons)
 
     def devices(self, input_devices=None):
         """This method returns (a subset of) the DeviceSet devices' labels in a list."""
@@ -1016,6 +1001,14 @@ class DeviceSet(SpikingNodesSet):
         if len(self._number_of_neurons) == 0:
             self._number_of_neurons = ensure_list(self.do_for_all("number_of_neurons"))
         return self._number_of_neurons
+
+    @property
+    def number_of_connected_neurons(self):
+        """This method will return the total number of connected neurons of each Device of the DeviceSet.
+           Returns:
+            a list of Devices' numbers of connected neurons
+        """
+        return self.number_of_neurons
 
     @property
     def times(self):
@@ -1111,8 +1104,6 @@ class DeviceSet(SpikingNodesSet):
         if device_set:
             super(DeviceSet, self).update(device_set)
         self.update_model()
-        self._number_of_connections = ensure_list(self.do_for_all("number_of_connections"))
-        self._number_of_neurons = ensure_list(self.do_for_all("number_of_neurons"))
         self.configure()
 
     def Get(self, attrs=None, nodes=None, return_type="dict", name=None):

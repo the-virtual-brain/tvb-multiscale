@@ -8,8 +8,6 @@ from pandas import Series
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
 
-from tvb.basic.neotraits.api import Int
-
 from tvb.contrib.scripts.utils.data_structures_utils import \
     series_loop_generator, is_integer, concatenate_heterogeneous_DataArrays
 
@@ -23,8 +21,7 @@ class SpikingBrain(SpikingNodesSet):
        between brain regions' labels and the respective SpikingRegionNode instances.
     """
 
-    _number_of_neurons = Int(field_type=int, default=0, required=True, label="Number of neurons",
-                             doc="""The number of neurons of SpikingBrain""")
+    _number_of_neurons = None
 
     _weight_attr = ""
     _delay_attr = ""
@@ -235,14 +232,24 @@ class SpikingBrain(SpikingNodesSet):
         """
         return list(self.index)
 
-    @property
-    def neurons(self):
+    def get_neurons(self, reg_inds_or_lbls=None, inds_or_lbls=None):
         """Method to get all the neurons of the SpikingBrain.
            Argument:
             reg_inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected regions.
                               Default = None, corresponds to all regions of the SpikingBrain.
             inds_or_lbls: collection (list, tuple, array) of the indices or keys of selected populations.
                               Default = None, corresponds to all populations of each SpikingRegionNode.
+           Returns:
+            tuple of neurons.
+        """
+        output = ()
+        for id, lbl, nodes in self._loop_generator(reg_inds_or_lbls):
+            output += tuple(nodes.get_nodes(inds_or_lbls))
+        return output
+
+    @property
+    def neurons(self):
+        """Method to get all the neurons of the SpikingBrain.
            Returns:
             tuple of neurons.
         """

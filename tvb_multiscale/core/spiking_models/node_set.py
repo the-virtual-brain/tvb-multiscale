@@ -10,8 +10,6 @@ import numpy as np
 
 from tvb_multiscale.core.config import initialize_logger
 
-from tvb.basic.neotraits.api import Int
-
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import series_loop_generator, is_integer
 
@@ -29,21 +27,18 @@ class SpikingNodesSet(pd.Series, HasTraits):
        residing at a specific brain node's set.
     """
 
-    _number_of_nodes = Int(field_type=int, default=0, required=True, label="Number of nodes",
-                           doc="""The number of nodes of SpikingNodesSet""")
+    _number_of_nodes = None
 
     _collection_name = "Population"
     
     def __init__(self, nodes=pd.Series(), **kwargs):
         kwargs["name"] = kwargs.pop("label", kwargs.get("name", ""))
         pd.Series.__init__(self, nodes, **kwargs)
-        self._number_of_nodes = self.get_number_of_nodes()
         HasTraits.__init__(self)
         self.configure()
 
     def __getstate__(self):
         d = super(SpikingNodesSet, self).__getstate__()
-        d["_number_of_nodes"] = self.number_of_nodes
         d["_collection_name"] = self._collection_name
         d["gid"] = self.gid
         d["title"] = self.title
@@ -52,7 +47,6 @@ class SpikingNodesSet(pd.Series, HasTraits):
 
     def __setstate__(self, d):
         super(SpikingNodesSet, self).__setstate__(d)
-        self._number_of_nodes = self.number_of_nodes
         self._collection_name = d.get("_collection_name", self._collection_name)
         self.gid = d.get("gid", uuid.uuid4())
         self.title = d.get("title",
@@ -417,6 +411,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
     def info(self, recursive=0):
         info = super(SpikingNodesSet, self).info(recursive)
         info["label"] = self.label
+        info['size'] = self.size
         info["%ss" % self._collection_name] = self.collections
         if recursive > 0:
             for pop in self.collections:
@@ -428,6 +423,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
     def info_details(self, recursive=0, connectivity=False, source_or_target=None):
         info = super(SpikingNodesSet, self).info_details(recursive)
         info["label"] = self.label
+        info['size'] = self.size
         info["%ss" % self._collection_name] = self.collections
         if recursive > 0:
             for pop in self.collections:

@@ -28,9 +28,6 @@ class SpikingPopulation(SpikingNodeCollection):
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the spiking population resides""")
 
-    _size = Int(field_type=int, default=0, required=True, label="Size",
-                doc="""The number of neurons of SpikingPopulation """)
-
     def __getstate__(self):
         return super(SpikingPopulation, self).__getstate__()
 
@@ -64,6 +61,4 @@ class SpikingPopulation(SpikingNodeCollection):
             Returns:
              int: number of neurons.
         """
-        if self._size == 0 or self._size is None:
-            self._size = self.get_size()
-        return self._size
+        return self.number_of_nodes
