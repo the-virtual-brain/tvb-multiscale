@@ -288,8 +288,6 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
         self._nodes = population
         self.label = label
         self.model = model
-        self._number_of_connections = 0
-        self._number_of_neurons = self.get_size()
 
     def Set(self, values_dict, neurons=None):
         if neurons is None:
@@ -368,8 +366,17 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
     def parrot_neurons(self):
         return self._nodes
 
-    def get_size(self):
-        return NESTParrotPopulation.get_size(self)
+    @property
+    def number_of_neurons(self):
+        return NESTInputDevice.number_of_neurons.fget(self)
+
+    @property
+    def number_of_connected_neurons(self):
+        return self.number_of_neurons
+
+    @property
+    def number_of_device_neurons(self):
+        return self.get_size()
 
     def info_nodes(self):
         return NESTParrotPopulation.info_nodes(self)

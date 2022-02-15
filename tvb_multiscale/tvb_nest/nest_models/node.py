@@ -37,8 +37,6 @@ class _NESTNodeCollection(HasTraits):
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the NESTNodeCollection resides""")
 
-    _size = Int(field_type=int, default=0, required=True, label="Size",
-                doc="""The number of elements of NESTNodeCollection """)
 
     nest_instance = None
     _source_conns_attr = "source"
@@ -63,8 +61,6 @@ class _NESTNodeCollection(HasTraits):
         self.label = str(kwargs.get("label", self.__class__.__name__))
         self.model = str(kwargs.get("model", self.__class__.__name__))
         self.brain_region = str(kwargs.get("brain_region", ""))
-        if self._nodes:
-            self._size = len(self._nodes)
         HasTraits.__init__(self)
         self.configure()
 
@@ -78,7 +74,6 @@ class _NESTNodeCollection(HasTraits):
                 "label": self.label,
                 "model": self.model,
                 "brain_region": self.brain_region,
-                "_size": self._size,
                 "_weight_attr": self._weight_attr,
                 "_delay_attr": self._delay_attr,
                 "_receptor_attr": self._receptor_attr,
@@ -91,7 +86,6 @@ class _NESTNodeCollection(HasTraits):
         self._nodes = d.get("_nodes", None)
         self.label = d.get("label", "")
         self.model = d.get("model", "")
-        self.title = d.get("_size", self.get_size())
         self.brain_region = d.get("brain_region", "")
         self._weight_attr = d.get("_weight_attr", "")
         self._delay_attr = d.get("_delay_attr", "")
