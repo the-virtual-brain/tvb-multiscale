@@ -2,7 +2,6 @@
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
-from tvb.basic.neotraits.api import Int
 
 
 LOG = initialize_logger(__name__)
@@ -16,8 +15,7 @@ class SpikingRegionNode(SpikingNodesSet):
        residing at a specific brain region node.
     """
 
-    _number_of_nodes = Int(field_type=int, default=0, required=True, label="Number of neurons",
-                           doc="""The number of neurons of SpikingRegionNode """)
+    _number_of_nodes = None
 
     _collection_name = "Population"
 

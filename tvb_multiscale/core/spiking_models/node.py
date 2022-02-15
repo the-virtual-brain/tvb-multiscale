@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr, Int
+from tvb.basic.neotraits.api import Attr
 from tvb.contrib.scripts.utils.data_structures_utils import list_of_dicts_to_dicts_of_ndarrays
 
 from tvb_multiscale.core.config import initialize_logger
@@ -37,9 +37,6 @@ class SpikingNodeCollection(HasTraits):
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the SpikingNodeCollection resides""")
 
-    _size = Int(field_type=int, default=0, required=True, label="Size",
-                doc="""The number of elements of SpikingNodeCollection """)
-
     _source_conns_attr = ""
     _target_conns_attr = ""
     _weight_attr = ""
@@ -60,7 +57,6 @@ class SpikingNodeCollection(HasTraits):
         self.label = str(kwargs.get("label", self.__class__.__name__))
         self.model = str(kwargs.get("model", self.__class__.__name__))
         self.brain_region = str(kwargs.get("brain_region", ""))
-        self._size = self.get_size()
         HasTraits.__init__(self)
         self.configure()
 
@@ -69,7 +65,6 @@ class SpikingNodeCollection(HasTraits):
                 "label": self.label,
                 "model": self.model,
                 "brain_region": self.brain_region,
-                "_size": self._size,
                 "_weight_attr": self._weight_attr,
                 "_delay_attr": self._delay_attr,
                 "_receptor_attr": self._receptor_attr,
@@ -81,7 +76,6 @@ class SpikingNodeCollection(HasTraits):
         self._nodes = d.get("_nodes", None)
         self.label = d.get("label", "")
         self.model = d.get("model", "")
-        self._size = d.get("_size", self.get_size())
         self.brain_region = d.get("brain_region", "")
         self._weight_attr = d.get("_weight_attr", "")
         self._delay_attr = d.get("_delay_attr", "")
@@ -204,6 +198,10 @@ class SpikingNodeCollection(HasTraits):
             return len(self._nodes)
         else:
             return 0
+
+    @property
+    def size(self):
+        return self.get_size()
 
     def Set(self, values_dict, nodes=None):
         """Method to set attributes of the SpikingNodeCollection's nodes.
@@ -474,9 +472,7 @@ class SpikingNodeCollection(HasTraits):
             Returns:
              int: number of nodes.
         """
-        if self._size == 0 or self._size is None:
-            self._size = self.get_size()
-        return self._size
+        return self.get_size()
 
     @property
     def attributes(self):
