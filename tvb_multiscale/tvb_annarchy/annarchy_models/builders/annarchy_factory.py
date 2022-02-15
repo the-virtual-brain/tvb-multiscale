@@ -409,9 +409,6 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
     # Add this projection to the source device's and target population's inventories:
     annarchy_device.projections_pre.append(proj)
     population.projections_post.append(proj)
-    # Update the number of connected neurons to the device:
-    annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
-    annarchy_device._size = annarchy_device.get_size()
     return annarchy_device
 
 
@@ -433,9 +430,6 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
     monitor.name = "%s_%d" % (annarchy_device.label, len(annarchy_device.monitors) + 1)
     annarchy_device.monitors[monitor] = neurons
     annarchy_device.device = annarchy_device.monitors
-    # Update the number of connections and connected neurons to the device:
-    annarchy_device._number_of_connections = annarchy_device.get_number_of_connections()
-    annarchy_device._size = annarchy_device.get_size()
     return annarchy_device
 
 
