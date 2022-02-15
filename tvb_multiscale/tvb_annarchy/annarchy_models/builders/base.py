@@ -133,8 +133,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a ANNarchyRegionNode instance,
-           which consists of a pandas.Series of all ANNarchyPopulation instances,
-           residing at a particular brain region node.
+           which consists of all ANNarchyPopulation instances, residing at a particular brain region node.
            Arguments:
             label: name (string) of the region node. Default = ""
             input_node: an already created SpikingRegionNode() class. Default = None.
@@ -146,9 +145,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     def build_and_connect_input_devices(self):
         """Method to build and connect input devices, organized by
-           - the variable they stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target."""
+           - the variable they stimulate, and the
+           - population(s), and
+           - brain region nodes they target."""
         _devices = DeviceSets()
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
@@ -158,9 +157,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
-           - the variable they measure or stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target.
+           - the variable they measure or stimulate, and the
+           - population(s), and
+           - brain region nodes they target.
            See tvb_multiscale.core.spiking_models.builders.factory,
            and tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory.
         """
