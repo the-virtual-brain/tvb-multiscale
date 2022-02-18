@@ -56,19 +56,19 @@ class GriffithsThalamoCortical(Model):
 
     w_ee = NArray(
         label=":math:`w_{ee}`",
-        default=np.array([0.5]),  # 1.4, 0.5
+        default=np.array([1.4]),  # 1.4, 0.5
         domain=Range(lo=0.0, hi=2.0, step=0.01),
         doc="""Excitatory - excitatory gain""")
 
     w_ei = NArray(
         label=":math:`w_{ei}`",
-        default=np.array([1.0]),  # 1.4, 1.0
+        default=np.array([1.4]),  # 1.4, 1.0
         domain=Range(lo=0.0, hi=2.0, step=0.02),
         doc="""Excitatory - inhibitory gain""")
 
     w_ie = NArray(
         label=":math:`w_{ie}`",
-        default=np.array([-2.0]),  # -3.0, -2.0
+        default=np.array([-3.0]),  # -3.0, -2.0
         domain=Range(lo=-4.0, hi=0.0, step=0.04),
         doc="""Inhibitory - excitatory gain.""")
 
@@ -128,25 +128,25 @@ class GriffithsThalamoCortical(Model):
 
     tau_e = NArray(
         label=r":math:`\tau_e`",
-        default=np.array([10 / 0.3]),  # 0.9, 0.3
+        default=np.array([10 / 0.9]),  # 0.9, 0.3
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Cortical excitatory population time constant (1/a_e in paper) [ms]""")
 
     tau_i = NArray(
         label=r":math:`\tau_i`",
-        default=np.array([10 / 0.5]),  # 0.9, 0.5
+        default=np.array([10 / 0.9]),  # 0.9, 0.5
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Cortical inhibitory population time constant (1/a_i in paper) [ms]""")
 
     tau_s = NArray(
         label=r":math:`\tau_s`",
-        default=np.array([10 / 0.2]),  # 0.25, 0.2
+        default=np.array([10 / 0.25]),  # 0.25, 0.2
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Thalamic relay nucleus time constant (1/a_s in paper) [ms]""")
 
     tau_r = NArray(
         label=r":math:`\tau_r`",
-        default=np.array([10 / 0.2]),  # 0.25, 0.2
+        default=np.array([10 / 0.25]),  # 0.25, 0.2
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Thalamic reticular nucleus time constant (1/a_r in paper) [ms]""")
 
@@ -575,19 +575,19 @@ class WilsonCowanThalamoCortical(Model):
 
     w_ee = NArray(
         label=":math:`w_{ee}`",
-        default=np.array([0.5]),  # 1.4, 0.5
+        default=np.array([1.4]),  # 1.4, 0.5
         domain=Range(lo=0.0, hi=2.0, step=0.01),
         doc="""Excitatory - excitatory gain""")
 
     w_ei = NArray(
         label=":math:`w_{ei}`",
-        default=np.array([1.0]),  # 1.4, 1.0
+        default=np.array([1.4]),  # 1.4, 1.0
         domain=Range(lo=0.0, hi=2.0, step=0.02),
         doc="""Excitatory - inhibitory gain""")
 
     w_ie = NArray(
         label=":math:`w_{ie}`",
-        default=np.array([-2.0]),  # -3.0, -2.0
+        default=np.array([-3.0]),  # -3.0, -2.0
         domain=Range(lo=-4.0, hi=0.0, step=0.04),
         doc="""Inhibitory - excitatory gain.""")
 
@@ -647,25 +647,25 @@ class WilsonCowanThalamoCortical(Model):
 
     tau_e = NArray(
         label=r":math:`\tau_e`",
-        default=np.array([10 / 0.3]),  # 0.9, 0.3
+        default=np.array([10 / 0.9]),  # 0.9, 0.3
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Cortical excitatory population time constant (1/a_e in paper) [ms]""")
 
     tau_i = NArray(
         label=r":math:`\tau_i`",
-        default=np.array([10 / 0.5]),  # 0.9, 0.5
+        default=np.array([10 / 0.9]),  # 0.9, 0.5
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Cortical inhibitory population time constant (1/a_i in paper) [ms]""")
 
     tau_r = NArray(
         label=r":math:`\tau_r`",
-        default=np.array([10 / 0.2]),  # 0.25, 0.2
+        default=np.array([10 / 0.25]),  # 0.25, 0.2
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Thalamic reticular nucleus time constant (1/a_r in paper) [ms]""")
 
     tau_s = NArray(
         label=r":math:`\tau_s`",
-        default=np.array([10 / 0.2]),  # 0.25, 0.2
+        default=np.array([10 / 0.25]),  # 0.25, 0.2
         domain=Range(lo=0.1, hi=10.0, step=0.1),
         doc="""Thalamic relay nucleus time constant (1/a_s in paper) [ms]""")
 
@@ -1077,6 +1077,231 @@ class WilsonCowanThalamoCortical(Model):
         if self._n_thalamic:
             derivative[1, self.is_thalamic[:, 0]] = (
                 - I[self.is_thalamic[:, 0]]
+                + self._f_Rin(c_cx[self.is_thalamic[:, 0]])  # c_cx, long-range coupling, Cortical exc
+                ) / self._tau_r
+
+        if self._stim is not None:
+            self._Ein[self._stim_inds] = self._Ein[self._stim_inds] + self._stim
+
+        derivative[0, :] = (- E + self._Ein) / self._tau_e
+
+        # Set it back to None after using it:
+        self._Esigm = None
+        self._Isigm = None
+        self._Ein = None
+
+        return derivative
+
+
+class WilsonCowanThalamoCorticalFIC(WilsonCowanThalamoCortical):
+    r"""
+    **References**:
+
+    .. [G_2020] Griffiths, J.D. McIntosh, A.R., Lefebvre J.
+       *A Connectome-Based, Corticothalamic Model of State- and Stimulation-Dependent
+       Modulation of Rhythmic Neural Activity and Connectivity*,
+       Frontiers in Computational Neuroscience, 14:113, 2020,
+       10.3389/fncom.2020.575143 .
+
+    """
+
+    E_m = NArray(
+        label=":math:`E_m`",
+        default=np.array([-0.21]),
+        domain=Range(lo=-0.30, hi=-0.15, step=0.01),
+        doc="""Cortical excitatory population mean activity baseline""")
+
+    S_m = NArray(
+        label=":math:`S_m`",
+        default=np.array([-0.21]),
+        domain=Range(lo=-0.30, hi=-0.15, step=0.01),
+        doc="""Thalamic relay excitatory population mean activity baseline""")
+
+    eta = NArray(
+        label=":math:`\eta`",
+        default=np.array([-0.01]),
+        domain=Range(lo=-0.1, hi=-0.001, step=0.001),
+        doc="""FIC adaptation rate.""")
+
+    # Used for phase-plane axis ranges and to bound random initial() conditions.
+    state_variable_range = Final(
+        label="State Variable ranges [lo, hi]",
+        default={"E": np.array([-1.0, 1.0]),
+                 "I": np.array([-1.0, 1.0]),
+                 "A": np.array([-1.0, 1.0]),
+                 "wFIC": np.array([-5.0, -1.0])},
+        doc="""The values for each state-variable should be set to encompass
+            the expected dynamic range of that state-variable for the current
+            parameters, it is used as a mechanism for bounding random inital
+            conditions when the simulation isn't started from an explicit history,
+            it is also provides the default range of phase-plane plots.""")
+
+    variables_of_interest = List(
+        of=str,
+        label="Variables watched by Monitors",
+        choices=("E", "I", 'A', "wFIC"),
+        default=("E", "I", 'A', "wFIC"),
+        doc="""This represents the default state-variables of this Model to be
+                   monitored. It can be overridden for each Monitor if desired. The
+                   corresponding state-variable indices for this model are :math:`E = 0`
+                   and :math:`I = 1`.""")
+
+    state_variables = 'E I A wFIC'.split()
+    _nvar = 4
+
+    _E_m = None
+    _S_m = None
+
+    def update_derived_parameters(self):
+        super(WilsonCowanThalamoCorticalFIC, self).update_derived_parameters()
+        self._E_m = self._get_nonthalamic(self.E_m)
+        self._S_m = self._get_thalamic(self.S_m)
+
+    def _f_Ein(self, c_cx, c_sb, c_th, w_ie_fic):
+        """Cortical excitatory population dynamics:
+           1. local exc -> exc
+           2. local inh -> exc
+           3. long-range delayed (sub)cortical (exc) -> exc
+           4. long-range delayed thalamic relay (exc) -> exc
+        """
+        return self._w_ee * self._Esigm + \
+               w_ie_fic * self._Isigm + \
+               self._G_e * (c_cx + c_sb) + \
+               self._w_se * c_th + \
+               self._I_e
+
+    def _f_Sin(self, c_cx, c_sb, w_rs_fic):
+        """Thalamic relay excitatory population dynamics:
+           1. local delayed, thalamo-thalamic reticular (inh)-> relay (exc)
+           2. long-range delayed (sub)cortical -> relay (exc)
+        """
+        return w_rs_fic * self.sigm_activ(self._get_RS_del()) + \
+               self._w_es * c_cx + self._G_th * c_sb + \
+               self._I_so
+
+    def update_state_variables_before_integration(self, state_variables, coupling,
+                                                  local_coupling=0.0, stimulus=0.0, time=0.0):
+        # This is executed only once for each time step
+        # at the beginning of the integration schema computation
+
+        # Firing rate/activity of cortical E:
+        self._Esigm = self.sigm_activ(state_variables[0, self._not_thalamic[:, 0]])  # E, exc
+        self._Isigm = self.sigm_activ(state_variables[1, self._not_thalamic[:, 0]])  # I, inh
+        state_variables[2, self._not_thalamic[:, 0]] = \
+            self._f_Ein(coupling[0, self._not_thalamic[:, 0]],        # c_cx, long-range coupling, Cortical exc
+                        coupling[1, self._not_thalamic[:, 0]],        # c_sb, long-range coupling, Subcortical exc
+                        coupling[2, self._not_thalamic[:, 0]],        # c_th, long-range coupling, Thalamic relay (exc)
+                        state_variables[3, self._not_thalamic[:, 0]]  # wFIC
+                        )
+
+        if self._n_thalamic:
+
+            # First, update buffers with new input state
+            self._update_S(state_variables[0, self.is_thalamic[:, 0]])  # thal relay
+            self._update_R(state_variables[1, self.is_thalamic[:, 0]])  # thal reticular
+            # Get the new delayed state for local intrathalamic couplings
+            self._RS_del = self._get_RS_del()  # thalamic rtn to thalamic relay delayed coupling
+            self._SR_del = self._get_SR_del()  # thalamic relay to thalamic rtn delayed coupling
+
+            # First, update buffers with new input state
+            if self.test_mode:
+                self._update_E(state_variables[0, self.is_cortical[:, 0]])  # crtx E
+                # Get the new delayed state for thalamocortical couplings
+                self._ET_del = self._get_ET_del()  # cortical exc to thalamus delayed coupling
+                self._SC_del = self._get_SC_del()  # thalamic relay to cortex exc and inh delayed coupling
+                # Store these  delays only for testing:
+                self._ET_dels.append(self._ET_del.copy())
+                self._SC_dels.append(self._SC_del.copy())
+                self._RS_dels.append(self._RS_del.copy())
+                self._SR_dels.append(self._SR_del.copy())
+                self._cET.append(coupling[0, self.is_thalamic[:, 0]].squeeze())  # only for testing
+                self._cSC.append(coupling[2, self.is_cortical[:, 0]].squeeze())  # only for testing
+                if int(self.test_mode) > 1:
+                    try:
+                        ET_del_sigm = self.sigm_activ(self._ET_dels[-1]).squeeze()
+                        assert np.any(np.abs(ET_del_sigm - self._cET[-1]) < 0.001)
+                    except:
+                        print("Compare ET(%g):\n%s" %
+                              (time, str(np.vstack([ET_del_sigm, self._cET[-1]]).T)))
+                        raise
+                    try:
+                        SC_del_sigm = self.sigm_activ(self._SC_dels[-1]).squeeze()
+                        assert np.any(np.abs(SC_del_sigm - self._cSC[-1]) < 0.001)
+                    except:
+                        print("Compare SC(%g):\n%s" %
+                              (time, str(np.vstack([SC_del_sigm, self._cSC[-1]]).T)))
+                        raise
+
+            # Firing rate/activity of thalamic relay S (Exc):
+            state_variables[2, self.is_thalamic[:, 0]] = \
+                self._f_Sin(coupling[0, self.is_thalamic[:, 0]],        # c_cx, long-range coupling, Cortical exc
+                            coupling[1, self.is_thalamic[:, 0]],        # c_sb, long-range coupling, Subcortical exc
+                            state_variables[3, self.is_thalamic[:, 0]]  # wFIC
+                            )
+
+
+        # Store this temporarily to avoid double computation:
+        self._Ein = state_variables[2, :].copy()
+
+        # Add the stimulus:
+        if self._stim is not None:
+            self._stim = self._A_st * np.sin(self._omega_st * time)
+
+        return state_variables
+
+    def dfun(self, state_variables, coupling, local_coupling=0.0, time=0.0):
+        r"""
+
+        .. math::
+
+        """
+
+        E = state_variables[0, :]     # (sub)cortical exc or thalamic relay (exc)
+        I = state_variables[1, :]     # (sub)cortical inh or thalamic reticular (inh)
+        wFIC = state_variables[2, :]  # Inhibitory coupling weight under FIC
+
+        # long-range coupling
+        c_cx = coupling[0, :]  # cortical exc
+        c_sb = coupling[1, :]  # subcortical exc
+        c_th = coupling[2, :]  # thalamic relay (exc)
+
+        derivative = np.empty_like(state_variables)  # no dynamics for A
+
+        E_not_thalamic = E[self._not_thalamic[:, 0]]
+        I_not_thalamic = I[self._not_thalamic[:, 0]]
+
+        derivative[2, self._not_thalamic[:, 0]] = self.eta * I_not_thalamic * (E_not_thalamic - self._E_m)
+
+        if self._Ein is None:
+            self._Esigm = self.sigm_activ(E_not_thalamic)  # E, exc
+            self._Isigm = self.sigm_activ(I_not_thalamic)  # I, exc
+            self._Ein = derivative[0].copy()
+            self._Ein[self._not_thalamic[:, 0]] = \
+                self._f_Ein(c_cx[self._not_thalamic[:, 0]],  # c_cx, long-range coupling, Cortical exc
+                            c_sb[self._not_thalamic[:, 0]],  # c_sb, long-range coupling, Subcortical exc
+                            c_th[self._not_thalamic[:, 0]],  # c_th, long-range coupling, Thalamic relay (exc)
+                            wFIC[self._not_thalamic[:, 0]]
+                            )
+            if self._n_thalamic:
+                # ...thalamic relay S (Exc):
+                self._Ein[self.is_thalamic[:, 0]] = \
+                    self._f_Sin(
+                        c_cx[self.is_thalamic[:, 0]],      # c_cx, long-range coupling, Cortical exc
+                        c_sb[self.is_thalamic[:, 0]],      # c_sb, long-range coupling, Subcortical exc#
+                        wFIC[self.is_thalamic[:, 0]]
+                    )
+
+        derivative[1, self._not_thalamic[:, 0]] = (
+            - I_not_thalamic +
+            + self._f_Iin(c_th[self._not_thalamic[:, 0]])    # c_th, long-range coupling, Thalamic relay (exc)
+            ) / self._tau_i
+        if self._n_thalamic:
+            # S = E[self.is_thalamic[:, 0]]
+            R = I[self.is_thalamic[:, 0]]
+            derivative[2, self.is_thalamic[:, 0]] = self.eta * R * (E[self.is_thalamic[:, 0]] - self._S_m)
+
+            derivative[1, self.is_thalamic[:, 0]] = (
+                - R
                 + self._f_Rin(c_cx[self.is_thalamic[:, 0]])  # c_cx, long-range coupling, Cortical exc
                 ) / self._tau_r
 
