@@ -880,13 +880,14 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
     """ANNarchySpikeMonitor class to wrap around ANNarchy.Monitor instances,
        acting as an output device of spike discrete events."""
 
-    _data = List(of=dict, label="SpikeMonitor data buffer", default=(),
-                 doc="""A list of dictionaries (one per Monitor) for holding the spike events
-                       read from the Monitors""")
+    _data = Attr(field_type=OrderedDict, label="Data buffer",
+                 default=OrderedDict({"times": [], "senders": []}),
+                 required=True,
+                 doc="""An OrderedDict buffer holding the spikes' times and senders read from the Monitors""")
 
-    _output_events_counter = List(of=OrderedDict, label="Number of output events", default=(),
-                                  doc="""A list of lists of numbers of recorded events per sender neuron and monitor 
-                                         that have been given to the output via a get_events() call.""")
+    _output_events_counter = Int(field_type=int, default=0, required=True, label="Index of output events",
+                                 doc="""The number of recorded events that 
+                                      have been given to the output via a get_events() call.""")
 
     def __init__(self, device=OrderedDict(), annarchy_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "SpikeMonitor")
@@ -897,44 +898,38 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,
            and merge and store them to the _data buffer."""
         dt = self.dt
-        number_of_monitors = self.number_of_monitors
-        data = tuple([OrderedDict()] * number_of_monitors)
-        if self.store_data:
-            while len(self._data) < number_of_monitors:
-                self._data += (OrderedDict(),)
-        for i_m, (monitor, population) in enumerate(self.monitors.items()):
-            spikes = monitor.get("spike")
-            senders = self._get_senders(population, list(spikes.keys()), False)
-            for sender, spikes_times in zip(senders, list(spikes.values())):
-                data[i_m].update({sender: (np.array(spikes_times) * dt).tolist()})
-                if self.store_data:
-                    self._data[i_m].update({sender: self._data[i_m].get(sender, []) + data[i_m].get(sender, [])})
-        return data
-
-    def _get_events(self, data=None):
-        if data is None:
-            data = self._record()
-            if self.store_data:
-                data = self._data
-        if self.store_data:
-            while len(self._output_events_counter) < self.number_of_monitors:
-                self._output_events_counter += (OrderedDict(),)
         events = OrderedDict()
         events["times"] = []
         events["senders"] = []
-        for i_m, monitor_data in enumerate(data):
-            for sender, spikes_times in monitor_data.items():
-                events["times"] += spikes_times
-                events["senders"] += [sender] * len(spikes_times)
-                if self.store_data:
-                    self._output_events_counter[i_m][sender] = len(events["times"])
+        for i_m, (monitor, population) in enumerate(self.monitors.items()):
+            spikes = monitor.get('spike')
+            n_spikes = len(spikes)
+            if n_spikes:
+                spike_times, spike_ranks = monitor.raster_plot(spikes)
+                population_ind = self.annarchy_instance.Global._network[0]["populations"].index(population)
+                spike_times = (np.array(spike_times) * dt).tolist()
+                spike_senders = list(zip([population_ind] * n_spikes, spike_ranks))
+                events["times"] += spike_times
+                events["senders"] += spike_senders
         inds = np.argsort(events["times"])
         events["times"] = np.array(events["times"])[inds]
         events["senders"] = np.array(events["senders"])[inds]
+        if self.store_data:
+            self._data["times"] += events["times"]
+            self._data["senders"] += events["senders"]
+        return events
+
+    def _get_events(self, data=None):
+        if data is None:
+            events = self._record()
+            self._output_events_counter += len(events['times'])
+            if self.store_data:
+                events = self._data
+                self._output_events_counter = len(events['times'])
         return events
 
     def get_new_events(self):
-        return self._get_events(self._record())
+        return self._record()
 
     @property
     def events(self):
@@ -947,12 +942,7 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         return self.get_new_events()
 
     def _number_of_recorded_events(self):
-        self._record()
-        n_events = 0
-        for i_m, monitor_data in enumerate(self._data):
-            for sender, spikes_times in monitor_data.items():
-                n_events += len(spikes_times)
-        return n_events
+        return self._output_events_counter
 
     @property
     def number_of_recorded_events(self):
@@ -967,7 +957,8 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
         return self._number_of_events()
 
     def _number_of_new_events(self):
-        return self._number_of_recorded_events() - np.prod(self._output_events_counter)
+        number_of_recorded_events = self._number_of_recorded_events
+        return self.number_of_events - number_of_recorded_events
 
     @property
     def number_of_new_events(self):
@@ -975,8 +966,10 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
 
     def reset(self):
         self._record()
-        self._data = ()
-        self._output_events_counter = ()
+        self._data = OrderedDict()
+        self._data["times"] = []
+        self._data["senders"] = []
+        self._output_events_counter = 0
 
     def info_details(self, recursive=0, connectivity=False, **kwargs):
         return SpikeRecorder.info_details(self, recursive=recursive,
