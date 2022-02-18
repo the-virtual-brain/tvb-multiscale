@@ -229,9 +229,9 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         coupl_vois_to_monitor = {}
         for iM, cosim_monitor in enumerate(self.tvb_cosimulator.cosim_monitors):
             if isinstance(cosim_monitor, CosimMonitorFromCoupling):
-                coupl_vois_to_monitor[tuple(cosim_monitor.voi)] = iM
+                coupl_vois_to_monitor[tuple(cosim_monitor.variables_of_interest)] = iM
             else:
-                raw_vois_to_monitor[tuple(cosim_monitor.voi)] = iM
+                raw_vois_to_monitor[tuple(cosim_monitor.variables_of_interest)] = iM
         return raw_vois_to_monitor, coupl_vois_to_monitor
 
     def _create_cosim_monitor(self, interface, new_monitor, vois_to_monitor_mapping):
