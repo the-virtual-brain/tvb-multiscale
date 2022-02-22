@@ -264,7 +264,7 @@ class ANNarchySpikeSourceArray(ANNarchyInputDevice):
                         if new_spike > current_time:
                             new_spikes.append(new_spike.item())
                 spikes = new_spikes
-            if len(spikes) != self._size:
+            if len(spikes) != self.number_of_connected_neurons:
                 # Assume we have to add the same spikes to all neurons
                 spikes = ensure_list(spikes) * len(nodes)
             old_spikes = self.device.get("spike_times")
@@ -531,10 +531,11 @@ class ANNarchyOutputDevice(ANNarchyDevice):
     def period(self):
         if self._period is None:
             for monitor, population in self.monitors.items():
+                # TODO: Find out why it fails for monitor.period!!!
                 if self._period is None:
-                    self._period = monitor.period
+                    self._period = monitor._period
                 else:
-                    if self._period != monitor.period:
+                    if self._period != monitor._period:
                         raise ValueError("Monitor %s of Device %s has period %g,\n"
                                          "which is different from the previously set period %g!"
                                          % (population.name, self.label, monitor.period, self._period))
@@ -897,26 +898,28 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
     def _record(self):
         """Method to get discrete spike events' data from ANNarchy.Monitor instances,
            and merge and store them to the _data buffer."""
-        dt = self.dt
         events = OrderedDict()
         events["times"] = []
         events["senders"] = []
-        for i_m, (monitor, population) in enumerate(self.monitors.items()):
-            spikes = monitor.get('spike')
-            n_spikes = len(spikes)
-            if n_spikes:
-                spike_times, spike_ranks = monitor.raster_plot(spikes)
-                population_ind = self.annarchy_instance.Global._network[0]["populations"].index(population)
-                spike_times = (np.array(spike_times) * dt).tolist()
-                spike_senders = list(zip([population_ind] * n_spikes, spike_ranks))
-                events["times"] += spike_times
-                events["senders"] += spike_senders
-        inds = np.argsort(events["times"])
-        events["times"] = np.array(events["times"])[inds]
-        events["senders"] = np.array(events["senders"])[inds]
-        if self.store_data:
-            self._data["times"] += events["times"]
-            self._data["senders"] += events["senders"]
+        for monitor, population in self.monitors.items():
+            # TODO: report error when calling raster_plot without args!!!
+            spike = {"spike": monitor.get('spike')}
+            if len(spike['spike']):
+                spike_times, spike_ranks = monitor.raster_plot(spike)
+                if spike_times.size:
+                    events["times"] += spike_times.tolist()
+                    population_ind = self.annarchy_instance.Global._network[0]["populations"].index(population)
+                    spike_senders = list(zip([population_ind] * spike_times.size, spike_ranks))
+                    events["senders"] += spike_senders
+        events['times'] = np.array(events['times'])
+        events['senders'] = np.array(events['senders'])
+        if len(events["times"]):
+            inds = np.argsort(events["times"])
+            events["times"] = events["times"][inds]
+            events["senders"] = events["senders"][inds]
+            if self.store_data:
+                self._data["times"] += events["times"].tolist()
+                self._data["senders"] += events["senders"].tolist()
         return events
 
     def _get_events(self, data=None):
@@ -924,7 +927,9 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
             events = self._record()
             self._output_events_counter += len(events['times'])
             if self.store_data:
-                events = self._data
+                events = OrderedDict()
+                for key, val in self._data.items():
+                    events[key] = np.array(val)
                 self._output_events_counter = len(events['times'])
         return events
 
