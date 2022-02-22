@@ -424,9 +424,8 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
         """
     neurons = get_populations_neurons(population, neurons_inds_fun)
     params = annarchy_device.params.copy()
-    record_from = ensure_list(params.pop("record_from"))
     # Create a connection by adding an ANNarchy Monitor targeting the specific neurons of this population:
-    monitor = annarchy_device.annarchy_instance.Monitor(neurons, record_from, **params)
+    monitor = annarchy_device.annarchy_instance.Monitor(neurons, **params)
     monitor.name = "%s_%d" % (annarchy_device.label, len(annarchy_device.monitors) + 1)
     annarchy_device.monitors[monitor] = neurons
     annarchy_device.device = annarchy_device.monitors
