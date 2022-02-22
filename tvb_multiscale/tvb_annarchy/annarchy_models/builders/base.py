@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from pandas import concat
+
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
@@ -11,6 +13,9 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
+
+
+LOG = initialize_logger(__name__, config=CONFIGURED)
 
 
 class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
@@ -148,12 +153,18 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
            - the variable they stimulate, and the
            - population(s), and
            - brain region nodes they target."""
-        _devices = DeviceSets()
+        _devices = []
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
-            _devices = _devices.append(
-                self.build_and_connect_devices(device))
-        return _devices
+            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
+                     "for nodes %s..." % (str(list(device["connections"].keys())),
+                                          str(list(device["connections"].values())),
+                                          device["model"], str(device["nodes"])))
+            _devices.append(self.build_and_connect_devices(device))
+        if len(_devices):
+            return DeviceSets(concat(_devices))
+        else:
+            return DeviceSets()
 
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
