@@ -201,7 +201,7 @@ class RatesToSpikes(LinearRate):
     )
 
     output_buffer = List(
-        of=np.ndarray,
+        of=list,
         doc="""List of spiketrains (lists) storing temporarily the generated spikes.""",
         default=(())
     )
