@@ -92,11 +92,17 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.nest_instance.GetKernelStatus("min_delay")
 
     def _build_and_connect_devices(self, interface, **kwargs):
-        if "meter" in interface["model"]:  # TODO: Find a better way to do this!
-            interface["params"]["interval"] = interface["params"].get("interval", self.tvb_dt)
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
                                          self.config, nest_instance=self.nest_instance, **kwargs)
+
+    def _build_and_connect_output_devices(self, interface, **kwargs):
+        if "meter" in interface["model"]:  # TODO: Find a better way to do this!
+            interface["params"]["interval"] = interface["params"].get("interval", self.tvb_dt)
+        return self._build_and_connect_devices(interface, **kwargs)
+
+    def _build_and_connect_input_devices(self, interface, **kwargs):
+        return self._build_and_connect_devices(interface, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
         return 0
