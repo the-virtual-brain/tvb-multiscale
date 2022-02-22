@@ -695,7 +695,10 @@ class SpikingNetworkBuilder(object):
                                           str(list(device["connections"].values())),
                                           device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
-        return DeviceSets(concat(_devices))
+        if len(_devices):
+            return DeviceSets(concat(_devices))
+        else:
+            return DeviceSets()
 
     def build_and_connect_output_devices(self):
         """Method to build and connect output devices, organized by
