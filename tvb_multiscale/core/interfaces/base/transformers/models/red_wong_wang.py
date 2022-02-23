@@ -47,7 +47,7 @@ class RedWongWangExc(Integration):
         # dS = - (S / self.tau_s) + (1 - S) * R * self.gamma
         # dR = -(R - Rin) / tau_r
         return np.array([- (X[0] / self._tau_s) + (1 - X[0]) * X[1] * self._gamma,
-                         - (X[1] - input_buffer)/self._tau_r])
+                         - (X[1] - np.array(input_buffer).flatten())/self._tau_r])
 
     def apply_boundaries(self):
         # Apply boundaries:
@@ -102,7 +102,7 @@ class RedWongWangInh(RedWongWangExc):
         # dS = - (S / self.tau_s) + R * self.gamma
         # dR = -(R - Rin) / tau_r
         return np.array([- (X[0] / self._tau_s) + X[1] * self._gamma,
-                         - (X[1] - input_buffer)/self._tau_r])
+                         - (X[1] - np.array(input_buffer).flatten())/self._tau_r])
 
 
 class ElephantSpikesHistogramRateRedWongWangInh(ElephantSpikesHistogramRate, RedWongWangInh):
