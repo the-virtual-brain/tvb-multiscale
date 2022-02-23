@@ -262,7 +262,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["model"] = interface["proxy"].model
         _interface["params"] = interface.pop("proxy_params", {})
         # TODO: Figure out if we ever going to need interfaces for multiple state variables!
-        _interface["connections"] = {str(interface["voi_labels"]): interface["populations"]}
+        _interface["connections"] = {"%s -> %s" % (str(interface["voi_labels"]), str(interface["populations"])):
+                                         interface["populations"]}
         # Generate the devices => "proxy TVB nodes":
         interface["proxy"] = \
             interface["proxy"](
@@ -293,7 +294,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["model"] = interface["proxy"].model
         _interface["params"] = interface.pop("proxy_params", {})
         # TODO: Figure out if we ever going to need interfaces for multiple state variables!
-        _interface["connections"] = {str(interface["voi_labels"]): interface["populations"]}
+        _interface["connections"] = {"%s -> %s" % (str(interface["populations"]), str(interface["voi_labels"])):
+                                         interface["populations"]}
         # Generate the devices <== "proxy TVB nodes":
         interface["proxy"] = \
             interface["proxy"](
