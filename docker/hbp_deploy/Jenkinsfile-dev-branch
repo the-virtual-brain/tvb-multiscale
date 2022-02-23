@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest3'
-        VERSION_TAG = 'dev'
         TVB_BRANCH = 'tvb-cosim-consensus-dp'
         MULTISCALE_BRANCH = 'parallelNEST31'
     }
@@ -12,12 +11,14 @@ pipeline {
         stage('Build and push docker image on docker hub'){
             steps {
                 script {
-                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root/commits?sha=${TVB_BRANCH}' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
-                    LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits?sha=${MULTISCALE_BRANCH}' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
+                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root/commits?sha=${TVB_BRANCH}' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits?sha=${MULTISCALE_BRANCH}' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    VERSION_TAG = "dev-'${LAST_SHA_MULTISCALE}'"
                     withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
                         def dockerfile = 'docker/hbp_deploy/Dockerfile-dev-branch'
-                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'", "--build-arg LAST_SHA_TVB='${LAST_SHA_TVB}' --build-arg LAST_SHA_MULTISCALE='${LAST_SHA_MULTISCALE}' -f ${dockerfile} .")
+                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}", "--build-arg LAST_SHA_TVB='${LAST_SHA_TVB}' --build-arg LAST_SHA_MULTISCALE='${LAST_SHA_MULTISCALE}' -f ${dockerfile} .")
                         dockerImage.push()
+                        dockerImage.push('dev-latest')
                     }
                 }
             }
