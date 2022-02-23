@@ -41,10 +41,10 @@ class ANNarchySerialApp(SpikeNetSerialApp):
     )
 
     network_path = Attr(
-        label="Network path",
+        label="ANNarchy network path",
         field_type=str,
-        doc="""Folder with ANNarchy network source code.""",
-        required=True,
+        doc="""Path to the compiled code of the ANNarchy network.""",
+        required=False,
         default=""
     )
 
@@ -89,20 +89,9 @@ class ANNarchySerialApp(SpikeNetSerialApp):
         kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
         self.annarchy_instance.setup(**kwargs)
 
-    def compile_network(self, *args, **kwargs):
-        if not os.path.isdir(self.network_path):
-            directory = str(kwargs.pop("directory", self.config.out.FOLDER_RES))
-            cwd = os.getcwd()
-            if directory.find(cwd) > -1:
-                directory = os.path.join(directory.split(cwd)[-1][1:].split("res")[0],
-                                         self.spiking_network.__class__.__name__)
-        else:
-            directory = self.network_path
-        self.annarchy_instance.compile(directory=directory, *args, **kwargs)
-
-    def configure_simulation(self, *args, **kwargs):
+    def configure_simulation(self):
+        self.spiking_network.network_path = self.network_path
         super(ANNarchySerialApp, self).configure_simulation()
-        self.compile_network(*args, **kwargs)
 
     def simulate(self, simulation_length=None):
         if simulation_length is None:

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -46,6 +48,14 @@ class ANNarchyNetwork(SpikingNetwork):
         doc="""A NESTBrain instance holding all NEST neural populations 
                    organized per brain region they reside and neural model""")  # spiking_brain['rh-insula']['E']
 
+    network_path = Attr(
+        label="ANNarchy network path",
+        field_type=str,
+        doc="""Path to the compiled code of the ANNarchy network.""",
+        required=False,
+        default=""
+    )
+
     annarchy_instance = None
 
     _network = None
@@ -79,6 +89,20 @@ class ANNarchyNetwork(SpikingNetwork):
     @property
     def min_delay(self):
         return self.dt
+
+    def compile_network(self, *args, **kwargs):
+        self.network_path = kwargs.pop("network_path", self.network_path)
+        if not os.path.isdir(self.network_path):
+            directory = str(kwargs.pop("directory", self.config.out.FOLDER_RES))
+            cwd = os.getcwd()
+            if directory.find(cwd) > -1:
+                self.network_path = os.path.join(directory.split(cwd)[-1][1:].split("res")[0],
+                                                 self.__class__.__name__)
+        self.annarchy_instance.compile(directory=self.network_path, *args, **kwargs)
+
+    def configure(self, *args, **kwargs):
+        super(ANNarchyNetwork, self).configure()
+        self.compile_network(*args, **kwargs)
 
     def Run(self, simulation_length=None, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
