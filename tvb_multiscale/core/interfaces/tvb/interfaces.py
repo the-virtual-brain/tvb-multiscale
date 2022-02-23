@@ -251,7 +251,7 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
 
     def __call__(self):
         data = self.get_proxy_data()
-        if data[0][1] <= data[0][0]:
+        if data[0][1] < data[0][0]:
             return None
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
