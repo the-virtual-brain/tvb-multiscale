@@ -882,7 +882,7 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
        acting as an output device of spike discrete events."""
 
     _data = Attr(field_type=OrderedDict, label="Data buffer",
-                 default=OrderedDict({"times": [], "senders": []}),
+                 default=None,
                  required=True,
                  doc="""An OrderedDict buffer holding the spikes' times and senders read from the Monitors""")
 
@@ -891,6 +891,8 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                                       have been given to the output via a get_events() call.""")
 
     def __init__(self, device=OrderedDict(), annarchy_instance=None, **kwargs):
+        # Initialize it immediately because it is required!:
+        self._data = OrderedDict({"times": [], "senders": []})
         kwargs["model"] = kwargs.get("model", "SpikeMonitor")
         ANNarchyOutputDevice.__init__(self, device, annarchy_instance, **kwargs)
         SpikeRecorder.__init__(self, device, **kwargs)
