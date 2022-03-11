@@ -45,10 +45,6 @@ class ANNarchyInterface(HasTraits):
     def annarchy_instance(self):
         return self.spiking_network.annarchy_instance
 
-    @property
-    def time(self):
-        return self.annarchy_instance.get_time()
-
 
 class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
 
@@ -59,6 +55,10 @@ class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
                         sending outputs from the ANNarchy network to the co-simulator""",
                  field_type=ANNarchyOutputDeviceSet,
                  required=True)
+
+    @property
+    def _time(self):
+        return self.annarchy_instance.get_time()
 
     @property
     def proxy_gids(self):

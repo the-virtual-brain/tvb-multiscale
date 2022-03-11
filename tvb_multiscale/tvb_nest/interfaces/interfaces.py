@@ -46,10 +46,6 @@ class NESTInterface(HasTraits):
     def nest_instance(self):
         return self.spiking_network.nest_instance
 
-    @property
-    def time(self):
-        return self.nest_instance.GetKernelStatus("time")
-
 
 class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
 
@@ -65,6 +61,10 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
         if spiking_network:
             self.spiking_network = spiking_network
         super().__init__(**kwargs)
+
+    @property
+    def _time(self):
+        return self.nest_instance.GetKernelStatus("biological_time")
 
     @property
     def proxy_gids(self):
