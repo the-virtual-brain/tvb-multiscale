@@ -54,5 +54,6 @@ class CoSimulatorSerial(CoSimulator):
                                     self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
                                     steps_performed).item()
             self.log.info("Simulating the spiking network for %d time steps...", steps_to_run)
-            self.simulate_spiking_simulator(steps_to_run * self.integrator.dt)
+            self.simulate_spiking_simulator(np.around(steps_to_run * self.integrator.dt,
+                                                      decimals=self._number_of_dt_decimals).item())
         return steps_performed
