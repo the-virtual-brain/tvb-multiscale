@@ -38,6 +38,7 @@ It inherits the Simulator class.
 """
 
 import time
+from decimal import Decimal
 
 import numpy
 
@@ -89,6 +90,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     n_output_interfaces = 0
     n_input_interfaces = 0
 
+    _number_of_dt_decimals = None
+
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
            and certainly longer or equal to the integration time step.
@@ -97,7 +100,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
            Existing connections are considered those with nonzero weights.
         """
         # The synchronization time should be at least equal to integrator.dt:
-        self.synchronization_time = numpy.maximum(self.synchronization_time, self.integrator.dt)
+        self.synchronization_time = numpy.around(numpy.maximum(self.synchronization_time, self.integrator.dt),
+                                                 decimals=self._number_of_dt_decimals)
         if self.synchronization_time < self.integrator.dt:
             self.log.warning("synchronization time =  %g is smaller than the time step integrator.dt = %g\n"
                              "Setting synchronization time equal to integrator.dt!"
@@ -105,7 +109,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.synchronization_time = self.integrator.dt
         # Compute the number of synchronization time steps:
         self.synchronization_n_step = int(numpy.round(self.synchronization_time / self.integrator.dt).item())
-        synchronization_time = self.integrator.dt * self.synchronization_n_step
+        synchronization_time = numpy.around(self.integrator.dt * self.synchronization_n_step,
+                                            decimals=self._number_of_dt_decimals)
         if synchronization_time != self.synchronization_time:
             self.log.warning("Slightly adjusting synchronization time from %g to %g\n"
                              "to be an integer multiple of integrator.dt = %g!" %
@@ -131,7 +136,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         existing_connections = self.connectivity.weights != 0
         if numpy.any(existing_connections):
             self._default_synchronization_n_step = self.connectivity.idelays[existing_connections].min()
-            self._default_synchronization_time = self._default_synchronization_n_step * self.integrator.dt
+            self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
+                                                              decimals=self._number_of_dt_decimals)
         else:
             self._default_synchronization_n_step = 1
             self._default_synchronization_time = self.integrator.dt
@@ -225,6 +231,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         """
         Simulator.configure(self, full_configure=full_configure)
+        self._number_of_dt_decimals = numpy.abs(Decimal('%g' % self.integrator.dt).as_tuple().exponent)
         self._compute_requirements = True
         self.n_tvb_steps_ran_since_last_synch = None
         self.n_tvb_steps_sent_to_cosimulator_at_last_synch = None
