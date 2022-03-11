@@ -40,10 +40,6 @@ class NESTInterface(HasTraits):
     def nest_instance(self):
         return self.spiking_network.nest_instance
 
-    @property
-    def time(self):
-        return self.nest_instance.GetKernelStatus("biological_time")
-
 
 class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
 
@@ -54,6 +50,10 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
                         sending outputs from the NEST network to the co-simulator""",
                  field_type=NESTOutputDeviceSet,
                  required=True)
+
+    @property
+    def _time(self):
+        return self.nest_instance.GetKernelStatus("biological_time")
 
     @property
     def proxy_gids(self):

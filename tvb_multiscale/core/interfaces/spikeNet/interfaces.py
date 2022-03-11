@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
+from decimal import Decimal
 
 import numpy as np
 
@@ -100,11 +101,23 @@ class SpikeNetOutputInterface(SpikeNetInterface):
         default=np.array([1, 0])
     )
 
+    _number_of_dt_decimals = None
+
     def configure(self):
         super(SpikeNetOutputInterface, self).configure()
         self.proxy.configure()
         if len(self.model) == 0:
             self.model = self.proxy.model
+        self._number_of_dt_decimals = np.abs(Decimal('%g' % self.dt).as_tuple().exponent)
+
+    @property
+    @abstractmethod
+    def _time(self):
+        pass
+
+    @property
+    def time(self):
+        return np.around(self._time, decimals=self._number_of_dt_decimals)
 
     @property
     def label(self):
