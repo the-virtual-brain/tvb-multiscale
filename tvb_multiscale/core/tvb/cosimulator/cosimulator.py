@@ -251,6 +251,13 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self._cosimulation_flag = False
             self.synchronization_n_step = 0
             self.synchronization_time = 0.0
+        if self.current_step:
+            msg = "Current step is not 0 upon configuration!\n" + \
+                  "Setting it to 0. Initial condition might be affected!"
+            self.log.warning(msg)
+            print(msg)
+            self.current_step = 0
+
 
     def _prepare_stimulus(self):
         if self.simulation_length != self.synchronization_time:
