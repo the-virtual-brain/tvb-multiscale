@@ -279,9 +279,7 @@ class CoSimulatorBuilder(HasTraits):
         return self.monitors
 
     def configure_initial_conditions(self, simulator):
-        simulator.connectivity.set_idelays(simulator.integrator.dt)
-        simulator.horizon = simulator.connectivity.idelays.max() + 1
-        self.initial_conditions = self.initial_conditions * np.ones((simulator.horizon,
+        self.initial_conditions = self.initial_conditions * np.ones((1,
                                                                      simulator.model.nvar,
                                                                      simulator.connectivity.number_of_regions,
                                                                      simulator.model.number_of_modes))
