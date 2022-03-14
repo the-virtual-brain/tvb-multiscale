@@ -56,7 +56,8 @@ class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
 
     def send(self, data):
         # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
+        self.target.Set({"schedule": self.transform_time(data[0])[np.newaxis],
+                         "rates": np.maximum([0.0], data[1])})
 
 
 class ANNarchyTimedPoissonPopulationSet(ANNarchyTimedArraySet):
@@ -73,12 +74,6 @@ class ANNarchyTimedPoissonPopulationSet(ANNarchyTimedArraySet):
 
     _spikeNet_input_device_type = ANNarchyTimedPoissonPopulation
 
-    # def send(self, data):
-    #     # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-    #     # Rate times do not need to be advanced by dt,
-    #     # because they anyway count from the start time of the simulation = dt
-    #     self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
-
 
 class ANNarchyHomogeneousCorrelatedSpikeTrainsSet(ANNarchyTimedArraySet):
 
@@ -94,12 +89,6 @@ class ANNarchyHomogeneousCorrelatedSpikeTrainsSet(ANNarchyTimedArraySet):
     model = "HomogeneousCorrelatedSpikeTrains"
 
     _spikeNet_input_device_type = ANNarchyHomogeneousCorrelatedSpikeTrains
-    #
-    # def send(self, data):
-    #     # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-    #     # Rate times do not need to be advanced by dt,
-    #     # because they anyway count from the start time of the simulation = dt
-    #     self.target.Set({"rates": np.maximum([0.0], data[1][:, :, None]), "schedule": self.transform_time(data[0])})
 
 
 class ANNarchySpikeSourceArraySet(ANNarchyInputDeviceSet):
