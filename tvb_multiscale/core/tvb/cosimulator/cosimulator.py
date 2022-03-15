@@ -389,7 +389,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                       elapsed_wall_time * 1e3 / self.simulation_length)
         return steps_performed
 
-    def _run_cosimulation(self, ts, xs, wall_time_start, **kwds):
+    def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
         simulated_steps = 0
         simulation_length = self.simulation_length
         synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
@@ -410,7 +410,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if self.PRINT_PROGRESSION_MESSAGE:
                 print("\r" + log_msg, end="")
         self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
-        if self._cosimulation_flag:
+        if self._cosimulation_flag and advance_simulation_for_delayed_monitors_output:
             # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
             remaining_steps = \
                 int(numpy.round((simulation_length + self.synchronization_time - simulated_steps*self.integrator.dt)
@@ -418,16 +418,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if remaining_steps:
                 self.log.info("Simulating for synchronization excess time %0.3f...",
                               remaining_steps * self.integrator.dt)
-                current_step = int(self.current_step)
-                current_state = numpy.copy(self.current_state)
                 synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
                 self.synchronization_n_step = numpy.minimum(synchronization_n_step, remaining_steps)
                 self._run_for_synchronization_time(ts, xs, wall_time_start,
                                                    cosimulation=False, **kwds)  # Run only TVB
                 self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
-                # Revert the current_step and current_state to those before the excess synchronization time
-                self.current_step = int(current_step)
-                self.current_state = numpy.copy(current_state)
         self.simulation_length = simulation_length  # recover the configured value
 
     def run(self, **kwds):
@@ -438,8 +433,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             xs.append([])
         wall_time_start = time.time()
         self.simulation_length = kwds.pop("simulation_length", self.simulation_length)
+        asfdmo = kwds.pop("advance_simulation_for_delayed_monitors_output", True)
         if self._cosimulation_flag:
-            self._run_cosimulation(ts, xs, wall_time_start, **kwds)
+            self._run_cosimulation(ts, xs, wall_time_start,
+                                   advance_simulation_for_delayed_monitors_output=asfdmo,
+                                   **kwds)
         else:
             self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
