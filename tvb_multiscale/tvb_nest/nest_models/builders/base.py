@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
-
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
@@ -131,16 +129,19 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     def _get_minmax_delay(self, delay, minmax):
         """A method to get the minimum or maximum delay from a distribution dictionary."""
-        if isinstance(delay, dict):
-            if "distribution" in delay.keys():
-                if delay["distribution"] == "uniform":
-                    return delay[minmax]
-                else:
-                    raise_value_error("Only uniform distribution is allowed for delays to make sure that > min_delay!\n"
-                                      "Distribution given is %s!" % delay["distribution"])
-            else:
-                raise_value_error("If delay is a dictionary it has to be a distribution dictionary!\n"
-                                  "Instead, the delay given is %s\n" % str(delay))
+        from nest.lib.hl_api_types import Parameter
+        if isinstance(delay, Parameter):
+            return delay.GetValue()
+            # TODO: Find a way to check the boundaries of the delay Parameter!
+            # if "distribution" in delay.keys():
+            #     if delay["distribution"] == "uniform":
+            #         return delay[minmax]
+            #     else:
+            #         raise_value_error("Only uniform distribution is allowed for delays to make sure that > min_delay!\n"
+            #                           "Distribution given is %s!" % delay["distribution"])
+            # else:
+            #     raise_value_error("If delay is a dictionary it has to be a distribution dictionary!\n"
+            #                       "Instead, the delay given is %s\n" % str(delay))
         else:
             return delay
 

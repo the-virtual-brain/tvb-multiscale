@@ -67,6 +67,10 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
         return self.nest_instance.GetKernelStatus("biological_time")
 
     @property
+    def _time(self):
+        return self.nest_instance.GetKernelStatus("biological_time")
+
+    @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
 

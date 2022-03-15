@@ -195,7 +195,7 @@ class NESTSpikeGenerator(NESTInputDevice):
             if nodes is None:
                 nodes = self.device
             n_neurons = len(nodes)
-            current_time = self.nest_instance.GetKernelStatus("time")
+            current_time = self.nest_instance.GetKernelStatus("biological_time")
             if time_shift:
                 # Apply time_shift, if any
                 new_spikes = []
@@ -677,7 +677,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
         kwargs["model"] = kwargs.get("model", "spike_recorder")
         NESTOutputDevice.__init__(self, device, nest_instance, **kwargs)
         SpikeRecorder.__init__(self, device, **kwargs)
-        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
+        self._last_spike_time = self.nest_instance.GetKernelStatus("biological_time")
 
     # Only SpikeRecorder is the target of connections with neurons in NEST:
 
@@ -743,7 +743,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
 
     def reset(self):
         NESTOutputDevice.reset(self)
-        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
+        self._last_spike_time = self.nest_instance.GetKernelStatus("biological_time")
 
 
 class NESTMultimeter(NESTOutputDevice, Multimeter):
