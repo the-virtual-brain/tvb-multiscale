@@ -39,11 +39,13 @@ class _ANNarchyPopulation(HasTraits):
     _population_ind = Int(field_type=int, default=-1, required=True, label="Population indice",
                           doc="""The indice of the population in the ANNarchy network""")
 
-    projections_pre = List(of=Projection, default=(), label="Outgoing projections",
-                           doc="""A list of population's outgoing ANNarchy.Projection instances""")
+    projections_pre = []
+    # List(of=Projection, default=(), label="Outgoing projections",
+    #                        doc="""A list of population's outgoing ANNarchy.Projection instances""")
 
-    projections_post = List(of=Projection, default=(), label="Incoming projections",
-                            doc="""A list of population's incoming ANNarchy.Projection instances""")
+    projections_post = []
+    # List(of=Projection, default=(), label="Incoming projections",
+    #                         doc="""A list of population's incoming ANNarchy.Projection instances""")
 
     _source_conns_attr = "pre"
     _target_conns_attr = "post"
@@ -110,12 +112,12 @@ class _ANNarchyPopulation(HasTraits):
     def neurons(self):  # tuple of populations' neurons
         """Method to get all neurons' indices of this population.
            Returns:
-            tuple of neurons' global indices.
+            array of neurons' global indices.
             In ANNarchy: So far we get only local indices.
             We form global indices by zipping local indices with the global population indice.
         """
         local_inds = self._nodes.ranks
-        return tuple(zip([self.population_ind] * len(local_inds), local_inds))
+        return np.array(list(zip([self.population_ind] * len(local_inds), local_inds)))
 
     def _assert_nodes(self, nodes=None):
         """Method to assert an input set of neurons either as:
@@ -307,10 +309,11 @@ class _ANNarchyPopulation(HasTraits):
 
     def info_neurons(self):
         neurons = self.neurons
-        populations_inds = np.unique(neurons[:, 0])
         info = OrderedDict()
-        for pop_ind in populations_inds:
-            info["nodes_gids_of_population_%d" % pop_ind] = np.array(neurons[neurons[:, 0] == pop_ind, 1])
+        if neurons.size:
+            populations_inds = np.unique(neurons[:, 0])
+            for pop_ind in populations_inds:
+                info["nodes_gids_of_population_%d" % pop_ind] = np.array(neurons[neurons[:, 0] == pop_ind, 1])
         return info
 
 
