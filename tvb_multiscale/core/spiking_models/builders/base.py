@@ -12,8 +12,9 @@ from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, property_to_fun
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
+from tvb_multiscale.core.utils.file_utils import load_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
-    serialize_tvb_cosimulator, load_serial_tvb_cosimulator
+    serialize_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
@@ -75,7 +76,7 @@ class SpikingNetworkBuilder(object):
 
     def _assert_tvb_cosimulator(self):
         if isinstance(self.tvb_serial_sim, os.PathLike):
-            self.tvb_serial_sim = load_serial_tvb_cosimulator(self.tvb_serial_sim)
+            self.tvb_serial_sim = load_pickled_dict(self.tvb_serial_sim)
         elif not isinstance(self.tvb_serial_sim, dict):
             self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
 

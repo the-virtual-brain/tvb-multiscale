@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import pickle  # dill
-
 import numpy as np
 
 
@@ -36,15 +34,3 @@ def serialize_tvb_cosimulator(cosimulator):
         d["coupling.%s" % param] = np.copy(getattr(cosimulator.coupling, param))
 
     return d
-
-
-def dump_serial_tvb_cosimulator(serial_tvb_cosim, filepath):
-    with open(filepath, "wb") as f:
-        pickle.dump(serial_tvb_cosim, f)  # dill
-
-
-def load_serial_tvb_cosimulator(filepath):
-    with open(filepath, "rb") as f:
-        serial_tvb_cosim = pickle.load(f)  # dill
-    return serial_tvb_cosim
-
