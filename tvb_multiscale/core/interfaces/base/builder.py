@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+import glob
 from abc import ABCMeta, abstractmethod, ABC
 from logging import Logger
 from six import string_types
@@ -13,6 +15,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summary_info
+from tvb_multiscale.core.utils.file_utils import dump_pickled_dict, load_pickled_dict
 
 
 class InterfaceBuilder(HasTraits, ABC):
@@ -186,6 +189,52 @@ class InterfaceBuilder(HasTraits, ABC):
     def build(self):
         self.build_interfaces()
         return self._output_interfaces, self._input_interfaces
+
+    @property
+    def output_interfaces_filepath(self):
+        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_output_interfaces')
+
+    @property
+    def input_interfaces_filepath(self):
+        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_input_interfaces')
+
+    def dump_interface(self, interface, filepath):
+        dump_pickled_dict(interface, filepath)
+
+    def load_interface(self, filepath):
+        return load_pickled_dict(filepath)
+
+    def dump_interfaces(self, interfaces, interfaces_filepath):
+        number_of_leading_zeros = int(len(interfaces) / 10) + 1
+        for ii, interface, in enumerate(interfaces):
+            self.dump_interface(interface, interfaces_filepath + "_" + str(ii).zfill(number_of_leading_zeros))
+
+    def dump_output_interfaces(self):
+        self.dump_interfaces(self.output_interfaces, self.output_interfaces_filepath)
+
+    def dump_input_interfaces(self):
+        self.dump_interfaces(self.input_interfaces, self.input_interfaces_filepath)
+
+    def dump_all_interfaces(self):
+        self.dump_output_interfaces()
+        self.dump_input_interfaces()
+
+    def load_interfaces(self, input_or_output):
+        input_or_output = input_or_output.lower()
+        interfaces = []
+        for ii, filepath in enumerate(glob.glob(getattr(self, "%s_interfaces_filepath" % input_or_output) + "*")):
+            interfaces.append(self.load_interface(filepath))
+        setattr(self, "%s_interfaces" % input_or_output, interfaces)
+
+    def load_output_interfaces(self):
+        self.load_interfaces("output")
+
+    def load_input_interfaces(self):
+        self.load_interfaces("input")
+
+    def load_all_interfaces(self):
+        self.load_output_interfaces()
+        self.load_input_interfaces()
 
     def info(self, recursive=0):
         info = super(InterfaceBuilder, self).info(recursive=recursive)
