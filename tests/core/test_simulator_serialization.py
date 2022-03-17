@@ -14,9 +14,9 @@ from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io 
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 
 from tvb_multiscale.core.config import CONFIGURED
+from tvb_multiscale.core.utils.file_utils import dump_pickled_dict, load_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorSerialBuilder
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
-    serialize_tvb_cosimulator, dump_serial_tvb_cosimulator, load_serial_tvb_cosimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
 
 
 def test_simulator_serialization(test_models=[Linear, WilsonCowan, LinearReducedWongWangExcIO,
@@ -28,14 +28,7 @@ def test_simulator_serialization(test_models=[Linear, WilsonCowan, LinearReduced
         simulator = simulator_builder.build()
         serial_sim = serialize_tvb_cosimulator(simulator)
         filepath = os.path.join(CONFIGURED.out.FOLDER_RES, serial_sim["model"]+".pkl")
-        dump_serial_tvb_cosimulator(filepath)
-        serial_sim2 = load_serial_tvb_cosimulator()
+        dump_pickled_dict(filepath)
+        serial_sim2 = load_pickled_dict()
         for key, val in serial_sim.items():
             assert np.all(serial_sim2[key] == val)
-
-
-
-
-
-
-

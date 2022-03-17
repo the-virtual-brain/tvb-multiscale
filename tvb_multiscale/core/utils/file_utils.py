@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+
+import dill  # , pickle  TODO: decide whether to use one or the other, or make it a configuration choice
 from six import string_types
 
 import numpy as np
@@ -121,3 +123,14 @@ def read_nest_output_device_data_from_ascii_to_dict(filepath, n_lines_to_skip=0,
     # return read_data_from_ascii_to_dict(filepath, n_lines_to_skip=n_lines_to_skip, n_header_lines=3,
     #                                     renaming_labels_dict={"sender": "senders", "time_ms": "times"},
     #                                     empty_file=empty_file)
+
+
+def dump_pickled_dict(d, filepath):
+    with open(filepath, "wb") as f:
+        dill.dump(d, f)
+
+
+def load_pickled_dict(filepath):
+    with open(filepath, "rb") as f:
+        d = dill.load(f)
+    return d
