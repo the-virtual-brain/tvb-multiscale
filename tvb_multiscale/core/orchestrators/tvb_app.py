@@ -5,12 +5,13 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import App
+from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import \
     CoSimulatorBuilder, CoSimulatorParallelBuilder, CoSimulatorSerialBuilder
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import dump_serial_tvb_cosimulator, serialize_tvb_cosimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
 from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder, TVBRemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.models.default import \
@@ -148,7 +149,7 @@ class TVBApp(App):
             tvb_cosimulator_serialized = self.serialize_tvb_cosimulator()
         if not filepath:
             filepath = self.default_tvb_serial_cosim_path
-        dump_serial_tvb_cosimulator(tvb_cosimulator_serialized, filepath)
+        dump_pickled_dict(tvb_cosimulator_serialized, filepath)
 
     def build_interfaces(self):
         if not self._interfaces_built:

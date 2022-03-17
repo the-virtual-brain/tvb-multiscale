@@ -11,8 +11,7 @@ from tvb.contrib.scripts.utils.log_error_utils import warning
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
-    load_serial_tvb_cosimulator
+from tvb_multiscale.core.utils.file_utils import load_pickled_dict
 
 
 class App(HasTraits):
@@ -167,7 +166,7 @@ class NonTVBApp(App, ABC):
         if not filepath:
             filepath = self.default_tvb_serial_cosim_path
         try:
-            self.tvb_cosimulator_serialized = load_serial_tvb_cosimulator(filepath)
+            self.tvb_cosimulator_serialized = load_pickled_dict(filepath)
         except:
             # TODO: Decide whether to raise an exception here
             warning("Failed to load serialized TVB CoSimulator from file!:\n%s" % filepath)
