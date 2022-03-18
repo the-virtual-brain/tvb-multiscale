@@ -102,7 +102,7 @@ class TransformerBuilder(HasTraits):
             setattr(transformer, p, pval)
 
     @abstractmethod
-    def configure_and_build_transformer(self, interfaces):
+    def configure_and_build_transformers(self, interfaces):
         pass
 
 
@@ -114,7 +114,7 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
     _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
     _tvb_to_spikeNet_transformer_models = DefaultTVBtoSpikeNetTransformers
 
-    def configure_and_build_transformer(self, interfaces):
+    def configure_and_build_transformers(self, interfaces):
         for interface in interfaces:
             self._configure_transformer_model(interface, self._tvb_to_spikeNet_models,
                                               self._default_tvb_to_spikeNet_models,
@@ -160,7 +160,7 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
     _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBModels
     _spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBTransformers
 
-    def configure_and_build_transformer(self, interfaces):
+    def configure_and_build_transformers(self, interfaces):
         for interface in interfaces:
             self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
                                               self._default_spikeNet_to_tvb_transformer_models,
