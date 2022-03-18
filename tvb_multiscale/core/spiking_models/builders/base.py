@@ -65,7 +65,7 @@ class SpikingNetworkBuilder(object):
     _nodes_connections = []
     _output_devices = []
     _input_devices = []
-    _spiking_brain = SpikingBrain()
+    _spiking_brain = SpikingBrain(name="brain regions")
     _models = []
 
     def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=None, logger=None):
@@ -684,7 +684,7 @@ class SpikingNetworkBuilder(object):
         LOG.info("Connecting populations among spiking brain regions...")
         self.connect_spiking_region_nodes()
 
-    def _build_and_connect_devices(self, devices):
+    def _build_and_connect_devices(self, devices, label):
         """Method to build and connect input or output devices, organized by
            - the variable they measure or stimulate, and the
            - population(s), and
@@ -697,23 +697,23 @@ class SpikingNetworkBuilder(object):
                                           device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
         if len(_devices):
-            return DeviceSets(concat(_devices))
+            return DeviceSets(concat(_devices), name=label)
         else:
-            return DeviceSets()
+            return DeviceSets(name=label)
 
     def build_and_connect_output_devices(self):
         """Method to build and connect output devices, organized by
           - the variable they measure, and the
           - population(s), and
           - brain region nodes they target."""
-        return self._build_and_connect_devices(self._output_devices)
+        return self._build_and_connect_devices(self._output_devices, "output_devices")
 
     def build_and_connect_input_devices(self):
         """Method to build and connect input devices, organized by
            - the variable they stimulate, and the
            - population(s), and
            - brain region nodes they target."""
-        return self._build_and_connect_devices(self._input_devices)
+        return self._build_and_connect_devices(self._input_devices, "input_devices")
 
     def build(self):
         """This method will run the whole workflow of building the spiking network, which will be returned."""

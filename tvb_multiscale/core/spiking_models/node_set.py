@@ -56,10 +56,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
 
     @property
     def label(self):
-        label = ""
-        for pop in self.collections:
-            label = self[pop].brain_region
-        return label
+        return self.name
 
     @property
     def spiking_simulator_module(self):

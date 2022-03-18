@@ -31,6 +31,13 @@ class SpikingRegionNode(SpikingNodesSet):
     def __setstate__(self, d):
         super(SpikingRegionNode, self).__setstate__(d)
 
+    @property
+    def label(self):
+        label = self.name
+        for pop in self.collections:
+            label = self[pop].brain_region
+        return label
+
     def get_neurons(self, inds_or_lbls=None):
         """Method to get the neurons indices of the SpikingRegionNode's populations.
            Argument:

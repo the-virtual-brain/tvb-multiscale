@@ -162,9 +162,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
                                           device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
         if len(_devices):
-            return DeviceSets(concat(_devices))
+            return DeviceSets(concat(_devices), name="input_devices")
         else:
-            return DeviceSets()
+            return DeviceSets(name="input_devices")
 
     def build_and_connect_devices(self, devices):
         """Method to build and connect input or output devices, organized by
