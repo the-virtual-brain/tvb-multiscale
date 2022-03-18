@@ -938,7 +938,7 @@ class DeviceSet(SpikingNodesSet):
        a quantity to be recorded or stimulated from/to a set of neural populations,
        and distributed across brain regions' nodes.
        Therefore, the DeviceSet is labelled according to the quantity and/or population,
-       it measrues/stimulates from/to, and indexed by regions' nodes' integer and/or label index,
+       it measures/stimulates from/to, and indexed by regions' nodes' integer and/or label index,
        e.g. device_set["rh_insula"]."""
 
     model = Attr(field_type=str, default="", required=True,
@@ -1177,5 +1177,3 @@ class DeviceSets(SpikingNodesSet):
     """
 
     _collection_name = "DeviceSet"
-
-    pass

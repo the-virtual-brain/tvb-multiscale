@@ -57,7 +57,7 @@ class SpikingNetwork(HasTraits):
     output_devices = Attr(
         field_type=DeviceSets,
         label="Output devices.",
-        default=DeviceSets(),
+        default=DeviceSets(name="output_devices"),
         required=True,
         doc="""A DeviceSets of output (recording) devices of the SpikingNetwork, 
                organized by recorded population and brain region.""")
@@ -66,7 +66,7 @@ class SpikingNetwork(HasTraits):
     input_devices = Attr(
         field_type=DeviceSets,
         label="Input devices.",
-        default=DeviceSets(),
+        default=DeviceSets(name="input_devices"),
         required=True,
         doc="""A DeviceSets of input (stimulating) devices of the SpikingNetwork, 
                organized by target population and brain region.""")
@@ -76,7 +76,7 @@ class SpikingNetwork(HasTraits):
     output_proxies = Attr(
         field_type=DeviceSets,
         label="Output proxies.",
-        default=DeviceSets(),
+        default=DeviceSets(name="output_proxies"),
         required=True,
         doc="""A DeviceSets of output (recording) devices of the SpikingNetwork, 
                which record data to send to a co-simulator, organized by 
@@ -85,8 +85,8 @@ class SpikingNetwork(HasTraits):
 
     input_proxies = Attr(
         field_type=DeviceSets,
-        label="Intput proxies of the SpikingNetwork.",
-        default=DeviceSets(),
+        label="Input proxies of the SpikingNetwork.",
+        default=DeviceSets(name="input_proxies"),
         required=False,
         doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
                that mimick a co-simulator's activity (e.g., TVB mean field state variables) 
