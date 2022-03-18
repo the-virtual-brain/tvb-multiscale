@@ -19,6 +19,9 @@ class Communicator(HasTraits):
         Abstract Communicator class to transfer data (time and values).
     """
 
+    label = Attr(field_type=str, default="", required=True, label="Label",
+                 doc="""Communicator label describing the direction of data transfer it implements""")
+
     @abstractmethod
     def __call__(self, *args):
         pass
@@ -200,8 +203,8 @@ class WriterToFile(Sender):
        - an abstract method to write data to the target.
     """
 
-    target = Attr(field_type=str, default="", required=True,
-                  label="Path to target file", doc="""Full path to .npy file to write data to.""")
+    target = Attr(field_type=str, required=True,
+                  label="Path to target file", doc="""Full path to file to write data to.""")
 
     @abstractmethod
     def send(self, data):
@@ -219,7 +222,7 @@ class ReaderFromFile(Receiver):
     """
 
     source = Attr(field_type=str, default="", required=True,
-                  label="Path to source file", doc="""Full path to .npy file to read data from.""")
+                  label="Path to source file", doc="""Full path to file to read data from.""")
 
     @abstractmethod
     def receive(self):
