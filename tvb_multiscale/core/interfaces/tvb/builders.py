@@ -10,10 +10,9 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimCoupling, CosimMonitorFromCoupling
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
+from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder, RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
@@ -287,10 +286,10 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         self._configure_output_proxys_vois()
         self._configure_cosim_monitors()
 
-    def _get_output_interface_arguments(self, interface):
+    def _get_output_interface_arguments(self, interface, ii=0):
         return interface
 
-    def _get_input_interface_arguments(self, interface):
+    def _get_input_interface_arguments(self, interface, ii=0):
         return interface
 
     def build(self):
@@ -322,30 +321,27 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         return info
 
 
-class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder):
+class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder, RemoteInterfaceBuilder):
 
     """TVBRemoteInterfaceBuilder class"""
 
     _output_interface_type = TVBSenderInterface
     _input_interface_type = TVBReceiverInterface
     
-    _remote_sender_types = [val.value for val in RemoteSenders.__members__.values()]
-    _remote_receiver_types = [val.value for val in RemoteReceivers.__members__.values()]
+    _label = "TVB"
 
     def configure(self):
-        super(TVBRemoteInterfaceBuilder, self).configure()
-        self._assert_output_interfaces_component_config(self._remote_sender_types, "sender")
-        self._assert_input_interfaces_component_config(self._remote_receiver_types, "receiver")
+        TVBInterfaceBuilder.configure(self)
+        RemoteInterfaceBuilder.configure(self)
 
-    def _get_output_interface_arguments(self, interface):
-        interface = super(TVBRemoteInterfaceBuilder, self)._get_output_interface_arguments(interface)
-        interface["communicator"] = interface.pop("sender")
-        return interface
+    def _get_output_interface_arguments(self, interface, ii=0):
+        return RemoteInterfaceBuilder._get_output_interface_arguments(self,
+                                           TVBInterfaceBuilder._get_output_interface_arguments(self, interface, ii), ii)
 
-    def _get_input_interface_arguments(self, interface):
-        interface = super(TVBRemoteInterfaceBuilder, self)._get_input_interface_arguments(interface)
-        interface["communicator"] = interface.pop("receiver")
-        return interface
+    def _get_input_interface_arguments(self, interface, ii=0):
+        return RemoteInterfaceBuilder._get_input_interface_arguments(self,
+                                                                     TVBInterfaceBuilder._get_input_interface_arguments(
+                                                                     self, interface, ii), ii)
 
 
 class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
@@ -360,10 +356,11 @@ class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpike
             # From TVBInterfaceBuilder to TransformerBuilder:
             self.dt = self.tvb_dt
         TVBRemoteInterfaceBuilder.configure(self)
-        self.configure_and_build_transformer(self)
+        self.configure_and_build_transformers(self)
 
-    def _get_output_interface_arguments(self, interface):
-        interface.update(super(TVBOutputTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface))
+    def _get_output_interface_arguments(self, interface, ii=0):
+        interface.update(super(TVBOutputTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface,
+                                                                                                           ii))
         return interface
 
 
@@ -379,10 +376,10 @@ class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToT
             # From TVBInterfaceBuilder to TransformerBuilder:
             self.dt = self.tvb_dt
         TVBRemoteInterfaceBuilder.configure(self)
-        self.configure_and_build_transformer(self)
+        self.configure_and_build_transformers(self)
 
-    def _get_input_interface_arguments(self, interface):
-        interface = super(TVBInputTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface)
+    def _get_input_interface_arguments(self, interface, ii=0):
+        interface = super(TVBInputTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface, ii)
         return interface
 
 
@@ -399,15 +396,15 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder,
             # From TVBInterfaceBuilder to TransformerBuilder:
             self.dt = self.tvb_dt
         TVBRemoteInterfaceBuilder.configure(self)
-        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
-        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
 
-    def _get_output_interface_arguments(self, interface):
-        interface = super(TVBTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface)
+    def _get_output_interface_arguments(self, interface, ii=0):
+        interface = super(TVBTransfomerInterfaceBuilder, self)._get_output_interface_arguments(interface, ii)
         return interface
 
-    def _get_input_interface_arguments(self, interface):
-        interface = TVBTransfomerInterfaceBuilder._get_input_interface_arguments(self, interface)
+    def _get_input_interface_arguments(self, interface, ii=0):
+        interface = TVBTransfomerInterfaceBuilder._get_input_interface_arguments(self, interface, ii)
         return interface
 
 
@@ -447,29 +444,30 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
                                      self._default_tvb_to_nest_models, self._output_proxy_models)
         self._configure_proxy_models(self.input_interfaces, self._spikeNet_to_tvb_models,
                                      self._default_nest_to_tvb_models, self._input_proxy_models)
-        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformer(self, self.output_interfaces)
-        SpikeNetToTVBTransformerBuilder.configure_and_build_transformer(self, self.input_interfaces)
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
 
-    def _get_spikeNet_interface_arguments(self, interface):
-        interface.update({"spiking_network": self.spiking_network, "populations": np.array(interface["populations"])})
+    def _get_spikeNet_interface_arguments(self, interface, ii=0):
+        interface.update({"spiking_network": self.spiking_network,
+                          "populations": np.array(interface["populations"])})
 
-    def _get_spikeNet_output_interface_arguments(self, interface):
-        self._get_spikeNet_interface_arguments(interface)
+    def _get_spikeNet_output_interface_arguments(self, interface, ii=0):
+        self._get_spikeNet_interface_arguments(interface, ii)
         interface["dt"] = self.tvb_dt
         self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes)
         self._build_spikeNet_to_tvb_interface_proxy_nodes(interface)
 
-    def _get_spikeNet_input_interface_arguments(self, interface):
-        self._get_spikeNet_interface_arguments(interface)
+    def _get_spikeNet_input_interface_arguments(self, interface, ii=0):
+        self._get_spikeNet_interface_arguments(interface, ii)
         self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
         self._build_tvb_to_spikeNet_interface_proxy_nodes(interface)
 
-    def _get_output_interface_arguments(self, interface):
+    def _get_output_interface_arguments(self, interface, ii=0):
         self._get_spikeNet_input_interface_arguments(
-            TVBInterfaceBuilder._get_output_interface_arguments(self, interface))
+            TVBInterfaceBuilder._get_output_interface_arguments(self, interface, ii), ii)
         return interface
 
-    def _get_input_interface_arguments(self, interface):
+    def _get_input_interface_arguments(self, interface, ii=0):
         self._get_spikeNet_output_interface_arguments(
-            TVBInterfaceBuilder._get_input_interface_arguments(self, interface))
+            TVBInterfaceBuilder._get_input_interface_arguments(self, interface, ii), ii)
         return interface
