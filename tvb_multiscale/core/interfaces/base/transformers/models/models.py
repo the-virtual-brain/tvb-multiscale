@@ -27,7 +27,6 @@ class LinearTransformers(Enum):
     LINEAR_POTENTIAL = LinearPotential
 
 
-
 Transformers = combine_enums("Transformers",
                              BasicTransformers, RatesToSpikesTransformers, SpikesToRatesTransformers,
                              LinearTransformers, IntegrationTransformers)
