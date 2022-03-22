@@ -2,6 +2,7 @@
 
 import os
 import glob
+import inspect
 from enum import Enum
 from abc import ABCMeta, abstractmethod, ABC
 from logging import Logger
@@ -15,7 +16,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.utils.data_structures_utils import summary_info
+from tvb_multiscale.core.utils.data_structures_utils import summary_info, get_enum_values
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict, load_pickled_dict
 from tvb_multiscale.core.interfaces.base.interfaces import SenderInterface, ReceiverInterface
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers, WriterToFile, ReaderFromFile
@@ -66,14 +67,14 @@ class InterfaceBuilder(HasTraits, ABC):
     _output_interfaces = None
     _input_interfaces = None
 
-    def _loop_to_get_from_interface_configs(self, interfaces, attr):
+    def _loop_to_get_from_interface_configs(self, interfaces, attr, default=None):
         output = []
         for interface in interfaces:
-            output += ensure_list(interface[attr])
+            output += ensure_list(interface.get(attr, default))
         return output
 
-    def _loop_to_get_unique_from_interface_configs(self, interfaces, attr):
-        return np.unique(self._loop_to_get_from_interface_configs(interfaces, attr))
+    def _loop_to_get_unique_from_interface_configs(self, interfaces, attr, default=None):
+        return np.unique(self._loop_to_get_from_interface_configs(interfaces, attr, default))
 
     @property
     @abstractmethod
@@ -87,11 +88,13 @@ class InterfaceBuilder(HasTraits, ABC):
 
     @property
     def out_proxy_inds(self):
-        return self._loop_to_get_unique_from_interface_configs(self.output_interfaces, "proxy_inds")
+        return self._loop_to_get_unique_from_interface_configs(self.output_interfaces, "proxy_inds",
+                                                               default=self.proxy_inds)
 
     @property
     def in_proxy_inds(self):
-        return self._loop_to_get_unique_from_interface_configs(self.input_interfaces, "proxy_inds")
+        return self._loop_to_get_unique_from_interface_configs(self.input_interfaces, "proxy_inds",
+                                                               default=self.proxy_inds)
 
     @property
     def number_of_out_proxy_nodes(self):
@@ -137,13 +140,13 @@ class InterfaceBuilder(HasTraits, ABC):
             inds.append(self._only_ind(value, labels))
         return inds
 
-    def _only_inds_for_interfaces(self, interfaces, attr, labels):
-        return self._only_inds(self._loop_to_get_unique_from_interface_configs(interfaces, attr), labels)
+    def _only_inds_for_interfaces(self, interfaces, attr, labels, default=None):
+        return self._only_inds(self._loop_to_get_unique_from_interface_configs(interfaces, attr, default), labels)
 
     @staticmethod
-    def _assert_interfaces_component_config(interfaces_list, types_list, component_names, default_type):
+    def _assert_interfaces_component_config(interfaces_list, component_types, component_names, default_type):
         """This method will assert that all interfaces' components types are appropriate,
-           i.e., included in the given types_list argument.
+           i.e., included in the given communicator_types argument.
         """
         for ii, interface in enumerate(interfaces_list):
             component_names = ensure_list(component_names)
@@ -153,25 +156,31 @@ class InterfaceBuilder(HasTraits, ABC):
                 if interface[component] is not None:
                     break
             if interface[component] is None:
-                interface[component] = default_type
-            elif isinstance(interface[component], string_types):
-                for component_type in types_list:
-                    if interface[component] == component_type.__name__:
-                        interface[component] = component_type
-            elif isinstance(interface[component], Enum):
+                interface[component] = default_type.value  # type <- Enum.value
+            elif isinstance(interface[component], string_types):  # type <- Enum name
+                interface[component] = getattr(component_types, interface[component])
+            elif isinstance(interface[component], Enum):  # type <- Enum
+                assert interface[component] in component_types
                 interface[component] = interface[component].value
-            assert interface[component] in types_list or \
-                   isinstance(interface[component], types_list) or \
-                   issubclass(interface[component], types_list)
+            else:
+                # It is already a type or an instance
+                component_types_tuple = tuple(get_enum_values(component_types))
+                if inspect.isclass(interface[component]):
+                    # assert it is a type...
+                    assert issubclass(interface[component], component_types_tuple)
+                else:  # ...or instance
+                    assert isinstance(interface[component], component_types_tuple)
         return interfaces_list
 
-    def _assert_input_interfaces_component_config(self, types_list, component_names, default_type):
+    def _assert_input_interfaces_component_config(self, types_tuple, component_names, default_type):
         self.input_interfaces = \
-            self.assert_interfaces_component_config(self.input_interfaces, types_list, component_names, default_type)
+            self._assert_interfaces_component_config(self.input_interfaces, types_tuple,
+                                                     component_names, default_type)
 
-    def _assert_output_interfaces_component_config(self, types_list, component_names, default_type):
+    def _assert_output_interfaces_component_config(self, types_tuple, component_names, default_type):
         self.output_interfaces = \
-            self.assert_interfaces_component_config(self.output_interfaces, types_list, component_names, default_type)
+            self._assert_interfaces_component_config(self.output_interfaces, types_tuple,
+                                                     component_names, default_type)
 
     def set_coupling_mode(self, interface):
         interface["coupling_mode"] = interface.get("coupling_mode", self.default_coupling_mode)
@@ -187,7 +196,8 @@ class InterfaceBuilder(HasTraits, ABC):
         return interface
 
     def build_output_interface(self, interface, ii=0):
-        return self._output_interface_type(**self._get_output_interface_arguments(interface, ii))
+        interface = self._get_output_interface_arguments(interface, ii)
+        return self._output_interface_type(**interface)
 
     def build_input_interface(self, interface, ii=0):
         return self._input_interface_type(**self._get_input_interface_arguments(interface, ii))
@@ -283,8 +293,8 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
     _output_interface_type = SenderInterface
     _input_interface_type = ReceiverInterface
 
-    _remote_sender_types = [val.value for val in RemoteSenders.__members__.values()]
-    _remote_receiver_types = [val.value for val in RemoteReceivers.__members__.values()]
+    _remote_sender_types = RemoteSenders
+    _remote_receiver_types = RemoteReceivers
 
     _default_remote_sender_type = RemoteSenders.WRITER_TO_NUMPY
     _default_remote_receiver_type = RemoteReceivers.READER_FROM_NUMPY
@@ -316,35 +326,36 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
     def _file_path(self, label):
         return os.path.join(self.config.out.FOLDER_RES, "%s" % label)
 
-    def _build_communicator(self, interface, types_list, sender_or_receiver, ii):
-        params = interface.pop("communicator_params", interface.pop(sender_or_receiver + "_params"), {})
-        if isinstance(interface["communicator"], types_list) or \
-                issubclass(interface["communicator"], types_list):
+    def _build_communicator(self, interface, communicator_types, sender_or_receiver, ii):
+        params = interface.pop("communicator_params", interface.pop(sender_or_receiver + "_params", {}))
+        try:
+            # Generate the communicator instance assuming a type
+            interface["communicator"] = interface["communicator"](**params)
+        except:
             # This is the case that the communicator instance is already generated
             for p, pval in params.items():
                 setattr(interface["communicator"], p, pval)
-        else:
-            # Generate the communicator instance
-            interface["communicator"] = interface["communicator"](**params)
         # Set the interface communicator label if it is not already set by the user:
         if len(interface["communicator"].label) == 0:
             interface["communicator"].label = \
                 self._interface_communicator_label(np.where(sender_or_receiver == "sender",
-                                                            self.output_label, self.input_label), ii)
+                                                            self.output_label, self.input_label).item(), ii)
         # If it is a file communicator, and the target/source filepath is not already set by the user
-        # define a default name + the gid of the communicator
-        if isinstance(interface["communicator"], (WriterToFile, ReaderFromFile)) or \
-                issubclass(interface["communicator"], (WriterToFile, ReaderFromFile)):
-            source_or_target = np.where(sender_or_receiver == "sender", "target", "source")
-            if len(getattr(interface["communicator"], source_or_target)) == 0:
-                setattr(interface["communicator"], source_or_target, self._file_path(["communicator"].label))
+        # define a default filepath for the a file communicator
+        if isinstance(interface["communicator"], (WriterToFile, ReaderFromFile)):
+            source_or_target = np.where(sender_or_receiver == "sender", "target", "source").item()
+            try:
+                assert len(getattr(interface["communicator"], source_or_target)) > 0
+            except:
+                setattr(interface["communicator"], source_or_target, self._file_path(interface["communicator"].label))
+        return interface
 
     def _get_output_interface_arguments(self, interface, ii=0):
-        interface = super(RemoteInterfaceBuilder, self)._get_output_interface_arguments(interface, ii)
-        interface["communicator"] = self._build_communicator(interface, self._remote_sender_types, "sender", ii)
-        return interface
+        return self._build_communicator(
+            super(RemoteInterfaceBuilder, self)._get_output_interface_arguments(interface, ii),
+                self._remote_sender_types, "sender", ii)
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        interface = super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii)
-        interface["communicator"] = self._build_communicator(interface, self._remote_receiver_types, "receiver", ii)
-        return interface
+        return self._build_communicator(
+            super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii),
+                self._remote_receiver_types, "receiver", ii)
