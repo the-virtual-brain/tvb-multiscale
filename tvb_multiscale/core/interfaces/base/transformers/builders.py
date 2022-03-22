@@ -10,6 +10,7 @@ from tvb.basic.neotraits._attr import Attr, Float
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 from tvb_multiscale.core.interfaces.base.transformers.models.base import \
     Transformer, LinearRate, LinearCurrent, LinearPotential
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
@@ -75,10 +76,13 @@ class TransformerBuilder(HasTraits):
         # Return a model or an Enum
         model = interface.get("transformer", interface.pop("transformer_model", None))
         if model is None:
-            model = interface.get("model", interface_models[0])
-            model = model.upper()
-            assert model in interface_models
-            model = getattr(default_transformer_models, model).value
+            model = interface.get("model", None)
+            if model is None:
+                model = list(interface_models)[0].name  # a string at this point
+            else:
+                model = model.upper()
+            assert model in list(interface_models.__members__)  # Enum names (strings)
+            model = getattr(default_transformer_models, model).value  # string name of transformer type
         if isinstance(model, Enum):
             # Enum input:
             assert model in transformer_models
@@ -86,12 +90,13 @@ class TransformerBuilder(HasTraits):
             # String input:
             model = model.upper()
             model = getattr(transformer_models, model)  # Get an Enum
-        elif inspect.isclass(model):
-            # if it is a Transformer type
-            assert issubclass(model, Transformer)
         else:
-            # or it has to be a Transformer model
-            assert isinstance(model, Transformer)
+            transformer_models_tuple = tuple(get_enum_values(transformer_models))
+            if inspect.isclass(interface["transformer"]):
+                # assert it is a Transformer type...
+                assert issubclass(model, transformer_models_tuple)
+            else: # ...or instance
+                assert isinstance(model, transformer_models_tuple)
         interface["transformer"] = model
 
     def build_transformer(self, model, **kwargs):
