@@ -114,7 +114,7 @@ class ElephantSpikesHistogramRateRedWongWangInh(ElephantSpikesHistogramRate, Red
     def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
-        return RedWongWangInh.compute(self, ElephantSpikesHistogramRate._compute(self, input_buffer, *args, **kwargs))
+        return RedWongWangInh._compute(self, ElephantSpikesHistogramRate._compute(self, input_buffer, *args, **kwargs))
 
 
 class ElephantSpikesRateRedWongWangInh(ElephantSpikesRate, RedWongWangInh):
@@ -126,4 +126,4 @@ class ElephantSpikesRateRedWongWangInh(ElephantSpikesRate, RedWongWangInh):
     def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of synaptic activity and instantaneous mean spiking rates to result."""
-        return RedWongWangInh._compute(self, ElephantSpikesRate.compute(self, input_buffer, *args, **kwargs))
+        return RedWongWangInh._compute(self, ElephantSpikesRate._compute(self, input_buffer, *args, **kwargs))
