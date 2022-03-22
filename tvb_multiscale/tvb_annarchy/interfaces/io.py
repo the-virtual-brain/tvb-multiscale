@@ -55,9 +55,10 @@ class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
     _spikeNet_input_device_type = ANNarchyTimedArray
 
     def send(self, data):
-        # Assuming data is of shape (proxy, time), we convert it to (proxy, time, 1)
-        self.target.Set({"schedule": self.transform_time(data[0])[np.newaxis],
-                         "rates": np.maximum([0.0], data[1])})
+        # Assuming data is of shape (proxy, time)
+        rates = np.maximum([0.0], data[1])
+        schedule = np.repeat(self.transform_time(data[0])[np.newaxis], rates.shape[0], axis=0)
+        self.target.Set({"schedule": schedule, "rates": rates})
 
 
 class ANNarchyTimedPoissonPopulationSet(ANNarchyTimedArraySet):
