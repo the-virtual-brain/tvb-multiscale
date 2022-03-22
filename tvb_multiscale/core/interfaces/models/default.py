@@ -6,7 +6,7 @@ import numpy as np
 
 from tvb.basic.neotraits._attr import Attr, Int
 
-from tvb_multiscale.core.interfaces.base.builder import InterfaceBuilder
+from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBRemoteInterfaceBuilder, TVBSpikeNetInterfaceBuilder, \
     TVBTransfomerInterfaceBuilder, TVBOutputTransformerInterfaceBuilder, TVBInputTransformerInterfaceBuilder, \
