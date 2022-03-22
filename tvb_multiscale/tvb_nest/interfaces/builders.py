@@ -227,8 +227,8 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
 
     """TVBNESTInterfaceBuilder class"""
 
-    _tvb_to_spikeNet_models = list(TVBtoNESTModels.__members__)
-    _spikeNet_to_TVB_models = list(NESTtoTVBModels.__members__)
+    _tvb_to_spikeNet_models = TVBtoNESTModels
+    _spikeNet_to_TVB_models = NESTtoTVBModels
 
     _default_nest_to_tvb_models = DefaultNESTtoTVBModels
     _default_tvb_to_nest_models = DefaultTVBtoNESTModels
