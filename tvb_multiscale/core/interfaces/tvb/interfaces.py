@@ -294,11 +294,11 @@ class TVBInterfaces(HasTraits):
 
     @property
     def proxy_inds(self):
-        return self._loop_get_from_interfaces("spiking_proxy_inds")
+        return self._loop_get_from_interfaces("proxy_inds")
 
     @property
     def proxy_inds_unique(self):
-        return np.unique(self._loop_get_from_interfaces("spiking_proxy_inds"))
+        return np.unique(self._loop_get_from_interfaces("proxy_inds"))
 
     @property
     def n_vois(self):
@@ -372,9 +372,9 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
        and receives data from them"""
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
-        """Method to get the correct indices of voi and spiking_proxy_inds,
+        """Method to get the correct indices of voi and proxy_inds,
            adjusted to the contents, shape etc of the cosim_updates,
-           based on TVB CoSimulators' vois and spiking_proxy_inds,
+           based on TVB CoSimulators' vois and proxy_inds,
            for each cosimulation"""
         for interface in self.interfaces:
             interface.set_local_indices(simulator_voi, simulator_proxy_inds)

@@ -79,7 +79,7 @@ class ReceiverInterface(CommunicatorInterface):
 
     communicator = Attr(
         label="Receiver Communicator",
-        field_type=Sender,
+        field_type=Receiver,
         doc="""A Receiver Communicator class instance to receive data from the transformer/cosimulator.""",
         required=True
     )
