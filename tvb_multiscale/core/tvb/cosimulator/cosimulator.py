@@ -155,7 +155,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     def _preconfigure_interfaces_vois_proxy_inds(self):
         """This method will
-            - set the voi and spiking_proxy_inds of the CoSimulator, based on the predefined input and output interfaces,
+            - set the voi and proxy_inds of the CoSimulator, based on the predefined input and output interfaces,
             - configure all interfaces.
         """
         voi = []
@@ -198,7 +198,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                     assert [voi in monitor.voi for voi in interface.voi]
 
     def _configure_local_vois_and_proxy_inds_per_interface(self):
-        """This method will set the local -per cosimulation and interface- voi and spiking_proxy_inds indices,
+        """This method will set the local -per cosimulation and interface- voi and proxy_inds indices,
            based on the voi of each linked cosimulation monitor, for TVB to Cosimulator interfaces,
            and on the expected shape of ths cosimulation updates data for Cosimulator to TVB interfaces.
         """
@@ -206,9 +206,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             # Set the correct voi indices with reference to the linked TVB CosimMonitor, for each cosimulation:
             self.output_interfaces.set_local_indices(self.cosim_monitors)
         if self.n_input_interfaces:
-            # Method to get the correct indices of voi and spiking_proxy_inds, for each cosimulation,
+            # Method to get the correct indices of voi and proxy_inds, for each cosimulation,
             # adjusted to the contents, shape etc of the cosim_updates,
-            # based on TVB CoSimulators' vois and spiking_proxy_inds, i.e., good_cosim_update_values_shape
+            # based on TVB CoSimulators' vois and proxy_inds, i.e., good_cosim_update_values_shape
             self.input_interfaces.set_local_indices(self.voi, self.proxy_inds)
 
     def configure(self, full_configure=True):
