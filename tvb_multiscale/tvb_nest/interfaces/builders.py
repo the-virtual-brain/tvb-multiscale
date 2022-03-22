@@ -67,8 +67,7 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
     spiking_network = Attr(label="NEST Network",
                            doc="""The instance of NESTNetwork class""",
                            field_type=NESTNetwork,
-                           required=True)
-
+                           required=False)
 
     @property
     def nest_network(self):
@@ -197,8 +196,8 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
 
     """TVBNESTInterfaceBuilder class"""
 
-    _tvb_to_spikeNet_models = list(TVBtoNESTModels.__members__)
-    _spikeNet_to_TVB_models = list(NESTtoTVBModels.__members__)
+    _tvb_to_spikeNet_models = TVBtoNESTModels
+    _spikeNet_to_TVB_models = NESTtoTVBModels
 
     _default_nest_to_tvb_models = DefaultNESTtoTVBModels
     _default_tvb_to_nest_models = DefaultTVBtoNESTModels

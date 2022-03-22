@@ -194,8 +194,8 @@ class TVBANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, TVBSpikeNetInterfac
 
     """TVBANNarchyInterfaceBuilder class"""
 
-    _tvb_to_spikeNet_models = list(TVBtoANNarchyModels.__members__)
-    _spikeNet_to_TVB_models = list(ANNarchyToTVBModels.__members__)
+    _tvb_to_spikeNet_models = TVBtoANNarchyModels
+    _spikeNet_to_TVB_models = ANNarchyToTVBModels
 
     _default_ANNarchy_to_tvb_models = DefaultANNarchytoTVBModels
     _default_tvb_to_ANNarchy_models = DefaultTVBtoANNarchyModels
