@@ -209,13 +209,13 @@ class TVBInterfaceBuilder(InterfaceBuilder):
 
     def _configure_input_proxys_inds(self):
         for interface in self.input_interfaces:
-            self._configure_proxys_inds(interface, interface.pop("spiking_proxy_inds",
+            self._configure_proxys_inds(interface, interface.get("spiking_proxy_inds",
                                                                  interface.get("proxy_inds", self.proxy_inds)))
 
     def _configure_output_proxys_inds(self):
         for interface in self.output_interfaces:
             if self.is_tvb_coupling_interface(interface):
-                self._configure_proxys_inds(interface, interface.pop("spiking_proxy_inds",
+                self._configure_proxys_inds(interface, interface.get("spiking_proxy_inds",
                                                                      interface.get("proxy_inds", self.proxy_inds)))
             else:
                 self._configure_proxys_inds(interface, interface.get("proxy_inds", self._default_out_proxy_inds))
@@ -291,6 +291,8 @@ class TVBInterfaceBuilder(InterfaceBuilder):
             for proxy_ind in self.in_proxy_inds:
                 self._default_out_proxy_inds.remove(proxy_ind)
         self._default_out_proxy_inds = np.array(self._default_out_proxy_inds)
+        self._configure_input_proxys_inds()
+        self._configure_output_proxys_inds()
         self._configure_output_proxys_vois()
         self._configure_input_proxys_vois()
         self._configure_cosim_monitors()
@@ -346,12 +348,18 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder, RemoteInterfaceBuilder):
         self._configure_output_proxys_inds()
 
     def _get_output_interface_arguments(self, interface, ii=0):
-        return RemoteInterfaceBuilder._get_output_interface_arguments(
+        interface = RemoteInterfaceBuilder._get_output_interface_arguments(
             self, TVBInterfaceBuilder._get_output_interface_arguments(self, interface, ii), ii)
+        if "spiking_proxy_inds" in interface:
+            del interface['spiking_proxy_inds']
+        return interface
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        return RemoteInterfaceBuilder._get_input_interface_arguments(
+        interface =  RemoteInterfaceBuilder._get_input_interface_arguments(
             self, TVBInterfaceBuilder._get_input_interface_arguments(self, interface, ii), ii)
+        if "spiking_proxy_inds" in interface:
+            del interface['spiking_proxy_inds']
+        return interface
 
 
 class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
@@ -426,27 +434,12 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     def tvb_proxy_nodes_inds(self):
         return self._default_out_proxy_inds
 
-    def _configure_input_proxys_inds(self):
-        for interface in self.input_interfaces:
-            self._configure_proxys_inds(interface, interface.get("spiking_proxy_inds",
-                                                                 interface.get("proxy_inds", self.proxy_inds)))
-
-    def _configure_output_proxys_inds(self):
-        for interface in self.output_interfaces:
-            if self.is_tvb_coupling_interface(interface):
-                self._configure_proxys_inds(interface, interface.get("spiking_proxy_inds",
-                                                                     interface.get("proxy_inds", self.proxy_inds)))
-            else:
-                self._configure_proxys_inds(interface, interface.get("proxy_inds", self._default_out_proxy_inds))
-
     def configure(self):
         if self.dt == 0.0:
             # From TVBInterfaceBuilder to
             # SpikeNetProxyNodesBuilder, TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder:
             self.dt = self.tvb_dt
         TVBInterfaceBuilder.configure(self)
-        self._configure_input_proxys_inds()
-        self._configure_output_proxys_inds()
         SpikeNetProxyNodesBuilder.configure(self)
         self._configure_proxy_models(self.output_interfaces, self._tvb_to_spikeNet_models,
                                      self._default_tvb_to_nest_models, self._output_proxy_models)
