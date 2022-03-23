@@ -42,7 +42,7 @@ from decimal import Decimal
 
 import numpy
 
-from tvb.basic.neotraits.api import Attr
+from tvb.basic.neotraits.api import Attr, NArray
 from tvb.simulator.models.base import Model
 from tvb.simulator.simulator import Simulator, math
 
@@ -85,12 +85,26 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         doc="""BaseInterfaces for updating from a cosimulation outlet 
                (i.e., translator level or another (co-)simulator to TVB.""")
 
+    out_proxy_inds = NArray(
+        dtype=numpy.int,
+        label="Indices of TVB output proxy nodes",
+        default=numpy.asarray([], dtype=numpy.int),
+        required=True)
+
     PRINT_PROGRESSION_MESSAGE = True
 
     n_output_interfaces = 0
     n_input_interfaces = 0
 
     _number_of_dt_decimals = None
+
+    @property
+    def in_proxy_inds(self):
+        return self.proxy_inds
+
+    @property
+    def all_proxy_inds(self):
+        return numpy.unique(self.proxy_inds.tolist() + self.out_proxy_inds.tolist())
 
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
@@ -160,21 +174,22 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         """
         voi = []
         proxy_inds = []
+        out_proxy_inds = []
         if self.output_interfaces:
-            self.output_interfaces.dt = self.integrator.dt
             # Configure all TVB to Cosim interfaces:
             self.output_interfaces.configure()
             if self.n_output_interfaces:
                 voi += self.output_interfaces.voi_unique.tolist()
-                proxy_inds += self.output_interfaces.proxy_inds_unique.tolist()
+                out_proxy_inds += self.output_interfaces.proxy_inds_unique.tolist()
         if self.input_interfaces:
             # Configure all Cosim to TVB interfaces:
             self.input_interfaces.configure()
             if self.n_input_interfaces:
                 voi += self.input_interfaces.voi_unique.tolist()
-                proxy_inds += self.input_interfaces.proxy_inds_unique.tolist()
+                proxy_inds = self.input_interfaces.proxy_inds_unique.tolist()
         self.voi = numpy.unique(voi).astype(numpy.int)
         self.proxy_inds = numpy.unique(proxy_inds).astype(numpy.int)
+        self.out_proxy_inds = numpy.unique(out_proxy_inds).astype(numpy.int)
 
     def _assert_cosim_monitors_vois_period(self):
         """This method will assert that
@@ -235,18 +250,21 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self._compute_requirements = True
         self.n_tvb_steps_ran_since_last_synch = None
         self.n_tvb_steps_sent_to_cosimulator_at_last_synch = None
-        self.n_output_interfaces = self.output_interfaces.number_of_interfaces if self.output_interfaces else 0
+        if self.output_interfaces:
+            self.output_interfaces.dt = self.integrator.dt
+            self.n_output_interfaces = self.output_interfaces.number_of_interfaces
         self.n_input_interfaces = self.input_interfaces.number_of_interfaces if self.input_interfaces else 0
         self._preconfigure_interfaces_vois_proxy_inds()
         self._preconfigure_synchronization_time()
-        if self.voi.shape[0] * self.proxy_inds.shape[0] != 0:
+        all_proxy_inds = self.all_proxy_inds
+        if self.voi.shape[0] * all_proxy_inds.shape[0] != 0:
             self._cosimulation_flag = True
             self._configure_cosimulation()
             self._assert_cosim_monitors_vois_period()
             self._configure_local_vois_and_proxy_inds_per_interface()
-        elif self.voi.shape[0] + self.proxy_inds.shape[0] > 0:
-            raise ValueError("One of CoSimulator.voi (size=%i) or simulator.proxy_inds (size=%i) are empty!"
-                             % (self.voi.shape[0], self.proxy_inds.shape[0]))
+        elif self.voi.shape[0] + all_proxy_inds.shape[0] > 0:
+            raise ValueError("One of CoSimulator.voi (size=%i) or simulator.all_proxy_inds (size=%i) are empty!"
+                             % (self.voi.shape[0], all_proxy_inds.shape[0]))
         else:
             self._cosimulation_flag = False
             self.synchronization_n_step = 0
@@ -257,7 +275,6 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.log.warning(msg)
             print(msg)
             self.current_step = 0
-
 
     def _prepare_stimulus(self):
         if self.simulation_length != self.synchronization_time:
