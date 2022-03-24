@@ -52,7 +52,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     connectivity = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_lengths=tlTVB)
 
     spiking_proxy_inds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 200)
+    spikeNet_model_builder.population_order = kwargs.pop("population_order", 200)
 
     model_params = kwargs.pop("model_params", {})
 
@@ -60,7 +60,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     tvb_spikeNet_model_builder.model = model
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.populations_order
+    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order
     tvb_spikeNet_model_builder.GPe_proxy_inds = np.array([0, 1])
     tvb_spikeNet_model_builder.GPi_proxy_inds = np.array([2, 3])
     tvb_spikeNet_model_builder.STN_proxy_inds = np.array([4, 5])
