@@ -82,7 +82,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
 
     initial_conditions = kwargs.pop("initial_conditions", np.array([0.0]))
 
-    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 1)
+    spikeNet_model_builder.population_order = kwargs.pop("population_order", 1)
     spikeNet_model_builder.spiking_nodes_inds = spiking_proxy_inds
     spikeNet_model_builder.pops_to_nodes_inds = pops_to_nodes_inds
     spikeNet_model_builder.regions_inds_to_regions_labels = regions_inds_to_regions_labels
@@ -94,10 +94,10 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
     tvb_spikeNet_model_builder.default_coupling_mode = "TVB"
-    tvb_spikeNet_model_builder.N_mf *= spikeNet_model_builder.populations_order
-    tvb_spikeNet_model_builder.N_grc *= spikeNet_model_builder.populations_order
-    tvb_spikeNet_model_builder.N_io *= spikeNet_model_builder.populations_order
-    tvb_spikeNet_model_builder.N_dcgl *= spikeNet_model_builder.populations_order
+    tvb_spikeNet_model_builder.N_mf *= spikeNet_model_builder.population_order
+    tvb_spikeNet_model_builder.N_grc *= spikeNet_model_builder.population_order
+    tvb_spikeNet_model_builder.N_io *= spikeNet_model_builder.population_order
+    tvb_spikeNet_model_builder.N_dcgl *= spikeNet_model_builder.population_order
     tvb_spikeNet_model_builder.CC_proxy_inds = np.array(ensure_list(cc_id))
     tvb_spikeNet_model_builder.CN_proxy_inds = np.array(ensure_list(cereberal_nucleus_id))
     tvb_spikeNet_model_builder.IO_proxy_inds = np.array(ensure_list(io_id))
@@ -112,7 +112,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     # global_coupling_scaling = G * coupling_a
     # tvb_to_spikeNet_transformer = kwargs.pop("tvb_to_spikeNet_transformer",
     #                                          kwargs.pop("tvb_to_spikeNet_transformer_model", None))
-    # tvb_spikeNet_transformer_params = {"scale_factor": populations_order*np.array([1.0])}
+    # tvb_spikeNet_transformer_params = {"scale_factor": population_order*np.array([1.0])}
     # tvb_spikeNet_transformer_params.update(kwargs.pop("tvb_spikeNet_transformer_params", {}))
     #
     # tvb_to_spikeNet_proxy = kwargs.pop("tvb_to_spikeNet_proxy", kwargs.pop("tvb_to_spikeNet_proxy_model", None))
