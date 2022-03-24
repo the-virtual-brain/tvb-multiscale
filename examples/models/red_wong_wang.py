@@ -11,7 +11,7 @@ from examples.example import main_example
 def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrator_app, **kwargs):
 
     spiking_proxy_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
-    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.population_order = kwargs.pop("population_order", 100)
 
     model_params = kwargs.pop("model_params", {})
 
@@ -21,7 +21,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
     tvb_spikeNet_model_builder.default_coupling_mode = "TVB"
     tvb_nest_model_builder.model = model
-    tvb_nest_model_builder.N_E = spikeNet_model_builder.populations_order
+    tvb_nest_model_builder.N_E = spikeNet_model_builder.population_order
 
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
@@ -92,7 +92,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
 def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrator_app, **kwargs):
 
     spiking_proxy_inds = kwargs.pop("spiking_proxy_inds", [0, 1])
-    spikeNet_model_builder.populations_order = kwargs.pop("populations_order", 100)
+    spikeNet_model_builder.population_order = kwargs.pop("population_order", 100)
 
     model_params = kwargs.pop("model_params", {})
 
@@ -101,8 +101,8 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     tvb_nest_model_builder.model = model
     tvb_nest_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_nest_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_nest_model_builder.N_E = int(np.round(1.6*spikeNet_model_builder.populations_order))
-    tvb_nest_model_builder.N_I = int(np.round(0.4*spikeNet_model_builder.populations_order))
+    tvb_nest_model_builder.N_E = int(np.round(1.6*spikeNet_model_builder.population_order))
+    tvb_nest_model_builder.N_I = int(np.round(0.4*spikeNet_model_builder.population_order))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
 
