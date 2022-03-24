@@ -418,8 +418,8 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     _tvb_to_spikeNet_models = TVBtoSpikeNetModels
     _spikeNet_to_tvb_models = SpikeNetToTVBModels
 
-    _default_nest_to_tvb_models = DefaultSpikeNetToTVBModels
-    _default_tvb_to_nest_models = DefaultTVBtoSpikeNetModels
+    _default_spikeNet_to_tvb_models = DefaultSpikeNetToTVBModels
+    _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
 
     _input_proxy_models = None   # Input to SpikeNet is output of TVB
     _output_proxy_models = None  # Output of SpikeNet is input to TVB
@@ -442,9 +442,9 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
         TVBInterfaceBuilder.configure(self)
         SpikeNetProxyNodesBuilder.configure(self)
         self._configure_proxy_models(self.output_interfaces, self._tvb_to_spikeNet_models,
-                                     self._default_tvb_to_nest_models, self._output_proxy_models)
+                                     self._default_tvb_to_spikeNet_models, self._output_proxy_models)
         self._configure_proxy_models(self.input_interfaces, self._spikeNet_to_tvb_models,
-                                     self._default_nest_to_tvb_models, self._input_proxy_models)
+                                     self._default_spikeNet_to_tvb_models, self._input_proxy_models)
         TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
         SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
 
