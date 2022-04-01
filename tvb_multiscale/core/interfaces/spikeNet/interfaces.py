@@ -130,19 +130,21 @@ class SpikeNetOutputInterface(SpikeNetInterface):
 
     def get_proxy_data(self):
         data = self.proxy()
-        if len(data[0]) == 2:
-            # This will work for multimeters:
-            self.times = np.array([np.round(data[0][0] / self.dt),  # start_time_step
-                                   np.round(data[0][1] / self.dt)]).astype("i")  # end_time_step
-        else:
-            # This will work for spike recorders:
-            time = np.int(np.round(self.time / self.dt))
-            times = self.times.copy()
-            if time > times[1]:
-                times[0] = times[1] + 1
-                times[1] = time
-            self.times = times
-        return [self.times, data[-1]]
+        if data is not None:
+            if len(data[0]) == 2:
+                # This will work for multimeters:
+                self.times = np.array([np.round(data[0][0] / self.dt),  # start_time_step
+                                       np.round(data[0][1] / self.dt)]).astype("i")  # end_time_step
+            else:
+                # This will work for spike recorders:
+                time = np.int(np.round(self.time / self.dt))
+                times = self.times.copy()
+                if time > times[1]:
+                    times[0] = times[1] + 1
+                    times[1] = time
+                self.times = times
+            return [self.times, data[-1]]
+        return None
 
 
 class SpikeNetInputInterface(SpikeNetInterface):
@@ -171,7 +173,10 @@ class SpikeNetInputInterface(SpikeNetInterface):
         return self._get_proxy_gids(self.proxy.target)
 
     def set_proxy_data(self, data):
-        return self.proxy(data)
+        if data is not None:
+            return self.proxy(data)
+        else:
+            return None
 
 
 class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
