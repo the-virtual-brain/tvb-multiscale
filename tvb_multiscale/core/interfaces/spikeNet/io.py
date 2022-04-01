@@ -162,7 +162,7 @@ class SpikeNetSpikeRecorderTotalDeviceSet(SpikeNetSpikeRecorderDeviceSet):
         for node in self.source.devices():
             spike_data.append([])
             spike_data[-1] = self.source[node].new_spikes_times
-        return [[], spike_data]
+        return [[], np.array(spike_data, dtype='object')]
 
 
 class SpikeNetMultimeterDeviceSetBase(SpikeNetOutputDeviceSet, ABC):
