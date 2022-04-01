@@ -15,10 +15,15 @@ from tvb.basic.neotraits._attr import Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.interfaces.base.transformers.builders import \
+    TransformerBuilder, TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summary_info, get_enum_values
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict, load_pickled_dict
-from tvb_multiscale.core.interfaces.base.interfaces import SenderInterface, ReceiverInterface
+from tvb_multiscale.core.interfaces.base.interfaces import SenderInterface, ReceiverInterface, \
+    RemoteTransformerInterface, RemoteTransformerInterfaces, \
+    TVBtoSpikeNetRemoteTransformerInterface, TVBtoSpikeNetRemoteTransformerInterfaces, \
+    SpikeNetToTVBRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerInterfaces
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers, WriterToFile, ReaderFromFile
 
 
@@ -301,24 +306,20 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
 
     input_label = Attr(field_type=str, default="", required=True, label="Input label",
                        doc="""Input label of interface builder,
-                              to be used for files' names and Communicator class instance labels, 
+                              to be used for files' names and Receiver class instance labels, 
                               for the communication of data towards this CoSimulator""")
 
     output_label = Attr(field_type=str, default="", required=True, label="Output label",
                        doc="""Output label of interface builder,
-                              to be used for files' names and Communicator class instance labels, 
+                              to be used for files' names and Sender class instance labels, 
                               for the communication of data starting from this CoSimulator""")
 
     def configure(self):
         super(RemoteInterfaceBuilder, self).configure()
         self._assert_output_interfaces_component_config(
-            self._remote_sender_types,
-            ["communicator", "sender", "sender_model", "communicator_model"],
-            self._default_remote_sender_type)
+            self._remote_sender_types, ["sender", "sender_model"], self._default_remote_sender_type)
         self._assert_input_interfaces_component_config(
-            self._remote_receiver_types,
-            ["communicator", "receiver", "receiver_model", "communicator_model"],
-            self._default_remote_receiver_type)
+            self._remote_receiver_types, ["receiver", "receiver_model"], self._default_remote_receiver_type)
 
     def _interface_communicator_label(self, label, ii=0):
         return "%s_%d" % (label, ii)
@@ -326,36 +327,175 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
     def _file_path(self, label):
         return os.path.join(self.config.out.FOLDER_RES, "%s" % label)
 
-    def _build_communicator(self, interface, communicator_types, sender_or_receiver, ii):
-        params = interface.pop("communicator_params", interface.pop(sender_or_receiver + "_params", {}))
+    def _build_communicator(self, interface, communicator, ii):
+        params = interface.pop(communicator + "_params", {})
         try:
             # Generate the communicator instance assuming a type
-            interface["communicator"] = interface["communicator"](**params)
+            interface[communicator] = interface[communicator](**params)
         except:
             # This is the case that the communicator instance is already generated
             for p, pval in params.items():
-                setattr(interface["communicator"], p, pval)
+                setattr(interface[communicator], p, pval)
         # Set the interface communicator label if it is not already set by the user:
-        if len(interface["communicator"].label) == 0:
-            interface["communicator"].label = \
-                self._interface_communicator_label(np.where(sender_or_receiver == "sender",
-                                                            self.output_label, self.input_label).item(), ii)
+        if len(interface[communicator].label) == 0:
+            interface[communicator].label = \
+                    self._interface_communicator_label(np.where(communicator == "sender",
+                                                                self.output_label, self.input_label).item(), ii)
         # If it is a file communicator, and the target/source filepath is not already set by the user
         # define a default filepath for the a file communicator
-        if isinstance(interface["communicator"], (WriterToFile, ReaderFromFile)):
-            source_or_target = np.where(sender_or_receiver == "sender", "target", "source").item()
+        if isinstance(interface[communicator], (WriterToFile, ReaderFromFile)):
+            source_or_target = np.where(communicator == "sender", "target", "source").item()
             try:
-                assert len(getattr(interface["communicator"], source_or_target)) > 0
+                assert len(getattr(interface[communicator], source_or_target)) > 0
             except:
-                setattr(interface["communicator"], source_or_target, self._file_path(interface["communicator"].label))
+                setattr(interface[communicator], source_or_target, self._file_path(interface[communicator].label))
         return interface
 
     def _get_output_interface_arguments(self, interface, ii=0):
         return self._build_communicator(
-            super(RemoteInterfaceBuilder, self)._get_output_interface_arguments(interface, ii),
-                self._remote_sender_types, "sender", ii)
+            super(RemoteInterfaceBuilder, self)._get_output_interface_arguments(interface, ii), "sender", ii)
 
     def _get_input_interface_arguments(self, interface, ii=0):
         return self._build_communicator(
-            super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii),
-                self._remote_receiver_types, "receiver", ii)
+            super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii), "receiver", ii)
+
+
+class RemoteTransformerBuilder(RemoteInterfaceBuilder, TransformerBuilder):
+    """RemoteTransformerBuilder class"""
+
+    _output_interface_type = RemoteTransformerInterface
+    _input_interface_type = RemoteTransformerInterface
+
+    _output_interfaces_type = RemoteTransformerInterfaces
+    _input_interfaces_type = RemoteTransformerInterfaces
+
+    tvb_simulator_serialized = Attr(label="TVB simulator serialized",
+                                    doc="""Dictionary of TVB simulator serialization""",
+                                    field_type=dict,
+                                    required=True,
+                                    default={})
+
+    @property
+    def tvb_dt(self):
+        return self.tvb_simulator_serialized.get("integrator.dt", self.config.DEFAULT_DT)
+
+    @property
+    def synchronization_time(self):
+        return self.tvb_simulator_serialized.get("synchronization_time", 0.0)
+
+    @property
+    def synchronization_n_step(self):
+        return int(self.tvb_simulator_serialized.get("synchronization_n_step", 0))
+
+    def _configure_and_build_output_transformers(self):
+        self.configure_and_build_transformers(self.output_interfaces)
+
+    def _configure_and_build_input_transformers(self):
+        self.configure_and_build_transformers(self.input_interfaces)
+
+    def _configure_output_interfaces(self):
+        self._assert_output_interfaces_component_config(
+            self._remote_sender_types, ["sender", "sender_model"], self._default_remote_sender_type)
+        self._assert_output_interfaces_component_config(
+            self._remote_receiver_types, ["receiver", "receiver_model"], self._default_remote_receiver_type)
+        self._configure_and_build_output_transformers()
+
+    def _configure_input_interfaces(self):
+        self._assert_input_interfaces_component_config(
+            self._remote_sender_types, ["sender", "sender_model"], self._default_remote_sender_type)
+        self._assert_input_interfaces_component_config(
+            self._remote_receiver_types, ["receiver", "receiver_model"], self._default_remote_receiver_type)
+        self._configure_and_build_input_transformers()
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        super(RemoteInterfaceBuilder, self).configure()
+        self._configure_output_interfaces()
+        self._configure_input_interfaces()
+
+    def _get_output_interface_arguments(self, interface, ii=0):
+        interface = super(RemoteInterfaceBuilder, self)._get_output_interface_arguments(interface, ii)
+        interface = self._build_communicator(interface, "receiver", ii)
+        interface = self._build_communicator(interface, "sender", ii)
+        return interface
+
+    def _get_input_interface_arguments(self, interface, ii=0):
+        interface = super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii)
+        interface = self._build_communicator(interface, "receiver", ii)
+        interface = self._build_communicator(interface, "sender", ii)
+        return interface
+
+    def build(self):
+        self.build_interfaces()
+        output_interfaces = \
+            self._output_interfaces_type(interfaces=self._output_interfaces,
+                                         synchronization_time=self.synchronization_time,
+                                         synchronization_n_step=self.synchronization_n_step)
+        input_interfaces = \
+            self._input_interfaces_type(interfaces=self._input_interfaces,
+                                        synchronization_time=self.synchronization_time,
+                                        synchronization_n_step=self.synchronization_n_step)
+        return output_interfaces, input_interfaces
+
+
+class TVBtoSpikeNetRemoteTransformerBuilder(RemoteTransformerBuilder, TVBtoSpikeNetTransformerBuilder):
+    """TVBtoSpikeNetRemoteTransformerBuilder class"""
+
+    _output_interface_type = TVBtoSpikeNetRemoteTransformerInterface
+
+    _output_interfaces_type = TVBtoSpikeNetRemoteTransformerInterfaces
+
+    def _configure_and_build_output_transformers(self):
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
+
+    def _configure_input_interfaces(self):
+        pass
+
+    def build(self):
+        self.build_interfaces()
+        output_interfaces = \
+            self._output_interfaces_type(interfaces=self._output_interfaces,
+                                         synchronization_time=self.synchronization_time,
+                                         synchronization_n_step=self.synchronization_n_step)
+        return output_interfaces
+
+
+class SpikeNetToTVBRemoteTransformerBuilder(RemoteTransformerBuilder, SpikeNetToTVBTransformerBuilder):
+    """SpikeNetToTVBRemoteTransformerBuilder class"""
+
+    _input_interface_type = SpikeNetToTVBRemoteTransformerInterface
+
+    _input_interfaces_type = SpikeNetToTVBRemoteTransformerInterfaces
+
+    def _configure_and_build_input_transformers(self):
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
+
+    def _configure_output_interfaces(self):
+        pass
+
+    def build(self):
+        self.build_interfaces()
+        input_interfaces = \
+            self._input_interfaces_type(interfaces=self._input_interfaces,
+                                        synchronization_time=self.synchronization_time,
+                                        synchronization_n_step=self.synchronization_n_step)
+        return input_interfaces
+
+
+class TVBspikeNetRemoteTransformerBuilder(RemoteTransformerBuilder,
+                                          TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
+    """TVBspikeNetRemoteTransformerBuilder class"""
+
+    _output_interface_type = TVBtoSpikeNetRemoteTransformerInterface
+    _input_interface_type = SpikeNetToTVBRemoteTransformerInterface
+
+    _output_interfaces_type = TVBtoSpikeNetRemoteTransformerInterfaces
+    _input_interfaces_type = SpikeNetToTVBRemoteTransformerInterfaces
+
+    def _configure_and_build_output_transformers(self):
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
+
+    def _configure_and_build_input_transformers(self):
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
