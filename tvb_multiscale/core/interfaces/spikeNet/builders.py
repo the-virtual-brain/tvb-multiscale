@@ -10,11 +10,12 @@ from tvb.basic.neotraits._attr import NArray, Attr, Float
 from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
+from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder, \
+    SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
 
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
+    TVBtoSpikeNetTransformerBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputInterface, SpikeNetInputInterface, \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
