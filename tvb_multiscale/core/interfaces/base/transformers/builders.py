@@ -12,7 +12,7 @@ from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 from tvb_multiscale.core.interfaces.base.transformers.models.base import \
-    Transformer, LinearRate, LinearCurrent, LinearPotential
+     LinearRate, LinearCurrent, LinearPotential
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -92,7 +92,7 @@ class TransformerBuilder(HasTraits):
             model = getattr(transformer_models, model)  # Get an Enum
         else:
             transformer_models_tuple = tuple(get_enum_values(transformer_models))
-            if inspect.isclass(interface["transformer"]):
+            if inspect.isclass(model):
                 # assert it is a Transformer type...
                 assert issubclass(model, transformer_models_tuple)
             else: # ...or instance
