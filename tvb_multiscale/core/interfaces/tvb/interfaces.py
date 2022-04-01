@@ -105,12 +105,13 @@ class TVBOutputInterface(TVBInterface):
 
     def __call__(self, data):
         # Assume a single mode, and reshape from TVB (time, voi, proxy)...
-        if data.shape[1] == 1:
+        if data[1].shape[1] == 1:
             # ...to (proxy, time)
-            return data[:, 0, :].T
+            data[1] = data[1][:, 0, :].T
         else:
             # ...or (proxy, time, voi)
-            return np.transpose(data, (2, 0, 1))
+            data[1] = np.transpose(data[1], (2, 0, 1))
+        return data
 
 
 class TVBInputInterface(TVBInterface):
@@ -129,14 +130,16 @@ class TVBInputInterface(TVBInterface):
         self.proxy_inds_loc = self._set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
     def __call__(self, data):
+        if data is None:
+            return None
         # Assume a single mode, and reshape from (proxy, (voi,) time) to TVB (time, voi, proxy)
-        if data.ndim < 3:
+        if data[1].ndim < 3:
             # if there was no voi dimension
-            data = data.T
-            data = data[:, None, :]
+            data[1] = data[1].T
+            data[1] = data[1][:, None, :]
         else:
             # or if there was already a voi dimension
-            data = np.transpose(data, (1, 2, 0))
+            data[1] = np.transpose(data[1], (1, 2, 0))
         return data
 
 
@@ -205,8 +208,9 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         return TVBOutputInterface.__call__(self, data)
 
     def __call__(self, data):
+        data = self.reshape_data(data)
         self.transformer.input_time = data[0]
-        self.transformer.input_buffer = self.reshape_data(data[1])
+        self.transformer.input_buffer = data[1]
         self.transformer()
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
@@ -247,16 +251,16 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
     def reshape_data(self):
-        return TVBInputInterface.__call__(self, self.transformer.output_buffer)
+        return TVBInputInterface.__call__(self, [self.transformer.output_time, self.transformer.output_buffer])
 
     def __call__(self):
         data = self.get_proxy_data()
-        if data[0][1] < data[0][0]:
+        if data is None or data[0][1] < data[0][0]:
             return None
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
-        return [self.transformer.output_time, self.reshape_data()]
+        return self.reshape_data()
 
     def info(self, recursive=0):
         info = BaseInterface.info(self, recursive=recursive)
