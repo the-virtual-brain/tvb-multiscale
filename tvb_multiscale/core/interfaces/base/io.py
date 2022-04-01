@@ -6,28 +6,14 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits.api import Attr
+from tvb.contrib.scripts.utils.log_error_utils import warning
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 
-class Communicator(HasTraits):
-    __metaclass__ = ABCMeta
-
-    """
-        Abstract Communicator class to transfer data (time and values).
-    """
-
-    label = Attr(field_type=str, default="", required=True, label="Label",
-                 doc="""Communicator label describing the direction of data transfer it implements""")
-
-    @abstractmethod
-    def __call__(self, *args):
-        pass
-
-
-class Sender(Communicator):
+class Sender(HasTraits):
     __metaclass__ = ABCMeta
 
     """
@@ -36,6 +22,9 @@ class Sender(Communicator):
             - a target attribute, i.e., the location to send data to,
             - an abstract method to send data to the target.
     """
+
+    label = Attr(field_type=str, default="", required=True, label="Label",
+                 doc="""Sender label describing the data transfer it implements""")
 
     target = None
 
@@ -65,7 +54,7 @@ class Sender(Communicator):
         return info
 
 
-class Receiver(Communicator):
+class Receiver(HasTraits):
     __metaclass__ = ABCMeta
 
     """
@@ -76,6 +65,9 @@ class Receiver(Communicator):
     """
 
     source = None
+
+    label = Attr(field_type=str, default="", required=True, label="Label",
+                 doc="""Sender label describing the data transfer it implements""")
 
     @abstractmethod
     def receive(self):
@@ -224,6 +216,10 @@ class ReaderFromFile(Receiver):
     source = Attr(field_type=str, default="", required=True,
                   label="Path to source file", doc="""Full path to file to read data from.""")
 
+    def file_not_found_handling(self, err_msg):
+        warning("File not found at %s!\%s" % (self.source, str(err_msg)), logger=self.log)
+        return None  # [np.array([]).astype('i'), np.array([])]
+
     @abstractmethod
     def receive(self):
         pass
@@ -238,8 +234,12 @@ class NPZWriter(WriterToFile):
            - an abstract method to write data to the target.
     """
 
+    def configure(self):
+        super(NPZWriter, self).configure()
+        self.target = self.target.split('.npz')[0] + ".npz"
+
     def send(self, data):
-        np.savez(self.target, time=data[0], values=data[1])
+        np.savez(self.target, time=data[0], values=data[1], allow_pickle=True)
 
 
 class NPZReader(ReaderFromFile):
@@ -251,11 +251,18 @@ class NPZReader(ReaderFromFile):
             - an abstract method to read data from the source.
     """
 
+    def configure(self):
+        super(NPZReader, self).configure()
+        self.source = self.source.split('.npz')[0] + ".npz"
+
     def receive(self):
         data = []
-        with np.load(self.source) as datafile:
-            data.append(datafile["time"])
-            data.append(datafile["values"])
+        try:
+            with np.load(self.source, allow_pickle=True) as datafile:
+                data.append(datafile["time"])
+                data.append(datafile["values"])
+        except Exception as e:
+            return self.file_not_found_handling(e)
         return data
 
 
@@ -279,4 +286,3 @@ RemoteSenders = combine_enums("RemoteSenders", WritersToFile)
 RemoteReceivers = combine_enums("RemoteReceivers", ReadersFromFile)
 Senders = combine_enums("Senders", SettersToMemory, RemoteSenders)
 Receivers = combine_enums("Receivers", GettersFromMemory, RemoteReceivers)
-Communicators = combine_enums("Communicators", Senders, Receivers)
