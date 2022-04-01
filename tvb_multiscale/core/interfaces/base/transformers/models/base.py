@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Float, NArray, List
+from tvb.basic.neotraits.api import Float, NArray, Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
 
@@ -65,7 +65,7 @@ class Transformer(HasTraits):
     def compute(self, *args, **kwargs):
         """Abstract method for the computation on the input buffer data for the output buffer data to result.
            It sets the output buffer property"""
-        self.output_buffer = self._compute(self.input_buffer, *args, **kwargs)
+        self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs))
 
     def __call__(self):
         self.compute_time()
@@ -154,13 +154,10 @@ class Linear(Transformer):
 
     def _compute(self, input_buffer):
         """Method that just scales and translates input buffer data to compute the output buffer data."""
-        if isinstance(input_buffer, np.ndarray):
-            output_buffer = self.scale_factor * input_buffer + self.translation_factor
-        else:
-            output_buffer = []
-            for proxy_buffer, scale_factor, translation_factor in \
-                    zip(input_buffer, self._scale_factor, self._translation_factor):
-                output_buffer.append(scale_factor * proxy_buffer + translation_factor)
+        output_buffer = []
+        for proxy_buffer, scale_factor, translation_factor in \
+                zip(input_buffer, self._scale_factor, self._translation_factor):
+            output_buffer.append(scale_factor * proxy_buffer + translation_factor)
         return output_buffer
 
 
@@ -200,10 +197,10 @@ class RatesToSpikes(LinearRate):
         default=np.array([])
     )
 
-    output_buffer = List(
-        of=list,
-        doc="""List of spiketrains (lists) storing temporarily the generated spikes.""",
-        default=(())
+    output_buffer = Attr(
+        field_type=np.ndarray,
+        doc="""Array of spiketrains storing temporarily the generated spikes.""",
+        default=np.array([])
     )
 
     number_of_neurons = NArray(
@@ -248,10 +245,10 @@ class SpikesToRates(LinearRate):
         RateToSpikes Transformer abstract base class
     """
 
-    input_buffer = List(
-        of=np.ndarray,
-        doc="""List of spiketrains (lists) storing temporarily the spikes to be transformed into rates.""",
-        default=(())
+    input_buffer = Attr(
+        field_type=np.ndarray,
+        doc="""Array of spiketrains (lists) storing temporarily the spikes to be transformed into rates.""",
+        default=np.array([])
     )
 
     output_buffer = NArray(
@@ -283,4 +280,4 @@ class SpikesToRates(LinearRate):
                 zip(input_buffer, self._scale_factor, self._translation_factor):
             # At this point we assume that input_buffer has shape (proxy,)
             output_buffer.append(scale_factor * self._compute_rates(proxy_buffer, *args, **kwargs) + translation_factor)
-        return np.array(output_buffer)
+        return output_buffer
