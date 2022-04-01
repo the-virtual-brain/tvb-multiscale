@@ -10,11 +10,12 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimCoupling, CosimMonitorFromCoupling
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
+from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder, \
+    SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
+    TVBtoSpikeNetTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBOutputInterfaces, TVBInputInterfaces, TVBOutputInterface, TVBInputInterface, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
@@ -355,7 +356,7 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder, RemoteInterfaceBuilder):
         return interface
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        interface =  RemoteInterfaceBuilder._get_input_interface_arguments(
+        interface = RemoteInterfaceBuilder._get_input_interface_arguments(
             self, TVBInterfaceBuilder._get_input_interface_arguments(self, interface, ii), ii)
         if "spiking_proxy_inds" in interface:
             del interface['spiking_proxy_inds']
@@ -374,7 +375,7 @@ class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpike
             # From TVBInterfaceBuilder to TransformerBuilder:
             self.dt = self.tvb_dt
         TVBRemoteInterfaceBuilder.configure(self)
-        self.configure_and_build_transformers(self)
+        self.configure_and_build_transformers(self, self.output_interfaces)
 
 
 class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToTVBTransformerBuilder):
@@ -389,7 +390,7 @@ class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToT
             # From TVBInterfaceBuilder to TransformerBuilder:
             self.dt = self.tvb_dt
         TVBRemoteInterfaceBuilder.configure(self)
-        self.configure_and_build_transformers(self)
+        self.configure_and_build_transformers(self, self.input_interfaces)
 
 
 class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder,
