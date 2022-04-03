@@ -113,7 +113,7 @@ class SpikeNetApp(NonTVBApp, ABC):
         super(SpikeNetApp, self).configure()
         self.spikeNet_builder.config = self.config
         self.spikeNet_builder.logger = self.logger
-        if hasattr(self, "population_order"):
+        if self.population_order is not None:
             self.spikeNet_builder.population_order = self.population_order
         else:
             self.population_order = self.spikeNet_builder.population_order
