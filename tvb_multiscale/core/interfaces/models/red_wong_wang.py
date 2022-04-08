@@ -5,7 +5,7 @@ from abc import ABCMeta, ABC, abstractmethod
 import numpy as np
 
 from tvb.basic.neotraits._attr import Int, Float, NArray
-from tvb.simulator.integrators import HeunStochastic
+from tvb.simulator.integrators import HeunStochastic, HeunDeterministic
 from tvb.simulator.noise import Additive
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
@@ -439,7 +439,7 @@ class RedWongWangExcIOInhISpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilde
             interface["transformer_model"] = model
             interface["transformer_params"] = \
                 {"scale_factor": np.array([1.0]) / N,
-                 "integrator": HeunStochastic(dt=self._dt, noise=Additive(nsig=self.nsig)),
+                 "integrator": HeunDeterministic(dt=self._dt), # TODO: find why it doesn't work with HeunStochastic (due to noise)
                  "state": np.zeros((2, len(self.proxy_inds))),
                  "tau_s": tau_s, "tau_r": tau_r, "gamma": gamma}
 

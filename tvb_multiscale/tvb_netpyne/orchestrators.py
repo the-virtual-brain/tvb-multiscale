@@ -11,9 +11,7 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 from tvb_multiscale.tvb_netpyne.interfaces.builders import NetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder
-from tvb_multiscale.tvb_netpyne.interfaces.models.default import \
-    DefaultTVBNetpyneInterfaceBuilder #,
-    # DefaultNetpyneRemoteInterfaceBuilder
+from tvb_multiscale.tvb_netpyne.interfaces.models.default import DefaultTVBNetpyneInterfaceBuilder
     
 
 class NetpyneSerialApp(SpikeNetSerialApp):

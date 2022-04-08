@@ -319,6 +319,7 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
     def _compute_rates(self, spikes, *args, **kwargs):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.instantaneous_rate function."""
+        spikes = spikes.astype(np.float64)
         spiketrain = self._spiketrain(spikes)
         if self.kernel != "auto" or spiketrain.size > 2:
             data = np.array(

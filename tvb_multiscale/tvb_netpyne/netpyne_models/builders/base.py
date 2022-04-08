@@ -72,7 +72,7 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
         collection = NodeCollection(brain_region, label, size)
         population = NetpynePopulation(collection, self.netpyne_instance, label, model, brain_region)
 
-        print(f"Netpyne:: Creating population '{population.global_label}' of {size} neurons of type '{model}'.")
+        print(f"Netpyne:: Creating spiking population '{population.global_label}' of {size} neurons of type '{model}'.")
         self.netpyne_instance.registerPopulation(population.global_label, model, size)
         return population
 
