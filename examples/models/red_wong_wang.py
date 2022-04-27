@@ -99,8 +99,8 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     tvb_spikeNet_model_builder.model = model
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_spikeNet_model_builder.N_E = int(np.round(1.6*spikeNet_model_builder.population_order))
-    tvb_spikeNet_model_builder.N_I = int(np.round(0.4*spikeNet_model_builder.population_order))
+    tvb_spikeNet_model_builder.N_E = int(np.round(spikeNet_model_builder.scale_e * spikeNet_model_builder.population_order))
+    tvb_spikeNet_model_builder.N_I = int(np.round(spikeNet_model_builder.scale_i * spikeNet_model_builder.population_order))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
 

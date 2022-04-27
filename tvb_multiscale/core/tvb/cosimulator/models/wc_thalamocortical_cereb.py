@@ -1113,13 +1113,13 @@ class WilsonCowanThalamoCorticalFIC(WilsonCowanThalamoCortical):
 
     S_m = NArray(
         label=":math:`S_m`",
-        default=np.array([-0.21]),
+        default=np.array([-0.19]),
         domain=Range(lo=-0.30, hi=-0.15, step=0.01),
         doc="""Thalamic relay excitatory population mean activity baseline""")
 
     eta = NArray(
         label=":math:`\eta`",
-        default=np.array([-0.01]),
+        default=np.array([-0.05]),
         domain=Range(lo=-0.1, hi=-0.001, step=0.001),
         doc="""FIC adaptation rate.""")
 
@@ -1129,7 +1129,7 @@ class WilsonCowanThalamoCorticalFIC(WilsonCowanThalamoCortical):
         default={"E": np.array([-1.0, 1.0]),
                  "I": np.array([-1.0, 1.0]),
                  "A": np.array([-1.0, 1.0]),
-                 "wFIC": np.array([-5.0, -1.0])},
+                 "wFIC": np.array([-10.0, 0.0])},
         doc="""The values for each state-variable should be set to encompass
             the expected dynamic range of that state-variable for the current
             parameters, it is used as a mechanism for bounding random inital
@@ -1270,7 +1270,7 @@ class WilsonCowanThalamoCorticalFIC(WilsonCowanThalamoCortical):
         E_not_thalamic = E[self._not_thalamic[:, 0]]
         I_not_thalamic = I[self._not_thalamic[:, 0]]
 
-        derivative[2, self._not_thalamic[:, 0]] = self.eta * I_not_thalamic * (E_not_thalamic - self._E_m)
+        derivative[2, self._not_thalamic[:, 0]] = self.eta * (E_not_thalamic - self._E_m)  # * I_not_thalamic
 
         if self._Ein is None:
             self._Esigm = self.sigm_activ(E_not_thalamic)  # E, exc
@@ -1298,7 +1298,7 @@ class WilsonCowanThalamoCorticalFIC(WilsonCowanThalamoCortical):
         if self._n_thalamic:
             # S = E[self.is_thalamic[:, 0]]
             R = I[self.is_thalamic[:, 0]]
-            derivative[2, self.is_thalamic[:, 0]] = self.eta * R * (E[self.is_thalamic[:, 0]] - self._S_m)
+            derivative[2, self.is_thalamic[:, 0]] = self.eta * (E[self.is_thalamic[:, 0]] - self._S_m)  # * R or self._RS_del
 
             derivative[1, self.is_thalamic[:, 0]] = (
                 - R
