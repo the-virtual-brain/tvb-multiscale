@@ -132,7 +132,7 @@ RUN $VENV/bin/pip3 install aioredis==1.3.0
 RUN $VENV/bin/pip3 install elephant dill starlette uvicorn 'ray[default]'==1.5.0 'ray[server]'==1.5.0; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN git clone --depth 1 --branch parallel https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch ray https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
