@@ -1,20 +1,20 @@
 #
 # TVB & NEST simulations environment
 #
-# Install Python 3.7, NEST, then tvb-library from Pypi
+# Install Python 3.9, NEST, then tvb-library from Pypi
 # Finally link tvb-multiscale from Github sources
 #
 
-FROM neurodebian:buster
+FROM neurodebian:bullseye
 MAINTAINER lia.domide@codemart.ro
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
 RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
-                       wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
-                       python3.7-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
-                       ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
+                       python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
+                       ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
                        subversion cmake zip unzip make; \
     apt-get clean
 
@@ -54,35 +54,41 @@ RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$VENV/bin/python $HOME/packages/libneurosim/configure --prefix=$VENV; \
     make; make install; ls $VENV/lib $VENV/include; \
-    ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
+    ln -s /usr/lib/python3.9/config-x86_64-linux-gnu/libpython3.9.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
 ARG NEST_VER=dev
 ARG NEST=nest-simulator
 ARG NEST_SRC=$HOME/packages/$NEST
 ARG NEST_INSTALL_DIR=$VENV/nest_build
-ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.9/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
+# Install NEST 3.1
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
-RUN git clone https://github.com/nest/nest-simulator.git
+RUN git clone --branch v3.1 https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
-    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
+    git fetch origin && git checkout c545255f7252308d6e73a851ddeece4f2dffc812; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
-          -DPYTHON_INCLUDE_DIR=/usr/include/python3.7m \
+          -DPYTHON_INCLUDE_DIR=/usr/include/python3.9m \
           ${NEST_SRC}; \
     make; make install
 
 # Install nestml
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install setuptools; \
     git clone https://github.com/nest/nestml.git; \
     cd nestml; \
-    git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
+    # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
+
+# Install NEURON and NetPyNE
+RUN $VENV/bin/pip3 install neuron
+RUN $VENV/bin/pip3 install netpyne
 
 # Install pyNN
 # RUN pip install pyNN
@@ -93,20 +99,20 @@ RUN $VENV/bin/pip3 install setuptools; \
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch sbi
+
 # Install TVB specific packages
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
-    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
-    cd tvb_data; \
-    $VENV/bin/python setup.py develop
-
-RUN git clone --depth 1 --branch rising-net-whisking-cereb https://github.com/the-virtual-brain/tvb-root.git
+# Clone and install tvb-root
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
-    git pull origin tvb-cosim-consensus-dp --allow-unrelated-histories; \
+    git pull --allow-unrelated-histories; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop; \
     cd ../framework_tvb; \
@@ -115,12 +121,13 @@ RUN cd tvb-root; \
     $VENV/bin/python setup.py develop
 
 # Install TVB-multiscale specific packages
-
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
 RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     cd annarchy; \
     $VENV/bin/python3 setup.py install --user
 
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install nose
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
@@ -130,15 +137,29 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install elephant dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-# Other packages added in the end for scientific work:
-RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch sbi
-
-RUN git clone --depth 1 --branch parallelNEST31 https://github.com/the-virtual-brain/tvb-multiscale.git
+# Clone and install tvb-multiscale
+RUN git clone --depth 1  https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
-    git pull; \
-    $VENV/bin/python setup.py develop --no-deps;
+    git pull origin --allow-unrelated-histories; \
+    $VENV/bin/python setup.py develop --no-deps
+
+## Compile tvb-netpyne .mod files
+#WORKDIR $HOME/packages
+#RUN cd tvb-multiscale; \
+#    nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
+
+# Checkout specific branch of tvb-root
+WORKDIR $HOME/packages
+RUN cd tvb-root; \
+    git checkout tvb-cosim-consensus-dp; \
+    git pull --allow-unrelated-histories
+
+# Checkout specific branch of tvb-multiscale
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    git checkout parallelNEST31; \
+    git pull --allow-unrelated-histories
 
 WORKDIR /home/docker/
 # Activate the right python env.

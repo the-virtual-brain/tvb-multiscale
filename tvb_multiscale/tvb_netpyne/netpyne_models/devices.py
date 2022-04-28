@@ -1,8 +1,7 @@
-import netpyne
-import neuron
-import numpy
+import numpy as np
 from tvb_multiscale.core.spiking_models.devices import Device, InputDevice, OutputDevice, SpikeRecorder
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+from tvb_multiscale.tvb_netpyne.netpyne.utils import generateSpikesForPopulation
 
 class NetpyneDevice(HasTraits):
 
@@ -58,15 +57,7 @@ class NetpyneDevice(HasTraits):
                    or sequence (list, tuple, array) of nodes the attributes of which should be set.
                    Default = None, corresponds to all nodes.
         """
-        import numpy as np
-        if self.model == "poisson_generator":
-            # TODO: move to inhomogenuous generator
-            rate = values_dict["rate_values"].mean() / values_dict["scale"]
-            dt = values_dict["rate_times"][1] - values_dict["rate_times"][0]
-            if not np.isnan(rate):
-                self.netpyne_instance.applyFiringRate(rate, self.label, dt)
-        else:
-            raise NotImplementedError(f'Input device for model {self.model} not implemented')
+        pass
 
     def _Get(self, attr=None, nodes=None):
         """Method to get attributes of the SpikingNodeCollection's nodes.
@@ -118,15 +109,36 @@ class NetpyneInputDevice(NetpyneDevice, InputDevice):
     def spiking_simulator_module(self):
         return self.device
 
+    _own_neurons = None
+    @property
+    def own_neurons(self):
+        """Method to get gids of artificial spike generating neurons that constitute this device as a proxy node"""
+        if self._own_neurons is None:
+            self._own_neurons = self.netpyne_instance.cellGidsForPop(self.label)
+        return self._own_neurons
+
 class NetpynePoissonGenerator(NetpyneInputDevice):
 
     def __init__(self, device, netpyne_instance, *args, **kwargs):
         kwargs["model"] = kwargs.pop("model", "poisson_generator")
         super(NetpynePoissonGenerator, self).__init__(device, netpyne_instance, *args, **kwargs)
+        self.spikesPerNeuron = {}
 
-NetpyneSpikeInputDeviceDict = {
-                            "poisson_generator": NetpynePoissonGenerator
-                            }
+    def _Set(self, values_dict, nodes=None):
+
+        rates = values_dict["rate_values"]
+        dts = values_dict["rate_times"]
+
+        spikesPerNeuronIndex = generateSpikesForPopulation(len(self.own_neurons), rates, dts)
+        
+        # append to already collected ones
+        for index, spikes in spikesPerNeuronIndex.items():
+            gid = self.own_neurons[index]
+            if gid not in self.spikesPerNeuron:
+                self.spikesPerNeuron[gid] = []
+            self.spikesPerNeuron[gid].extend(spikes)
+
+NetpyneSpikeInputDeviceDict = {"poisson_generator": NetpynePoissonGenerator}
 
 NetpyneInputDeviceDict = {}
 NetpyneInputDeviceDict.update(NetpyneSpikeInputDeviceDict)
@@ -166,7 +178,15 @@ class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
 
     def get_new_events(self, variables=None, **filter_kwargs):
         spktimes, spkgids = self.netpyne_instance.getSpikes(generatedBy=self.neurons, startingFrom=self.latestRecordTime)
+
+        numSpikes = len(spktimes)
+        if numSpikes > 0:
+            period = self.netpyne_instance.time - self.latestRecordTime
+            rate = 1000 * numSpikes / len(self.neurons) / period
+            print(f"Netpyne:: recorded {len(spktimes)} spikes from {self.population_label}. Approx. rate: {rate}. Timeframe {self.latestRecordTime} + {period}")
+
         self.latestRecordTime = self.netpyne_instance.time
+
         return {'senders': spkgids, 'times': spktimes}
 
     @property
