@@ -60,8 +60,7 @@ class NetpynePoissonGeneratorSet(NetpyneInputDeviceSet):
         # Assuming data is of shape (proxy, time)
         nodesNumber = data[1].shape[0]
         self.target.Set({"rate_times": [self.transform_time(data[0]).tolist()] * nodesNumber,
-                         "rate_values": np.maximum([0.0], data[1]).tolist(),
-                         "scale": data[2]})
+                         "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
 class NetpyneOutputDeviceSet(SpikeNetOutputDeviceSet):

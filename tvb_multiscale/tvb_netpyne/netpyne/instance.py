@@ -8,6 +8,8 @@ from netpyne import specs, sim
 from netpyne.sim import *
 
 class NetpyneInstance(object):
+
+    spikeGenerators = []
     
     def __init__(self, dt):
 
@@ -89,21 +91,22 @@ class NetpyneInstance(object):
 
         sim.run.prepareSimWithIntervalFunc()
 
-    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, scale):
+    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType):
 
         sourceCells = self.netParams.popParams[sourcePop]['numCells']
         targetCells = self.netParams.popParams[targetPop]['numCells']
 
-        # one-to-one connection, multiplied by TVB-defined scale ('lamda' for E->I connection is also baked into this scale)
-        # TODO: but need to polish that
-        prob = 1.0 / sourceCells
-        prob *= scale
+        # connect cells roughly one-to-one ('lamda' for E -> I connections is already taken into account, as it baked into source population size)
+        if sourceCells <= targetCells:
+            rule = 'divergence'
+        else:
+            rule = 'convergence'
 
         connLabel = sourcePop + '->' + targetPop
         self.netParams.connParams[connLabel] = {
             'preConds': {'pop': sourcePop},
             'postConds': {'pop': targetPop},
-            'probability': prob,
+            rule: 1.0,
             'weight': weight,
             'delay': delay,
             'synMech': receptorType
@@ -124,45 +127,12 @@ class NetpyneInstance(object):
         self.spikingPopulationLabels.append(label)
         self.netParams.popParams[label] = {'cellType': cellModel, 'numCells': size}
 
-    from sys import float_info
-    def createArtificialCells(self, label, number, interval=float_info.max, params=None):
+    def createArtificialCells(self, label, number, params=None):
         print(f"Netpyne:: Creating artif cells for node '{label}' of {number} neurons")
         self.netParams.popParams[label] = {
             'cellType': 'art_NetStim',
             'numCells': number,
-            # 'spkTimes': [0]
-            'interval': interval,
-            'start': 0,
-            'number': 2,
-            'noise': 0.0
         }
-
-    def createDevice(self, label, isProxyNode, numberOfNeurons):
-        proxyDevice = NetpyneProxyDevice(netpyne_instance=self)
-        if isProxyNode:
-            self.createArtificialCells(label, numberOfNeurons)
-        return proxyDevice
-
-    # def latestSpikes(self, timeWind):
-
-    #     spktimes = np.array(sim.simData['spkt'])
-    #     spkgids = np.array(sim.simData['spkid'])
-    #     inds = np.nonzero(spktimes > (self.time - timeWind)) # filtered by time
-
-    #     spktimes = spktimes[inds]
-    #     spkgids = spkgids[inds]
-
-    #     return spktimes, spkgids
-
-    # def allSpikes(self, cellGids):
-    #     spktimes = np.array(sim.simData['spkt'])
-    #     spkgids = np.array(sim.simData['spkid'])
-
-    #     inPop = np.isin(spkgids, cellGids)
-
-    #     spktimes = spktimes[inPop]
-    #     spkgids = spkgids[inPop]
-    #     return spktimes, spkgids
 
     def getSpikes(self, generatedBy=None, startingFrom=None):
         spktimes = np.array(sim.simData['spkt'])
@@ -179,24 +149,7 @@ class NetpyneInstance(object):
 
             spktimes = spktimes[inds]
             spkgids = spkgids[inds]
-
-        if len(spktimes) > 0:
-            print(f"\nNetpyne:: recorded {len(spktimes)} spikes ({spktimes[:3]} ...) from {len(generatedBy)} neurons ({generatedBy[:3]} ...). Timeframe {startingFrom} -- {self.time}")
-
         return spktimes, spkgids
-
-    #rate = list(values_dict.values())[0]
-    def applyFiringRate(self, rate, sourcePop, dt):
-
-        if rate == 0.0:
-            return
-
-        stimulusCellGids = sim.net.pops[sourcePop].cellGids
-
-        spikesPerNeuron = generateSpikesForPopulation(len(stimulusCellGids), rate, dt)
-        for index, spikes in spikesPerNeuron:
-            cell = sim.net.cells[stimulusCellGids[index]]
-            cell.hPointp.spike_now()
     
     def cellGidsForPop(self, popLabel):
         return sim.net.pops[popLabel].cellGids
@@ -211,6 +164,25 @@ class NetpyneInstance(object):
         return gids
 
     def run(self, length):
+
+        allNeuronsSpikes = {}
+        allNeurons = []
+        for device in self.spikeGenerators:
+            allNeurons.extend(device.own_neurons)
+            allNeuronsSpikes.update(device.spikesPerNeuron)
+
+            device.spikesPerNeuron = {} # clear to prepare for next interval run
+
+        intervalEnd = h.t + length
+        for gid in allNeurons:
+            # currently used .mod implementation allows no more then 3 spikes during the interval.
+            # if for given cell they are less than 3, use -1 for the rest. If they are more, the rest will be lost. But for the reasonable spiking rates, this latter case is highly unlikely. 
+            spikes = allNeuronsSpikes.get(gid, [])
+            spks = [-1] * 3
+            for i, spike in enumerate(spikes[:3]):
+                spks[i] = spike
+            sim.net.cells[gid].hPointp.set_next_spikes(intervalEnd, spks[0], spks[1], spks[2])
+
         def func(simTime):
             pass
         if self.time + length <= sim.cfg.duration:
@@ -231,89 +203,3 @@ class NetpyneProxyDevice(object):
 
     def __init__(self, netpyne_instance):
         self.netpyne_instance = netpyne_instance
-
-def generateSpikesForPopulation(numNeurons, rate, dt):
-
-        # instead of generating spike trains for time dt for each neuron,
-        # generate one spike train for time dt*numNeurons and break it down between neurons
-        totalDuration = numNeurons * dt
-        allSpikes = poisson_generator(rate, 0, totalDuration, 5)
-
-        # now divide spike train between n=numNeurons bins, and adjust time of each spike so that start of bin is treated as absolute time
-
-        binDuration = totalDuration / numNeurons
-        binStartTimes = np.arange(0, totalDuration, binDuration)
-    
-        spikesPerNeuron = []
-        for i, binStart in enumerate(binStartTimes):
-            timeFilter = (allSpikes >= binStart) * (allSpikes < binStart + binDuration)
-            inds = np.nonzero(timeFilter)
-            spikesInBin = allSpikes[inds] - binStart
-            if len(spikesInBin) > 0:
-                spikesPerNeuron.append((i, spikesInBin))
-        return spikesPerNeuron
-
-def poisson_generator(rate, t_start=0.0, t_stop=1000.0, seed=None):
-    """
-    Returns a SpikeTrain whose spikes are a realization of a Poisson process
-    with the given rate (Hz) and stopping time t_stop (milliseconds).
-
-    Note: t_start is always 0.0, thus all realizations are as if 
-    they spiked at t=0.0, though this spike is not included in the SpikeList.
-
-    Inputs:
-    -------
-        rate    - the rate of the discharge (in Hz)
-        t_start - the beginning of the SpikeTrain (in ms)
-        t_stop  - the end of the SpikeTrain (in ms)
-        array   - if True, a np array of sorted spikes is returned,
-                    rather than a SpikeTrain object.
-
-    Examples:
-    --------
-        >> gen.poisson_generator(50, 0, 1000)
-        >> gen.poisson_generator(20, 5000, 10000, array=True)
-
-    See also:
-    --------
-        inh_poisson_generator, inh_gamma_generator, inh_adaptingmarkov_generator
-    """
-
-    rng = np.random.RandomState(seed)
-
-    #number = int((t_stop-t_start)/1000.0*2.0*rate)
-
-    # less wasteful than double length method above
-    n = (t_stop-t_start)/1000.0*rate
-    number = np.ceil(n+3*np.sqrt(n))
-    if number<100:
-        number = min(5+np.ceil(2*n),100)
-
-    if number > 0:
-        isi = rng.exponential(1.0/rate, int(number))*1000.0
-        if number > 1:
-            spikes = np.add.accumulate(isi)
-        else:
-            spikes = isi
-    else:
-        spikes = np.array([])
-
-    spikes+=t_start
-    i = np.searchsorted(spikes, t_stop)
-
-    extra_spikes = []
-    if i==len(spikes):
-        # ISI buf overrun
-        
-        t_last = spikes[-1] + rng.exponential(1.0/rate, 1)[0]*1000.0
-
-        while (t_last<t_stop):
-            extra_spikes.append(t_last)
-            t_last += rng.exponential(1.0/rate, 1)[0]*1000.0
-        
-        spikes = np.concatenate((spikes,extra_spikes))
-
-    else:
-        spikes = np.resize(spikes,(i,))
-
-    return spikes
