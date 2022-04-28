@@ -144,10 +144,10 @@ RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     $VENV/bin/python setup.py develop --no-deps
 
-# Compile tvb-netpyne .mod files
-WORKDIR $HOME/packages
-RUN cd tvb-multiscale; \
-    nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
+## Compile tvb-netpyne .mod files
+#WORKDIR $HOME/packages
+#RUN cd tvb-multiscale; \
+#    nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
 
 # Checkout specific branch of tvb-root
 WORKDIR $HOME/packages
