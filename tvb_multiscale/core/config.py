@@ -16,8 +16,6 @@ from tvb.simulator.integrators import HeunDeterministic, HeunStochastic, EulerDe
 from tvb.simulator.noise import Additive
 from tvb.simulator.monitors import Raw
 
-import tvb_data
-
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
@@ -28,7 +26,7 @@ MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/nest/modules")
 MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/nest/modules_builds")
 
 # DATA:
-TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
+TVB_DATA_PATH = os.path.join(TVB_NEST_DIR, "tvb_multiscale/examples/data/tvb_data")
 DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
 DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
 DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
