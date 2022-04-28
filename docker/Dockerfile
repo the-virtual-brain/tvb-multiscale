@@ -64,6 +64,7 @@ ARG NEST_INSTALL_DIR=$VENV/nest_build
 ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.9/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
+# Install NEST 3.1
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
 RUN git clone --branch v3.1 https://github.com/nest/nest-simulator.git
@@ -78,13 +79,14 @@ RUN cd $NEST; \
     make; make install
 
 # Install nestml
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install setuptools; \
     git clone https://github.com/nest/nestml.git; \
     cd nestml; \
     # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
 
-# Install NEURON and NetPyNE, compile .mod files
+# Install NEURON and NetPyNE
 RUN $VENV/bin/pip3 install neuron
 RUN $VENV/bin/pip3 install netpyne
 
@@ -119,12 +121,13 @@ RUN cd tvb-root; \
     $VENV/bin/python setup.py develop
 
 # Install TVB-multiscale specific packages
-
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
 RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     cd annarchy; \
     $VENV/bin/python3 setup.py install --user
 
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install nose
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
@@ -138,25 +141,25 @@ RUN $VENV/bin/pip3 install elephant dill; \
 RUN git clone --depth 1  https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
-    git pull origin; \
-    $VENV/bin/python setup.py develop --no-deps;
-
-# Checkout specific branch of tvb-multiscale
-WORKDIR $HOME/packages
-RUN cd tvb-root; \
-    git checkout tvb-cosim-consensus-dp; \
-    git pull;
-
-# Checkout specific branch of tvb-multiscale
-WORKDIR $HOME/packages
-RUN cd tvb-multiscale; \
-    git checkout parallelNEST31; \
-    git pull;
+    git pull origin --allow-unrelated-histories; \
+    $VENV/bin/python setup.py develop --no-deps
 
 # Compile tvb-netpyne .mod files
 WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
+
+# Checkout specific branch of tvb-root
+WORKDIR $HOME/packages
+RUN cd tvb-root; \
+    git checkout tvb-cosim-consensus-dp; \
+    git pull --allow-unrelated-histories
+
+# Checkout specific branch of tvb-multiscale
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    git checkout parallelNEST31; \
+    git pull --allow-unrelated-histories
 
 WORKDIR /home/docker/
 # Activate the right python env.
