@@ -12,12 +12,12 @@ from examples.models.red_wong_wang import red_wong_wang_excio_inhi_example as re
 
 def main_example(model_fun_to_run, netpyne_model_builder, tvb_netpyne_model_builder, **kwargs):
 
-    some_args = {"population_order": 50,
+    some_args = {"population_order": 100,
                  "spiking_proxy_inds": [60, 61], # superiortemporal L and R
-                 "simulation_length": 420}
+                 "simulation_length": 220}
     kwargs.update(some_args)
 
-    model_params = {"model_params": {"lamda": 0.1}}
+    model_params = {"model_params": {"lamda": 0.5}}
     kwargs.update(model_params)
     return model_fun_to_run(netpyne_model_builder, tvb_netpyne_model_builder, TVBNetpyneSerialOrchestrator,
                             config_type=Config, logger_initializer=initialize_logger, **kwargs)

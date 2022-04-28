@@ -81,8 +81,7 @@ class NetpyneProxyNodesBuilder(SpikeNetProxyNodesBuilder):
 
     def _build_and_connect_input_devices(self, interface, **kwargs):
         interface["weights"] = interface["weights"] * self.netpyne_synaptic_weight_scale
-        popSizes = {"E": self.N_E, "I": self.N_I} # TODO: de-hardcode (works for RedWongWang, but might not work for other models)
-        return self._build_and_connect_devices(interface, popSizes = popSizes, lamda = self.lamda, **kwargs)
+        return self._build_and_connect_devices(interface, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
         return 0
@@ -154,18 +153,6 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
 
     _output_interface_type = TVBtoNetpyneInterface
     _input_interface_type = NetpyneToTVBInterface
-
-    def configure(self):
-        TVBSpikeNetInterfaceBuilder.configure(self)
-        
-        adjusted_scale = .0
-        for interface in self.output_interfaces:
-            adjusted_scale += interface["transformer"].scale_factor
-        adjusted_scale *= len(self.output_interfaces)
-
-        for interface in self.output_interfaces:
-            interface["transformer"].adjusted_scale_factor = adjusted_scale
-
 
     def _get_tvb_delays(self):
         return (np.maximum(1,

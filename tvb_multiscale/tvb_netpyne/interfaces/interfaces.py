@@ -81,9 +81,7 @@ class TVBtoNetpyneInterface(TVBtoSpikeNetInterface, NetpyneInputInterface):
        and finally set them to NetPyNE, all processes taking place in shared memmory.
     """
 
-    def set_proxy_data(self, data):
-        data.append(self.transformer.adjusted_scale_factor)
-        return NetpyneInputInterface.set_proxy_data(self, data)
+    pass
 
 
 class NetpyneToTVBInterface(SpikeNetToTVBInterface, NetpyneOutputInterface):
