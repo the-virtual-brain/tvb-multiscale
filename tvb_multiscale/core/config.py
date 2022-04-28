@@ -21,12 +21,12 @@ from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
-WORKING_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/examples/outputs")
-MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/nest/modules")
-MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/nest/modules_builds")
+WORKING_DIR = os.path.join(TVB_NEST_DIR, "examples/outputs")
+MODULES_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/tvb_nest/nest/modules")
+MODULES_BLDS_DIR = os.path.join(TVB_NEST_DIR, "tvb_multiscale/tvb_nest/nest/modules_builds")
 
 # DATA:
-TVB_DATA_PATH = os.path.join(TVB_NEST_DIR, "tvb_multiscale/examples/data/tvb_data")
+TVB_DATA_PATH = os.path.join(TVB_NEST_DIR, "examples/data/tvb_data")
 DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
 DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
 DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
@@ -140,7 +140,7 @@ class Config(HasTraits):
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
-        self.TVB_DATA_PATH = os.path.dirname(inspect.getabsfile(tvb_data))
+        self.TVB_DATA_PATH = TVB_DATA_PATH
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
 
     def info(self, recursive=0):
