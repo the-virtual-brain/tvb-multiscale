@@ -130,15 +130,15 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install elephant dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN git clone --depth 1 --branch parallel https://github.com/the-virtual-brain/tvb-multiscale.git
+# Other packages added in the end for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch sbi
+
+RUN git clone --depth 1 --branch parallelNEST31 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
-
-# Other packages added in the end for scientific work:
-RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch sbi
 
 WORKDIR /home/docker/
 # Activate the right python env.
