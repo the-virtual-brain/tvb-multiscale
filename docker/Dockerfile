@@ -152,13 +152,13 @@ RUN cd tvb-multiscale; \
 # Checkout specific branch of tvb-root
 WORKDIR $HOME/packages
 RUN cd tvb-root; \
-    git checkout tvb-cosim-consensus-dp; \
+    git checkout rising-net-whisking-cereb; \
     git pull --allow-unrelated-histories
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
-    git checkout parallelNEST31; \
+    git checkout rising-net; \
     git pull --allow-unrelated-histories
 
 WORKDIR /home/docker/
