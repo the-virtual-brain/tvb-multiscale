@@ -87,8 +87,6 @@ RUN $VENV/bin/pip3 install setuptools; \
 # Install NEURON and NetPyNE, compile .mod files
 RUN $VENV/bin/pip3 install neuron
 RUN $VENV/bin/pip3 install netpyne
-RUN cd $HOME/packages/tvb-multiscale; \
-    nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
 
 # Install pyNN
 # RUN pip install pyNN
@@ -99,20 +97,20 @@ RUN cd $HOME/packages/tvb-multiscale; \
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch sbi
+
 # Install TVB specific packages
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
-    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
-    cd tvb_data; \
-    $VENV/bin/python setup.py develop
-
-RUN git clone --depth 1 --branch tvb-cosim-consensus-dp https://github.com/the-virtual-brain/tvb-root.git
+# Clone and install tvb-root
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
-    git pull origin tvb-cosim-consensus-dp --allow-unrelated-histories; \
+    git pull --allow-unrelated-histories; \
     cd scientific_library; \
     $VENV/bin/python setup.py develop; \
     cd ../framework_tvb; \
@@ -136,15 +134,29 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install elephant dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-# Other packages added in the end for scientific work:
-RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch sbi
-
-RUN git clone --depth 1 --branch parallelNEST31 https://github.com/the-virtual-brain/tvb-multiscale.git
+# Clone and install tvb-multiscale
+RUN git clone --depth 1  https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
-    git pull; \
+    git pull origin; \
     $VENV/bin/python setup.py develop --no-deps;
+
+# Checkout specific branch of tvb-multiscale
+WORKDIR $HOME/packages
+RUN cd tvb-root; \
+    git checkout tvb-cosim-consensus-dp; \
+    git pull;
+
+# Checkout specific branch of tvb-multiscale
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    git checkout parallelNEST31; \
+    git pull;
+
+# Compile tvb-netpyne .mod files
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
 
 WORKDIR /home/docker/
 # Activate the right python env.
