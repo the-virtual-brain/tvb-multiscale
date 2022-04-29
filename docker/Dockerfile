@@ -141,7 +141,7 @@ WORKDIR $HOME/packages
 # TODO: Remove when ray==1.5.0 fixed
 # aioredis==1.3.0 has to be installed first on a separate pip3 command!
 RUN $VENV/bin/pip3 install aioredis==1.3.0;  \
-    $VENV/bin/pip3 install starlette uvicorn 'ray[default]'==1.5.0 'ray[server]'==1.5.0; \
+    $VENV/bin/pip3 install starlette uvicorn 'ray[default]' 'ray[serve]'; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 # Clone and install tvb-multiscale
