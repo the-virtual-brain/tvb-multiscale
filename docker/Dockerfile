@@ -15,6 +15,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential git vim 
                        wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
                        ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       python3-pkgconfig \
                        subversion cmake zip unzip make; \
     apt-get clean
 
@@ -109,7 +110,7 @@ RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-ben
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 # Clone and install tvb-root
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git
+RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
@@ -138,7 +139,7 @@ RUN $VENV/bin/pip3 install elephant dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
 # Clone and install tvb-multiscale
-RUN git clone --depth 1  https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
