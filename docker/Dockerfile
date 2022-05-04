@@ -151,11 +151,6 @@ RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     $VENV/bin/python setup.py develop --no-deps
 
-## Compile tvb-netpyne .mod files
-#WORKDIR $HOME/packages
-#RUN cd tvb-multiscale; \
-#    nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
-
 # Checkout specific branch of tvb-root
 WORKDIR $HOME/packages
 RUN cd tvb-root; \
@@ -167,6 +162,11 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     git checkout ray; \
     git pull --allow-unrelated-histories
+
+# Compile tvb-netpyne .mod files
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
 
 WORKDIR /home/docker/
 # Activate the right python env.
