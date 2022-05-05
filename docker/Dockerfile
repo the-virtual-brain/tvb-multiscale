@@ -128,7 +128,6 @@ RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     $VENV/bin/python3 setup.py install --user
 
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install nose
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $VENV/bin/python3 setup.py build_ext install
