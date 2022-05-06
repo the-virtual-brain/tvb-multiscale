@@ -112,13 +112,12 @@ RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-ben
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
-    git pull --allow-unrelated-histories; \
-    cd scientific_library; \
-    $VENV/bin/python setup.py develop; \
-    cd ../framework_tvb; \
-    $VENV/bin/python setup.py develop; \
-    cd ../tvb_contrib; \
-    $VENV/bin/python setup.py develop
+    git pull --allow-unrelated-histories;
+RUN $VENV/bin/python tvb-root/scientific_library/setup.py develop
+RUN $VENV/bin/python tvb-root/framework_tvb/setup.py develop
+RUN $VENV/bin/python tvb-root/tvb_storage/setup.py develop
+RUN $VENV/bin/python tvb-root/tvb_contrib/setup.py develop
+
 
 # Install TVB-multiscale specific packages
 WORKDIR $HOME/packages
