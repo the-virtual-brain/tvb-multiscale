@@ -7,6 +7,11 @@ import numpy as np
 from scipy.signal import welch
 from scipy.interpolate import interp1d
 
+import torch
+from sbi import utils as utils
+from sbi.inference.base import infer
+from sbi import analysis as analysis
+
 from tvb.basic.profile import TvbProfile
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
@@ -20,14 +25,14 @@ from matplotlib import pyplot as plt
 
 
 def configure(G=5.0, STIMULUS=0.25,
-              I_E=-0.25, I_0=-0.25,
-              W_IE=None, W_RS=None,
-              TAU_E=None, TAU_I=None, TAU_S=None, TAU_R=None,
+              I_E=-0.25, I_S=0.25,
+              W_IE=-3.0, W_RS=-2.0,
+              TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
               plot_flag=True):
     # ----------- Simulation options ----------------
     DT = 0.1
     NOISE = 1e-4
-    SIMULATION_LENGTH = 4000.0
+    SIMULATION_LENGTH = 400.0 # 4000.0
     TRANSIENT_RATIO = 0.1
 
     CONN_SPEED = 3.0
@@ -47,13 +52,31 @@ def configure(G=5.0, STIMULUS=0.25,
     #     G = 5.0      # in Griffiths et al paper = 5.0
     #     STIMULUS = 0.25  # 0.5
     #     I_E = -0.25  # -1.0 # -0.75 for subcortex, but -0.35 in Griffiths et al paper
-    #     I_0 = -0.25    # -0.5 # 0.0, but [0.0, 2.0] in Griffiths et al paper
+    #     I_S =  0.25
     #     W_IE = None
     #     W_RS = None
     #     TAU_E = None
     #     TAU_I = None
     #     TAU_S = None
     #     TAU_R = None
+
+    # For fitting:
+    SAMPLES_GS = "samples_fit_Gs.npy"
+    PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS', 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
+    N_RUNS = 10
+    N_SIMULATIONS = 3  # 500
+    N_SAMPLES = 100  # 1000
+    Gs = np.arange(0.0, 10.5, 0.5)
+    # normal priors:
+    #             0.    1.     2.     3.      4.       5.    6.       7.        8.
+    #        STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
+    prior_min = [0.1,  -1.0,   0.0,  -10.0,  -5.0,    1.0,    1.0,    1.0,     1.0]
+    prior_max = [0.5,   0.0,   1.0,    0.0,   0.0,   20.0,   20.0,   80.0,     80.0]
+    #
+    prior_loc = [0.25,  -0.5,  0.5, -5.0,   -2.5,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
+    prior_sc = [  0.1,  0.25, 0.25,  2.5,   1.25,    2.0,     2.0,    4.0,      4.0]
+    SBI_NUM_WORKERS = 4
+    SBI_METHOD = 'SNPE'
     # -----------------------------------------------
 
     # Construct configuration
@@ -66,7 +89,7 @@ def configure(G=5.0, STIMULUS=0.25,
     popa_freqs_path = os.path.join(data_path, 'PS_popa2013')
     outputs_path = os.path.join(work_path, "outputs/cereb_wilson_cowan")
     outputs_path += '_G%g' % G
-    outputs_path += '_Io%g' % I_0
+    outputs_path += '_Is%g' % I_S
     outputs_path += '_Ie%g' % I_E
     # outputs_path += '_Is%g' % I_s
     outputs_path += "_TVBonly"
@@ -103,22 +126,45 @@ def configure(G=5.0, STIMULUS=0.25,
     config.CONN_NORM_PERCENTILE = CONN_NORM_PERCENTILE
     config.CONN_CEIL = CONN_CEIL
 
-    # Simulation and fitting
+    # Simulation...
     config.SIMULATION_LENGTH = SIMULATION_LENGTH
     config.TRANSIENT_RATIO = TRANSIENT_RATIO
-    config.TARGET_PSD_POPA_PATH = popa_freqs_path
-    config.TARGET_FREQS = TARGET_FREQS
-    config.FIC = FIC
-
     # Model parameters
-    config.model_params = {'STIMULUS': STIMULUS, 'G': G,
-                           'I_e': I_E, 'I_o': I_0,
-                           'w_ie': W_IE, 'w_rs': W_RS,
-                           'tau_e': TAU_E, 'tau_i': TAU_I, 'tau_s': TAU_S, 'tau_r': TAU_R
-                           }
+    config.model_params = OrderedDict()
+    config.model_params['G'] = G
+    config.model_params['STIMULUS'] = STIMULUS
+    config.model_params['I_e'] = I_E
+    config.model_params['I_s'] = STIMULUS
+    config.model_params['w_ie'] = W_IE
+    config.model_params['w_rs'] = W_RS
+    config.model_params['tau_e'] = TAU_E
+    config.model_params['tau_i'] = TAU_I
+    config.model_params['tau_s'] = TAU_S
+    config.model_params['tau_r'] = TAU_R
+
     # Monitors:
     config.RAW_PERIOD = 1.0
     config.BOLD_PERIOD = None  # 1024.0 or None, If None, BOLD will not be computed
+
+    # ...and fitting
+    config.SBI_NUM_WORKERS = SBI_NUM_WORKERS
+    config.SBI_METHOD = SBI_METHOD
+    config.TARGET_PSD_POPA_PATH = popa_freqs_path
+    config.PSD_TARGET_PATH = os.path.join(config.TARGET_PSD_POPA_PATH, "PSD_target.npy")
+    config.TARGET_FREQS = TARGET_FREQS
+    config.FIC = FIC
+    config.SAMPLES_GS_PATH = os.path.join(data_path, SAMPLES_GS)
+    config.N_RUNS = N_RUNS
+    config.N_SIMULATIONS = N_SIMULATIONS
+    config.N_SAMPLES = N_SAMPLES
+    config.Gs = Gs
+    config.PRIORS_PARAMS_NAMES = PRIORS_PARAMS_NAMES
+    config.prior_min = prior_min
+    config.prior_max = prior_max
+    # Normal priors:
+    config.prior_loc = prior_loc
+    config.prior_sc = prior_sc
+    config.n_priors = len(config.prior_min)
 
     if plot_flag:
         plotter = Plotter(config.figures)
@@ -283,6 +329,7 @@ def build_connectivity(connectome, inds, config, print_flag=True, plotter=None):
 
 
 def build_model(number_of_regions, inds, maps, config):
+    # We are not running FIC for fitting:
     # if config.FIC:
     #     from tvb_multiscale.core.tvb.cosimulator.models.wc_thalamocortical_cereb import \
     #         WilsonCowanThalamoCorticalFIC as WilsonCowanThalamoCortical
@@ -352,7 +399,7 @@ def build_model(number_of_regions, inds, maps, config):
 
 def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=None, subtitle="", plotter=None):
     number_of_regions = weights.shape[0]
-
+    # This function will adjust inhibitory weights based on total indegree and some scaling
     if trg_inds is None:
         trg_inds = np.arange(number_of_regions).astype('i')
 
@@ -398,12 +445,14 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
 
 
 def prepare_fic(simulator, inds, FIC, G, print_flag=True, plotter=None):
+    # Optimize w_ie and w_rs according to total indegree and G
     if FIC and G > 0.0:
         weights = simulator.connectivity.weights
         mean_indegree = weights.sum(axis=1).mean()
         FICeff = FIC * G / mean_indegree
-        print("Effective FIC = FIC * G * indegree / mean_indegree = %g * %g * indegree / %g = %g * indegree"
-              % (FIC, G, mean_indegree, FICeff))
+        if print_flag:
+            print("Effective FIC = FIC * G * indegree / mean_indegree = %g * %g * indegree / %g = %g * indegree"
+                  % (FIC, G, mean_indegree, FICeff))
         # Indices of cortical and subcortical regions excluding specific thalami
         inds["non_thalamic"] = np.unique(inds['crtx'].tolist() + inds["subcrtx_not_thalspec"].tolist())
 
@@ -497,22 +546,27 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
         cmax=np.array([1.0]),
         a=simulator.model.beta)
 
+    # Set integrator abnd noise
     simulator.integrator = EulerStochastic()
     simulator.integrator.dt = config.DEFAULT_DT
     simulator.integrator.noise.nsig = np.array(
         [config.DEFAULT_NSIG] * (simulator.model.nvar - 1) + [0.0])  # config.DEFAULT_NSIG = 0.001
 
+    # Set initial conditions around zero
     simulator.initial_conditions = 0.1 * np.random.normal(size=(1000, simulator.model.nvar,
                                                                 connectivity.number_of_regions, 1))
 
     if config.FIC:
+        # We will modify the w_ie and w_rs parameters a bit based on indegree and G:
         simulator = prepare_fic(simulator, inds, config.FIC, simulator.model.G[0], print_flag, plotter)
-        simulator.initial_conditions[:, -1, maps['is_thalamic'], :] = simulator.model.w_rs[
-            None, maps['is_thalamic'], None]
-        simulator.initial_conditions[:, -1, maps['not_thalamic'], :] = simulator.model.w_ie[
-            None, maps['not_thalamic'], None]
-        simulator.model.eta = np.array([-0.05])
+        # We will not run FIC though when fitting...
+        # simulator.initial_conditions[:, -1, maps['is_thalamic'], :] = simulator.model.w_rs[
+        #     None, maps['is_thalamic'], None]
+        # simulator.initial_conditions[:, -1, maps['not_thalamic'], :] = simulator.model.w_ie[
+        #     None, maps['not_thalamic'], None]
+        # simulator.model.eta = np.array([-0.05])
 
+    # Set monitors:
     mon_raw = Raw(period=config.RAW_PERIOD)  # ms
     if config.BOLD_PERIOD:
         bold = Bold(period=config.BOLD_PERIOD,
@@ -531,11 +585,13 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
 
 
 def simulate(simulator, config, print_flag=True):
+    # Compute transient as a percentage of the total simulation length, and add it to the simulation length:
     simulation_length = float(config.SIMULATION_LENGTH)
     transient = config.TRANSIENT_RATIO * simulation_length
     simulation_length += transient
     simulator.simulation_length = simulation_length
 
+    # Simulate and return results
     tic = time.time()
     results = simulator.run()
     if print_flag:
@@ -560,7 +616,7 @@ def compute_target_PSDs(config, write_files=True, plotter=None):
 
     PSD_target = {"f": f, "PSD_M1_target": psd_m1_target, "PSD_S1_target": psd_s1_target}
     if write_files:
-        np.save(os.path.join(config.TARGET_PSD_POPA_PATH, "PSD_target.npy"), PSD_target)
+        np.save(config.PSD_TARGET_PATH, PSD_target)
 
     if plotter:
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
@@ -576,9 +632,8 @@ def compute_target_PSDs(config, write_files=True, plotter=None):
     return PSD_target
 
 
-def compute_data_PSDs(raw_results, PSD_target, inds, config, transient=None, write_files=True, plotter=None):
+def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files=True, plotter=None):
     # Time and frequency
-    n_times = len(raw_results[0])
     dt = np.mean(np.diff(raw_results[0]))
     fs = 1000.0 / dt  # sampling frequency in sec
     if transient is None:
@@ -636,12 +691,12 @@ def compute_data_PSDs(raw_results, PSD_target, inds, config, transient=None, wri
 
 
 def run_workflow(G=5.0, STIMULUS=0.25,
-                 I_E=-0.25, I_0=-0.25,
-                 W_IE=None, W_RS=None,
-                 TAU_E=None, TAU_I=None, TAU_S=None, TAU_R=None,
-                 plot_flag=True):
+                 I_E=-0.25, I_S=0.25,
+                 W_IE=-3.0, W_RS=-2.0,
+                 TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+                 PSD_target=None, plot_flag=True):
     # Get configuration
-    config, plotter = configure(G, STIMULUS, I_E, I_0, W_IE, W_RS, TAU_E, TAU_I, TAU_S, TAU_R, plot_flag)
+    config, plotter = configure(G, STIMULUS, I_E, I_S, W_IE, W_RS, TAU_E, TAU_I, TAU_S, TAU_R, plot_flag)
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
@@ -656,12 +711,118 @@ def run_workflow(G=5.0, STIMULUS=0.25,
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
     # Run simulation and get results
     results, transient = simulate(simulator, config, print_flag=True)
-    # This is the PSD target we are trying to fit:
-    PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
+    if PSD_target is None:
+        # This is the PSD target we are trying to fit:
+        PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
     # This is the PSD computed from our simulation results.
-    PSD = compute_data_PSDs(results[0], PSD_target, inds, config, transient, plotter=plotter)
+    PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
+
+    return PSD, results
 
 
+def build_priors(config):
+    #     # uniform priors: g
+    #     g_prior_min = [0.0]  #
+    #     g_prior_max = [2.0]  #
+    #     g_priors = utils.torchutils.BoxUniform(low=torch.as_tensor(g_prior_min),
+    #                                          high=torch.as_tensor(g_prior_max))
+
+    priors_normal = torch.distributions.Normal(loc=torch.as_tensor(config.prior_loc),
+                                               scale=torch.as_tensor(config.prior_sc))
+    #     priors = torch.distributions.MultivariateNormal(loc=torch.as_tensor(config.prior_loc),
+    #                                                     scale_tril=torch.diag(torch.as_tensor(config.prior_sc)))
+    priors = torch.distributions.Independent(priors_normal, 1)
+
+    return priors
+
+
+def simulate_for_sbi(priors, priors_params_names, **params):
+
+    priors_params = params.copy()
+    # Convert all tensor parameters to numpy arrays
+    for prior, prior_name in zip(priors, priors_params_names):
+        try:
+            numpy_prior = prior.numpy()
+        except:
+            numpy_prior = prior
+        priors_params[prior_name] = numpy_prior
+
+    # Run the simulation and return only the PSD output to be fit:
+    return run_workflow(**priors_params, plot_flag=False)[0]
+
+
+def sbi_fit(iG, config=None):
+
+    if config is None:
+        # Create a configuration if one is not given
+        config = configure(plot_flag=False)[0]
+
+    # Get the default values for the parameter except for G
+    params = OrderedDict()
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
+        params[pname] = pval
+    print("params =\n", params)
+
+    # Get G for this run:
+    G = config.Gs[iG]
+
+    # Define the simulation function for sbi for this G
+    simulate_for_sbi_for_g = lambda priors: simulate_for_sbi(priors,
+                                                             priors_params_names=config.PRIORS_PARAMS_NAMES,
+                                                             G=G, **params)
+
+    print("\n\nFitting for G = %g!\n" % G)
+
+    # Build the priors
+    priors = build_priors(config)
+
+    #     samples_fit
+    #     for iR in range(N_RUNS):
+    tic = time.time()
+    # Train the neural network to approximate the posterior:
+    posterior = infer(simulate_for_sbi_for_g, priors,
+                      method=config.SBI_METHOD, num_simulations=config.N_SIMULATIONS, num_workers=5)
+    print("Done in %g sec!" % (time.time() - tic))
+
+    print("\nSampling posterior...")
+    # Load the target
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True)
+    # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
+    #                                        right                       left
+    psd_targ_norm = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
+                                    PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
+    # Sample the posterior
+    samples_fit = posterior.sample((config.N_SAMPLES,), x=psd_targ_norm)
+
+    # Compute the sample mean, add to the results dictionary and write to file:
+    if os.path.isfile(config.SAMPLES_GS_PATH):
+        samples_fit_Gs = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
+    else:
+        samples_fit_Gs = {}
+    samples_fit_Gs[G] = {}
+    samples_fit_Gs[G]['samples'] = samples_fit.numpy()
+    samples_fit_Gs[G]['mean'] = samples_fit.mean(axis=0).numpy()
+    np.save(config.SAMPLES_GS_PATH, samples_fit_Gs, allow_pickle=True)
+
+    # Plot posterior:
+    print("\nPlotting posterior...")
+    limits = []
+    for pmin, pmax in zip(config.prior_min, config.prior_max):
+        limits.append([pmin, pmax])
+    fig, axes = analysis.pairplot(samples_fit,
+                                  limits=limits,
+                                  ticks=limits,
+                                  figsize=(10, 10),
+                                  points=np.array(list(params.values())),
+                                  points_offdiag={'markersize': 6},
+                                  points_colors=['r'] * len(config.n_priors))
+
+    # Run one simulation with the posterior means:
+    print("\nSimulating with posterior means...")
+    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
+    PSD, results = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
+
+    return samples_fit_Gs, results
 
 
 
