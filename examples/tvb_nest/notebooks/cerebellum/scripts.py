@@ -88,10 +88,11 @@ def configure(G=5.0, STIMULUS=0.25,
     inds_filepath = os.path.join(data_path, INDS_FILE)
     popa_freqs_path = os.path.join(data_path, 'PS_popa2013')
     outputs_path = os.path.join(work_path, "outputs/cereb_wilson_cowan")
-    outputs_path += '_G%g' % G
-    outputs_path += '_Is%g' % I_S
-    outputs_path += '_Ie%g' % I_E
-    # outputs_path += '_Is%g' % I_s
+    # outputs_path += '_G%g' % G
+    # if STIMULUS:
+    #     outputs_path += "_Stim%g" % STIMULUS
+    # outputs_path += '_Is%g' % I_S
+    # outputs_path += '_Ie%g' % I_E
     outputs_path += "_TVBonly"
     outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
     if FIC:
@@ -101,8 +102,6 @@ def configure(G=5.0, STIMULUS=0.25,
             outputs_path += "_FIC%g" % FIC
     if THAL_CRTX_FIX:
         outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
-    if STIMULUS:
-        outputs_path += "_Stim%g" % STIMULUS
 
     # print("Outputs' path: %s" % outputs_path)
 
@@ -786,7 +785,7 @@ def sbi_fit(iG, config=None):
 
     print("\nSampling posterior...")
     # Load the target
-    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True)
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
     # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
     #                                        right                       left
     psd_targ_norm = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
@@ -815,14 +814,15 @@ def sbi_fit(iG, config=None):
                                   figsize=(10, 10),
                                   points=np.array(list(params.values())),
                                   points_offdiag={'markersize': 6},
-                                  points_colors=['r'] * len(config.n_priors))
+                                  points_colors=['r'] * config.n_priors)
+    plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_%g.png' % G))
 
     # Run one simulation with the posterior means:
     print("\nSimulating with posterior means...")
     params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
     PSD, results = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
 
-    return samples_fit_Gs, results
+    return samples_fit_Gs, results, fig
 
 
 
