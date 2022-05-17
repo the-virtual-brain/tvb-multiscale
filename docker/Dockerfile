@@ -101,7 +101,8 @@ RUN $VENV/bin/pip3 install netpyne
 
 # Other (large) packages added for scientific work:
 RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch sbi sbibm
+RUN $VENV/bin/pip3 install torch sbi
+# RUN $VENV/bin/pip3 install sbibm
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
