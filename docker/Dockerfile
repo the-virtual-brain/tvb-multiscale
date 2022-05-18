@@ -99,11 +99,6 @@ RUN $VENV/bin/pip3 install netpyne
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
-# Other (large) packages added for scientific work:
-RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch sbi
-# RUN $VENV/bin/pip3 install sbibm
-
 # Install TVB specific packages
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba; \
@@ -114,11 +109,15 @@ RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories;
-RUN $VENV/bin/python tvb-root/scientific_library/setup.py develop
-RUN $VENV/bin/python tvb-root/framework_tvb/setup.py develop
-RUN $VENV/bin/python tvb-root/tvb_storage/setup.py develop
-RUN $VENV/bin/python tvb-root/tvb_contrib/setup.py develop
-
+WORKDIR $HOME/packages
+RUN cd tvb-root/scientific_library; \
+    $VENV/bin/python setup.py develop; \
+    cd ../tvb_storage; \
+    $VENV/bin/python setup.py develop; \
+    cd ../tvb_contrib; \
+    $VENV/bin/python setup.py develop;
+#    cd ../framework_tvb; \
+#    $VENV/bin/python setup.py develop
 
 # Install TVB-multiscale specific packages
 WORKDIR $HOME/packages
@@ -142,6 +141,12 @@ ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     $VENV/bin/python setup.py develop --no-deps
+
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch
+RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
 
 # Checkout specific branch of tvb-root
 WORKDIR $HOME/packages
