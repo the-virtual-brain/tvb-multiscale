@@ -15,7 +15,7 @@ RUN apt-get update; apt-get install -y automake libtool build-essential git vim 
                        wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
                        ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion cmake zip unzip make; \
+                       python3-pkgconfig subversion cmake zip unzip make; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
@@ -99,24 +99,23 @@ RUN $VENV/bin/pip3 install netpyne
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
-# Other (large) packages added for scientific work:
-RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch sbi
-
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba ; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints; \
+    $VENV/bin/pip3 install werkzeug==2.0.1;
 
 # Clone and install tvb-root
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git
-ARG LAST_SHA_TVB=LATEST
+#ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
-    git pull --allow-unrelated-histories;
-RUN $VENV/bin/python tvb-root/scientific_library/setup.py develop
-RUN $VENV/bin/python tvb-root/framework_tvb/setup.py develop
-RUN $VENV/bin/python tvb-root/tvb_storage/setup.py develop
-RUN $VENV/bin/python tvb-root/tvb_contrib/setup.py develop
+    git pull --allow-unrelated-histories; \
+    cd scientific_library; \
+    $VENV/bin/python setup.py develop; \
+    cd ../framework_tvb; \
+    $VENV/bin/python setup.py develop; \
+    cd ../tvb_contrib; \
+    $VENV/bin/python setup.py develop
 
 
 # Install TVB-multiscale specific packages
@@ -148,6 +147,12 @@ ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     $VENV/bin/python setup.py develop --no-deps
+
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch
+RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
 
 # Checkout specific branch of tvb-root
 WORKDIR $HOME/packages
