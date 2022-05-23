@@ -110,9 +110,9 @@ RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/
 #ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
-    cd scientific_library; \
+    cd tvb_library; \
     $VENV/bin/python setup.py develop; \
-    cd ../framework_tvb; \
+    cd ../tvb_framework; \
     $VENV/bin/python setup.py develop; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
