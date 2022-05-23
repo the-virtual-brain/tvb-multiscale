@@ -8,7 +8,6 @@ from scipy.signal import welch
 from scipy.interpolate import interp1d
 
 import torch
-from sbi import utils as utils
 from sbi.inference.base import infer
 from sbi import analysis as analysis
 
@@ -133,7 +132,7 @@ def configure(G=5.0, STIMULUS=0.25,
     config.model_params['G'] = G
     config.model_params['STIMULUS'] = STIMULUS
     config.model_params['I_e'] = I_E
-    config.model_params['I_s'] = STIMULUS
+    config.model_params['I_s'] = I_S
     config.model_params['w_ie'] = W_IE
     config.model_params['w_rs'] = W_RS
     config.model_params['tau_e'] = TAU_E
@@ -156,6 +155,7 @@ def configure(G=5.0, STIMULUS=0.25,
     config.N_RUNS = N_RUNS
     config.N_SIMULATIONS = N_SIMULATIONS
     config.N_SAMPLES = N_SAMPLES
+    config.N_SAMPLES_PER_RUN = int(np.ceil(1.0*N_SAMPLES/N_RUNS))
     config.Gs = Gs
     config.PRIORS_PARAMS_NAMES = PRIORS_PARAMS_NAMES
     config.prior_min = prior_min
@@ -762,6 +762,13 @@ def sbi_fit(iG, config=None):
         params[pname] = pval
     print("params =\n", params)
 
+    # Load the target
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
+    # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
+    #                                        right                       left
+    psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
+                                    PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
+
     # Get G for this run:
     G = config.Gs[iG]
 
@@ -770,28 +777,25 @@ def sbi_fit(iG, config=None):
                                                              priors_params_names=config.PRIORS_PARAMS_NAMES,
                                                              G=G, **params)
 
-    print("\n\nFitting for G = %g!\n" % G)
-
     # Build the priors
     priors = build_priors(config)
 
-    #     samples_fit
-    #     for iR in range(N_RUNS):
+    print("\n\nFitting for G = %g!\n" % G)
     tic = time.time()
-    # Train the neural network to approximate the posterior:
-    posterior = infer(simulate_for_sbi_for_g, priors,
-                      method=config.SBI_METHOD, num_simulations=config.N_SIMULATIONS, num_workers=5)
-    print("Done in %g sec!" % (time.time() - tic))
+    for iR in range(config.N_RUNS):
+        print("\nFitting run %d " % iR)
 
-    print("\nSampling posterior...")
-    # Load the target
-    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
-    # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
-    #                                        right                       left
-    psd_targ_norm = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
-                                    PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
-    # Sample the posterior
-    samples_fit = posterior.sample((config.N_SAMPLES,), x=psd_targ_norm)
+        # Train the neural network to approximate the posterior:
+        posterior = infer(simulate_for_sbi_for_g, priors,
+                          method=config.SBI_METHOD, num_simulations=config.N_SIMULATIONS, num_workers=5)
+
+        print("\nSampling posterior...")
+        if iR:
+            samples_fit = torch.cat((samples_fit, posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)), 0)
+        else:
+            samples_fit = posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)
+
+    print("Done in %g sec!" % (time.time() - tic))
 
     # Compute the sample mean, add to the results dictionary and write to file:
     if os.path.isfile(config.SAMPLES_GS_PATH):
