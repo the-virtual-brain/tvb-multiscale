@@ -87,9 +87,9 @@ RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-vir
 ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
 #    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
-    cd scientific_library; \
+    cd tvb_library; \
     python setup.py develop; \
-    cd ../framework_tvb; \
+    cd ../tvb_framework; \
     python setup.py develop; \
     cd ../tvb_contrib; \
     python setup.py develop;
