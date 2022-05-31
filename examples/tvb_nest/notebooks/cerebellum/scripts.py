@@ -26,7 +26,7 @@ from matplotlib import pyplot as plt
 def configure(G=5.0, STIMULUS=0.25,
               I_E=-0.25, I_S=0.25,
               W_IE=-3.0, W_RS=-2.0,
-              TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+              # TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
               plot_flag=True):
     # ----------- Simulation options ----------------
     DT = 0.1
@@ -60,19 +60,19 @@ def configure(G=5.0, STIMULUS=0.25,
     FIC = 1.0  # 0.2  # 0.185 # 0.19 # 0.2 # 0.15
     TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     SAMPLES_GS = "samples_fit_Gs.npy"
-    PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS', 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
+    PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS'] # , 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
     N_RUNS = 2  # 3 - 10
     N_SIMULATIONS = 3  # 500 - 1000
     N_SAMPLES = 100  # 1000
-    Gs = np.arange(0.0, 10.5, 0.5)  # ??
-    # normal priors ??:
+    Gs = np.array([0.0, 1.0, 10.0]) # np.array([0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0])
+    # normal priors:
     #             0.    1.     2.     3.      4.       5.    6.       7.        8.
     #        STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
-    prior_min = [0.1,  -1.0,   0.0,  -10.0,  -5.0,    1.0,    1.0,    1.0,     1.0]
-    prior_max = [0.5,   0.0,   1.0,    0.0,   0.0,   20.0,   20.0,   80.0,     80.0]
+    prior_min = [0.1,  -1.0,   0.0,  -10.0,  -5.0] #,    1.0,    1.0,    1.0,     1.0]
+    prior_max = [0.5,   0.0,   1.0,    0.0,   0.0] #,   20.0,   20.0,   80.0,     80.0]
     #
-    prior_loc = [0.25,  -0.5,  0.5, -5.0,   -2.5,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
-    prior_sc = [  0.1,  0.25, 0.25,  2.5,   1.25,    2.0,     2.0,    4.0,      4.0]
+    prior_loc = [0.25,  -0.5,  0.5, -5.0,   -2.5] #,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
+    prior_sc = [  0.1,  0.25, 0.25,  2.5,   1.25] #,    2.0,     2.0,    4.0,      4.0]
     SBI_NUM_WORKERS = 4  # ??
     SBI_METHOD = 'SNPE'
     # -----------------------------------------------
@@ -134,10 +134,10 @@ def configure(G=5.0, STIMULUS=0.25,
     config.model_params['I_s'] = I_S
     config.model_params['w_ie'] = W_IE
     config.model_params['w_rs'] = W_RS
-    config.model_params['tau_e'] = TAU_E
-    config.model_params['tau_i'] = TAU_I
-    config.model_params['tau_s'] = TAU_S
-    config.model_params['tau_r'] = TAU_R
+    # config.model_params['tau_e'] = TAU_E
+    # config.model_params['tau_i'] = TAU_I
+    # config.model_params['tau_s'] = TAU_S
+    # config.model_params['tau_r'] = TAU_R
 
     # Monitors:
     config.RAW_PERIOD = 1.0
@@ -304,8 +304,15 @@ def build_connectivity(connectome, inds, config, print_flag=True, plotter=None):
         plotter.plot_tvb_connectivity(connectivity);
 
     # Remove connections between specific thalami and the rest of the subcortex:
-    # connectivity.weights[inds["thalspec"][:, None], inds["subcrtx_not_thalspec"][None, :]] = 0.0
-    # connectivity.weights[inds["subcrtx_not_thalspec"][:, None], inds["thalspec"][None, :]] = 0.0
+    connectivity.weights[inds["subcrtx_not_thalspec"][:, None], inds["thalspec"][None, :]] = 0.0
+    # Retain connections
+    # from spinal nucleus of the trigeminal to S1 barrel field:
+    w_s1brlthal_trigeminal = connectivity.weights[inds["s1brlthal"], inds["trigeminal"]].copy()
+    # from interposed nucleus to M1:
+    w_m1thal_cerebnuclei = connectivity.weights[inds["m1thal"], inds["trigeminal"]].copy()
+    connectivity.weights[inds["thalspec"][:, None], inds["subcrtx_not_thalspec"][None, :]] = 0.0
+    connectivity.weights[inds["s1brlthal"], inds["trigeminal"]] = w_s1brlthal_trigeminal
+    connectivity.weights[inds["m1thal"], inds["trigeminal"]] = w_m1thal_cerebnuclei
 
     # Homogenize crtx <-> subcrtx connnectivity
     # connectivity.weights[inds["crtx"][:, None], inds["subcrtx_not_thalspec"][None, :]] *= 0.0 # 0.0 # 0.02
@@ -360,7 +367,6 @@ def build_model(number_of_regions, inds, maps, config):
                                        **model_params)
     model.dt = config.DEFAULT_DT
 
-    # !!! No connections between specific thalamic regions and other subcortical regions
     # Remove Specific thalamic relay -> nonspecific subcortical structures connections!
     w_se = model.w_se * dummy
     w_se[inds['subcrtx']] = 0.0  #  model.G[0]
@@ -370,9 +376,14 @@ def build_model(number_of_regions, inds, maps, config):
     w_si[inds['subcrtx']] = 0.0  # * model.G[0]
     model.w_si = w_si
 
-    # Nonspecific subcortical -> specific thalamic relay and reticular structures connections' weights:
+    # Long range connections to specific thalamic relay and reticular structures connections' weights:
     model.G = model.G * dummy
     model.G[inds["thalspec"]] = 0.0
+    # Retain connections
+    # from spinal nucleus of the trigeminal to S1 barrel field:
+    model.G[inds["s1brlthal"]] = model.G[inds["crtx"][0]]
+    # from interposed nucleus to M1:
+    model.G[inds["m1thal"]] = model.G[inds["crtx"][0]]
 
     return model
 
@@ -675,10 +686,12 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
 def run_workflow(G=5.0, STIMULUS=0.25,
                  I_E=-0.25, I_S=0.25,
                  W_IE=-3.0, W_RS=-2.0,
-                 TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+                 #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
                  PSD_target=None, plot_flag=True):
     # Get configuration
-    config, plotter = configure(G, STIMULUS, I_E, I_S, W_IE, W_RS, TAU_E, TAU_I, TAU_S, TAU_R, plot_flag)
+    config, plotter = configure(G, STIMULUS, I_E, I_S, W_IE, W_RS,
+                                #TAU_E, TAU_I, TAU_S, TAU_R,
+                                plot_flag)
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
