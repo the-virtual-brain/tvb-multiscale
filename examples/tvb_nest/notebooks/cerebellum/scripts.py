@@ -23,7 +23,7 @@ from tvb_multiscale.core.plot.plotter import Plotter
 from matplotlib import pyplot as plt
 
 
-def configure(G=5.0, STIMULUS=0.25,
+def configure(G=2.0, STIMULUS=0.5,
               I_E=-0.25, I_S=0.25,
               W_IE=-3.0, W_RS=-2.0,
               # TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
@@ -345,21 +345,15 @@ def build_model(number_of_regions, inds, maps, config):
             model_params[p] = np.array([pval]).flatten()
 
     if STIMULUS:
+        # Stimulus to M1 and S1 barrel field
+        # inds_stim = np.concatenate((inds["motor"][:2], inds["sens"][-2:])
+        inds_stim = np.concatenate((inds["facial"], inds["trigeminal"]))
         # Stimuli:
         A_st = 0 * dummy.astype("f")
         f_st = 0 * dummy.astype("f")
-        #         # Sensory to Medulla SPV
-        #         A_st[inds["trigeminal"]] = STIMULUS
-        #         f_st[inds["trigeminal"]] = 6.0 # Hz
-        #         # Motor to Facial nucleus
-        #         A_st[inds["facial"]] = STIMULUS
-        #         f_st[inds["facial"]] = 6.0 # Hz
         # Stimulus to M1
-        A_st[inds["motor"][:2]] = STIMULUS
-        f_st[inds["motor"][:2]] = 6.0  # Hz
-        # ...and S1 barrel field
-        A_st[inds["sens"][-2:]] = STIMULUS
-        f_st[inds["sens"][-2:]] = 6.0  # Hz
+        A_st[inds_stim] = STIMULUS
+        f_st[inds_stim] = 6.0  # Hz
         model_params.update({"A_st": A_st, "f_st": f_st})
 
     model = WilsonCowanThalamoCortical(is_cortical=maps['is_cortical'][:, np.newaxis],
