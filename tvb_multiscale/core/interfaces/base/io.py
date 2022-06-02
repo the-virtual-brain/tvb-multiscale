@@ -266,12 +266,84 @@ class NPZReader(ReaderFromFile):
         return data
 
 
+# TODO: import mpi wrapper funs() and logger
+class MPIWriter(RemoteSender):
+
+    """
+       MPIWriter class to write data (time and values) to a .MPI port.
+       It comprises of:
+           - a target attribute, i.e., MPI port to write data to,
+           - a method to write data to the target.
+    """
+
+    pass
+
+    # from mpi4py import MPI
+    #
+    # target = Attr(field_type=str, required=True, label="Path to target file",
+    #               doc="""Full path to MPI port configuration file.""")
+    #
+    # _comm = Attr(field_type=MPI.COMM_WORLD, required=False, label="MPI port", doc="""MPI port object.""")
+    #
+    # # logger = Attr(field_type=???, required = True, label = "Logger", doc = """Logger for MPIWriter.""")
+    #
+    # def configure(self):
+    #     super(MPIWriter, self).configure()
+    #     self._comm = init_mpi(self.target, self.logger)
+    #
+    # def send(self, data):
+    #     send_mpi(self._comm, data[0], data[1], data[2], self.logger)
+    #
+    # def end_mpi(self):
+    #     end_mpi(self._comm, self.target, True, self.logger)
+
+
+class MPIReader(RemoteSender):
+
+    """
+        MPIReader class to read data (time and values) from a mpmi port.
+        It comprises of:
+            - a source attribute, i.e., the mpi port to read data from,
+            - an abstract method to read data from the source.
+    """
+
+    pass
+
+    # from mpi4py import MPI
+    #
+    # source = Attr(field_type=str, default="", required=True,
+    #               label="Path to source file", doc="""Full path to MPI port configuration file.""")
+    #
+    # _comm = Attr(field_type=MPI.COMM_WORLD, required=False,
+    #              label="MPI port", doc="""MPI port object.""")
+    #
+    # # logger = Attr(field_type=???, required=True, label="Logger", doc="""Logger for MPIReader.""")
+    #
+    # def configure(self):
+    #     super(MPIWriter, self).configure()
+    #     self._comm = init_mpi(self.source, self.logger)
+    #
+    # def receive(self, data):
+    #     return receive_mpi(self._comm, self.logger)
+    #
+    # def end_mpi(self):
+    #     end_mpi(self._comm, self.source, False, self.logger)
+
+
 class WritersToFile(Enum):
     WRITER_TO_NUMPY = NPZWriter
 
 
 class ReadersFromFile(Enum):
     READER_FROM_NUMPY = NPZReader
+
+
+class WritersToMPI(Enum):
+    WRITER_TO_MPI = MPIWriter
+
+
+class ReadersFromMPI(Enum):
+    READER_FROM_MPI = MPIReader
 
 
 class SettersToMemory(Enum):
@@ -282,7 +354,7 @@ class GettersFromMemory(Enum):
     GET_FROM_TRANSFORMER = GetFromTransformer
 
 
-RemoteSenders = combine_enums("RemoteSenders", WritersToFile)
-RemoteReceivers = combine_enums("RemoteReceivers", ReadersFromFile)
+RemoteSenders = combine_enums("RemoteSenders", WritersToFile, WritersToMPI)
+RemoteReceivers = combine_enums("RemoteReceivers", ReadersFromFile, ReadersFromMPI)
 Senders = combine_enums("Senders", SettersToMemory, RemoteSenders)
 Receivers = combine_enums("Receivers", GettersFromMemory, RemoteReceivers)
