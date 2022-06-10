@@ -20,7 +20,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
     tvb_spikeNet_model_builder.default_coupling_mode = "TVB"
     tvb_spikeNet_model_builder.model = model
-    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order
+    tvb_spikeNet_model_builder.N_E = int(np.round(spikeNet_model_builder.scale * spikeNet_model_builder.population_order))
 
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
