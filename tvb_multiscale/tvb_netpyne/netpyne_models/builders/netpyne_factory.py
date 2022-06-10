@@ -8,6 +8,7 @@ from tvb_multiscale.tvb_netpyne.netpyne.instance import NetpyneInstance, Netpyne
 
 LOG = initialize_logger(__name__)
 
+
 def load_netpyne(dt, config=CONFIGURED, logger=LOG):
     """This method will load a NetPyNE instance and return it.
         Arguments:
@@ -18,6 +19,7 @@ def load_netpyne(dt, config=CONFIGURED, logger=LOG):
          the imported NetPyNE instance
     """
     return NetpyneInstance(dt)
+
 
 def create_device(device_model, params={}, config=CONFIGURED, netpyne_instance=None, **kwargs):
     """Method to create a NetpynDevice.
@@ -85,18 +87,16 @@ def connect_device(netpyne_device, population, neurons_inds_fun, weight=1.0, del
        Returns:
         the connected NetpyneDevice
     """
-
     netpyne_instance = netpyne_device.netpyne_instance
     spiking_population_label = population.global_label
     if netpyne_device.model in config.NETPYNE_INPUT_DEVICES_PARAMS_DEF:
-
-        print(f"Netpyne:: will connect input device {netpyne_device.model}. {netpyne_device.label} -> {spiking_population_label} (weight: {weight}, delay: {delay})")
-        netpyne_instance.connectStimuli(sourcePop=netpyne_device.label, targetPop=spiking_population_label, weight=weight, delay=delay, receptorType=receptor_type)
+        print(f"Netpyne:: will connect input device {netpyne_device.model}. "
+              f"{netpyne_device.label} -> {spiking_population_label} (weight: {weight}, delay: {delay})")
+        netpyne_instance.connectStimuli(sourcePop=netpyne_device.label, targetPop=spiking_population_label,
+                                        weight=weight, delay=delay, receptorType=receptor_type)
     elif netpyne_device.model in config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF:
-        
         netpyne_device.population_label = spiking_population_label
         print(f"Netpyne:: will connect output device {netpyne_device.model} -- {netpyne_device.population_label}")
     else:
         print(f"Netpyne:: couldn't connect device. Unknown model {netpyne_device.model}")
-
     return netpyne_device
