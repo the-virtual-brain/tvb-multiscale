@@ -24,8 +24,7 @@ from tvb_multiscale.core.interfaces.base.interfaces import SenderInterface, Rece
     RemoteTransformerInterface, RemoteTransformerInterfaces, \
     TVBtoSpikeNetRemoteTransformerInterface, TVBtoSpikeNetRemoteTransformerInterfaces, \
     SpikeNetToTVBRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerInterfaces
-from tvb_multiscale.core.interfaces.base.io import \
-    RemoteSenders, RemoteReceivers, WriterToFile, ReaderFromFile, MPIWriter, MPIReader
+from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers, MPIWriter, MPIReader
 
 
 class InterfaceBuilder(HasTraits, ABC):
