@@ -80,7 +80,9 @@ class NetpyneProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self._build_and_connect_devices(interface, **kwargs)
 
     def _build_and_connect_input_devices(self, interface, **kwargs):
-        interface["weights"] = interface["weights"] * self.netpyne_synaptic_weight_scale
+        isTvb = self.is_tvb_coupling_interface(interface)
+        scale = self.synaptic_weight_scale_func(is_coupling_mode_tvb=isTvb)
+        interface["weights"] = interface["weights"] * scale
         return self._build_and_connect_devices(interface, **kwargs)
 
     def _default_receptor_type(self, source_node, target_node):

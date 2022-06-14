@@ -92,7 +92,8 @@ class NetpyneInstance(object):
         sim.run.prepareSimWithIntervalFunc()
 
     def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType):
-
+        # TODO: randomize weight and delay, if values do not already contain sting func
+        # (e.g. use random_normal_weight() and random_uniform_delay() from netpyne_templates)
         sourceCells = self.netParams.popParams[sourcePop]['numCells']
         targetCells = self.netParams.popParams[targetPop]['numCells']
 
