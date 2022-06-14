@@ -42,7 +42,7 @@ class RedWongWangExcIOInhITVBNetpyneInterfaceBuilder(RedWongWangExcIOInhINetpyne
 
         transformer_params = {}
         if self.model == TVBtoSpikeNetModels.RATE.name:
-            # due to the way Netpyne generates spikes, no scaling is needed
+            # due to the way Netpyne generates spikes, no scaling by population size is needed
             transformer_params = {"scale_factor": np.array([1.0])}
 
         self.output_interfaces[0]["transformer_params"] = transformer_params

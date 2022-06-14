@@ -53,10 +53,12 @@ class NetpyneSerialApp(SpikeNetSerialApp):
     def netpyne_instance(self):
         return self.spiking_cosimulator
 
-    @property
-    def netpyne_synaptic_weight_scale(self):
+    def synaptic_weight_scale(self, is_coupling_mode_tvb):
         # TODO: this is not specific to serial app. Once Parallel app is ready, move to some common ancestor, to use in both cases (see also: TVBNetpyneSerialOrchestrator.build_interfaces())
-        return 1.0
+        if is_coupling_mode_tvb:
+            return 1e-3
+        else: # "spikeNet"
+            return 1
 
     # @property
     # def netpyne_network(self):
@@ -72,7 +74,7 @@ class NetpyneSerialApp(SpikeNetSerialApp):
     def configure(self):
         super(NetpyneSerialApp, self).configure()
         # self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
-        self.spikeNet_builder.netpyne_synaptic_weight_scale = self.netpyne_synaptic_weight_scale
+        self.spikeNet_builder.netpyne_synaptic_weight_scale = self.synaptic_weight_scale(is_coupling_mode_tvb=False)
         self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
 
     def configure_simulation(self):
@@ -166,5 +168,5 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
     )
 
     def build_interfaces(self):
-        self.tvb_app.interfaces_builder.netpyne_synaptic_weight_scale = self.spikeNet_app.netpyne_synaptic_weight_scale
+        self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
         SerialOrchestrator.build_interfaces(self)
