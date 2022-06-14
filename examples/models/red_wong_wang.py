@@ -20,7 +20,8 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
     tvb_spikeNet_model_builder.default_coupling_mode = "TVB"
     tvb_spikeNet_model_builder.model = model
-    tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order
+    tvb_spikeNet_model_builder.N_E = \
+        int(np.round(spikeNet_model_builder.scale * spikeNet_model_builder.population_order))
 
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
@@ -68,10 +69,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     #     [{"voi": ("S", "R"), "populations": "E",
     #       "transformer": spikeNet_to_tvb_transformer,
     #       "transformer_params": {"scale_factor": np.array([1.0]) / tvb_spikeNet_model_builder.N_E,
-    #                              "integrator":
-    #                                  HeunStochastic(dt=0.1,
-    #                                                 noise=Additive(
-    #                                                     nsig=np.array([[1e-3], [0.0]]))),
+    #                              "integrator": spikeNet_model_builder.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self._dt),
     #                              "state": np.zeros((2, len(spiking_proxy_inds))),
     #                              "tau_s": model_params.get("tau_s",
     #                                                        np.array([100.0, ])),
@@ -99,8 +97,10 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     tvb_spikeNet_model_builder.model = model
     tvb_spikeNet_model_builder.input_flag = kwargs.pop("input_flag", True)
     tvb_spikeNet_model_builder.output_flag = kwargs.pop("output_flag", True)
-    tvb_spikeNet_model_builder.N_E = int(np.round(spikeNet_model_builder.scale_e * spikeNet_model_builder.population_order))
-    tvb_spikeNet_model_builder.N_I = int(np.round(spikeNet_model_builder.scale_i * spikeNet_model_builder.population_order))
+    tvb_spikeNet_model_builder.N_E = \
+        int(np.round(spikeNet_model_builder.scale_e * spikeNet_model_builder.population_order))
+    tvb_spikeNet_model_builder.N_I = \
+        int(np.round(spikeNet_model_builder.scale_i * spikeNet_model_builder.population_order))
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
 
@@ -190,7 +190,7 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     #         "transformer": transformer,
     #         "transformer_params":
     #             {"scale_factor": scale,
-    #              "integrator": HeunStochastic(dt=0.1, noise=Additive(nsig=np.array([[1e-3], [0.0]]))),
+    #              "integrator": spikeNet_model_builder.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self._dt),
     #              "state": np.zeros((2, len(spiking_proxy_inds))),
     #              "tau_s": tau_s, "tau_r": tau_r, "gamma": gamma}
     #     })

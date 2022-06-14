@@ -24,7 +24,7 @@ from tvb_multiscale.core.interfaces.base.interfaces import SenderInterface, Rece
     RemoteTransformerInterface, RemoteTransformerInterfaces, \
     TVBtoSpikeNetRemoteTransformerInterface, TVBtoSpikeNetRemoteTransformerInterfaces, \
     SpikeNetToTVBRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerInterfaces
-from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers, WriterToFile, ReaderFromFile
+from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers, MPIWriter, MPIReader
 
 
 class InterfaceBuilder(HasTraits, ABC):
@@ -290,7 +290,7 @@ class InterfaceBuilder(HasTraits, ABC):
         return info
 
 
-class RemoteInterfaceBuilder(InterfaceBuilder):
+class RemoteInterfaceBuilder(InterfaceBuilder, ABC):
     """RemoteInterfaceBuilder class"""
 
     __metaclass__ = ABCMeta
@@ -314,6 +314,10 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
                               to be used for files' names and Sender class instance labels, 
                               for the communication of data starting from this CoSimulator""")
 
+    _mpi_flag = False
+    _mpi_sender = None
+    _mpi_receiver = None
+
     def configure(self):
         super(RemoteInterfaceBuilder, self).configure()
         self._assert_output_interfaces_component_config(
@@ -322,6 +326,8 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
             self._remote_receiver_types, ["receiver", "receiver_model"], self._default_remote_receiver_type)
 
     def _interface_communicator_label(self, label, ii=0):
+        if self._mpi_flag:
+            return label
         return "%s_%d" % (label, ii)
 
     def _file_path(self, label):
@@ -329,26 +335,36 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
 
     def _build_communicator(self, interface, communicator, ii):
         params = interface.pop(communicator + "_params", {})
-        try:
-            # Generate the communicator instance assuming a type
+        if interface[communicator] in (MPIWriter, MPIReader):
+            self._mpi_flag = True
+        if isinstance(interface[communicator].__class__, type):
+            # Generate the communicator instance from a type
+            if self._mpi_flag:
+                # There is only 1 MPI communicator for all interfaces:
+                communicator_instance = getattr(self, "_mpi_%s" % communicator)
+                if issubclass(communicator_instance, interface[communicator]):
+                    interface[communicator] = communicator_instance
+                    return interface
             interface[communicator] = interface[communicator](**params)
-        except:
+        else:
             # This is the case that the communicator instance is already generated
             for p, pval in params.items():
                 setattr(interface[communicator], p, pval)
+        if self._mpi_flag:
+            # Store the communicator so that we don't generate it again
+            setattr(self, "_mpi_%s" % communicator, interface[communicator])
         # Set the interface communicator label if it is not already set by the user:
         if len(interface[communicator].label) == 0:
             interface[communicator].label = \
                     self._interface_communicator_label(np.where(communicator == "sender",
                                                                 self.output_label, self.input_label).item(), ii)
-        # If it is a file communicator, and the target/source filepath is not already set by the user
-        # define a default filepath for the a file communicator
-        if isinstance(interface[communicator], (WriterToFile, ReaderFromFile)):
-            source_or_target = np.where(communicator == "sender", "target", "source").item()
-            try:
-                assert len(getattr(interface[communicator], source_or_target)) > 0
-            except:
-                setattr(interface[communicator], source_or_target, self._file_path(interface[communicator].label))
+        # If the target/source filepath is not already set by the user
+        # define a default filepath for a file communicator
+        source_or_target = np.where(communicator == "sender", "target", "source").item()
+        try:
+            assert len(getattr(interface[communicator], source_or_target)) > 0
+        except:
+            setattr(interface[communicator], source_or_target, self._file_path(interface[communicator].label))
         return interface
 
     def _get_output_interface_arguments(self, interface, ii=0):
@@ -360,7 +376,10 @@ class RemoteInterfaceBuilder(InterfaceBuilder):
             super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii), "receiver", ii)
 
 
-class RemoteTransformerBuilder(RemoteInterfaceBuilder, TransformerBuilder):
+class RemoteTransformerBuilder(RemoteInterfaceBuilder, TransformerBuilder, ABC):
+
+    __metaclass__ = ABCMeta
+
     """RemoteTransformerBuilder class"""
 
     _output_interface_type = RemoteTransformerInterface
