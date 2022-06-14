@@ -91,7 +91,6 @@ class RedWongWangExcIOSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilder, A
             interface["transformer_model"] = ElephantSpikesRateRedWongWangExc
             interface["transformer_params"] = \
                 {"scale_factor": np.array([1.0]) / self.N_E,
-                 "integrator": HeunStochastic(dt=self._dt, noise=Additive(nsig=self.nsig)),
                  "state": np.zeros((2, len(self.proxy_inds))),
                  "tau_s": self.tau_s, "tau_r": self.tau_r, "gamma": self.gamma}
 
@@ -439,7 +438,6 @@ class RedWongWangExcIOInhISpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilde
             interface["transformer_model"] = model
             interface["transformer_params"] = \
                 {"scale_factor": np.array([1.0]) / N,
-                 "integrator": HeunDeterministic(dt=self._dt), # TODO: find why it doesn't work with HeunStochastic (due to noise)
                  "state": np.zeros((2, len(self.proxy_inds))),
                  "tau_s": tau_s, "tau_r": tau_r, "gamma": gamma}
 

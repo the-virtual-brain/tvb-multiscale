@@ -6,16 +6,16 @@ import numpy as np
 
 class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], netpyne_instance=None, config=None):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, netpyne_instance=netpyne_instance, config=config)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], netpyne_instance=None, config=None, logger=None):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, netpyne_instance=netpyne_instance, config=config, logger=logger)
 
         self.scale_e = 1.2
         self.scale_i = 0.4
 
-        self.weight_ee = 0.02
-        self.weight_ei = 0.01
-        self.weight_ie = 0.01
-        self.weight_ii = 0.01
+        self.w_ee = 0.02
+        self.w_ei = 0.01
+        self.w_ie = 0.01
+        self.w_ii = 0.01
 
         self.delay = 5
 
@@ -28,6 +28,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
     def configure(self):
         super(DefaultExcIOInhIBuilder, self).configure()
         self.global_coupling_scaling *= self.tvb_serial_sim.get("model.G", np.array([2.0]))[0].item()
+        self.lamda = self.tvb_serial_sim.get("model.lamda", np.array([0.0]))[0].item()
 
     def set_defaults(self):
         self.set_cell_models()
@@ -83,7 +84,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
             {"source": "E", "target": "E",
             #  "synapse_model": self.default_populations_connection["synapse_model"], # TODO: here and below, is this needed or `receptor_type` below is just enough?
              "conn_spec": self.conn_spec_prob_low,
-             "weight": self.weight_fun(self.weight_ee),
+             "weight": self.weight_fun(self.w_ee),
              "delay": self.delay,
              "receptor_type": self.receptor_type_E, "nodes": None}  # None means "all"
         # connections.update(self.pop_conns_EE)
@@ -93,7 +94,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         connections = \
             {"source": "E", "target": "I",
              "conn_spec": self.conn_spec_prob_low,
-             "weight": self.weight_fun(self.weight_ei),
+             "weight": self.weight_fun(self.w_ei),
              "delay": self.delay,
              "receptor_type": self.receptor_type_E, "nodes": None}  # None means "all"
         return connections
@@ -102,7 +103,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         connections = \
             {"source": "I", "target": "E",
              "conn_spec": self.conn_spec_prob_high,
-             "weight": self.weight_fun(self.weight_ie),
+             "weight": self.weight_fun(self.w_ie),
              "delay": self.delay,
              "receptor_type": self.receptor_type_I, "nodes": None}  # None means "all"
         return connections
@@ -111,7 +112,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         connections = \
             {"source": "I", "target": "I",
              "conn_spec": self.conn_spec_prob_high,
-             "weight": self.weight_fun(self.weight_ii),
+             "weight": self.weight_fun(self.w_ii),
              "delay": self.delay,
              "receptor_type": self.receptor_type_I, "nodes": None}  # None means "all"
         return connections
@@ -125,7 +126,17 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
              # Each region emits spikes in its own port:
              "receptor_type": self.receptor_type_E, "source_nodes": None, "target_nodes": None}  # None means "all"
         ]
-        # TODO: lamda?
+        if self.lamda > 0:
+            self.nodes_connections.append({
+                "source": "E", "target": "I",
+                "conn_spec": self.conn_spec_prob_low,
+                # using lamda to scale connectivity weights (or alternatively, it can be used to downscale connection probability in 'conn_spec' above):
+                "weight": lambda source_node, target_node: self.tvb_weight_fun(source_node, target_node, self.lamda),
+                "delay": self.tvb_delay_fun,
+                # Each region emits spikes in its own port:
+                "receptor_type": self.receptor_type_E, "source_nodes": None, "target_nodes": None  # None means "all"
+            })
+
 
     def set_output_devices(self):
         # Creating  devices to be able to observe NetPyNE activity:
@@ -148,9 +159,10 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
     def weight_fun(self, w, scale=1.0, sigma=0.1):
         return random_normal_weight(w, scale, sigma)
 
-    def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
-        if scale is None:
-            scale = self.netpyne_synaptic_weight_scale * self.global_coupling_scaling #TODO: this is not proper scaling, need to by multiplied
+    def tvb_weight_fun(self, source_node, target_node, lamda=None, sigma=0.1):
+        scale = self.global_coupling_scaling * self.netpyne_synaptic_weight_scale
+        if lamda:
+            scale *= lamda
         return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale=scale, sigma=sigma)
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):

@@ -50,10 +50,14 @@ class Integration(Transformer):
 
     def configure(self):
         self.integrator.dt = self.dt
+        self.integrator.configure()
         if isinstance(self.integrator, self._stochastic_integrator):
             self.integrator.noise.dt = self.dt
             self.integrator.noise.configure()
-        self.integrator.configure()
+            if self.integrator.noise.ntau > 0.0:
+                self.integrator.noise.configure_coloured(self.integrator.dt, self._state.shape)
+            else:
+                self.integrator.noise.configure_white(self.integrator.dt, self._state.shape)
         super(Integration, self).configure()
 
     @abstractmethod

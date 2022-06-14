@@ -43,3 +43,20 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 class CoSimulatorParallel(CoSimulator):
 
     pass
+
+
+class CoSimulatorMPI(CoSimulatorParallel):
+
+    pass
+    # def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
+    #     super(CoSimulatorMPI, self)._run_cosimulation(ts, xs, wall_time_start,
+    #                                                   advance_simulation_for_delayed_monitors_output, **kwds)
+    #     self.logger.info(" TVB finish")
+    #     if self.n_output_interfaces:
+    #         logger.info('end comm send')
+    #         self.output_interfaces[0].end_mpi()
+    #     if self.n_input_interfaces:
+    #         logger.info('end comm receive')
+    #         self.input_interfaces[0].end_mpi()
+    #     self.MPI.Finalize()  # ending with MPI
+    #     self.logger.info("TVB exit")

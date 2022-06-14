@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-
 from logging import Logger
 from enum import Enum
+import pickle
 
 import numpy as np
 
 from tvb.basic.neotraits.api import Attr
 
+from tvb_multiscale.core.interfaces.base.builders import RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
@@ -151,6 +152,58 @@ class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBu
 
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
+
+
+class NESTMPIInterfaceBuilder(NESTRemoteInterfaceBuilder):
+
+    # This builder doesn't need to create any Communicators,
+    # since communication in and out of NEST is handled by NEST MPI automatically.
+    # But, it has to write to a file the gids of each interface's NEST proxy devices created
+
+    _default_remote_sender_type = None
+    _default_remote_receiver_type = None
+
+    def configure(self):
+        SpikeNetInterfaceBuilder.configure(self)
+        super(RemoteInterfaceBuilder, self).configure()
+
+    def _get_output_interface_arguments(self, interface, ii=0):
+        interface["proxy_params"].update({"record_to": "MPI",
+                                          "label": self._file_path(self.output_label) + "%d" % ii})
+        interface = SpikeNetInterfaceBuilder._get_output_interface_arguments(self, interface, ii)
+        if "proxy_inds" in interface:
+            del interface["proxy_inds"]
+        return interface
+
+    def _get_input_interface_arguments(self, interface, ii=0):
+        interface["proxy_params"].update({"stimulus_source": "MPI",
+                                          "label": self._file_path(self.input_label) + "%d" % ii})
+        interface = SpikeNetInterfaceBuilder._get_input_interface_arguments(self, interface, ii)
+        # We don't need these anymore for interfaces without TVB:
+        if "proxy_inds" in interface:
+            del interface["proxy_inds"]
+        if 'coupling_mode' in interface:
+            del interface['coupling_mode']
+        return interface
+
+    def write_proxies_gids(self):
+        out_gids = []
+        for ii, interface in enumerate(self.output_interfaces):
+            out_gids.append(interface.proxy_gids)
+        in_gids = []
+        for ii, interface in enumerate(self.input_interfaces):
+            in_gids.append(interface.proxy_gids)
+        with open(self._file_path(self.output_label) + "_gids.pkl", 'wb') as file:
+            pickle.dump(out_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
+        # print(out_gids)
+        with open(self._file_path(self.input_label) + "_gids.pkl", 'wb') as file:
+            pickle.dump(in_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
+        # print(in_gids)
+
+    def build(self):
+        output_interfaces, input_interfaces = super(NESTMPIInterfaceBuilder, self).build()
+        self.write_proxies_gids()
+        return output_interfaces, input_interfaces
 
 
 class NESTTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetTransformerInterfaceBuilder):
