@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import os
+from copy import deepcopy
 from collections import OrderedDict
 import time
+
 import numpy as np
 from scipy.signal import welch
 from scipy.interpolate import interp1d
 
 import torch
 from sbi.inference.base import infer
+from sbi import utils as utils
 from sbi import analysis as analysis
 
 from tvb.basic.profile import TvbProfile
@@ -28,54 +31,21 @@ def configure(G=2.0, STIMULUS=0.5,
               W_IE=-3.0, W_RS=-2.0,
               # TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
               plot_flag=True):
-    # ----------- Simulation options ----------------
-    DT = 0.1
-    NOISE = 1e-4
-    SIMULATION_LENGTH = 400.0  # 4000.0
-    TRANSIENT_RATIO = 0.1
 
-    CONN_SPEED = 3.0
+    # -----------------------------------------------
+
+    # Flags that affect the result's path:
+    # Files:
     BRAIN_CONN_FILE = "Connectivity_SummedSubcortical_Thals.h5"
     MAJOR_STRUCTS_LABELS_FILE = "major_structs_labels_SummedSubcortical_Thals.npy"  # "major_structs_labels_Thals.npy" # "major_structs_labels_SummedSubcortical_Thals.npy"
     VOXEL_COUNT_FILE = "voxel_count_SummedSubcortical_Thals.npy"  # "voxel_count_Thals.npy" # "voxel_count_SummedSubcortical_Thals.npy"
     INDS_FILE = "inds_SummedSubcortical_Thals.npy"  # "inds_Thals.npy" # "inds_SummedSubcortical_Thals.npy"
-    THAL_CRTX_FIX = "wd"  # "wd", "w", "d" or False, in order to fix values of thalamocortical Weights, Delays, or both, to the Griffiths et al values, or not
-    BRAIN_CONNECTIONS_TO_SCALE = []  # e.g., [["Region 1", ["Region 2", "Region 3"], scaling_factor]]
-    CONN_SCALE = None # "region"
-    CONN_NORM_PERCENTILE = 99
-    CONN_CEIL = False
 
-    #     G = 5.0      # in Griffiths et al paper = 5.0
-    #     STIMULUS = 0.25  # 0.5
-    #     I_E = -0.25  # -1.0 # -0.75 for subcortex, but -0.35 in Griffiths et al paper
-    #     I_S =  0.25
-    #     W_IE = None
-    #     W_RS = None
-    #     TAU_E = None
-    #     TAU_I = None
-    #     TAU_S = None
-    #     TAU_R = None
+    # For connectivity
+    THAL_CRTX_FIX = "wd"  # "wd", "w", "d" or False, in order to fix values of thalamocortical Weights, Delays, or both, to the Griffiths et al values, or not
 
     # For fitting:
     FIC = 1.0  # 0.2  # 0.185 # 0.19 # 0.2 # 0.15
-    TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
-    SAMPLES_GS = "samples_fit_Gs.npy"
-    PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS'] # , 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
-    N_RUNS = 2  # 3 - 10
-    N_SIMULATIONS = 3  # 500 - 1000
-    N_SAMPLES = 100  # 1000
-    Gs = np.array([0.0, 1.0, 10.0]) # np.array([0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0])
-    # normal priors:
-    #             0.    1.     2.     3.      4.       5.    6.       7.        8.
-    #        STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
-    prior_min = [0.1,  -1.0,   0.0,  -10.0,  -5.0] #,    1.0,    1.0,    1.0,     1.0]
-    prior_max = [0.5,   0.0,   1.0,    0.0,   0.0] #,   20.0,   20.0,   80.0,     80.0]
-    #
-    prior_loc = [0.25,  -0.5,  0.5, -5.0,   -2.5] #,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
-    prior_sc = [  0.1,  0.25, 0.25,  2.5,   1.25] #,    2.0,     2.0,    4.0,      4.0]
-    SBI_NUM_WORKERS = 4  # ??
-    SBI_METHOD = 'SNPE'
-    # -----------------------------------------------
 
     # Construct configuration
     work_path = os.getcwd()
@@ -101,31 +71,43 @@ def configure(G=2.0, STIMULUS=0.5,
     if THAL_CRTX_FIX:
         outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
 
-    # print("Outputs' path: %s" % outputs_path)
+    print("Outputs' path: %s" % outputs_path)
 
     config = Config(output_base=outputs_path)
 
+    if plot_flag:
+        plotter = Plotter(config.figures)
+        config.figures.SHOW_FLAG = True
+        config.figures.SAVE_FLAG = True
+        config.figures.FIG_FORMAT = 'png'
+        config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
+    else:
+        plotter = None
+
+    # ----------- Simulation options ----------------
+
     # Integration
-    config.DEFAULT_DT = DT
-    config.DEFAULT_NSIG = NOISE
+    config.DEFAULT_DT = 0.1
+    config.DEFAULT_NSIG = 1e-4  # NOISE strength
     config.DEFAULT_STOCHASTIC_INTEGRATOR = EulerStochastic
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
+    # Simulation...
+    config.SIMULATION_LENGTH = 400.0  # 4000.0
+    config.TRANSIENT_RATIO = 0.1
+
     # Connectivity
-    config.CONN_SPEED = CONN_SPEED
+    config.CONN_SPEED = 3.0
     config.BRAIN_CONN_FILE = tvb_conn_filepath
     config.MAJOR_STRUCTS_LABELS_FILE = major_structs_labels_filepath
     config.VOXEL_COUNT_FILE = voxel_count_filepath
     config.INDS_FILE = inds_filepath
     config.THAL_CRTX_FIX = THAL_CRTX_FIX
-    config.BRAIN_CONNECTIONS_TO_SCALE = BRAIN_CONNECTIONS_TO_SCALE
-    config.CONN_SCALE = CONN_SCALE
-    config.CONN_NORM_PERCENTILE = CONN_NORM_PERCENTILE
-    config.CONN_CEIL = CONN_CEIL
+    config.BRAIN_CONNECTIONS_TO_SCALE = []  # e.g., [["Region 1", ["Region 2", "Region 3"], scaling_factor]]
+    config.CONN_SCALE = None  # "region"
+    config.CONN_NORM_PERCENTILE = 99
+    config.CONN_CEIL = False
 
-    # Simulation...
-    config.SIMULATION_LENGTH = SIMULATION_LENGTH
-    config.TRANSIENT_RATIO = TRANSIENT_RATIO
     # Model parameters
     config.model_params = OrderedDict()
     config.model_params['G'] = G
@@ -144,34 +126,30 @@ def configure(G=2.0, STIMULUS=0.5,
     config.BOLD_PERIOD = None  # 1024.0 or None, If None, BOLD will not be computed
 
     # ...and fitting
-    config.SBI_NUM_WORKERS = SBI_NUM_WORKERS
-    config.SBI_METHOD = SBI_METHOD
+    config.FIC = FIC
+    config.SBI_NUM_WORKERS = 4
+    config.SBI_METHOD = 'SNPE'
     config.TARGET_PSD_POPA_PATH = popa_freqs_path
     config.PSD_TARGET_PATH = os.path.join(config.TARGET_PSD_POPA_PATH, "PSD_target.npy")
-    config.TARGET_FREQS = TARGET_FREQS
+    config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.FIC = FIC
-    config.SAMPLES_GS_PATH = os.path.join(data_path, SAMPLES_GS)
-    config.N_RUNS = N_RUNS
-    config.N_SIMULATIONS = N_SIMULATIONS
-    config.N_SAMPLES = N_SAMPLES
-    config.N_SAMPLES_PER_RUN = int(np.ceil(1.0*N_SAMPLES/N_RUNS))
-    config.Gs = Gs
-    config.PRIORS_PARAMS_NAMES = PRIORS_PARAMS_NAMES
-    config.prior_min = prior_min
-    config.prior_max = prior_max
+    config.SAMPLES_GS_PATH = os.path.join(data_path, "samples_fit_Gs.npy")
+    config.N_RUNS = 2  # 3 - 10
+    config.N_SIMULATIONS = 3  # 500 - 1000
+    config.N_SAMPLES = 100  # 1000
+    config.N_SAMPLES_PER_RUN = int(np.ceil(1.0*config.N_SAMPLES/config.N_RUNS))
+    config.Gs = np.array([0.0, 1.0, 10.0])  # np.array([0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0])
+    config.PRIORS_MODE = "normal"  # "normal" or "uniform"
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS']  # , 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
+    #                    0.       1.     2.     3.      4.       5.    6.       7.        8.
+    #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
+    # Uniform priors:
+    config.prior_min = [0.1, -1.0, 0.0, -10.0, -5.0]  # ,    1.0,    1.0,    1.0,     1.0]
+    config.prior_max = [0.5, 0.0, 1.0, 0.0, 0.0]  # ,   20.0,   20.0,   80.0,     80.0]
     # Normal priors:
-    config.prior_loc = prior_loc
-    config.prior_sc = prior_sc
+    config.prior_loc = [0.25, -0.5, 0.5, -5.0, -2.5]  # ,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
+    config.prior_sc = [0.1, 0.25, 0.25, 2.5, 1.25]  # ,    2.0,     2.0,    4.0,      4.0]
     config.n_priors = len(config.prior_min)
-
-    if plot_flag:
-        plotter = Plotter(config.figures)
-        config.figures.SHOW_FLAG = True
-        config.figures.SAVE_FLAG = True
-        config.figures.FIG_FORMAT = 'png'
-        config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
-    else:
-        plotter = None
 
     return config, plotter
 
@@ -342,7 +320,12 @@ def build_model(number_of_regions, inds, maps, config):
     model_params = {}
     for p, pval in config.model_params.items():
         if pval is not None:
-            model_params[p] = np.array([pval]).flatten()
+            pval = np.array([pval]).flatten()
+            if p == 'G':
+                # G normalized by the number of regions as in Griffiths et al paper
+                # Geff = G /(number_of_regions - inds['thalspec'].size)
+                pval = pval / (number_of_regions - inds['thalspec'].size)
+            model_params[p] = pval
 
     if STIMULUS:
         # Stimulus to M1 and S1 barrel field
@@ -554,13 +537,17 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
         # simulator.model.eta = np.array([-0.05])
 
     # Set monitors:
-    mon_raw = Raw(period=config.RAW_PERIOD)  # ms
+    if config.RAW_PERIOD > config.DEFAULT_DT:
+        mon_raw = TemporalAverage(period=config.RAW_PERIOD)  # ms
+    else:
+        mon_raw = Raw()
     if config.BOLD_PERIOD:
         bold = Bold(period=config.BOLD_PERIOD,
                     variables_of_interest=np.array([2]))  # !!! Set a proper (1-2 sec??) TR time in ms !!!
         simulator.monitors = (mon_raw, bold)
     else:
         simulator.monitors = (mon_raw,)
+
     simulator.configure()
 
     simulator.integrate_next_step = simulator.integrator.integrate_with_update
@@ -706,22 +693,26 @@ def run_workflow(G=5.0, STIMULUS=0.25,
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
 
-    return PSD, results
+    if plot_flag:
+        output_config = deepcopy(config)
+        output_config.inds = inds
+        output_config.maps = maps
+        output_config.transient = transient
+        return PSD, results, simulator, output_config
+    else:
+        return PSD, results
 
 
 def build_priors(config):
-    #     # uniform priors: g
-    #     g_prior_min = [0.0]  #
-    #     g_prior_max = [2.0]  #
-    #     g_priors = utils.torchutils.BoxUniform(low=torch.as_tensor(g_prior_min),
-    #                                          high=torch.as_tensor(g_prior_max))
-
-    priors_normal = torch.distributions.Normal(loc=torch.as_tensor(config.prior_loc),
-                                               scale=torch.as_tensor(config.prior_sc))
-    #     priors = torch.distributions.MultivariateNormal(loc=torch.as_tensor(config.prior_loc),
-    #                                                     scale_tril=torch.diag(torch.as_tensor(config.prior_sc)))
-    priors = torch.distributions.Independent(priors_normal, 1)
-
+    if config.PRIORS_MODE.lower() == "uniform":
+        priors = utils.torchutils.BoxUniform(low=torch.as_tensor(config.prior_min),
+                                             high=torch.as_tensor(config.prior_max))
+    else:
+        priors_normal = torch.distributions.Normal(loc=torch.as_tensor(config.prior_loc),
+                                                   scale=torch.as_tensor(config.prior_sc))
+        #     priors = torch.distributions.MultivariateNormal(loc=torch.as_tensor(config.prior_loc),
+        #                                                     scale_tril=torch.diag(torch.as_tensor(config.prior_sc)))
+        priors = torch.distributions.Independent(priors_normal, 1)
     return priors
 
 
@@ -816,10 +807,6 @@ def sbi_fit(iG, config=None):
     # Run one simulation with the posterior means:
     print("\nSimulating with posterior means...")
     params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
-    PSD, results = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
+    PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
 
-    return samples_fit_Gs, results, fig
-
-
-
-
+    return samples_fit_Gs, results, fig, simulator, output_config
