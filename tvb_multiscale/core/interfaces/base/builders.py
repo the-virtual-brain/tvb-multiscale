@@ -463,14 +463,26 @@ class TVBtoSpikeNetRemoteTransformerBuilder(RemoteTransformerBuilder, TVBtoSpike
     """TVBtoSpikeNetRemoteTransformerBuilder class"""
 
     _output_interface_type = TVBtoSpikeNetRemoteTransformerInterface
-
     _output_interfaces_type = TVBtoSpikeNetRemoteTransformerInterfaces
 
     def _configure_and_build_output_transformers(self):
         TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
 
+    def _configure_and_build_input_transformers(self):
+        pass
+
+    def _get_input_interface_arguments(self, interface, ii=0):
+        pass
+
     def _configure_input_interfaces(self):
         pass
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        super(RemoteInterfaceBuilder, self).configure()
+        self._configure_output_interfaces()
 
     def build(self):
         self.build_interfaces()
@@ -485,14 +497,26 @@ class SpikeNetToTVBRemoteTransformerBuilder(RemoteTransformerBuilder, SpikeNetTo
     """SpikeNetToTVBRemoteTransformerBuilder class"""
 
     _input_interface_type = SpikeNetToTVBRemoteTransformerInterface
-
     _input_interfaces_type = SpikeNetToTVBRemoteTransformerInterfaces
 
     def _configure_and_build_input_transformers(self):
         SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
 
+    def _configure_and_build_output_transformers(self):
+        pass
+
+    def _get_output_interface_arguments(self, interface, ii=0):
+        pass
+
     def _configure_output_interfaces(self):
         pass
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        super(RemoteInterfaceBuilder, self).configure()
+        self._configure_input_interfaces()
 
     def build(self):
         self.build_interfaces()
@@ -501,6 +525,32 @@ class SpikeNetToTVBRemoteTransformerBuilder(RemoteTransformerBuilder, SpikeNetTo
                                         synchronization_time=self.synchronization_time,
                                         synchronization_n_step=self.synchronization_n_step)
         return input_interfaces
+
+
+class EBRAINSTVBtoSpikeNetRemoteTransformerBuilder(TVBtoSpikeNetRemoteTransformerBuilder):
+    """EBRAINSTVBtoSpikeNetRemoteTransformerBuilder"""
+
+    _default_remote_sender_type = None
+    _default_remote_receiver_type = None
+
+    def _get_output_interface_arguments(self, interface, ii=0):
+        return super(RemoteInterfaceBuilder, self)._get_output_interface_arguments(interface, ii)
+
+    def _configure_output_interfaces(self):
+        self._configure_and_build_output_transformers()
+
+
+class EBRAINSSpikeNetToTVBRemoteTransformerBuilder(SpikeNetToTVBRemoteTransformerBuilder):
+    """EBRAINSSpikeNetToTVBRemoteTransformerBuilder"""
+
+    _default_remote_sender_type = None
+    _default_remote_receiver_type = None
+
+    def _get_input_interface_arguments(self, interface, ii=0):
+        return super(RemoteInterfaceBuilder, self)._get_input_interface_arguments(interface, ii)
+
+    def _configure_input_interfaces(self):
+        self._configure_and_build_input_transformers()
 
 
 class TVBspikeNetRemoteTransformerBuilder(RemoteTransformerBuilder,
