@@ -279,26 +279,28 @@ class MPIWriter(RemoteSender):
     pass
 
     # from mpi4py import MPI
-    #
-    # target = Attr(field_type=str, required=True, label="Path to target file",
-    #               doc="""Full path to MPI port configuration file.""")
-    #
+
+    target = Attr(field_type=str, required=True, label="Path to target file",
+                  doc="""Full path to MPI port configuration file.""")
+
     # _comm = Attr(field_type=MPI.COMM_WORLD, required=False, label="MPI port", doc="""MPI port object.""")
-    #
-    # # logger = Attr(field_type=???, required = True, label = "Logger", doc = """Logger for MPIWriter.""")
-    #
-    # def configure(self):
-    #     super(MPIWriter, self).configure()
-    #     self._comm = init_mpi(self.target, self.logger)
-    #
-    # def send(self, data):
-    #     send_mpi(self._comm, data[0], data[1], data[2], self.logger)
-    #
-    # def end_mpi(self):
-    #     end_mpi(self._comm, self.target, True, self.logger)
+
+    # logger = Attr(field_type=???, required = True, label = "Logger", doc = """Logger for MPIWriter.""")
+
+    def configure(self):
+        super(MPIWriter, self).configure()
+        # self._comm = init_mpi(self.target, self.logger)
+
+    def send(self, data):
+         pass
+        # send_mpi(self._comm, data[0], data[1], data[2], self.logger)
+
+    def end_mpi(self):
+        pass
+        # end_mpi(self._comm, self.target, True, self.logger)
 
 
-class MPIReader(RemoteSender):
+class MPIReader(RemoteReceiver):
 
     """
         MPIReader class to read data (time and values) from a mpmi port.
@@ -310,24 +312,26 @@ class MPIReader(RemoteSender):
     pass
 
     # from mpi4py import MPI
-    #
-    # source = Attr(field_type=str, default="", required=True,
-    #               label="Path to source file", doc="""Full path to MPI port configuration file.""")
-    #
+
+    source = Attr(field_type=str, default="", required=True,
+                  label="Path to source file", doc="""Full path to MPI port configuration file.""")
+
     # _comm = Attr(field_type=MPI.COMM_WORLD, required=False,
     #              label="MPI port", doc="""MPI port object.""")
-    #
-    # # logger = Attr(field_type=???, required=True, label="Logger", doc="""Logger for MPIReader.""")
-    #
-    # def configure(self):
-    #     super(MPIWriter, self).configure()
-    #     self._comm = init_mpi(self.source, self.logger)
-    #
-    # def receive(self, data):
-    #     return receive_mpi(self._comm, self.logger)
-    #
-    # def end_mpi(self):
-    #     end_mpi(self._comm, self.source, False, self.logger)
+
+    # logger = Attr(field_type=???, required=True, label="Logger", doc="""Logger for MPIReader.""")
+
+    def configure(self):
+        super(MPIReader, self).configure()
+        # self._comm = init_mpi(self.source, self.logger)
+
+    def receive(self):
+        pass
+        # return receive_mpi(self._comm, self.logger)
+
+    def end_mpi(self):
+        pass
+        # end_mpi(self._comm, self.source, False, self.logger)
 
 
 class WritersToFile(Enum):
