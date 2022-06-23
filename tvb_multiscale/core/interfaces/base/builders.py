@@ -342,7 +342,8 @@ class RemoteInterfaceBuilder(InterfaceBuilder, ABC):
             if self._mpi_flag:
                 # There is only 1 MPI communicator for all interfaces:
                 communicator_instance = getattr(self, "_mpi_%s" % communicator)
-                if issubclass(communicator_instance, interface[communicator]):
+                if communicator_instance is not None and \
+                        issubclass(communicator_instance.__class__, interface[communicator]):
                     interface[communicator] = communicator_instance
                     return interface
             interface[communicator] = interface[communicator](**params)
