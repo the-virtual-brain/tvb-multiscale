@@ -168,8 +168,12 @@ class NESTMPIInterfaceBuilder(NESTRemoteInterfaceBuilder):
         super(RemoteInterfaceBuilder, self).configure()
 
     def _get_output_interface_arguments(self, interface, ii=0):
-        interface["proxy_params"].update({"record_to": "MPI",
-                                          "label": self._file_path(self.output_label) + "%d" % ii})
+        proxy_params = {"record_to": "MPI",
+                        "label": self._file_path(self.output_label) + "%d" % ii}
+        if "proxy_params" in interface:
+            interface["proxy_params"].update(proxy_params)
+        else:
+            interface["proxy_params"] = proxy_params
         interface = SpikeNetInterfaceBuilder._get_output_interface_arguments(self, interface, ii)
         if "proxy_inds" in interface:
             del interface["proxy_inds"]
