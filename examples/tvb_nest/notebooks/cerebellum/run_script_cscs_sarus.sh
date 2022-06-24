@@ -55,7 +55,7 @@ export COMMAND='sarus --debug run --workdir='$DOCKER_WORKDIR'
 
 export SRUN_COMMAND=$SRUN' '$COMMAND
 
-$SRUN_COMMAND &> $OUTPUT_FILE
+$SRUN_COMMAND
 
 ## Singularity
 ### In PizDaint, we assume that these lines have been already ran:
