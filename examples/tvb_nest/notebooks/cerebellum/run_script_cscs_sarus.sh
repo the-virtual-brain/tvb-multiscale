@@ -28,10 +28,11 @@ export CMD=${DOCKER_PYTHON}' '${DOCKER_RUN_FILE}
 export NODES=mc  # or gpu, nothing for BIH cluster
 export N_NODES=1
 export N_TASKS=1
+export JOB=test
 export TIME=24:00:00
 export OUTPUT_FILE='$SCRATCH/slurm/output.out'
 export MAIL=dionperd@gmail.com
-export SRUN='srun -A ich012 -C '$NODES' --exclusive --partition=normal --nodes '$N_NODES' --ntasks '$N_TASKS' -t '$TIME' -o '$OUTPUT_FILE' --mail-type=ALL --mail-user='$MAIL
+export SRUN='srun -A ich012 -C '$NODES' --job-name= '$JOB' --exclusive --partition=normal --nodes '$N_NODES' --ntasks '$N_TASKS' -t '$TIME' -o '$OUTPUT_FILE' --mail-type=ALL --mail-user='$MAIL
 
 
 # Sarus
@@ -54,7 +55,7 @@ export COMMAND='sarus --debug run --workdir='$DOCKER_WORKDIR'
 
 export SRUN_COMMAND=$SRUN' '$COMMAND
 
-$SRUN_COMMAND
+$SRUN_COMMAND &> $OUTPUT_FILE
 
 ## Singularity
 ### In PizDaint, we assume that these lines have been already ran:
