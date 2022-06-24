@@ -2,8 +2,8 @@
 #SBATCH --job-name="sbi_fit_test"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
-#SBATCH --time=00:30:00
-#SBATCH --nodes=1
+#SBATCH --time=00:60:00
+#SBATCH --nodes=10
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
