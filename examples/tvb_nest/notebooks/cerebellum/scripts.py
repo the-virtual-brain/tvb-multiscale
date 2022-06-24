@@ -127,7 +127,7 @@ def configure(G=2.0, STIMULUS=0.5,
 
     # ...and fitting
     config.FIC = FIC
-    config.SBI_NUM_WORKERS = 1
+    config.SBI_NUM_WORKERS = 10
     config.SBI_METHOD = 'SNPE'
     config.TARGET_PSD_POPA_PATH = popa_freqs_path
     config.PSD_TARGET_PATH = os.path.join(config.TARGET_PSD_POPA_PATH, "PSD_target.npy")
