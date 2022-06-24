@@ -32,7 +32,7 @@ export JOB=test
 export TIME=24:00:00
 export OUTPUT_FILE='$SCRATCH/slurm/output.out'
 export MAIL=dionperd@gmail.com
-export SRUN='srun -A ich012 -C '$NODES' --job-name= '$JOB' --exclusive --partition=normal --nodes '$N_NODES' --ntasks '$N_TASKS' -t '$TIME' -o '$OUTPUT_FILE' --mail-type=ALL --mail-user='$MAIL
+export SRUN='srun -A ich012 -C '$NODES' --job-name= '$JOB' --exclusive --partition=normal --nodes '$N_NODES' --ntasks '$N_TASKS' -t '$TIME' --mail-type=ALL --mail-user='$MAIL
 
 
 # Sarus
