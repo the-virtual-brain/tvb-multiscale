@@ -1,4 +1,17 @@
-#!/bin/bash
+#!/bin/bash -l
+#SBATCH --job-name="sbi_fitting"
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=alice.geminiani@unipv.it
+#SBATCH --time=00:30:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-core=1
+#SBATCH --ntasks-per-node=36
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=normal
+#SBATCH --constraint=mc
+#SBATCH --hint=nomultithread
+#SBATCH --mem-per-cpu=1G
+
 
 # Have these in your bash_profile and bashrc:
 #export SCRATCH=$HOME/scratch  # only for BIH, it is done already
