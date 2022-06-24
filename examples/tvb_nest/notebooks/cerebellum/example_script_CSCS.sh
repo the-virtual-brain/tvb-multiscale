@@ -15,13 +15,14 @@
 module load sarus
 module load daint-mc
 
-# export SCRATCH=/scratch/snx3000/bp000345
-#export TVB_ROOT=$SCRATCH/cosims/tvb-root
-#export TVB_MULTISCALE=$SCRATCH/cosims/tvb-multiscale
+# export SCRATCH=/scratch/snx3000/bp000229
+#export TVB_ROOT=$SCRATCH/Software/TVB/tvb-root
+#export TVB_MULTISCALE=$SCRATCH/Software/TVB/tvb-multiscale
 export DOCKER_ROOT=/home/docker/packages/tvb-root
 export DOCKER_MULTISCALE=/home/docker/packages/tvb-multiscale
-export SBIFIT=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum/
+export SBIFIT=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum/scripts.py
+export G=1
+export PYTHON=/home/docker/env/neurosci/bin/python
+export IMAGE=dionperd/tvb-multiscale-dev:parallel_cluster
 
-sarus run --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} dionperd/tvb-multiscale-dev:parallel_cluster /home/docker/env/neurosci/bin/python ${SBIFIT}/scripts.py
-
-
+sarus run --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} $G
