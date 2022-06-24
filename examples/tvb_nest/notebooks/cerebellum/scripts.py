@@ -133,7 +133,7 @@ def configure(G=2.0, STIMULUS=0.5,
     config.PSD_TARGET_PATH = os.path.join(config.TARGET_PSD_POPA_PATH, "PSD_target.npy")
     config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.FIC = FIC
-    config.SAMPLES_GS_PATH = os.path.join(data_path, "samples_fit_Gs.npy")
+    config.SAMPLES_GS_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit_Gs.npy")
     config.N_RUNS = 2  # 3 - 10
     config.N_SIMULATIONS = 3  # 500 - 1000
     config.N_SAMPLES = 100  # 1000
@@ -733,6 +733,8 @@ def simulate_for_sbi(priors, priors_params_names, **params):
 
 def sbi_fit(iG, config=None):
 
+    tic = time.time()
+
     if config is None:
         # Create a configuration if one is not given
         config = configure(plot_flag=False)[0]
@@ -808,6 +810,10 @@ def sbi_fit(iG, config=None):
     print("\nSimulating with posterior means...")
     params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
     PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
+
+    duration = time.time() - tic
+    print("\n\nFinished after %g sec!" % duration)
+    print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
     return samples_fit_Gs, results, fig, simulator, output_config
 
