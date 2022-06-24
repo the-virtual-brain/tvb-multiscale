@@ -29,6 +29,5 @@ export G=1
 
 sarus run --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} $G
 
-
-
-
+# run it with
+# sbatch -A ich012 -e errors.txt -o outputs.txt run_script_cscs_sarus.sh
