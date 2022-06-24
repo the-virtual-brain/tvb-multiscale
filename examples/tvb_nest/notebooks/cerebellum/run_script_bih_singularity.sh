@@ -17,7 +17,7 @@ export PYTHON=$HOME_DOCKER/env/neurosci/bin/python
 export DOCKER_ROOT=$HOME_DOCKER/packages/tvb-root
 export DOCKER_MULTISCALE=$HOME_DOCKER/packages/tvb-multiscale
 export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
-export IMAGE=$WORK/tvb_multiscale_dev_parallel_cluster
+export IMAGE=$WORK/tvb_multi_dev_parallel_cluster.sif
 export SBIFIT=$WORKDIR/scripts.py
 export G=1
 
