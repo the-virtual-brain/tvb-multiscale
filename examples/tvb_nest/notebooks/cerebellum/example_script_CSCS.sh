@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name="sbi_fitting"
+#SBATCH --job-name="sbi_fit_test"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=00:30:00
