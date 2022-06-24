@@ -814,4 +814,4 @@ def sbi_fit(iG, config=None):
 
 if __name__ == "__main__":
     import sys
-    samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(sys.argv[-1])
+    samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(int(sys.argv[-1]))
