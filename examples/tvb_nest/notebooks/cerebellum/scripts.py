@@ -810,3 +810,8 @@ def sbi_fit(iG, config=None):
     PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
 
     return samples_fit_Gs, results, fig, simulator, output_config
+
+
+if __name__ == "__main__":
+    import sys
+    samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(sys.argv[-1])
