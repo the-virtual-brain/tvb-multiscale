@@ -127,15 +127,15 @@ def configure(G=2.0, STIMULUS=0.5,
 
     # ...and fitting
     config.FIC = FIC
-    config.SBI_NUM_WORKERS = 4
+    config.SBI_NUM_WORKERS = 1
     config.SBI_METHOD = 'SNPE'
     config.TARGET_PSD_POPA_PATH = popa_freqs_path
     config.PSD_TARGET_PATH = os.path.join(config.TARGET_PSD_POPA_PATH, "PSD_target.npy")
     config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.FIC = FIC
     config.SAMPLES_GS_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit_Gs.npy")
-    config.N_RUNS = 2  # 3 - 10
-    config.N_SIMULATIONS = 3  # 500 - 1000
+    config.N_RUNS = 3  # 3 - 10
+    config.N_SIMULATIONS = 10  # 500 - 1000
     config.N_SAMPLES = 100  # 1000
     config.N_SAMPLES_PER_RUN = int(np.ceil(1.0*config.N_SAMPLES/config.N_RUNS))
     config.Gs = np.array([0.0, 1.0, 10.0])  # np.array([0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0])
