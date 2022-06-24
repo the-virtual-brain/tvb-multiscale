@@ -21,7 +21,7 @@ export IMAGE=$WORK/tvb_multi_dev_parallel_cluster.sif
 export SBIFIT=$WORKDIR/scripts.py
 export G=1
 
-singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT %G
+singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT $G
 
 # run it with
 # sbatch -e errors.txt -o outputs.txt run_script_bih_singularity.sh
