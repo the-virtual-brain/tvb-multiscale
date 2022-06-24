@@ -1,11 +1,11 @@
 #!/bin/bash -l
 #SBATCH --job-name="sbi_fitting"
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=alice.geminiani@unipv.it
+#SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=00:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
-#SBATCH --ntasks-per-node=36
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=normal
 #SBATCH --constraint=mc
