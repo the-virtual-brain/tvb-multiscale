@@ -27,7 +27,11 @@ export IMAGE=dionperd/tvb-multiscale-dev:parallel_cluster
 export SBIFIT=$WORKDIR/scripts.py
 export G=1
 
-sarus run --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} $G
+sarus run --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} $G
 
 # run it with
 # sbatch -A ich012 -e errors.txt -o outputs.txt run_script_cscs_sarus.sh
+
+# instead, for interactive run:
+# srun -C mc -A ich012 --time 1-00 --mem=16G --ntasks=16 --pty bash -i
+# sarus run -t --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE bash

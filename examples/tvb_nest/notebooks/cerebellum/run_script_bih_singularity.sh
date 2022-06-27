@@ -25,3 +25,7 @@ singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:
 
 # run it with
 # sbatch -e errors.txt -o outputs.txt run_script_bih_singularity.sh
+
+# instead, for interactive run:
+# srun --time 1-00 --mem=16G --ntasks=16 --pty bash -i
+# singularity run --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE
