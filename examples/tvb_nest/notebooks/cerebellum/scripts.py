@@ -739,7 +739,7 @@ def sample_priors_for_sbi(config=None):
     return priors_samples, sim_res
 
 
-def split_priors_samples_per_batch(priors_samples=None, config=None, write_to_files=True):
+def priors_samples_per_batch(priors_samples=None, config=None, write_to_files=True):
     config = assert_config(config)
     if priors_samples is None:
         priors_samples = sample_priors_for_sbi(config)[0]
@@ -752,12 +752,12 @@ def split_priors_samples_per_batch(priors_samples=None, config=None, write_to_fi
     return batch_samples
 
 
-def split_priors_samples_per_batch_for_iG(priors_samples=None, iG=None, config=None, write_to_files=True):
+def priors_samples_per_batch_for_iG(priors_samples=None, iG=None, config=None, write_to_files=True):
     config = assert_config(config)
     if iG is not None and "iG" not in config.BATCH_PRIORS_SAMPLES_FILE:
         BATCH_PRIORS_SAMPLES_FILE, extension = os.path.splitext(config.BATCH_PRIORS_SAMPLES_FILE)
         config.BATCH_PRIORS_SAMPLES_FILE = "%s_iG%02d%s" % (BATCH_PRIORS_SAMPLES_FILE, iG, extension)
-    return split_priors_samples_per_batch(priors_samples, config, write_to_files)
+    return priors_samples_per_batch(priors_samples, config, write_to_files)
 
 
 def load_priors_samples_per_batch(iB, config=None):
