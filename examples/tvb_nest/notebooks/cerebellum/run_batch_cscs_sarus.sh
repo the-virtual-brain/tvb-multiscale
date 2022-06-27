@@ -25,9 +25,9 @@ export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
 export IMAGE=dionperd/tvb-multiscale-dev:parallel_cluster
 export SBIFIT=$WORKDIR/scripts.py
 
-for iG in ${seq 0 2}
+for iG in $(seq 0 2)
 do
-  for iB in ${seq 0 9}
+  for iB in $(seq 0 9)
   do
     echo 'Submitting task for iG='$iG', and iB='$iB'...'
     sarus run --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} $iG $iB &
