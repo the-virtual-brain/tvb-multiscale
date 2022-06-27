@@ -19,9 +19,9 @@ export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
 export IMAGE=$WORK/tvb_multi_dev_parallel_cluster.sif
 export SBIFIT=$WORKDIR/scripts.py
 
-for iG in ${seq 0 2}
+for iG in ${seq 0 2};
 do
-  for iB in ${seq 0 9}
+  for iB in ${seq 0 9};
   do
     echo 'Submitting task for iG='$iG', and iB='$iB'...'
     singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT $iG $iB &
