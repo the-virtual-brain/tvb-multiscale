@@ -566,6 +566,15 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
     if print_flag:
         simulator.print_summary_info_details(recursive=1)
 
+    # Serializing TVB cosimulator is necessary for parallel cosimulation:
+    from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
+    from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
+    sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
+    sim_serial = serialize_tvb_cosimulator(simulator)
+
+    # Dumping the serialized TVB cosimulator to a file will be necessary for parallel cosimulation.
+    dump_pickled_dict(sim_serial, sim_serial_filepath)
+
     return simulator
 
 
