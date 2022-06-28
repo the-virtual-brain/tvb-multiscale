@@ -1,15 +1,14 @@
 #!/bin/bash -l
-#SBATCH --job-name="sbi_fit_test"
+#SBATCH --job-name="sbi_fit_normal"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=1-00:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=30
-#SBATCH --cpus-per-task=1
 #SBATCH --partition=normal
 #SBATCH --constraint=mc
 #SBATCH --hint=nomultithread
-#SBATCH --mem-per-cpu=1G
+#SBATCH --mem-per-cpu=3G
 
 module load sarus
 module load daint-mc
