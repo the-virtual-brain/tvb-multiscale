@@ -56,21 +56,21 @@ def configure(G=2.0, STIMULUS=0.5,
     voxel_count_filepath = os.path.join(data_path, VOXEL_COUNT_FILE)
     inds_filepath = os.path.join(data_path, INDS_FILE)
     popa_freqs_path = os.path.join(data_path, 'PS_popa2013')
-    outputs_path = os.path.join(work_path, "outputs/cereb_wilson_cowan")
-    # outputs_path += '_G%g' % G
-    # if STIMULUS:
-    #     outputs_path += "_Stim%g" % STIMULUS
-    # outputs_path += '_Is%g' % I_S
-    # outputs_path += '_Ie%g' % I_E
-    outputs_path += "_TVBonly"
-    outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
-    if FIC:
-        if FIC == "SIM":
-            outputs_path += "_FICSIM"
-        else:
-            outputs_path += "_FIC%g" % FIC
-    if THAL_CRTX_FIX:
-        outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
+    outputs_path = os.path.join(work_path, "outputs/cwc")
+    # # outputs_path += '_G%g' % G
+    # # if STIMULUS:
+    # #     outputs_path += "_Stim%g" % STIMULUS
+    # # outputs_path += '_Is%g' % I_S
+    # # outputs_path += '_Ie%g' % I_E
+    # outputs_path += "_TVBonly"
+    # outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
+    # if FIC:
+    #     if FIC == "SIM":
+    #         outputs_path += "_FICSIM"
+    #     else:
+    #         outputs_path += "_FIC%g" % FIC
+    # if THAL_CRTX_FIX:
+    #     outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
 
     print("Outputs' path: %s" % outputs_path)
 
@@ -94,7 +94,7 @@ def configure(G=2.0, STIMULUS=0.5,
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 400.0  # 4000.0
+    config.SIMULATION_LENGTH = 4000.0
     config.TRANSIENT_RATIO = 0.1
 
     # Connectivity
@@ -136,23 +136,23 @@ def configure(G=2.0, STIMULUS=0.5,
     config.FIC = FIC
     config.SAMPLES_GS_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit_Gs.npy")
     config.N_RUNS = 4  # 3 - 10
-    config.N_SIMULATIONS = 100  # 500 - 1000
+    config.N_SIMULATIONS = 1000  # 500 - 1000
     config.N_SIM_BATCHES = 10
     config.SPLIT_RUN_SAMPLES = 2
     config.N_SAMPLES_PER_RUN = 1000
-    config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"
-    config.BATCH_SIM_RES_FILE = "bsr.npy"
-    config.Gs = np.array([0.0, 1.0, 10.0])  # np.array([0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0])
+    config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
+    config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
+    config.Gs = np.array([0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0])
     config.PRIORS_MODE = "normal"  # "normal" or "uniform"
     config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS']  # , 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
     #                    0.       1.     2.     3.      4.       5.    6.       7.        8.
     #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
     # Uniform priors:
-    config.prior_min = [0.1, -1.0, 0.0, -10.0, -5.0]  # ,    1.0,    1.0,    1.0,     1.0]
-    config.prior_max = [0.5, 0.0, 1.0, 0.0, 0.0]  # ,   20.0,   20.0,   80.0,     80.0]
+    config.prior_min = [0.1,     -1.0,  0.0, -10.0,   -5.0]  # ,    1.0,    1.0,    1.0,     1.0]
+    config.prior_max = [1.0,      0.0,  1.0,  0.0,     0.0]  # ,   20.0,   20.0,   80.0,     80.0]
     # Normal priors:
-    config.prior_loc = [0.25, -0.5, 0.5, -5.0, -2.5]  # ,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
-    config.prior_sc = [0.1, 0.25, 0.25, 2.5, 1.25]  # ,    2.0,     2.0,    4.0,      4.0]
+    config.prior_loc = [0.25,    -0.5,  0.5,  -5.0,  -2.5]  # ,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
+    config.prior_sc = [0.1,      0.25,  0.25,  2.5,  1.25]  # ,    2.0,     2.0,    4.0,      4.0]
     config.n_priors = len(config.prior_min)
 
     return config, plotter
@@ -638,11 +638,11 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
     data = raw_results[1][transient:, 0, inds['m1s1brl'], 0].squeeze().T
 
     # Window:
-    NPERSEG = np.array([256, 512, 1024, 2048, 4096])
+    # NPERSEG = np.array([256, 512, 1024, 2048, 4096])
     ftarg = PSD_target["f"]
-    fmin = ftarg[0]  # The minimum frequency of the PSD_target...
-    win_len = int(np.ceil(1000.0 / fmin / dt))  # ...will determine the length of the sliding window....
-    nperseg = NPERSEG[np.argmin(np.abs(NPERSEG - win_len))]
+    # fmin = ftarg[0]  # The minimum frequency of the PSD_target...
+    # win_len = int(np.ceil(1000.0 / fmin / dt))  # ...will determine the length of the sliding window....
+    nperseg = int(np.ceil(2048 / dt))  # NPERSEG[np.argmin(np.abs(NPERSEG - win_len))]
 
     # Compute Power Spectrum
     f, Pxx_den = welch(data, fs, nperseg=nperseg)

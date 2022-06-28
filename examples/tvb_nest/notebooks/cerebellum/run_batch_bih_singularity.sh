@@ -1,12 +1,12 @@
 #!/bin/bash -l
-#SBATCH --job-name="sbi_fit_test"
+#SBATCH --job-name="sbi_fit_normal"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=1-00:00:00
-#SBATCH --nodes=1
+#SBATCH --nodes=3
 #SBATCH --ntasks=30
 #SBATCH --partition=medium
-#SBATCH --mem-per-cpu=1G
+#SBATCH --mem-per-cpu=3G
 
 export WORK=/data/gpfs-1/users/perdikid_c/work
 #export TVB_ROOT=$WORK/tvb-root
@@ -19,7 +19,7 @@ export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
 export IMAGE=$WORK/tvb_multi_dev_parallel_cluster.sif
 export SBIFIT=$WORKDIR/scripts.py
 
-for iG in $(seq 0 2)
+for iG in $(seq 0 8)
 do
   for iB in $(seq 0 9)
   do
