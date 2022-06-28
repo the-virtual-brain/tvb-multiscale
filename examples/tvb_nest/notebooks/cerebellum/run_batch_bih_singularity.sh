@@ -3,8 +3,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=1-00:00:00
-#SBATCH --nodes=3
-#SBATCH --ntasks=30
+#SBATCH --ntasks=90
 #SBATCH --partition=medium
 #SBATCH --mem-per-cpu=3G
 
