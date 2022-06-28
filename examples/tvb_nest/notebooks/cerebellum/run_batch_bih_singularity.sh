@@ -4,6 +4,7 @@
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks=90
+#SBATCH --nodes=3
 #SBATCH --partition=medium
 #SBATCH --mem-per-cpu=3G
 
