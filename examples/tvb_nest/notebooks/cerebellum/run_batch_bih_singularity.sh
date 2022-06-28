@@ -4,9 +4,9 @@
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=1-00:00:00
 #SBATCH --nodes=3
-#SBATCH --ntasks=90
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=30
+#SBATCH --cpus-per-task=1
 #SBATCH --partition=medium
 #SBATCH --mem-per-cpu=3G
 
