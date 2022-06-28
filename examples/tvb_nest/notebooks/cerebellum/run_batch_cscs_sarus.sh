@@ -8,7 +8,7 @@
 #SBATCH --partition=normal
 #SBATCH --constraint=mc
 #SBATCH --hint=nomultithread
-#SBATCH --mem-per-cpu=3G
+#SBATCH --mem-per-cpu=1G
 
 module load sarus
 module load daint-mc
