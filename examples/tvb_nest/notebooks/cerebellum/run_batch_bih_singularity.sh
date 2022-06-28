@@ -3,10 +3,8 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
 #SBATCH --time=1-00:00:00
-#SBATCH --nodes=3
-#SBATCH --ntasks-per-core=1
-#SBATCH --ntasks-per-node=30
-#SBATCH --cpus-per-task=1
+#SBATCH --nodes=1
+#SBATCH --ntasks=30
 #SBATCH --partition=medium
 #SBATCH --mem-per-cpu=3G
 
@@ -21,7 +19,7 @@ export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
 export IMAGE=$WORK/tvb_multi_dev_parallel_cluster.sif
 export SBIFIT=$WORKDIR/scripts.py
 
-for iG in $(seq 0 8)
+for iG in $(seq 0 2)
 do
   for iB in $(seq 0 9)
   do
