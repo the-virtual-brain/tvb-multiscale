@@ -201,7 +201,7 @@ def build_NEST_network(config=None):
     # ...starting from neuronal populations located at specific brain regions...
     nest_network.brain_regions = NESTBrain()
 
-    nest_nodes_ids = []
+    nest_nodes_inds = []
     # All cells are modelled as E-GLIF models;
     # with the only exception of Glomeruli and Mossy Fibers (not cells, just modeled as
     # relays; i.e., parrot neurons)
@@ -231,7 +231,7 @@ def build_NEST_network(config=None):
                 NESTPopulation(neuron_models[neuron_name][region],  # possible NEST model params as well here
                                nest, label=pop, brain_region=region)
             print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
-        nest_nodes_ids += nodes_inds
+        nest_nodes_inds += nodes_inds
 
     pop = 'whisking_stimulus'
     region_names = neuron_types_to_region['whisking_stimulus']
@@ -249,7 +249,7 @@ def build_NEST_network(config=None):
                            nest, label=pop, brain_region=region)
         print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
 
-    nest_nodes_ids += nodes_inds
+    nest_nodes_inds += nodes_inds
 
     ### Load connections from hdf5 file and create them in NEST:
 
@@ -376,7 +376,7 @@ def build_NEST_network(config=None):
     nest_network.configure()
     nest_network.print_summary_info_details(recursive=3, connectivity=True)
 
-    return nest_network, nest_nodes_ids, neuron_models, mossy_fibers_medulla, mossy_fibers_ponssens
+    return nest_network, nest_nodes_inds, neuron_models, mossy_fibers_medulla, mossy_fibers_ponssens
 
 
 def simulate_nest_network(nest_network, neuron_models={}, neuron_number={}, config=None, plot_flag=True):

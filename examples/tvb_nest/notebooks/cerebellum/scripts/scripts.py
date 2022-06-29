@@ -4,6 +4,7 @@ from .base import *
 from .tvb import *
 from .nest import *
 from .sbi import *
+from .tvb_nest import *
 
 
 if __name__ == "__main__":
