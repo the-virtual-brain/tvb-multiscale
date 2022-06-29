@@ -585,9 +585,9 @@ if __name__ == "__main__":
     model = build_model(connectivity.number_of_regions, inds, maps, config)
     # Prepare simulator
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
-
+    # Build the NEST network
     nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
         build_NEST_network(config)
-
+    # Simulate the NEST network
     nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number,
                                          plot_flag=True, print_flag=True)
