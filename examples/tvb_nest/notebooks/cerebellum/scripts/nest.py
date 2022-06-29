@@ -255,29 +255,35 @@ def build_NEST_network(config=None):
 
     for conn_name in conn_weights.keys():
         conn = np.array(f['cells/connections/' + conn_name])
-        source = conn_pre_post[conn_name]["pre"]
-        target = conn_pre_post[conn_name]["post"]
+        source_scaf = np.array(conn_pre_post[conn_name]["pre"])
+        target_scaf = np.array(conn_pre_post[conn_name]["post"])
         pre_name = conn_pre_post[conn_name]["pre"]
         post_name = conn_pre_post[conn_name]["post"]
 
-        if conn_name == "mossy_to_glomerulus":
-            syn_param = {"synapse_model": "static_synapse", "weight": np.ones(len(pre)) * [conn_weights[conn_name]],
-                         "delay": np.ones(len(pre)) * conn_delays[conn_name]}
-        elif conn_name == "io_bc" or conn_name == "io_sc":
-            syn_param = {"synapse_model": "static_synapse", "weight": np.ones(len(pre)) * conn_weights[conn_name], \
-                         "delay": {'distribution': 'exponential_clipped_to_boundary', 'low': min_iomli, 'high': high_iomli,
-                                   'lambda': conn_delays[conn]}, "receptor_type": conn_receptors[conn_name]}
-        else:
-            syn_param = {"synapse_model": "static_synapse", "weight": np.ones(len(pre)) * [conn_weights[conn_name]],
-                         "delay": np.ones(len(pre)) * conn_delays[conn_name], "receptor_type": conn_receptors[conn_name]}
-
         for pre_region, post_region in zip(neuron_models[pre_name].keys(), neuron_models[post_name].keys()):
-            source = np.array(source - start_id_scaffold[pre_name] + neuron_models[pre_name][pre_region][0])
-            target = np.array(target - start_id_scaffold[post_name] + neuron_models[post_name][post_region][0])
+            source = np.array(source_scaf - start_id_scaffold[pre_name] + neuron_models[pre_name][pre_region][0])
+            target = np.array(target_scaf - start_id_scaffold[post_name] + neuron_models[post_name][post_region][0])
             pre = list(pre.astype(int))
             post = list(post.astype(int))
             print("Connecting  ", conn_name, "!")
             print("%s - %s -> %s -> %s" % (pre_name, pre_region, post_name, post_region))
+
+            if conn_name == "mossy_to_glomerulus":
+                syn_param = {"synapse_model": "static_synapse",
+                             "weight": np.ones(len(pre)) * [conn_weights[conn_name]],
+                             "delay": np.ones(len(pre)) * conn_delays[conn_name]}
+            elif conn_name == "io_bc" or conn_name == "io_sc":
+                syn_param = {"synapse_model": "static_synapse",
+                             "weight": np.ones(len(pre)) * conn_weights[conn_name], \
+                             "delay": {'distribution': 'exponential_clipped_to_boundary', 'low': min_iomli,
+                                       'high': high_iomli, 'lambda': conn_delays[conn]},
+                             "receptor_type": conn_receptors[conn_name]}
+            else:
+                syn_param = {"synapse_model": "static_synapse",
+                             "weight": np.ones(len(pre)) * [conn_weights[conn_name]],
+                             "delay": np.ones(len(pre)) * conn_delays[conn_name],
+                             "receptor_type": conn_receptors[conn_name]}
+
             nest.Connect(pre, post, {"rule": "one_to_one"}, syn_param)
 
     # Connect also the whisking stimuli regions:
@@ -297,41 +303,44 @@ def build_NEST_network(config=None):
                                ((gloms_pos[:, [2]] - z_c) ** 2) / r_z ** 2).__lt__(1)  # ellipse equation
     target_gloms_id_scaffold_principal = np.array(np.where(target_gloms_bool)[0] + start_id_scaffold['glomerulus'])
 
-    # Select the corrisponding original MFs
     conn_glom_mf = np.array(f['cells/connections/mossy_to_glomerulus'])
+    # Select the corresponding original MFs
     target_mfs_id_scaffold_spinal = conn_glom_mf[np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_spinal), 0]
     target_mfs_id_scaffold_principal = conn_glom_mf[np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_principal), 0]
-    # translate to NEST ids
-    target_mfs_id_nest_spinal = target_mfs_id_scaffold_spinal - start_id_scaffold['mossy_fibers'] + \
-                                neuron_models['mossy_fibers'][0]
-    target_mfs_id_nest_spinal = target_mfs_id_nest_spinal.astype(int)
-    target_mfs_id_nest_principal = target_mfs_id_scaffold_principal - start_id_scaffold['mossy_fibers'] + \
-                                   neuron_models['mossy_fibers'][0]
-    target_mfs_id_nest_principal = target_mfs_id_nest_principal.astype(int)
-
-    # Obtain an ordered list of non-duplicates
-    id_stim_spinal = sorted(list(set(target_mfs_id_nest_spinal)))         # Medulla
-    id_stim_principal = sorted(list(set(target_mfs_id_nest_principal)))   # PONS Sensory
-
-    # n = len(id_stim)
-    # print(n, " stimulated mfs")
-    # nest.Connect(list(CS[:n]), id_stim, {'rule': 'one_to_one'})
 
     pop = "whisking_stimulus"
-    for region in ['Right Principal sensory nucleus of the trigeminal',
-                   'Left Principal sensory nucleus of the trigeminal']:
-        nest.Connect(nest_network.brain_regions[region][pop], id_stim_spinal)
-    for region in ['Right Pons Sensory', 'Left Pons Sensory']:
-        nest.Connect(nest_network.brain_regions[region][pop], id_stim_principal)
+    mossy_fibers_medulla = {}
+    for region, region_mf in zip(['Right Principal sensory nucleus of the trigeminal',
+                                  'Left Principal sensory nucleus of the trigeminal'],
+                                 ['Right Ansiform lobule', 'Left Ansiform lobule']):
+        # translate to NEST ids
+        target_mfs_id_nest_spinal = target_mfs_id_scaffold_spinal - start_id_scaffold['mossy_fibers'] + \
+                                    neuron_models['mossy_fibers'][region_mf][0]
+        target_mfs_id_nest_spinal = target_mfs_id_nest_spinal.astype(int)
+
+        # Obtain an ordered list of non-duplicates
+        mossy_fibers_medulla[region] = sorted(list(set(target_mfs_id_nest_spinal)))  # Medulla
+        nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_medulla[region])
+
+    mossy_fibers_ponssens = {}
+    for region, region_mf in zip(['Right Pons Sensory', 'Left Pons Sensory'],
+                                 ['Right Ansiform lobule', 'Left Ansiform lobule']):
+        # translate to NEST ids
+        target_mfs_id_nest_principal = target_mfs_id_scaffold_principal - start_id_scaffold['mossy_fibers'] + \
+                                       neuron_models['mossy_fibers'][region_mf][0]
+        target_mfs_id_nest_principal = target_mfs_id_nest_principal.astype(int)
+        mossy_fibers_ponssens[region] = sorted(list(set(target_mfs_id_nest_principal)))  # PONS Sensory
+        nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_ponssens[region])
 
     # Background noise input device as Poisson process
+    nest_network.input_devices["Background"] = DeviceSet(label="Background", model="poisson_generator")
     for region in ['Right Ansiform lobule', 'Left Ansiform lobule']:
         nest_network.input_devices["Background"][region] = \
             NESTPoissonGenerator(nest.Create('poisson_generator',
                                              params={'rate': BACKGROUND_FREQ, 'start': 0.0, 'stop': TOT_DURATION}),
                                  nest, model="poisson_generator",
                                  label="Background", brain_region=region)
-        nest.Connect(nest_network.input_devices["Background"][region],
+        nest.Connect(nest_network.input_devices["Background"][region].device,
                      neuron_models['mossy_fibers'][region])
 
     # Create output, measuring devices, spike_recorders and multimeters measuring V_m:
@@ -341,7 +350,7 @@ def build_NEST_network(config=None):
     # params_multimeter["record_to"] = "ascii"
     # params_multimeter["interval"] = 1.0
     for pop, regions in neuron_types_to_region.items():
-        pop_ts = "%s_ts" % pop
+        # pop_ts = "%s_ts" % pop
         nest_network.output_devices[pop] = DeviceSet(label=pop, model="spike_recorder")
 
         for region in regions:
@@ -367,15 +376,12 @@ def build_NEST_network(config=None):
     nest_network.configure()
     nest_network.print_summary_info_details(recursive=3, connectivity=True)
 
-    return nest_network, nest_nodes_ids, neuron_models
+    return nest_network, nest_nodes_ids, neuron_models, mossy_fibers_medulla, mossy_fibers_ponssens
 
 
 def simulate_nest_network(nest_network, neuron_models={}, neuron_number={}, config=None, plot_flag=True):
 
     config = assert_config(config)
-
-    # Prepare:
-    nest_network.nest_instance.Prepare()
 
     # Simulate:
     nest_network.nest_instance.Simulate(config.SIMULATION_LENGTH)
@@ -522,4 +528,6 @@ def simulate_nest_network(nest_network, neuron_models={}, neuron_number={}, conf
         fig_raster.show()
         fig_psth.write_image("images/snn_psth_whisking.svg")
         fig_raster.write_image("images/snn_raster_whisking.svg")
+
+    return nest_network
 
