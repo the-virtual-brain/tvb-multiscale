@@ -3,7 +3,7 @@
 from scipy.signal import welch
 from scipy.interpolate import interp1d
 
-from .base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 
 
 def load_connectome(config, plotter=None):

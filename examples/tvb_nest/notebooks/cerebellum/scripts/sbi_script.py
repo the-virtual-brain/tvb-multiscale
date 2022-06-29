@@ -5,8 +5,8 @@ from sbi.inference.base import infer, prepare_for_sbi, simulate_for_sbi
 from sbi import utils as utils
 from sbi import analysis as analysis
 
-from .base import *
-from .tvb import run_workflow
+from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb import run_workflow
 
 
 def build_priors(config):

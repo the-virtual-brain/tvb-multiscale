@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 
 
 def build_NEST_network(config=None):
@@ -308,6 +308,7 @@ def build_NEST_network(config=None):
     for region, region_mf in zip(['Right Principal sensory nucleus of the trigeminal',
                                   'Left Principal sensory nucleus of the trigeminal'],
                                  ['Right Ansiform lobule', 'Left Ansiform lobule']):
+        print("Connecting! %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
         # translate to NEST ids
         target_mfs_id_nest_spinal = target_mfs_id_scaffold_spinal - start_id_scaffold['mossy_fibers'] + \
                                     neuron_models['mossy_fibers'][region_mf][0]
@@ -320,6 +321,7 @@ def build_NEST_network(config=None):
     mossy_fibers_ponssens = {}
     for region, region_mf in zip(['Right Pons Sensory', 'Left Pons Sensory'],
                                  ['Right Ansiform lobule', 'Left Ansiform lobule']):
+        print("Connecting!  %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
         # translate to NEST ids
         target_mfs_id_nest_principal = target_mfs_id_scaffold_principal - start_id_scaffold['mossy_fibers'] + \
                                        neuron_models['mossy_fibers'][region_mf][0]
@@ -337,6 +339,7 @@ def build_NEST_network(config=None):
                                  label="Background", brain_region=region)
         nest.Connect(nest_network.input_devices["Background"][region].device,
                      neuron_models['mossy_fibers'][region])
+        print("Connected!  %s - %s -> %s -> %s" % ("Background", region, pop, region))
 
     # Whisking stimulus input device as sinusoidally modulated Poisson process
     pop = 'parrot'
@@ -351,6 +354,7 @@ def build_NEST_network(config=None):
                                  label="Stimulus", brain_region=region)
         nest.Connect(nest_network.input_devices["Stimulus"][region].device,
                      nest_network.brain_regions[region][pop].nodes)
+        print("Connected!  %s - %s -> %s -> %s" % ("Stimulus", region, pop, region))
 
     # Create output, measuring devices, spike_recorders and multimeters measuring V_m:
     params_spike_recorder = config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"].copy()
@@ -540,3 +544,29 @@ def simulate_nest_network(nest_network, neuron_models={}, neuron_number={}, conf
 
     return nest_network
 
+
+if __name__ == "__main__":
+
+    from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
+
+    # Get configuration
+    config, plotter = configure()
+    config.SIMULATION_LENGTH = 100.0
+    plotter = None
+    # Load connectome and other structural files
+    connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
+    # Construct some more indices and maps
+    inds, maps = construct_extra_inds_and_maps(connectome, inds)
+    # Logprocess connectome
+    connectome = logprocess_weights(connectome, inds, print_flag=True, plotter=plotter)
+    # Prepare connectivity with all possible normalizations
+    connectivity = build_connectivity(connectome, inds, config, print_flag=True, plotter=plotter)
+    # Prepare model
+    model = build_model(connectivity.number_of_regions, inds, maps, config)
+    # Prepare simulator
+    simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
+
+    nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
+        build_NEST_network(config)
+
+    nest_network = simulate_nest_network(nest_network, neuron_models, neuron_number, config, plot_flag=True)

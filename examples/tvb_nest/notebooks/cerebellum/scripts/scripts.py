@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from .base import *
-from .tvb import *
-from .nest import *
-from .sbi import *
-from .tvb_nest import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.sbi_script import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_nest_script import *
 
 
 if __name__ == "__main__":

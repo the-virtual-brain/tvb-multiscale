@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 
 
 def print_available_interfaces():
