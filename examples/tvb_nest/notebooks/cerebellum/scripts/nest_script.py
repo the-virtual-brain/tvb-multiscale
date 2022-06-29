@@ -543,8 +543,8 @@ def plot_nest_results(nest_network, neuron_models, neuron_number, config):
         metrics(times, config.SIMULATION_LENGTH, c, fig_psth, num)
         raster(times, cell_ids, c, fig_raster, num)
         num += 1
-    fig_psth.update_xaxes(range=[1000, 2000])
-    fig_raster.update_xaxes(range=[1000, 2000])
+    fig_psth.update_xaxes(range=[0, config.SIMULATION_LENGTH * 1.1])
+    fig_raster.update_xaxes(range=[0, config.SIMULATION_LENGTH * 1.1])
     fig_psth.update_layout(showlegend=False)
     fig_raster.update_layout(showlegend=False)
     fig_psth.show()
