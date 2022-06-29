@@ -24,7 +24,7 @@ export DOCKER_ROOT=$HOME_DOCKER/packages/tvb-root
 export DOCKER_MULTISCALE=$HOME_DOCKER/packages/tvb-multiscale
 export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
 export IMAGE=dionperd/tvb-multiscale-dev:parallel_cluster
-export SBIFIT=$WORKDIR/scripts.py
+export SBIFIT=$WORKDIR/scripts/sbi_script.py
 export OUT_FILE=$WORKDIR/outputs
 export ERR_FILE=$WORKDIR/errors
 
