@@ -2,6 +2,7 @@
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import neuron_types_to_region
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import configure_simulation_length_with_transient
 
 
 def print_available_interfaces():
@@ -185,3 +186,22 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     simulator.input_interfaces.print_summary_info_details(recursive=2)
 
     return simulator, nest_network
+
+
+def simulate_tvb_nest(simulator, nest_network, config, print_flag=True):
+    simulator.simulation_length, transient = configure_simulation_length_with_transient(config)
+    # Simulate and return results
+    tic = time.time()
+    print("Simulating TVB-NEST...")
+    nest_network.nest_instance.Prepare()
+    simulator.configure()
+    # Adjust simulation length to be an integer multiple of synchronization_time:
+    simulator.simulation_length = \
+        np.ceil(simulator.simulation_length / simulator.synchronization_time) * simulator.synchronization_time
+    results = simulator.run()
+    nest_network.nest_instance.Run(nest_network.nest_instance.GetKernelStatus("resolution"))
+    #  Cleanup NEST network unless you plan to continue simulation later
+    nest_network.nest_instance.Cleanup()
+    if print_flag:
+        print("\nSimulated in %f secs!" % (time.time() - tic))
+    return results, transient, simulator, nest_network

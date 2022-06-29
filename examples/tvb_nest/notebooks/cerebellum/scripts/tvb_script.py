@@ -419,19 +419,21 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
     return simulator
 
 
-def simulate(simulator, config, print_flag=True):
+def configure_simulation_length_with_transient(config):
     # Compute transient as a percentage of the total simulation length, and add it to the simulation length:
     simulation_length = float(config.SIMULATION_LENGTH)
     transient = config.TRANSIENT_RATIO * simulation_length
     simulation_length += transient
-    simulator.simulation_length = simulation_length
+    return simulation_length
 
+
+def simulate(simulator, config, print_flag=True):
+    simulator.simulation_length, transient = configure_simulation_length_with_transient(config)
     # Simulate and return results
     tic = time.time()
     results = simulator.run()
     if print_flag:
         print("\nSimulated in %f secs!" % (time.time() - tic))
-
     return results, transient
 
 
