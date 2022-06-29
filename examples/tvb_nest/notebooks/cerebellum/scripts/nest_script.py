@@ -384,8 +384,11 @@ def build_NEST_network(config=None):
             nest_network.output_devices[pop][region] = \
                 NESTSpikeRecorder(nest.Create("spike_recorder", 1, params=params_spike_recorder),
                                   nest, model="spike_recorder", label=pop, brain_region=region)
-            nest.Connect(nest_network.brain_regions[region][pop].nodes,
-                         nest_network.output_devices[pop][region].device)
+            if pop == "granule_cell":
+                nodes = nest_network.brain_regions[region][pop].nodes[0::10]
+            else:
+                nodes = nest_network.brain_regions[region][pop].nodes
+            nest.Connect(nodes, nest_network.output_devices[pop][region].device)
             nest_network.output_devices[pop].update()  # update DeviceSet after the new NESTDevice entry
             print("\n...created spike_recorder device for population %s in brain region %s..." % (pop, region))
 
@@ -406,7 +409,7 @@ def build_NEST_network(config=None):
     return nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens
 
 
-def plot_nest_results(nest_network):
+def plot_nest_results(nest_network, config):
 
     import plotly.graph_objs as go
     from plotly.subplots import make_subplots
@@ -418,10 +421,6 @@ def plot_nest_results(nest_network):
     grc_events = nest_network.output_devices['granule_cell']['Left Ansiform lobule'].events
     grc_evs = grc_events['senders']
     grc_times = grc_events['times']
-    n_events = len(grc_times)
-    random_inds = random.sample(list(range(n_events)), int(n_events * 0.1))
-    grc_evs = grc_evs[random_inds]
-    grc_times = grc_times[random_inds]
 
     glom_events = nest_network.output_devices['glomerulus']['Left Ansiform lobule'].events
     glom_evs = glom_events['senders']
@@ -560,7 +559,7 @@ def simulate_nest_network(nest_network, config=None, plot_flag=True, print_flag=
     if print_flag:
         print("\nSimulated in %f secs!" % (time.time() - tic))
     if plot_flag:
-        plot_nest_results(nest_network)
+        plot_nest_results(nest_network, config)
     return nest_network
 
 

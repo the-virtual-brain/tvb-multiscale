@@ -162,7 +162,9 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              'transformer_params': {"scale_factor": np.array([time_scale_factor]) / numbers_of_neurons / max_rate,
                                     "translation_factor": np.array([-0.5])}
              })
-
+        if pop == "granule_cell":
+            tvb_spikeNet_model_builder.input_interfaces[-1]["neurons_inds"] = lambda nodes: nodes[0::10]
+            tvb_spikeNet_model_builder.input_interfaces[-1]['transformer_params']["scale_factor"] *= 10
     # Configure:
     tvb_spikeNet_model_builder.configure()
     # tvb_spikeNet_model_builder.print_summary_info_details(recursive=1)
@@ -212,7 +214,7 @@ def simulate_tvb_nest(simulator, nest_network, config, print_flag=True, plot_fla
         print("\nSimulated in %f secs!" % (time.time() - tic))
     if plot_flag:
         from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import plot_nest_results
-        plot_nest_results(nest_network)
+        plot_nest_results(nest_network, config)
     return results, transient, simulator, nest_network
 
 
