@@ -409,7 +409,7 @@ def build_NEST_network(config=None):
     return nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens
 
 
-def plot_nest_results(nest_network, config):
+def plot_nest_results(nest_network, neuron_models, neuron_number, config):
 
     import plotly.graph_objs as go
     from plotly.subplots import make_subplots
@@ -499,9 +499,12 @@ def plot_nest_results(nest_network, config):
             yaxis={'title': 'number of spikes'}
         )
 
+        n_neurons = neuron_number[cell]
+        if cell == "granule_cell":
+            n_neurons = int(np.round(n_neurons/10))
         figure_handle.add_trace(go.Bar(
             x=tms[0:len(tms) - 1],
-            y=psth / ((bin_size * 0.001) * neuron_number[cell]),
+            y=psth / ((bin_size * 0.001) * n_neurons),
             width=4.0,
             marker=dict(
                 color=color[cell])
@@ -551,15 +554,14 @@ def plot_nest_results(nest_network, config):
     # fig_raster.write_image("images/snn_raster_whisking.svg")
 
 
-def simulate_nest_network(nest_network, config=None, plot_flag=True, print_flag=True):
-    config = assert_config(config)
+def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number={}, plot_flag=True, print_flag=True):
     tic = time.time()
     # Simulate:
     nest_network.nest_instance.Simulate(config.SIMULATION_LENGTH)
     if print_flag:
         print("\nSimulated in %f secs!" % (time.time() - tic))
     if plot_flag:
-        plot_nest_results(nest_network, config)
+        plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return nest_network
 
 
@@ -587,4 +589,5 @@ if __name__ == "__main__":
     nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
         build_NEST_network(config)
 
-    nest_network = simulate_nest_network(nest_network, config, plot_flag=True, print_flag=True)
+    nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number,
+                                         plot_flag=True, print_flag=True)

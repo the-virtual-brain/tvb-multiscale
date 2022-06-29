@@ -196,7 +196,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     return simulator, nest_network
 
 
-def simulate_tvb_nest(simulator, nest_network, config, print_flag=True, plot_flag=True):
+def simulate_tvb_nest(simulator, nest_network, config,
+                      neuron_models={}, neuron_number={}, print_flag=True, plot_flag=True):
     simulator.simulation_length, transient = configure_simulation_length_with_transient(config)
     # Simulate and return results
     tic = time.time()
@@ -214,7 +215,7 @@ def simulate_tvb_nest(simulator, nest_network, config, print_flag=True, plot_fla
         print("\nSimulated in %f secs!" % (time.time() - tic))
     if plot_flag:
         from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import plot_nest_results
-        plot_nest_results(nest_network, config)
+        plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return results, transient, simulator, nest_network
 
 
@@ -245,5 +246,6 @@ if __name__ == "__main__":
 
     simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
 
-    results, transient, simulator, nest_network = simulate_tvb_nest(nest_network, config,
+    results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,
+                                                                    neuron_models, neuron_number,
                                                                     plot_flag=True, print_flag=True)
