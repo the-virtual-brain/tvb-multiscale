@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from base import *
+from .base import *
 
 
 def print_available_interfaces():
@@ -71,9 +71,6 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # taking into consideration the TVB connectome weights and delays,
     # in this "1-to-many" TVB->NEST coupling.
     tvb_spikeNet_model_builder.default_coupling_mode = "TVB"  # "spikeNet" # "TVB"
-    # Number of neurons per population to be used to compute population mean instantaneous firing rates:
-    tvb_spikeNet_model_builder.N_E = nest_network.brain_regions[nest_nodes_inds[0]]["E"].number_of_neurons
-    tvb_spikeNet_model_builder.N_I = nest_network.brain_regions[nest_nodes_inds[0]]["I"].number_of_neurons
     tvb_spikeNet_model_builder.proxy_inds = nest_nodes_inds
     # Set exclusive_nodes = True (Default) if the spiking regions substitute for the TVB ones:
     tvb_spikeNet_model_builder.exclusive_nodes = True
