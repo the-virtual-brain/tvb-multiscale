@@ -20,9 +20,6 @@ def build_NEST_network(config=None):
 
     sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
     sim_serial = load_pickled_dict(sim_serial_filepath)
-    print(sim_serial)
-
-    # Build a NEST network model with the corresponding builder
 
     # Load NEST and use defaults to configure its kernel:
     nest = configure_nest_kernel(load_nest(config=config), config)
@@ -222,7 +219,7 @@ def build_NEST_network(config=None):
         neuron_number[neuron_name] = np.array(f['cells/placement/' + neuron_name + '/identifiers'])[1]
         start_id_scaffold[neuron_name] = np.array(f['cells/placement/' + neuron_name + '/identifiers'])[0]
 
-        neuron_models[neuron_name] = []
+        neuron_models[neuron_name] = {}
         region_names = neuron_types_to_region[neuron_name]
         nodes_inds = []
         for region in region_names:
