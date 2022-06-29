@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import neuron_types_to_region
 
 
 def print_available_interfaces():
@@ -78,56 +79,66 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     tvb_spikeNet_model_builder.output_interfaces = []
     tvb_spikeNet_model_builder.input_interfaces = []
 
-    # or setting a nonopinionated builder:
-    from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
+    # from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
 
-    if tvb_spikeNet_model_builder.default_coupling_mode == "TVB":
-        proxy_inds = nest_nodes_inds
-    else:
-        proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
-        proxy_inds = np.delete(proxy_inds, nest_nodes_inds)
+    max_rate = 100.0  #Hz
+    # if tvb_spikeNet_model_builder.default_coupling_mode == "TVB":
+    #     proxy_inds = nest_nodes_inds
+    # else:
+    #     proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
+    #     proxy_inds = np.delete(proxy_inds, nest_nodes_inds)
     # This is a user defined TVB -> Spiking Network interface configuration:
-    tvb_spikeNet_model_builder.output_interfaces = \
-        [{'voi': np.array(["E"]),  # TVB state variable to get data from
-          'populations': np.array(["E"]),  # NEST populations to couple to
-          # --------------- Arguments that can default if not given by the user:------------------------------
-          'model': 'RATE',  # This can be used to set default tranformer and proxy models
-          # 'coupling_mode': 'TVB',         # or "spikeNet", "NEST", etc
-          'proxy_inds': proxy_inds,  # TVB proxy region nodes' indices
-          # Set the enum entry or the corresponding label name for the "proxy_model",
-          # or import and set the appropriate NEST proxy device class, e.g., NESTInhomogeneousPoissonGeneratorSet, directly
-          # options: "RATE", "RATE_TO_SPIKES", SPIKES", "PARROT_SPIKES" or CURRENT"
-          # see tvb_multiscale.tvb_nest.interfaces.io.NESTInputProxyModels for options and related NESTDevice classes,
-          # and tvb_multiscale.tvb_nest.interfaces.io.DefaultTVBtoNESTModels for the default choices
-          'proxy_model': "RATE",
-          # Set the enum entry or the corresponding label name for the "transformer_model",
-          # or import and set the appropriate tranformer class, e.g., ScaleRate, directly
-          # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
-          # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers for options and related Transformer classes,
-          # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels for default choices
-          'transformer_model': "RATE",
-          'spiking_proxy_inds': nest_nodes_inds  # Same as "proxy_inds" for this kind of interface
-          }
-         ]
-
-    for interface in tvb_spikeNet_model_builder.output_interfaces:
-        # The "scale_factor" scales the TVB state variable to convert it to an
-        # instantaneous rate:
-        if tvb_spikeNet_model_builder.model == TVBtoSpikeNetModels.SPIKES.name:
-            # The "number_of_neurons" will determine how many spike trains will be generated:
-            interface["transformer_params"] = \
-                {"scale_factor": np.array([100]),
-                 "number_of_neurons": np.array([tvb_spikeNet_model_builder.N_E])}
-        else:  # RATE
-            # Here the rate is a total rate, assuming a number of sending neurons:
-            interface["transformer_params"] = {"scale_factor": 1e6 * np.array([tvb_spikeNet_model_builder.N_E])}
+    for pop in ['parrot', "mossy_fibers", "io_cell"]:  #  excluding direct TVB input to "dcn_cell_glut_large"
+        regions = neuron_types_to_region[pop]
+        pop_regions_inds = []
+        for region in regions:
+            pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
+        tvb_spikeNet_model_builder.output_interfaces.append(
+            {'voi': np.array(["E"]),  # TVB state variable to get data from
+             'populations': np.array([pop]),  # NEST populations to couple to
+              # --------------- Arguments that can default if not given by the user:------------------------------
+              'model': 'RATE',  # This can be used to set default tranformer and proxy models
+              # 'coupling_mode': 'TVB',         # or "spikeNet", "NEST", etc
+              'proxy_inds': pop_regions_inds,  # TVB proxy region nodes' indices
+              # Set the enum entry or the corresponding label name for the "proxy_model",
+              # or import and set the appropriate NEST proxy device class, e.g., NESTInhomogeneousPoissonGeneratorSet, directly
+              # options: "RATE", "RATE_TO_SPIKES", SPIKES", "PARROT_SPIKES" or CURRENT"
+              # see tvb_multiscale.tvb_nest.interfaces.io.NESTInputProxyModels for options and related NESTDevice classes,
+              # and tvb_multiscale.tvb_nest.interfaces.io.DefaultTVBtoNESTModels for the default choices
+              'proxy_model': "RATE",
+              # Set the enum entry or the corresponding label name for the "transformer_model",
+              # or import and set the appropriate tranformer class, e.g., ScaleRate, directly
+              # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
+              # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers for options and related Transformer classes,
+              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels for default choices
+              'transformer_model': "RATE",
+             # Here the rate is a total rate, assuming a number of sending neurons:
+             # Effective rate  = scale * (total_weighted_coupling_E_from_tvb - offset)
+             # If E is in [0, 1.0], then, with an offset = 0.0, and a scale of 1e4
+             # it is as if 100 neurons can fire each with a maximum spike rate of max_rate=100 Hz
+              'transformer_params': {"scale_factor": np.array([1e2 * max_rate])},   # "offset_factor": np.array([0.0])
+              'spiking_proxy_inds': pop_regions_inds  # Same as "proxy_inds" for this kind of interface
+              }
+             )
 
     # These are user defined Spiking Network -> TVB interfaces configurations:
-    for pop, sv in zip(["E", "I"], ["E", "I"]):
+    for pop, sv, regions in zip(["parrot", "parrot", "granule_cell", "dcn_cell_glut_large", "io_cell"],
+                                ["E", "E", "E", "E", "E"],
+                                [['Right Principal sensory nucleus of the trigeminal',
+                                  'Left Principal sensory nucleus of the trigeminal'],
+                                 ['Right Pons Sensory', 'Left Pons Sensory'],
+                                 ['Right Ansiform lobule', 'Left Ansiform lobule'],
+                                 ['Right Interposed nucleus', 'Left Interposed nucleus'],
+                                ['Right Inferior olivary complex', 'Left Inferior olivary complex']]):
+        pop_regions_inds = []
+        numbers_of_neurons = nest_network.brain_regions[regions[0]][pop].number_of_neurons
+        time_scale_factor = 1e-3 * simulator.integrator.dt  # convert TVB time step to secs
+        for region in regions:
+            pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         tvb_spikeNet_model_builder.input_interfaces.append(
             {'voi': np.array([sv]),
              'populations': np.array([pop]),
-             'proxy_inds': nest_nodes_inds,
+             'proxy_inds': pop_regions_inds,
              # --------------- Arguments that can default if not given by the user:------------------------------
              # Set the enum entry or the corresponding label name for the "proxy_model",
              # or import and set the appropriate NEST proxy device class, e.g., NESTSpikeRecorderMeanSet, directly
@@ -142,17 +153,12 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBTransformers for options and related Transformer classes,
              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBModels for default choices
              'transformer_model': "SPIKES_TO_HIST_RATE",
+             'transformer_params': {"scale_factor": np.array([time_scale_factor]) / numbers_of_neurons / max_rate,
+                                    "offset_factor": -0.5}
              }
         )
 
-    for interface, N in zip(tvb_spikeNet_model_builder.input_interfaces,
-                            [tvb_spikeNet_model_builder.N_E, tvb_spikeNet_model_builder.N_I]):
-        # The "scale_factor" scales the instantaneous rate coming from NEST, before setting it to TVB,
-        # in our case converting the rate to a mean reate
-        # and scaling it to be in the TVB model's state variable range [0.0, 1.0]
-        interface["transformer_params"] = {"scale_factor": np.array([1e-4]) / N}
-
-    # Configure and build:
+    # Configure:
     tvb_spikeNet_model_builder.configure()
     # tvb_spikeNet_model_builder.print_summary_info_details(recursive=1)
 
@@ -163,3 +169,19 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # This is how the user defined Spiking Network -> TVB interfaces look after configuration
     print("\ninput (NEST->TVB update) interfaces' configurations:\n")
     print(tvb_spikeNet_model_builder.input_interfaces)
+
+    # Build the interfaces:
+    simulator = tvb_spikeNet_model_builder.build()
+
+    simulator.simulate_spiking_simulator = nest_network.nest_instance.Run  # set the method to run NEST
+
+    # simulator.print_summary_info(recursive=3)
+    # simulator.print_summary_info_details(recursive=3)
+
+    print("\n\noutput (TVB->NEST coupling) interfaces:\n")
+    simulator.output_interfaces.print_summary_info_details(recursive=2)
+
+    print("\n\ninput (NEST->TVB update) interfaces:\n")
+    simulator.input_interfaces.print_summary_info_details(recursive=2)
+
+    return simulator, nest_network
