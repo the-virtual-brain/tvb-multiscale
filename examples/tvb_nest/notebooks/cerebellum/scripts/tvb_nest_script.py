@@ -73,7 +73,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # taking into consideration the TVB connectome weights and delays,
     # in this "1-to-many" TVB->NEST coupling.
     tvb_spikeNet_model_builder.default_coupling_mode = "TVB"  # "spikeNet" # "TVB"
-    tvb_spikeNet_model_builder.proxy_inds = nest_nodes_inds
+    tvb_spikeNet_model_builder.proxy_inds = np.array(nest_nodes_inds)
     # Set exclusive_nodes = True (Default) if the spiking regions substitute for the TVB ones:
     tvb_spikeNet_model_builder.exclusive_nodes = True
 
@@ -89,11 +89,13 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     #     proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
     #     proxy_inds = np.delete(proxy_inds, nest_nodes_inds)
     # This is a user defined TVB -> Spiking Network interface configuration:
-    for pop in ['parrot', "mossy_fibers", "io_cell"]:  #  excluding direct TVB input to "dcn_cell_glut_large"
+    for pop, receptor in zip(['parrot_medulla', 'parrot_ponssens', "mossy_fibers", "io_cell"],
+                             [0, 0, 0, 1]):  #  excluding direct TVB input to "dcn_cell_glut_large"
         regions = neuron_types_to_region[pop]
         pop_regions_inds = []
         for region in regions:
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
+        pop_regions_inds = np.array(pop_regions_inds)
         tvb_spikeNet_model_builder.output_interfaces.append(
             {'voi': np.array(["E"]),  # TVB state variable to get data from
              'populations': np.array([pop]),  # NEST populations to couple to
@@ -107,6 +109,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
               # see tvb_multiscale.tvb_nest.interfaces.io.NESTInputProxyModels for options and related NESTDevice classes,
               # and tvb_multiscale.tvb_nest.interfaces.io.DefaultTVBtoNESTModels for the default choices
               'proxy_model': "RATE",
+              'receptor_type': receptor,
               # Set the enum entry or the corresponding label name for the "transformer_model",
               # or import and set the appropriate tranformer class, e.g., ScaleRate, directly
               # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
@@ -115,27 +118,29 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
               'transformer_model': "RATE",
              # Here the rate is a total rate, assuming a number of sending neurons:
              # Effective rate  = scale * (total_weighted_coupling_E_from_tvb - offset)
-             # If E is in [0, 1.0], then, with an offset = 0.0, and a scale of 1e4
+             # If E is in [0, 1.0], then, with a translation = 0.0, and a scale of 1e4
              # it is as if 100 neurons can fire each with a maximum spike rate of max_rate=100 Hz
-              'transformer_params': {"scale_factor": np.array([1e2 * max_rate])},   # "offset_factor": np.array([0.0])
+              'transformer_params': {"scale_factor": np.array([1e2 * max_rate])},   # "translation_factor": np.array([0.0])
               'spiking_proxy_inds': pop_regions_inds  # Same as "proxy_inds" for this kind of interface
               }
              )
 
     # These are user defined Spiking Network -> TVB interfaces configurations:
-    for pop, sv, regions in zip(["parrot", "parrot", "granule_cell", "dcn_cell_glut_large", "io_cell"],
-                                ["E", "E", "E", "E", "E"],
-                                [['Right Principal sensory nucleus of the trigeminal',
-                                  'Left Principal sensory nucleus of the trigeminal'],
-                                 ['Right Pons Sensory', 'Left Pons Sensory'],
-                                 ['Right Ansiform lobule', 'Left Ansiform lobule'],
-                                 ['Right Interposed nucleus', 'Left Interposed nucleus'],
-                                ['Right Inferior olivary complex', 'Left Inferior olivary complex']]):
+    for iP, (pop, sv, regions) \
+            in enumerate(zip(["parrot_medulla", "parrot_ponssens", "granule_cell", "dcn_cell_glut_large", "io_cell"],
+                             ["E", "E", "E", "E", "E"],
+                             [['Right Principal sensory nucleus of the trigeminal',
+                               'Left Principal sensory nucleus of the trigeminal'],
+                              ['Right Pons Sensory', 'Left Pons Sensory'],
+                              ['Right Ansiform lobule', 'Left Ansiform lobule'],
+                              ['Right Interposed nucleus', 'Left Interposed nucleus'],
+                              ['Right Inferior olivary complex', 'Left Inferior olivary complex']])):
         pop_regions_inds = []
         numbers_of_neurons = nest_network.brain_regions[regions[0]][pop].number_of_neurons
         time_scale_factor = 1e-3 * simulator.integrator.dt  # convert TVB time step to secs
         for region in regions:
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
+        pop_regions_inds = np.array(pop_regions_inds)
         tvb_spikeNet_model_builder.input_interfaces.append(
             {'voi': np.array([sv]),
              'populations': np.array([pop]),
@@ -155,9 +160,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBModels for default choices
              'transformer_model': "SPIKES_TO_HIST_RATE",
              'transformer_params': {"scale_factor": np.array([time_scale_factor]) / numbers_of_neurons / max_rate,
-                                    "offset_factor": -0.5}
-             }
-        )
+                                    "translation_factor": np.array([-0.5])}
+             })
 
     # Configure:
     tvb_spikeNet_model_builder.configure()
@@ -165,11 +169,13 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
     # This is how the user defined TVB -> Spiking Network interface looks after configuration
     print("\noutput (TVB->NEST coupling) interfaces' configurations:\n")
-    print(tvb_spikeNet_model_builder.output_interfaces)
+    for interface in tvb_spikeNet_model_builder.output_interfaces:
+        print(interface)
 
     # This is how the user defined Spiking Network -> TVB interfaces look after configuration
     print("\ninput (NEST->TVB update) interfaces' configurations:\n")
-    print(tvb_spikeNet_model_builder.input_interfaces)
+    for interface in tvb_spikeNet_model_builder.input_interfaces:
+        print(interface)
 
     # Build the interfaces:
     simulator = tvb_spikeNet_model_builder.build()
@@ -188,7 +194,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     return simulator, nest_network
 
 
-def simulate_tvb_nest(simulator, nest_network, config, print_flag=True):
+def simulate_tvb_nest(simulator, nest_network, config, print_flag=True, plot_flag=True):
     simulator.simulation_length, transient = configure_simulation_length_with_transient(config)
     # Simulate and return results
     tic = time.time()
@@ -204,4 +210,38 @@ def simulate_tvb_nest(simulator, nest_network, config, print_flag=True):
     nest_network.nest_instance.Cleanup()
     if print_flag:
         print("\nSimulated in %f secs!" % (time.time() - tic))
+    if plot_flag:
+        from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import plot_nest_results
+        plot_nest_results(nest_network)
     return results, transient, simulator, nest_network
+
+
+if __name__ == "__main__":
+
+    from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
+    from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network
+
+    # Get configuration
+    config, plotter = configure()
+    config.SIMULATION_LENGTH = 100.0
+    plotter = None
+    # Load connectome and other structural files
+    connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
+    # Construct some more indices and maps
+    inds, maps = construct_extra_inds_and_maps(connectome, inds)
+    # Logprocess connectome
+    connectome = logprocess_weights(connectome, inds, print_flag=True, plotter=plotter)
+    # Prepare connectivity with all possible normalizations
+    connectivity = build_connectivity(connectome, inds, config, print_flag=True, plotter=plotter)
+    # Prepare model
+    model = build_model(connectivity.number_of_regions, inds, maps, config)
+    # Prepare simulator
+    simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
+
+    nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
+        build_NEST_network(config)
+
+    simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
+
+    results, transient, simulator, nest_network = simulate_tvb_nest(nest_network, config,
+                                                                    plot_flag=True, print_flag=True)

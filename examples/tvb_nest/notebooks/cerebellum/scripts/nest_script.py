@@ -136,10 +136,10 @@ neuron_types_to_region = {'golgi_cell': ['Right Ansiform lobule', 'Left Ansiform
                           'io_cell': ['Right Inferior olivary complex', 'Left Inferior olivary complex'],
                           'glomerulus': ['Right Ansiform lobule', 'Left Ansiform lobule'],
                           'mossy_fibers': ['Right Ansiform lobule', 'Left Ansiform lobule'],
-                          'parrot': ['Right Pons Sensory',
-                                     'Right Principal sensory nucleus of the trigeminal',
-                                     'Left Pons Sensory',
-                                     'Left Principal sensory nucleus of the trigeminal']}
+                          'parrot_medulla': ['Right Principal sensory nucleus of the trigeminal',
+                                             'Left Principal sensory nucleus of the trigeminal'],
+                          'parrot_ponssens': ['Right Pons Sensory', 'Left Pons Sensory']
+                          }
 
 
 def build_NEST_network(config=None):
@@ -268,17 +268,18 @@ def build_NEST_network(config=None):
         np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_principal), 0]
     n_mossy_fibers_ponssens = len(target_mfs_id_scaffold_principal)
 
-    pop = 'parrot'
-    region_names = neuron_types_to_region['parrot']
     nodes_inds = []
-    for region, n_neurons in zip(region_names, [n_mossy_fibers_medulla]*2 + [n_mossy_fibers_ponssens]*2):
-        if region not in nest_network.brain_regions:
-            nest_network.brain_regions[region] = NESTRegionNode(label=region)
-            nodes_inds.append(np.where(sim_serial['connectivity.region_labels'] == region)[0][0])
-        nest_network.brain_regions[region][pop] = \
-            NESTPopulation(nest.Create("parrot_neuron", n_neurons),  # possible NEST model params as well here
-                           nest, label=pop, brain_region=region)
-        print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
+    for pop, n_neurons in zip(["parrot_medulla", "parrot_ponssens"],
+                              [n_mossy_fibers_medulla, n_mossy_fibers_ponssens]):
+        region_names = neuron_types_to_region[pop]
+        for region in region_names:
+            if region not in nest_network.brain_regions:
+                nest_network.brain_regions[region] = NESTRegionNode(label=region)
+                nodes_inds.append(np.where(sim_serial['connectivity.region_labels'] == region)[0][0])
+            nest_network.brain_regions[region][pop] = \
+                NESTPopulation(nest.Create("parrot_neuron", n_neurons),  # possible NEST model params as well here
+                               nest, label=pop, brain_region=region)
+            print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
 
     nest_nodes_inds += nodes_inds
 
@@ -315,7 +316,7 @@ def build_NEST_network(config=None):
 
             nest.Connect(pre, post, {"rule": "one_to_one"}, syn_param)
 
-    pop = "parrot"
+    pop = "parrot_medulla"
     mossy_fibers_medulla = {}
     for region, region_mf in zip(['Right Principal sensory nucleus of the trigeminal',
                                   'Left Principal sensory nucleus of the trigeminal'],
@@ -330,6 +331,7 @@ def build_NEST_network(config=None):
         mossy_fibers_medulla[region] = sorted(list(set(target_mfs_id_nest_spinal)))  # Medulla
         nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_medulla[region])
 
+    pop = "parrot_ponssens"
     mossy_fibers_ponssens = {}
     for region, region_mf in zip(['Right Pons Sensory', 'Left Pons Sensory'],
                                  ['Right Ansiform lobule', 'Left Ansiform lobule']):
@@ -354,7 +356,7 @@ def build_NEST_network(config=None):
         print("Connected!  %s - %s -> %s -> %s" % ("Background", region, pop, region))
 
     # Whisking stimulus input device as sinusoidally modulated Poisson process
-    pop = 'parrot'
+    pop = 'parrot_medulla'
     nest_network.input_devices["Stimulus"] = DeviceSet(label="Stimulus", model="sinusoidal_poisson_generator")
     for region in ['Right Principal sensory nucleus of the trigeminal',
                    'Left Principal sensory nucleus of the trigeminal']:
@@ -404,156 +406,161 @@ def build_NEST_network(config=None):
     return nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens
 
 
-def simulate_nest_network(nest_network, neuron_models={}, neuron_number={}, config=None, plot_flag=True):
+def plot_nest_results(nest_network):
 
-    config = assert_config(config)
+    import plotly.graph_objs as go
+    from plotly.subplots import make_subplots
 
-    # Simulate:
-    nest_network.nest_instance.Simulate(config.SIMULATION_LENGTH)
+    goc_events = nest_network.output_devices['golgi_cell']['Left Ansiform lobule'].events
+    goc_evs = goc_events['senders']
+    goc_times = goc_events['times']
 
-    if plot_flag:
-        import plotly.graph_objs as go
-        from plotly.subplots import make_subplots
+    grc_events = nest_network.output_devices['granule_cell']['Left Ansiform lobule'].events
+    grc_evs = grc_events['senders']
+    grc_times = grc_events['times']
+    n_events = len(grc_times)
+    random_inds = random.sample(list(range(n_events)), int(n_events * 0.1))
+    grc_evs = grc_evs[random_inds]
+    grc_times = grc_times[random_inds]
 
-        goc_events = nest_network.output_devices['golgi_cell']['Left Ansiform Lobule'].events
-        goc_evs = goc_events['senders']
-        goc_times = goc_events['times']
+    glom_events = nest_network.output_devices['glomerulus']['Left Ansiform lobule'].events
+    glom_evs = glom_events['senders']
+    glom_times = glom_events['times']
 
-        grc_events = nest_network.output_devices['granule_cell']['Left Ansiform Lobule'].events
-        grc_evs = grc_events['senders']
-        grc_times = grc_events['times']
-        n_events = len(grc_times)
-        random_inds = random.sample(list(range(n_events)), int(n_events * 0.1))
-        grc_evs = grc_evs[random_inds]
-        grc_times = grc_times[random_inds]
+    pc_events = nest_network.output_devices['purkinje_cell']['Left Ansiform lobule'].events
+    pc_evs = pc_events['senders']
+    pc_times = pc_events['times']
 
-        glom_events = nest_network.output_devices['glomerulus']['Left Ansiform Lobule'].events
-        glom_evs = glom_events['senders']
-        glom_times = glom_events['times']
+    sc_events = nest_network.output_devices['stellate_cell']['Left Ansiform lobule'].events
+    sc_evs = sc_events['senders']
+    sc_times = sc_events['times']
 
-        pc_events = nest_network.output_devices['purkinje_cell']['Left Ansiform Lobule'].events
-        pc_evs = pc_events['senders']
-        pc_times = pc_events['times']
+    bc_events = nest_network.output_devices['basket_cell']['Left Ansiform lobule'].events
+    bc_evs = bc_events['senders']
+    bc_times = bc_events['times']
 
-        sc_events = nest_network.output_devices['stellate_cell']['Left Ansiform Lobule'].events
-        sc_evs = sc_events['senders']
-        sc_times = sc_events['times']
+    io_events = nest_network.output_devices['io_cell']['Left Inferior olivary complex'].events
+    io_evs = io_events['senders']
+    io_times = io_events['times']
 
-        bc_events = nest_network.output_devices['basket_cell']['Left Ansiform Lobule'].events
-        bc_evs = bc_events['senders']
-        bc_times = bc_events['times']
+    dcng_events = nest_network.output_devices['dcn_cell_GABA']['Left Interposed nucleus'].events
+    dcng_evs = dcng_events['senders']
+    dcng_times = dcng_events['times']
 
-        io_events = nest_network.output_devices['io_cell']['Left Inferior olivary complex'].events
-        io_evs = io_events['senders']
-        io_times = io_events['times']
-
-        dcng_events = nest_network.output_devices['dcn_cell_GABA']['Left Interposed nucleus'].events
-        dcng_evs = dcng_events['senders']
-        dcng_times = dcng_events['times']
-
-        dcn_events = nest_network.output_devices['dcn_cell_glut_large']['Left Interposed nucleus'].events
-        dcn_evs = dcn_events['senders']
-        dcn_times = dcn_events['times']
+    dcn_events = nest_network.output_devices['dcn_cell_glut_large']['Left Interposed nucleus'].events
+    dcn_evs = dcn_events['senders']
+    dcn_times = dcn_events['times']
 
 
-        # ######################### PLOTTING PSTH AND RASTER PLOTS ########################
+    # ######################### PLOTTING PSTH AND RASTER PLOTS ########################
 
-        CELL_TO_PLOT = ['glomerulus', 'granule_cell', 'basket_cell', 'stellate_cell', 'purkinje_cell',
-                        'io_cell', 'dcn_cell_GABA',  'dcn_cell_glut_large']
+    CELL_TO_PLOT = ['glomerulus', 'granule_cell', 'basket_cell', 'stellate_cell', 'purkinje_cell',
+                    'io_cell', 'dcn_cell_GABA',  'dcn_cell_glut_large']
 
-        cells = {'granule_cell': [grc_times, grc_evs],
-                 'golgi_cell': [goc_times, goc_evs],
-                 'glomerulus': [glom_times, glom_evs],
-                 'purkinje_cell': [pc_times, pc_evs],
-                 'stellate_cell': [sc_times, sc_evs],
-                 'basket_cell': [bc_times, bc_evs],
-                 'io_cell': [io_times, io_evs],
-                 'dcn_cell_GABA': [dcng_times, dcng_evs],
-                 'dcn_cell_glut_large': [dcn_times, dcn_evs]}
+    cells = {'granule_cell': [grc_times, grc_evs],
+             'golgi_cell': [goc_times, goc_evs],
+             'glomerulus': [glom_times, glom_evs],
+             'purkinje_cell': [pc_times, pc_evs],
+             'stellate_cell': [sc_times, sc_evs],
+             'basket_cell': [bc_times, bc_evs],
+             'io_cell': [io_times, io_evs],
+             'dcn_cell_GABA': [dcng_times, dcng_evs],
+             'dcn_cell_glut_large': [dcn_times, dcn_evs]}
 
-        color = {'granule_cell': '#E62214',  # 'rgba(255, 0, 0, .8)',
-                 'golgi_cell': '#332EBC',  # 'rgba(0, 255, 0, .8)',
-                 'glomerulus': '#0E1030',  # rgba(0, 0, 0, .8)',
-                 'purkinje_cell': '#0F8944',  # 'rgba(64, 224, 208, .8)',
-                 'stellate_cell': '#FFC425',  # 'rgba(234, 10, 142, .8)',
-                 'basket_cell': '#F37735',
-                 'io_cell': 'rgba(75, 75, 75, .8)',
-                 'dcn_cell_GABA': 'rgba(100, 100, 100, .8)',
-                 'dcn_cell_glut_large': '#080808'}  # 'rgba(234, 10, 142, .8)'}
+    color = {'granule_cell': '#E62214',  # 'rgba(255, 0, 0, .8)',
+             'golgi_cell': '#332EBC',  # 'rgba(0, 255, 0, .8)',
+             'glomerulus': '#0E1030',  # rgba(0, 0, 0, .8)',
+             'purkinje_cell': '#0F8944',  # 'rgba(64, 224, 208, .8)',
+             'stellate_cell': '#FFC425',  # 'rgba(234, 10, 142, .8)',
+             'basket_cell': '#F37735',
+             'io_cell': 'rgba(75, 75, 75, .8)',
+             'dcn_cell_GABA': 'rgba(100, 100, 100, .8)',
+             'dcn_cell_glut_large': '#080808'}  # 'rgba(234, 10, 142, .8)'}
 
-        # PSTH
+    # PSTH
 
-        def metrics(spikeData, TrialDuration, cell, figure_handle, sel_row):
-            id_spikes = np.sort(np.unique(spikeData, return_index=True))
-            bin_size = 5  # [ms]
-            n_bins = int(TrialDuration / bin_size) + 1
-            psth, tms = np.histogram(spikeData, bins=n_bins, range=(0, TrialDuration))
+    def metrics(spikeData, TrialDuration, cell, figure_handle, sel_row):
+        id_spikes = np.sort(np.unique(spikeData, return_index=True))
+        bin_size = 5  # [ms]
+        n_bins = int(TrialDuration / bin_size) + 1
+        psth, tms = np.histogram(spikeData, bins=n_bins, range=(0, TrialDuration))
 
-            # absolute frequency
-            abs_freq = np.zeros(id_spikes[0].shape[0])
-            for idx, i in enumerate(id_spikes[0]):
-                count = np.where(spikeData == i)[0]
-                abs_freq[idx] = count.shape[0]
+        # absolute frequency
+        abs_freq = np.zeros(id_spikes[0].shape[0])
+        for idx, i in enumerate(id_spikes[0]):
+            count = np.where(spikeData == i)[0]
+            abs_freq[idx] = count.shape[0]
 
-            # mean frequency
-            m_f = (id_spikes[0].shape[0]) / ((TrialDuration / 1000) * len(neuron_models[cell]))
+        # mean frequency
+        m_f = (id_spikes[0].shape[0]) / ((TrialDuration / 1000) * len(neuron_models[cell]))
 
-            layout = go.Layout(
-                scene=dict(aspectmode='data'),
-                xaxis={'title': 'time (ms)'},
-                yaxis={'title': 'number of spikes'}
-            )
+        layout = go.Layout(
+            scene=dict(aspectmode='data'),
+            xaxis={'title': 'time (ms)'},
+            yaxis={'title': 'number of spikes'}
+        )
 
-            figure_handle.add_trace(go.Bar(
-                x=tms[0:len(tms) - 1],
-                y=psth / ((bin_size * 0.001) * neuron_number[cell]),
-                width=4.0,
-                marker=dict(
-                    color=color[cell])
-            ), row=sel_row, col=1)
+        figure_handle.add_trace(go.Bar(
+            x=tms[0:len(tms) - 1],
+            y=psth / ((bin_size * 0.001) * neuron_number[cell]),
+            width=4.0,
+            marker=dict(
+                color=color[cell])
+        ), row=sel_row, col=1)
 
-            print("mean frequency: ", int(m_f))
+        print("mean frequency: ", int(m_f))
 
-            return tms
+        return tms
 
-        # RASTER
-        def raster(times, cell_ids, cell, fig_handle, sel_row):
-            trace0 = go.Scatter(
-                x=times,
-                y=cell_ids,
-                name='',
-                mode='markers',
-                marker=dict(
-                    size=4,
-                    color=color[cell],
-                    line=dict(
-                        width=.2,
-                        color='rgb(0, 0, 0)'
-                    )
+    # RASTER
+    def raster(times, cell_ids, cell, fig_handle, sel_row):
+        trace0 = go.Scatter(
+            x=times,
+            y=cell_ids,
+            name='',
+            mode='markers',
+            marker=dict(
+                size=4,
+                color=color[cell],
+                line=dict(
+                    width=.2,
+                    color='rgb(0, 0, 0)'
                 )
             )
-            fig_handle.add_trace(trace0, row=sel_row, col=1)
+        )
+        fig_handle.add_trace(trace0, row=sel_row, col=1)
 
-        fig_psth = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
-                                 y_title='Frequency [Hz]')
-        fig_raster = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
-                                   y_title='# cells')
-        num = 1
-        for c in CELL_TO_PLOT:
-            times = cells[c][0]
-            cell_ids = cells[c][1]
-            metrics(times, config.SIMULATION_LENGTH, c, fig_psth, num)
-            raster(times, cell_ids, c, fig_raster, num)
-            num += 1
-        fig_psth.update_xaxes(range=[1000, 2000])
-        fig_raster.update_xaxes(range=[1000, 2000])
-        fig_psth.update_layout(showlegend=False)
-        fig_raster.update_layout(showlegend=False)
-        fig_psth.show()
-        fig_raster.show()
-        fig_psth.write_image("images/snn_psth_whisking.svg")
-        fig_raster.write_image("images/snn_raster_whisking.svg")
+    fig_psth = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
+                             y_title='Frequency [Hz]')
+    fig_raster = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
+                               y_title='# cells')
+    num = 1
+    for c in CELL_TO_PLOT:
+        times = cells[c][0]
+        cell_ids = cells[c][1]
+        metrics(times, config.SIMULATION_LENGTH, c, fig_psth, num)
+        raster(times, cell_ids, c, fig_raster, num)
+        num += 1
+    fig_psth.update_xaxes(range=[1000, 2000])
+    fig_raster.update_xaxes(range=[1000, 2000])
+    fig_psth.update_layout(showlegend=False)
+    fig_raster.update_layout(showlegend=False)
+    fig_psth.show()
+    fig_raster.show()
+    # TODO: Find a way to write figures without kaleido!!!
+    # fig_psth.write_image("images/snn_psth_whisking.svg")
+    # fig_raster.write_image("images/snn_raster_whisking.svg")
 
+
+def simulate_nest_network(nest_network, config=None, plot_flag=True, print_flag=True):
+    config = assert_config(config)
+    tic = time.time()
+    # Simulate:
+    nest_network.nest_instance.Simulate(config.SIMULATION_LENGTH)
+    if print_flag:
+        print("\nSimulated in %f secs!" % (time.time() - tic))
+    if plot_flag:
+        plot_nest_results(nest_network)
     return nest_network
 
 
@@ -581,4 +588,4 @@ if __name__ == "__main__":
     nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
         build_NEST_network(config)
 
-    nest_network = simulate_nest_network(nest_network, neuron_models, neuron_number, config, plot_flag=True)
+    nest_network = simulate_nest_network(nest_network, config, plot_flag=True, print_flag=True)

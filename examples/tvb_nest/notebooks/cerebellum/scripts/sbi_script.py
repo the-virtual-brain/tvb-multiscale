@@ -6,7 +6,7 @@ from sbi import utils as utils
 from sbi import analysis as analysis
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
-from examples.tvb_nest.notebooks.cerebellum.scripts.tvb import run_workflow
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import run_workflow
 
 
 def build_priors(config):

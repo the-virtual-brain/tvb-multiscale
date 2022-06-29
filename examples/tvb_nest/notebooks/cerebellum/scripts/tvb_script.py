@@ -424,7 +424,7 @@ def configure_simulation_length_with_transient(config):
     simulation_length = float(config.SIMULATION_LENGTH)
     transient = config.TRANSIENT_RATIO * simulation_length
     simulation_length += transient
-    return simulation_length
+    return simulation_length, transient
 
 
 def simulate(simulator, config, print_flag=True):
