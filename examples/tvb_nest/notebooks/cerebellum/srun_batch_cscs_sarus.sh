@@ -2,7 +2,7 @@
 #SBATCH --job-name="sbi_fit_test"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
-#SBATCH --time=1-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --ntasks-per-core=1
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=normal

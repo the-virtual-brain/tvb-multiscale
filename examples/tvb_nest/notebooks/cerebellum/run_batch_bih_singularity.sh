@@ -2,7 +2,7 @@
 #SBATCH --job-name="sbi_fit_normal"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
-#SBATCH --time=1-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=30
 #SBATCH --partition=medium
