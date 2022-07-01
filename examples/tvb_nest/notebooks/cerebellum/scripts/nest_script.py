@@ -163,19 +163,19 @@ def build_NEST_network(config=None):
     # Load NEST and use defaults to configure its kernel:
     nest = configure_nest_kernel(load_nest(config=config), config)
 
-    try:
-        nest.Install('cerebmodule')
-    except:
-        import subprocess
-        pwd = os.getcwd()
-        cereb_path = '/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules/cereb'
-        os.chdir(os.path.join(cereb_path, 'build'))
-        # This is our shell command, executed by Popen.
-        p = subprocess.Popen("cmake -Dwith-nest=/home/docker/env/neurosci/nest_build/bin/nest-config ..; make; make install",
-                             stdout=subprocess.PIPE, shell=True)
-        print(p.communicate())
-        os.chdir(pwd)
-        nest.Install('cerebmodule')
+    # try:
+    #     nest.Install('cerebmodule')
+    # except:
+    #     import subprocess
+    #     pwd = os.getcwd()
+    #     cereb_path = '/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules/cereb'
+    #     os.chdir(os.path.join(cereb_path, 'build'))
+    #     # This is our shell command, executed by Popen.
+    #     p = subprocess.Popen("cmake -Dwith-nest=/home/docker/env/neurosci/nest_build/bin/nest-config ..; make; make install",
+    #                          stdout=subprocess.PIPE, shell=True)
+    #     print(p.communicate())
+    #     nest.Install('cerebmodule')
+    #     os.chdir(pwd)
 
     ###################### NEST simulation parameters #########################################
     TOT_DURATION = config.SIMULATION_LENGTH  # ms
