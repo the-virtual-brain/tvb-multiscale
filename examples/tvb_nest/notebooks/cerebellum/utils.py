@@ -112,6 +112,39 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
     return CxyR, fR, fL, CxyL
 
 
+def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fmin=0.0, fmax=50.0, figsize=(15, 5)):
+    import numpy as np
+    yranges = [[0,0.35],[-0.2, 0.2]]    # Ranges for coherence and diff plot respectively
+    ylabel = ['Spectral coherence','Diff in spectral coherence']
+    # avg_coherence is a dictionary with average coherence between L and R M1-S1 for each simulation test
+    fig, axes = plt.subplots(1, 2, figsize=(figsize[0], figsize[1]*2))
+    
+    for test in avg_coherence.keys():
+        # Plot coherence
+        axes[0].plot(freq, avg_coherence[test], color=color[test])
+    # Plot coherence diff cosim vs MF cereb-OFF
+    axes[1].plot(freq,np.subtract(avg_coherence['MF_cerebOFF'],avg_coherence['cosim']), color=color['cosim'])
+    # Plot coherence diff MF cereb-ON vs MF cereb-OFF
+    axes[1].plot(freq,np.subtract(avg_coherence['MF_cerebOFF'],avg_coherence['MF_cerebON']), color=color['MF_cerebON'])
+
+    for ii in range(len(axes)):
+        axes[ii].set_xlim([fmin, fmax])
+        axes[ii].set_xlabel('frequency [Hz]')
+        axes[ii].set_ylabel(ylabel[ii])
+        axes[ii].vlines(25, yranges[ii][0], yranges[ii][1])
+        axes[ii].vlines(45, yranges[ii][0], yranges[ii][1])
+        
+        
+    axes[0].set_ylim(yranges[0])
+    axes[0].set_title('M1-S1 coherence spectra during virtual whisking')
+    axes[0].legend(avg_coherence.keys())
+    axes[1].set_ylim(yranges[1])
+    axes[1].set_title('change in M1-S1 coherence after virtual cerebellar inactivation')
+    axes[1].legend(['OFF-ON cosim','OFF-ON MF'])
+
+    plt.show()
+
+
 def compute_plot_ica(data, time, variable="BOLD", n_components=10, plotter=None):
     ica = FastICA(n_components=n_components)
     ics_ts = ica.fit_transform(data)
