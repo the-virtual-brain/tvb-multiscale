@@ -92,6 +92,10 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
             axes[ii, 0].plot(fL, CxyL.T,
                              label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
             axes[ii, 0].set_xlim([fmin, fmax])
+            axes[ii, 0].set_ylim([fmin, 0.45])
+
+
+
             axes[ii, 0].set_xlabel('frequency [Hz]')
             axes[ii, 0].set_ylabel('Coherence')
             axes[ii, 0].legend()
@@ -105,6 +109,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
             axes[ii, 1].legend()
             ii += 1
     plt.show()
+    return CxyR, fR, fL, CxyL
 
 
 def compute_plot_ica(data, time, variable="BOLD", n_components=10, plotter=None):
