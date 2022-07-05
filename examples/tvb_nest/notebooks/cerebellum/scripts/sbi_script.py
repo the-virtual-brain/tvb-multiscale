@@ -148,7 +148,7 @@ def write_posterior_samples(samples, iG=None, config=None):
     config = assert_config(config)
     filepath = posterior_samples_filepath(config, iG)
     if os.path.isfile(filepath):
-        samples_fit = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
+        samples_fit = np.load(config.POSTERIOR_SAMPLES_PATH, allow_pickle=True).item()
     else:
         samples_fit = {}
         # Get G for this run:
@@ -307,14 +307,14 @@ def sbi_infer_for_iG(iG, config=None):
 #     print("Done in %g sec!" % (time.time() - tic))
 #
 #     # Compute the sample mean, add to the results dictionary and write to file:
-#     if os.path.isfile(config.SAMPLES_GS_PATH):
-#         samples_fit_Gs = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
+#     if os.path.isfile(config.POSTERIOR_SAMPLES_PATH):
+#         samples_fit_Gs = np.load(config.POSTERIOR_SAMPLES_PATH, allow_pickle=True).item()
 #     else:
 #         samples_fit_Gs = {}
 #     samples_fit_Gs[G] = {}
 #     samples_fit_Gs[G]['samples'] = samples_fit.numpy()
 #     samples_fit_Gs[G]['mean'] = samples_fit.mean(axis=0).numpy()
-#     np.save(config.SAMPLES_GS_PATH, samples_fit_Gs, allow_pickle=True)
+#     np.save(config.POSTERIOR_SAMPLES_PATH, samples_fit_Gs, allow_pickle=True)
 #
 #     # Plot posterior:
 #     print("\nPlotting posterior...")
