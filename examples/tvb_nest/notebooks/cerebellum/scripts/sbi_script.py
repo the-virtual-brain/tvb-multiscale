@@ -130,7 +130,7 @@ def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=Non
         sim_res = []
         filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.BATCH_SIM_RES_FILE))
         for iB in range(config.N_SIM_BATCHES):
-            sim_res.append(torch.load(batch_sim_res_filepath(iB, config, iG, filepath, extension)))
+            sim_res.append(np.load(batch_sim_res_filepath(iB, config, iG, filepath, extension)))
         sim_res = np.concatenate(priors_samples)
     return priors, priors_samples, sim_res
 
@@ -141,7 +141,7 @@ def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
     if filepath is None or extension is None:
         filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES,
                                                             config.POSTERIOR_SAMPLES_PATH))
-    return "%s_%02d%s" % (filepath, iG, extension)
+    return "%s_iG%02d%s" % (filepath, iG, extension)
 
 
 def write_posterior_samples(samples, iG=None, config=None):
@@ -231,7 +231,7 @@ def sbi_infer_for_iG(iG, config=None):
                                   points=np.array(list(params.values())),
                                   points_offdiag={'markersize': 6},
                                   points_colors=['r'] * config.n_priors)
-    plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_%g.png' % G))
+    plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_G%g.png' % G))
 
     # Run one simulation with the posterior means:
     print("\nSimulating with posterior means...")

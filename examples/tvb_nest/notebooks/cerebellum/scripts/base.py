@@ -141,7 +141,7 @@ def configure(G=2.0, STIMULUS=0.5,
     config.SPLIT_RUN_SAMPLES = 2
     config.N_SAMPLES_PER_RUN = 1000
     config.BATCH_FILE_FORMAT = "%s_%03d%s"
-    config.BATCH_FILE_FORMAT_G = "%s_%02d_%03d%s"
+    config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
     config.Gs = np.array([0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0])
