@@ -347,11 +347,16 @@ if __name__ == "__main__":
 
     # samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(int(sys.argv[-1]))
     config = configure()[0]
-    if len(sys.argv) == 1:
-        iB = int(sys.argv[-1])
-        iG = None
-    else:
-        iB = int(sys.argv[-1])
-        iG = int(sys.argv[-2])
+    script_id = sys.argv[-1]
 
-    sim_res = simulate_TVB_for_sbi_batch(iB, iG, config=config, write_to_file=True)
+    if script_id == 0:
+        if len(sys.argv) == 2:
+            iB = int(sys.argv[-2])
+            iG = None
+        else:
+            iB = int(sys.argv[-2])
+            iG = int(sys.argv[-3])
+        sim_res = simulate_TVB_for_sbi_batch(iB, iG, config=config, write_to_file=True)
+    elif script_id == 1:
+        iG = int(sys.argv[-2])
+        samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(iG, config)
