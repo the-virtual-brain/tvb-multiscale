@@ -148,7 +148,7 @@ def write_posterior_samples(samples, iG=None, config=None):
     config = assert_config(config)
     filepath = posterior_samples_filepath(config, iG)
     if os.path.isfile(filepath):
-        samples_fit = np.load(config.POSTERIOR_SAMPLES_PATH, allow_pickle=True).item()
+        samples_fit = np.load(filepath, allow_pickle=True).item()
     else:
         samples_fit = {}
         # Get G for this run:
