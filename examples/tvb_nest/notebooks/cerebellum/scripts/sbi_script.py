@@ -147,7 +147,7 @@ def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
 def write_posterior_samples(samples, iG=None, config=None):
     config = assert_config(config)
     filepath = posterior_samples_filepath(config, iG)
-    if os.path.isfile(config.SAMPLES_GS_PATH):
+    if os.path.isfile(config.POSTERIOR_SAMPLES_PATH):
         samples_fit = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
     else:
         samples_fit = {}
