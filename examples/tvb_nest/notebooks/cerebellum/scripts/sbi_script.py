@@ -44,8 +44,7 @@ def batch_filepath(iB, config, iG=None, filepath=None, extension=None, filename=
 
 
 def batch_priors_filepath(iB, config, iG=None, filepath=None, extension=None):
-    batch_filepath(iB, config, iG, filepath, extension, config.BATCH_PRIORS_SAMPLES_FILE)
-
+    return batch_filepath(iB, config, iG, filepath, extension, config.BATCH_PRIORS_SAMPLES_FILE)
 
 def priors_samples_per_batch(priors_samples=None, iG=None, config=None, write_to_files=True):
     config = assert_config(config)
