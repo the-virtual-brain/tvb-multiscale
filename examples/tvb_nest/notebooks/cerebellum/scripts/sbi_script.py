@@ -131,7 +131,7 @@ def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=Non
         filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.BATCH_SIM_RES_FILE))
         for iB in range(config.N_SIM_BATCHES):
             sim_res.append(np.load(batch_sim_res_filepath(iB, config, iG, filepath, extension)))
-        sim_res = np.concatenate(sim_res)
+        sim_res = torch.from_numpy(np.concatenate(sim_res))
     return priors, priors_samples, sim_res
 
 
