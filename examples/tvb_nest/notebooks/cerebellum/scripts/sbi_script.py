@@ -157,8 +157,8 @@ def write_posterior_samples(samples, iG=None, config=None):
         samples_fit['mean'] = []
         samples_fit['std'] = []
     samples_fit['samples'].append(samples.numpy())
-    samples_fit['mean'].append(samples_fit.mean(axis=0).numpy())
-    samples_fit['std'].append(samples_fit.std(axis=0).numpy())
+    samples_fit['mean'].append(samples.mean(axis=0).numpy())
+    samples_fit['std'].append(samples.std(axis=0).numpy())
     np.save(filepath, samples_fit, allow_pickle=True)
 
 
