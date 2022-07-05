@@ -147,7 +147,7 @@ def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
 def write_posterior_samples(samples, iG=None, config=None):
     config = assert_config(config)
     filepath = posterior_samples_filepath(config, iG)
-    if os.path.isfile(config.POSTERIOR_SAMPLES_PATH):
+    if os.path.isfile(filepath):
         samples_fit = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
     else:
         samples_fit = {}
@@ -233,10 +233,10 @@ def sbi_infer_for_iG(iG, config=None):
                                   points_colors=['r'] * config.n_priors)
     plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_G%g.png' % G))
 
-    # Run one simulation with the posterior means:
-    print("\nSimulating with posterior means...")
-    print("params =\n", params)
-    PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
+    # # Run one simulation with the posterior means:
+    # print("\nSimulating with posterior means...")
+    # print("params =\n", params)
+    # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
 
     print("\n\nFinished after %g sec!" % (time.time() - tic))
     print("\n\nFind results in %s!" % config.out.FOLDER_RES)
