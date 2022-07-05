@@ -46,6 +46,7 @@ def batch_filepath(iB, config, iG=None, filepath=None, extension=None, filename=
 def batch_priors_filepath(iB, config, iG=None, filepath=None, extension=None):
     return batch_filepath(iB, config, iG, filepath, extension, config.BATCH_PRIORS_SAMPLES_FILE)
 
+
 def priors_samples_per_batch(priors_samples=None, iG=None, config=None, write_to_files=True):
     config = assert_config(config)
     if priors_samples is None:
@@ -130,7 +131,7 @@ def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=Non
         filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.BATCH_SIM_RES_FILE))
         for iB in range(config.N_SIM_BATCHES):
             sim_res.append(np.load(batch_sim_res_filepath(iB, config, iG, filepath, extension)))
-        sim_res = np.concatenate(priors_samples)
+        sim_res = np.concatenate(sim_res)
     return priors, priors_samples, sim_res
 
 
