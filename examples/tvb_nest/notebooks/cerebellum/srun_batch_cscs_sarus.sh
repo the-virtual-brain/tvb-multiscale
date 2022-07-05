@@ -34,7 +34,7 @@ do
   do
     export JOBID=iG$iG'_iB'$iB
     echo 'Submitting task for iG='$iG', and iB='$iB'...'
-    srun --exclusive --ntasks 1 --job-name=job_$JOBID -o $OUT_FILE'_'$JOBID.txt -e $ERR_FILE'_'$JOBID.txt sarus run --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} $iG $iB &
+    srun --exclusive --ntasks 1 --job-name=job_$JOBID -o $OUT_FILE'_'$JOBID.txt -e $ERR_FILE'_'$JOBID.txt sarus run --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} 0 $iG $iB &
   done
 done
 
