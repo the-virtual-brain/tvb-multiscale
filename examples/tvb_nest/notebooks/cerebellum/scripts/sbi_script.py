@@ -241,7 +241,7 @@ def sbi_infer_for_iG(iG, config=None):
     print("\n\nFinished after %g sec!" % (time.time() - tic))
     print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
-    return posterior_samples, results, fig, simulator, output_config
+    return posterior_samples  # , results, fig, simulator, output_config
 
 
 # def simulate_TVB_for_sbi(priors, priors_params_names, **params):
