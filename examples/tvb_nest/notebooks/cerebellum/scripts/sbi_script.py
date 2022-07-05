@@ -75,7 +75,7 @@ def load_priors_samples_per_batch_per_iG(iB, iG, config=None):
 
 
 def batch_sim_res_filepath(iB, config, iG=None, filepath=None, extension=None):
-    batch_filepath(iB, config, iG, filepath, extension, config.BATCH_SIM_RES_FILE)
+    return batch_filepath(iB, config, iG, filepath, extension, config.BATCH_SIM_RES_FILE)
 
 
 def write_batch_sim_res_to_file(sim_res, iB, iG=None, config=None):
@@ -257,89 +257,89 @@ def sbi_infer_for_iG(iG, config=None):
 #     return run_workflow(**priors_params, plot_flag=False)[0]
 #
 #
-def sbi_fit(iG, config=None):
-
-    tic = time.time()
-
-    config = assert_config(config)
-
-    # Get the default values for the parameter except for G
-    params = OrderedDict()
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-        params[pname] = pval
-    print("params =\n", params)
-
-    # Load the target
-    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
-    # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
-    #                                        right                       left
-    psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
-                                    PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
-
-    # Get G for this run:
-    G = config.Gs[iG]
-
-    # Define the simulation function for sbi for this G
-    simulate_for_sbi_for_g = lambda priors: simulate_TVB_for_sbi(priors,
-                                                                 priors_params_names=config.PRIORS_PARAMS_NAMES,
-                                                                 G=G, **params)
-
-    # Build the priors
-    priors = build_priors(config)
-
-    print("\n\nFitting for G = %g!\n" % G)
-    tic = time.time()
-    for iR in range(config.N_RUNS):
-        print("\nFitting run %d " % iR)
-
-        # Train the neural network to approximate the posterior:
-        posterior = infer(simulate_for_sbi_for_g, priors,
-                          method=config.SBI_METHOD,
-                          num_simulations=config.N_SIMULATIONS,
-                          num_workers=config.SBI_NUM_WORKERS)
-
-        print("\nSampling posterior...")
-        if iR:
-            samples_fit = torch.cat((samples_fit, posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)), 0)
-        else:
-            samples_fit = posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)
-
-    print("Done in %g sec!" % (time.time() - tic))
-
-    # Compute the sample mean, add to the results dictionary and write to file:
-    if os.path.isfile(config.SAMPLES_GS_PATH):
-        samples_fit_Gs = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
-    else:
-        samples_fit_Gs = {}
-    samples_fit_Gs[G] = {}
-    samples_fit_Gs[G]['samples'] = samples_fit.numpy()
-    samples_fit_Gs[G]['mean'] = samples_fit.mean(axis=0).numpy()
-    np.save(config.SAMPLES_GS_PATH, samples_fit_Gs, allow_pickle=True)
-
-    # Plot posterior:
-    print("\nPlotting posterior...")
-    limits = []
-    for pmin, pmax in zip(config.prior_min, config.prior_max):
-        limits.append([pmin, pmax])
-    fig, axes = analysis.pairplot(samples_fit,
-                                  limits=limits,
-                                  ticks=limits,
-                                  figsize=(10, 10),
-                                  points=np.array(list(params.values())),
-                                  points_offdiag={'markersize': 6},
-                                  points_colors=['r'] * config.n_priors)
-    plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_%g.png' % G))
-
-    # Run one simulation with the posterior means:
-    print("\nSimulating with posterior means...")
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
-    PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
-
-    duration = time.time() - tic
-    print("\n\nFinished after %g sec!" % duration)
-    print("\n\nFind results in %s!" % config.out.FOLDER_RES)
-
-    return samples_fit_Gs, results, fig, simulator, output_config
+# def sbi_fit(iG, config=None):
+#
+#     tic = time.time()
+#
+#     config = assert_config(config)
+#
+#     # Get the default values for the parameter except for G
+#     params = OrderedDict()
+#     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
+#         params[pname] = pval
+#     print("params =\n", params)
+#
+#     # Load the target
+#     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
+#     # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
+#     #                                        right                       left
+#     psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
+#                                     PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
+#
+#     # Get G for this run:
+#     G = config.Gs[iG]
+#
+#     # Define the simulation function for sbi for this G
+#     simulate_for_sbi_for_g = lambda priors: simulate_TVB_for_sbi(priors,
+#                                                                  priors_params_names=config.PRIORS_PARAMS_NAMES,
+#                                                                  G=G, **params)
+#
+#     # Build the priors
+#     priors = build_priors(config)
+#
+#     print("\n\nFitting for G = %g!\n" % G)
+#     tic = time.time()
+#     for iR in range(config.N_RUNS):
+#         print("\nFitting run %d " % iR)
+#
+#         # Train the neural network to approximate the posterior:
+#         posterior = infer(simulate_for_sbi_for_g, priors,
+#                           method=config.SBI_METHOD,
+#                           num_simulations=config.N_SIMULATIONS,
+#                           num_workers=config.SBI_NUM_WORKERS)
+#
+#         print("\nSampling posterior...")
+#         if iR:
+#             samples_fit = torch.cat((samples_fit, posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)), 0)
+#         else:
+#             samples_fit = posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)
+#
+#     print("Done in %g sec!" % (time.time() - tic))
+#
+#     # Compute the sample mean, add to the results dictionary and write to file:
+#     if os.path.isfile(config.SAMPLES_GS_PATH):
+#         samples_fit_Gs = np.load(config.SAMPLES_GS_PATH, allow_pickle=True).item()
+#     else:
+#         samples_fit_Gs = {}
+#     samples_fit_Gs[G] = {}
+#     samples_fit_Gs[G]['samples'] = samples_fit.numpy()
+#     samples_fit_Gs[G]['mean'] = samples_fit.mean(axis=0).numpy()
+#     np.save(config.SAMPLES_GS_PATH, samples_fit_Gs, allow_pickle=True)
+#
+#     # Plot posterior:
+#     print("\nPlotting posterior...")
+#     limits = []
+#     for pmin, pmax in zip(config.prior_min, config.prior_max):
+#         limits.append([pmin, pmax])
+#     fig, axes = analysis.pairplot(samples_fit,
+#                                   limits=limits,
+#                                   ticks=limits,
+#                                   figsize=(10, 10),
+#                                   points=np.array(list(params.values())),
+#                                   points_offdiag={'markersize': 6},
+#                                   points_colors=['r'] * config.n_priors)
+#     plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_%g.png' % G))
+#
+#     # Run one simulation with the posterior means:
+#     print("\nSimulating with posterior means...")
+#     params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
+#     PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
+#
+#     duration = time.time() - tic
+#     print("\n\nFinished after %g sec!" % duration)
+#     print("\n\nFind results in %s!" % config.out.FOLDER_RES)
+#
+#     return samples_fit_Gs, results, fig, simulator, output_config
 
 
 if __name__ == "__main__":
