@@ -359,4 +359,4 @@ if __name__ == "__main__":
         sim_res = simulate_TVB_for_sbi_batch(iB, iG, config=config, write_to_file=True)
     elif script_id == 1:
         iG = int(sys.argv[-2])
-        samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(iG, config)
+        samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
