@@ -89,8 +89,12 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     #     proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
     #     proxy_inds = np.delete(proxy_inds, nest_nodes_inds)
     # This is a user defined TVB -> Spiking Network interface configuration:
-    for pop, receptor in zip(['parrot_medulla', 'parrot_ponssens', "mossy_fibers", "io_cell"],
-                             [0, 0, 0, 1]):  #  excluding direct TVB input to "dcn_cell_glut_large"
+    pops = ["mossy_fibers", "io_cell"]
+    ports = [0, 1]
+    if config.NEST_PERIPHERY:
+        pops = ['parrot_medulla', 'parrot_ponssens'] + pops
+        ports = [0, 0] + ports
+    for pop, receptor in zip(pops, ports):  #  excluding direct TVB input to "dcn_cell_glut_large"
         regions = neuron_types_to_region[pop]
         pop_regions_inds = []
         for region in regions:
@@ -126,15 +130,16 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              )
 
     # These are user defined Spiking Network -> TVB interfaces configurations:
-    for iP, (pop, sv, regions) \
-            in enumerate(zip(["parrot_medulla", "parrot_ponssens", "granule_cell", "dcn_cell_glut_large", "io_cell"],
-                             ["E", "E", "E", "E", "E"],
-                             [['Right Principal sensory nucleus of the trigeminal',
-                               'Left Principal sensory nucleus of the trigeminal'],
-                              ['Right Pons Sensory', 'Left Pons Sensory'],
-                              ['Right Ansiform lobule', 'Left Ansiform lobule'],
-                              ['Right Interposed nucleus', 'Left Interposed nucleus'],
-                              ['Right Inferior olivary complex', 'Left Inferior olivary complex']])):
+    pops = ["granule_cell", "dcn_cell_glut_large", "io_cell"]
+    regs = [['Right Ansiform lobule', 'Left Ansiform lobule'],
+            ['Right Interposed nucleus', 'Left Interposed nucleus'],
+            ['Right Inferior olivary complex', 'Left Inferior olivary complex']]
+    if config.NEST_PERIPHERY:
+        pops = ["parrot_medulla", "parrot_ponssens"] + pops
+        regs = [['Right Principal sensory nucleus of the trigeminal',
+                 'Left Principal sensory nucleus of the trigeminal'],
+                ['Right Pons Sensory', 'Left Pons Sensory']] + regs
+    for iP, (pop, regions) in enumerate(zip(pops, regs)):
         pop_regions_inds = []
         numbers_of_neurons = nest_network.brain_regions[regions[0]][pop].number_of_neurons
         time_scale_factor = 1e-3 * simulator.integrator.dt  # convert TVB time step to secs
@@ -142,7 +147,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         pop_regions_inds = np.array(pop_regions_inds)
         tvb_spikeNet_model_builder.input_interfaces.append(
-            {'voi': np.array([sv]),
+            {'voi': np.array(['E']),
              'populations': np.array([pop]),
              'proxy_inds': pop_regions_inds,
              # --------------- Arguments that can default if not given by the user:------------------------------
@@ -230,7 +235,6 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
     # Get configuration
     config, plotter = configure(output_folder=output_folder, plot_flag=plot_flag)
     # config.SIMULATION_LENGTH = 100.0
-
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
@@ -244,15 +248,13 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
     # Prepare simulator
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
     # Build TVB-NEST interfaces
-    nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
-        build_NEST_network(config)
-
+    nest_network, nest_nodes_inds, neuron_models, neuron_number, \
+    start_id_scaffold, mossy_fibers_medulla, mossy_fibers_ponssens = build_NEST_network(config)
     simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
     # Simulate TVB-NEST model
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,
                                                                     neuron_models, neuron_number,
                                                                     plot_flag=True, print_flag=True)
-
     return results, transient, simulator, nest_network
 
 
