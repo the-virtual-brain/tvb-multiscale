@@ -182,7 +182,10 @@ def build_model(number_of_regions, inds, maps, config):
     if STIMULUS:
         # Stimulus to M1 and S1 barrel field
         # inds_stim = np.concatenate((inds["motor"][:2], inds["sens"][-2:])
-        inds_stim = np.concatenate((inds["facial"], inds["trigeminal"]))
+        if config.NEST_PERIPHERY:
+            inds_stim = np.array(inds["facial"])
+        else:
+            inds_stim = np.concatenate((inds["facial"], inds["trigeminal"]))
         # Stimuli:
         A_st = 0 * dummy.astype("f")
         f_st = 0 * dummy.astype("f")
