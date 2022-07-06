@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import h5py
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 
 ###### PARAMETERS SETTING ######################################################
@@ -142,8 +143,51 @@ neuron_types_to_region = {'golgi_cell': ['Right Ansiform lobule', 'Left Ansiform
                           }
 
 
+def split_mossy_fibers(start_id_scaffold, f=None):
+    if f is None:
+        f = h5py.File(config.CEREB_SCAFFOLD_PATH, 'r+')
+    # We all this to find the indices of the target mossy fibers!:
+    # Localized CS
+    r_x, r_z = 75, 50
+    gloms_pos = np.array(f['cells/placement/glomerulus/positions'])
+    x_s_c, x_p_c, z_c = 75., 225., 100.
+
+    # Find glomeruli falling into the selected volume
+    target_gloms_bool = np.add(((gloms_pos[:, [0]] - x_s_c) ** 2) / r_x ** 2,
+                               ((gloms_pos[:, [2]] - z_c) ** 2) / r_z ** 2).__lt__(1)  # ellipse equation
+    target_gloms_id_scaffold_spinal = np.array(np.where(target_gloms_bool)[0] + start_id_scaffold['glomerulus'])
+
+    target_gloms_bool = np.add(((gloms_pos[:, [0]] - x_p_c) ** 2) / r_x ** 2,
+                               ((gloms_pos[:, [2]] - z_c) ** 2) / r_z ** 2).__lt__(1)  # ellipse equation
+    target_gloms_id_scaffold_principal = np.array(np.where(target_gloms_bool)[0] + start_id_scaffold['glomerulus'])
+
+    conn_glom_mf = np.array(f['cells/connections/mossy_to_glomerulus'])
+    # Select the corresponding original MFs
+    target_mfs_id_scaffold_spinal = conn_glom_mf[np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_spinal), 0]
+    target_mfs_id_scaffold_principal = conn_glom_mf[
+        np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_principal), 0]
+    return target_mfs_id_scaffold_spinal, target_mfs_id_scaffold_principal
+
+
+def get_medulla_mossy_targets(region_mf, neuron_models, start_id_scaffold, target_mfs_id_scaffold_spinal):
+    # translate to NEST ids
+    target_mfs_id_nest_spinal = target_mfs_id_scaffold_spinal - start_id_scaffold['mossy_fibers'] + \
+                                neuron_models['mossy_fibers'][region_mf][0]
+    target_mfs_id_nest_spinal = target_mfs_id_nest_spinal.astype(int)
+
+    # Obtain an ordered list of non-duplicates
+    return sorted(list(set(target_mfs_id_nest_spinal)))  # Medulla
+
+
+def get_ponnsess_mossy_targets(region_mf, neuron_models, start_id_scaffold, target_mfs_id_scaffold_principal):
+    # translate to NEST ids
+    target_mfs_id_nest_principal = target_mfs_id_scaffold_principal - start_id_scaffold['mossy_fibers'] + \
+                                   neuron_models['mossy_fibers'][region_mf][0]
+    target_mfs_id_nest_principal = target_mfs_id_nest_principal.astype(int)
+    return sorted(list(set(target_mfs_id_nest_principal)))  # PONS Sensory
+
+
 def build_NEST_network(config=None):
-    import h5py
 
     from tvb_multiscale.core.utils.file_utils import load_pickled_dict
     from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
@@ -214,6 +258,11 @@ def build_NEST_network(config=None):
     nest_network.brain_regions = NESTBrain()
 
     nest_nodes_inds = []
+
+    if config.NEST_PERIPHERY is False:
+        del neuron_types_to_region['parrot_medulla']
+        del neuron_types_to_region['parrot_ponssens']
+
     # All cells are modelled as E-GLIF models;
     # with the only exception of Glomeruli and Mossy Fibers (not cells, just modeled as
     # relays; i.e., parrot neurons)
@@ -245,43 +294,27 @@ def build_NEST_network(config=None):
             print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
         nest_nodes_inds += nodes_inds
 
-    # We all this to find the indices of the target mossy fibers!:
-    # Localized CS
-    r_x, r_z = 75, 50
-    gloms_pos = np.array(f['cells/placement/glomerulus/positions'])
-    x_s_c, x_p_c, z_c = 75., 225., 100.
+    mossy_fibers_medulla = []
+    mossy_fibers_ponssens = []
+    if config.NEST_PERIPHERY:
+        # We all this to find the indices of the target mossy fibers!:
+        target_mfs_id_scaffold_spinal, target_mfs_id_scaffold_principal = split_mossy_fibers(start_id_scaffold, f)
+        n_mossy_fibers_medulla = len(target_mfs_id_scaffold_spinal)
+        n_mossy_fibers_ponssens = len(target_mfs_id_scaffold_principal)
+        nodes_inds = []
+        for pop, n_neurons in zip(["parrot_medulla", "parrot_ponssens"],
+                                  [n_mossy_fibers_medulla, n_mossy_fibers_ponssens]):
+            region_names = neuron_types_to_region[pop]
+            for region in region_names:
+                if region not in nest_network.brain_regions:
+                    nest_network.brain_regions[region] = NESTRegionNode(label=region)
+                    nodes_inds.append(np.where(sim_serial['connectivity.region_labels'] == region)[0][0])
+                nest_network.brain_regions[region][pop] = \
+                    NESTPopulation(nest.Create("parrot_neuron", n_neurons),  # possible NEST model params as well here
+                                   nest, label=pop, brain_region=region)
+                print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
 
-    # Find glomeruli falling into the selected volume
-    target_gloms_bool = np.add(((gloms_pos[:, [0]] - x_s_c) ** 2) / r_x ** 2,
-                               ((gloms_pos[:, [2]] - z_c) ** 2) / r_z ** 2).__lt__(1)  # ellipse equation
-    target_gloms_id_scaffold_spinal = np.array(np.where(target_gloms_bool)[0] + start_id_scaffold['glomerulus'])
-
-    target_gloms_bool = np.add(((gloms_pos[:, [0]] - x_p_c) ** 2) / r_x ** 2,
-                               ((gloms_pos[:, [2]] - z_c) ** 2) / r_z ** 2).__lt__(1)  # ellipse equation
-    target_gloms_id_scaffold_principal = np.array(np.where(target_gloms_bool)[0] + start_id_scaffold['glomerulus'])
-
-    conn_glom_mf = np.array(f['cells/connections/mossy_to_glomerulus'])
-    # Select the corresponding original MFs
-    target_mfs_id_scaffold_spinal = conn_glom_mf[np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_spinal), 0]
-    n_mossy_fibers_medulla = len(target_mfs_id_scaffold_spinal)
-    target_mfs_id_scaffold_principal = conn_glom_mf[
-        np.isin(conn_glom_mf[:, 1], target_gloms_id_scaffold_principal), 0]
-    n_mossy_fibers_ponssens = len(target_mfs_id_scaffold_principal)
-
-    nodes_inds = []
-    for pop, n_neurons in zip(["parrot_medulla", "parrot_ponssens"],
-                              [n_mossy_fibers_medulla, n_mossy_fibers_ponssens]):
-        region_names = neuron_types_to_region[pop]
-        for region in region_names:
-            if region not in nest_network.brain_regions:
-                nest_network.brain_regions[region] = NESTRegionNode(label=region)
-                nodes_inds.append(np.where(sim_serial['connectivity.region_labels'] == region)[0][0])
-            nest_network.brain_regions[region][pop] = \
-                NESTPopulation(nest.Create("parrot_neuron", n_neurons),  # possible NEST model params as well here
-                               nest, label=pop, brain_region=region)
-            print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
-
-    nest_nodes_inds += nodes_inds
+        nest_nodes_inds += nodes_inds
 
     ### Load connections from hdf5 file and create them in NEST:
 
@@ -316,32 +349,29 @@ def build_NEST_network(config=None):
 
             nest.Connect(pre, post, {"rule": "one_to_one"}, syn_param)
 
-    pop = "parrot_medulla"
-    mossy_fibers_medulla = {}
-    for region, region_mf in zip(['Right Principal sensory nucleus of the trigeminal',
-                                  'Left Principal sensory nucleus of the trigeminal'],
-                                 ['Right Ansiform lobule', 'Left Ansiform lobule']):
-        print("Connecting! %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
-        # translate to NEST ids
-        target_mfs_id_nest_spinal = target_mfs_id_scaffold_spinal - start_id_scaffold['mossy_fibers'] + \
-                                    neuron_models['mossy_fibers'][region_mf][0]
-        target_mfs_id_nest_spinal = target_mfs_id_nest_spinal.astype(int)
+    if config.NEST_PERIPHERY:
+        pop = "parrot_medulla"
+        mossy_fibers_medulla = {}
+        for region, region_mf in zip(['Right Principal sensory nucleus of the trigeminal',
+                                      'Left Principal sensory nucleus of the trigeminal'],
+                                     ['Right Ansiform lobule', 'Left Ansiform lobule']):
+            print("Connecting! %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
+            # translate to NEST ids
+            mossy_fibers_medulla[region] = \
+                get_medulla_mossy_targets(region_mf, neuron_models,
+                                          start_id_scaffold, target_mfs_id_scaffold_spinal)  # Medulla
+            nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_medulla[region])
 
-        # Obtain an ordered list of non-duplicates
-        mossy_fibers_medulla[region] = sorted(list(set(target_mfs_id_nest_spinal)))  # Medulla
-        nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_medulla[region])
-
-    pop = "parrot_ponssens"
-    mossy_fibers_ponssens = {}
-    for region, region_mf in zip(['Right Pons Sensory', 'Left Pons Sensory'],
-                                 ['Right Ansiform lobule', 'Left Ansiform lobule']):
-        print("Connecting!  %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
-        # translate to NEST ids
-        target_mfs_id_nest_principal = target_mfs_id_scaffold_principal - start_id_scaffold['mossy_fibers'] + \
-                                       neuron_models['mossy_fibers'][region_mf][0]
-        target_mfs_id_nest_principal = target_mfs_id_nest_principal.astype(int)
-        mossy_fibers_ponssens[region] = sorted(list(set(target_mfs_id_nest_principal)))  # PONS Sensory
-        nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_ponssens[region])
+        pop = "parrot_ponssens"
+        mossy_fibers_ponssens = {}
+        for region, region_mf in zip(['Right Pons Sensory', 'Left Pons Sensory'],
+                                     ['Right Ansiform lobule', 'Left Ansiform lobule']):
+            print("Connecting!  %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
+            # translate to NEST ids
+            mossy_fibers_ponssens[region] = \
+                get_ponnsess_mossy_targets(region_mf, neuron_models,
+                                           start_id_scaffold, target_mfs_id_scaffold_principal)  # PONS Sensory
+            nest.Connect(nest_network.brain_regions[region][pop].nodes, mossy_fibers_ponssens[region])
 
     # Background noise input device as Poisson process
     nest_network.input_devices["Background"] = DeviceSet(label="Background", model="poisson_generator")
@@ -355,20 +385,21 @@ def build_NEST_network(config=None):
                      neuron_models['mossy_fibers'][region])
         print("Connected!  %s - %s -> %s -> %s" % ("Background", region, pop, region))
 
-    # Whisking stimulus input device as sinusoidally modulated Poisson process
-    pop = 'parrot_medulla'
-    nest_network.input_devices["Stimulus"] = DeviceSet(label="Stimulus", model="sinusoidal_poisson_generator")
-    for region in ['Right Principal sensory nucleus of the trigeminal',
-                   'Left Principal sensory nucleus of the trigeminal']:
-        nest_network.input_devices["Stimulus"][region] = \
-            NESTPoissonGenerator(nest.Create('sinusoidal_poisson_generator',
-                                             params={"rate": STIM_RATE, "amplitude": STIM_AMPLITUDE,
-                                                     "frequency": STIM_FREQ, "phase": 0.0}),
-                                 nest, model="sinusoidal_poisson_generator",
-                                 label="Stimulus", brain_region=region)
-        nest.Connect(nest_network.input_devices["Stimulus"][region].device,
-                     nest_network.brain_regions[region][pop].nodes)
-        print("Connected!  %s - %s -> %s -> %s" % ("Stimulus", region, pop, region))
+    if config.NEST_PERIPHERY:
+        # Whisking stimulus input device as sinusoidally modulated Poisson process
+        pop = 'parrot_medulla'
+        nest_network.input_devices["Stimulus"] = DeviceSet(label="Stimulus", model="sinusoidal_poisson_generator")
+        for region in ['Right Principal sensory nucleus of the trigeminal',
+                       'Left Principal sensory nucleus of the trigeminal']:
+            nest_network.input_devices["Stimulus"][region] = \
+                NESTPoissonGenerator(nest.Create('sinusoidal_poisson_generator',
+                                                 params={"rate": STIM_RATE, "amplitude": STIM_AMPLITUDE,
+                                                         "frequency": STIM_FREQ, "phase": 0.0}),
+                                     nest, model="sinusoidal_poisson_generator",
+                                     label="Stimulus", brain_region=region)
+            nest.Connect(nest_network.input_devices["Stimulus"][region].device,
+                         nest_network.brain_regions[region][pop].nodes)
+            print("Connected!  %s - %s -> %s -> %s" % ("Stimulus", region, pop, region))
 
     # Create output, measuring devices, spike_recorders and multimeters measuring V_m:
     params_spike_recorder = config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"].copy()
@@ -406,7 +437,8 @@ def build_NEST_network(config=None):
     nest_network.configure()
     nest_network.print_summary_info_details(recursive=1, connectivity=False)
 
-    return nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens
+    return nest_network, nest_nodes_inds, neuron_models, neuron_number, \
+           start_id_scaffold, mossy_fibers_medulla, mossy_fibers_ponssens
 
 
 def plot_nest_results(nest_network, neuron_models, neuron_number, config):
