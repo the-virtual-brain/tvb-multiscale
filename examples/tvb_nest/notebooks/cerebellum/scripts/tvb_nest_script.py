@@ -2,7 +2,7 @@
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import neuron_types_to_region
-from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import configure_simulation_length_with_transient
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
 
 
 def print_available_interfaces():
@@ -219,15 +219,18 @@ def simulate_tvb_nest(simulator, nest_network, config,
     return results, transient, simulator, nest_network
 
 
-if __name__ == "__main__":
+def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
+                          I_E=-0.25, I_S=0.25,
+                          W_IE=-3.0, W_RS=-2.0,
+                          #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+                          PSD_target=None, plot_flag=True, output_folder=None):
 
-    from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
     from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network
 
     # Get configuration
-    config, plotter = configure()
-    config.SIMULATION_LENGTH = 100.0
-    plotter = None
+    config, plotter = configure(output_folder=output_folder, plot_flag=plot_flag)
+    # config.SIMULATION_LENGTH = 100.0
+
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
@@ -249,3 +252,9 @@ if __name__ == "__main__":
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,
                                                                     neuron_models, neuron_number,
                                                                     plot_flag=True, print_flag=True)
+
+    return results, transient, simulator, nest_network
+
+
+if __name__ == "__main__":
+    run_tvb_nest_workflow()
