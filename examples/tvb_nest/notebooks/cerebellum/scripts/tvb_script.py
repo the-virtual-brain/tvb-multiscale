@@ -527,15 +527,20 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
     return Pxx_den.flatten()
 
 
+# def plot_tvb(results, simulation_length, transient, config=None):
+
+
+#def tvb_res_to_time_series()
+
 def run_workflow(G=5.0, STIMULUS=0.25,
                  I_E=-0.25, I_S=0.25,
                  W_IE=-3.0, W_RS=-2.0,
                  #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
-                 PSD_target=None, plot_flag=True):
+                 PSD_target=None, plot_flag=True, output_folder=None):
     # Get configuration
     config, plotter = configure(G, STIMULUS, I_E, I_S, W_IE, W_RS,
                                 #TAU_E, TAU_I, TAU_S, TAU_R,
-                                plot_flag)
+                                plot_flag=plot_flag, output_folder=output_folder)
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
@@ -550,6 +555,7 @@ def run_workflow(G=5.0, STIMULUS=0.25,
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
     # Run simulation and get results
     results, transient = simulate(simulator, config, print_flag=True)
+
     if PSD_target is None:
         # This is the PSD target we are trying to fit:
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)

@@ -21,6 +21,7 @@ def configure(G=2.0, STIMULUS=0.5,
               I_E=-0.25, I_S=0.25,
               W_IE=-3.0, W_RS=-2.0,
               # TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+              output_folder=None,
               plot_flag=True):
 
     from tvb_multiscale.tvb_nest.config import Config
@@ -50,6 +51,8 @@ def configure(G=2.0, STIMULUS=0.5,
     popa_freqs_path = os.path.join(data_path, 'PS_popa2013')
     cereb_scaffold_path = os.path.join(data_path, 'balanced_DCN_IO.hdf5')
     outputs_path = os.path.join(work_path, "outputs/cwc")
+    if output_folder is not None:
+        outputs_path = os.path.join(outputs_path, output_folder)
     # # outputs_path += '_G%g' % G
     # # if STIMULUS:
     # #     outputs_path += "_Stim%g" % STIMULUS
