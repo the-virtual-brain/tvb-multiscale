@@ -162,6 +162,12 @@ def write_posterior_samples(samples, iG=None, config=None):
     np.save(filepath, samples_fit, allow_pickle=True)
 
 
+def load_posterior_samples(iG, config=None):
+    config = assert_config(config)
+    filepath = posterior_samples_filepath(config, iG)
+    return np.load(filepath, allow_pickle=True).item()
+
+
 def sbi_infer_for_iG(iG, config=None):
     tic = time.time()
     config = assert_config(config)
@@ -236,12 +242,39 @@ def sbi_infer_for_iG(iG, config=None):
     # # Run one simulation with the posterior means:
     # print("\nSimulating with posterior means...")
     # print("params =\n", params)
-    # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
+    # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G,
+    #                                                       output_folder="G_%g" % G, **params)
 
     print("\n\nFinished after %g sec!" % (time.time() - tic))
     print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
     return posterior_samples  # , results, fig, simulator, output_config
+
+
+def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
+
+    config = assert_config(config)
+    samples_fit = load_posterior_samples(iG, config=None)
+    if iR is None:
+        iR = -1
+
+    # Get the default values for the parameter except for G
+    params = OrderedDict()
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
+        params[pname] = pval
+    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit['mean'][iR])))
+
+    # Get G for this run:
+    G = config.Gs[iG]
+
+    # Run one simulation with the posterior means:
+    print("\nSimulating with posterior means...")
+    print("params =\n", params)
+    if workflow_fun is None:
+        workflow_fun = run_workflow
+    outputs = workflow_fun(plot_flag=True, G=G, output_folder="G_%g" % G, **params)
+    outputs = outputs + (samples_fit, )
+    return outputs
 
 
 # def simulate_TVB_for_sbi(priors, priors_params_names, **params):
