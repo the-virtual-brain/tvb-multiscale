@@ -29,7 +29,7 @@ do
   for iB in $(seq 0 9)
   do
     echo 'Submitting task for iG='$iG', and iB='$iB'...'
-    sarus run --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} 0 $iG $iB &
+    sarus run --entrypoint --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} 0 $iG $iB &
   done
 done
 
@@ -37,4 +37,4 @@ wait
 
 echo "Job done..."
 # run it with
-# sbatch -A ich012 -e errors.txt -o outputs.txt run_batch_cscs_sarus.sh
+# sbatch -A ich012 -e errors_iG0-2.txt -o outputs.txt run_batch_cscs_sarus_iG0-2.sh
