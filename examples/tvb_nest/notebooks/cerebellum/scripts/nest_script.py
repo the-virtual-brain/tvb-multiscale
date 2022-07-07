@@ -594,8 +594,6 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
     nest_network.nest_instance.Simulate(config.SIMULATION_LENGTH)
     if print_flag:
         print("\nSimulated in %f secs!" % (time.time() - tic))
-    if plot_flag:
-        plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return nest_network
 
 
@@ -606,7 +604,6 @@ def run_nest_workflow(G=5.0, STIMULUS=0.25,
                       PSD_target=None, plot_flag=True, output_folder=None):
     # Get configuration
     config, plotter = configure(output_folder=output_folder, plot_flag=False)
-    config.SIMULATION_LENGTH = 100.0
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
