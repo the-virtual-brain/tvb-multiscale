@@ -230,7 +230,7 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
                           #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
                           PSD_target=None, plot_flag=True, output_folder=None):
 
-    from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network
+    from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
 
     # Get configuration
     config, plotter = configure(output_folder=output_folder, plot_flag=plot_flag)
@@ -255,6 +255,9 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,
                                                                     neuron_models, neuron_number,
                                                                     plot_flag=True, print_flag=True)
+    # Plot results
+    if plot_flag:
+        plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return results, transient, simulator, nest_network
 
 
