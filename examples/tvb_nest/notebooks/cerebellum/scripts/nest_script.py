@@ -2,6 +2,8 @@
 
 import h5py
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
+
 
 ###### PARAMETERS SETTING ######################################################
 # Synapse parameters: in E-GLIF, 3 synaptic receptors are present: the first is always associated to exc, the second to inh, the third to remaining synapse type
@@ -597,14 +599,13 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
     return nest_network
 
 
-if __name__ == "__main__":
-
-    from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
-
+def run_nest_workflow(G=5.0, STIMULUS=0.25,
+                      I_E=-0.25, I_S=0.25,
+                      W_IE=-3.0, W_RS=-2.0,
+                      #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+                      PSD_target=None, plot_flag=True, output_folder=None):
     # Get configuration
-    config, plotter = configure()
-    config.SIMULATION_LENGTH = 100.0
-    plotter = None
+    config, plotter = configure(output_folder=output_folder, plot_flag=False)
     # Load connectome and other structural files
     connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
     # Construct some more indices and maps
@@ -623,3 +624,11 @@ if __name__ == "__main__":
     # Simulate the NEST network
     nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number,
                                          plot_flag=True, print_flag=True)
+    # Plot results
+    if plot_flag:
+        plot_nest_results(nest_network, neuron_models, neuron_number, config)
+    return nest_network
+
+
+if __name__ == "__main__":
+    run_nest_workflow()
