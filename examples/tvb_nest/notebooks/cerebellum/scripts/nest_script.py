@@ -209,19 +209,20 @@ def build_NEST_network(config=None):
     # Load NEST and use defaults to configure its kernel:
     nest = configure_nest_kernel(load_nest(config=config), config)
 
-    # try:
-    #     nest.Install('cerebmodule')
-    # except:
-    #     import subprocess
-    #     pwd = os.getcwd()
-    #     cereb_path = '/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules/cereb'
-    #     os.chdir(os.path.join(cereb_path, 'build'))
-    #     # This is our shell command, executed by Popen.
-    #     p = subprocess.Popen("cmake -Dwith-nest=/home/docker/env/neurosci/nest_build/bin/nest-config ..; make; make install",
-    #                          stdout=subprocess.PIPE, shell=True)
-    #     print(p.communicate())
-    #     nest.Install('cerebmodule')
-    #     os.chdir(pwd)
+    if 'eglif_cond_alpha_multisyn' not in nest.Models():
+        try:
+            nest.Install('cerebmodule')
+        except:
+            import subprocess
+            pwd = os.getcwd()
+            cereb_path = '/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules/cereb'
+            os.chdir(os.path.join(cereb_path, 'build'))
+            # This is our shell command, executed by Popen.
+            p = subprocess.Popen("cmake -Dwith-nest=/home/docker/env/neurosci/nest_build/bin/nest-config ..; make; make install",
+                                 stdout=subprocess.PIPE, shell=True)
+            print(p.communicate())
+            nest.Install('cerebmodule')
+            os.chdir(pwd)
 
     ###################### NEST simulation parameters #########################################
     TOT_DURATION = config.SIMULATION_LENGTH  # ms
@@ -296,8 +297,6 @@ def build_NEST_network(config=None):
             print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
         nest_nodes_inds += nodes_inds
 
-    mossy_fibers_medulla = []
-    mossy_fibers_ponssens = []
     if config.NEST_PERIPHERY:
         # We all this to find the indices of the target mossy fibers!:
         target_mfs_id_scaffold_spinal, target_mfs_id_scaffold_principal = split_mossy_fibers(start_id_scaffold, f)
@@ -439,8 +438,7 @@ def build_NEST_network(config=None):
     nest_network.configure()
     nest_network.print_summary_info_details(recursive=1, connectivity=False)
 
-    return nest_network, nest_nodes_inds, neuron_models, neuron_number, \
-           start_id_scaffold, mossy_fibers_medulla, mossy_fibers_ponssens
+    return nest_network, nest_nodes_inds, neuron_models, neuron_number
 
 
 def plot_nest_results(nest_network, neuron_models, neuron_number, config):
@@ -619,8 +617,7 @@ def run_nest_workflow(G=5.0, STIMULUS=0.25,
     # Prepare simulator
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
     # Build the NEST network
-    nest_network, nest_nodes_inds, neuron_models, neuron_number, mossy_fibers_medulla, mossy_fibers_ponssens = \
-        build_NEST_network(config)
+    nest_network, nest_nodes_inds, neuron_models, neuron_number = build_NEST_network(config)
     # Simulate the NEST network
     nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number,
                                          plot_flag=True, print_flag=True)

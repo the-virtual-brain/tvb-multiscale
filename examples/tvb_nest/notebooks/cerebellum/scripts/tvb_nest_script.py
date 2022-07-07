@@ -248,8 +248,7 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
     # Prepare simulator
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
     # Build TVB-NEST interfaces
-    nest_network, nest_nodes_inds, neuron_models, neuron_number, \
-    start_id_scaffold, mossy_fibers_medulla, mossy_fibers_ponssens = build_NEST_network(config)
+    nest_network, nest_nodes_inds, neuron_models, neuron_number = build_NEST_network(config)
     simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
     # Simulate TVB-NEST model
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,
