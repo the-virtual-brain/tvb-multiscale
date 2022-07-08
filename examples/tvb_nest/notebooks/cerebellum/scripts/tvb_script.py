@@ -530,10 +530,198 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
     return Pxx_den.flatten()
 
 
-# def plot_tvb(results, simulation_length, transient, config=None):
+def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
+
+    config = assert_config(config)
+
+    if write_files:
+        # If you want to see what the function above does, take the steps, one by one
+        try:
+            # We need framework_tvb for writing and reading from HDF5 files
+            from tvb_multiscale.core.tvb.io.h5_writer import H5Writer
+            writer = H5Writer()
+        except:
+            writer = False
+
+    from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
+    from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
+
+    # Put the results in a Timeseries instance
+    from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
+
+    source_ts = None
+    bold_ts = None
+
+    outputs = []
+    if results is not None:
+        source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
+            data=results[0][1], time=results[0][0],
+            connectivity=simulator.connectivity,
+            labels_ordering=["Time", "State Variable", "Region", "Neurons"],
+            labels_dimensions={"State Variable": list(simulator.model.variables_of_interest),
+                               "Region": simulator.connectivity.region_labels.tolist()},
+            sample_period=simulator.integrator.dt)
+        source_ts.configure()
+
+        outputs.append(source_ts)
+
+        # t = source_ts.time
+
+        # Write to file
+        if writer:
+            writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
+                                                                            connectivity=source_ts.connectivity),
+                                   os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
+        print("Raw ts:\n%s" % str(source_ts))
+
+        if len(results) > 1:
+            bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
+                data=results[1][1], time=results[1][0],
+                connectivity=simulator.connectivity,
+                labels_ordering=["Time", "State Variable", "Region", "Neurons"],
+                labels_dimensions={"State Variable": ["BOLD"],
+                                   "Region": simulator.connectivity.region_labels.tolist()})
+            bold_ts.configure()
+
+            outputs.append(bold_ts)
+
+            # bold_t = source_ts.time
+
+            # Write to file
+            if writer:
+                writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(bold_ts._data,
+                                                                                connectivity=bold_ts.connectivity),
+                                       os.path.join(config.out.FOLDER_RES, bold_ts.title) + ".h5")
+            print("BOLD ts:\n%s" % str(bold_ts))
+
+    return tuple(outputs)
 
 
-#def tvb_res_to_time_series()
+def plot_tvb(transient, inds,
+             results=None, source_ts=None, bold_ts=None, PSD_target=None, PSD=None,
+             simulator=None, plotter=None, config=None, write_files=True):
+    config = assert_config(config)
+    if plotter is None:
+        from tvb_multiscale.core.plot.plotter import Plotter
+        plotter = Plotter(config.figures)
+    MAX_VARS_IN_COLS = 2
+    MAX_REGIONS_IN_ROWS = 10
+    MIN_REGIONS_FOR_RASTER_PLOT = 9
+    transient += 0.5
+    FIGSIZE = config.figures.DEFAULT_SIZE
+
+    if source_ts is None:
+        results = tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
+        source_ts = results[0]
+        if len(results) > 1:
+            bold_ts = results[1]
+
+    # Plot TVB time series
+    if source_ts is not None:
+        source_ts[:, :, :, :].plot_timeseries(plotter_config=plotter.config,
+                                              hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                              per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
+                                              figsize=FIGSIZE);
+    # Focus on the m1 and s1 barrel field nodes:
+    if source_ts is not None:
+        source_ts_m1s1brl = source_ts[-10000:, :, inds["m1s1brl"]]
+        source_ts_m1s1brl.plot_timeseries(plotter_config=plotter.config,
+                                          hue="Region" if source_ts_m1s1brl.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                          per_variable=source_ts_m1s1brl.shape[1] > MAX_VARS_IN_COLS,
+                                          figsize=FIGSIZE, figname="M1 and S1 barrel field nodes TVB Time Series");
+    # Focus on the the motor pathway:
+    if source_ts is not None:
+        source_ts_motor = source_ts[-10000:, :, inds["motor"]]
+        source_ts_motor.plot_timeseries(plotter_config=plotter.config,
+                                        hue="Region" if source_ts_motor.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                        per_variable=source_ts_motor.shape[1] > MAX_VARS_IN_COLS,
+                                        figsize=FIGSIZE, figname="Motor pathway TVB Time Series");
+    # Focus on the motor pathway: raster plot
+    if source_ts_motor is not None and source_ts_motor.number_of_labels > MIN_REGIONS_FOR_RASTER_PLOT:
+        source_ts_motor.plot_raster(plotter_config=plotter.config,
+                                    per_variable=source_ts_motor.shape[1] > MAX_VARS_IN_COLS,
+                                    figsize=FIGSIZE, figname="Motor pathway TVB Time Series Raster");
+    # Focus on the sensory pathway:
+    if source_ts is not None:
+        source_ts_sens = source_ts[-10000:, :, inds["sens"]]
+        source_ts_sens.plot_timeseries(plotter_config=plotter.config,
+                                       hue="Region" if source_ts_sens.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                       per_variable=source_ts_sens.shape[1] > MAX_VARS_IN_COLS,
+                                       figsize=FIGSIZE, figname="Sensory pathway TVB Time Series");
+    # Focus on the sensory pathway: raster plot
+    if source_ts is not None and source_ts_sens.number_of_labels > MIN_REGIONS_FOR_RASTER_PLOT:
+        source_ts_sens.plot_raster(plotter_config=plotter.config,
+                                   per_variable=source_ts_sens.shape[1] > MAX_VARS_IN_COLS,
+                                   figsize=FIGSIZE, figname="Sensory pathway TVB Time Series Raster");
+    # bold_ts TVB time series
+    if bold_ts is not None:
+        bold_ts.plot_timeseries(plotter_config=plotter.config,
+                                hue="Region" if bold_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                per_variable=bold_ts.shape[1] > MAX_VARS_IN_COLS,
+                                figsize=FIGSIZE);
+
+    # PSD results versus target plot:
+    if PSD_target is None:
+        PSD_target = compute_target_PSDs(config, write_files=False, plotter=None)
+        PSD = compute_data_PSDs([source_ts.time, source_ts.data], PSD_target, inds, transient,
+                                write_files=False, plotter=plotter)
+
+    from examples.tvb_nest.notebooks.cerebellum.utils import compute_plot_selected_spectra_coherence #, compute_plot_ica
+
+    # Further spectra and coherence plots:
+
+    NPERSEG = np.array([256, 512, 1024, 2048, 4096])
+    NPERSEG = NPERSEG[np.argmin(np.abs(NPERSEG - (source_ts.shape[0] - transient / config.DEFAULT_DT)))]
+
+    # Power Spectra and Coherence for M1 - S1 barrel field
+    CxyR, fR, fL, CxyL = compute_plot_selected_spectra_coherence(source_ts, inds["m1s1brl"],
+                                                                 transient=transient, nperseg=NPERSEG, fmin=0.0,
+                                                                 fmax=100.0)
+    if write_files:
+        import pickle
+        with open('coherence_MF_cerebON_2sec.pickle', 'wb') as handle:
+            pickle.dump([CxyR, fR, fL, CxyL], handle)
+
+    # Power Spectra and Coherence along the sensory pathway:
+    # for Medulla SPV, Sensory PONS
+    compute_plot_selected_spectra_coherence(source_ts, inds["sens"],
+                                            transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0)
+
+    # Better summary figure:
+    import matplotlib.pyplot as plt
+
+    data = source_ts.data
+    time = source_ts.time
+
+    fig, axes = plt.subplots(3, 1, figsize=(12, 10))
+    for iT, regs in enumerate(["crtx", "subcrtx_not_thalspec", "thalspec"]):
+        transient_in_points = int((transient + 0.5) / simulator.monitors[0].period)
+        dat = data[transient_in_points:, 0, inds[regs]].squeeze()
+        axes[iT].plot(time[transient_in_points:], dat, alpha=0.25)
+        if iT == 0:
+            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["m1"]].squeeze(),
+                          'b--', linewidth=3, label='M1')
+            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["s1brl"]].squeeze(),
+                          'g--', linewidth=3, label='S1 barrel field')
+        elif iT == 1:
+            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["facial"]].squeeze(),
+                          'b--', linewidth=3, label='Facial motor nucleus')
+            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["trigeminal"]].squeeze(),
+                          'g--', linewidth=3, label='Spinal trigeminal nuclei')
+        else:
+            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, [44, 166]].squeeze(),
+                          'b--', linewidth=3, label='M1 specific thalami')
+            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, [47, 169]].squeeze(),
+                          'g--', linewidth=3, label='S1 barrel field specific thalami')
+            axes[iT].set_xlabel('Time (ms)')
+        axes[iT].plot(time[transient_in_points:], dat.mean(axis=1), 'k--', linewidth=3, label='Total mean')
+        axes[iT].legend()
+        axes[iT].set_title("%s range=[%g, %g, %g, %g, %g] " %
+                           (regs, dat.min(), np.percentile(dat, 5), dat.mean(), np.percentile(dat, 95), dat.max()))
+    fig.tight_layout()
+    if config.figures.SAVE_FLAG:
+        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
+
 
 def run_workflow(G=5.0, STIMULUS=0.25,
                  I_E=-0.25, I_S=0.25,
@@ -566,10 +754,10 @@ def run_workflow(G=5.0, STIMULUS=0.25,
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
 
     if plot_flag:
-        output_config = deepcopy(config)
-        output_config.inds = inds
-        output_config.maps = maps
-        output_config.transient = transient
-        return PSD, results, simulator, output_config
+        outputs = tvb_res_to_time_series(results, simulator, config, write_files=True)
+        plot_tvb(transient, inds,
+                 results=None, source_ts=outputs[0], bold_ts=None, PSD_target=PSD_target, PSD=PSD,
+                 simulator=simulator, plotter=plotter, config=config, write_files=True)
+        return PSD, results, simulator, config
     else:
         return PSD, results

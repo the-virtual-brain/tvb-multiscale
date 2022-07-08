@@ -248,10 +248,19 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
     simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
     # Simulate TVB-NEST model
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,  print_flag=True)
+    if PSD_target is None:
+        # This is the PSD target we are trying to fit:
+        PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
+    # This is the PSD computed from our simulation results.
+    PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
     # Plot results
     if plot_flag:
+        outputs = tvb_res_to_time_series(results, simulator, config, write_files=True)
+        plot_tvb(transient, inds,
+                 results=None, source_ts=outputs[0], bold_ts=None, PSD_target=PSD_target, PSD=PSD,
+                 simulator=simulator, plotter=plotter, config=config, write_files=True)
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
-    return results, transient, simulator, nest_network
+    return results, transient, simulator, nest_network, PSD
 
 
 if __name__ == "__main__":
