@@ -746,7 +746,6 @@ def run_workflow(G=5.0, STIMULUS=0.25,
     simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
     # Run simulation and get results
     results, transient = simulate(simulator, config, print_flag=True)
-
     if PSD_target is None:
         # This is the PSD target we are trying to fit:
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
