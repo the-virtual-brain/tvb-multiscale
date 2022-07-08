@@ -255,9 +255,8 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
     # Plot results
     if plot_flag:
-        outputs = tvb_res_to_time_series(results, simulator, config, write_files=True)
-        plot_tvb(transient, inds,
-                 results=None, source_ts=outputs[0], bold_ts=None, PSD_target=PSD_target, PSD=PSD,
+        plot_tvb(transient, inds, results=results,
+                 source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return results, transient, simulator, nest_network, PSD
