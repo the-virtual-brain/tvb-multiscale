@@ -37,4 +37,4 @@ wait
 
 echo "Job done..."
 # run it with
-# sbatch -A ich012 -e errors_iG0-2.txt -o outputs.txt run_batch_cscs_sarus_iG0-2.sh
+# sbatch -A ich012 -e errors_iG0-2.txt -o outputs_iG0-2.txt run_batch_cscs_sarus_iG0-2.sh
