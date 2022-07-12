@@ -279,7 +279,7 @@ def prepare_fic(simulator, inds, FIC, G, print_flag=True, plotter=None):
         # Indices of cortical and subcortical regions excluding specific thalami
         inds["non_thalamic"] = np.unique(inds['crtx'].tolist() + inds["subcrtx_not_thalspec"].tolist())
 
-        # FIC for cortical w_ie against indegree for all incoming connections exluding the ones from specific thalami
+        # FIC for cortical w_ie against indegree for all incoming connections excluding the ones from specific thalami
         simulator.model.w_ie = fic("w_ie", simulator.model.w_ie, simulator.connectivity.weights,
                                    inds["crtx"], inds["non_thalamic"],
                                    FIC=FIC, dummy=None, subtitle=" for cortex", plotter=plotter)
