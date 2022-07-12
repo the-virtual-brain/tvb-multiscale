@@ -148,7 +148,7 @@ def configure(G=2.0, STIMULUS=0.5,
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.Gs = np.array([0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0])
+    config.Gs = np.array([0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0])
     config.PRIORS_MODE = "normal"  # "normal" or "uniform"
     config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS']  # , 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
     #                    0.       1.     2.     3.      4.       5.    6.       7.        8.
