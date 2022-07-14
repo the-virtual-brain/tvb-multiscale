@@ -212,15 +212,19 @@ def build_NEST_network(config=None):
     if 'eglif_cond_alpha_multisyn' not in nest.Models():
         try:
             nest.Install('cerebmodule')
+            print("Installing cereb module...")
         except:
+            print("FAILED! Needing to compile it first!")
             import subprocess
             pwd = os.getcwd()
             cereb_path = '/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules/cereb'
             os.chdir(os.path.join(cereb_path, 'build'))
             # This is our shell command, executed by Popen.
+            print("Compiling cereb module...")
             p = subprocess.Popen("cmake -Dwith-nest=/home/docker/env/neurosci/nest_build/bin/nest-config ..; make; make install",
                                  stdout=subprocess.PIPE, shell=True)
             print(p.communicate())
+            print("Installing cereb module...")
             nest.Install('cerebmodule')
             os.chdir(pwd)
 
