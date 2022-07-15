@@ -129,10 +129,6 @@ def build_connectivity(connectome, inds, config, print_flag=True, plotter=None):
 
     connectivity.configure()
 
-    if plotter:
-        # Plot TVB connectome:
-        plotter.plot_tvb_connectivity(connectivity);
-
     # Remove connections between specific thalami and the rest of the subcortex:
     connectivity.weights[inds["subcrtx_not_thalspec"][:, None], inds["thalspec"][None, :]] = 0.0
     # Retain connections
@@ -419,6 +415,10 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
     # Dumping the serialized TVB cosimulator to a file will be necessary for parallel cosimulation.
     dump_pickled_dict(sim_serial, sim_serial_filepath)
 
+    if plotter:
+        # Plot TVB connectome:
+        plotter.plot_tvb_connectivity(simulator.connectivity);
+
     return simulator
 
 
@@ -525,8 +525,8 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
 
-    if write_files:
-        np.save
+    # if write_files:
+    #     np.save
     return Pxx_den.flatten()
 
 
