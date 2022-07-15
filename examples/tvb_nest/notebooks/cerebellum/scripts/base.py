@@ -94,6 +94,7 @@ def configure(G=2.0, STIMULUS=0.5,
     config.SIMULATION_LENGTH = 4000.0
     config.TRANSIENT_RATIO = 0.1
     config.NEST_PERIPHERY = False
+    config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
 
     # Connectivity
     config.CONN_SPEED = 3.0

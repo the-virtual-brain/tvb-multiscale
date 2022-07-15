@@ -43,6 +43,10 @@ def print_available_interfaces():
     print("\n\nAll basic transformer models:")
     print_enum(Transformers)
 
+    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc_inverse_sigmoidal import \
+        DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
+    print_enum(DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal)
+
 
 def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
@@ -57,6 +61,13 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     from tvb_multiscale.tvb_nest.interfaces.builders import TVBNESTInterfaceBuilder
 
     tvb_spikeNet_model_builder = TVBNESTInterfaceBuilder()  # non opinionated builder
+
+    if config.INVERSE_SIGMOIDAL_NEST_TO_TVB:
+        # !!! THIS WILL TURN ON THE INVERSE SIGMOIMDAL TRANSFORMER FOR NEST -> TVB INTERFACE !!!
+        from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc_inverse_sigmoidal import \
+            DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
+        tvb_spikeNet_model_builder._spikeNet_to_tvb_transformer_models = \
+            DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
 
     tvb_spikeNet_model_builder.config = config
     tvb_spikeNet_model_builder.tvb_cosimulator = simulator
@@ -143,9 +154,23 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
         pop_regions_inds = []
         numbers_of_neurons = nest_network.brain_regions[regions[0]][pop].number_of_neurons
         time_scale_factor = 1e-3 * simulator.integrator.dt  # convert TVB time step to secs
+        # Basic w to convert spikes' counts to rates in Hz:
+        w_NEST_to_TVB = np.array([time_scale_factor]) / numbers_of_neurons / max_rate
         for region in regions:
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         pop_regions_inds = np.array(pop_regions_inds)
+        if config.INVERSE_SIGMOIDAL_NEST_TO_TVB:
+            # !!! Parameters for inverse sigmoidal NEST -> TVB transformer: !!!
+            transformer_params = {"w": w_NEST_to_TVB,
+                                   "Rmin": np.array([0.1]),  # we cannot allow 0 rate values leading to Inf!
+                                   # we take beta and sigma value from model's sigmoidal activation function params:
+                                   "beta": simulator.model.beta[[0]], "sigma": simulator.model.sigma[[0]]}
+            w_name = "w"
+        else:
+            # !!! Parameters for linear NEST -> TVB transformer: !!!
+            transformer_params = {"scale_factor": w_NEST_to_TVB,
+                                   "translation_factor": np.array([-0.5])}
+            w_name = "scale_factor"
         tvb_spikeNet_model_builder.input_interfaces.append(
             {'voi': np.array(['E']),
              'populations': np.array([pop]),
@@ -164,12 +189,11 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBTransformers for options and related Transformer classes,
              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBModels for default choices
              'transformer_model': "SPIKES_TO_HIST_RATE",
-             'transformer_params': {"scale_factor": np.array([time_scale_factor]) / numbers_of_neurons / max_rate,
-                                    "translation_factor": np.array([-0.5])}
+             'transformer_params': transformer_params
              })
         if pop == "granule_cell":
             tvb_spikeNet_model_builder.input_interfaces[-1]["neurons_inds"] = lambda nodes: nodes[0::10]
-            tvb_spikeNet_model_builder.input_interfaces[-1]['transformer_params']["scale_factor"] *= 10
+            tvb_spikeNet_model_builder.input_interfaces[-1]['transformer_params'][w_name] *= 10
     # Configure:
     tvb_spikeNet_model_builder.configure()
     # tvb_spikeNet_model_builder.print_summary_info_details(recursive=1)
