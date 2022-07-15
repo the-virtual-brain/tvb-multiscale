@@ -38,8 +38,13 @@ class ThalamoCorticalWCInverseSigmoidal(HasTraits):
         default=np.array([20.0, ]),
         doc="""Steepness of the sigmoidal transformation.""")
 
+    w = NArray(
+        label=r":math:`w`",
+        default=np.array([1.0, ]),
+        doc="""Rate weight scaling.""")
+
     def _compute(self, input_buffer):
-        return self.sigma - np.log(1.0 / np.maximum(input_buffer, self.Rmin) - 1) / self.beta
+        return self.sigma - np.log(1.0 / np.maximum(self.w * input_buffer, self.Rmin) - 1) / self.beta
 
 
 class SpikesToRatesThalamoCorticalWCInverseSigmoidal(SpikesToRates, ThalamoCorticalWCInverseSigmoidal, ABC):
