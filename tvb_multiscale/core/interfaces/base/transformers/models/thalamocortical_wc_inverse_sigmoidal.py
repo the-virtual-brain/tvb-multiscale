@@ -20,11 +20,6 @@ class ThalamoCorticalWCInverseSigmoidal(HasTraits):
         default=np.array([0.1, ]),
         doc="""[Hz]. Minimum rate.""")
 
-    beta = NArray(
-        label=r":math:`\beta`",
-        default=np.array([0.1, ]),
-        doc="""[Hz]. Maximum rate.""")
-
     sigma = NArray(
         label=r":math:sigma`",
         default=np.array([0.0, ]),
@@ -97,3 +92,10 @@ class ElephantSpikesRateThalamoCorticalWCInverseSigmoidal(ElephantSpikesRate,
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
         return SpikesToRatesThalamoCorticalWCInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
+
+
+class DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal(Enum):
+    SPIKES = ElephantSpikesHistogramRateThalamoCorticalWCInverseSigmoidal
+    SPIKES_TO_RATE = ElephantSpikesRateThalamoCorticalWCInverseSigmoidal
+    SPIKES_TO_HIST = ElephantSpikesHistogramThalamoCorticalWCInverseSigmoidal
+    SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRateThalamoCorticalWCInverseSigmoidal
