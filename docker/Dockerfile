@@ -151,6 +151,9 @@ RUN $VENV/bin/pip3 install sbi
 RUN $VENV/bin/pip3 install ipywidgets ipympl
 RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension
 
+# Install nitime
+RUN $VENV/bin/pip3 install nitime
+
 # Checkout specific branch of tvb-root
 WORKDIR $HOME/packages
 RUN cd tvb-root; \
