@@ -441,7 +441,7 @@ class GriffithsThalamoCortical(Model):
                self._I_so
 
     def _f_Rin(self):
-        """Thalamic relay excitatory population dynamics:
+        """Thalamic reticular inhibitory population dynamics:
            1. local delayed (sub)cortical -> relay (exc)
            2. local delayed, thalamo-thalamic reticular (inh)-> relay (exc)
         """
@@ -962,7 +962,7 @@ class WilsonCowanThalamoCortical(Model):
                self._I_so
 
     def _f_Rin(self, c_cx):
-        """Thalamic relay excitatory population dynamics:
+        """Thalamic reticular inhibitory population dynamics:
            1. local delayed, thalamo-thalamic reticular (inh)-> relay (exc)
            2. long-range delayed (sub)cortical -> relay (exc)
         """
