@@ -33,7 +33,7 @@ Wilson-Cowan equations based model definition.
 
 """
 import numpy
-from tvb.basic.neotraits.api import Final, List
+from tvb.basic.neotraits.api import NArray, Final, List, Range
 from tvb.simulator.models.wilson_cowan import WilsonCowan as TVBWilsonCowan
 
 
@@ -60,6 +60,50 @@ class WilsonCowan(TVBWilsonCowan):
 
     The default parameters are taken from figure 4 of [WC_1972]_, pag. 10
 
+    +---------------------------+
+    |          Table 0          |
+    +--------------+------------+
+    |Parameter     |  Value     |
+    +==============+============+
+    | k_e, k_i     |    0.00    |
+    +--------------+------------+
+    | r_e, r_i     |    0.00    |
+    +--------------+------------+
+    | tau_e, tau_i |    9.0    |
+    +--------------+------------+
+    | c_ee         |    11.0    |
+    +--------------+------------+
+    | c_ei         |    3.0     |
+    +--------------+------------+
+    | c_ie         |    12.0    |
+    +--------------+------------+
+    | c_ii         |    10.0    |
+    +--------------+------------+
+    | a_e          |    0.2     |
+    +--------------+------------+
+    | a_i          |    0.0     |
+    +--------------+------------+
+    | b_e          |    1.8     |
+    +--------------+------------+
+    | b_i          |    3.0     |
+    +--------------+------------+
+    | theta_e      |    -1.0     |
+    +--------------+------------+
+    | theta_i      |    -1.0     |
+    +--------------+------------+
+    | alpha_e      |    1.0     |
+    +--------------+------------+
+    | alpha_i      |    1.0     |
+    +--------------+------------+
+    | P            |    -1.0     |
+    +--------------+------------+
+    | Q            |    -1.0     |
+    +--------------+------------+
+    | c_e, c_i     |    0.0     |
+    +--------------+------------+
+    | shift_sigmoid|    True    |
+    +--------------+------------+
+
     In [WC_1973]_ they present a model of neural tissue on the pial surface is.
     See Fig. 1 in page 58. The following local couplings (lateral interactions)
     occur given a region i and a region j:
@@ -84,13 +128,13 @@ class WilsonCowan(TVBWilsonCowan):
     +--------------+------------+
     | tau_e, tau_i |    10.0    |
     +--------------+------------+
-    | c_1          |    10.0    |
+    | c_ee         |    10.0    |
     +--------------+------------+
-    | c_2          |    6.0     |
+    | c_ei         |    6.0     |
     +--------------+------------+
-    | c_3          |    1.0     |
+    | c_ie         |    10.0    |
     +--------------+------------+
-    | c_4          |    1.0     |
+    | c_ii         |    1.0     |
     +--------------+------------+
     | a_e, a_i     |    1.0     |
     +--------------+------------+
@@ -106,13 +150,11 @@ class WilsonCowan(TVBWilsonCowan):
     +--------------+------------+
     | P            |    0.5     |
     +--------------+------------+
-    | Q            |    0       |
+    | Q            |    0.0     |
     +--------------+------------+
     | c_e, c_i     |    1.0     |
     +--------------+------------+
-    | alpha_e      |    1.2     |
-    +--------------+------------+
-    | alpha_i      |    2.0     |
+    | shift_sigmoid|    False   |
     +--------------+------------+
     |                           |
     |  frequency peak at 20  Hz |
@@ -129,7 +171,7 @@ class WilsonCowan(TVBWilsonCowan):
 
 
 
-    The builders (:math:`E`, :math:`I`) phase-plane, including a representation of
+    The models (:math:`E`, :math:`I`) phase-plane, including a representation of
     the vector field as well as its nullclines, using default parameters, can be
     seen below:
 
@@ -145,11 +187,155 @@ class WilsonCowan(TVBWilsonCowan):
 
     .. math::
             \dot{E}_k &= \dfrac{1}{\tau_e} (-E_k  + (k_e - r_e E_k) \mathcal{S}_e (\alpha_e \left( c_{ee} E_k - c_{ei} I_k  + P_k - \theta_e + \mathbf{\Gamma}(E_k, E_j, u_{kj}) + W_{\zeta}\cdot E_j + W_{\zeta}\cdot I_j\right) ))\\
-            \dot{I}_k &= \dfrac{1}{\tau_i} (-I_k  + (k_i - r_i I_k) \mathcal{S}_i (\alpha_i \left( c_{ie} E_k - c_{ee} I_k  + Q_k - \theta_i + \mathbf{\Gamma}(E_k, E_j, u_{kj}) + W_{\zeta}\cdot E_j + W_{\zeta}\cdot I_j\right) )),
+            \dot{I}_k &= \dfrac{1}{\tau_i} (-I_k  + (k_i - r_i I_k) \mathcal{S}_i (\alpha_i \left( c_{ie} E_k - c_{ee} I_k  + Q_k - \theta_i + \mathbf{\Gamma}(E_k, E_j, u_{kj}) + W_{\zeta}\cdot E_j + W_{\zeta}\cdot I_j\right) ))
 
     """
 
     # Define traited attributes for this model, these represent possible kwargs.
+    c_ee = NArray(
+        label=":math:`c_{ee}`",
+        default=numpy.array([10.0]),
+        domain=Range(lo=11.0, hi=16.0, step=0.01),
+        doc="""Excitatory to excitatory  coupling coefficient""")
+
+    c_ei = NArray(
+        label=":math:`c_{ei}`",
+        default=numpy.array([6.0]),
+        domain=Range(lo=2.0, hi=15.0, step=0.01),
+        doc="""Inhibitory to excitatory coupling coefficient""")
+
+    c_ie = NArray(
+        label=":math:`c_{ie}`",
+        default=numpy.array([10.0]),
+        domain=Range(lo=2.0, hi=22.0, step=0.01),
+        doc="""Excitatory to inhibitory coupling coefficient.""")
+
+    c_ii = NArray(
+        label=":math:`c_{ii}`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=2.0, hi=15.0, step=0.01),
+        doc="""Inhibitory to inhibitory coupling coefficient.""")
+
+    tau_e = NArray(
+        label=r":math:`\tau_e`",
+        default=numpy.array([10.0]),
+        domain=Range(lo=0.0, hi=150.0, step=0.01),
+        doc="""Excitatory population, membrane time-constant [ms]""")
+
+    tau_i = NArray(
+        label=r":math:`\tau_i`",
+        default=numpy.array([10.0]),
+        domain=Range(lo=0.0, hi=150.0, step=0.01),
+        doc="""Inhibitory population, membrane time-constant [ms]""")
+
+    a_e = NArray(
+        label=":math:`a_e`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=0.0, hi=1.4, step=0.01),
+        doc="""The slope parameter for the excitatory response function""")
+
+    b_e = NArray(
+        label=":math:`b_e`",
+        default=numpy.array([0.0]),
+        domain=Range(lo=1.4, hi=6.0, step=0.01),
+        doc="""Position of the maximum slope of the excitatory sigmoid function""")
+
+    c_e = NArray(
+        label=":math:`c_e`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=1.0, hi=20.0, step=1.0),
+        doc="""The amplitude parameter for the excitatory response function""")
+
+    theta_e = NArray(
+        label=r":math:`\theta_e`",
+        default=numpy.array([2.0]),
+        domain=Range(lo=0.0, hi=60., step=0.01),
+        doc="""Excitatory threshold""")
+
+    a_i = NArray(
+        label=":math:`a_i`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=0.0, hi=2.0, step=0.01),
+        doc="""The slope parameter for the inhibitory response function""")
+
+    b_i = NArray(
+        label=":math:`b_i`",
+        default=numpy.array([0.0]),
+        domain=Range(lo=2.0, hi=6.0, step=0.01),
+        doc="""Position of the maximum slope of a sigmoid function [in
+           threshold units]""")
+
+    theta_i = NArray(
+        label=r":math:`\theta_i`",
+        default=numpy.array([3.5]),
+        domain=Range(lo=0.0, hi=60.0, step=0.01),
+        doc="""Inhibitory threshold""")
+
+    c_i = NArray(
+        label=":math:`c_i`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=1.0, hi=20.0, step=1.0),
+        doc="""The amplitude parameter for the inhibitory response function""")
+
+    r_e = NArray(
+        label=":math:`r_e`",
+        default=numpy.array([0.0]),
+        domain=Range(lo=0.5, hi=2.0, step=0.01),
+        doc="""Excitatory refractory period""")
+
+    r_i = NArray(
+        label=":math:`r_i`",
+        default=numpy.array([0.0]),
+        domain=Range(lo=0.5, hi=2.0, step=0.01),
+        doc="""Inhibitory refractory period""")
+
+    k_e = NArray(
+        label=":math:`k_e`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=0.5, hi=2.0, step=0.01),
+        doc="""Maximum value of the excitatory response function""")
+
+    k_i = NArray(
+        label=":math:`k_i`",
+        default=numpy.array([1.0]),
+        domain=Range(lo=0.0, hi=2.0, step=0.01),
+        doc="""Maximum value of the inhibitory response function""")
+
+    P = NArray(
+        label=":math:`P`",
+        default=numpy.array([0.5]),
+        domain=Range(lo=0.0, hi=20.0, step=0.01),
+        doc="""External stimulus to the excitatory population.
+           Constant intensity.Entry point for coupling.""")
+
+    Q = NArray(
+        label=":math:`Q`",
+        default=numpy.array([0.0]),
+        domain=Range(lo=0.0, hi=20.0, step=0.01),
+        doc="""External stimulus to the inhibitory population.
+           Constant intensity.Entry point for coupling.""")
+
+    alpha_e = NArray(
+        label=r":math:`\alpha_e`",
+        default=numpy.array([1.2]),
+        domain=Range(lo=0.0, hi=20.0, step=0.01),
+        doc="""External stimulus to the excitatory population.
+           Constant intensity.Entry point for coupling.""")
+
+    alpha_i = NArray(
+        label=r":math:`\alpha_i`",
+        default=numpy.array([2.0]),
+        domain=Range(lo=0.0, hi=20.0, step=0.01),
+        doc="""External stimulus to the inhibitory population.
+           Constant intensity.Entry point for coupling.""")
+
+    shift_sigmoid = NArray(
+        dtype=numpy.bool_,
+        label=r":math:`shift sigmoid`",
+        default=numpy.array([False]),
+        doc="""In order to have resting state (E=0 and I=0) in absence of external input,
+           the logistic curve are translated downward S(0)=0""",
+    )
 
     # Used for phase-plane axis ranges and to bound random initial() conditions.
     state_variable_boundaries = Final(
