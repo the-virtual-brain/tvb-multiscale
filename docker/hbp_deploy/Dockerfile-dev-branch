@@ -85,10 +85,10 @@ RUN cd tvb-multiscale; \
 RUN cd tvb-multiscale; \
     /opt/conda/envs/env_nest/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-RUN mkdir -m777 /home/jovyan/.tvb-temp /home/jovyan/.local
-RUN mkdir -m777 /home/jovyan/.local/share
-RUN mkdir -m777 /home/jovyan/.local/share/jupyter
-RUN mkdir -m777 /home/jovyan/.local/share/jupyter/runtime
+RUN mkdir -p -m777 /home/jovyan/.tvb-temp /home/jovyan/.local
+RUN mkdir -p -m777 /home/jovyan/.local/share
+RUN mkdir -p -m777 /home/jovyan/.local/share/jupyter
+RUN mkdir -p -m777 /home/jovyan/.local/share/jupyter/runtime
 
 WORKDIR $HOME
 
