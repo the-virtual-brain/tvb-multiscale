@@ -45,9 +45,6 @@ RUN cd $NEST; \
     source activate env_nest && cmake $NEST_SRC; \
     make; make install
 
-# Install extra packages:
-RUN conda install -y --name env_nest dill
-
 USER $NB_UID
 ARG TVB_BRANCH=tvb-cosim-consensus-dp
 RUN git clone --depth 1 --branch $TVB_BRANCH https://github.com/the-virtual-brain/tvb-root.git
@@ -60,9 +57,22 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     /opt/conda/envs/env_nest/bin/python setup.py develop;
 
+# Install extra tvb-multiscale packages:
+
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     /opt/conda/envs/env_nest/bin/python setup.py build_ext install
+
+RUN /opt/conda/envs/env_nest/bin/pip install elephant dill
+
+# TVB-NETPYNE:
+RUN /opt/conda/envs/env_nest/bin/pip install netpyne neuron
+
+# TVB-ANNARCHY:
+RUN /opt/conda/envs/env_nest/bin/pip install sympy pyqtgraph lxml pandoc tensorboardX;
+RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
+    cd annarchy; \
+    /opt/conda/envs/env_nest/bin/python setup.py install --user \
 
 ARG MULTISCALE_BRANCH=parallelNEST31
 RUN git clone --depth 1 --branch $MULTISCALE_BRANCH https://github.com/the-virtual-brain/tvb-multiscale.git
@@ -70,6 +80,10 @@ ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
     /opt/conda/envs/env_nest/bin/python setup.py develop --no-deps;
+
+# Compile tvb-netpyne .mod files
+RUN cd tvb-multiscale; \
+    /opt/conda/envs/env_nest/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod \
 
 RUN mkdir -m777 /home/jovyan/.tvb-temp /home/jovyan/.local
 RUN mkdir -m777 /home/jovyan/.local/share
