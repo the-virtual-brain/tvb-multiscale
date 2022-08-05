@@ -72,7 +72,7 @@ RUN /opt/conda/envs/env_nest/bin/pip install netpyne neuron
 RUN /opt/conda/envs/env_nest/bin/pip install sympy pyqtgraph lxml pandoc tensorboardX;
 RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     cd annarchy; \
-    /opt/conda/envs/env_nest/bin/python setup.py install --user \
+    /opt/conda/envs/env_nest/bin/python setup.py install --user;
 
 ARG MULTISCALE_BRANCH=parallelNEST31
 RUN git clone --depth 1 --branch $MULTISCALE_BRANCH https://github.com/the-virtual-brain/tvb-multiscale.git
@@ -83,7 +83,7 @@ RUN cd tvb-multiscale; \
 
 # Compile tvb-netpyne .mod files
 RUN cd tvb-multiscale; \
-    /opt/conda/envs/env_nest/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod \
+    /opt/conda/envs/env_nest/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
 RUN mkdir -m777 /home/jovyan/.tvb-temp /home/jovyan/.local
 RUN mkdir -m777 /home/jovyan/.local/share
