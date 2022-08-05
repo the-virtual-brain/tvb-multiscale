@@ -53,12 +53,16 @@ ARG TVB_BRANCH=tvb-cosim-consensus-dp
 RUN git clone --depth 1 --branch $TVB_BRANCH https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
-    cd scientific_library; \
+    cd tvb_library; \
     /opt/conda/envs/env_nest/bin/python setup.py develop; \
-    cd ../framework_tvb; \
+    cd ../tvb_framework; \
     /opt/conda/envs/env_nest/bin/python setup.py develop; \
     cd ../tvb_contrib; \
     /opt/conda/envs/env_nest/bin/python setup.py develop;
+
+RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
+    cd PySpike; \
+    /opt/conda/envs/env_nest/bin/python setup.py build_ext install
 
 ARG MULTISCALE_BRANCH=parallelNEST31
 RUN git clone --depth 1 --branch $MULTISCALE_BRANCH https://github.com/the-virtual-brain/tvb-multiscale.git
