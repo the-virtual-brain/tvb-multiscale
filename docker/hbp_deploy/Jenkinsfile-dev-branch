@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root/commits?sha=${TVB_BRANCH}' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
-                    LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits?sha=${MULTISCALE_BRANCH}' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits?sha=openshift_deploy' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
                     VERSION_TAG = "dev-'${LAST_SHA_MULTISCALE}'"
                     withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
                         def dockerfile = 'docker/hbp_deploy/Dockerfile-dev-branch'
