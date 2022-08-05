@@ -45,6 +45,9 @@ RUN cd $NEST; \
     source activate env_nest && cmake $NEST_SRC; \
     make; make install
 
+# Install extra packages:
+RUN conda install -y --name env_nest dill
+
 USER $NB_UID
 ARG TVB_BRANCH=tvb-cosim-consensus-dp
 RUN git clone --depth 1 --branch $TVB_BRANCH https://github.com/the-virtual-brain/tvb-root.git
