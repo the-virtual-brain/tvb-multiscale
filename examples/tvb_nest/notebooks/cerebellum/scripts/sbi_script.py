@@ -11,15 +11,15 @@ from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import run_workfl
 
 
 def build_priors(config):
-    if config.PRIORS_MODE.lower() == "uniform":
-        priors = utils.torchutils.BoxUniform(low=torch.as_tensor(config.prior_min),
-                                             high=torch.as_tensor(config.prior_max))
-    else:
+    if config.PRIORS_DIST.lower() == "normal":
         priors_normal = torch.distributions.Normal(loc=torch.as_tensor(config.prior_loc),
                                                    scale=torch.as_tensor(config.prior_sc))
         #     priors = torch.distributions.MultivariateNormal(loc=torch.as_tensor(config.prior_loc),
         #                                                     scale_tril=torch.diag(torch.as_tensor(config.prior_sc)))
         priors = torch.distributions.Independent(priors_normal, 1)
+    else:
+        priors = utils.torchutils.BoxUniform(low=torch.as_tensor(config.prior_min),
+                                             high=torch.as_tensor(config.prior_max))
     return priors
 
 
@@ -265,7 +265,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
     params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit['mean'][iR])))
 
     # Get G for this run:
-    G = config.Gs[iG]
+    G = samples_fit['G']  # config.Gs[iG]
 
     # Run one simulation with the posterior means:
     print("\nSimulating with posterior means...")
@@ -277,119 +277,38 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
     return outputs
 
 
-# def simulate_TVB_for_sbi(priors, priors_params_names, **params):
-#     priors_params = params.copy()
-#     # Convert all tensor parameters to numpy arrays
-#     for prior, prior_name in zip(priors, priors_params_names):
-#         try:
-#             numpy_prior = prior.numpy()
-#         except:
-#             numpy_prior = prior
-#         priors_params[prior_name] = numpy_prior
-#     # Run the simulation and return only the PSD output to be fit:
-#     return run_workflow(**priors_params, plot_flag=False)[0]
-#
-#
-# def sbi_fit(iG, config=None):
-#
-#     tic = time.time()
-#
-#     config = assert_config(config)
-#
-#     # Get the default values for the parameter except for G
-#     params = OrderedDict()
-#     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-#         params[pname] = pval
-#     print("params =\n", params)
-#
-#     # Load the target
-#     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
-#     # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
-#     #                                        right                       left
-#     psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
-#                                     PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
-#
-#     # Get G for this run:
-#     G = config.Gs[iG]
-#
-#     # Define the simulation function for sbi for this G
-#     simulate_for_sbi_for_g = lambda priors: simulate_TVB_for_sbi(priors,
-#                                                                  priors_params_names=config.PRIORS_PARAMS_NAMES,
-#                                                                  G=G, **params)
-#
-#     # Build the priors
-#     priors = build_priors(config)
-#
-#     print("\n\nFitting for G = %g!\n" % G)
-#     tic = time.time()
-#     for iR in range(config.N_RUNS):
-#         print("\nFitting run %d " % iR)
-#
-#         # Train the neural network to approximate the posterior:
-#         posterior = infer(simulate_for_sbi_for_g, priors,
-#                           method=config.SBI_METHOD,
-#                           num_simulations=config.N_SIMULATIONS,
-#                           num_workers=config.SBI_NUM_WORKERS)
-#
-#         print("\nSampling posterior...")
-#         if iR:
-#             samples_fit = torch.cat((samples_fit, posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)), 0)
-#         else:
-#             samples_fit = posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)
-#
-#     print("Done in %g sec!" % (time.time() - tic))
-#
-#     # Compute the sample mean, add to the results dictionary and write to file:
-#     if os.path.isfile(config.POSTERIOR_SAMPLES_PATH):
-#         samples_fit_Gs = np.load(config.POSTERIOR_SAMPLES_PATH, allow_pickle=True).item()
-#     else:
-#         samples_fit_Gs = {}
-#     samples_fit_Gs[G] = {}
-#     samples_fit_Gs[G]['samples'] = samples_fit.numpy()
-#     samples_fit_Gs[G]['mean'] = samples_fit.mean(axis=0).numpy()
-#     np.save(config.POSTERIOR_SAMPLES_PATH, samples_fit_Gs, allow_pickle=True)
-#
-#     # Plot posterior:
-#     print("\nPlotting posterior...")
-#     limits = []
-#     for pmin, pmax in zip(config.prior_min, config.prior_max):
-#         limits.append([pmin, pmax])
-#     fig, axes = analysis.pairplot(samples_fit,
-#                                   limits=limits,
-#                                   ticks=limits,
-#                                   figsize=(10, 10),
-#                                   points=np.array(list(params.values())),
-#                                   points_offdiag={'markersize': 6},
-#                                   points_colors=['r'] * config.n_priors)
-#     plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_%g.png' % G))
-#
-#     # Run one simulation with the posterior means:
-#     print("\nSimulating with posterior means...")
-#     params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit_Gs[G]['mean'])))
-#     PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G, **params)
-#
-#     duration = time.time() - tic
-#     print("\n\nFinished after %g sec!" % duration)
-#     print("\n\nFind results in %s!" % config.out.FOLDER_RES)
-#
-#     return samples_fit_Gs, results, fig, simulator, output_config
-
-
 if __name__ == "__main__":
-    import sys
-
-    # samples_fit_Gs, results, fig, simulator, output_config = sbi_fit(int(sys.argv[-1]))
-    config = configure()[0]
-    script_id = sys.argv[-1]
-
-    if script_id == 0:
-        if len(sys.argv) == 2:
-            iB = int(sys.argv[-2])
+    parser = args_parser("sbi_script")
+    parser.add_argument('--script_id', '-scr',
+                        dest='script_id', metavar='script_id',
+                        type=int, required=False, default=1, # nargs=1,
+                        help="Integer 0 or 1 (default) to select simulate_TVB_for_sbi_batch "
+                             "or sbi_infer_for_iG, respectively")
+    parser.add_argument('--iB', '-ib',
+                        dest='iB', metavar='iB',
+                        type=int, required=False, default=0, # nargs=1,
+                        help="Batch integer indice. Default=0.")
+    parser.add_argument('--iG', '-ig',
+                        dest='iG', metavar='iG',
+                        type=int, required=False, default=-1, # nargs=1,
+                        help="G values' integer indice. Default = -1 will be interpreted as None.")
+    args, parser_args, parser = parse_args(parser, def_args=DEFAULT_ARGS)
+    verbose = args.get('verbose', DEFAULT_ARGS['verbose'])
+    if verbose:
+        print("Running %s with arguments:\n" % parser.description)
+        print(parser_args, "\n")
+        print(args, "\n")
+    config = configure(**args)[0]
+    iG = parser_args.iG
+    if parser_args.script_id == 0:
+        if iG == -1:
             iG = None
-        else:
-            iB = int(sys.argv[-2])
-            iG = int(sys.argv[-3])
-        sim_res = simulate_TVB_for_sbi_batch(iB, iG, config=config, write_to_file=True)
-    elif script_id == 1:
-        iG = int(sys.argv[-2])
+        config.VERBOSE = False
+        sim_res = simulate_TVB_for_sbi_batch(parser_args.iB, iG, config=config, write_to_file=True)
+    elif parser_args.script_id == 1:
+        if iG == -1:
+            raise ValueError("iG=-1 is not posible for running sbi_infer_for_iG!")
         samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
+    else:
+        raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
+                         "nor 1 for sbi_infer_for_iG!")

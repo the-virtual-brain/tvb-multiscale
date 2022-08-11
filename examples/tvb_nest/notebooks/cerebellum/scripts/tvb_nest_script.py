@@ -198,15 +198,16 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     tvb_spikeNet_model_builder.configure()
     # tvb_spikeNet_model_builder.print_summary_info_details(recursive=1)
 
-    # This is how the user defined TVB -> Spiking Network interface looks after configuration
-    print("\noutput (TVB->NEST coupling) interfaces' configurations:\n")
-    for interface in tvb_spikeNet_model_builder.output_interfaces:
-        print(interface)
+    if config.VERBOSE:
+        # This is how the user defined TVB -> Spiking Network interface looks after configuration
+        print("\noutput (TVB->NEST coupling) interfaces' configurations:\n")
+        for interface in tvb_spikeNet_model_builder.output_interfaces:
+            print(interface)
 
-    # This is how the user defined Spiking Network -> TVB interfaces look after configuration
-    print("\ninput (NEST->TVB update) interfaces' configurations:\n")
-    for interface in tvb_spikeNet_model_builder.input_interfaces:
-        print(interface)
+        # This is how the user defined Spiking Network -> TVB interfaces look after configuration
+        print("\ninput (NEST->TVB update) interfaces' configurations:\n")
+        for interface in tvb_spikeNet_model_builder.input_interfaces:
+            print(interface)
 
     # Build the interfaces:
     simulator = tvb_spikeNet_model_builder.build()
@@ -216,20 +217,22 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # simulator.print_summary_info(recursive=3)
     # simulator.print_summary_info_details(recursive=3)
 
-    print("\n\noutput (TVB->NEST coupling) interfaces:\n")
-    simulator.output_interfaces.print_summary_info_details(recursive=2)
+    if config.VERBOSE:
+        print("\n\noutput (TVB->NEST coupling) interfaces:\n")
+        simulator.output_interfaces.print_summary_info_details(recursive=2)
 
-    print("\n\ninput (NEST->TVB update) interfaces:\n")
-    simulator.input_interfaces.print_summary_info_details(recursive=2)
+        print("\n\ninput (NEST->TVB update) interfaces:\n")
+        simulator.input_interfaces.print_summary_info_details(recursive=2)
 
     return simulator, nest_network
 
 
-def simulate_tvb_nest(simulator, nest_network, config, print_flag=True):
+def simulate_tvb_nest(simulator, nest_network, config):
     simulator.simulation_length, transient = configure_simulation_length_with_transient(config)
     # Simulate and return results
     tic = time.time()
-    print("Simulating TVB-NEST...")
+    if config.VERBOSE:
+        print("Simulating TVB-NEST...")
     nest_network.nest_instance.Prepare()
     simulator.configure()
     # Adjust simulation length to be an integer multiple of synchronization_time:
@@ -239,46 +242,37 @@ def simulate_tvb_nest(simulator, nest_network, config, print_flag=True):
     nest_network.nest_instance.Run(nest_network.nest_instance.GetKernelStatus("resolution"))
     #  Cleanup NEST network unless you plan to continue simulation later
     nest_network.nest_instance.Cleanup()
-    if print_flag:
+    if config.VERBOSE:
         print("\nSimulated in %f secs!" % (time.time() - tic))
     return results, transient, simulator, nest_network
 
 
-def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
-                          I_E=-0.25, I_S=0.25,
-                          W_IE=-3.0, W_RS=-2.0,
-                          #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
-                          PSD_target=None, plot_flag=True, output_folder=None):
+def run_tvb_nest_workflow(PSD_target=None, **config_args):
 
     from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
 
     # Get configuration
-    config, plotter = configure(output_folder=output_folder, plot_flag=plot_flag)
+    config, plotter = configure(**config_args)
     # config.SIMULATION_LENGTH = 100.0
-    # Load connectome and other structural files
-    connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
-    # Construct some more indices and maps
-    inds, maps = construct_extra_inds_and_maps(connectome, inds)
-    # Logprocess connectome
-    connectome = logprocess_weights(connectome, inds, print_flag=True, plotter=plotter)
-    # Prepare connectivity with all possible normalizations
-    connectivity = build_connectivity(connectome, inds, config, print_flag=True, plotter=plotter)
+    # Load and prepare connectome and connectivity with all possible normalizations:
+    connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
+    connectivity = build_connectivity(connectome, inds, config)
     # Prepare model
     model = build_model(connectivity.number_of_regions, inds, maps, config)
     # Prepare simulator
-    simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
+    simulator = build_simulator(connectivity, model, inds, maps, config, plotter=plotter)
     # Build TVB-NEST interfaces
     nest_network, nest_nodes_inds, neuron_models, neuron_number = build_NEST_network(config)
     simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
     # Simulate TVB-NEST model
-    results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config,  print_flag=True)
+    results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config)
     if PSD_target is None:
         # This is the PSD target we are trying to fit:
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
     # Plot results
-    if plot_flag:
+    if config_args['plot_flag']:
         plot_tvb(transient, inds, results=results,
                  source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)
@@ -287,4 +281,10 @@ def run_tvb_nest_workflow(G=5.0, STIMULUS=0.25,
 
 
 if __name__ == "__main__":
-    run_tvb_nest_workflow()
+    parser = args_parser("tvb_nest_script")
+    args, parser_args, parser = parse_args(parser, def_args=DEFAULT_ARGS)
+    verbose = args.get('verbose', DEFAULT_ARGS['verbose'])
+    if verbose:
+        print("Running %s with arguments:\n" % parser.description)
+        print(args, "\n")
+    run_tvb_nest_workflow(**args)

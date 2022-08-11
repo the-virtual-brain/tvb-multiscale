@@ -24,7 +24,7 @@ do
   for iB in $(seq 0 9)
   do
     echo 'Submitting task for iG='$iG', and iB='$iB'...'
-    singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT 0 $iG $iB &
+    singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT -scr 0 -ig $iG -ib $iB &
   done
 done
 

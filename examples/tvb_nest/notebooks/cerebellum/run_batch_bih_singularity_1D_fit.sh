@@ -23,7 +23,7 @@ export SBIFIT=$WORKDIR/scripts/sbi_script.py
 for iG in $(seq 1 8)
 do
   echo 'Submitting task for iG='$iG'...'
-  singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT 1 $iG &
+  singularity exec --pwd $WORKDIR --bind $TVB_ROOT/:$DOCKER_ROOT,$TVB_MULTISCALE/:$DOCKER_MULTISCALE $IMAGE $PYTHON $SBIFIT -scr 1 -ig $iG &
 done
 
 wait

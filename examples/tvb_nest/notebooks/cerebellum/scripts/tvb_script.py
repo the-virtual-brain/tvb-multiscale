@@ -86,7 +86,7 @@ def plot_norm_w_hist(w, wp, inds):
     return fig
 
 
-def logprocess_weights(connectome, inds, print_flag=True, plotter=None):
+def logprocess_weights(connectome, inds, verbose=True, plotter=None):
     w = connectome['weights'].copy()
     w[np.isnan(w)] = 0.0  # zero nans
     w0 = w <= 0  # zero weights
@@ -96,14 +96,26 @@ def logprocess_weights(connectome, inds, print_flag=True, plotter=None):
     w[wp] = np.log(w[wp])  # log positive values
     w[w0] = 0.0  # zero zero values (redundant)
     connectome['weights'] = w
-    if print_flag:
+    if verbose:
         print('\nnormalized weights [min, max] = \n', [w[wp].min(), w[wp].max()])
     if plotter:
         plot_norm_w_hist(w, wp, inds)
     return connectome
 
 
-def build_connectivity(connectome, inds, config, print_flag=True, plotter=None):
+def prepare_connectome(config, plotter=None):
+    # Load connectome and other structural files
+    connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
+    # Construct some more indices and maps
+    inds, maps = construct_extra_inds_and_maps(connectome, inds)
+    if config.CONN_LOG:
+        # Logprocess connectome
+        connectome = logprocess_weights(connectome, inds, verbose=config.VERBOSE, plotter=plotter)
+    # Prepare connectivity with all possible normalizations
+    return connectome, major_structs_labels, voxel_count, inds, maps
+
+
+def build_connectivity(connectome, inds, config):
     from tvb.datatypes.connectivity import Connectivity
 
     connectivity = Connectivity(**connectome)
@@ -268,7 +280,7 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     return p
 
 
-def prepare_fic(simulator, inds, FIC, G, print_flag=True, plotter=None):
+def prepare_fic(simulator, inds, FIC, G, plotter=None):
     # Optimize w_ie and w_rs according to total indegree and G
     if FIC and G > 0.0:
 
@@ -299,7 +311,7 @@ def prepare_fic(simulator, inds, FIC, G, print_flag=True, plotter=None):
         return simulator
 
 
-def build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=None):
+def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
     from tvb_multiscale.core.tvb.cosimulator.models.wc_thalamocortical_cereb import SigmoidalPreThalamoCortical
     from tvb.simulator.monitors import Raw, Bold, TemporalAverage
@@ -379,7 +391,7 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
 
     if config.FIC:
         # We will modify the w_ie and w_rs parameters a bit based on indegree and G:
-        simulator = prepare_fic(simulator, inds, config.FIC, simulator.model.G[0], print_flag, plotter)
+        simulator = prepare_fic(simulator, inds, config.FIC, simulator.model.G[0], plotter)
         # We will not run FIC though when fitting...
         # simulator.initial_conditions[:, -1, maps['is_thalamic'], :] = simulator.model.w_rs[
         #     None, maps['is_thalamic'], None]
@@ -403,7 +415,7 @@ def build_simulator(connectivity, model, inds, maps, config, print_flag=True, pl
 
     simulator.integrate_next_step = simulator.integrator.integrate_with_update
 
-    if print_flag:
+    if config.VERBOSE:
         simulator.print_summary_info_details(recursive=1)
 
     # Serializing TVB cosimulator is necessary for parallel cosimulation:
@@ -430,12 +442,12 @@ def configure_simulation_length_with_transient(config):
     return simulation_length, transient
 
 
-def simulate(simulator, config, print_flag=True):
+def simulate(simulator, config):
     simulator.simulation_length, transient = configure_simulation_length_with_transient(config)
     # Simulate and return results
     tic = time.time()
     results = simulator.run()
-    if print_flag:
+    if config.VERBOSE:
         print("\nSimulated in %f secs!" % (time.time() - tic))
     return results, transient
 
@@ -493,7 +505,7 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
     # Compute Power Spectrum
     f, Pxx_den = welch(data, fs, nperseg=nperseg)
 
-    print(Pxx_den.shape)
+    # print(Pxx_den.shape)
 
     # Compute spectrum interpolation...
     interp = interp1d(f, Pxx_den, kind='linear', axis=1,
@@ -534,14 +546,15 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
     config = assert_config(config)
 
-    if write_files:
-        # If you want to see what the function above does, take the steps, one by one
-        try:
-            # We need framework_tvb for writing and reading from HDF5 files
-            from tvb_multiscale.core.tvb.io.h5_writer import H5Writer
-            writer = H5Writer()
-        except:
-            writer = False
+    writer = False
+    # if write_files:
+    #     # If you want to see what the function above does, take the steps, one by one
+    #     try:
+    #         # We need framework_tvb for writing and reading from HDF5 files
+    #         from tvb_multiscale.core.tvb.io.h5_writer import H5Writer
+    #         writer = H5Writer()
+    #     except:
+    #         warning("H5Writer cannot be imported! Probably you haven't installed tvb_framework.")
 
     from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
     from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
@@ -561,6 +574,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
             labels_dimensions={"State Variable": list(simulator.model.variables_of_interest),
                                "Region": simulator.connectivity.region_labels.tolist()},
             sample_period=simulator.integrator.dt)
+
         source_ts.configure()
 
         outputs.append(source_ts)
@@ -572,7 +586,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
             writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
                                                                             connectivity=source_ts.connectivity),
                                    os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
-        print("Raw ts:\n%s" % str(source_ts))
+        # print("Raw ts:\n%s" % str(source_ts))
 
         if len(results) > 1:
             bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
@@ -592,7 +606,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
                 writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(bold_ts._data,
                                                                                 connectivity=bold_ts.connectivity),
                                        os.path.join(config.out.FOLDER_RES, bold_ts.title) + ".h5")
-            print("BOLD ts:\n%s" % str(bold_ts))
+            # print("BOLD ts:\n%s" % str(bold_ts))
 
     return tuple(outputs)
 
@@ -723,38 +737,37 @@ def plot_tvb(transient, inds,
         plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
 
 
-def run_workflow(G=5.0, STIMULUS=0.25,
-                 I_E=-0.25, I_S=0.25,
-                 W_IE=-3.0, W_RS=-2.0,
-                 #TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
-                 PSD_target=None, plot_flag=True, output_folder=None):
+def run_workflow(PSD_target=None, **config_args):
     # Get configuration
-    config, plotter = configure(G, STIMULUS, I_E, I_S, W_IE, W_RS,
-                                #TAU_E, TAU_I, TAU_S, TAU_R,
-                                plot_flag=plot_flag, output_folder=output_folder)
-    # Load connectome and other structural files
-    connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
-    # Construct some more indices and maps
-    inds, maps = construct_extra_inds_and_maps(connectome, inds)
-    # Logprocess connectome
-    connectome = logprocess_weights(connectome, inds, print_flag=True, plotter=plotter)
-    # Prepare connectivity with all possible normalizations
-    connectivity = build_connectivity(connectome, inds, config, print_flag=True, plotter=plotter)
+    config, plotter = configure(**config_args)
+    # Load and prepare connectome and connectivity with all possible normalizations:
+    connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
+    connectivity = build_connectivity(connectome, inds, config)
     # Prepare model
     model = build_model(connectivity.number_of_regions, inds, maps, config)
     # Prepare simulator
-    simulator = build_simulator(connectivity, model, inds, maps, config, print_flag=True, plotter=plotter)
+    simulator = build_simulator(connectivity, model, inds, maps, config, plotter=plotter)
     # Run simulation and get results
-    results, transient = simulate(simulator, config, print_flag=True)
+    results, transient = simulate(simulator, config)
     if PSD_target is None:
         # This is the PSD target we are trying to fit:
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
-    if plot_flag:
+    if config_args['plot_flag']:
         plot_tvb(transient, inds, results=results,
                  source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)
         return PSD, results, simulator, config
     else:
         return PSD, results
+
+
+if __name__ == "__main__":
+    parser = args_parser("tvb_script")
+    args, parser_args, parser = parse_args(parser, def_args=DEFAULT_ARGS)
+    verbose = args.get('verbose', DEFAULT_ARGS['verbose'])
+    if verbose:
+        print("Running %s with arguments:\n" % parser.description)
+        print(args, "\n")
+    run_workflow(**args)
