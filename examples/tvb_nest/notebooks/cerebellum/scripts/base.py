@@ -162,7 +162,7 @@ def configure(**ARGS):
     #                    0.       1.     2.     3.      4.       5.    6.       7.        8.
     #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
     # Uniform priors:
-    config.prior_min = [0.1,     -1.0,  -0.5, -10.0,   -5.0]  # ,    1.0,    1.0,    1.0,     1.0]
+    config.prior_min = [0.0,     -1.0,  -0.5, -10.0,   -5.0]  # ,    1.0,    1.0,    1.0,     1.0]
     config.prior_max = [1.0,      0.0,  0.5,    0.0,    0.0]  # ,   20.0,   20.0,   80.0,     80.0]
     # Normal priors:
     config.prior_loc = [0.25,    -0.5,  0.25,  -5.0,  -2.5]  # ,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
