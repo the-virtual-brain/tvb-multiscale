@@ -68,8 +68,7 @@ def configure(**ARGS):
     # outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
     # if args['CONN_LOG']:
     #     outputs_path += "CONN_LOG"
-    if args['FIC']:
-        outputs_path += "_FIC%g" % args['FIC']
+    outputs_path += "_FIC%g" % args['FIC']
     # outputs_path += "_PRIORS%s" % args['PRIORS_DIST']
     # if THAL_CRTX_FIX:
     #     outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
