@@ -740,6 +740,8 @@ def plot_tvb(transient, inds,
 def run_workflow(PSD_target=None, **config_args):
     # Get configuration
     config, plotter = configure(**config_args)
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
     connectivity = build_connectivity(connectome, inds, config)

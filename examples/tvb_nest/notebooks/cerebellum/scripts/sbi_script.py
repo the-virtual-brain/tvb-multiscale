@@ -25,6 +25,8 @@ def build_priors(config):
 
 def sample_priors_for_sbi(config=None):
     config = assert_config(config)
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
     dummy_sim = lambda priors: priors
     priors = build_priors(config)
     simulator, priors = prepare_for_sbi(dummy_sim, priors)
@@ -88,6 +90,8 @@ def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
 
 def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
     config = assert_config(config)
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
     # Get the default values for the parameter except for G
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
@@ -171,6 +175,8 @@ def load_posterior_samples(iG, config=None):
 def sbi_infer_for_iG(iG, config=None):
     tic = time.time()
     config = assert_config(config)
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
     # Get G for this run:
     G = config.Gs[iG]
     print("\n\nFitting for G = %g!\n" % G)
@@ -254,6 +260,9 @@ def sbi_infer_for_iG(iG, config=None):
 def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
 
     config = assert_config(config)
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
+
     samples_fit = load_posterior_samples(iG, config=None)
     if iR is None:
         iR = -1

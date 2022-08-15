@@ -253,6 +253,8 @@ def run_tvb_nest_workflow(PSD_target=None, **config_args):
 
     # Get configuration
     config, plotter = configure(**config_args)
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
     # config.SIMULATION_LENGTH = 100.0
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
