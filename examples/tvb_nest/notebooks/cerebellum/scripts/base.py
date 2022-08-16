@@ -21,11 +21,11 @@ from tvb.simulator.integrators import EulerStochastic
 
 
 DEFAULT_ARGS = {'G': 2.0, 'STIMULUS': 0.5,
-                'I_E': -0.25, 'I_S': 0.25,
-                'W_IE': -3.0, 'W_RS': -2.0,
+                'I_e': -0.25, 'I_s': 0.25,
+                'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 1.0, 'PRIORS_DIST': 'uniform',
                 'output_folder': '', 'verbose': True, 'plot_flag': True}
-# TAU_E=10/0.9, TAU_I=10/0.9, TAU_S=10/0.25, TAU_R=10/0.25,
+# tau_e=10/0.9, tau_i=10/0.9, tau_s=10/0.25, tau_r=10/0.25,
 
 
 def configure(**ARGS):
@@ -62,8 +62,8 @@ def configure(**ARGS):
     # # outputs_path += '_G%g' % G
     # # if STIMULUS:
     # #     outputs_path += "_Stim%g" % STIMULUS
-    # # outputs_path += '_Is%g' % I_S
-    # # outputs_path += '_Ie%g' % I_E
+    # # outputs_path += '_Is%g' % I_s
+    # # outputs_path += '_Ie%g' % I_e
     # outputs_path += "_TVBonly"
     # outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
     # if args['CONN_LOG']:
@@ -125,14 +125,14 @@ def configure(**ARGS):
     config.model_params = OrderedDict()
     config.model_params['G'] = args['G']
     config.model_params['STIMULUS'] = args['STIMULUS']
-    config.model_params['I_e'] = args['I_E']
-    config.model_params['I_s'] = args['I_S']
-    config.model_params['w_ie'] = args['W_IE']
-    config.model_params['w_rs'] = args['W_RS']
-    # config.model_params['tau_e'] = args['TAU_E
-    # config.model_params['tau_i'] = args['TAU_I
-    # config.model_params['tau_s'] = args['TAU_S
-    # config.model_params['tau_r'] = args['TAU_R
+    config.model_params['I_e'] = args['I_e']
+    config.model_params['I_s'] = args['I_s']
+    config.model_params['w_ie'] = args['w_ie']
+    config.model_params['w_rs'] = args['w_rs']
+    # config.model_params['tau_e'] = args['tau_e']
+    # config.model_params['tau_i'] = args['tau_i']
+    # config.model_params['tau_s'] = args['tau_s']
+    # config.model_params['tau_r'] = args['tau_r']
 
     # NEST model parameters:
     config.NEST_STIMULUS = 15.0  # Hz
@@ -159,7 +159,7 @@ def configure(**ARGS):
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
     config.Gs = np.array([0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0])
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_E', 'I_S', 'W_IE', 'W_RS']  # , 'TAU_E', 'TAU_I', 'TAU_S', 'TAU_R']
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e', 'I_s', 'w_ie', 'w_rs']  # , 'tau_e', 'tau_i', 'tau_s', 'tau_r']
     #                    0.       1.     2.     3.      4.       5.    6.       7.        8.
     #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
     # Uniform priors:
@@ -183,10 +183,10 @@ def assert_config(config=None):
 def args_parser(funname, args=DEFAULT_ARGS):
     arguments = {'G': ['g', float, 'Global connectivity scaling'],
                  'STIMULUS': ['st', float, 'Whisking stimulus amplitude'],
-                 'I_E': ['ie', float, 'Cortical excitatory population baseline current'],
-                 'I_S': ['is', float, 'Thalamic relay excitatory population baseline current'],
-                 'W_IE': ['wie', float, 'Inhibitory local cortical coupling weight'],
-                 'W_RS': ['wrs', float, 'Inhibitory local thalamic coupling weight'],
+                 'I_e': ['ie', float, 'Cortical excitatory population baseline current'],
+                 'I_s': ['is', float, 'Thalamic relay excitatory population baseline current'],
+                 'w_ie': ['wie', float, 'Inhibitory local cortical coupling weight'],
+                 'w_rs': ['wrs', float, 'Inhibitory local thalamic coupling weight'],
                  'CONN_LOG': ['cl', bool, 'Boolean flag to logtransform connectivity weights or not'],
                  'FIC': ['fic', float, 'Indegree FIC weight'],
                  'PRIORS_DIST': ['pd', str, "Priors' distribution ('uniform' (default) or 'normal')"],

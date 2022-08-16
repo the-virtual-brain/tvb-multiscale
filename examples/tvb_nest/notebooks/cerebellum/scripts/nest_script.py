@@ -618,10 +618,15 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
     return nest_network
 
 
-def run_nest_workflow(PSD_target=None, **config_args):
+def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
     # Get configuration
     config_args['plot_flag'] = False  # because it is too slow...
-    config, plotter = configure(**config_args)
+    # Get configuration
+    if config is None:
+        config, plotter = configure(**config_args)
+    else:
+        plotter = Plotter(config.figures)
+    conifg.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
     # Load and prepare connectome and connectivity with all possible normalizations:

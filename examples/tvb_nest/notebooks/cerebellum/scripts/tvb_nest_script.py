@@ -247,12 +247,16 @@ def simulate_tvb_nest(simulator, nest_network, config):
     return results, transient, simulator, nest_network
 
 
-def run_tvb_nest_workflow(PSD_target=None, **config_args):
+def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
 
     from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
 
     # Get configuration
-    config, plotter = configure(**config_args)
+    if config is None:
+        config, plotter = configure(**config_args)
+    else:
+        plotter = Plotter(config.figures)
+    conifg.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
     # config.SIMULATION_LENGTH = 100.0

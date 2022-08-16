@@ -109,6 +109,8 @@ def prepare_connectome(config, plotter=None):
     # Construct some more indices and maps
     inds, maps = construct_extra_inds_and_maps(connectome, inds)
     if config.CONN_LOG:
+        if config.VERBOSE:
+            print("Logtransforming connectivity weights!")
         # Logprocess connectome
         connectome = logprocess_weights(connectome, inds, verbose=config.VERBOSE, plotter=plotter)
     # Prepare connectivity with all possible normalizations
@@ -129,10 +131,16 @@ def build_connectivity(connectome, inds, config):
     # Normalize connectivity weights
     connectivity.weights[np.logical_or(np.isnan(connectivity.weights), np.isinf(connectivity.weights))] = 0.0
     if config.CONN_SCALE:
+        if config.VERBOSE:
+            print("Scaling connectivity weights with %s!" % config.CONN_SCALE)
         connectivity.weights = connectivity.scaled_weights(mode=config.CONN_SCALE)
     if config.CONN_NORM_PERCENTILE:
+        if config.VERBOSE:
+            print("Normalizing connectivity weights with %g percentile!" % config.CONN_NORM_PERCENTILE)
         connectivity.weights /= np.percentile(connectivity.weights, config.CONN_NORM_PERCENTILE)
     if config.CONN_CEIL:
+        if config.VERBOSE:
+            print("Ceiling connectivity to %g!" % config.CONN_CEIL)
         connectivity.weights[connectivity.weights > config.CONN_CEIL] = config.CONN_CEIL
 
     connectivity.speed = np.array([config.CONN_SPEED])
@@ -174,6 +182,9 @@ def build_model(number_of_regions, inds, maps, config):
     from tvb_multiscale.core.tvb.cosimulator.models.wc_thalamocortical_cereb import WilsonCowanThalamoCortical
 
     dummy = np.ones((number_of_regions,))
+
+    if config.VERBOSE:
+        print("Configuring model with parameters:\n%s" % str(config.model_params))
 
     STIMULUS = config.model_params.pop("STIMULUS", None)
 
@@ -283,7 +294,6 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
 def prepare_fic(simulator, inds, FIC, G, plotter=None):
     # Optimize w_ie and w_rs according to total indegree and G
     if FIC and G > 0.0:
-
         # Indices of cortical and subcortical regions excluding specific thalami
         inds["non_thalamic"] = np.unique(inds['crtx'].tolist() + inds["subcrtx_not_thalspec"].tolist())
 
@@ -327,6 +337,8 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     if config.THAL_CRTX_FIX:
 
         if "w" in config.THAL_CRTX_FIX:
+            if config.VERBOSE:
+                print("Fixing thalamocortical weights!")
             # Fix structural connectivity (specific) thalamo-cortical weights to 1,
             # such that all thalamo-cortical weights are equal to the parameters
             # w_er, w_es, w_se, w_si
@@ -334,6 +346,8 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
             simulator.connectivity.weights[inds["thalspec"], inds["crtx"]] = 1.0
 
         if "d" in config.THAL_CRTX_FIX:
+            if config.VERBOSE:
+                print("Fixing thalamocortical delays!")
             # Fix structural connectivity (specific) thalamo-cortical tracts length to a value,
             # such that all thalamo-cortical delays are equal to the parameter tau_ct,
             # given connectivity's speed.
@@ -390,6 +404,8 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
                                                                 connectivity.number_of_regions, 1))
 
     if config.FIC:
+        if config.VERBOSE:
+            print("Applying FIC!")
         # We will modify the w_ie and w_rs parameters a bit based on indegree and G:
         simulator = prepare_fic(simulator, inds, config.FIC, simulator.model.G[0], plotter)
         # We will not run FIC though when fitting...
@@ -737,9 +753,13 @@ def plot_tvb(transient, inds,
         plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
 
 
-def run_workflow(PSD_target=None, **config_args):
+def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
     # Get configuration
-    config, plotter = configure(**config_args)
+    if config is None:
+        config, plotter = configure(**config_args)
+    else:
+        plotter = Plotter(config.figures)
+    conifg.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
     # Load and prepare connectome and connectivity with all possible normalizations:

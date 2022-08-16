@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 import torch
 from sbi.inference.base import infer, prepare_for_sbi, simulate_for_sbi
 from sbi.inference import SNPE
@@ -110,7 +111,7 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
                 numpy_prior = prior
             priors_params[prior_name] = numpy_prior
         print("\n\nSimulating for parameters:\n%s\n" % str(priors_params))
-        sim_res.append(run_workflow(**priors_params, plot_flag=False)[0])
+        sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False)[0])
         if write_to_file:
             write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config)
     return sim_res
@@ -172,6 +173,28 @@ def load_posterior_samples(iG, config=None):
     return np.load(filepath, allow_pickle=True).item()
 
 
+def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target):
+    # Initialize the inference algorithm class instance:
+    inference = SNPE(prior=priors)
+    # Append to the inference the priors samples and simulations results
+    # and train the network:
+    density_estimator = inference.append_simulations(priors_samples, sim_res).train()
+    keep_building = -10
+    posterior = None
+    while keep_building < 0:
+        try:
+            # Build the posterior:
+            print("Building the posterior...")
+            posterior = inference.build_posterior(density_estimator)
+            keep_building = 0
+        except Exception as e:
+            warnings.warn(str(e) + "\nTrying again for the %dth time!" % (10 + keep_building + 2))
+            keep_building += 1
+    if posterior is None:
+        raise Exception(e)
+    return posterior.sample((n_samples_per_run,), x=target)
+
+
 def sbi_infer_for_iG(iG, config=None):
     tic = time.time()
     config = assert_config(config)
@@ -187,7 +210,10 @@ def sbi_infer_for_iG(iG, config=None):
     psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
                                     PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
     priors, priors_samples, sim_res = load_priors_and_simulations_for_sbi(iG, config=config)
-    n_samples = priors_samples.shape[0]
+    n_samples = sim_res.shape[0]
+    if priors_samples.shape[0] > n_samples:
+        warnings.warn("We have only %d simulations for iG=%d, less than priors' samples (=%d)!"
+                      % (n_samples, iG, priors_samples.shape[0]))
     all_inds = list(range(n_samples))
     n_train_samples = int(np.ceil(1.0*n_samples / config.SPLIT_RUN_SAMPLES))
     for iR in range(config.N_FIT_RUNS):
@@ -196,16 +222,9 @@ def sbi_infer_for_iG(iG, config=None):
         ticR = time.time()
         # Choose a subsample of the whole set of samples:
         sampl_inds = random.sample(all_inds, n_train_samples)
-        # Initialize the inference algorithm class instance:
-        inference = SNPE(prior=priors)
-        # Append to the inference the priors samples and simulations results
-        # and train the network:
-        density_estimator = inference.append_simulations(priors_samples[sampl_inds],
-                                                         sim_res[sampl_inds]).train()
-        # Build the posterior:
-        posterior = inference.build_posterior(density_estimator)
-        # Sample the posterior:
-        posterior_samples = posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)
+        # Train the network, build the posterior and sample it:
+        posterior_samples = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
+                                      config.N_SAMPLES_PER_RUN, psd_targ_conc)
         # Write samples to file:
         write_posterior_samples(posterior_samples, iG, config)
         print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
@@ -213,15 +232,8 @@ def sbi_infer_for_iG(iG, config=None):
     # Fit once more using all samples!
     print("\n\nFitting with all samples!..\n")
     ticR = time.time()
-    # Initialize the inference algorithm class instance:
-    inference = SNPE(prior=priors)
-    # Append to the inference the priors samples and simulations results
-    # and train the network:
-    density_estimator = inference.append_simulations(priors_samples, sim_res).train()
-    # Build the posterior:
-    posterior = inference.build_posterior(density_estimator)
-    # Sample the posterior:
-    posterior_samples = posterior.sample((config.N_SAMPLES_PER_RUN,), x=psd_targ_conc)
+    # Train the network, build the posterior and sample it:
+    posterior_samples = sbi_infer(priors, priors_samples[:n_samples], sim_res, config.N_SAMPLES_PER_RUN, psd_targ_conc)
     # Write samples to file:
     write_posterior_samples(posterior_samples, iG, config)
     print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
@@ -248,7 +260,9 @@ def sbi_infer_for_iG(iG, config=None):
     # # Run one simulation with the posterior means:
     # print("\nSimulating with posterior means...")
     # print("params =\n", params)
-    # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, plot_flag=True, G=G,
+    # model_params = {"G": G}
+    # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, model_params=model_params,
+    #                                                       config=config, plot_flag=True,
     #                                                       output_folder="G_%g" % G, **params)
 
     print("\n\nFinished after %g sec!" % (time.time() - tic))
@@ -263,7 +277,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
 
-    samples_fit = load_posterior_samples(iG, config=None)
+    samples_fit = load_posterior_samples(iG, config=config)
     if iR is None:
         iR = -1
 
@@ -281,7 +295,9 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
     print("params =\n", params)
     if workflow_fun is None:
         workflow_fun = run_workflow
-    outputs = workflow_fun(plot_flag=True, G=G, output_folder="G_%g" % G, **params)
+    params['G'] = G
+    outputs = workflow_fun(plot_flag=True, model_params=params, config=config,
+                           output_folder="G_%g" % G, **params)
     outputs = outputs + (samples_fit, )
     return outputs
 
