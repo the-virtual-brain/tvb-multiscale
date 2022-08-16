@@ -32,6 +32,7 @@ def construct_extra_inds_and_maps(connectome, inds):
     region_labels = connectome['region_labels']
     inds["subcrtx"] = np.arange(len(region_labels)).astype('i')
     inds["subcrtx"] = np.delete(inds["subcrtx"], inds["crtx"])
+    inds['crtx_and_subcrtx'] = np.sort(np.concatenate(inds['crtx'], inds["subcrtx"]))
     maps["is_subcortical"] = np.array([False] * region_labels.shape[0]).astype("bool")
     maps["is_subcortical"][inds["subcrtx"]] = True
     maps["is_cortical"] = np.array([False] * region_labels.shape[0]).astype("bool")
@@ -399,9 +400,18 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     simulator.integrator.noise.nsig = np.array(
         [config.DEFAULT_NSIG] * (simulator.model.nvar - 1) + [0.0])  # No Noise for state variabla A for BOLD monitor
 
-    # Set initial conditions around zero
-    simulator.initial_conditions = 0.1 * np.random.normal(size=(1000, simulator.model.nvar,
-                                                                connectivity.number_of_regions, 1))
+    # Set initial conditions around baseline currents of each kind of population for a shorter transient:
+    simulator.initial_conditions = np.zeros((1000, simulator.model.nvar, connectivity.number_of_regions, 1))
+    n_crtx_subcrtx = len(inds['crtx_and_subcrtx'])
+    simulator.initial_conditions[:, 0, inds['crtx_and_subcrtx'], 1] =\
+        simulator.model.I_e.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_crtx_subcrtx, 1))
+    simulator.initial_conditions[:, 1, inds['crtx_and_subcrtx'], 1] = \
+        simulator.model.I_i.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_crtx_subcrtx, 1))
+    n_thalspec = len(inds['thalspec'])
+    simulator.initial_conditions[:, 0, inds['thalspec'], 1] = \
+        simulator.model.I_s.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_thalspec, 1))
+    simulator.initial_conditions[:, 1, inds['thalspec'], 1] = \
+        simulator.model.I_r.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_thalspec, 1))
 
     if config.FIC:
         if config.VERBOSE:
