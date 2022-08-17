@@ -253,7 +253,7 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
     from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
 
     # Get configuration
-    config, plotter = assert_config(config, plot_flag=True, **config_args)
+    config, plotter = assert_config(config, return_plotter=True, **config_args)
     conifg.model_params.update(model_params)
 
     # config.SIMULATION_LENGTH = 100.0
@@ -275,7 +275,7 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
     # Plot results
-    if config_args['plot_flag']:
+    if config_args['return_plotter']:
         plot_tvb(transient, inds, results=results,
                  source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)

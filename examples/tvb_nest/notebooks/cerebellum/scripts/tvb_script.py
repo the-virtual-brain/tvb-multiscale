@@ -373,7 +373,7 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     # wp = simulator.connectivity.weights > 0
     # h2, bins = np.histogram(simulator.connectivity.weights[wp].flatten(), range=(0.0, 1.25), bins=100)
 
-    # if plot_flag:
+    # if return_plotter:
     # x = bins[:-1] + np.diff(bins)/2
     # plt.figure(figsize=(10, 5))
     # plt.plot(x, h1, 'b', label='All connections before downscaling')
@@ -570,7 +570,7 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
 
 def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
-    config = assert_config(config, plot_flag=False)
+    config = assert_config(config, return_plotter=False)
 
     writer = False
     # if write_files:
@@ -640,7 +640,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 def plot_tvb(transient, inds,
              results=None, source_ts=None, bold_ts=None, PSD_target=None, PSD=None,
              simulator=None, plotter=None, config=None, write_files=True):
-    config, plotter = assert_config(config, plot_flag=True)
+    config, plotter = assert_config(config, return_plotter=True)
     MAX_VARS_IN_COLS = 2
     MAX_REGIONS_IN_ROWS = 10
     MIN_REGIONS_FOR_RASTER_PLOT = 9
@@ -762,7 +762,7 @@ def plot_tvb(transient, inds,
 
 def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
     # Get configuration
-    config, plotter = assert_config(config, plot_flag=True, **config_args)
+    config, plotter = assert_config(config, return_plotter=True, **config_args)
     config.model_params.update(model_params)
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
@@ -778,7 +778,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
-    if config_args['plot_flag']:
+    if config_args['return_plotter']:
         plot_tvb(transient, inds, results=results,
                  source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)

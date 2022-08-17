@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 2.0, 'STIMULUS': 0.5,
                 'I_e': -0.25, 'I_s': 0.25,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 1.0, 'PRIORS_DIST': 'uniform',
-                'output_folder': '', 'verbose': 1, 'plot_flag': True}
+                'output_folder': '', 'verbose': 1, 'return_plotter': True}
 # tau_e=10/0.9, tau_i=10/0.9, tau_s=10/0.25, tau_r=10/0.25,
 
 
@@ -90,7 +90,7 @@ def configure(**ARGS):
 
     config.VERBOSE = args['verbose']
 
-    if args['plot_flag']:
+    if args['return_plotter']:
         config, plotter = create_plotter(config)
     else:
         plotter = None
@@ -184,15 +184,15 @@ def configure(**ARGS):
     return config, plotter
 
 
-def assert_config(config=None, plot_flag=False, **config_args):
+def assert_config(config=None, return_plotter=False, **config_args):
     if config is None:
-        if plot_flag:
+        if return_plotter:
             # Create a configuration if one is not given
             return configure(plot_flag=False, **config_args)[0]
         else:
             return configure(plot_flag=True, **config_args)
     else:
-        if plot_flag:
+        if return_plotter:
             return create_plotter(config)
         else:
             return config
@@ -211,7 +211,7 @@ def args_parser(funname, args=DEFAULT_ARGS):
                  'output_folder': ['o', str, 'Output folder name'],
                  'verbose': ['v', int,
                              'Integer flag to print output messages (when > 0) or not (when == 0). Default = 1.0'],
-                 'plot_flag': ['plot', bool, 'Boolean flag to plot or not']
+                 'return_plotter': ['plot', bool, 'Boolean flag to plot or not']
                  }
     parser = argparse.ArgumentParser(description='%s.py' % funname)
     for arg, vals in arguments.items():
