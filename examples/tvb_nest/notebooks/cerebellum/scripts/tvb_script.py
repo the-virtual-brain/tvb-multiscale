@@ -20,7 +20,7 @@ def load_connectome(config, plotter=None):
     major_structs_labels = np.load(config.MAJOR_STRUCTS_LABELS_FILE)
     voxel_count = np.load(config.VOXEL_COUNT_FILE)
     inds = np.load(config.INDS_FILE, allow_pickle=True).item()
-    if plotter:
+    if config.VERBOSE > 1:
         print("major_structs_labels:\n", np.unique(major_structs_labels))
         print("ROI inds:\n", inds)
 
@@ -32,7 +32,7 @@ def construct_extra_inds_and_maps(connectome, inds):
     region_labels = connectome['region_labels']
     inds["subcrtx"] = np.arange(len(region_labels)).astype('i')
     inds["subcrtx"] = np.delete(inds["subcrtx"], inds["crtx"])
-    inds['crtx_and_subcrtx'] = np.sort(np.concatenate(inds['crtx'], inds["subcrtx"]))
+    inds['crtx_and_subcrtx'] = np.sort(np.concatenate([inds['crtx'], inds["subcrtx"]]))
     maps["is_subcortical"] = np.array([False] * region_labels.shape[0]).astype("bool")
     maps["is_subcortical"][inds["subcrtx"]] = True
     maps["is_cortical"] = np.array([False] * region_labels.shape[0]).astype("bool")
@@ -48,7 +48,7 @@ def construct_extra_inds_and_maps(connectome, inds):
 
 def plot_norm_w_hist(w, wp, inds):
     h = w[wp].flatten()
-    print('number of all connections > 0: %d' % h.size)
+    # print('number of all connections > 0: %d' % h.size)
     h, bins = np.histogram(h, range=(1.0, 31), bins=100)
 
     w_within_sub = w[inds["subcrtx_not_thalspec"][:, None], inds["subcrtx_not_thalspec"][None, :]]
@@ -58,19 +58,19 @@ def plot_norm_w_hist(w, wp, inds):
                      w_from_sub.flatten().tolist() +
                      w_to_sub.flatten().tolist())
     h_sub = h_sub[h_sub > 0].flatten()
-    print('number of h_sub > 0: %d' % h_sub.size)
+    # print('number of h_sub > 0: %d' % h_sub.size)
     h_sub, bins_sub = np.histogram(h_sub, range=(1.0, 31), bins=100)
     assert np.all(bins == bins_sub)
 
     h_crtx = np.array(w[inds["not_subcrtx_not_thalspec"][:, None],
                         inds["not_subcrtx_not_thalspec"][None, :]].flatten().tolist())
     h_crtx = h_crtx[h_crtx > 0]
-    print('number of h_crtx > 0: %d' % h_crtx.size)
+    # print('number of h_crtx > 0: %d' % h_crtx.size)
     h_crtx, bins_crtx = np.histogram(h_crtx, range=(1.0, 31), bins=100)
     assert np.all(bins == bins_crtx)
 
     h2 = h_crtx + h_sub
-    print('number of total > 0: %d' % np.sum(h2))
+    # print('number of total > 0: %d' % np.sum(h2))
 
     x = bins[:-1] + np.diff(bins) / 2
     fig = plt.figure(figsize=(10, 5))
@@ -403,14 +403,14 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     # Set initial conditions around baseline currents of each kind of population for a shorter transient:
     simulator.initial_conditions = np.zeros((1000, simulator.model.nvar, connectivity.number_of_regions, 1))
     n_crtx_subcrtx = len(inds['crtx_and_subcrtx'])
-    simulator.initial_conditions[:, 0, inds['crtx_and_subcrtx'], 1] =\
+    simulator.initial_conditions[:, [[0]], inds['crtx_and_subcrtx']] =\
         simulator.model.I_e.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_crtx_subcrtx, 1))
-    simulator.initial_conditions[:, 1, inds['crtx_and_subcrtx'], 1] = \
+    simulator.initial_conditions[:, [[1]], inds['crtx_and_subcrtx']] = \
         simulator.model.I_i.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_crtx_subcrtx, 1))
     n_thalspec = len(inds['thalspec'])
-    simulator.initial_conditions[:, 0, inds['thalspec'], 1] = \
+    simulator.initial_conditions[:, [[0]], inds['thalspec']] = \
         simulator.model.I_s.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_thalspec, 1))
-    simulator.initial_conditions[:, 1, inds['thalspec'], 1] = \
+    simulator.initial_conditions[:, [[1]], inds['thalspec']] = \
         simulator.model.I_r.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_thalspec, 1))
 
     if config.FIC:
