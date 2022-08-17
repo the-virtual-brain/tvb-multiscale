@@ -201,7 +201,7 @@ def build_NEST_network(config=None):
     from tvb_multiscale.tvb_nest.nest_models.devices import NESTPoissonGenerator
     from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest, configure_nest_kernel
 
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
 
     sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
     sim_serial = load_pickled_dict(sim_serial_filepath)
@@ -621,11 +621,7 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
 def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
     # Get configuration
     config_args['plot_flag'] = False  # because it is too slow...
-    # Get configuration
-    if config is None:
-        config, plotter = configure(**config_args)
-    else:
-        plotter = Plotter(config.figures)
+    config, plotter = assert_config(config, plot_flag=True, **config_args)
     conifg.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)

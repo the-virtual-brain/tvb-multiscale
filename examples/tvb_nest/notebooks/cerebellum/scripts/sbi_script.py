@@ -25,7 +25,7 @@ def build_priors(config):
 
 
 def sample_priors_for_sbi(config=None):
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
     dummy_sim = lambda priors: priors
@@ -51,7 +51,7 @@ def batch_priors_filepath(iB, config, iG=None, filepath=None, extension=None):
 
 
 def priors_samples_per_batch(priors_samples=None, iG=None, config=None, write_to_files=True):
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     if priors_samples is None:
         priors_samples = sample_priors_for_sbi(config)[0]
     batch_samples = []
@@ -68,7 +68,7 @@ def priors_samples_per_batch_for_iG(iG, priors_samples=None, config=None, write_
 
 
 def load_priors_samples_per_batch(iB, iG=None, config=None):
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.BATCH_PRIORS_SAMPLES_FILE))
     return torch.load(batch_priors_filepath(iB, config, iG, filepath, extension))
 
@@ -82,7 +82,7 @@ def batch_sim_res_filepath(iB, config, iG=None, filepath=None, extension=None):
 
 
 def write_batch_sim_res_to_file(sim_res, iB, iG=None, config=None):
-    np.save(batch_sim_res_filepath(iB, assert_config(config), iG), sim_res, allow_pickle=True)
+    np.save(batch_sim_res_filepath(iB, assert_config(config, plot_flag=False), iG), sim_res, allow_pickle=True)
 
 
 def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
@@ -90,9 +90,7 @@ def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
 
 
 def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
-    config = assert_config(config)
-    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
-        dill.dump(config, file, recurse=1)
+    config = assert_config(config, plot_flag=False)
     # Get the default values for the parameter except for G
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
@@ -110,7 +108,8 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
             except:
                 numpy_prior = prior
             priors_params[prior_name] = numpy_prior
-        print("\n\nSimulating for parameters:\n%s\n" % str(priors_params))
+        if config.VERBOSE:
+            print("\n\nSimulating for parameters:\n%s\n" % str(priors_params))
         sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False)[0])
         if write_to_file:
             write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config)
@@ -118,7 +117,7 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
 
 
 def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=None, sim_res=None, config=None):
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     if priors is None:
         priors = build_priors(config)
     # Load priors' samples if not given in the input:
@@ -150,7 +149,7 @@ def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
 
 
 def write_posterior_samples(samples, iG=None, config=None):
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     filepath = posterior_samples_filepath(config, iG)
     if os.path.isfile(filepath):
         samples_fit = np.load(filepath, allow_pickle=True).item()
@@ -168,7 +167,7 @@ def write_posterior_samples(samples, iG=None, config=None):
 
 
 def load_posterior_samples(iG, config=None):
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     filepath = posterior_samples_filepath(config, iG)
     return np.load(filepath, allow_pickle=True).item()
 
@@ -184,7 +183,8 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target):
     while keep_building < 0:
         try:
             # Build the posterior:
-            print("Building the posterior...")
+            if config.VERBOSE:
+                print("Building the posterior...")
             posterior = inference.build_posterior(density_estimator)
             keep_building = 0
         except Exception as e:
@@ -197,12 +197,11 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target):
 
 def sbi_infer_for_iG(iG, config=None):
     tic = time.time()
-    config = assert_config(config)
-    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
-        dill.dump(config, file, recurse=1)
+    config = assert_config(config, plot_flag=False)
     # Get G for this run:
     G = config.Gs[iG]
-    print("\n\nFitting for G = %g!\n" % G)
+    if config.VERBOSE:
+        print("\n\nFitting for G = %g!\n" % G)
     # Load the target
     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
     # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
@@ -218,7 +217,8 @@ def sbi_infer_for_iG(iG, config=None):
     n_train_samples = int(np.ceil(1.0*n_samples / config.SPLIT_RUN_SAMPLES))
     for iR in range(config.N_FIT_RUNS):
         # For every fitting run...
-        print("\n\nFitting run %d!..\n" % iR)
+        if config.VERBOSE:
+            print("\n\nFitting run %d!..\n" % iR)
         ticR = time.time()
         # Choose a subsample of the whole set of samples:
         sampl_inds = random.sample(all_inds, n_train_samples)
@@ -227,19 +227,23 @@ def sbi_infer_for_iG(iG, config=None):
                                       config.N_SAMPLES_PER_RUN, psd_targ_conc)
         # Write samples to file:
         write_posterior_samples(posterior_samples, iG, config)
-        print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
+        if config.VERBOSE:
+            print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
 
     # Fit once more using all samples!
-    print("\n\nFitting with all samples!..\n")
+    if config.VERBOSE:
+        print("\n\nFitting with all samples!..\n")
     ticR = time.time()
     # Train the network, build the posterior and sample it:
     posterior_samples = sbi_infer(priors, priors_samples[:n_samples], sim_res, config.N_SAMPLES_PER_RUN, psd_targ_conc)
     # Write samples to file:
     write_posterior_samples(posterior_samples, iG, config)
-    print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
+    if config.VERBOSE:
+        print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
     # Plot posterior:
-    print("\nPlotting posterior...")
+    if config.VERBOSE:
+        print("\nPlotting posterior...")
     limits = []
     for pmin, pmax in zip(config.prior_min, config.prior_max):
         limits.append([pmin, pmax])
@@ -258,22 +262,24 @@ def sbi_infer_for_iG(iG, config=None):
     plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_G%g.png' % G))
 
     # # Run one simulation with the posterior means:
-    # print("\nSimulating with posterior means...")
-    # print("params =\n", params)
+    # if config.VERBOSE:
+    #   print("\nSimulating with posterior means...")
+    #   print("params =\n", params)
     # model_params = {"G": G}
     # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, model_params=model_params,
     #                                                       config=config, plot_flag=True,
     #                                                       output_folder="G_%g" % G, **params)
 
-    print("\n\nFinished after %g sec!" % (time.time() - tic))
-    print("\n\nFind results in %s!" % config.out.FOLDER_RES)
+    if config.VERBOSE:
+        print("\n\nFinished after %g sec!" % (time.time() - tic))
+        print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
     return posterior_samples  # , results, fig, simulator, output_config
 
 
 def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
 
-    config = assert_config(config)
+    config = assert_config(config, plot_flag=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
 
@@ -291,8 +297,9 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
     G = samples_fit['G']  # config.Gs[iG]
 
     # Run one simulation with the posterior means:
-    print("\nSimulating with posterior means...")
-    print("params =\n", params)
+    if config.VERBOSE:
+        print("\nSimulating with posterior means...")
+        print("params =\n", params)
     if workflow_fun is None:
         workflow_fun = run_workflow
     params['G'] = G

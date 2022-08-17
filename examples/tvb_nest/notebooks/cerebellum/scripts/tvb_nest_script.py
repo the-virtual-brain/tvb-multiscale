@@ -214,8 +214,9 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
     simulator.simulate_spiking_simulator = nest_network.nest_instance.Run  # set the method to run NEST
 
-    # simulator.print_summary_info(recursive=3)
-    # simulator.print_summary_info_details(recursive=3)
+    if config.VERBOSE > 1:
+        simulator.print_summary_info(recursive=3)
+        # simulator.print_summary_info_details(recursive=3)
 
     if config.VERBOSE > 1:
         print("\n\noutput (TVB->NEST coupling) interfaces:\n")
@@ -252,13 +253,9 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
     from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
 
     # Get configuration
-    if config is None:
-        config, plotter = configure(**config_args)
-    else:
-        plotter = Plotter(config.figures)
+    config, plotter = assert_config(config, plot_flag=True, **config_args)
     conifg.model_params.update(model_params)
-    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
-        dill.dump(config, file, recurse=1)
+
     # config.SIMULATION_LENGTH = 100.0
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)

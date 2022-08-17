@@ -28,6 +28,16 @@ DEFAULT_ARGS = {'G': 2.0, 'STIMULUS': 0.5,
 # tau_e=10/0.9, tau_i=10/0.9, tau_s=10/0.25, tau_r=10/0.25,
 
 
+def create_plotter(config):
+    from tvb_multiscale.core.plot.plotter import Plotter
+    plotter = Plotter(config.figures)
+    config.figures.SHOW_FLAG = True
+    config.figures.SAVE_FLAG = True
+    config.figures.FIG_FORMAT = 'png'
+    config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
+    return config, plotter
+
+
 def configure(**ARGS):
     
     args = deepcopy(DEFAULT_ARGS)
@@ -81,12 +91,7 @@ def configure(**ARGS):
     config.VERBOSE = args['verbose']
 
     if args['plot_flag']:
-        from tvb_multiscale.core.plot.plotter import Plotter
-        plotter = Plotter(config.figures)
-        config.figures.SHOW_FLAG = True
-        config.figures.SAVE_FLAG = True
-        config.figures.FIG_FORMAT = 'png'
-        config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
+        config, plotter = create_plotter(config)
     else:
         plotter = None
 
@@ -173,14 +178,24 @@ def configure(**ARGS):
     if config.VERBOSE:
         print(config)
 
+    with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
+        dill.dump(config, file, recurse=1)
+
     return config, plotter
 
 
-def assert_config(config=None):
+def assert_config(config=None, plot_flag=False, **config_args):
     if config is None:
-        # Create a configuration if one is not given
-        config = configure(plot_flag=False)[0]
-    return config
+        if plot_flag:
+            # Create a configuration if one is not given
+            return configure(plot_flag=False, **config_args)[0]
+        else:
+            return configure(plot_flag=True, **config_args)
+    else:
+        if plot_flag:
+            return create_plotter(config)
+        else:
+            return config
 
 
 def args_parser(funname, args=DEFAULT_ARGS):
