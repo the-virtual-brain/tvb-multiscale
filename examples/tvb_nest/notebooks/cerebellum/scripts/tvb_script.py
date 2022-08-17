@@ -373,7 +373,7 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     # wp = simulator.connectivity.weights > 0
     # h2, bins = np.histogram(simulator.connectivity.weights[wp].flatten(), range=(0.0, 1.25), bins=100)
 
-    # if return_plotter:
+    # if plot_flag:
     # x = bins[:-1] + np.diff(bins)/2
     # plt.figure(figsize=(10, 5))
     # plt.plot(x, h1, 'b', label='All connections before downscaling')
@@ -778,7 +778,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
-    if config_args['return_plotter']:
+    if config_args['plot_flag']:
         plot_tvb(transient, inds, results=results,
                  source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)

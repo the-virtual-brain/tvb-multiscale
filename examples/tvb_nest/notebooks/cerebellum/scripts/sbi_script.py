@@ -267,7 +267,7 @@ def sbi_infer_for_iG(iG, config=None):
     #   print("params =\n", params)
     # model_params = {"G": G}
     # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, model_params=model_params,
-    #                                                       config=config, return_plotter=True,
+    #                                                       config=config, plot_flag=True,
     #                                                       output_folder="G_%g" % G, **params)
 
     if config.VERBOSE:
