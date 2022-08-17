@@ -105,7 +105,7 @@ def configure(**ARGS):
 
     # Simulation...
     config.SIMULATION_LENGTH = 4000.0
-    config.TRANSIENT_RATIO = 0.25
+    config.TRANSIENT_RATIO = 1.0
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
 
@@ -154,7 +154,7 @@ def configure(**ARGS):
     config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.npy")
     config.N_FIT_RUNS = 10  # 3 - 10
-    config.N_SIMULATIONS = 1000  # 500 - 1000
+    config.N_SIMULATIONS = 500  # 500 - 1000
     config.N_SIM_BATCHES = 10
     config.SPLIT_RUN_SAMPLES = 2
     config.N_SAMPLES_PER_RUN = 1000
