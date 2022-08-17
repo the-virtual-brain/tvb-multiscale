@@ -328,7 +328,6 @@ if __name__ == "__main__":
     if parser_args.script_id == 0:
         if iG == -1:
             iG = None
-        config.VERBOSE = False
         sim_res = simulate_TVB_for_sbi_batch(parser_args.iB, iG, config=config, write_to_file=True)
     elif parser_args.script_id == 1:
         if iG == -1:

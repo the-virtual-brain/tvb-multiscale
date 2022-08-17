@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 2.0, 'STIMULUS': 0.5,
                 'I_e': -0.25, 'I_s': 0.25,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 1.0, 'PRIORS_DIST': 'uniform',
-                'output_folder': '', 'verbose': True, 'plot_flag': True}
+                'output_folder': '', 'verbose': 1, 'plot_flag': True}
 # tau_e=10/0.9, tau_i=10/0.9, tau_s=10/0.25, tau_r=10/0.25,
 
 
@@ -170,6 +170,9 @@ def configure(**ARGS):
     config.prior_sc = [0.1,      0.25,  0.25,   2.5,  1.25]  # ,    2.0,     2.0,    4.0,      4.0]
     config.n_priors = len(config.prior_min)
 
+    if config.VERBOSE:
+        print(config)
+
     return config, plotter
 
 
@@ -191,7 +194,8 @@ def args_parser(funname, args=DEFAULT_ARGS):
                  'FIC': ['fic', float, 'Indegree FIC weight'],
                  'PRIORS_DIST': ['pd', str, "Priors' distribution ('uniform' (default) or 'normal')"],
                  'output_folder': ['o', str, 'Output folder name'],
-                 'verbose': ['v', bool, 'Boolean flag to print output messages or not'],
+                 'verbose': ['v', int,
+                             'Integer flag to print output messages (when > 0) or not (when == 0). Default = 1.0'],
                  'plot_flag': ['plot', bool, 'Boolean flag to plot or not']
                  }
     parser = argparse.ArgumentParser(description='%s.py' % funname)

@@ -258,7 +258,7 @@ def build_NEST_network(config=None):
     f = h5py.File(config.CEREB_SCAFFOLD_PATH, 'r+')
 
     neuron_types = list(f['cells/placement'].keys())
-    if config.VERBOSE:
+    if config.VERBOSE > 1:
         print(neuron_types)
 
     neuron_number = {}
@@ -304,7 +304,7 @@ def build_NEST_network(config=None):
             nest_network.brain_regions[region][pop] = \
                 NESTPopulation(neuron_models[neuron_name][region],  # possible NEST model params as well here
                                nest, label=pop, brain_region=region)
-            if config.VERBOSE:
+            if config.VERBOSE > 1:
                 print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
         nest_nodes_inds += nodes_inds
 
@@ -324,7 +324,7 @@ def build_NEST_network(config=None):
                 nest_network.brain_regions[region][pop] = \
                     NESTPopulation(nest.Create("parrot_neuron", n_neurons),  # possible NEST model params as well here
                                    nest, label=pop, brain_region=region)
-                if config.VERBOSE:
+                if config.VERBOSE > 1:
                     print("\n...created: %s..." % nest_network.brain_regions[region][pop].summary_info())
 
         nest_nodes_inds += nodes_inds
@@ -341,7 +341,7 @@ def build_NEST_network(config=None):
             target = np.array(conn[:, 1] - start_id_scaffold[post_name] + neuron_models[post_name][post_region][0])
             pre = list(source.astype(int))
             post = list(target.astype(int))
-            if config.VERBOSE:
+            if config.VERBOSE > 1:
                 print("Connecting  ", conn_name, "!")
                 print("%s - %s -> %s -> %s" % (pre_name, pre_region, post_name, post_region))
 
@@ -369,7 +369,7 @@ def build_NEST_network(config=None):
         for region, region_mf in zip(['Right Principal sensory nucleus of the trigeminal',
                                       'Left Principal sensory nucleus of the trigeminal'],
                                      ['Right Ansiform lobule', 'Left Ansiform lobule']):
-            if config.VERBOSE:
+            if config.VERBOSE > 1:
                 print("Connecting! %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
             # translate to NEST ids
             mossy_fibers_medulla[region] = \
@@ -381,7 +381,7 @@ def build_NEST_network(config=None):
         mossy_fibers_ponssens = {}
         for region, region_mf in zip(['Right Pons Sensory', 'Left Pons Sensory'],
                                      ['Right Ansiform lobule', 'Left Ansiform lobule']):
-            if config.VERBOSE:
+            if config.VERBOSE > 1:
                 print("Connecting!  %s - %s -> %s -> %s" % (pop, region, "mossy_fibers", region_mf))
             # translate to NEST ids
             mossy_fibers_ponssens[region] = \
@@ -399,7 +399,7 @@ def build_NEST_network(config=None):
                                  label="Background", brain_region=region)
         nest.Connect(nest_network.input_devices["Background"][region].device,
                      neuron_models['mossy_fibers'][region])
-        if config.VERBOSE:
+        if config.VERBOSE > 1:
             print("Connected!  %s - %s -> %s -> %s" % ("Background", region, pop, region))
 
     if config.NEST_PERIPHERY:
@@ -416,7 +416,7 @@ def build_NEST_network(config=None):
                                      label="Stimulus", brain_region=region)
             nest.Connect(nest_network.input_devices["Stimulus"][region].device,
                          nest_network.brain_regions[region][pop].nodes)
-            if config.VERBOSE:
+            if config.VERBOSE > 1:
                 print("Connected!  %s - %s -> %s -> %s" % ("Stimulus", region, pop, region))
 
     # Create output, measuring devices, spike_recorders and multimeters measuring V_m:
@@ -439,7 +439,7 @@ def build_NEST_network(config=None):
                 nodes = nest_network.brain_regions[region][pop].nodes
             nest.Connect(nodes, nest_network.output_devices[pop][region].device)
             nest_network.output_devices[pop].update()  # update DeviceSet after the new NESTDevice entry
-            if config.VERBOSE:
+            if config.VERBOSE > 1:
                 print("\n...created spike_recorder device for population %s in brain region %s..." % (pop, region))
 
         # if pop not in ['mossy_fibers', "whisking_stimulus"]:
@@ -451,11 +451,11 @@ def build_NEST_network(config=None):
         #     nest.Connect(nest_network.output_devices[pop_ts][region].device,
         #                  nest_network.brain_regions[region][pop].nodes)
         #     nest_network.output_devices[pop_ts].update()  # update DeviceSet after the new NESTDevice entry
-        #     if config.VERBOSE:
+        #     if config.VERBOSE > 1:
         #         print("\n...created multimeter device for population %s in brain region %s..." % (pop_ts, region))
 
     nest_network.configure()
-    if config.VERBOSE:
+    if config.VERBOSE > 1:
         nest_network.print_summary_info_details(recursive=1, connectivity=False)
 
     return nest_network, nest_nodes_inds, neuron_models, neuron_number
@@ -562,7 +562,7 @@ def plot_nest_results(nest_network, neuron_models, neuron_number, config):
                 color=color[cell])
         ), row=sel_row, col=1)
 
-        if config.VERBOSE:
+        if config.VERBOSE > 1:
             print("mean frequency: ", int(m_f))
 
         return tms

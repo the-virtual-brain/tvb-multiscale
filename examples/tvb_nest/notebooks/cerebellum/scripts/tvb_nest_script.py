@@ -198,7 +198,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     tvb_spikeNet_model_builder.configure()
     # tvb_spikeNet_model_builder.print_summary_info_details(recursive=1)
 
-    if config.VERBOSE:
+    if config.VERBOSE > 1:
         # This is how the user defined TVB -> Spiking Network interface looks after configuration
         print("\noutput (TVB->NEST coupling) interfaces' configurations:\n")
         for interface in tvb_spikeNet_model_builder.output_interfaces:
@@ -217,7 +217,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # simulator.print_summary_info(recursive=3)
     # simulator.print_summary_info_details(recursive=3)
 
-    if config.VERBOSE:
+    if config.VERBOSE > 1:
         print("\n\noutput (TVB->NEST coupling) interfaces:\n")
         simulator.output_interfaces.print_summary_info_details(recursive=2)
 

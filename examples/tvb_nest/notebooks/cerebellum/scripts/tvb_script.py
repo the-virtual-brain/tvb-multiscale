@@ -87,7 +87,7 @@ def plot_norm_w_hist(w, wp, inds):
     return fig
 
 
-def logprocess_weights(connectome, inds, verbose=True, plotter=None):
+def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     w = connectome['weights'].copy()
     w[np.isnan(w)] = 0.0  # zero nans
     w0 = w <= 0  # zero weights
@@ -97,7 +97,7 @@ def logprocess_weights(connectome, inds, verbose=True, plotter=None):
     w[wp] = np.log(w[wp])  # log positive values
     w[w0] = 0.0  # zero zero values (redundant)
     connectome['weights'] = w
-    if verbose:
+    if verbose > 1:
         print('\nnormalized weights [min, max] = \n', [w[wp].min(), w[wp].max()])
     if plotter:
         plot_norm_w_hist(w, wp, inds)
@@ -441,8 +441,8 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
 
     simulator.integrate_next_step = simulator.integrator.integrate_with_update
 
-    if config.VERBOSE:
-        simulator.print_summary_info_details(recursive=1)
+    if config.VERBOSE > 1:
+        simulator.print_summary_info_details(recursive=config.VERBOSE)
 
     # Serializing TVB cosimulator is necessary for parallel cosimulation:
     from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
