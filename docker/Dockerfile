@@ -103,7 +103,7 @@ RUN mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
     cd tvb_data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 --branch Meier_etal_ExpNeur2022 https://github.com/the-virtual-brain/tvb-root.git
+RUN git clone --depth 1 --branch Meier_etal_ExpNeur2021 https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
@@ -114,7 +114,7 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 --branch Meier_etal_ExpNeur2021 https://github.com/the-virtual-brain/tvb-multiscale.git
+RUN git clone --depth 1 --branch Meier_etal_ExpNeur2022 https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull; \
