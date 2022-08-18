@@ -120,15 +120,13 @@ RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
 
-RUN $VENV/bin/pip3 install sympy==1.10;
-RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
-    cd annarchy; \
-    $VENV/bin/python3 setup.py install --user
-
 RUN $VENV/bin/pip3 install nose
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $VENV/bin/python3 setup.py build_ext install
+
+RUN $VENV/bin/pip3 install sympy==1.10;
+RUN $VENV/bin/pip3 install annarchy==4.6.9.9;
 
 WORKDIR /home/docker/
 # Activate the right python env.
