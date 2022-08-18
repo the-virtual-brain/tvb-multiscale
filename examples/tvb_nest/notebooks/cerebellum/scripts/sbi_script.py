@@ -109,7 +109,8 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
                 numpy_prior = prior
             priors_params[prior_name] = numpy_prior
         if config.VERBOSE:
-            print("\n\nSimulating for parameters:\n%s\n" % str(priors_params))
+            print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS+1, n_simulations, iG, iB))
+            print("Simulating for parameters:\n%s" % str(priors_params))
         sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False)[0])
         if write_to_file:
             write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config)
