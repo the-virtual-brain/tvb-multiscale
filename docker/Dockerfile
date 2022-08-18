@@ -98,12 +98,12 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy numba; \
     $VENV/bin/pip3 install --ignore-installed entrypoints
 
-RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
-    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
+RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip;
+RUN mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
     cd tvb_data; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 --branch Meier_etal_ExpNeur2021 https://github.com/the-virtual-brain/tvb-root.git
+RUN git clone --depth 1 --branch Meier_etal_ExpNeur2022 https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
@@ -120,7 +120,7 @@ RUN cd tvb-multiscale; \
     git pull; \
     $VENV/bin/python setup.py develop --no-deps;
 
-RUN $VENV/bin/pip3 install sympy;
+RUN $VENV/bin/pip3 install sympy==1.10;
 RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
     cd annarchy; \
     $VENV/bin/python3 setup.py install --user
