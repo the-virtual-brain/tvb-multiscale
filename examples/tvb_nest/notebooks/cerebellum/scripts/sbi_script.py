@@ -173,7 +173,7 @@ def load_posterior_samples(iG, config=None):
     return np.load(filepath, allow_pickle=True).item()
 
 
-def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target):
+def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbose):
     # Initialize the inference algorithm class instance:
     inference = SNPE(prior=priors)
     # Append to the inference the priors samples and simulations results
@@ -181,18 +181,20 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target):
     density_estimator = inference.append_simulations(priors_samples, sim_res).train()
     keep_building = -10
     posterior = None
+    exception = "None"
     while keep_building < 0:
         try:
             # Build the posterior:
-            if config.VERBOSE:
+            if verbose:
                 print("Building the posterior...")
             posterior = inference.build_posterior(density_estimator)
             keep_building = 0
         except Exception as e:
+            exception = e
             warnings.warn(str(e) + "\nTrying again for the %dth time!" % (10 + keep_building + 2))
             keep_building += 1
     if posterior is None:
-        raise Exception(e)
+        raise Exception(exception)
     return posterior.sample((n_samples_per_run,), x=target)
 
 
@@ -225,7 +227,7 @@ def sbi_infer_for_iG(iG, config=None):
         sampl_inds = random.sample(all_inds, n_train_samples)
         # Train the network, build the posterior and sample it:
         posterior_samples = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
-                                      config.N_SAMPLES_PER_RUN, psd_targ_conc)
+                                      config.N_SAMPLES_PER_RUN, psd_targ_conc, config.VERBOSE)
         # Write samples to file:
         write_posterior_samples(posterior_samples, iG, config)
         if config.VERBOSE:
@@ -236,7 +238,8 @@ def sbi_infer_for_iG(iG, config=None):
         print("\n\nFitting with all samples!..\n")
     ticR = time.time()
     # Train the network, build the posterior and sample it:
-    posterior_samples = sbi_infer(priors, priors_samples[:n_samples], sim_res, config.N_SAMPLES_PER_RUN, psd_targ_conc)
+    posterior_samples = sbi_infer(priors, priors_samples[:n_samples], sim_res,
+                                  config.N_SAMPLES_PER_RUN, psd_targ_conc, config.VERBOSE)
     # Write samples to file:
     write_posterior_samples(posterior_samples, iG, config)
     if config.VERBOSE:
