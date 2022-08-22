@@ -70,9 +70,7 @@ RUN /opt/conda/envs/env_nest/bin/pip install netpyne neuron
 
 # TVB-ANNARCHY:
 RUN /opt/conda/envs/env_nest/bin/pip install sympy pyqtgraph lxml pandoc tensorboardX;
-RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
-    cd annarchy; \
-    /opt/conda/envs/env_nest/bin/python setup.py install --user;
+RUN /opt/conda/envs/env_nest/bin/pip install ANNarchy;
 
 ARG MULTISCALE_BRANCH=parallelNEST31
 RUN git clone --depth 1 --branch $MULTISCALE_BRANCH https://github.com/the-virtual-brain/tvb-multiscale.git
