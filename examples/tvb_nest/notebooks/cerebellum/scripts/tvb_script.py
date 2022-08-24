@@ -46,7 +46,7 @@ def construct_extra_inds_and_maps(connectome, inds):
     return inds, maps
 
 
-def plot_norm_w_hist(w, wp, inds):
+def plot_norm_w_hist(w, wp, inds, title_string="logtransformed "):
     h = w[wp].flatten()
     # print('number of all connections > 0: %d' % h.size)
     h, bins = np.histogram(h, range=(1.0, 31), bins=100)
@@ -80,7 +80,7 @@ def plot_norm_w_hist(w, wp, inds):
     # plt.plot(x, h-h_sub, 'r--', label='All - Subcortical connections')
     # plt.plot(x, h-h_crtx, 'g--', label='All - Non Subcortical connections')
     # plt.plot(x, h2, 'k--', label='Total connections')
-    plt.title("Histogram of logtransformed connectome weights")
+    plt.title("Histogram of %sconnectome weights" % title_string)
     plt.legend()
     plt.ylim([0.0, h.max()])
     plt.tight_layout()
@@ -92,6 +92,8 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     w[np.isnan(w)] = 0.0  # zero nans
     w0 = w <= 0  # zero weights
     wp = w > 0  # positive weights
+    if plotter:
+        plot_norm_w_hist(w, wp, inds)
     w /= w[wp].min()  # divide by the minimum to have a minimum of 1.0
     w *= np.exp(1)  # multiply by e to have a minimum of e
     w[wp] = np.log(w[wp])  # log positive values
@@ -100,7 +102,7 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     if verbose > 1:
         print('\nnormalized weights [min, max] = \n', [w[wp].min(), w[wp].max()])
     if plotter:
-        plot_norm_w_hist(w, wp, inds)
+        plot_norm_w_hist(w, wp, inds, title_string="logtransformed ")
     return connectome
 
 
