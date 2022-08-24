@@ -49,7 +49,7 @@ def configure(**ARGS):
 
     # Flags that affect the result's path:
     # Files:
-    BRAIN_CONN_FILE = "Connectivity_SummedSubcortical_Thals.h5"
+    BRAIN_CONN_FILE = "Connectivity_wavCntrs_TLwav_SummedSubcortical_Thals.h5"
     MAJOR_STRUCTS_LABELS_FILE = "major_structs_labels_SummedSubcortical_Thals.npy"  # "major_structs_labels_Thals.npy" # "major_structs_labels_SummedSubcortical_Thals.npy"
     VOXEL_COUNT_FILE = "voxel_count_SummedSubcortical_Thals.npy"  # "voxel_count_Thals.npy" # "voxel_count_SummedSubcortical_Thals.npy"
     INDS_FILE = "inds_SummedSubcortical_Thals.npy"  # "inds_Thals.npy" # "inds_SummedSubcortical_Thals.npy"
