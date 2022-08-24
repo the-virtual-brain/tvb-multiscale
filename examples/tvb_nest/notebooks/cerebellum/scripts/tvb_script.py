@@ -95,7 +95,6 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     w0 = w <= 0  # zero weights
     wp = w > 0  # positive weights
     if plotter:
-        print("\nPlotting weights' histogram...")
         plot_norm_w_hist(w, wp, inds, plotter.config)
     w /= w[wp].min()  # divide by the minimum to have a minimum of 1.0
     w *= np.exp(1)  # multiply by e to have a minimum of e
@@ -105,7 +104,6 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     if verbose > 1:
         print('\nnormalized weights [min, max] = \n', [w[wp].min(), w[wp].max()])
     if plotter:
-        print("\nPlotting logtransformed weights' histogram...")
         plot_norm_w_hist(w, wp, inds, plotter.config, title_string="logtransformed ")
     return connectome
 
