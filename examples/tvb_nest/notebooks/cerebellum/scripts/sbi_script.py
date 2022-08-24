@@ -281,7 +281,7 @@ def sbi_infer_for_iG(iG, config=None):
     return posterior_samples  # , results, fig, simulator, output_config
 
 
-def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
+def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}):
 
     config = assert_config(config, return_plotter=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
@@ -307,8 +307,9 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None):
     if workflow_fun is None:
         workflow_fun = run_workflow
     params['G'] = G
-    outputs = workflow_fun(plot_flag=True, model_params=params, config=config,
-                           output_folder="G_%g" % G, **params)
+    # Specify other parameters or overwrite some:
+    params.update(model_params)
+    outputs = workflow_fun(plot_flag=True, model_params=params, config=config, output_folder="G_%g" % params['G'])
     outputs = outputs + (samples_fit, )
     return outputs
 
