@@ -46,7 +46,7 @@ def construct_extra_inds_and_maps(connectome, inds):
     return inds, maps
 
 
-def plot_norm_w_hist(w, wp, inds, title_string="logtransformed "):
+def plot_norm_w_hist(w, wp, inds, plotter_config, title_string=""):
     h = w[wp].flatten()
     # print('number of all connections > 0: %d' % h.size)
     h, bins = np.histogram(h, range=(1.0, 31), bins=100)
@@ -80,10 +80,12 @@ def plot_norm_w_hist(w, wp, inds, title_string="logtransformed "):
     # plt.plot(x, h-h_sub, 'r--', label='All - Subcortical connections')
     # plt.plot(x, h-h_crtx, 'g--', label='All - Non Subcortical connections')
     # plt.plot(x, h2, 'k--', label='Total connections')
-    plt.title("Histogram of %sconnectome weights" % title_string)
+    plt.title("Histogram of %s connectome weights" % title_string)
     plt.legend()
     plt.ylim([0.0, h.max()])
     plt.tight_layout()
+    plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "%sWeightsHistogram.png" % title_string))
+    fig.show()
     return fig
 
 
@@ -93,7 +95,8 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     w0 = w <= 0  # zero weights
     wp = w > 0  # positive weights
     if plotter:
-        plot_norm_w_hist(w, wp, inds)
+        print("\nPlotting weights' histogram...")
+        plot_norm_w_hist(w, wp, inds, plotter.config)
     w /= w[wp].min()  # divide by the minimum to have a minimum of 1.0
     w *= np.exp(1)  # multiply by e to have a minimum of e
     w[wp] = np.log(w[wp])  # log positive values
@@ -102,7 +105,8 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
     if verbose > 1:
         print('\nnormalized weights [min, max] = \n', [w[wp].min(), w[wp].max()])
     if plotter:
-        plot_norm_w_hist(w, wp, inds, title_string="logtransformed ")
+        print("\nPlotting logtransformed weights' histogram...")
+        plot_norm_w_hist(w, wp, inds, plotter.config, title_string="logtransformed ")
     return connectome
 
 
@@ -780,7 +784,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
         PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
     # This is the PSD computed from our simulation results.
     PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
-    if config_args['plot_flag']:
+    if config_args.get('plot_flag', True):
         plot_tvb(transient, inds, results=results,
                  source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)

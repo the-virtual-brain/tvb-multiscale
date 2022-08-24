@@ -104,7 +104,7 @@ def configure(**ARGS):
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 4000.0
+    config.SIMULATION_LENGTH = 500.0 # 4000.0
     config.TRANSIENT_RATIO = 1.0
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
@@ -193,7 +193,7 @@ def assert_config(config=None, return_plotter=False, **config_args):
             return configure(plot_flag=False, **config_args)[0]
     else:
         if return_plotter:
-            return config, create_plotter(config)
+            return create_plotter(config)
         else:
             return config
 

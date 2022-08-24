@@ -637,7 +637,7 @@ def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_ar
     # Simulate the NEST network
     nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number)
     # Plot results
-    if config_args['plot_flag']:
+    if config_args.get('plot_flag', True):
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return nest_network
 
