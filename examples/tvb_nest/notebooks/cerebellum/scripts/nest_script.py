@@ -622,7 +622,7 @@ def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_ar
     # Get configuration
     config_args['plot_flag'] = False  # because it is too slow...
     config, plotter = assert_config(config, return_plotter=True, **config_args)
-    conifg.model_params.update(model_params)
+    config.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
     # Load and prepare connectome and connectivity with all possible normalizations:

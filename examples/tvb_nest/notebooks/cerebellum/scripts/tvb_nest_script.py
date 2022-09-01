@@ -254,7 +254,7 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
 
     # Get configuration
     config, plotter = assert_config(config, return_plotter=True, **config_args)
-    conifg.model_params.update(model_params)
+    config.model_params.update(model_params)
     # config.SIMULATION_LENGTH = 100.0
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
