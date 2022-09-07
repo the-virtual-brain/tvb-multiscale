@@ -209,7 +209,7 @@ def assert_config(config=None, return_plotter=False, **config_args):
 def args_parser(funname, args=DEFAULT_ARGS):
 
     def FICtype(FIC):
-        if FIC == 'fic':
+        if FIC == 'fit':
             return FIC
         return float(FIC)
 
