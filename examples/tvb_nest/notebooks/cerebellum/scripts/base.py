@@ -23,7 +23,7 @@ from tvb.simulator.integrators import EulerStochastic
 DEFAULT_ARGS = {'G': 2.0, 'STIMULUS': 0.5,
                 'I_e': -0.25, 'I_s': 0.25,
                 'w_ie': -3.0, 'w_rs': -2.0,
-                'CONN_LOG': True, 'FIC': 1.0, 'PRIORS_DIST': 'uniform',
+                'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
                 'output_folder': '', 'verbose': 1, 'return_plotter': True}
 # tau_e=10/0.9, tau_i=10/0.9, tau_s=10/0.25, tau_r=10/0.25,
 
@@ -78,7 +78,10 @@ def configure(**ARGS):
     # outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
     # if args['CONN_LOG']:
     #     outputs_path += "CONN_LOG"
-    outputs_path += "_FIC%g" % args['FIC']
+    if args['FIC'] == "fit":
+        outputs_path += "_FICfit"
+    else:
+        outputs_path += "_FIC"
     # outputs_path += "_PRIORS%s" % args['PRIORS_DIST']
     # if THAL_CRTX_FIX:
     #     outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
@@ -164,15 +167,22 @@ def configure(**ARGS):
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
     config.Gs = np.array([0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0])
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e', 'I_s', 'w_ie', 'w_rs']  # , 'tau_e', 'tau_i', 'tau_s', 'tau_r']
-    #                    0.       1.     2.     3.      4.       5.    6.       7.        8.
-    #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,   tau_e,  tau_i,   tau_s,   tau_r
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e', 'I_s', 'w_ie', 'w_rs']  # 'FIC', 'tau_e', 'tau_i', 'tau_s', 'tau_r']
+    #                    0.       1.     2.     3.      4.       5.        6.       7.        8.    9.0
+    #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,      FIC     tau_e,  tau_i,   tau_s,   tau_r
     # Uniform priors:
-    config.prior_min = [0.0,     -1.0,  -0.5, -10.0,   -5.0]  # ,    1.0,    1.0,    1.0,     1.0]
-    config.prior_max = [1.0,      0.0,  0.5,    0.0,    0.0]  # ,   20.0,   20.0,   80.0,     80.0]
+    config.prior_min = [0.0,     -1.0,  -0.5, -10.0,   -5.0]  #   0.0,    1.0,    1.0,    1.0,     1.0]
+    config.prior_max = [1.0,      0.0,  0.5,    0.0,    0.0]  #   1.0,   20.0,   20.0,   80.0,     80.0]
     # Normal priors:
-    config.prior_loc = [0.25,    -0.5,  0.25,  -5.0,  -2.5]  # ,  10/0.9,  10/0.9, 10/0.25, 10/0.25]
-    config.prior_sc = [0.1,      0.25,  0.25,   2.5,  1.25]  # ,    2.0,     2.0,    4.0,      4.0]
+    config.prior_loc = [0.25,    -0.5,  0.25,  -5.0,  -2.5]  # ,  3.0,    10/0.9,  10/0.9, 10/0.25, 10/0.25]
+    config.prior_sc = [0.1,      0.25,  0.25,   2.5,  1.25]  # ,  1.0,     2.0,     2.0,    4.0,      4.0]
+    if config.FIC == "fit":
+        config.FIC = 1.0
+        config.PRIORS_PARAMS_NAMES.append("FIC")
+        config.prior_min.append(0.0)
+        config.prior_max.append(10.0)
+        config.prior_loc.append(3.0)
+        config.prior_sc.append(1.0)
     config.n_priors = len(config.prior_min)
 
     if config.VERBOSE:
@@ -199,6 +209,12 @@ def assert_config(config=None, return_plotter=False, **config_args):
 
 
 def args_parser(funname, args=DEFAULT_ARGS):
+
+    def FICtype(FIC):
+        if FIC == 'fic':
+            return FIC
+        return float(FIC)
+
     arguments = {'G': ['g', float, 'Global connectivity scaling'],
                  'STIMULUS': ['st', float, 'Whisking stimulus amplitude'],
                  'I_e': ['ie', float, 'Cortical excitatory population baseline current'],
@@ -206,7 +222,7 @@ def args_parser(funname, args=DEFAULT_ARGS):
                  'w_ie': ['wie', float, 'Inhibitory local cortical coupling weight'],
                  'w_rs': ['wrs', float, 'Inhibitory local thalamic coupling weight'],
                  'CONN_LOG': ['cl', bool, 'Boolean flag to logtransform connectivity weights or not'],
-                 'FIC': ['fic', float, 'Indegree FIC weight'],
+                 'FIC': ['fic', FICtype, 'Indegree FIC weight'],
                  'PRIORS_DIST': ['pd', str, "Priors' distribution ('uniform' (default) or 'normal')"],
                  'output_folder': ['o', str, 'Output folder name'],
                  'verbose': ['v', int,
