@@ -349,7 +349,7 @@ if __name__ == "__main__":
         sim_res = simulate_TVB_for_sbi_batch(parser_args.iB, iG, config=config, write_to_file=True)
     elif parser_args.script_id == 1:
         if iG == -1:
-            raise ValueError("iG=-1 is not posible for running sbi_infer_for_iG!")
+            raise ValueError("iG=-1 is not possible for running sbi_infer_for_iG!")
         samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
     else:
         raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
