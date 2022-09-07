@@ -92,14 +92,11 @@ def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
 def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
     config = assert_config(config, return_plotter=False)
     # Get the default values for the parameter except for G
-    params = OrderedDict()
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-        params[pname] = pval
     batch_samples = load_priors_samples_per_batch_per_iG(iB, iG, config)
     n_simulations = batch_samples.shape[0]
     sim_res = []
     for iS in range(n_simulations):
-        priors_params = params.copy()
+        priors_params = OrderedDict()
         if iG is not None:
             priors_params["G"] = config.Gs[iG]
         for prior_name, prior in zip(config.PRIORS_PARAMS_NAMES, batch_samples[iS]):
