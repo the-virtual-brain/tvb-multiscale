@@ -172,17 +172,17 @@ def configure(**ARGS):
     #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,      FIC     tau_e,  tau_i,   tau_s,   tau_r
     # Uniform priors:
     config.prior_min = [0.0,     -1.0,  -0.5, -10.0,   -5.0]  #   0.0,    1.0,    1.0,    1.0,     1.0]
-    config.prior_max = [1.0,      0.0,  0.5,    0.0,    0.0]  #   1.0,   20.0,   20.0,   80.0,     80.0]
+    config.prior_max = [1.0,      0.0,  0.5,    0.0,    0.0]  #   5.0,   20.0,   20.0,   80.0,     80.0]
     # Normal priors:
-    config.prior_loc = [0.25,    -0.5,  0.25,  -5.0,  -2.5]  # ,  3.0,    10/0.9,  10/0.9, 10/0.25, 10/0.25]
-    config.prior_sc = [0.1,      0.25,  0.25,   2.5,  1.25]  # ,  1.0,     2.0,     2.0,    4.0,      4.0]
+    config.prior_loc = [0.25,    -0.5,  0.25,  -5.0,  -2.5]  # ,  2.0,    10/0.9,  10/0.9, 10/0.25, 10/0.25]
+    config.prior_sc = [0.1,      0.25,  0.25,   2.5,  1.25]  # ,  0.5,     2.0,     2.0,    4.0,      4.0]
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
         config.prior_min.append(0.0)
-        config.prior_max.append(10.0)
-        config.prior_loc.append(3.0)
-        config.prior_sc.append(1.0)
+        config.prior_max.append(5.0)
+        config.prior_loc.append(2.0)
+        config.prior_sc.append(0.5)
     config.n_priors = len(config.prior_min)
 
     if config.VERBOSE:
