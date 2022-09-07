@@ -78,9 +78,7 @@ def configure(**ARGS):
     # outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
     # if args['CONN_LOG']:
     #     outputs_path += "CONN_LOG"
-    if args['FIC'] == "fit":
-        outputs_path += "_FICfit"
-    else:
+    if args['FIC']:
         outputs_path += "_FIC"
     # outputs_path += "_PRIORS%s" % args['PRIORS_DIST']
     # if THAL_CRTX_FIX:
