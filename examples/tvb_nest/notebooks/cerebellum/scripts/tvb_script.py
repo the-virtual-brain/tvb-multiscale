@@ -419,7 +419,7 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
 
     if config.FIC:
         if config.VERBOSE:
-            print("Applying FIC!")
+            print("Applying FIC = %g!" % config.FIC)
         # We will modify the w_ie and w_rs parameters a bit based on indegree and G:
         simulator = prepare_fic(simulator, inds, config.FIC, simulator.model.G[0], plotter)
         # We will not run FIC though when fitting...
