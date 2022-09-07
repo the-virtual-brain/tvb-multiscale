@@ -108,7 +108,7 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
             except:
                 numpy_prior = prior
             if prior_name == "FIC":
-                config.FIC = FIC
+                config.FIC = numpy_prior
             else:
                 priors_params[prior_name] = numpy_prior
         if config.VERBOSE:
