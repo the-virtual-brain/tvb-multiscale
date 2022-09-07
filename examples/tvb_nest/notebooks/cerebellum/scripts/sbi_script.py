@@ -102,12 +102,15 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
         priors_params = params.copy()
         if iG is not None:
             priors_params["G"] = config.Gs[iG]
-        for prior, prior_name in zip(batch_samples[iS], config.PRIORS_PARAMS_NAMES):
+        for prior_name, prior in zip(config.PRIORS_PARAMS_NAMES, batch_samples[iS]):
             try:
                 numpy_prior = prior.numpy()
             except:
                 numpy_prior = prior
-            priors_params[prior_name] = numpy_prior
+            if prior_name == "FIC":
+                config.FIC = FIC
+            else:
+                priors_params[prior_name] = numpy_prior
         if config.VERBOSE:
             print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS+1, n_simulations, iG, iB))
             print("Simulating for parameters:\n%s" % str(priors_params))
@@ -291,14 +294,18 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
     if iR is None:
         iR = -1
 
-    # Get the default values for the parameter except for G
-    params = OrderedDict()
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-        params[pname] = pval
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples_fit['mean'][iR])))
-
     # Get G for this run:
     G = samples_fit['G']  # config.Gs[iG]
+
+    # Get the default values for the parameter except for G
+    params = dict(config.model_params)
+    params['G'] = G
+    # Set the posterior means of the parameters:
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit['mean'][iR]):
+        if pname == "FIC":
+            config.FIC = pval
+        else:
+            params[pname] = pval
 
     # Run one simulation with the posterior means:
     if config.VERBOSE:
@@ -306,7 +313,6 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
         print("params =\n", params)
     if workflow_fun is None:
         workflow_fun = run_workflow
-    params['G'] = G
     # Specify other parameters or overwrite some:
     params.update(model_params)
     outputs = workflow_fun(plot_flag=True, model_params=params, config=config, output_folder="G_%g" % params['G'])
