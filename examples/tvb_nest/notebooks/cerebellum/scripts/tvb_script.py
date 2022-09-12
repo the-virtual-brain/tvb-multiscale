@@ -572,6 +572,17 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
     return Pxx_den.flatten()
 
 
+def dump_picked_time_series(time_series, filepath):
+    dump_pickled_dict({"time_series": time_series.data[:, :, :, 0],
+                       "dimensions_labels": np.array(time_series.labels_ordering)[:-1],
+                       "time": source_ts.time, "time_unit": time_series.time_unit,
+                       "sampling_period": time_series.sample_period,
+                       "state_variables": np.array(time_series.variables_labels),
+                       "region_labels": np.array(time_series.space_labels)},
+                      filepath)
+    return filepath
+
+
 def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
     config = assert_config(config, return_plotter=False)
@@ -608,16 +619,9 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         source_ts.configure()
 
         if write_files:
-            dump_pickled_dict({"time_series": source_ts.data[:, :, :, 0],
-                               "dimensions_labels": np.array(source_ts.labels_ordering)[:-1],
-                               "time": source_ts.time, "time_unit": source_ts.time_unit, "sampling_period": source_ts.sample_period,
-                               "state_variables": np.array(source_ts.variables_labels),
-                               "region_labels": np.array(source_ts.space_labels)},
-                               config.SOURCE_TS_PATH)
-
-        outputs.append(source_ts)
-
-        # t = source_ts.time
+            if config.VERBOSE:
+                print("Pickle dumping source_ts to %s!" % config.SOURCE_TS_PATH)
+            dump_picked_time_series(source_ts, config.SOURCE_TS_PATH)
 
         # # Write to file
         # if writer:
@@ -626,6 +630,10 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         #                            os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
         if config.VERBOSE > 1:
             print("Raw ts:\n%s" % str(source_ts))
+
+        outputs.append(source_ts)
+
+        # t = source_ts.time
 
         if len(results) > 1:
             bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
