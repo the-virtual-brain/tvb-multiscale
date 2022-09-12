@@ -268,9 +268,9 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     # FICindegree = (indegree - indegree_min) / indegree_std
     indegree = weights[trg_inds][:, src_inds].sum(axis=1)
     FICindegree = (indegree - indegree.min()) / np.std(indegree)
-    # p_fic = p * (1 - FIC * FICindegree) = p * (1 + FIC * (indegree - indegree_min) / indegree_std)
-    # assuming p < 0.0
-    p[trg_inds] = pscalar * (1 + FIC * FICindegree)
+    # p_fic = p - FIC * FICindegree = p - FIC * (indegree - indegree_min) / indegree_std
+    # assuming p < 0.0, and FIC >= 0.0
+    p[trg_inds] = pscalar - FIC * FICindegree
 
     try:
         assert np.all(np.argsort(indegree) == np.argsort(-p[trg_inds]))  # the orderings should reverse
