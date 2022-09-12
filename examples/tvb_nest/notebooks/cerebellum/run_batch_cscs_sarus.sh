@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#SBATCH --job-name="sbi_fit_normal"
+#SBATCH --job-name="sbi_fit"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dionperd@gmail.com
-#SBATCH --time=3-00:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=30
+#SBATCH --ntasks=70
 #SBATCH --partition=normal
 #SBATCH --constraint=mc
 #SBATCH --hint=nomultithread
@@ -24,12 +24,12 @@ export WORKDIR=$DOCKER_MULTISCALE/examples/tvb_nest/notebooks/cerebellum
 export IMAGE=dionperd/tvb-multiscale-dev:parallel_cluster
 export SBIFIT=$WORKDIR/scripts/sbi_script.py
 
-for iG in $(seq 0 2)
+for iG in $(seq 0 6)
 do
   for iB in $(seq 0 9)
   do
     echo 'Submitting task for iG='$iG', and iB='$iB'...'
-    sarus run --entrypoint --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} -scr 0 -ig $iG -ib $iB &
+    sarus run --entrypoint "" --workdir=$WORKDIR --mount=type=bind,source=${TVB_MULTISCALE},destination=${DOCKER_MULTISCALE} --mount=type=bind,source=${TVB_ROOT},destination=${DOCKER_ROOT} $IMAGE $PYTHON ${SBIFIT} -scr 0 -ig $iG -ib $iB &
   done
 done
 
