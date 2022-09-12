@@ -575,7 +575,7 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, write_files
 def dump_picked_time_series(time_series, filepath):
     dump_pickled_dict({"time_series": time_series.data[:, :, :, 0],
                        "dimensions_labels": np.array(time_series.labels_ordering)[:-1],
-                       "time": source_ts.time, "time_unit": time_series.time_unit,
+                       "time": time_series.time, "time_unit": time_series.time_unit,
                        "sampling_period": time_series.sample_period,
                        "state_variables": np.array(time_series.variables_labels),
                        "region_labels": np.array(time_series.space_labels)},
