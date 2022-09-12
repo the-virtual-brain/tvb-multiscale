@@ -183,6 +183,7 @@ def configure(**ARGS):
         config.prior_loc.append(10.0)
         config.prior_sc.append(5.0)
     config.n_priors = len(config.prior_min)
+    config.SBI_FIT_PLOT_PATH = os.path.join(config.figures.FOLDER_FIGURES, "sbi_fit.%s" % config.figures.FIG_FORMAT)
 
     if config.VERBOSE:
         print(config)
