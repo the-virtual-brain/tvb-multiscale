@@ -260,6 +260,7 @@ def sbi_infer_for_iG(iG, config=None):
                                   limits=limits,
                                   ticks=limits,
                                   figsize=(10, 10),
+                                  labels=config.PRIORS_PARAMS_NAMES,
                                   points=np.array(list(params.values())),
                                   points_offdiag={'markersize': 6},
                                   points_colors=['r'] * config.n_priors)
