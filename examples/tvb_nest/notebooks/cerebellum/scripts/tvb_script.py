@@ -620,7 +620,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
         if write_files:
             if config.VERBOSE:
-                print("Pickle dumping source_ts to %s!" % config.SOURCE_TS_PATH)
+                print("Pickle-dumping source_ts to %s!" % config.SOURCE_TS_PATH)
             dump_picked_time_series(source_ts, config.SOURCE_TS_PATH)
 
         # # Write to file
