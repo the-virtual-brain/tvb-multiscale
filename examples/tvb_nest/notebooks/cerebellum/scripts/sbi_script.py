@@ -173,6 +173,14 @@ def load_posterior_samples(iG, config=None):
     return np.load(filepath, allow_pickle=True).item()
 
 
+def load_posterior_samples_all_Gs(config=None):
+    config = assert_config(config, return_plotter=False)
+    samples = OrderedDict()
+    for iG, G in enumerate(config.Gs):
+        samples[G] = load_posterior_samples(iG, config)
+    return samples
+
+
 def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbose):
     # Initialize the inference algorithm class instance:
     inference = SNPE(prior=priors)
@@ -280,6 +288,72 @@ def sbi_infer_for_iG(iG, config=None):
         print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
     return posterior_samples  # , results, fig, simulator, output_config
+
+
+def plot_sbi_fit(config=None):
+    FIGWIDTH = 15
+    FIGHEIGHT_PER_PRIOR = 5
+    RUNS_COLOR = 'k'
+    LAST_RUN_COLOR = 'r'
+    SAMPLES_MARKER_SIZE = 0.1
+    MARKER = 'o'
+    MARKER_SIZE = 5.0
+    SAMPLES_ALPHA = 0.1
+    RUNS_ALPHA = 0.5
+    PLOT_RUNS = True
+    PLOT_SAMPLES = True
+
+    def plot_run(ax, G, mean, std, samples=None, is_last=False):
+        color = RUNS_COLOR
+        alpha = 1.0
+        if is_last:
+            color = LAST_RUN_COLOR
+            alpha = RUNS_ALPHA
+        if samples is not None:
+            ax.plot([G] * len(samples), samples, marker=MARKER,
+                    markersize=SAMPLES_MARKER_SIZE, markeredgecolor=color, markerfacecolor=color,
+                    linestyle='None', alpha=SAMPLES_ALPHA)
+        ax.plot(G, mean, marker=MARKER,
+                markersize=MARKER_SIZE, markeredgecolor=color, markerfacecolor=color,
+                linestyle='None', alpha=alpha)
+        ax.plot([G] * 2, [mean - std, mean + std], color=color, linestyle='-', linewidth=1, alpha=alpha)
+        return ax
+
+    def plot_G(ax, samples, iP):
+        n_runs = len(samples['mean'])
+        if PLOT_RUNS:
+            iR_start = 0
+        else:
+            iR = n_runs - 1
+        for iR in range(iR_start, n_runs):
+            ax = plot_run(ax, samples['G'], samples['mean'][iR][iP], samples['std'][iR][iP],
+                          samples=samples['samples'][iR][:, iP] if PLOT_SAMPLES else None, is_last=iR == n_runs - 1)
+        return ax
+
+    def plot_parameter(ax, iP, pname, samples, is_last=False):
+        for G, sg in samples.items():
+            ax = plot_G(ax, sg, iP)
+        if is_last:
+            Gs = list(samples.keys())
+            ax.set_xticks(Gs)
+            ax.set_xticklabels(Gs)
+            ax.set_xlabel("G")
+        ax.set_ylabel(pname)
+        return ax
+
+    config = assert_config(config)
+    samples = load_posterior_samples_all_Gs(config)
+    fig, axes = plt.subplots(config.n_priors, 1, figsize=(FIGWIDTH, FIGHEIGHT_PER_PRIOR * config.n_priors))
+    for iP, ax in enumerate(axes):
+        axes[iP] = plot_parameter(axes[iP], iP, config.PRIORS_PARAMS_NAMES[iP], samples,
+                                  is_last=iP == config.n_priors - 1)
+    fig.tight_layout()
+    if config.figures.SHOW_FLAG:
+        fig.show()
+    if config.figures.SAVE_FLAG:
+        plt.savefig(config.SBI_FIT_PLOT_PATH)
+
+    return fig, axes
 
 
 def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}):
