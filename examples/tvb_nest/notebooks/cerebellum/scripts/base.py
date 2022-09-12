@@ -105,10 +105,11 @@ def configure(**ARGS):
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 4000.0
+    config.SIMULATION_LENGTH = 250.0  # 4000.0
     config.TRANSIENT_RATIO = 1.0
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
+    config.SOURCE_TS_PATH = os.path.join(config.out.FOLDER_RES, "source_ts.pkl")
 
     # Connectivity
     config.CONN_SPEED = 3.0

@@ -4,6 +4,7 @@ from scipy.signal import welch
 from scipy.interpolate import interp1d
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
+from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 
 
 def load_connectome(config, plotter=None):
@@ -449,7 +450,6 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
         simulator.print_summary_info_details(recursive=config.VERBOSE)
 
     # Serializing TVB cosimulator is necessary for parallel cosimulation:
-    from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
     from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
     sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
     sim_serial = serialize_tvb_cosimulator(simulator)
@@ -576,7 +576,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
     config = assert_config(config, return_plotter=False)
 
-    writer = False
+    # writer = False
     # if write_files:
     #     # If you want to see what the function above does, take the steps, one by one
     #     try:
@@ -607,16 +607,25 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
         source_ts.configure()
 
+        if write_files:
+            dump_pickled_dict({"time_series": source_ts.data[:, :, :, 0],
+                               "dimensions_labels": np.array(source_ts.labels_ordering)[:-1],
+                               "time": source_ts.time, "time_unit": source_ts.time_unit, "sampling_period": source_ts.sample_period,
+                               "state_variables": np.array(source_ts.variables_labels),
+                               "region_labels": np.array(source_ts.space_labels)},
+                               config.SOURCE_TS_PATH)
+
         outputs.append(source_ts)
 
         # t = source_ts.time
 
-        # Write to file
-        if writer:
-            writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
-                                                                            connectivity=source_ts.connectivity),
-                                   os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
-        # print("Raw ts:\n%s" % str(source_ts))
+        # # Write to file
+        # if writer:
+        #     writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
+        #                                                                     connectivity=source_ts.connectivity),
+        #                            os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
+        if config.VERBOSE > 1:
+            print("Raw ts:\n%s" % str(source_ts))
 
         if len(results) > 1:
             bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
