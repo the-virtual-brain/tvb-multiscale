@@ -47,7 +47,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
                                             transient=0.0, conn=None, nperseg=256, fmin=0.0, fmax=100.0,
                                             figsize=(15, 5)):
     n_regions = int(len(inds) / 2)
-    data = source_ts[transient:, 0, inds, 0].squeeze().T
+    data = source_ts[transient:, 0, inds].squeeze().T
     if conn is None:
         conn = source_ts.connectivity
     fs = 1000/source_ts.sample_period
