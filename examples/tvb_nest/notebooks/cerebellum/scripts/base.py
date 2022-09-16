@@ -66,9 +66,11 @@ def configure(**ARGS):
     inds_filepath = os.path.join(data_path, INDS_FILE)
     popa_freqs_path = os.path.join(data_path, 'PS_popa2013')
     cereb_scaffold_path = os.path.join(data_path, 'balanced_DCN_IO.hdf5')
-    outputs_path = os.path.join(work_path, "outputs/cwc")
+    outputs_path = os.path.join(work_path, "outputs")
     if len(args['output_folder']):
         outputs_path = os.path.join(outputs_path, args['output_folder'])
+    else:
+        outputs_path = os.path.join(outputs_path, "cwc")
     # # outputs_path += '_G%g' % G
     # # if STIMULUS:
     # #     outputs_path += "_Stim%g" % STIMULUS
