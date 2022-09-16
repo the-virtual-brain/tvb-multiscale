@@ -292,7 +292,7 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
         axes[0].hist(p[trg_inds], 30)
         axes[0].set_xlabel("Parameter values")
         axes[0].set_ylabel("Histogram of region counts")
-        axes[0].set_title("FICed parameter %s%s = %g (1 + Indegree scaler))" % (param, subtitle, pscalar))
+        axes[0].set_title("FICed parameter %s%s = %g + Indegree scaler)" % (param, subtitle, pscalar))
         fig.tight_layout()
     return p
 
