@@ -177,7 +177,10 @@ def load_posterior_samples_all_Gs(config=None):
     config = assert_config(config, return_plotter=False)
     samples = OrderedDict()
     for iG, G in enumerate(config.Gs):
-        samples[G] = load_posterior_samples(iG, config)
+        try:
+            samples[G] = load_posterior_samples(iG, config)
+        except Exception as e:
+            warnings.warn("Failed to load posterior samples for iG=%d, G=%g!\n%s" % (iG, G, str(e)))
     return samples
 
 
@@ -333,8 +336,8 @@ def plot_sbi_fit(config=None):
     def plot_parameter(ax, iP, pname, samples, is_last=False):
         for G, sg in samples.items():
             ax = plot_G(ax, sg, iP)
+        Gs = list(samples.keys())
         if is_last:
-            Gs = list(samples.keys())
             ax.set_xticks(Gs)
             ax.set_xticklabels(Gs)
             ax.set_xlabel("G")
