@@ -106,12 +106,19 @@ venv.bak/
 # IDE
 .idea/
 
-#tvb-nest outputs
-outputs/figs
-outputs/logs
-/examples/tvb_nest/outputs/
-/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/ConceptGraph.png
-/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/documented_notebook_example.ipynb
-/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/simulator_loop.png
-/docs/VirtualCourse_2020-01-07/outputs/
-/docs/VirtualCourse_2021-01-07/outputs/
+# Outputs
+*outputs*
+# outputs/figs
+# outputs/logs
+# /examples/tvb_nest/outputs/
+# /examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/ConceptGraph.png
+# /examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/documented_notebook_example.ipynb
+# /examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/simulator_loop.png
+# /docs/VirtualCourse_2020-01-07/outputs/
+# /docs/VirtualCourse_2021-01-07/outputs/
+
+# Trash
+.Trash-1000/
+
+# DS_Store
+*DS_Store*
