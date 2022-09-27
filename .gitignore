@@ -106,12 +106,44 @@ venv.bak/
 # IDE
 .idea/
 
-#tvb-nest outputs
-outputs/figs
-outputs/logs
-/examples/tvb_nest/outputs/
-/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/ConceptGraph.png
-/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/documented_notebook_example.ipynb
-/examples/tvb_nest/notebooks/reduced_wong_wang_exc_io_inh_i/simulator_loop.png
-/docs/VirtualCourse_2020-01-07/outputs/
-/docs/VirtualCourse_2021-01-07/outputs/
+#outputs
+*outputs*
+
+# Docs' drafts
+/docs/documented_example_notebooks/reduced_wong_wang_exc_io_inh_i_only_tvb.ipynb
+/docs/documented_example_notebooks/pics/NESTtoTVB_BG.png
+/docs/documented_example_notebooks/pics/Rate_BG.png
+
+# Examples' drafts
+/examples/tvb_annarchy/Untitled.ipynb
+
+# Annarchy build files
+**/annarchy*
+/examples/tvb_annarchy/notebooks/old_annarchy1/
+
+# pyDSTool files
+**/auto_temp*
+
+# Izhikevich mean field model files
+/examples/notebooks/Izhikevich_MF_model/
+
+# Cerebellum Rising-Net related data files
+/examples/data/cerebellum/
+/examples/tvb_nest/notebooks/cerebellum/working_files/
+/examples/tvb_nest/notebooks/cerebellum/working_files/olivocerebellum_balanced_nest3.py
+# CTWC package files
+/examples/tvb_nest/notebooks/cerebellum/ctwc-model-master
+
+# Basal ganglia DBS project related data files
+/examples/data/basal_ganglia/only_local/
+/examples/data/basal_ganglia/ANNarchyFittedModels.tar
+/examples/data/basal_ganglia/basal_ganglia_conn_incl_cortex.zip
+
+# HKB-NRP example notebook
+/examples/notebooks/HKB-TVB-NRP.ipynb
+
+# SBI logs
+**/sbi-logs*
+
+# Trash
+/.Trash-1000/
