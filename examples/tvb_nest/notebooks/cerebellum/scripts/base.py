@@ -23,9 +23,8 @@ from tvb.simulator.integrators import EulerStochastic
 DEFAULT_ARGS = {'G': 2.0, 'STIMULUS': 0.5,
                 'I_e': -0.25, 'I_s': 0.25,
                 'w_ie': -3.0, 'w_rs': -2.0,
-                'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
+                'CONN_LOG': True, 'FIC': 0, 'PRIORS_DIST': 'uniform',
                 'output_folder': '', 'verbose': 1, 'return_plotter': True}
-# tau_e=10/0.9, tau_i=10/0.9, tau_s=10/0.25, tau_r=10/0.25,
 
 
 def create_plotter(config):
@@ -107,8 +106,8 @@ def configure(**ARGS):
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 4000.0
-    config.TRANSIENT_RATIO = 1.0
+    config.SIMULATION_LENGTH = 2**11 + 1.0 # 10: 1025, 11: 2049.0, 12: 4097.0
+    config.TRANSIENT_RATIO = 0.5
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
     config.SOURCE_TS_PATH = os.path.join(config.out.FOLDER_RES, "source_ts.pkl")
@@ -168,23 +167,30 @@ def configure(**ARGS):
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
     config.Gs = np.array([0.1, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0])
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e', 'I_s', 'w_ie', 'w_rs']  # 'FIC', 'tau_e', 'tau_i', 'tau_s', 'tau_r']
-    #                    0.       1.     2.     3.      4.       5.        6.       7.        8.    9.0
-    #                 STIMULUS,  I_e,   I_s,  w_ie,   w_rs,      FIC     tau_e,  tau_i,   tau_s,   tau_r
-    # Uniform priors:
-    config.prior_min = [0.0,     -1.0,  -0.5, -10.0,   -5.0]  #   0.0,    1.0,    1.0,    1.0,     1.0]
-    config.prior_max = [1.0,      0.0,  0.5,    0.0,    0.0]  #   25.0,   20.0,   20.0,   80.0,     80.0]
-    # Normal priors:
-    config.prior_loc = [0.25,    -0.5,  0.25,  -5.0,  -2.5]  # ,  10.0,    10/0.9,  10/0.9, 10/0.25, 10/0.25]
-    config.prior_sc = [0.1,      0.25,  0.25,   2.5,  1.25]  # ,  5.0,     2.0,     2.0,    4.0,      4.0]
+    config.PRIORS_DEF = \
+        {"STIMULUS": {"min": 0.0, "max": 1.0, "loc": 0.5, "sc": 0.1},
+         "I_e": {"min": -1.0, "max": 0.0, "loc": -0.35, "sc": 0.1},
+         "I_s": {"min": -0.5, "max": 1.5, "loc": 0.5, "sc": 0.25},
+         "w_ie": {"min": -10.0, "max": 0.0, "loc": -5.0, "sc": 2.5},
+         "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
+         "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
+        }
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_s',]  # 'I_e', 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
-        config.prior_min.append(0.0)
-        config.prior_max.append(25.0)
-        config.prior_loc.append(10.0)
-        config.prior_sc.append(5.0)
-    config.n_priors = len(config.prior_min)
+    # Uniform priors:
+    config.prior_min = []
+    config.prior_max = []  
+    # Normal priors:
+    config.prior_loc = []  
+    config.prior_sc = []
+    for pname in config.PRIORS_PARAMS_NAMES:
+        config.prior_min.append(config.PRIORS_DEF[pname]['min'])
+        config.prior_max.append(config.PRIORS_DEF[pname]['max'])
+        config.prior_loc.append(config.PRIORS_DEF[pname]['loc'])
+        config.prior_sc.append(config.PRIORS_DEF[pname]['sc'])
+    config.n_priors = len(config.PRIORS_PARAMS_NAMES)
     config.SBI_FIT_PLOT_PATH = os.path.join(config.figures.FOLDER_FIGURES, "sbi_fit.%s" % config.figures.FIG_FORMAT)
 
     if config.VERBOSE:
