@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import numpy as np
 from scipy import signal
 from sklearn.decomposition import FastICA
@@ -45,9 +46,13 @@ def print_conn(d={}, prnt="", maxrow=200, printit=True):
 
 def compute_plot_selected_spectra_coherence(source_ts, inds,
                                             transient=0.0, conn=None, nperseg=256, fmin=0.0, fmax=100.0,
-                                            figsize=(15, 5)):
+                                            figsize=(15, 5), figures_path="", figname="", figformat="png"):
     n_regions = int(len(inds) / 2)
-    data = source_ts[transient:, 0, inds].squeeze().T
+    try:
+        data = source_ts[transient:, 0, inds].squeeze().T
+    except Exception as e:
+        print("[%g, %g]" % (source_ts.time.min(), source_ts.time.max()))
+        raise e
     if conn is None:
         conn = source_ts.connectivity
     fs = 1000/source_ts.sample_period
@@ -73,6 +78,8 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
         axes[ii, 1].legend()
     # plt.ylim([1e-7, 1e2])
     plt.show()
+    if len(figures_path) + len(figname):
+        plt.savefig(os.path.join(figures_path, figname + "_PSD.%s" % figformat))
 
     n_regions2 = int(n_regions * (n_regions - 1)/2)
     fig, axes = plt.subplots(n_regions2, 2, figsize=(figsize[0], figsize[1]*n_regions))
@@ -93,9 +100,6 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
                              label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
             axes[ii, 0].set_xlim([fmin, fmax])
             axes[ii, 0].set_ylim([fmin, 0.45])
-
-
-
             axes[ii, 0].set_xlabel('frequency [Hz]')
             axes[ii, 0].set_ylabel('Coherence')
             axes[ii, 0].legend()
@@ -109,6 +113,8 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
             axes[ii, 1].legend()
             ii += 1
     plt.show()
+    if len(figures_path) + len(figname):
+        plt.savefig(os.path.join(figures_path, figname + "_COH.%s" % figformat))
     return CxyR, fR, fL, CxyL
 
 
