@@ -208,7 +208,7 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
         raise Exception(exception)
     return posterior.sample((n_samples_per_run,), x=target)
 
-
+    
 def sbi_infer_for_iG(iG, config=None):
     tic = time.time()
     config = assert_config(config, return_plotter=False)
@@ -218,10 +218,12 @@ def sbi_infer_for_iG(iG, config=None):
         print("\n\nFitting for G = %g!\n" % G)
     # Load the target
     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
-    # Duplicate the target for the two M1 regions (right, left) and the two S1 barrel field regions (right, left)
-    #                                        right                       left
-    psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],
-                                    PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])
+    if G> 0.0:
+        # If this we are fitting for a connected network...
+        # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
+        #                                        right                       left
+        psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
+                                        PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]]) # S1
     priors, priors_samples, sim_res = load_priors_and_simulations_for_sbi(iG, config=config)
     n_samples = sim_res.shape[0]
     if priors_samples.shape[0] > n_samples:
