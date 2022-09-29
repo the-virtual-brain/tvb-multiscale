@@ -269,14 +269,23 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
     # Simulate TVB-NEST model
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config)
     if PSD_target is None:
-        # This is the PSD target we are trying to fit:
-        PSD_target = compute_target_PSDs(config, write_files=True, plotter=plotter)
-    # This is the PSD computed from our simulation results.
-    PSD = compute_data_PSDs(results[0], PSD_target, inds, transient, plotter=plotter)
+        # This is the PSD target we are trying to fit...
+        if config.model_params['G']:
+            # ...for a connected brain, i.e., PS of bilateral M1 and S1:
+            PSD_target = compute_target_PSDs_m1s1brl(config, write_files=True, plotter=plotter)
+        else:
+            # ...for a disconnected brain, average PS of all regions:
+            PSD_target = compute_target_PSDs_1D(config, write_files=True, plotter=plotter)
+    # This is the PSD computed from our simulation results...
+    if config.model_params['G']:
+        # ...for a connected brain, i.e., PS of bilateral M1 and S1:
+        PSD = compute_data_PSDs_m1s1brl(results[0], PSD_target, inds, transient, plotter=plotter)
+    else:
+        # ...for a disconnected brain, average PS of all regions:
+        PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
     # Plot results
     if config_args.get('plot_flag', True):
-        plot_tvb(transient, inds, results=results,
-                 source_ts=None, bold_ts=None, PSD_target=PSD_target, PSD=PSD,
+        plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return results, transient, simulator, nest_network, PSD
