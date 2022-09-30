@@ -147,9 +147,9 @@ def posterior_filepath(config, iG=None, iR=None, filepath=None, extension=None):
     if filepath is None or extension is None:
         filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.POSTERIOR_PATH))
     if iG is not None:
-        filepath += "_%02d" % iG
+        filepath += "_iG%02d" % iG
     if iR is not None:
-        filepath += "_%02d" % iR
+        filepath += "_iR%02d" % iR
     return "%s%s" % (filepath, extension)
 
 
