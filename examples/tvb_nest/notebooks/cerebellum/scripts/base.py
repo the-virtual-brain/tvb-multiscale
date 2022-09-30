@@ -193,7 +193,8 @@ def configure(**ARGS):
         config.prior_sc.append(config.PRIORS_DEF[pname]['sc'])
     config.n_priors = len(config.PRIORS_PARAMS_NAMES)
     config.SBI_FIT_PLOT_PATH = os.path.join(config.figures.FOLDER_FIGURES, "sbi_fit.%s" % config.figures.FIG_FORMAT)
-
+    config.OPT_RES_MODE = "map"  # or "mean"
+    
     if config.VERBOSE:
         print(config)
 
