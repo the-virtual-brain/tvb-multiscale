@@ -181,11 +181,12 @@ def write_posterior_samples(samples, map=None, iG=None, config=None):
         samples_fit['samples'] = []
         samples_fit['mean'] = []
         samples_fit['std'] = []
-        if map is not None:
-            samples_fit['map'] = map
+        samples_fit['map'] = []
     samples_fit['samples'].append(samples.numpy())
     samples_fit['mean'].append(samples.mean(axis=0).numpy())
     samples_fit['std'].append(samples.std(axis=0).numpy())
+    if map is not None:
+        samples_fit['map'].append(map.numpy())
     np.save(filepath, samples_fit, allow_pickle=True)
 
 
@@ -303,8 +304,10 @@ def sbi_infer_for_iG(iG, config=None):
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
         params[pname] = pval
-    # params.update(dict(zip(config.PRIORS_PARAMS_NAMES, posterior_samples.mean(axis=0).numpy())))
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, map.numpy())))
+    if config.OPT_RES_MODE == 'mean':
+        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, posterior_samples.mean(axis=0).numpy())))
+    else:
+        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, map.numpy())))
     fig, axes = analysis.pairplot(posterior_samples,
                                   limits=limits,
                                   ticks=limits,
@@ -337,24 +340,28 @@ def plot_sbi_fit(config=None):
     RUNS_COLOR = 'k'
     LAST_RUN_COLOR = 'r'
     SAMPLES_MARKER_SIZE = 0.1
-    MARKER = 'o'
+    MARKER_MEAN = 'o'
+    MARKER_MAP = 'x'
     MARKER_SIZE = 5.0
     SAMPLES_ALPHA = 0.1
     RUNS_ALPHA = 0.5
     PLOT_RUNS = True
     PLOT_SAMPLES = True
 
-    def plot_run(ax, G, mean, std, samples=None, is_last=False):
+    def plot_run(ax, G, map, mean, std, samples=None, is_last=False):
         color = RUNS_COLOR
         alpha = 1.0
         if is_last:
             color = LAST_RUN_COLOR
             alpha = RUNS_ALPHA
         if samples is not None:
-            ax.plot([G] * len(samples), samples, marker=MARKER,
+            ax.plot([G] * len(samples), samples, marker=MARKER_MEAN,
                     markersize=SAMPLES_MARKER_SIZE, markeredgecolor=color, markerfacecolor=color,
                     linestyle='None', alpha=SAMPLES_ALPHA)
-        ax.plot(G, mean, marker=MARKER,
+        ax.plot(G, mean, marker=MARKER_MEAN,
+                markersize=MARKER_SIZE, markeredgecolor=color, markerfacecolor=color,
+                linestyle='None', alpha=alpha)
+        ax.plot(G, map, marker=MARKER_MAP,
                 markersize=MARKER_SIZE, markeredgecolor=color, markerfacecolor=color,
                 linestyle='None', alpha=alpha)
         ax.plot([G] * 2, [mean - std, mean + std], color=color, linestyle='-', linewidth=1, alpha=alpha)
@@ -367,7 +374,7 @@ def plot_sbi_fit(config=None):
         else:
             iR = n_runs - 1
         for iR in range(iR_start, n_runs):
-            ax = plot_run(ax, samples['G'], samples['mean'][iR][iP], samples['std'][iR][iP],
+            ax = plot_run(ax, samples['G'], samples['map'][iR][iP], samples['mean'][iR][iP], samples['std'][iR][iP],
                           samples=samples['samples'][iR][:, iP] if PLOT_SAMPLES else None, is_last=iR == n_runs - 1)
         return ax
 
@@ -414,7 +421,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
     params = dict(config.model_params)
     params['G'] = G
     # Set the posterior means of the parameters:
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit['mean'][iR]):
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR]):
         if pname == "FIC":
             config.FIC = pval
         else:
