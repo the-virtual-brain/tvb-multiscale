@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import warnings
+import pickle
 import torch
 from sbi.inference.base import infer, prepare_for_sbi, simulate_for_sbi
 from sbi.inference import SNPE
@@ -140,6 +141,18 @@ def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=Non
     return priors, priors_samples, sim_res
 
 
+def posterior_filepath(config, iG=None, iR=None, filepath=None, extension=None):
+    if iG is None and iR is None:
+        return str(config.POSTERIOR_PATH)
+    if filepath is None or extension is None:
+        filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.POSTERIOR_PATH))
+    if iG is not None:
+        filepath += "_%02d" % iG
+    if iR is not None:
+        filepath += "_%02d" % iR
+    return "%s%s" % (filepath, extension)
+
+
 def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
     if iG is None:
         return config.POSTERIOR_SAMPLES_PATH
@@ -149,7 +162,14 @@ def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
     return "%s_iG%02d%s" % (filepath, iG, extension)
 
 
-def write_posterior_samples(samples, iG=None, config=None):
+def write_posterior(posterior, iG=None, iR=None, config=None):
+    config = assert_config(config, return_plotter=False)
+    filepath = posterior_filepath(config, iG, iR)
+    with open(filepath, "wb") as handle:
+        pickle.dump(posterior, handle)
+
+
+def write_posterior_samples(samples, map=None, iG=None, config=None):
     config = assert_config(config, return_plotter=False)
     filepath = posterior_samples_filepath(config, iG)
     if os.path.isfile(filepath):
@@ -161,13 +181,23 @@ def write_posterior_samples(samples, iG=None, config=None):
         samples_fit['samples'] = []
         samples_fit['mean'] = []
         samples_fit['std'] = []
+        if map is not None:
+            samples_fit['map'] = map
     samples_fit['samples'].append(samples.numpy())
     samples_fit['mean'].append(samples.mean(axis=0).numpy())
     samples_fit['std'].append(samples.std(axis=0).numpy())
     np.save(filepath, samples_fit, allow_pickle=True)
 
 
-def load_posterior_samples(iG, config=None):
+def load_posterior(iG=None, iR=None, config=None):
+    config = assert_config(config, return_plotter=False)
+    filepath = posterior_filepath(config, iG, iR)
+    with open(filepath, "rb") as handle:
+        posterior = pickle.load(handle)
+    return posterior
+
+
+def load_posterior_samples(iG=None, config=None):
     config = assert_config(config, return_plotter=False)
     filepath = posterior_samples_filepath(config, iG)
     return np.load(filepath, allow_pickle=True).item()
@@ -206,7 +236,8 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
             keep_building += 1
     if posterior is None:
         raise Exception(exception)
-    return posterior.sample((n_samples_per_run,), x=target)
+    posterior.set_default_x(target)
+    return posterior, posterior.sample((n_samples_per_run,)), posterior.map()
 
     
 def sbi_infer_for_iG(iG, config=None):
@@ -222,8 +253,10 @@ def sbi_infer_for_iG(iG, config=None):
         # If this we are fitting for a connected network...
         # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
         #                                        right                       left
-        psd_targ_conc = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
-                                        PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]]) # S1
+        psd_targ = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
+                                   PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]]) # S1
+    else:
+        psd_targ = PSD_target['PSD_target']
     priors, priors_samples, sim_res = load_priors_and_simulations_for_sbi(iG, config=config)
     n_samples = sim_res.shape[0]
     if priors_samples.shape[0] > n_samples:
@@ -239,10 +272,11 @@ def sbi_infer_for_iG(iG, config=None):
         # Choose a subsample of the whole set of samples:
         sampl_inds = random.sample(all_inds, n_train_samples)
         # Train the network, build the posterior and sample it:
-        posterior_samples = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
-                                      config.N_SAMPLES_PER_RUN, psd_targ_conc, config.VERBOSE)
-        # Write samples to file:
-        write_posterior_samples(posterior_samples, iG, config)
+        posterior, posterior_samples, map = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
+                                                      config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
+        # Write posterior and samples to files:
+        write_posterior(posterior, iG, iR, config)
+        write_posterior_samples(posterior_samples, map, iG, config)
         if config.VERBOSE:
             print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
 
@@ -251,10 +285,11 @@ def sbi_infer_for_iG(iG, config=None):
         print("\n\nFitting with all samples!..\n")
     ticR = time.time()
     # Train the network, build the posterior and sample it:
-    posterior_samples = sbi_infer(priors, priors_samples[:n_samples], sim_res,
-                                  config.N_SAMPLES_PER_RUN, psd_targ_conc, config.VERBOSE)
-    # Write samples to file:
-    write_posterior_samples(posterior_samples, iG, config)
+    posterior, posterior_samples, map = sbi_infer(priors, priors_samples[:n_samples], sim_res,
+                                                  config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
+    # Write posterior and samples to files:
+    write_posterior(posterior, iG, iR=None, config=config)
+    write_posterior_samples(posterior_samples, map, iG, config)
     if config.VERBOSE:
         print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
@@ -268,7 +303,8 @@ def sbi_infer_for_iG(iG, config=None):
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
         params[pname] = pval
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, posterior_samples.mean(axis=0).numpy())))
+    # params.update(dict(zip(config.PRIORS_PARAMS_NAMES, posterior_samples.mean(axis=0).numpy())))
+    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, map.numpy())))
     fig, axes = analysis.pairplot(posterior_samples,
                                   limits=limits,
                                   ticks=limits,
