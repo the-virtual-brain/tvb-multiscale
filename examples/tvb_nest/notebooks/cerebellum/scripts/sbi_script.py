@@ -8,6 +8,8 @@ from sbi.inference import SNPE
 from sbi import utils as utils
 from sbi import analysis as analysis
 
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import run_workflow
 
@@ -392,8 +394,9 @@ def plot_sbi_fit(config=None):
     config = assert_config(config)
     samples = load_posterior_samples_all_Gs(config)
     fig, axes = plt.subplots(config.n_priors, 1, figsize=(FIGWIDTH, FIGHEIGHT_PER_PRIOR * config.n_priors))
+    axes = ensure_list(axes)
     for iP, ax in enumerate(axes):
-        axes[iP] = plot_parameter(axes[iP], iP, config.PRIORS_PARAMS_NAMES[iP], samples,
+        axes[iP] = plot_parameter(ax, iP, config.PRIORS_PARAMS_NAMES[iP], samples,
                                   is_last=iP == config.n_priors - 1)
     fig.tight_layout()
     if config.figures.SHOW_FLAG:
