@@ -517,9 +517,11 @@ def compute_target_PSDs_1D(config, write_files=True, plotter=None):
     if plotter:
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
         axes[0].plot(config.TARGET_FREQS, psd_target, "k")
+        axes[0].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[0].set_ylabel('PS')
         axes[0].set_title('Target average of M1 and S1 PS')
         axes[1].semilogy(config.TARGET_FREQS, psd_target, "k")
+        axes[1].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
     return PSD_target
@@ -537,11 +539,13 @@ def compute_target_PSDs_m1s1brl(config, write_files=True, plotter=None):
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
         axes[0].plot(config.TARGET_FREQS, psd_m1_target, "b", label='M1')
         axes[0].plot(config.TARGET_FREQS, psd_s1_target, "g", label='S1')
+        axes[0].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[0].set_ylabel('PS')
         axes[0].set_title('Target M1 and S1 PS')
         axes[0].legend()
         axes[1].semilogy(config.TARGET_FREQS, psd_m1_target, "b", label='M1')
         axes[1].semilogy(config.TARGET_FREQS, psd_s1_target, "g", label='S1')
+        axes[1].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
 
@@ -600,10 +604,12 @@ def compute_data_PSDs_1D(raw_results, PSD_target, inds, transient=None, write_fi
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
         axes[0].plot(ftarg, PSD_target['PSD_target'], "k", label='Target')
         axes[0].plot(ftarg, Pxx_den, "r", label='Cortical average')
+        axes[0].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[0].set_ylabel('PS')
         axes[0].legend()
         axes[1].semilogy(ftarg, PSD_target['PSD_target'], "k", label='Target')
         axes[1].semilogy(ftarg, Pxx_den, "r", label='Cortical average')
+        axes[1].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
 
