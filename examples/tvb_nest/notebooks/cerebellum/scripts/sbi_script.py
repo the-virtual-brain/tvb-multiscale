@@ -423,9 +423,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
     # Get the default values for the parameter except for G
     params = dict(config.model_params)
     params['G'] = G
-    # Set the posterior means of the parameters:
-    if config.VERBOSE:
-        print("Simulating using the estimate of the %s of the parameters' posterior distribution!" % config.OPT_RES_MODE)
+    # Set the posterior means or maps of the parameters:        
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR]):
         if pname == "FIC":
             config.FIC = pval
@@ -434,7 +432,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
 
     # Run one simulation with the posterior means:
     if config.VERBOSE:
-        print("\nSimulating with posterior means...")
+        print("Simulating using the estimate of the %s of the parameters' posterior distribution!" % config.OPT_RES_MODE)
         print("params =\n", params)
     if workflow_fun is None:
         workflow_fun = run_workflow
