@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 0.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.5,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 0, 'PRIORS_DIST': 'uniform',
-                'output_folder': 'cwc1D_STIM', 'verbose': 1, 'return_plotter': True}
+                'output_folder': 'cwc1D_STIM2', 'verbose': 1, 'return_plotter': True}
 
 
 def create_plotter(config):
@@ -106,8 +106,8 @@ def configure(**ARGS):
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 2**11 + 1.0 # 10: 1025, 11: 2049.0, 12: 4097.0
-    config.TRANSIENT_RATIO = 0.5
+    config.SIMULATION_LENGTH = 2**12 + 1.0 # 10: 1025, 11: 2049.0, 12: 4097.0
+    config.TRANSIENT_RATIO = 0.25
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
     config.SOURCE_TS_PATH = os.path.join(config.out.FOLDER_RES, "source_ts.pkl")
