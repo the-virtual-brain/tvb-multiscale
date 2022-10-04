@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    environment {
+        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest3'
+        TVB_BRANCH = 'tvb-cosim-consensus-dp'
+        MULTISCALE_BRANCH = 'parallelNEST31'
+    }
+
+    stages {
+        stage('Build and push docker image on docker hub'){
+            steps {
+                script {
+                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root/commits?sha=${TVB_BRANCH}' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits?sha=${MULTISCALE_BRANCH}' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    LAST_SHA_MULTISCALE_DEPLOY = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits?sha=openshift_deploy' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    VERSION_TAG = "dev-'${LAST_SHA_MULTISCALE}'-'${LAST_SHA_MULTISCALE_DEPLOY}'"
+                    withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
+                        def dockerfile = 'docker/hbp_deploy/Dockerfile-dev-branch'
+                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}", "--build-arg LAST_SHA_TVB='${LAST_SHA_TVB}' --build-arg LAST_SHA_MULTISCALE='${LAST_SHA_MULTISCALE}' -f ${dockerfile} .")
+                        dockerImage.push()
+                        dockerImage.push('dev-latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        changed {
+            mail to: 'paula.prodan@codemart.ro',
+            subject: "Jenkins Pipeline ${currentBuild.fullDisplayName} changed status",
+            body: """
+                Result: ${currentBuild.result}
+                Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'
+                Check console output at ${env.BUILD_URL}"""
+        }
+
+        success {
+            echo 'Build finished successfully'
+        }
+    }
+}
