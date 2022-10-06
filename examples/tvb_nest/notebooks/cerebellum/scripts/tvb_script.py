@@ -162,10 +162,10 @@ def build_connectivity(connectome, inds, config):
     # from spinal nucleus of the trigeminal to S1 barrel field specific thalamus:
     w_s1brlthal_trigeminal = connectivity.weights[inds["s1brlthal"], inds["trigeminal"]].copy()
     # from interposed nucleus to M1:
-    w_m1thal_cerebnuclei = connectivity.weights[inds["m1thal"], inds["trigeminal"]].copy()
+    w_m1thal_cerebnuclei = connectivity.weights[inds["m1thal"], inds["interposed"]].copy()
     connectivity.weights[inds["thalspec"][:, None], inds["subcrtx_not_thalspec"][None, :]] = 0.0
     connectivity.weights[inds["s1brlthal"], inds["trigeminal"]] = w_s1brlthal_trigeminal
-    connectivity.weights[inds["m1thal"], inds["trigeminal"]] = w_m1thal_cerebnuclei
+    connectivity.weights[inds["m1thal"], inds["interposed"]] = w_m1thal_cerebnuclei
 
     # Homogenize crtx <-> subcrtx connnectivity
     # connectivity.weights[inds["crtx"][:, None], inds["subcrtx_not_thalspec"][None, :]] *= 0.0 # 0.0 # 0.02
