@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 0.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.5,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 0, 'PRIORS_DIST': 'uniform',
-                'output_folder': 'cwc_STIM_Is_Wie', 'verbose': 1, 'return_plotter': False}
+                'output_folder': 'cwc_STIM_Is_Wie', 'verbose': 1, 'plot_flag': False}
 
 
 def create_plotter(config):
@@ -236,7 +236,7 @@ def args_parser(funname, args=DEFAULT_ARGS):
                  'output_folder': ['o', str, 'Output folder name'],
                  'verbose': ['v', int,
                              'Integer flag to print output messages (when > 0) or not (when == 0). Default = 1.0'],
-                 'return_plotter': ['plot', bool, 'Boolean flag to plot or not']
+                 'plot_flag': ['pf', bool, 'Boolean flag to plot or not']
                  }
     parser = argparse.ArgumentParser(description='%s.py' % funname)
     for arg, vals in arguments.items():
