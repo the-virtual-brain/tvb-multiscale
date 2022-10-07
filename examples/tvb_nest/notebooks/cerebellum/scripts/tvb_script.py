@@ -848,7 +848,8 @@ def plot_tvb(transient, inds,
     CxyR, fR, fL, CxyL = \
         compute_plot_selected_spectra_coherence(source_ts, inds["m1s1brl"],
                                                 transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
-                                                figures_path=config.figures.FOLDER_FIGURES, figname="M1_S1brl", figformat="png")
+                                                figures_path=config.figures.FOLDER_FIGURES, figname="M1_S1brl", figformat="png",
+                                                show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
     if write_files:
         import pickle
         with open('coherence_MF_cerebON_2sec.pickle', 'wb') as handle:
@@ -858,7 +859,8 @@ def plot_tvb(transient, inds,
     # for Medulla SPV, Sensory PONS
     compute_plot_selected_spectra_coherence(source_ts, inds["sens"],
                                             transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
-                                            figures_path=config.figures.FOLDER_FIGURES, figname="SPV_PonsSens", figformat="png")
+                                            figures_path=config.figures.FOLDER_FIGURES, figname="SPV_PonsSens", figformat="png",
+                                            show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
 
     # Better summary figure:
     import matplotlib.pyplot as plt
