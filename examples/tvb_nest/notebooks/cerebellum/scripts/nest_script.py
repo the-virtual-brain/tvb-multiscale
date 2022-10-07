@@ -600,11 +600,18 @@ def plot_nest_results(nest_network, neuron_models, neuron_number, config):
     fig_raster.update_xaxes(range=[0, config.SIMULATION_LENGTH * 1.1])
     fig_psth.update_layout(showlegend=False)
     fig_raster.update_layout(showlegend=False)
-    fig_psth.show()
-    fig_raster.show()
-    # TODO: Find a way to write figures without kaleido!!!
-    # fig_psth.write_image("images/snn_psth_whisking.svg")
-    # fig_raster.write_image("images/snn_raster_whisking.svg")
+    if config.figures.SAVE_FLAG:
+            plt.figure(fig_psth)
+            plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "NESTpsth.%s" % config.figures.FIG_FORMAT))
+            plt.figure(fig_raster)
+            plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "NESTraster.%s" % config.figures.FIG_FORMAT))
+    if config.figures.SHOW_FLAG:
+        fig_psth.show()
+        fig_raster.show()
+    else:
+        plt.close(fig_psth)
+        plt.close(fig_raster)
+    return fig_psth, fig_raster
 
 
 def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number={}):
@@ -620,8 +627,8 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
 
 def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
     # Get configuration
-    config_args['return_plotter'] = False  # because it is too slow...
-    config, plotter = assert_config(config, **config_args)
+    config, plotter = assert_config(config, return_plotter=False, # because it is too slow...
+                                   **config_args)  
     config.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)

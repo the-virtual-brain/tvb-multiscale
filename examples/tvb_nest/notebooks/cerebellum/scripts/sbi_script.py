@@ -114,7 +114,7 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
         if config.VERBOSE:
             print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS+1, n_simulations, iG, iB))
             print("Simulating for parameters:\n%s" % str(priors_params))
-        sim_res.append(run_workflow(model_params=priors_params, config=config, return_plotter=False)[0])
+        sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False)[0])
         if write_to_file:
             write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config)
     return sim_res
@@ -326,7 +326,7 @@ def sbi_infer_for_iG(iG, config=None):
     #   print("params =\n", params)
     # model_params = {"G": G}
     # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, model_params=model_params,
-    #                                                       config=config, return_plotter=True,
+    #                                                       config=config,
     #                                                       output_folder="G_%g" % G, **params)
 
     if config.VERBOSE:
@@ -438,7 +438,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
         workflow_fun = run_workflow
     # Specify other parameters or overwrite some:
     params.update(model_params)
-    outputs = workflow_fun(return_plotter=True, model_params=params, config=config, output_folder="G_%g" % params['G'])
+    outputs = workflow_fun(plot_flag=True, model_params=params, config=config, output_folder="G_%g" % params['G'])
     outputs = outputs + (samples_fit, )
     return outputs
 

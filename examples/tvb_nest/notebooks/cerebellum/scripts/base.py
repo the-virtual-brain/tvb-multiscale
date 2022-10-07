@@ -29,11 +29,11 @@ DEFAULT_ARGS = {'G': 0.0, 'STIMULUS': 0.5,
 
 def create_plotter(config):
     from tvb_multiscale.core.plot.plotter import Plotter
-    plotter = Plotter(config.figures)
     config.figures.SHOW_FLAG = True
     config.figures.SAVE_FLAG = True
     config.figures.FIG_FORMAT = 'png'
     config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
+    plotter = Plotter(config.figures)
     return config, plotter
 
 
@@ -92,7 +92,7 @@ def configure(**ARGS):
 
     config.VERBOSE = args['verbose']
 
-    if args['return_plotter']:
+    if args['plot_flag']:
         config, plotter = create_plotter(config)
     else:
         plotter = None
@@ -127,8 +127,7 @@ def configure(**ARGS):
     config.CONN_CEIL = False
 
     # Model parameters
-
-    config.STIMULUS_RATE = 6.0  # Hz
+    config.STIMULUS_RATE = 8.0  # Hz
 
     config.model_params = OrderedDict()
     config.model_params['G'] = args['G']
@@ -176,7 +175,7 @@ def configure(**ARGS):
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
         }
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'w_ie']  # 'I_e', 'I_s', 'w_rs', 'FIC',
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_s', 'w_ie']  # 'I_e', 'I_s', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")

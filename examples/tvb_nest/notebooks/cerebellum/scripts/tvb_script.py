@@ -8,7 +8,7 @@ from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 
 
-def load_connectome(config, plotter=None):
+def load_connectome(config):
     import h5py
     connectome = {}
     f = h5py.File(config.BRAIN_CONN_FILE)
@@ -86,8 +86,12 @@ def plot_norm_w_hist(w, wp, inds, plotter_config, title_string=""):
     plt.legend()
     plt.ylim([0.0, h.max()])
     plt.tight_layout()
-    plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "%sWeightsHistogram.png" % title_string))
-    fig.show()
+    if plotter_config.SAVE_FLAG:
+        plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "%sWeightsHistogram.png" % title_string))
+    if plotter_config.SHOW_FLAG:
+        fig.show()
+    else:
+        plt.close(fig)
     return fig
 
 
@@ -112,7 +116,7 @@ def logprocess_weights(connectome, inds, verbose=1, plotter=None):
 
 def prepare_connectome(config, plotter=None):
     # Load connectome and other structural files
-    connectome, major_structs_labels, voxel_count, inds = load_connectome(config, plotter=plotter)
+    connectome, major_structs_labels, voxel_count, inds = load_connectome(config)
     # Construct some more indices and maps
     inds, maps = construct_extra_inds_and_maps(connectome, inds)
     if config.CONN_LOG:
@@ -279,13 +283,14 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
 
     try:
         assert np.all(np.argsort(indegree) == np.argsort(-p[trg_inds]))  # the orderings should reverse
-    except:
-        plt.figure()
+    except Exception as e:
+        fig = plt.figure()
         plt.plot(indegree, p[trg_inds], "-o")
         plt.xlabel("%g*indegree" % FIC)
         plt.ylabel("%s scaled" % param)
         plt.title("Testing indegree and parameter anti-correlation")
         plt.tight_layout()
+        raise e
 
     # Plot and confirm:
     if plotter:
@@ -299,6 +304,12 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
         axes[0].set_ylabel("Histogram of region counts")
         axes[0].set_title("FICed parameter %s%s = %g + Indegree scaler)" % (param, subtitle, pscalar))
         fig.tight_layout()
+        if plotter.config.SAVE_FLAG:
+            plt.savefig(os.path.join(plotter.config.FOLDER_FIGURES, "FIC.png"))
+        if plotter.config.SHOW_FLAG:
+            plt.show()
+        else:
+            plt.close(fig)
     return p
 
 
@@ -524,6 +535,12 @@ def compute_target_PSDs_1D(config, write_files=True, plotter=None):
         axes[1].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
+        if plotter.config.SAVE_FLAG:
+            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "TargetPSD1D.png"))
+        if plotter.config.SHOW_FLAG:
+            plt.show()
+        else:
+            plt.close(fig) 
     return PSD_target
 
 
@@ -548,7 +565,12 @@ def compute_target_PSDs_m1s1brl(config, write_files=True, plotter=None):
         axes[1].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
-
+        if plotter.config.SAVE_FLAG:
+            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "TargetPSDm1s1brl.png"))
+        if plotter.config.SHOW_FLAG:
+            plt.show()
+        else:
+            plt.close(fig)
     return PSD_target
 
 
@@ -612,7 +634,12 @@ def compute_data_PSDs_1D(raw_results, PSD_target, inds, transient=None, write_fi
         axes[1].set_xticks([6.0, 10.0, 20.0, 30.0, 40.0])
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
-
+        if plotter.config.SAVE_FLAG:
+            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "DataVSTargetPSD1D.png"))
+        if plotter.config.SHOW_FLAG:
+            plt.show()
+        else:
+            plt.close(fig)
     # if write_files:
     #     np.save
     return Pxx_den
@@ -642,7 +669,12 @@ def compute_data_PSDs_m1s1brl(raw_results, PSD_target, inds, transient=None, wri
         axes[1].semilogy(ftarg, Pxx_den[3], "g-.", label='S1 left')
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
-
+        if plotter.config.SAVE_FLAG:
+            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "DataVSTargetPSDm1s1brl.png"))
+        if plotter.config.SHOW_FLAG:
+            plt.show()
+        else:
+            plt.close(fig)
     # if write_files:
     #     np.save
     return Pxx_den.flatten()
@@ -862,7 +894,10 @@ def plot_tvb(transient, inds,
     fig.tight_layout()
     if config.figures.SAVE_FLAG:
         plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
-
+    if plotter.config.SHOW_FLAG:
+        plt.show()
+    else:
+        plt.close(fig)
 
 def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
     # Get configuration
