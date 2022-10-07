@@ -382,17 +382,17 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     # wp = simulator.connectivity.weights > 0
     # h2, bins = np.histogram(simulator.connectivity.weights[wp].flatten(), range=(0.0, 1.25), bins=100)
 
-    # if plot_flag:
-    # x = bins[:-1] + np.diff(bins)/2
-    # plt.figure(figsize=(10, 5))
-    # plt.plot(x, h1, 'b', label='All connections before downscaling')
-    # plt.plot(x, h2, 'b--', label='All connections after downscaling')
-    # plt.plot(x, h_sub1, 'r', label='Subcortical connections before downscaling')
-    # plt.plot(x, h_sub2, 'r--', label='Subcortical connections after downscaling')
-    # plt.title("Histogram of logtransformed connectome weights\nwith downscaling connections")
-    # plt.legend()
-    # plt.ylim([0.0, h1.max()])
-    # plt.tight_layout()
+    # if plotter is not None:
+        # x = bins[:-1] + np.diff(bins)/2
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(x, h1, 'b', label='All connections before downscaling')
+        # plt.plot(x, h2, 'b--', label='All connections after downscaling')
+        # plt.plot(x, h_sub1, 'r', label='Subcortical connections before downscaling')
+        # plt.plot(x, h_sub2, 'r--', label='Subcortical connections after downscaling')
+        # plt.title("Histogram of logtransformed connectome weights\nwith downscaling connections")
+        # plt.legend()
+        # plt.ylim([0.0, h1.max()])
+        # plt.tight_layout()
 
     simulator.coupling = SigmoidalPreThalamoCortical(
         is_thalamic=maps['is_thalamic'],
@@ -892,7 +892,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
     else:
         # ...for a disconnected brain, average PS of all regions:
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
-    if config_args.get('plot_flag', True):
+    if plotter is not None:
         plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)
         return PSD, results, simulator, config

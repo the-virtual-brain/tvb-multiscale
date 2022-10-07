@@ -620,8 +620,8 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
 
 def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
     # Get configuration
-    config_args['plot_flag'] = False  # because it is too slow...
-    config, plotter = assert_config(config, return_plotter=True, **config_args)
+    config_args['return_plotter'] = False  # because it is too slow...
+    config, plotter = assert_config(config, **config_args)
     config.model_params.update(model_params)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
@@ -637,7 +637,7 @@ def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_ar
     # Simulate the NEST network
     nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number)
     # Plot results
-    if config_args.get('plot_flag', True):
+    if plotter is not None:
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
     return nest_network
 

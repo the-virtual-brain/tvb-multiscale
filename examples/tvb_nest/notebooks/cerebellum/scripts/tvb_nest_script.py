@@ -284,7 +284,7 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
         # ...for a disconnected brain, average PS of all regions:
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
     # Plot results
-    if config_args.get('plot_flag', True):
+    if plotter is not None:
         plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
                  simulator=simulator, plotter=plotter, config=config, write_files=True)
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
