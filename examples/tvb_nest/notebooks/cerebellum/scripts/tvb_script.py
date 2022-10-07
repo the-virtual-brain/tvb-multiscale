@@ -290,7 +290,8 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
         plt.ylabel("%s scaled" % param)
         plt.title("Testing indegree and parameter anti-correlation")
         plt.tight_layout()
-        raise e
+        warnings.warn(e)
+        # raise e
 
     # Plot and confirm:
     if plotter:
