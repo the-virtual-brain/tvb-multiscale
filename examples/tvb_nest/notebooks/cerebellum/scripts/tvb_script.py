@@ -536,7 +536,7 @@ def compute_target_PSDs_1D(config, write_files=True, plotter=None):
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
         if plotter.config.SAVE_FLAG:
-            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "TargetPSD1D.png"))
+            plt.savefig(os.path.join(plotter.config.FOLDER_FIGURES, "TargetPSD1D.png"))
         if plotter.config.SHOW_FLAG:
             plt.show()
         else:
@@ -566,7 +566,7 @@ def compute_target_PSDs_m1s1brl(config, write_files=True, plotter=None):
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
         if plotter.config.SAVE_FLAG:
-            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "TargetPSDm1s1brl.png"))
+            plt.savefig(os.path.join(plotter.config.FOLDER_FIGURES, "TargetPSDm1s1brl.png"))
         if plotter.config.SHOW_FLAG:
             plt.show()
         else:
@@ -635,7 +635,7 @@ def compute_data_PSDs_1D(raw_results, PSD_target, inds, transient=None, write_fi
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
         if plotter.config.SAVE_FLAG:
-            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "DataVSTargetPSD1D.png"))
+            plt.savefig(os.path.join(plotter.config.FOLDER_FIGURES, "DataVSTargetPSD1D.png"))
         if plotter.config.SHOW_FLAG:
             plt.show()
         else:
@@ -670,7 +670,7 @@ def compute_data_PSDs_m1s1brl(raw_results, PSD_target, inds, transient=None, wri
         axes[1].set_xlabel('Frequency (Hz)')
         axes[1].set_ylabel('log(PS)')
         if plotter.config.SAVE_FLAG:
-            plt.savefig(os.path.join(plotter_config.FOLDER_FIGURES, "DataVSTargetPSDm1s1brl.png"))
+            plt.savefig(os.path.join(plotter.config.FOLDER_FIGURES, "DataVSTargetPSDm1s1brl.png"))
         if plotter.config.SHOW_FLAG:
             plt.show()
         else:
