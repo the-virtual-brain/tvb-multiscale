@@ -170,7 +170,7 @@ def configure(**ARGS):
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": 0.0, "max": 1.0, "loc": 0.5, "sc": 0.1},
          "I_e": {"min": -1.0, "max": 0.0, "loc": -0.35, "sc": 0.1},
-         "I_s": {"min": -0.5, "max": 0.5, "loc": 0.5, "sc": 0.25},
+         "I_s": {"min": -0.5, "max": 0.5, "loc": 0.0, "sc": 0.15},
          "w_ie": {"min": -10.0, "max": 0.0, "loc": -5.0, "sc": 2.5},
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
