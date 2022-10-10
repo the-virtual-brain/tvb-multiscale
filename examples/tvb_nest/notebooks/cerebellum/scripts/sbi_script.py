@@ -334,7 +334,7 @@ def sbi_infer_for_iG(iG, config=None):
         print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
     # Plot posterior:
-    plot_infer_for_IG(iG, samples_fit, config);
+    plot_infer_for_iG(iG, samples_fit, config);
 
     if config.VERBOSE:
         print("\n\nFinished after %g sec!" % (time.time() - tic))
