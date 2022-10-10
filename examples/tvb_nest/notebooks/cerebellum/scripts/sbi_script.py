@@ -190,6 +190,7 @@ def write_posterior_samples(samples, map=None, iG=None, config=None):
     if map is not None:
         samples_fit['map'].append(map.numpy())
     np.save(filepath, samples_fit, allow_pickle=True)
+    return samples_fit
 
 
 def load_posterior(iG=None, iR=None, config=None):
@@ -243,6 +244,42 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
     return posterior, posterior.sample((n_samples_per_run,)), posterior.map()
 
     
+def plot_infer_for_iG(iG, iR=None, samples=None, config=None):
+    config = assert_config(config, return_plotter=False)
+    if samples is None:
+        samples = load_posterior_samples(iG, config)
+    if iR is None:
+        iR = -1
+    # Get the default values for the parameter except for G
+    params = OrderedDict()
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
+        params[pname] = pval
+    if config.OPT_RES_MODE == 'mean':
+        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples['mean'][-1])))
+    else:
+        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples['map'][-1])))
+    limits = []
+    for pmin, pmax in zip(config.prior_min, config.prior_max):
+        limits.append([pmin, pmax])
+    if config.VERBOSE:
+        print("\nPlotting posterior for G[%d]=%g..." % (iG, samples['G']))
+    fig, axes = analysis.pairplot(samples['samples'][-1],
+                                  limits=limits,
+                                  ticks=limits,
+                                  figsize=(10, 10),
+                                  labels=config.PRIORS_PARAMS_NAMES,
+                                  points=np.array(list(params.values())),
+                                  points_offdiag={'markersize': 6},
+                                  points_colors=['r'] * config.n_priors)
+    if config.figures.SAVE_FLAG:
+        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_G%g.png' % samples ['G']))
+    if config.figures.SHOW_FLAG:
+        plt.show()
+    else:
+        plt.close(fig)
+    return fig, axes
+
+
 def sbi_infer_for_iG(iG, config=None):
     tic = time.time()
     config = assert_config(config, return_plotter=False)
@@ -279,7 +316,7 @@ def sbi_infer_for_iG(iG, config=None):
                                                       config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
         # Write posterior and samples to files:
         write_posterior(posterior, iG, iR, config)
-        write_posterior_samples(posterior_samples, map, iG, config)
+        samples_fit = write_posterior_samples(posterior_samples, map, iG, config)
         if config.VERBOSE:
             print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
 
@@ -292,42 +329,12 @@ def sbi_infer_for_iG(iG, config=None):
                                                   config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
     # Write posterior and samples to files:
     write_posterior(posterior, iG, iR=None, config=config)
-    write_posterior_samples(posterior_samples, map, iG, config)
+    samples_fit = write_posterior_samples(posterior_samples, map, iG, config)
     if config.VERBOSE:
         print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
     # Plot posterior:
-    if config.VERBOSE:
-        print("\nPlotting posterior...")
-    limits = []
-    for pmin, pmax in zip(config.prior_min, config.prior_max):
-        limits.append([pmin, pmax])
-    # Get the default values for the parameter except for G
-    params = OrderedDict()
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-        params[pname] = pval
-    if config.OPT_RES_MODE == 'mean':
-        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, posterior_samples.mean(axis=0).numpy())))
-    else:
-        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, map.numpy())))
-    fig, axes = analysis.pairplot(posterior_samples,
-                                  limits=limits,
-                                  ticks=limits,
-                                  figsize=(10, 10),
-                                  labels=config.PRIORS_PARAMS_NAMES,
-                                  points=np.array(list(params.values())),
-                                  points_offdiag={'markersize': 6},
-                                  points_colors=['r'] * config.n_priors)
-    plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_G%g.png' % G))
-
-    # # Run one simulation with the posterior means:
-    # if config.VERBOSE:
-    #   print("\nSimulating with posterior means...")
-    #   print("params =\n", params)
-    # model_params = {"G": G}
-    # PSD, results, simulator, output_config = run_workflow(PSD_target=PSD_target, model_params=model_params,
-    #                                                       config=config,
-    #                                                       output_folder="G_%g" % G, **params)
+    plot_infer_for_IG(iG, samples_fit, config);
 
     if config.VERBOSE:
         print("\n\nFinished after %g sec!" % (time.time() - tic))
