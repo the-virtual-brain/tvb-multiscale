@@ -207,9 +207,7 @@ def assert_config(config=None, return_plotter=False, **config_args):
     if config is None:
         if return_plotter:
             # Create a configuration if one is not given
-            return configure(plot_flag=True, **config_args)
-        else:
-            return configure(plot_flag=False, **config_args)[0]
+            return configure(**config_args)
     else:
         if return_plotter:
             return create_plotter(config)
