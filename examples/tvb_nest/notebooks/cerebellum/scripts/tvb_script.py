@@ -899,7 +899,7 @@ def plot_tvb(transient, inds,
     fig.tight_layout()
     if config.figures.SAVE_FLAG:
         plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
-    if plotter.config.SHOW_FLAG:
+    if config.figures.SHOW_FLAG:
         plt.show()
     else:
         plt.close(fig)
