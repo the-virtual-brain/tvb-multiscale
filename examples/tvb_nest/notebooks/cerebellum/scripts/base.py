@@ -23,7 +23,7 @@ from tvb.simulator.integrators import EulerStochastic
 DEFAULT_ARGS = {'G': 0.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.5,
                 'w_ie': -3.0, 'w_rs': -2.0,
-                'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
+                'CONN_LOG': True, 'FIC': 0, 'PRIORS_DIST': 'uniform',
                 'output_folder': 'cwc_STIM_Is_Wie', 'verbose': 1, 'plot_flag': True}
 
 
