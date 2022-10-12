@@ -105,7 +105,7 @@ def configure(**ARGS):
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 2**10 + 1.0 # 10: 1025, 11: 2049.0, 12: 4097.0
+    config.SIMULATION_LENGTH = 2**12 + 1.0 # 10: 1025, 11: 2049.0, 12: 4097.0
     config.TRANSIENT_RATIO = 0.25
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
