@@ -20,7 +20,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb.simulator.integrators import EulerStochastic
 
 
-DEFAULT_ARGS = {'G': 0.0, 'STIMULUS': 0.0,
+DEFAULT_ARGS = {'G': 1.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.2,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 0, 'PRIORS_DIST': 'uniform',
@@ -164,7 +164,7 @@ def configure(**ARGS):
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.Gs = np.array([0.0])  # np.array([0.1, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0]) 
+    config.Gs = np.array([0.0]) # np.array([0.1, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0]) 
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": 0.0, "max": 1.0, "loc": 0.5, "sc": 0.1},
@@ -174,7 +174,7 @@ def configure(**ARGS):
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
         }
-    config.PRIORS_PARAMS_NAMES = ['I_s']  # 'STIMULUS', 'I_e', 'w_ie', 'w_rs', 'FIC',
+    config.PRIORS_PARAMS_NAMES = ['I_s']  #'STIMULUS', 'I_e', 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
