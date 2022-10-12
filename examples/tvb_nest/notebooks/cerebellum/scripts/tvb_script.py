@@ -781,7 +781,10 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 def plot_tvb(transient, inds,
              results=None, source_ts=None, bold_ts=None,
              simulator=None, plotter=None, config=None, write_files=True):
-    config, plotter = assert_config(config, return_plotter=True)
+    if plotter is None:
+        config, plotter = assert_config(config, return_plotter=True)
+    else:
+        config = assert_config(config, return_plotter=False)
     MAX_VARS_IN_COLS = 2
     MAX_REGIONS_IN_ROWS = 10
     MIN_REGIONS_FOR_RASTER_PLOT = 9
