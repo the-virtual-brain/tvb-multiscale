@@ -625,11 +625,15 @@ def simulate_nest_network(nest_network, config, neuron_models={}, neuron_number=
     return nest_network
 
 
-def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
-    # Get configuration
-    config, plotter = assert_config(config, return_plotter=False, # because it is too slow...
-                                   **config_args)  
+def run_nest_workflow(PSD_target=None, model_params={}, config=None, **config_args):
+    tic = time.time()
+    plot_flag = config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag'))
+    config, plotter = assert_config(config, return_plotter=True, **config_args)
     config.model_params.update(model_params)
+    if config.VERBOSE:
+        print("\n\n------------------------------------------------\n\n"+
+              "Running NEST workflow for plot_flag=%s, \nand model_params=\n%s...\n" 
+              % (str(plot_flag), str(config.model_params)))
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
     # Load and prepare connectome and connectivity with all possible normalizations:
@@ -646,7 +650,9 @@ def run_nest_workflow(PSD_target=None, config=None, model_params={}, **config_ar
     # Plot results
     if plotter is not None:
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
-    return nest_network
+    if config.VERBOSE:
+        print("\nFinished NEST workflow in %g sec!\n" % (time.time() - tic))
+    return nest_network, simulator, config
 
 
 if __name__ == "__main__":

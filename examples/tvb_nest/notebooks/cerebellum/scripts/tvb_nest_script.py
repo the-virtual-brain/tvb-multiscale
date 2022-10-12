@@ -248,13 +248,17 @@ def simulate_tvb_nest(simulator, nest_network, config):
     return results, transient, simulator, nest_network
 
 
-def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **config_args):
-
+def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_files=True, **config_args):
+    tic = time.time()
     from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
 
-    # Get configuration
+    plot_flag = config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag'))
     config, plotter = assert_config(config, return_plotter=True, **config_args)
     config.model_params.update(model_params)
+    if config.VERBOSE:
+        print("\n\n------------------------------------------------\n\n"+
+              "Running TVB-NEST workflow for plot_flag=%s, write_files=%s,\nand model_params=\n%s...\n" 
+              % (str(plot_flag), str(write_files), str(config.model_params)))
     # config.SIMULATION_LENGTH = 100.0
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
@@ -283,12 +287,17 @@ def run_tvb_nest_workflow(PSD_target=None, config=None, model_params={}, **confi
     else:
         # ...for a disconnected brain, average PS of all regions:
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
-    # Plot results
+    outputs = (PSD, results, transient, simulator, nest_network, config)
     if plotter is not None:
         plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
-                 simulator=simulator, plotter=plotter, config=config, write_files=True)
+                 simulator=simulator, plotter=plotter, config=config, write_files=write_files)
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
-    return results, transient, simulator, nest_network, PSD
+    else:
+        if write_files:
+            outputs = outputs + tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
+    if config.VERBOSE:
+        print("\nFinished TVB-NEST workflow in %g sec!\n" % (time.time() - tic))
+    return outputs
 
 
 if __name__ == "__main__":

@@ -114,7 +114,7 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
         if config.VERBOSE:
             print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS+1, n_simulations, iG, iB))
             print("Simulating for parameters:\n%s" % str(priors_params))
-        sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False)[0])
+        sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False, write_files=False)[0])
         if write_to_file:
             write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config)
     return sim_res
@@ -398,7 +398,7 @@ def plot_sbi_fit(config=None):
         ax.set_ylabel(pname)
         return ax
 
-    config = assert_config(config)
+    config = assert_config(config, return_plotter=False)
     samples = load_posterior_samples_all_Gs(config)
     fig, axes = plt.subplots(config.n_priors, 1, figsize=(FIGWIDTH, FIGHEIGHT_PER_PRIOR * config.n_priors))
     axes = ensure_list(axes)

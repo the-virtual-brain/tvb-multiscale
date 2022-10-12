@@ -787,8 +787,10 @@ def plot_tvb(transient, inds,
     MIN_REGIONS_FOR_RASTER_PLOT = 9
     FIGSIZE = config.figures.DEFAULT_SIZE
 
+    outputs = ()
     if source_ts is None:
         results = tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
+        outputs = results
         source_ts = results[0]
         if len(results) > 1:
             bold_ts = results[1]
@@ -904,10 +906,19 @@ def plot_tvb(transient, inds,
     else:
         plt.close(fig)
 
-def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
+    return outputs
+
+
+def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True, **config_args):
+    tic = time.time()
     # Get configuration
+    plot_flag = config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag'))
     config, plotter = assert_config(config, return_plotter=True, **config_args)
     config.model_params.update(model_params)
+    if config.VERBOSE:
+        print("\n\n------------------------------------------------\n\n"+
+              "Running TVB workflow for plot_flag=%s, write_files=%s,\nand model_params=\n%s...\n" 
+              % (str(plot_flag), str(write_files), str(config.model_params)))
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
     connectivity = build_connectivity(connectome, inds, config)
@@ -932,13 +943,16 @@ def run_workflow(PSD_target=None, model_params={}, config=None, **config_args):
     else:
         # ...for a disconnected brain, average PS of all regions:
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
+    outputs = (PSD, results, transient, simulator, config)
     if plotter is not None:
         plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
-                 simulator=simulator, plotter=plotter, config=config, write_files=True)
-        return PSD, results, simulator, config
+                 simulator=simulator, plotter=plotter, config=config, write_files=write_files)
     else:
-        return PSD, results
-
+        if write_files:
+            outputs = outputs + tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
+    if config.VERBOSE:
+        print("\nFinished TVB workflow in %g sec!\n" % (time.time() - tic))
+    return outputs
 
 if __name__ == "__main__":
     parser = args_parser("tvb_script")
