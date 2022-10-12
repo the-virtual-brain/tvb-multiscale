@@ -289,8 +289,8 @@ def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_f
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
     outputs = (PSD, results, transient, simulator, nest_network, config)
     if plotter is not None:
-        plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
-                 simulator=simulator, plotter=plotter, config=config, write_files=write_files)
+        outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
+                                     simulator=simulator, plotter=plotter, config=config, write_files=write_files)
         plot_nest_results(nest_network, neuron_models, neuron_number, config)
     else:
         if write_files:

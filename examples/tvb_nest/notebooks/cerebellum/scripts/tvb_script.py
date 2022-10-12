@@ -948,8 +948,8 @@ def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
     outputs = (PSD, results, transient, simulator, config)
     if plotter is not None:
-        plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
-                 simulator=simulator, plotter=plotter, config=config, write_files=write_files)
+        outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
+                                     simulator=simulator, plotter=plotter, config=config, write_files=write_files)
     else:
         if write_files:
             outputs = outputs + tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
