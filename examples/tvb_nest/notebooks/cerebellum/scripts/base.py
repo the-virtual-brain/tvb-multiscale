@@ -33,8 +33,7 @@ def create_plotter(config):
     config.figures.SAVE_FLAG = True
     config.figures.FIG_FORMAT = 'png'
     config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
-    plotter = Plotter(config.figures)
-    return config, plotter
+    return config, Plotter(config.figures)
 
 
 def configure(**ARGS):
@@ -212,7 +211,7 @@ def assert_config(config=None, return_plotter=False, **config_args):
             return configure(**config_args)[0]
     else:
         if return_plotter:
-            if config_args.get('plot_flag', DEFAULT_ARGS.get('plot_falg')):
+            if config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag')):
                 return create_plotter(config)
             else:
                 return config, None
