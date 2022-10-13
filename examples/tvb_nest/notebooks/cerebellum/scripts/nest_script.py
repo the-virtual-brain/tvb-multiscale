@@ -601,16 +601,24 @@ def plot_nest_results(nest_network, neuron_models, neuron_number, config):
     fig_psth.update_layout(showlegend=False)
     fig_raster.update_layout(showlegend=False)
     if config.figures.SAVE_FLAG:
-            plt.figure(fig_psth)
-            plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "NESTpsth.%s" % config.figures.FIG_FORMAT))
-            plt.figure(fig_raster)
-            plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "NESTraster.%s" % config.figures.FIG_FORMAT))
+        try:
+            fig_psth.write_image(os.path.join(config.figures.FOLDER_FIGURES, "NESTpsth.%s" % config.figures.FIG_FORMAT))
+            fig_raster.write_image(os.path.join(config.figures.FOLDER_FIGURES, "NESTraster.%s" % config.figures.FIG_FORMAT))
+        except Exception as e:
+            warnings.warn("Failed to write_image for plotly figures with error:\n" % str(e))
     if config.figures.SHOW_FLAG:
         fig_psth.show()
         fig_raster.show()
     else:
-        plt.close(fig_psth)
-        plt.close(fig_raster)
+        # TODO: find a better way to delete plotly figures
+        # The current one is taken from here: https://community.plotly.com/t/remove-all-traces/13469
+        # There might not be a better one yet...: https://github.com/plotly/plotly.py/issues/2725
+        fig_psth.data = []
+        fig_raster.data = []
+        fig_psth.layout = {}
+        fig_raster.layout = {}
+        fig_psth = None
+        fig_raster = None
     return fig_psth, fig_raster
 
 
