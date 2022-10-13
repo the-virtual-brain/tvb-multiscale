@@ -147,3 +147,6 @@ venv.bak/
 
 # Trash
 /.Trash-1000/
+
+# DS_Store
+*.DS_Store
