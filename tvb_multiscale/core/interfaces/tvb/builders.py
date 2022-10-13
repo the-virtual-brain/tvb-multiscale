@@ -6,6 +6,7 @@ from abc import ABCMeta, ABC
 import numpy as np
 
 from tvb.basic.neotraits._attr import Attr
+from tvb.simulator.coupling import Linear
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimCoupling, CosimMonitorFromCoupling
 
@@ -102,6 +103,12 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         if self.tvb_cosimulator is None:
             return []
         return self.tvb_cosimulator.model.state_variables
+
+    @property
+    def tvb_coupling(self):
+        if self.tvb_cosimulator is None:
+            return Linear()
+        return self.tvb_cosimulator.coupling
 
     @property
     def tvb_model_cvar(self):
@@ -269,7 +276,8 @@ class TVBInterfaceBuilder(InterfaceBuilder):
                     # Assuming a CosimCoupling monitor ...create it:
                     coupl_vois_to_monitor = \
                         self._create_cosim_monitor(interface,
-                                                   CosimCoupling(variables_of_interest=np.array(cvoi),
+                                                   CosimCoupling(coupling=self.tvb_coupling,
+                                                                 variables_of_interest=np.array(cvoi),
                                                                  period=self.tvb_dt),
                                                    coupl_vois_to_monitor)
                 else:
