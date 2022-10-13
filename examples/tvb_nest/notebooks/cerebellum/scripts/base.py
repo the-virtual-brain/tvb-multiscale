@@ -23,8 +23,8 @@ from tvb.simulator.integrators import EulerStochastic
 DEFAULT_ARGS = {'G': 1.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.08,
                 'w_ie': -3.0, 'w_rs': -2.0,
-                'CONN_LOG': True, 'FIC': 0, 'PRIORS_DIST': 'uniform',
-                'output_folder': 'cwc_STIM_Wie', 'verbose': 1, 'plot_flag': True}
+                'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
+                'output_folder': 'cwc_STIM_Is_Wie', 'verbose': 1, 'plot_flag': True}
 
 
 def create_plotter(config):
@@ -169,12 +169,12 @@ def configure(**ARGS):
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": 0.0, "max": 1.0, "loc": 0.5, "sc": 0.1},
          "I_e": {"min": -1.0, "max": 0.0, "loc": -0.35, "sc": 0.1},
-         "I_s": {"min": -0.5, "max": 0.5, "loc": 0.0, "sc": 0.15},
+         "I_s": {"min": -0.1, "max": 0.1, "loc": 0.0, "sc": 0.025},
          "w_ie": {"min": -10.0, "max": 0.0, "loc": -5.0, "sc": 2.5},
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
         }
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'w_ie']  # , 'I_e', 'I_s', 'w_rs', 'FIC',
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_s', 'w_ie']  # , 'I_e', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
