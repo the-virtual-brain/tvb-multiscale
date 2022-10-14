@@ -254,21 +254,22 @@ def plot_infer_for_iG(iG, iR=None, samples=None, config=None):
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
         params[pname] = pval
-    if config.OPT_RES_MODE == 'mean':
-        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples['mean'][-1])))
-    else:
-        params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples['map'][-1])))
+    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples[config.OPT_RES_MODE][-1])))
     limits = []
     for pmin, pmax in zip(config.prior_min, config.prior_max):
         limits.append([pmin, pmax])
     if config.VERBOSE:
         print("\nPlotting posterior for G[%d]=%g..." % (iG, samples['G']))
+    pvals = np.array(list(params.values()))
+    labels = []
+    for p, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
+        labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval)) 
     fig, axes = analysis.pairplot(samples['samples'][-1],
                                   limits=limits,
                                   ticks=limits,
                                   figsize=(10, 10),
-                                  labels=config.PRIORS_PARAMS_NAMES,
-                                  points=np.array(list(params.values())),
+                                  labels=labels,
+                                  points=pvals,
                                   points_offdiag={'markersize': 6},
                                   points_colors=['r'] * config.n_priors)
     if config.figures.SAVE_FLAG:
