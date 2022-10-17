@@ -135,7 +135,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              # Effective rate  = scale * (total_weighted_coupling_E_from_tvb - offset)
              # If E is in [0, 1.0], then, with a translation = 0.0, and a scale of 1e4
              # it is as if 100 neurons can fire each with a maximum spike rate of max_rate=100 Hz
-              'transformer_params': {"scale_factor": np.array([0.64*simulator.model.G[0].item() * max_rate])},   # "translation_factor": np.array([0.0])
+              'transformer_params': {"scale_factor": np.array([0.75*simulator.model.G[0].item() * max_rate])},   # "translation_factor": np.array([0.0])
               'spiking_proxy_inds': pop_regions_inds  # Same as "proxy_inds" for this kind of interface
               }
              )
