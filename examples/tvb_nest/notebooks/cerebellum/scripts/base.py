@@ -164,7 +164,7 @@ def configure(**ARGS):
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 15.0, 20.0, 30.0, 50.0]) 
+    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 15.0, 20.0, 30.0, 50.0, 100.0]) 
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": -1.0, "max": 1.0, "loc": 0.0, "sc": 0.25},
