@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 1.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.08,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
-                'output_folder': 'cwc_STIM_Is', 'verbose': 1, 'plot_flag': True}
+                'output_folder': 'cwc_STIM_Ie_Is', 'verbose': 1, 'plot_flag': True}
 
 
 def create_plotter(config):
@@ -156,15 +156,15 @@ def configure(**ARGS):
     config.POSTERIOR_PATH = os.path.join(config.out.FOLDER_RES, "posterior.pkl")
     config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.npy")
     config.N_FIT_RUNS = 10  # 3 - 10
-    config.N_SIMULATIONS = 900
-    config.N_SIM_BATCHES = 30
+    config.N_SIMULATIONS = 1000
+    config.N_SIM_BATCHES = 10
     config.SPLIT_RUN_SAMPLES = 2
     config.N_SAMPLES_PER_RUN = 1000
     config.BATCH_FILE_FORMAT = "%s_%03d%s"
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 15.0, 20.0, 30.0, 50.0, 100.0]) 
+    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]) # , 15.0, 20.0, 30.0, 50.0, 100.0]) 
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": -1.0, "max": 1.0, "loc": 0.0, "sc": 0.25},
@@ -174,7 +174,7 @@ def configure(**ARGS):
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
         }
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_s']  # , 'I_e', 'w_ie', 'w_rs', 'FIC',
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e', 'I_s']  # , 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
