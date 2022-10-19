@@ -8,10 +8,9 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i impor
 
 def main_example(model_fun_to_run, netpyne_model_builder, tvb_netpyne_interface_builder, **kwargs):
 
-    some_args = {"population_order": 100,
-                 "spiking_proxy_inds": [60, 61], # superiortemporal L and R
-                 "simulation_length": 220}
-    kwargs.update(some_args)
+    if "simulation_length" not in kwargs: kwargs["simulation_length"] = 500
+    if "population_order" not in kwargs: kwargs["population_order"] = 100
+    if "spiking_proxy_inds" not in kwargs: kwargs["spiking_proxy_inds"] = [60, 61] # superiortemporal L and R
 
     return model_fun_to_run(netpyne_model_builder, tvb_netpyne_interface_builder, TVBNetpyneSerialOrchestrator,
                             config_type=Config, logger_initializer=initialize_logger, **kwargs)
