@@ -406,7 +406,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
     def info(self, recursive=0):
-        info = super(SpikingNodesSet, self).info(recursive)
+        info = HasTraits.info(self, recursive)
         info["label"] = self.label
         info['size'] = self.size
         info["%ss" % self._collection_name] = self.collections
