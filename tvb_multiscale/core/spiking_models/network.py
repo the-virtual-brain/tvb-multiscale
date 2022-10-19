@@ -174,7 +174,7 @@ class SpikingNetwork(HasTraits):
             devices = self.spiking_network.get_devices_by_model("spike_multimeter", regions=regions)
         else:
             for device_name in output_device_dict.keys():
-                devices = devices.append(self.get_devices_by_model(device_name, regions=regions))
+                devices = pd.concat([devices, self.get_devices_by_model(device_name, regions=regions)])
         if len(devices) == 0:
             LOG.warning("No %s recording device in this Spiking Network network!" % devices_type)
             return devices
@@ -233,7 +233,7 @@ class SpikingNetwork(HasTraits):
             - a Series of spikes' events per region and population.
         """
         spike_devices = self.get_spikes_devices(mode, regions, populations_devices)
-        spikes = pd.Series()
+        spikes = pd.Series(dtype='object')
         for i_pop, (pop_label, pop_spike_device) in enumerate(spike_devices.iteritems()):
             spikes[pop_label] = \
                 pop_spike_device.do_for_all("get_spikes_events", **kwargs)
@@ -251,7 +251,7 @@ class SpikingNetwork(HasTraits):
             - a Series of data xarray.DataArrays per region and population.
         """
         devices = self.get_continuous_time_devices(regions, populations_devices)
-        data = pd.Series()
+        data = pd.Series(dtype='object')
         for i_pop, (pop_label, pop_device) in enumerate(devices.iteritems()):
             data[pop_label] = \
                 pop_device.do_for_all("get_data", **kwargs)

@@ -36,7 +36,7 @@ class SpikingBrain(SpikingNodesSet):
         super(SpikingBrain, self).__setstate__(d)
 
     def get_number_of_neurons_per_region(self, reg_inds_or_lbls=None, pop_inds_or_lbls=None, fill_value=0):
-        output = Series()
+        output = Series(dtype='object')
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
             output[lbl] = reg.get_number_of_neurons_per_population(pop_inds_or_lbls)
         return concatenate_heterogeneous_DataArrays(output, concat_dim_name=self._collection_name,
@@ -83,7 +83,7 @@ class SpikingBrain(SpikingNodesSet):
            Returns:
             Series of populations' neurons' attributes.
         """
-        output = Series()
+        output = Series(dtype='object')
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
             output[lbl] = reg.Get(attrs, pop_inds_or_lbls, summary)
         return output
@@ -119,7 +119,7 @@ class SpikingBrain(SpikingNodesSet):
             Returns:
              Series of region Series of connections.
         """
-        output = Series()
+        output = Series(dtype='object')
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
             output[lbl] = reg.GetConnections(pop_inds_or_lbls, source_or_target)
         return output
@@ -158,7 +158,7 @@ class SpikingBrain(SpikingNodesSet):
            Returns:
             Series of region Series of connections' attributes.
         """
-        output = Series()
+        output = Series(dtype='object')
         for id, lbl, reg in self._loop_generator(reg_inds_or_lbls):
             output[lbl] = reg.GetFromConnections(attrs, pop_inds_or_lbls, source_or_target, summary)
         return output
