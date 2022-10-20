@@ -1,5 +1,4 @@
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
-from tvb_multiscale.tvb_netpyne.netpyne.data_structures import NetpyneCellGeometry, NetpyneCellModel, NetpyneMechanism
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_templates import random_normal_weight, random_normal_tvb_weight, random_uniform_tvb_delay
 from collections import OrderedDict
 import numpy as np
@@ -26,40 +25,52 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         self.params = {} # TODO: pass some info at least about transforming the default delay (because TVB support only delay as single number)
 
     def configure(self):
-        super(DefaultExcIOInhIBuilder, self).configure()
+        from netpyne import specs
+        netParams = specs.NetParams()
+        cfg = specs.SimConfig()
+
+        self.receptor_type_E = 'exc'
+        self.receptor_type_I = 'inh'
+        netParams.synMechParams[self.receptor_type_E] = {'mod': 'Exp2Syn', 'tau1': 0.8, 'tau2': 5.3, 'e': 0}  # NMDA
+        netParams.synMechParams[self.receptor_type_I] = {'mod': 'Exp2Syn', 'tau1': 0.6, 'tau2': 8.5, 'e': -75}  # GABA
+
+        PYRcell = {'secs': {}}
+        PYRcell['secs']['soma'] = {'geom': {}, 'mechs': {}}  # soma params dict
+        PYRcell['secs']['soma']['geom'] = {'diam': 18.8, 'L': 18.8, 'Ra': 123.0}  # soma geometry
+        PYRcell['secs']['soma']['mechs']['hh'] = {'gnabar': 0.12, 'gkbar': 0.036, 'gl': 0.003, 'el': -70}  # soma hh mechanism
+        netParams.cellParams['PYR'] = PYRcell
+
+        # simConfig.verbose = True
+
+        cfg.recordTraces = {'V_soma':{'sec':'soma','loc':0.5,'var':'v'}}  # Dict with traces to record
+        
+        cfg.recordStep = 0.1
+        cfg.savePickle = False        # Save params, network and sim output to pickle file
+        cfg.saveJson = False
+
+        super(DefaultExcIOInhIBuilder, self).configure(netParams, cfg, autoCreateSpikingNodes=True)
         self.global_coupling_scaling *= self.tvb_serial_sim.get("model.G", np.array([2.0]))[0].item()
         self.lamda = self.tvb_serial_sim.get("model.lamda", np.array([0.0]))[0].item()
 
+    def proxy_node_synaptic_model_funcs(self):
+        return {"E": lambda src_node, dst_node: self.receptor_type_E,
+                "I": lambda src_node, dst_node: self.receptor_type_I}
+
     def set_defaults(self):
-        self.set_cell_models()
-        self.set_synapse_models()
         self.set_populations()
         self.set_populations_connections()
         self.set_nodes_connections()
         self.set_output_devices()
         # self.set_input_devices()
 
-    def set_cell_models(self):
-        geom = NetpyneCellGeometry(diam=18.8, length=18.8, axialResistance=123)
-        mech = NetpyneMechanism(name='hh', gNaBar=0.12, gKBar=0.036, gLeak=0.003, eLeak=-70)
-        cell_model = NetpyneCellModel(name='PYR', geom=geom, mech=mech)
-        self.cell_models = [cell_model]
-
-        self.cell_model_E = cell_model
-        self.cell_model_I = cell_model
-
-    def set_synapse_models(self):
-        # TODO: move all params here from NetpyneInstance
-        self.receptor_type_E = "exc"
-        self.receptor_type_I = "inh"
 
     def set_populations(self):
         self.populations = [
-            {"label": "E", "model": self.cell_model_E.name,
+            {"label": "E", "model": "PYR",
              "nodes": None,  # None means "all"
              "params": self.params,
              "scale": self.scale_e},
-            {"label": "I", "model": self.cell_model_I.name,
+            {"label": "I", "model": "PYR",
              "nodes": None,  # None means "all"
              "params": self.params,
         #  "params": netpyne_network_builder.params_I,
@@ -73,11 +84,6 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
             self.set_II_populations_connections()
         ]
 
-    # def receptor_E_fun(self):
-    #     return 0
-
-    # def receptor_I_fun(self):
-    #     return 0
 
     def set_EE_populations_connections(self):
         connections = \
@@ -175,5 +181,4 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
     def build(self, set_defaults=True):
         if set_defaults:
             self.set_defaults()
-        self.configureCells()
         return super(DefaultExcIOInhIBuilder, self).build()
