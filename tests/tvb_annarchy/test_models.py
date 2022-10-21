@@ -24,7 +24,7 @@ from examples.tvb_annarchy.example import default_example
 from examples.tvb_annarchy.models.wilson_cowan import wilson_cowan_example
 from examples.tvb_annarchy.models.basal_ganglia_izhikevich import basal_ganglia_izhikevich_example
 
-from tests.core.test_models import loop_all
+from tests.core.test_models import test_models
 from tests.core.test_spikeNet_models import TestSpikeNetModel
 
 
@@ -37,18 +37,24 @@ class TestDefault(TestSpikeNetModel):
 
     def run_fun(self):
         default_example(model=self.tvb_to_spikeNet_mode,
-                        spiking_proxy_inds=self.spiking_proxy_inds, populations_order=self.populations_order,
+                        spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                         simulation_length=self.simulation_length, transient=self.transient,
                         plot_write=self.plot_write)
 
+
+class TestDefaultRATE(TestDefault):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_rate(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
+
+class TestDefaultSPIKES(TestDefault):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_spikes(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "SPIKES"
         self.run()
 
@@ -62,18 +68,24 @@ class TestWilsonCowan(TestSpikeNetModel):
 
     def run_fun(self):
         wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
-                             spiking_proxy_inds=self.spiking_proxy_inds, populations_order=self.populations_order,
+                             spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                              simulation_length=self.simulation_length, transient=self.transient,
                              plot_write=self.plot_write)
 
+
+class TestWilsonCowanRATE(TestWilsonCowan):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_rate(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
+
+class TestWilsonCowanSPIKES(TestWilsonCowan):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_spikes(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "SPIKES"
         self.run()
 
@@ -87,34 +99,54 @@ class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
     def run_fun(self):
         basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
-                                         populations_order=self.populations_order,
+                                         population_order=self.population_order,
                                          exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                                          simulation_length=self.simulation_length, transient=self.transient,
                                          plot_write=self.plot_write)
 
+
+class TestBasalGangliaIzhikevichRATE(TestBasalGangliaIzhikevich):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_rate(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
+
+class TestBasalGangliaIzhikevichSPIKES(TestBasalGangliaIzhikevich):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_spikes(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "SPIKES"
         self.run()
 
+
+class TestBasalGangliaIzhikevichCURRENT(TestBasalGangliaIzhikevich):
+
     # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test_current(self):
+    def test(self):
         self.tvb_to_spikeNet_mode = "CURRENT"
         self.run()
 
 
-def test_models(models_to_test=[
-                             TestDefault,
-                             TestWilsonCowan,
-                             TestBasalGangliaIzhikevich
-                               ]):
-    loop_all(models_to_test)
+models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
+                                TestDefaultSPIKES,                     # 1
+
+                           TestWilsonCowanRATE,                        # 2
+                               TestWilsonCowanSPIKES,                  # 3
+
+                           TestBasalGangliaIzhikevichRATE,             # 4
+                               TestBasalGangliaIzhikevichSPIKES,       # 5
+                                   TestBasalGangliaIzhikevichCURRENT   # 6
+                          ]
 
 
 if __name__ == "__main__":
-    test_models()
+    import sys
+
+    if len(sys.argv) > 1:
+        iM = int(sys.argv[1])
+        print("\n\nTesting model %d" % iM)
+        test_models(models_to_test_ANNarchy, iM=iM)
+    else:
+        test_models(models_to_test_ANNarchy)
