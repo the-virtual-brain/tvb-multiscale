@@ -69,7 +69,7 @@ class NetpyneSerialApp(SpikeNetSerialApp):
     #     return self.spikeNet_builder
 
     def start(self):
-        self.spiking_cosimulator = load_netpyne(self.spikeNet_builder.spiking_dt, self.config)
+        self.spiking_cosimulator = load_netpyne(self.config)
 
     def configure(self):
         super(NetpyneSerialApp, self).configure()
@@ -79,7 +79,7 @@ class NetpyneSerialApp(SpikeNetSerialApp):
 
     def configure_simulation(self):
         super(NetpyneSerialApp, self).configure_simulation()
-        self.netpyne_instance.createAndPrepareNetwork(self.simulation_length)
+        self.netpyne_instance.createAndPrepareNetwork(self.simulation_length, self.spikeNet_builder.spiking_dt)
 
     def simulate(self, simulation_length=None):
         if simulation_length is None:
@@ -169,4 +169,5 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
 
     def build_interfaces(self):
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
+        self.tvb_app.interfaces_builder.synaptic_model_funcs = self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
         SerialOrchestrator.build_interfaces(self)

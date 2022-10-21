@@ -37,7 +37,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         self._spiking_brain = NESTBrain()
 
     def __str__(self):
-        return super(NESTNetworkBuilder, self) + "\nnest simulator: %s" % self.nest_instance
+        return super(NESTNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.nest_instance)
 
     def configure(self):
         if self.config is None:

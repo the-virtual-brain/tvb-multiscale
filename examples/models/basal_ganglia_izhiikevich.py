@@ -14,7 +14,7 @@ def basal_ganglia_izhikevich_example(spikeNet_model_builder, tvb_spikeNet_model_
     import os
 
     home_path = os.path.join(os.getcwd().split("tvb-multiscale")[0], "tvb-multiscale")
-    DATA_PATH = os.path.join(home_path, "examples/data/basal_ganglia_conn")
+    DATA_PATH = os.path.join(home_path, "examples/data/basal_ganglia/conn")
     wTVB = np.loadtxt(os.path.join(DATA_PATH, "conn_denis_weights.txt"))
     cTVB = np.loadtxt(os.path.join(DATA_PATH, "aal_plus_BG_centers.txt"), usecols=range(1, 3))
     rlTVB = np.loadtxt(os.path.join(DATA_PATH, "aal_plus_BG_centers.txt"), dtype="str", usecols=(0,))

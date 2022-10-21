@@ -27,6 +27,8 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
 
 class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
 
+    model = "aeif_cond_alpha_multisynapse"
+
     w_ee = 10.0
     w_ei = 6.0
     w_ie = 10.0
@@ -36,7 +38,6 @@ class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
                  config=None, logger=None):
         super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
                                                              config, logger)
-        self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 
     def set_defaults(self, **kwargs):
         self.w_ee = np.abs(kwargs.get("w_ee", self.tvb_serial_sim.get("model.c_ee", np.array([self.w_ee])))[0].item())
@@ -44,3 +45,6 @@ class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
         self.w_ie = np.abs(kwargs.get("w_ie", self.tvb_serial_sim.get("model.c_ie", np.array([self.w_ie])))[0].item())
         self.w_ii = np.abs(kwargs.get("w_ii", self.tvb_serial_sim.get("model.c_ii", np.array([self.w_ii])))[0].item())
         super(WilsonCowanMultisynapseBuilder, self).set_defaults()
+
+    def build(self, set_defaults=True):
+        return super(WilsonCowanMultisynapseBuilder, self).build(set_defaults)

@@ -231,13 +231,13 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 
 class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
+    model = "aeif_cond_alpha_multisynapse"
+
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
                  config=None, logger=None):
 
         super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
                                                                   config, logger)
-
-        self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 
         self.w_ie = 1.0
         self.w_ii = 1.0
@@ -282,5 +282,4 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
         return receptor_by_source_region(source_node, target_node, start=3)
 
     def build(self, set_defaults=True):
-        self.params = self._adjust_multisynapse_params(self.params)
         return super(DefaultExcIOInhIMultisynapseBuilder, self).build(set_defaults)

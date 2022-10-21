@@ -164,13 +164,13 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
 
 class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
+    model = "aeif_cond_alpha_multisynapse"
+
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
                  config=None, logger=None, **kwargs):
 
         super(DefaultExcIOMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
                                                               config, logger)
-
-        self.default_population["model"] = "aeif_cond_alpha_multisynapse"
 
         E_ex = kwargs.get("E_ex", 0.0)
         E_in = kwargs.get("E_in", -85.0)

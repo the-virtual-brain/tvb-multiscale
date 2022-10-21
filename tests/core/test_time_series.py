@@ -38,15 +38,15 @@ def _prepare_dummy_time_series(dim):
 def test_timeseries_1D_definition(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(1)
     with pytest.raises(ValueError):
-        datatype(data, labels_dimensions={}, start_time=start_time,
+        datatype(data=data, labels_dimensions={}, start_time=start_time,
                  sample_period=sample_period, sample_period_unit=sample_period_unit)
 
 
 def test_timeseries_2D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(2)
-    ts_from_2D = TimeSeries(data, labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3"]},
-                            start_time=start_time, sample_period=sample_period,
-                            sample_period_unit=sample_period_unit)
+    ts_from_2D = datatype(data=data, labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3"]},
+                          start_time=start_time, sample_period=sample_period,
+                          sample_period_unit=sample_period_unit)
     assert ts_from_2D.data.ndim == 4
     assert ts_from_2D.data.shape == (3, 1, 3, 1)
 
@@ -66,7 +66,7 @@ def test_timeseries_2D(datatype=TimeSeriesXarray):
     assert ts_r2.labels_dimensions[TimeSeriesDimensions.SPACE.value] == ["r2"]
     assert ts_r2.get_subspace_by_label(["r2"]).labels_dimensions[TimeSeriesDimensions.SPACE.value] == ["r2"]
 
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, KeyError)):
         ts_r2.get_subspace_by_label(["r1"])
 
     ts_r2r3_idx = ts_from_2D.get_subspace_by_index([1, 2])
@@ -79,7 +79,7 @@ def test_timeseries_2D(datatype=TimeSeriesXarray):
     assert ts_r2_idx.labels_dimensions[TimeSeriesDimensions.SPACE.value] == ["r2"]
     assert ts_r2_idx.get_subspace_by_index([0]).labels_dimensions[TimeSeriesDimensions.SPACE.value] == ["r2"]
 
-    with pytest.raises(IndexError):
+    with pytest.raises((IndexError, KeyError)):
         ts_r2_idx.get_subspace_by_index([2])
 
     assert ts_r2r3_idx.data.all() == ts_r2r3.data.all()
@@ -110,26 +110,26 @@ def test_timeseries_2D(datatype=TimeSeriesXarray):
 
 def test_timeseries_3D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(3)
-    ts_3D = TimeSeries(data,
-                       labels_dimensions={TimeSeriesDimensions.SPACE.value: [],
-                                          TimeSeriesDimensions.VARIABLES.value: []},
-                       start_time=start_time, sample_period=sample_period,
-                       sample_period_unit=sample_period_unit)
+    ts_3D = datatype(data=data,
+                     labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3"],
+                                        TimeSeriesDimensions.VARIABLES.value: ['sv1', 'sv2', 'sv3', 'sv4']},
+                     start_time=start_time, sample_period=sample_period,
+                     sample_period_unit=sample_period_unit)
     assert ts_3D.data.ndim == 4
     assert ts_3D.data.shape[3] == 1
 
 
 def test_timeseries_data_access(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(3)
-    ts = TimeSeries(data,
-                    labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", ],
-                                       TimeSeriesDimensions.VARIABLES.value: ["sv1", "sv2", "sv3", "sv4"]},
-                    start_time=start_time, sample_period=sample_period,
-                    sample_period_unit=sample_period_unit)
-    assert isinstance(ts.r1, TimeSeries)
+    ts = datatype(data=data,
+                  labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", ],
+                                     TimeSeriesDimensions.VARIABLES.value: ["sv1", "sv2", "sv3", "sv4"]},
+                  start_time=start_time, sample_period=sample_period,
+                  sample_period_unit=sample_period_unit)
+    assert isinstance(ts.r1, datatype)
     assert ts.r1.data.shape == (3, 4, 1, 1)
 
-    assert isinstance(ts.sv1, TimeSeries)
+    assert isinstance(ts.sv1, datatype)
     assert ts.sv1.data.shape == (3, 1, 3, 1)
 
     with pytest.raises(AttributeError):
@@ -141,50 +141,75 @@ def test_timeseries_data_access(datatype=TimeSeriesXarray):
     assert ts[:, :, :, :].shape == ts.data.shape
     assert ts[1:, :, :, :].shape == ts.data[1:, :, :, :].shape
     assert ts[1:2, :, :, :].shape == ts.data[1:2, :, :, :].shape
-    assert ts[1, :, :, :].shape == ts.data[1, :, :, :].shape
 
     assert ts[:, 1:, :, :].shape == ts.data[:, 1:, :, :].shape
     assert ts[:, :1, :, :].shape == ts.data[:, :1, :, :].shape
     assert ts[:, 1:3, :, :].shape == ts.data[:, 1:3, :, :].shape
-    assert ts[:, 1, :, :].shape == ts.data[:, 1, :, :].shape
 
     assert ts[:, :, "r2":, :].shape == ts.data[:, :, 1:, :].shape
     assert ts[:, :, :"r2", :].shape == ts.data[:, :, :2, :].shape
-    assert ts[:, :, "r2", :].shape == ts.data[:, :, 1, :].shape
     assert ts[:, :, "r2":"r3", :].shape == ts.data[:, :, 1:3, :].shape
-
     assert ts[1:2, :, "r2":"r3", :].shape == ts.data[1:2, :, 1:3, :].shape
-    assert ts[1, :, "r2":"r3", :].shape == ts.data[1, :, 1:3, :].shape
 
     assert ts[:, :, 1:, :].shape == ts.data[:, :, 1:, :].shape
     assert ts[:, :, :1, :].shape == ts.data[:, :, :1, :].shape
     assert ts[:, :, 0:2, :].shape == ts.data[:, :, 0:2, :].shape
-    assert ts[:, :, 2, :].shape == ts.data[:, :, 2, :].shape
 
     assert ts[:, "sv2":, :, :].shape == ts.data[:, 1:, :, :].shape
     assert ts[:, :"sv2", :, :].shape == ts.data[:, :2, :, :].shape
     assert ts[:, "sv1":"sv3", :, :].shape == ts.data[:, 0:3, :, :].shape
-    assert ts[:, "sv3", :, :].shape == ts.data[:, 2, :, :].shape
 
     assert ts[1:2, "sv2":, :, :].shape == ts.data[1:2, 1:, :, :].shape
     assert ts[1:2, :"sv2", :, :].shape == ts.data[1:2, :2, :, :].shape
     assert ts[1:2, "sv1":"sv3", :, :].shape == ts.data[1:2, 0:3, :, :].shape
-    assert ts[1:2, "sv3", :, :].shape == ts.data[1:2, 2, :, :].shape
-    assert ts[2, "sv3", :, :].shape == ts.data[2, 2, :, :].shape
 
-    assert ts[2, "sv3", 0:3, :].shape == ts.data[2, 2, 0:3, :].shape
-    assert ts[2, "sv3", "r1":"r3", :].shape == ts.data[2, 2, 0:3, :].shape
-    assert ts[0:2, "sv3", "r1":"r3", :].shape == ts.data[0:2, 2, 0:3, :].shape
-    assert ts[0:2, "sv3", :"r2", :].shape == ts.data[0:2, 2, :2, :].shape
-    assert ts[0:2, "sv3", "r2":, :].shape == ts.data[0:2, 2, 1:, :].shape
-    assert ts[0:2, "sv3", "r1", :].shape == ts.data[0:2, 2, 0, :].shape
-
-    assert numpy.all(ts[0:2, "sv3", "r1", :].data == ts.data[0:2, 2, 0, :])
-    assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, 2, 0:2, :])
     assert numpy.all(ts[0:2, :"sv2", "r1":"r2", :].data == ts.data[0:2, :2, 0:2, :])
-    assert numpy.all(ts[2, :"sv2", "r1":"r3", :].data == ts.data[2, :2, 0:3, :])
-    assert numpy.all(ts[2, "sv2", "r3", :].data == ts.data[2, 1, 2, :])
-    assert numpy.all(ts[2, "sv2", "r3", 0].data == ts.data[2, 1, 2, 0])
+
+    if isinstance(ts, TimeSeries):
+
+        assert ts[1, :, :, :].shape == ts.data[1, :, :, :].shape
+        assert ts[:, 1, :, :].shape == ts.data[:, 1, :, :].shape
+        assert ts[1, :, "r2":"r3", :].shape == ts.data[1, :, 1:3, :].shape
+        assert ts[:, :, 2, :].shape == ts.data[:, :, 2, :].shape
+        assert ts[:, "sv3", :, :].shape == ts.data[:, 2, :, :].shape
+        assert ts[2, "sv3", :, :].shape == ts.data[2, 2, :, :].shape
+        assert ts[2, "sv3", 0:3, :].shape == ts.data[2, 2, 0:3, :].shape
+        assert ts[2, "sv3", "r1":"r3", :].shape == ts.data[2, 2, 0:3, :].shape
+        assert ts[0:2, "sv3", "r1":"r3", :].shape == ts.data[0:2, 2, 0:3, :].shape
+        assert ts[0:2, "sv3", :"r2", :].shape == ts.data[0:2, 2, :2, :].shape
+        assert ts[0:2, "sv3", "r2":, :].shape == ts.data[0:2, 2, 1:, :].shape
+        assert ts[0:2, "sv3", "r1", :].shape == ts.data[0:2, 2, 0, :].shape
+        assert ts[1:2, "sv3", :, :].shape == ts.data[1:2, 2, :, :].shape
+
+        assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, 2, 0:2, :])
+        assert numpy.all(ts[0:2, :"sv2", "r1":"r2", :].data == ts.data[0:2, :2, 0:2, :])
+        assert numpy.all(ts[0:2, "sv3", "r1", :].data == ts.data[0:2, 2, 0, :])
+        assert numpy.all(ts[2, :"sv2", "r1":"r3", :].data == ts.data[2, :2, 0:3, :])
+        assert numpy.all(ts[2, "sv2", "r3", :].data == ts.data[2, 1, 2, :])
+        assert numpy.all(ts[2, "sv2", "r3", 0].data == ts.data[2, 1, 2, 0])
+
+    else:  # Different behavior for __get_item__() method...
+
+        assert ts[1, :, :, :].shape == ts.data[[1], :, :, :].shape
+        assert ts[:, 1, :, :].shape == ts.data[:, [1], :, :].shape
+        assert ts[1, :, "r2":"r3", :].shape == ts.data[[1], :, 1:3, :].shape
+        assert ts[:, :, 2, :].shape == ts.data[:, :, [2], :].shape
+        assert ts[:, "sv3", :, :].shape == ts.data[:, [2], :, :].shape
+        assert ts[2, "sv3", :, :].shape == ts.data[[[2]], [[2]], :, :].shape
+        assert ts[2, "sv3", 0:3, :].shape == ts.data[[[2]], [[2]], 0:3, :].shape
+        assert ts[2, "sv3", "r1":"r3", :].shape == ts.data[[[2]], [[2]], 0:3, :].shape
+        assert ts[0:2, "sv3", "r1":"r3", :].shape == ts.data[0:2, [2], 0:3, :].shape
+        assert ts[0:2, "sv3", :"r2", :].shape == ts.data[0:2, [2], :2, :].shape
+        assert ts[0:2, "sv3", "r2":, :].shape == ts.data[0:2, [2], 1:, :].shape
+        assert ts[0:2, "sv3", "r1", :].shape == ts.data[0:2, [[2]], [[0]], :].shape
+        assert ts[1:2, "sv3", :, :].shape == ts.data[1:2, [2], :, :].shape
+
+        assert numpy.all(ts[0:2, "sv3", "r1":"r2", :].data == ts.data[0:2, [2], 0:2, :])
+        assert numpy.all(ts[0:2, :"sv2", "r1":"r2", :].data == ts.data[0:2, :2, 0:2, :])
+        assert numpy.all(ts[0:2, "sv3", "r1", :].data == ts.data[0:2, [[2]], [[0]], :])
+        assert numpy.all(ts[2, :"sv2", "r1":"r3", :].data == ts.data[[2], :2, 0:3, :])
+        assert numpy.all(ts[2, "sv2", "r3", :].data == ts.data[[[[2]]], [[[1]]], [[[2]]], :])
+        assert numpy.all(ts[2, "sv2", "r3", 0].data == ts.data[[[[[2]]]], [[[[1]]]], [[[[2]]]], [[[[0]]]]])
 
     # IndexError because of [0][0] on numpy array in TSget_index_of_state_variable
     with pytest.raises(ValueError):
@@ -202,13 +227,13 @@ def test_timeseries_data_access(datatype=TimeSeriesXarray):
 
 def test_timeseries_4D(datatype=TimeSeriesXarray):
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(4)
-    ts_4D = TimeSeries(data,
-                       labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", "r4"],
-                                          TimeSeriesDimensions.VARIABLES.value: [
-                                              PossibleVariables.X.value, PossibleVariables.Y.value,
-                                              "sv3"]},
-                       start_time=start_time, sample_period=sample_period,
-                       sample_period_unit=sample_period_unit)
+    ts_4D = datatype(data=data,
+                     labels_dimensions={TimeSeriesDimensions.SPACE.value: ["r1", "r2", "r3", "r4"],
+                                        TimeSeriesDimensions.VARIABLES.value: [
+                                            PossibleVariables.X.value, PossibleVariables.Y.value,
+                                            "sv3"]},
+                     start_time=start_time, sample_period=sample_period,
+                     sample_period_unit=sample_period_unit)
     assert ts_4D.data.shape == (3, 3, 4, 4)
     assert ts_4D.x.data.shape == (3, 1, 4, 4)
 
@@ -222,5 +247,5 @@ def test_all(timeseries_type):
 
 
 if __name__ == "__main__":
-    test_all(TimeSeriesXarray)
     test_all(TimeSeries)
+    test_all(TimeSeriesXarray)

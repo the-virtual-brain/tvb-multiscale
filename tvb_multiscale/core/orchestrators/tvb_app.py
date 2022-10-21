@@ -47,8 +47,6 @@ class TVBApp(App):
 
     results = None
 
-    _interfaces_built = False
-
     _cosimulator_builder_type = CoSimulatorBuilder
     _default_interface_builder = TVBInterfaceBuilder
 
@@ -152,10 +150,9 @@ class TVBApp(App):
         dump_pickled_dict(tvb_cosimulator_serialized, filepath)
 
     def build_interfaces(self):
-        if not self._interfaces_built:
+        if self.cosimulator.output_interfaces is None and self.cosimulator.input_interfaces is None:
             self.configure_interfaces_builder()
             self.cosimulator = self.interfaces_builder.build()
-            self._interfaces_built = True
 
     def build(self):
         self.build_tvb_simulator()

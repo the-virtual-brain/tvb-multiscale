@@ -215,7 +215,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 if len(pop_results) == 0:
                     # ...initialize the results' dictionary
                     for res_type in reg_results.keys():
-                        pop_results[res_type] = Series(name=pop_label)
+                        pop_results[res_type] = Series(name=pop_label, dtype='object')
                 # ...and loop to get every region wise result of computation...
                 for res_type, res in reg_results.items():
                     pop_results[res_type][reg_label] = res
@@ -251,7 +251,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             for res_name in pop_results.keys():
                 # ...initialize if this is a new result...
                 if res_name not in results.keys():
-                    results[res_name] = Series(name=res_name)
+                    results[res_name] = Series(name=res_name, dtype='object')
                 # ...get the result...
                 results[res_name][pop_label] = pop_results[res_name]
         if data_name is not None:
@@ -275,9 +275,9 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         for i_res, computation_method in enumerate(computations_methods):
             res_name = self._get_comput_res_type(computation_method)
             try:
-                results[res_name] = Series(name=results_names[i_res])
+                results[res_name] = Series(name=results_names[i_res], dtype='object')
             except:
-                results[res_name] = Series(name=res_name)
+                results[res_name] = Series(name=res_name, dtype='object')
         return results
 
     def _get_safely_computation_kwargs(self, i_computation, computations_kwargs):
@@ -345,13 +345,12 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
 
         # ...if we have a connectivity...
         if self.connectivity:
-            # ...initialize a TVB TimeSeriesRegion instance...
-            time_series = TimeSeriesRegion(connectivity=self.connectivity)
+            # ...create a TVB TimeSeriesRegion instance from the results' xarray.DataArray instance......
+            time_series = TimeSeriesRegion(data=results, connectivity=self.connectivity)
         else:
-            # ...otherwise a TVB TimeSeries one...
-            time_series = TimeSeries()
-        # ..finally, create the TVB Time Series instance from the results' xarray.DataArray instance...
-        time_series.from_xarray_DataArray(results)
+            # ...create a TVB TimeSeries instance from the results' xarray.DataArray instance......
+            time_series = TimeSeries(results)
+
         # ...and return it...
         return time_series
 
@@ -541,7 +540,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if not isinstance(return_spikes_trains, string_types):
                 return_spikes_trains = self.spikes_train_name
             # Add the spikes trains to the results dicts if required:
-            results[return_spikes_trains] = Series(name="Spikes Trains")
+            results[return_spikes_trains] = Series(name="Spikes Trains", dtype='object')
         if len(spikes_data):
             # If there are any spikes" data or recording devices, proceed to computation and collect the results...
             results = \
@@ -608,7 +607,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             pop_labels.append(pop_label)
             if self.return_data:
                 # ...if we also return the data loaded...:
-                data_to_return = Series(name=pop_label)
+                data_to_return = Series(name=pop_label, dtype='object')
             # ...and for every region Device or data...
             for reg_label, reg_spikes in pop_spikes.iteritems():
                 if not regions or reg_label in regions:
@@ -627,7 +626,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if self.return_data:
                 results["data_name"] = data_name
                 if data_name not in results.keys():
-                    results[data_name] = Series(name=data_name)
+                    results[data_name] = Series(name=data_name, dtype='object')
                 # load the spikes' data to the results to be returned...
                 results[data_name][pop_label] = data_to_return
         # ...eventually compute the results and add it to the output dict...

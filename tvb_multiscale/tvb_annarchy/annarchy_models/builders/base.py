@@ -40,7 +40,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         self._spiking_brain = ANNarchyBrain()
 
     def __str__(self):
-        return super(ANNarchyNetworkBuilder, self) + "\nnest simulator: %s" % self.annarchy_instance
+        return super(ANNarchyNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.annarchy_instance)
 
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:

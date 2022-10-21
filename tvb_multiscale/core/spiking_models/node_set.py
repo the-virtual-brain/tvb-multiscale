@@ -31,7 +31,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
 
     _collection_name = "Population"
     
-    def __init__(self, nodes=pd.Series(), **kwargs):
+    def __init__(self, nodes=pd.Series(dtype='object'), **kwargs):
         kwargs["name"] = kwargs.pop("label", kwargs.get("name", ""))
         pd.Series.__init__(self, nodes, **kwargs)
         HasTraits.__init__(self)
@@ -145,7 +145,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
            Returns:
             Series of collections' nodes' attributes.
         """
-        output = pd.Series()
+        output = pd.Series(dtype='object')
         for id, lbl, nodes in self._loop_generator(inds_or_lbls):
             output[lbl] = nodes.Get(attrs, summary=summary)
         return output
@@ -176,7 +176,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
            Returns:
             Series of connections.
         """
-        output = pd.Series()
+        output = pd.Series(dtype='object')
         for id, lbl, nodes in self._loop_generator(inds_or_lbls):
             output[lbl] = nodes.GetConnections(source_or_target=source_or_target)
         return output
@@ -210,7 +210,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
            Returns:
             Series of connections' attributes.
         """
-        output = pd.Series()
+        output = pd.Series(dtype='object')
         for id, lbl, nodes in self._loop_generator(inds_or_lbls):
             output[lbl] = nodes.GetFromConnections(attrs, source_or_target=source_or_target, summary=summary)
         return output
@@ -406,7 +406,7 @@ class SpikingNodesSet(pd.Series, HasTraits):
         return self._return_by_type(values_dict, return_type, concatenation_index_name, name)
 
     def info(self, recursive=0):
-        info = super(SpikingNodesSet, self).info(recursive)
+        info = HasTraits.info(self, recursive)
         info["label"] = self.label
         info['size'] = self.size
         info["%ss" % self._collection_name] = self.collections

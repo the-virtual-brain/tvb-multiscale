@@ -83,8 +83,8 @@ class H5Writer(object):
                         continue
                     else:
                         groups_keys.append(key)
-        except:
-            msg = "Failed to decompose group object: " + str(object) + "!"
+        except Exception as e:
+            msg = "Failed to decompose group object: " + str(object) + "!" + "\nThe error was\n%s" % str(e)
             try:
                 self.logger.info(str(object.__dict__))
             except:
@@ -100,16 +100,16 @@ class H5Writer(object):
                     location.create_dataset(key, data=value)
                 except:
                     location.create_dataset(key, data=numpy.str(value))
-            except:
-                warning("Failed to write to %s dataset %s %s:\n%s !" %
-                        (str(location), value.__class__, key, str(value)), self.logger)
+            except Exception as e:
+                warning("Failed to write to %s dataset %s %s:\n%s !\nThe error was:\n%s" %
+                        (str(location), value.__class__, key, str(value), str(e)), self.logger)
 
         for key, value in metadata_dict.items():
             try:
                 location.attrs.create(key, value)
-            except:
-                warning("Failed to write to %s attribute %s %s:\n%s !" %
-                        (str(location), value.__class__, key, str(value)), self.logger)
+            except Exception as e:
+                warning("Failed to write to %s attribute %s %s:\n%s !\nThe error was:\n%s" %
+                        (str(location), value.__class__, key, str(value), str(e)), self.logger)
         return location
 
     def _prepare_object_for_group(self, group, object, h5_type_attribute="", nr_regions=None,
@@ -206,8 +206,9 @@ class H5Writer(object):
                         continue
                     else:
                         group.attrs.create(key, numpy.string_(value))
-            except:
-                self.logger.warning("Did not manage to write " + key + " to h5 file " + str(group) + " !")
+            except Exception as e:
+                self.logger.warning("Did not manage to write %s to h5 file %s !\nThe error was:\n%s"
+                                    % (key, str(group), str(e)))
 
     def write_dictionary(self, dictionary, path=None, h5_file=None, close_file=True):
         """

@@ -1,20 +1,22 @@
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 
-class  NetpynePopulation(SpikingPopulation):
+class NetpynePopulation(SpikingPopulation):
 
     netpyne_instance = None
 
-    def __init__(self, nodes, netpyne_instance, pop_label, model, brain_region, **kwargs):
-        # TODO: label and model not needed?
+    def __init__(self, nodes, netpyne_instance, label, global_label, brain_region, **kwargs):
         self.netpyne_instance = netpyne_instance
-        kwargs["label"] = pop_label
-        kwargs["model"] = model
-        kwargs["brain_region"] = brain_region
-        super(NetpynePopulation, self).__init__(nodes, **kwargs)
 
-    @property
-    def global_label(self):
-        return self.brain_region + '.' + self.label
+        if global_label is None:
+            self.global_label = brain_region + '.' + label
+        else:
+            self.global_label = global_label
+
+        # to be used below in super.init
+        kwargs["label"] = label
+        kwargs["brain_region"] = brain_region
+
+        super(NetpynePopulation, self).__init__(nodes, **kwargs)
 
     def _print_neurons(self):
         pass

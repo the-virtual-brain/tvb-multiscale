@@ -77,7 +77,7 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
         mean_field_xr.plot_raster(per_variable=mean_field_xr.shape[1] > MAX_VARS_IN_COLS,
                                   plotter_config=plotter.config, figsize=plotter.config.DEFAULT_SIZE)
 
-    rates_xr = TimeSeriesXarray(rates)
+    rates_xr = TimeSeriesXarray(data=rates)
     rates_xr.plot_timeseries(plotter_config=plotter.config,
                              hue="Region" if rates_xr.shape[2] > MAX_REGIONS_IN_ROWS else None,
                              figsize=plotter.config.DEFAULT_SIZE)
@@ -112,8 +112,7 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
     time = source_ts.time
 
     if writer is not None:
-        writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
-                                                                        connectivity=source_ts.connectivity),
+        writer.write_tvb_to_h5(TimeSeriesRegion(source_ts._data, connectivity=source_ts.connectivity),
                                os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
 
     # if isinstance(simulator.model, SpikingWongWangExcIOInhI):
@@ -250,9 +249,8 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                 path=os.path.join(config.out.FOLDER_RES,
                                                   spikes_res["spikes_correlation_coefficient"].name) + ".h5")
             writer.write_tvb_to_h5(
-                                   TimeSeriesRegion().from_xarray_DataArray(
-                                       spikes_res["mean_rate_time_series"]._data,
-                                       connectivity=spikes_res["mean_rate_time_series"].connectivity),
+                                   TimeSeriesRegion(spikes_res["mean_rate_time_series"]._data,
+                                                    connectivity=spikes_res["mean_rate_time_series"].connectivity),
                                    os.path.join(config.out.FOLDER_RES,
                                                 spikes_res["mean_rate_time_series"].title) + ".h5",
                                    recursive=False)
@@ -279,9 +277,8 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                         path=os.path.join(config.out.FOLDER_RES,
                                                           spikes_sync["spikes_sync"].name) + ".h5")
                     writer.write_tvb_to_h5(
-                        TimeSeriesRegion().from_xarray_DataArray(
-                            spikes_sync["spikes_sync_time_series"]._data,
-                            connectivity=spikes_sync["spikes_sync_time_series"].connectivity),
+                        TimeSeriesRegion(spikes_sync["spikes_sync_time_series"]._data,
+                                         connectivity=spikes_sync["spikes_sync_time_series"].connectivity),
                         os.path.join(config.out.FOLDER_RES,
                                      spikes_sync["spikes_sync_time_series"].title) + ".h5",
                         recursive=False)
@@ -365,9 +362,8 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         # Write results to file:
         if writer:
             writer.write_tvb_to_h5(
-                                   TimeSeriesRegion().from_xarray_DataArray(
-                                       mean_field_ts._data,
-                                       connectivity=mean_field_ts.connectivity),
+                                   TimeSeriesRegion(mean_field_ts._data,
+                                                    connectivity=mean_field_ts.connectivity),
                                    os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".h5", recursive=False)
         del mean_field_ts
 

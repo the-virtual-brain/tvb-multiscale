@@ -5,6 +5,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
 from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder
 
 from tvb.datatypes.connectivity import Connectivity
@@ -34,7 +35,8 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
 
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
-    nest_model_builder = DefaultExcIOBuilder(simulator, nest_nodes_ids, config=config)
+    nest_model_builder = DefaultExcIOBuilder(simulator, nest_nodes_ids,
+                                             nest_instance=load_nest(config), config=config)
     nest_model_builder.configure()
     print(nest_model_builder.info())
 
