@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 1.0, 'STIMULUS': 0.5,
                 'I_e': -0.35, 'I_s': 0.08,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
-                'output_folder': 'cwc_STIM_Ie', 'verbose': 1, 'plot_flag': True}
+                'output_folder': 'cwc_STIM_Ie_Is', 'verbose': 1, 'plot_flag': True}
 
 
 def create_plotter(config):
@@ -174,7 +174,7 @@ def configure(**ARGS):
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 25.0, "loc": 10.0, "sc": 5.0},
         }
-    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e']  # , 'I_s', 'w_ie', 'w_rs', 'FIC',
+    config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_e', 'I_s']  # , 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
