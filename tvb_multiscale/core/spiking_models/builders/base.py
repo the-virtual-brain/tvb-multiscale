@@ -91,7 +91,7 @@ class SpikingNetworkBuilder(object):
         self.default_min_delay = self.config.MIN_SPIKING_DT
 
         # Setting SpikingNetwork defaults from config
-        # to be further specified in the each Spiking simulator's specific builder class.
+        # to be further specified in each Spiking simulator's specific builder class.
         self.default_population = {"model": self.config.DEFAULT_SPIKING_MODEL, "scale": 1, "params": {}, "nodes": None}
 
         self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
@@ -391,6 +391,7 @@ class SpikingNetworkBuilder(object):
                      "nodes_connections_weights", "nodes_connections_delays", "nodes_connections_receptor_types",
                      "nodes_connections_conn_spec"]:
             output += "\n%s:\n%s\n" % (prop, str(getattr(self, prop, None)))
+        return output
 
     def info(self):
         return self.__str__() + self._info_properties()
