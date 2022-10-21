@@ -13,12 +13,12 @@ class WWDeco2013Builder(DefaultExcIOInhIBuilder):
 
     w_EE = np.array([0.9])
 
+    model = "iaf_cond_ww_deco"
+
     def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
                  config=None, logger=None, **kwargs):
 
         super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
-
-        self.default_population["model"] = "iaf_cond_ww_deco"
 
         self.scale_e = 1.0
         self.scale_i = 1.0
@@ -188,8 +188,6 @@ class WWDeco2014Builder(WWDeco2013Builder):
                  config=None, logger=None, **kwargs):
 
         super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
-
-        self.default_population["model"] = "iaf_cond_ww_deco"
 
         self.scale_e = 1.6
         self.scale_i = 0.4

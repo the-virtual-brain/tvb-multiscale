@@ -19,7 +19,7 @@ class TestSpikeNetModel(TestModel):
     spiking_proxy_inds = [0, 1]
     tvb_spikeNet_model_builder = None
     spikeNet_model_builder = None
-    populations_order = 10
+    population_order = 10
     tvb_to_spikeNet_mode = "rate"
     spikeNet_to_tvb = True
     exclusive_nodes = True

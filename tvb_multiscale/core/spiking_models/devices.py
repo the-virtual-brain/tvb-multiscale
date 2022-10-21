@@ -950,7 +950,7 @@ class DeviceSet(SpikingNodesSet):
 
     _collection_name = "Device"
 
-    def __init__(self, device_set=pd.Series(), **kwargs):
+    def __init__(self, device_set=pd.Series(dtype='object'), **kwargs):
         self.model = str(kwargs.pop("model", ""))
         SpikingNodesSet.__init__(self, device_set, **kwargs)
         if np.any([not isinstance(device, Device) for device in self]):

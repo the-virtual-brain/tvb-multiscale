@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
@@ -22,20 +23,26 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     _spiking_brain = NetpyneBrain()
 
     def __init__(self, tvb_simulator={}, spiking_nodes_ids=[], netpyne_instance=None, config=None, logger=None):
+        # Beware: this method can be called multiple times (first - when creating default object)
         super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_ids, config, logger)
         self.netpyne_instance = netpyne_instance
-        self._spiking_brain =  NetpyneBrain()
+        self._spiking_brain = NetpyneBrain()
 
-    def configure(self):
+    def configure(self, netParams, simConfig, autoCreateSpikingNodes):
         if self.config is None:
             self.config = CONFIGURED
         if self.logger is None:
             self.logger = initialize_logger(__name__, config=self.config)
+
+        self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
+        self.netpyne_instance.importModel(netParams, simConfig)
+        
         super(NetpyneNetworkBuilder, self).configure()
 
-    def configureCells(self):
-        for model in self.cell_models:
-            self.netpyne_instance.registerCellModel(model)
+    @abstractmethod
+    def proxy_node_synaptic_model_funcs(self):
+        pass
+
 
     def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
         """Method to set the synaptic model, the weight, the delay,
@@ -70,10 +77,13 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
         size = int(np.round(size))
 
         collection = NodeCollection(brain_region, label, size)
-        population = NetpynePopulation(collection, self.netpyne_instance, label, model, brain_region)
 
-        print(f"Netpyne:: Creating spiking population '{population.global_label}' of {size} neurons of type '{model}'.")
-        self.netpyne_instance.registerPopulation(population.global_label, model, size)
+        global_label = params.get("global_label")
+        population = NetpynePopulation(collection, self.netpyne_instance, label, global_label, brain_region)
+
+        if self.netpyne_instance.autoCreateSpikingNodes:
+            print(f"Netpyne:: Creating spiking population '{population.global_label}' of {size} neurons of type '{model}'.")
+            self.netpyne_instance.registerPopulation(population.global_label, model, size)
         return population
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):

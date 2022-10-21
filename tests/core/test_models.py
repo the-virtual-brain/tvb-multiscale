@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
-
 import gc
-from time import sleep
+from time import sleep, time
+from collections import OrderedDict
+import warnings
+import numpy as np
+
 from tvb.basic.profile import TvbProfile
 
 from tvb_multiscale.core.config import Config
@@ -150,50 +153,65 @@ def teardown_function():
         shutil.rmtree(output_folder)
 
 
+def run_test(test_model_class, success={}):
+    test_model = test_model_class()
+    print("******************************************************")
+    print("******************************************************")
+    try:
+        tic = time()
+        test_model.test()
+        print("\nSuccess in %g sec!" % (time() - tic))
+        success[test_model_class.__name__] = True
+    except Exception as e:
+        success[test_model_class.__name__] = str(e)
+        print("\nError in %g sec!" % (time() - tic))
+        warnings.warn(e)
+    print("******************************************************\n")
+    del test_model
+    gc.collect()
+    sleep(1)
+    return success
+
+
 def loop_all(models_to_test=[]):
-    import time
-    import numpy as np
-    from collections import OrderedDict
     success = OrderedDict()
     for test_model_class in models_to_test:
-        test_model = test_model_class()
         print("\n******************************************************")
         print("******************************************************")
         print(test_model_class.__name__)
-        success[test_model_class.__name__] = OrderedDict()
-        for test in dir(test_model):
-            if test[:4] == "test":
-                print("******************************************************")
-                print(test)
-                print("******************************************************")
-                try:
-                    tic = time.time()
-                    getattr(test_model, test)()
-                    print("\nSuccess in time %f sec!" % (time.time() - tic))
-                    success[test_model_class.__name__][test] = True
-                except Exception as e:
-                    success[test_model_class.__name__][test] = e
-                    print("\nError after time %f sec!" % (time.time() - tic))
-                print("******************************************************\n")
-        gc.collect()
-        del test_model
-        sleep(5)
+        success = run_test(test_model_class, success)
         print("\n******************************************************")
         print("******************************************************")
-    if not np.all([result is True
-                    for model_result in list(success.values())
-                        for result in list(model_result.values()) ]):
-        raise Exception("%s\nmodels' tests failed! Details:\n%s" % (str(os.getcwd()), str(success)))
-    else:
-        print(success)
+    for model, result in success.items():
+        if result is True:
+            print("\n%s SUCCESS!" % model)
+        else:
+            warnings.warn("\n%s ERROR!:\n%s" % (model, result))
+    if not np.all([result is True for result in list(success.values())]):
+        raise Exception("%s\nmodels' tests failed!" % str(os.getcwd()))
     print("******************************************************\n")
 
 
-def test_models(models_to_test=[TestLinear, TestWilsonCowan,
-                                TestLinearReducedWongWangExcIO,
-                                TestReducedWongWangExcIO, TestReducedWongWangExcIOInhI]):
-    loop_all(models_to_test)
+models_to_test_TVB = [TestLinear,                       # 0
+                      TestWilsonCowan,                  # 1
+                      TestLinearReducedWongWangExcIO,   # 2
+                      TestReducedWongWangExcIO,         # 3
+                      TestReducedWongWangExcIOInhI]     # 4
+
+
+def test_models(models_to_test=models_to_test_TVB, iM=None):
+    if iM is not None:
+        print(run_test(models_to_test[iM]))
+    else:
+        loop_all(models_to_test)
 
 
 if __name__ == "__main__":
-    test_models()
+    import sys
+
+    if len(sys.argv) > 1:
+        iM = int(sys.argv[1])
+        print("\n\nTesting model %d" % iM)
+        test_models(iM=iM)
+    else:
+        test_models()

@@ -11,46 +11,21 @@ class NetpyneInstance(object):
 
     spikeGenerators = []
     
-    def __init__(self, dt):
+    def __init__(self):
+        self.spikeGeneratorPops = []
+        self.autoCreatedPops = []
 
-        self.dt = dt
+    def importModel(self, netParams, simConfig):
 
-        self.spikingPopulationLabels = []
-
-        self.netParams = specs.NetParams()
+        self.netParams = netParams
+        self.simConfig = simConfig
 
         # using VecStim model from NEURON for artificial cells serving as stimuli
         self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicNetStim'}
 
-        ## Synaptic mechanism parameters
-        #TODO: de-hardcode syn params
-        self.netParams.synMechParams['exc'] = {'mod': 'Exp2Syn', 'tau1': 0.8, 'tau2': 5.3, 'e': 0}  # NMDA
-        self.netParams.synMechParams['inh'] = {'mod': 'Exp2Syn', 'tau1': 0.6, 'tau2': 8.5, 'e': -75}  # GABA
-
-        # Simulation options
-        simConfig = specs.SimConfig()
-
-        simConfig.dt = dt
-        # simConfig.verbose = True
-
-        simConfig.recordTraces = {'V_soma':{'sec':'soma','loc':0.5,'var':'v'}}  # Dict with traces to record
-        
-        simConfig.recordStep = 0.1
-        simConfig.savePickle = False        # Save params, network and sim output to pickle file
-        simConfig.saveJson = False
-
-        self.simConfig = simConfig
-
-    def registerCellModel(self, cellModel):
-        cellParams = netpyne.specs.Dict()
-
-        cellParams.secs.soma.geom = cellModel.geom.toDict()
-        #  {'diam': 18.8, 'L': 18.8, 'Ra': 123.0}
-        mechName, mech = cellModel.getMech()
-        cellParams.secs.soma.mechs[mechName] = mech
-        
-
-        self.netParams.cellParams[cellModel.name] = cellParams
+    @property
+    def dt(self):
+        return self.simConfig.dt
 
     @property
     def minDelay(self):
@@ -60,26 +35,29 @@ class NetpyneInstance(object):
     def time(self):
         return h.t
     
-    def createAndPrepareNetwork(self, simulationLength): # TODO: bad name?
-
-        self.simConfig.recordCellsSpikes = self.spikingPopulationLabels # to exclude stimuli-cells
+    def createAndPrepareNetwork(self, simulationLength, dt): # TODO: bad name?
         self.simConfig.duration = simulationLength
+        self.simConfig.dt = dt
 
         sim.initialize(self.netParams, None) # simConfig to be provided later
         sim.net.createPops()
         sim.net.createCells()
 
-        # choose N random cells from each population to plot traces for
-        n = 5
-        rnd = np.random.RandomState(0)
-        def includeFor(pop):
-            popSize = len(sim.net.pops[pop].cellGids)
-            chosen = (pop, rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
-            return chosen
-        include = list(map(includeFor, self.spikingPopulationLabels))
+        if len(self.autoCreatedPops):
+            # choose N random cells from each population to plot traces for
+            n = 3
+            rnd = np.random.RandomState(0)
+            def includeFor(pop):
+                popSize = len(sim.net.pops[pop].cellGids)
+                chosen = (pop, rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
+                return chosen
+            include = list(map(includeFor, self.autoCreatedPops))
+            self.simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
+            self.simConfig.analysis['plotRaster'] = {'include': self.autoCreatedPops, 'saveFig': True}
 
-        self.simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
-        self.simConfig.analysis['plotRaster'] = {'include': self.spikingPopulationLabels, 'saveFig': True}
+        if self.simConfig.recordCellsSpikes == -1:
+            allPopsButSpikeGenerators = [pop for pop in self.netParams.popParams.keys() if pop not in self.spikeGeneratorPops]
+            self.simConfig.recordCellsSpikes = allPopsButSpikeGenerators
 
         sim.setSimCfg(self.simConfig)
         sim.setNetParams(self.netParams)
@@ -90,6 +68,15 @@ class NetpyneInstance(object):
         sim.setupRecording()
 
         sim.run.prepareSimWithIntervalFunc()
+
+        # interval run is used internally to support communication with TVB. However, users may also need to have feedbacks
+        # at some interval, distinct from those used internally. User-defined interval and intervalFunc are read here, and the logic is handled in `run()`
+        if hasattr(self.simConfig, 'interval'):
+            self.interval = self.simConfig.interval
+            self.intervalFunc = self.simConfig.intervalFunc
+            self.nextIntervalFuncCall = self.interval
+        else:
+            self.nextIntervalFuncCall = None
 
     def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType):
         # TODO: randomize weight and delay, if values do not already contain sting func
@@ -125,11 +112,12 @@ class NetpyneInstance(object):
             'synMech': synapticMechanism }
 
     def registerPopulation(self, label, cellModel, size):
-        self.spikingPopulationLabels.append(label)
+        self.autoCreatedPops.append(label)
         self.netParams.popParams[label] = {'cellType': cellModel, 'numCells': size}
 
     def createArtificialCells(self, label, number, params=None):
         print(f"Netpyne:: Creating artif cells for node '{label}' of {number} neurons")
+        self.spikeGeneratorPops.append(label)
         self.netParams.popParams[label] = {
             'cellType': 'art_NetStim',
             'numCells': number,
@@ -166,6 +154,22 @@ class NetpyneInstance(object):
 
     def run(self, length):
 
+        self.stimulate(length)
+
+        # handling (potentially) two distinct intervals (see comment in `createAndPrepareNetwork()`)
+        tvbIterationEnd = self.time + length
+        def _(simTime): pass
+        if self.nextIntervalFuncCall:
+            while (self.nextIntervalFuncCall < tvbIterationEnd):
+                if self.time < sim.cfg.duration:
+                    sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
+                self.intervalFunc(self.time)
+                self.nextIntervalFuncCall += self.interval
+        if tvbIterationEnd > self.time:
+            if self.time < sim.cfg.duration:
+                sim.run.runForInterval(tvbIterationEnd - self.time, _)
+
+    def stimulate(self, length):
         allNeuronsSpikes = {}
         allNeurons = []
         for device in self.spikeGenerators:
@@ -184,13 +188,13 @@ class NetpyneInstance(object):
                 spks[i] = spike
             sim.net.cells[gid].hPointp.set_next_spikes(intervalEnd, spks[0], spks[1], spks[2])
 
-        def func(simTime):
-            pass
-        if self.time + length <= sim.cfg.duration:
-            sim.run.runForInterval(length, func)
 
     def finalize(self):
-        sim.run.postRun()
+        if self.time < sim.cfg.duration:
+            stopTime = None
+        else:
+            stopTime = sim.cfg.duration
+        sim.run.postRun(stopTime)
         sim.gatherData()
         sim.analyze()
 

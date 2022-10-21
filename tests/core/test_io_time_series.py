@@ -31,7 +31,7 @@ def test_timeseries_4D(datatype=TimeSeriesRegion):
     writer = H5Writer()
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(4)
     ts = \
-        datatype(data,
+        datatype(data=data,
                  labels_dimensions={"Region": ["r1", "r2", "r3", "r4"],
                                     TimeSeriesDimensions.VARIABLES.value: [
                                         PossibleVariables.X.value, PossibleVariables.Y.value,
@@ -41,7 +41,7 @@ def test_timeseries_4D(datatype=TimeSeriesRegion):
                  connectivity=_prepare_connectivity())
 
     if isinstance(ts, TimeSeriesRegionXarray):
-        ts_write = TimeSeriesRegion().from_xarray_DataArray(ts._data, connectivity=ts.connectivity)
+        ts_write = TimeSeriesRegion(data=ts.data, connectivity=ts.connectivity).from_xarray_DataArray(ts._data)
     else:
         ts_write = ts
     path = writer.write_tvb_to_h5(ts_write, recursive=True)

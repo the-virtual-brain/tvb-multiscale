@@ -334,7 +334,7 @@ def narray_summary_info(ar, ar_name='', omit_shape=False):
     if isinstance(summary, dict):
         ret.update(summary)
     else:
-        if np.array(summary).size < ar.size:
+        if np.array(summary, dtype='object').size < ar.size:
             ret.update({'unique_values': summary})
         else:
             ret.update({'values': summary})

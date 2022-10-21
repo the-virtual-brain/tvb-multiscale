@@ -9,7 +9,7 @@ from tvb_multiscale.tvb_netpyne.netpyne.instance import NetpyneInstance, Netpyne
 LOG = initialize_logger(__name__)
 
 
-def load_netpyne(dt, config=CONFIGURED, logger=LOG):
+def load_netpyne(config=CONFIGURED, logger=LOG):
     """This method will load a NetPyNE instance and return it.
         Arguments:
          dt: spiking dt in milliseconds
@@ -18,7 +18,7 @@ def load_netpyne(dt, config=CONFIGURED, logger=LOG):
         Returns:
          the imported NetPyNE instance
     """
-    return NetpyneInstance(dt)
+    return NetpyneInstance()
 
 
 def create_device(device_model, params={}, config=CONFIGURED, netpyne_instance=None, **kwargs):

@@ -135,7 +135,7 @@ class SpikeStimulusBuilder(object):
         # targets x time x ...
         spike_ts = spike_ts.swapaxes(0, 1)
         if self._return == "Series":
-            stimulus = Series()
+            stimulus = Series(dtype='object')
         else:
             stimulus = OrderedDict()
         if self._sparse or self._return_array == "DataArray":
