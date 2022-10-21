@@ -12,11 +12,11 @@ import numpy as np
 
 from tvb_multiscale.tvb_nest.config import Config
 
-from docker.launch_example import launch_example
+from docker.launch_example import launch_example_nest
 
 
 def prepare_launch_default_simulation():
-    return launch_example(False, plot_write=False, simulation_length=36.0, transient=6.0)
+    return launch_example_nest(False, plot_write=False, simulation_length=36.0)
 
 
 def test_connectivity_weights_shape(number_of_regions=None, weights=None):
@@ -40,7 +40,8 @@ def test_results_shape(simulator=None, results=None):
         simulator, results = prepare_launch_default_simulation()
     assert not np.isinf(results.ravel()).all()
     assert not np.isnan(results.ravel()).all()
-    assert results.shape == (360, simulator.model.nvar, simulator.connectivity.number_of_regions, 1)
+    assert results.shape == (360+simulator.synchronization_n_step,
+                             simulator.model.nvar, simulator.connectivity.number_of_regions, 1)
 
 
 def teardown_function():
