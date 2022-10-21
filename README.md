@@ -1,5 +1,5 @@
 # TVB multiscale
-This module currently provides a solution to interface between TVB and NEST, ANNarchy or NETPYNE (NEURON) spiking networks for multiscale co-simulations.
+This package currently provides a solution to interface between TVB and NEST, ANNarchy or NETPYNE (NEURON) spiking networks for multiscale co-simulations.
 
 It tries to offer a generic way to interface between them and the TVB simulator.
  
