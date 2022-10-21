@@ -737,8 +737,8 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         # Write to file
         if writer:
             try:
-                writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(source_ts._data,
-                                                                                connectivity=source_ts.connectivity),
+                writer.write_tvb_to_h5(TimeSeriesRegion(data=source_ts._data,
+                                                        connectivity=source_ts.connectivity),
                                     os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
             except Exception as e:
                     warnings.warn("Failed to to write source time series to file with error!:\n%s" % str(e))
@@ -766,8 +766,8 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
             # Write to file
             if writer:
                 try:
-                    writer.write_tvb_to_h5(TimeSeriesRegion().from_xarray_DataArray(bold_ts._data,
-                                                                                    connectivity=bold_ts.connectivity),
+                    writer.write_tvb_to_h5(TimeSeriesRegion(data=bold_ts._data,
+                                                            connectivity=bold_ts.connectivity),
                                         os.path.join(config.out.FOLDER_RES, bold_ts.title) + ".h5")
                 except Exception as e:
                     warnings.warn("Failed to to write BOLD time series to file with error!:\n%s" % str(e))
