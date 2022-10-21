@@ -18,7 +18,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
 
-
 class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a NESTNetworkBuilder,
