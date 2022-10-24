@@ -83,10 +83,9 @@ RUN conda install -y matplotlib==3.2.2
 RUN conda install -y numba
 
 WORKDIR $HOME/packages
-RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
+RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
-#    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
     cd tvb_library; \
     python setup.py develop; \
     cd ../tvb_framework; \
