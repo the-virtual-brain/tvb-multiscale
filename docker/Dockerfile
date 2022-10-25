@@ -123,9 +123,8 @@ RUN cd tvb-root; \
 # Install TVB-multiscale specific packages
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
-RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
-    cd annarchy; \
-    $VENV/bin/python3 setup.py install --user
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install ANNarchy
 
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
