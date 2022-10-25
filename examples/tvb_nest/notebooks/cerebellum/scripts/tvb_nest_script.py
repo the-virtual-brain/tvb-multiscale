@@ -100,8 +100,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     #     proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
     #     proxy_inds = np.delete(proxy_inds, nest_nodes_inds)
     # This is a user defined TVB -> Spiking Network interface configuration:
-    pops = ["mossy_fibers", "io_cell"]
-    ports = [0, 1]
+    pops = ["mossy_fibers"]  # , "io_cell"]
+    ports = [0]  # , 1]
     if config.NEST_PERIPHERY:
         pops = ['parrot_medulla', 'parrot_ponssens'] + pops
         ports = [0, 0] + ports
