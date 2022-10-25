@@ -218,7 +218,7 @@ def build_model(number_of_regions, inds, maps, config):
             else:
                 inds_stim = np.concatenate((inds["facial"], inds["trigeminal"]))
         else:
-            # Stimulus to directly to all specific thalami:
+            # Stimulus directly to all specific thalami:
             inds_stim = inds['thalspec']
         # Stimuli:
         A_st = 0 * dummy.astype("f")
