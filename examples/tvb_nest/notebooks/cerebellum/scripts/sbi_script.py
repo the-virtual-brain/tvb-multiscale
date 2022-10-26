@@ -439,6 +439,8 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR]):
         if pname == "FIC":
             config.FIC = pval
+        elif pname == "FIC_SPLIT":
+            config.FIC_SPLIT = pval
         else:
             params[pname] = pval
     if FIC is not None:

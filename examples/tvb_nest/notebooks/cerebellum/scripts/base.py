@@ -183,12 +183,14 @@ def configure(**ARGS):
          "w_ie": {"min": -10.0, "max": 0.0, "loc": -5.0, "sc": 2.5},
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
          "FIC": {"min": 0.0, "max": 2.0, "loc": 1.0, "sc": 0.25},
-         "FICsplit": {"min": 0.0, "max": 1.0, "loc": 0.25, "sc": 0.1}
+         "FIC_SPLIT": {"min": 0.0, "max": 1.0, "loc": 0.25, "sc": 0.1}
         }
     config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_s']  # , 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
+        if len(config.FIC_PARAMS) > 1 and config.FIC_SPLIT:
+            config.PRIORS_PARAMS_NAMES.append("FIC_SPLIT")
     # Uniform priors:
     config.prior_min = []
     config.prior_max = []  
