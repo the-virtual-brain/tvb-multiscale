@@ -111,6 +111,10 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
                 config.FIC = numpy_prior
             else:
                 priors_params[prior_name] = numpy_prior
+            if prior_name == "FIC_SPLIT":
+                config.FIC_SPLIT = numpy_prior
+            else:
+                priors_params[prior_name] = numpy_prior
         if config.VERBOSE:
             print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS+1, n_simulations, iG, iB))
             print("Simulating for parameters:\n%s" % str(priors_params))
@@ -415,7 +419,7 @@ def plot_sbi_fit(config=None):
     return fig, axes
 
 
-def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}, FIC=None):
+def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None):
 
     config = assert_config(config, return_plotter=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
@@ -439,6 +443,8 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
             params[pname] = pval
     if FIC is not None:
         config.FIC = FIC
+    if FIC_SPLIT is not None:
+        config.FIC_SPLIT = FIC_SPLIT
     # Run one simulation with the posterior means:
     if config.VERBOSE:
         print("Simulating using the estimate of the %s of the parameters' posterior distribution!" % config.OPT_RES_MODE)

@@ -56,7 +56,8 @@ def configure(**ARGS):
     THAL_CRTX_FIX = "wd"  # "wd", "w", "d" or False, in order to fix values of thalamocortical Weights, Delays, or both, to the Griffiths et al values, or not
 
     # For FIC:
-    FIC_PARAMS = {'I_e': 1.0, "w_ie": 3.0}
+
+    FIC_PARAMS = ['I_e', "w_ie"]  # {'I_e': 1.0, "w_ie": 3.0}
 
     # Construct configuration
     work_path = os.getcwd()
@@ -83,8 +84,10 @@ def configure(**ARGS):
     #     outputs_path += "CONN_LOG"
     if args['FIC']:
         outputs_path += "_FIC"
-        for fp, fv in FIC_PARAMS.items():
-            outputs_path += "_%s%g" % (fp, fv)
+        for fp in FIC_PARAMS:
+            outputs_path += "_%s" % fp
+        # for fp, fv in FIC_PARAMS.items():
+        #     outputs_path += "_%s%g" % (fp, fv)
     # outputs_path += "_PRIORS%s" % args['PRIORS_DIST']
     # if THAL_CRTX_FIX:
     #     outputs_path += "THAL_CRTX_FIX%s" % THAL_CRTX_FIX.upper()
@@ -154,6 +157,7 @@ def configure(**ARGS):
     # ...and fitting
     config.FIC = args['FIC']
     config.FIC_PARAMS = FIC_PARAMS
+    config.FIC_SPLIT = 0.25
     config.SBI_NUM_WORKERS = 1
     config.SBI_METHOD = 'SNPE'
     config.TARGET_PSD_POPA_PATH = popa_freqs_path
@@ -175,10 +179,11 @@ def configure(**ARGS):
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": -1.0, "max": 1.0, "loc": 0.0, "sc": 0.25},
          "I_e": {"min": -1.0, "max": 0.0, "loc": -0.35, "sc": 0.1},
-         "I_s": {"min": -0.1, "max": 0.1, "loc": 0.0, "sc": 0.025},
+         "I_s": {"min": -0.5, "max": 0.5, "loc": 0.0, "sc": 0.15},
          "w_ie": {"min": -10.0, "max": 0.0, "loc": -5.0, "sc": 2.5},
          "w_rs": {"min": -4.0, "max": 0.0, "loc": -2.0, "sc": 0.5},
-         "FIC": {"min": -1.0, "max": 1.0, "loc": 0.0, "sc": 0.25}
+         "FIC": {"min": 0.0, "max": 2.0, "loc": 1.0, "sc": 0.25},
+         "FICsplit": {"min": 0.0, "max": 1.0, "loc": 0.25, "sc": 0.1}
         }
     config.PRIORS_PARAMS_NAMES = ['STIMULUS', 'I_s']  # , 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
