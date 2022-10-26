@@ -251,7 +251,7 @@ def build_model(number_of_regions, inds, maps, config):
 
 # An approximate automatic FIC:
 
-def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=None, subtitle="", plotter=None):
+def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, G=None, dummy=None, subtitle="", plotter=None):
     number_of_regions = weights.shape[0]
     # This function will adjust inhibitory weights based on total indegree and some scaling
     if trg_inds is None:
@@ -274,14 +274,20 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     FICindegree = (indegree - indegree.min()) / (indegree.max() - indegree.min())
     # p_fic = p * (1 + FIC * FICindegree) = p * (1 + FIC * (indegree - indegree_min) / (indegree_max - indegree_min))
     # assuming p < 0.0, and FIC >= 0.0
-    p[trg_inds] = pscalar * (1.0 + FIC * FICindegree)
+    if G is None:
+        p[trg_inds] = pscalar * (1.0 + FIC * FICindegree)
+    else:
+        p[trg_inds] = pscalar * (1.0 + G * FIC * FICindegree)
 
     try:
         assert np.all(np.argsort(indegree) == np.argsort(-p[trg_inds]))  # the orderings should reverse
     except Exception as e:
         fig = plt.figure()
         plt.plot(indegree, p[trg_inds], "-o")
-        plt.xlabel("%g*indegree" % FIC)
+        if G is None:
+            plt.xlabel("%g*indegree" % FIC)
+        else:
+            plt.xlabel("%g*%g*indegree" % (G, FIC))
         plt.ylabel("%s scaled" % param)
         plt.title("Testing indegree and parameter anti-correlation")
         plt.tight_layout()
@@ -294,7 +300,10 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
         axes[1].hist(FICindegree, 30)
         axes[1].set_xlabel("Indegree Scaler values")
         axes[1].set_ylabel("Histogram of region counts")
-        axes[1].set_title("Indegree scaler = %g*(indegree - min(indegree)) / (max(indegree) - min(indegree))" % FIC)
+        if G is None:
+            axes[1].set_title("Indegree scaler = %g*(indegree - min(indegree)) / (max(indegree) - min(indegree))" % FIC)
+        else:
+            axes[1].set_title("Indegree scaler = %g*%g*(indegree - min(indegree)) / (max(indegree) - min(indegree))" % (G, FIC))
         axes[0].hist(p[trg_inds], 30)
         axes[0].set_xlabel("Parameter values")
         axes[0].set_ylabel("Histogram of region counts")
@@ -309,7 +318,7 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     return p
 
 
-def apply_fic(simulator, inds, FIC, param='w_ie', plotter=None):
+def apply_fic(simulator, inds, FIC, G=None, param='w_ie', plotter=None):
     
     # Indices of cortical and subcortical regions excluding specific thalami
     inds["non_thalamic"] = np.unique(inds['crtx'].tolist() + inds["subcrtx_not_thalspec"].tolist())
@@ -318,7 +327,7 @@ def apply_fic(simulator, inds, FIC, param='w_ie', plotter=None):
     # against indegree for all incoming connections excluding the ones from specific thalami
     setattr(simulator.model, param, 
             fic(param, getattr(simulator.model, param), simulator.connectivity.weights,
-                inds["non_thalamic"], inds["non_thalamic"], FIC=FIC, dummy=None, subtitle="", plotter=plotter))
+                inds["non_thalamic"], inds["non_thalamic"], FIC=FIC, G=G, dummy=None, subtitle="", plotter=plotter))
 
     # # FIC for cortical w_ie against indegree for all incoming connections excluding the ones from specific thalami
     # setattr(simulator.model, param, 
@@ -429,11 +438,19 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
         simulator.model.I_r.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_thalspec, 1))
 
     if config.FIC and simulator.model.G[0].item():
-        for fp, fv in config.FIC_PARAMS.items():
+        n_non_thalamic_regions = (simulator.connectivity.weights.shape[0] - inds['thalspec'].size)
+        G = simulator.model.G[0].item() * n_non_thalamic_regions
+        if config.FIC_SPLIT is not None:
+            FICsplit = [config.FIC_SPLIT, 1.0 - config.FIC_SPLIT]
+        else:
+            FICsplit = [1.0] * len(config.FIC_PARAMS)
+        for fp, fv, split_string in zip(config.FIC_PARAMS, FICsplit, ["FIC_SPLIT", "(1.0-FIC_SPLIT)"]):
+            ficsplit = config.FIC * fv
+            fic = G * ficsplit
             if config.VERBOSE:
-                print("Applying FIC for parameter %s: %g!" % (fp, config.FIC * fv))
+                print("Applying FIC for parameter %s: G * FIC * %s = %g * %g * %g = %g!" % (fp, split_string, G, config.FIC, fv, fic))
             # We will modify the w_ie and w_rs parameters a bit based on indegree:
-            simulator = apply_fic(simulator, inds, fv*config.FIC, fp, plotter)
+            simulator = apply_fic(simulator, inds, ficsplit, G, fp, plotter)
 
     # Set monitors:
     if config.RAW_PERIOD > config.DEFAULT_DT:
