@@ -236,6 +236,6 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 #CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 #Run jupyter notebooks
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+# CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
-# CMD /bin/bash
+CMD /bin/bash
