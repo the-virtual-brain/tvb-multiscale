@@ -189,7 +189,7 @@ def configure(**ARGS):
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")
-        if len(config.FIC_PARAMS) > 1 and config.FIC_SPLIT:
+        if len(config.FIC_PARAMS) > 1 and config.FIC_SPLIT is not None and config.FIC_SPLIT > 0.0:
             config.PRIORS_PARAMS_NAMES.append("FIC_SPLIT")
     # Uniform priors:
     config.prior_min = []
