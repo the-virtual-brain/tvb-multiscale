@@ -99,15 +99,37 @@ RUN $VENV/bin/pip3 install netpyne
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch
+RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
+
 # Install TVB specific packages
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba ; \
     $VENV/bin/pip3 install --ignore-installed entrypoints; \
     $VENV/bin/pip3 install werkzeug==2.0.1;
 
+# Install TVB-multiscale specific packages
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install ANNarchy;
+
+WORKDIR $HOME/packages
+RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
+    cd PySpike; \
+    $VENV/bin/python3 setup.py build_ext install;
+
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install elephant dill; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints;
+
 # Clone and install tvb-root
-RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git
-#ARG LAST_SHA_TVB=LATEST
+WORKDIR $HOME/packages
+RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
+ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
     cd tvb_library; \
@@ -119,38 +141,18 @@ RUN cd tvb-root; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-
-# Install TVB-multiscale specific packages
-WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
-WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install ANNarchy
-
-WORKDIR $HOME/packages
-RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
-    cd PySpike; \
-    $VENV/bin/python3 setup.py build_ext install
-    
-WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install elephant dill; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints
-
 # Clone and install tvb-multiscale
-RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git
+WORKDIR $HOME/packages
+RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git;
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
-    $VENV/bin/python setup.py develop --no-deps
-
-# Other (large) packages added for scientific work:
-RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch
-RUN $VENV/bin/pip3 install sbi
-# RUN $VENV/bin/pip3 install sbibm
+    $VENV/bin/python setup.py develop --no-deps;
 
 # Install Jupyter notebook specific packages
-RUN $VENV/bin/pip3 install ipywidgets ipympl
-RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install ipywidgets ipympl;
+RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension;
 
 # Install nitime
 RUN $VENV/bin/pip3 install nitime
@@ -172,7 +174,7 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod
 
-WORKDIR /home/docker/
+WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
 ENV NEST_PYTHON_PREFIX=${NEST_PYTHON_PREFIX}
@@ -245,4 +247,4 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 #Run jupyter notebooks
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
-#CMD /bin/bash
+# CMD /bin/bash
