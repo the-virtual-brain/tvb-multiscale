@@ -185,11 +185,6 @@ def build_connectivity(connectome, inds, config):
 
 
 def build_model(number_of_regions, inds, maps, config):
-    # We are not running dynamic FIC for fitting:
-    # if config.FIC:
-    #     from tvb_multiscale.core.tvb.cosimulator.models.wc_thalamocortical_cereb import \
-    #         WilsonCowanThalamoCorticalFIC as WilsonCowanThalamoCortical
-    # else:
     from tvb_multiscale.core.tvb.cosimulator.models.wc_thalamocortical_cereb import WilsonCowanThalamoCortical
 
     dummy = np.ones((number_of_regions,))
@@ -265,7 +260,7 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     if src_inds is None:
         src_inds = np.arange(number_of_regions).astype('i')
 
-    # Scale w_ie to grow to greater negative values from the default w_ie = -2.0
+    # Scale w_ie or I_e to grow to greater negative values from the defaults
     p_orig = np.array(p_orig)
     if p_orig.size == 1:
         if dummy is None:
@@ -274,12 +269,12 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     p = p_orig.copy()
     pscalar = p_orig[trg_inds].mean().item()
     # Move them to have a maximum of p_orig:
-    # FICindegree = (indegree - indegree_min) / indegree_std
+    # FICindegree = (indegree - indegree_min) / indegree_max
     indegree = weights[trg_inds][:, src_inds].sum(axis=1)
-    FICindegree = (indegree - indegree.min()) / np.std(indegree)
-    # p_fic = p - FIC * FICindegree = p - FIC * (indegree - indegree_min) / indegree_std
+    FICindegree = (indegree - indegree.min()) / (indegree.max() - indegree.min())
+    # p_fic = p * (1 + FIC * FICindegree) = p * (1 + FIC * (indegree - indegree_min) / (indegree_max - indegree_min))
     # assuming p < 0.0, and FIC >= 0.0
-    p[trg_inds] = pscalar - FIC * FICindegree
+    p[trg_inds] = pscalar * (1.0 + FIC * FICindegree)
 
     try:
         assert np.all(np.argsort(indegree) == np.argsort(-p[trg_inds]))  # the orderings should reverse
@@ -299,11 +294,11 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
         axes[1].hist(FICindegree, 30)
         axes[1].set_xlabel("Indegree Scaler values")
         axes[1].set_ylabel("Histogram of region counts")
-        axes[1].set_title("Indegree scaler = %g*(indegree-min(indegree))/std(indegree)" % FIC)
+        axes[1].set_title("Indegree scaler = %g*(indegree - min(indegree)) / (max(indegree) - min(indegree))" % FIC)
         axes[0].hist(p[trg_inds], 30)
         axes[0].set_xlabel("Parameter values")
         axes[0].set_ylabel("Histogram of region counts")
-        axes[0].set_title("FICed parameter %s%s = %g + Indegree scaler)" % (param, subtitle, pscalar))
+        axes[0].set_title("FICed parameter %s%s = %g * (1 + Indegree scaler)" % (param, subtitle, pscalar))
         fig.tight_layout()
         if plotter.config.SAVE_FLAG:
             plt.savefig(os.path.join(plotter.config.FOLDER_FIGURES, "FIC.png"))
@@ -314,31 +309,30 @@ def fic(param, p_orig, weights, trg_inds=None, src_inds=None, FIC=1.0, dummy=Non
     return p
 
 
-def apply_fic(simulator, inds, FIC, G, plotter=None):
+def apply_fic(simulator, inds, FIC, param='w_ie', plotter=None):
     
     # Indices of cortical and subcortical regions excluding specific thalami
     inds["non_thalamic"] = np.unique(inds['crtx'].tolist() + inds["subcrtx_not_thalspec"].tolist())
 
-    # FIC for cortical w_ie against indegree for all incoming connections excluding the ones from specific thalami
-    simulator.model.w_ie = fic("w_ie", simulator.model.w_ie, simulator.connectivity.weights,
-                            inds["crtx"], inds["non_thalamic"],
-                            FIC=FIC, dummy=None, subtitle=" for cortex", plotter=plotter)
+    # FIC for all non-specific thalamic, cortical and subcortical, w_ie, 
+    # against indegree for all incoming connections excluding the ones from specific thalami
+    setattr(simulator.model, param, 
+            fic(param, getattr(simulator.model, param), simulator.connectivity.weights,
+                inds["non_thalamic"], inds["non_thalamic"], FIC=FIC, dummy=None, subtitle="", plotter=plotter))
 
-    w_to_subcrtx = simulator.connectivity.weights[inds["subcrtx_not_thalspec"]].sum()
-    if w_to_subcrtx:
-        # FIC for subcortical w_ie against indegree for all incoming connections including the ones from specific thalami
-        simulator.model.w_ie = fic("w_ie", simulator.model.w_ie, simulator.connectivity.weights,
-                                inds["subcrtx_not_thalspec"],
-                                src_inds=inds["non_thalamic"],  # after removal of subcrtx <-> specific thalamic
-                                FIC=FIC, dummy=None, subtitle=" for subcortex", plotter=plotter)
+    # # FIC for cortical w_ie against indegree for all incoming connections excluding the ones from specific thalami
+    # setattr(simulator.model, param, 
+    #         fic(param, getattr(simulator.model, param), simulator.connectivity.weights,
+    #             inds["crtx"], inds["non_thalamic"], FIC=FIC, dummy=None, subtitle=" for cortex", plotter=plotter))
 
-    # # !!!Not needed after removal of subcrtx <-> specific thalamic connections!!!
-    # w_subcrtx_to_thal = simulator.connectivity.weights[inds["thalspec"]][:, inds["subcrtx_not_thalspec"]].sum()
-    # if w_subcrtx_to_thal:
-    #     # FIC for specific thalami w_rs against indegree for incoming connections from subcortical regions
-    #     simulator.model.w_rs = fic("w_rs", simulator.model.w_rs, simulator.connectivity.weights,
-    #                                inds["thalspec"], inds["subcrtx_not_thalspec"],
-    #                                FIC=FICeff, dummy=None, subtitle=" for specific thalami", plotter=plotter)
+    # w_to_subcrtx = simulator.connectivity.weights[inds["subcrtx_not_thalspec"]].sum()
+    # if w_to_subcrtx:
+    #     # FIC for subcortical w_ie against indegree for all incoming connections excluding the ones from specific thalami
+    #     setattr(simulator.model, param,
+    #             fic(param, getattr(simulator.model, param), simulator.connectivity.weights,
+    #                 inds["subcrtx_not_thalspec"],
+    #                 src_inds=inds["non_thalamic"],  # after removal of subcrtx <-> specific thalamic
+    #                 FIC=FIC, dummy=None, subtitle=" for subcortex", plotter=plotter))
 
     return simulator
 
@@ -435,16 +429,11 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
         simulator.model.I_r.mean().item() + 0.1 * np.random.normal(size=(1000, 1, n_thalspec, 1))
 
     if config.FIC and simulator.model.G[0].item():
-        if config.VERBOSE:
-            print("Applying FIC = %g!" % config.FIC)
-        # We will modify the w_ie and w_rs parameters a bit based on indegree and G:
-        simulator = apply_fic(simulator, inds, config.FIC, simulator.model.G[0], plotter)
-        # We will not run FIC though when fitting...
-        # simulator.initial_conditions[:, -1, maps['is_thalamic'], :] = simulator.model.w_rs[
-        #     None, maps['is_thalamic'], None]
-        # simulator.initial_conditions[:, -1, maps['not_thalamic'], :] = simulator.model.w_ie[
-        #     None, maps['not_thalamic'], None]
-        # simulator.model.eta = np.array([-0.05])
+        for fp, fv in config.FIC_PARAMS.items():
+            if config.VERBOSE:
+                print("Applying FIC for parameter %s: %g!" % (fp, config.FIC * fv))
+            # We will modify the w_ie and w_rs parameters a bit based on indegree:
+            simulator = apply_fic(simulator, inds, fv*config.FIC, fp, plotter)
 
     # Set monitors:
     if config.RAW_PERIOD > config.DEFAULT_DT:
