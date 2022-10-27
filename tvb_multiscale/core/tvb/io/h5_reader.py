@@ -1,70 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import os
+from tvb.basic.readers import H5Reader as H5ReaderBase
 
-import h5py
-
-from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.tvb.io.h5_writer import H5Writer
-
-
-class H5Reader(object):
-
-    logger = initialize_logger(__name__)
-
-    H5_TYPE_ATTRIBUTE = H5Writer().H5_TYPE_ATTRIBUTE
-    H5_SUBTYPE_ATTRIBUTE = H5Writer().H5_SUBTYPE_ATTRIBUTE
-    H5_TYPES_ATTRUBUTES = [H5_TYPE_ATTRIBUTE, H5_SUBTYPE_ATTRIBUTE]
-
-    def _open_file(self, name, path=None, h5_file=None):
-        if h5_file is None:
-            if not os.path.isfile(path):
-                raise ValueError("%s file %s does not exist" % (name, path))
-
-            self.logger.info("Starting to read %s from: %s" % (name, path))
-            h5_file = h5py.File(path, 'r', libver='latest')
-        return h5_file
-
-    def _close_file(self, h5_file, close_file=True):
-        if close_file:
-            h5_file.close()
-
-    def _log_success(self, name, path=None):
-        if path is not None:
-            self.logger.info("Successfully read %s from: %s" % (name, path))
-
-    def read_dictionary(self, path=None, h5_file=None, close_file=True):  # type=None,
-        """
-        :param path: Path towards a dictionary H5 file
-        :return: dict
-        """
-        h5_file = self._open_file("Dictionary", path, h5_file)
-        dictionary = H5GroupHandlers(self.H5_SUBTYPE_ATTRIBUTE).read_dictionary_from_group(h5_file)  # , type
-        self._close_file(h5_file, close_file)
-        self._log_success("Dictionary", path)
-        return dictionary
-
-    def read_list_of_dicts(self, path=None, h5_file=None, close_file=True):  # type=None,
-        h5_file = self._open_file("List of dictionaries", path, h5_file)
-        list_of_dicts = []
-        id = 0
-        h5_group_handlers = H5GroupHandlers(self.H5_SUBTYPE_ATTRIBUTE)
-        while 1:
-            try:
-                dict_group = h5_file[str(id)]
-            except:
-                break
-            list_of_dicts.append(h5_group_handlers.read_dictionary_from_group(dict_group))  # , type
-            id += 1
-        self._close_file(h5_file, close_file)
-        self._log_success("List of dictionaries", path)
-        return list_of_dicts
+from .base import Base
+from .h5_writer import H5Writer
 
 
 class H5GroupHandlers(object):
 
-    H5_TYPE_ATTRIBUTE = H5Writer().H5_TYPE_ATTRIBUTE
-    H5_SUBTYPE_ATTRIBUTE = H5Writer().H5_SUBTYPE_ATTRIBUTE
+    H5_TYPE_ATTRIBUTE = H5Writer.H5_TYPE_ATTRIBUTE
+    H5_SUBTYPE_ATTRIBUTE = H5Writer.H5_SUBTYPE_ATTRIBUTE
     H5_TYPES_ATTRUBUTES = [H5_TYPE_ATTRIBUTE, H5_SUBTYPE_ATTRIBUTE]
 
     def __init__(self, h5_subtype_attribute):
@@ -89,3 +35,77 @@ class H5GroupHandlers(object):
         #     type = group.attrs[H5Reader.H5_SUBTYPE_ATTRIBUTE]
         # else:
         return dictionary
+
+
+class H5Reader(H5ReaderBase, Base):
+
+    H5_TYPE_ATTRIBUTE = H5Writer.H5_TYPE_ATTRIBUTE
+    H5_SUBTYPE_ATTRIBUTE = H5Writer.H5_SUBTYPE_ATTRIBUTE
+    H5_TYPES_ATTRUBUTES = [H5_TYPE_ATTRIBUTE, H5_SUBTYPE_ATTRIBUTE]
+
+    hfd5_source = None
+
+    def __init__(self, h5_path):
+        super(H5Reader, self).__init__(h5_path)
+        self.h5_path = h5_path
+
+    @property
+    def _hdf_file(self):
+        return self.hfd5_source
+
+    def _set_hdf_file(self, hfile):
+        self.hfd5_source = hfile
+
+    @property
+    def _fmode(self):
+        return "r"
+
+    @property
+    def _mode(self):
+        return "read"
+
+    @property
+    def _mode_past(self):
+        return "read"
+
+    @property
+    def _to_from(self):
+        return "from"
+
+    def _open_file(self, type_name=""):
+        if not os.path.isfile(self.h5_path):
+            raise ValueError("%s file %s does not exist" % (type_name, self.h5_path))
+        super(H5Reader, self)._open_file(type_name)
+
+    def read_dictionary(self, path=None, close_file=True):  # type=None,
+        """
+        :return: dict
+        """
+        dictionary = dict()
+        self._assert_file(path, "Dictionary")
+        try:
+            dictionary = H5GroupHandlers(self.H5_SUBTYPE_ATTRIBUTE).read_dictionary_from_group(h5_file)  # , type
+            self._log_success_or_warn(None, "Dictionary")
+        except Exception as e:
+            self._log_success_or_warn(e, "Dictionary")
+        self._close_file(close_file)
+        return dictionary
+
+    def read_list_of_dicts(self, path=None, close_file=True):  # type=None,
+        self._assert_file(path, "List of Dictionaries")
+        list_of_dicts = []
+        id = 0
+        h5_group_handlers = H5GroupHandlers(self.H5_SUBTYPE_ATTRIBUTE)
+        try:
+            while 1:
+                try:
+                    dict_group = h5_file[str(id)]
+                except:
+                    break
+                list_of_dicts.append(h5_group_handlers.read_dictionary_from_group(dict_group))  # , type
+                id += 1
+            self._log_success_or_warn(None,  "List of Dictionaries")
+        except Exception as e:
+            self._log_success_or_warn(e, "List of Dictionaries")
+        self._close_file(close_file)
+        return list_of_dicts

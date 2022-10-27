@@ -5,11 +5,10 @@ import shutil
 import numpy
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion, TimeSeriesDimensions, PossibleVariables
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesRegionXarray
+from tvb_multiscale.core.tvb.io.h5_writer import H5Writer, h5
 from tvb.datatypes.connectivity import Connectivity
 
-from tests.core.test_time_series import _prepare_dummy_time_series
-from tvb_multiscale.core.config import Config
-from tvb_multiscale.core.tvb.io.h5_writer import H5Writer, h5
+PATH = os.path.join('..', 'TEST_OUTPUT', 'time_series_io')
 
 
 def _prepare_connectivity():
@@ -27,7 +26,37 @@ def _prepare_connectivity():
     return connectivity
 
 
+def _prepare_dummy_time_series(dim):
+    if dim == 1:
+        data = numpy.array([1, 2, 3, 4, 5])
+    elif dim == 2:
+        data = numpy.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])[:, numpy.newaxis, :]
+    elif dim == 3:
+        data = numpy.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9], [0, 1, 2]],
+                            [[3, 4, 5], [6, 7, 8], [9, 0, 1], [2, 3, 4]],
+                            [[5, 6, 7], [8, 9, 0], [1, 2, 3], [4, 5, 6]]])
+    else:
+        data = numpy.array([[[[1, 2, 3, 4], [5, 6, 7, 8], [9, 0, 1, 2]],
+                             [[3, 4, 5, 6], [7, 8, 9, 0], [1, 2, 3, 4]],
+                             [[5, 6, 7, 8], [9, 0, 1, 2], [3, 4, 5, 6]],
+                             [[7, 8, 9, 0], [1, 2, 3, 4], [5, 6, 7, 8]]],
+                            [[[9, 0, 1, 2], [3, 4, 5, 6], [7, 8, 9, 0]],
+                             [[1, 2, 3, 4], [5, 6, 7, 8], [9, 0, 1, 2]],
+                             [[3, 4, 5, 6], [7, 8, 9, 0], [1, 2, 3, 4]],
+                             [[5, 6, 7, 8], [9, 0, 1, 2], [3, 4, 5, 6]]],
+                            [[[7, 8, 9, 0], [1, 2, 3, 4], [5, 6, 7, 8]],
+                             [[9, 0, 1, 2], [3, 4, 5, 6], [7, 8, 9, 0]],
+                             [[1, 2, 3, 4], [5, 6, 7, 8], [9, 0, 1, 2]],
+                             [[3, 4, 5, 6], [7, 8, 9, 0], [1, 2, 3, 4]]]]).reshape((3, 3, 4, 4))
+    start_time = 0
+    sample_period = 0.01
+    sample_period_unit = "ms"
+
+    return data, start_time, sample_period, sample_period_unit
+
+
 def test_timeseries_4D(datatype=TimeSeriesRegion):
+    path = teardown_function()
     writer = H5Writer()
     data, start_time, sample_period, sample_period_unit = _prepare_dummy_time_series(4)
     ts = \
@@ -44,7 +73,7 @@ def test_timeseries_4D(datatype=TimeSeriesRegion):
         ts_write = TimeSeriesRegion(data=ts.data, connectivity=ts.connectivity).from_xarray_DataArray(ts._data)
     else:
         ts_write = ts
-    path = writer.write_tvb_to_h5(ts_write, recursive=True)
+    path = writer.write_tvb_to_h5(ts_write, path, recursive=True)
 
     ts_read = TimeSeriesRegion.from_tvb_instance(h5.load(path, with_references=True))
     if isinstance(ts, TimeSeriesRegionXarray):
@@ -61,9 +90,11 @@ def test_timeseries_4D(datatype=TimeSeriesRegion):
 
 
 def teardown_function():
-    output_folder = Config().out._out_base
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+    if os.path.exists(PATH):
+        shutil.rmtree(PATH)
+    else:
+        os.makedirs(PATH)
+    return str(PATH)
 
 
 if __name__ == "__main__":
