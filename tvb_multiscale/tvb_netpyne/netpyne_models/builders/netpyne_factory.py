@@ -4,7 +4,7 @@ from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import NetpyneInputDeviceDict, NetpyneOutputDeviceDict
-from tvb_multiscale.tvb_netpyne.netpyne.instance import NetpyneInstance, NetpyneProxyDevice
+from tvb_multiscale.tvb_netpyne.netpyne.module import NetpyneModule
 
 LOG = initialize_logger(__name__)
 
@@ -18,7 +18,7 @@ def load_netpyne(config=CONFIGURED, logger=LOG):
         Returns:
          the imported NetPyNE instance
     """
-    return NetpyneInstance()
+    return NetpyneModule()
 
 
 def create_device(device_model, params={}, config=CONFIGURED, netpyne_instance=None, **kwargs):
@@ -34,8 +34,6 @@ def create_device(device_model, params={}, config=CONFIGURED, netpyne_instance=N
     label = kwargs.pop("label", "")
 
     print(f"Netpyne:: will create internal device {label}. Model: {device_model}, params: {params}")
-    netpyne_device = NetpyneProxyDevice(netpyne_instance=netpyne_instance)
-    
 
     isInputDevice = False
     if device_model in NetpyneInputDeviceDict.keys():
@@ -53,7 +51,8 @@ def create_device(device_model, params={}, config=CONFIGURED, netpyne_instance=N
                            str(config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF)))
     params.update(default_params)
 
-    DeviceClass = devices_dict[device_model]
+    netpyne_device = None # TODO: netpyne doesn't have suitable entity for this case, but at some point we might want to create some wrapper
+    DeviceClass = devices_dict[device_model] # e.g. NetpynePoissonGenerator or NetpyneSpikeRecorder 
     device = DeviceClass(netpyne_device, netpyne_instance=netpyne_instance, label=label)
         
     device.model = device_model # TODO: nest passes this through initializers chain and assigns deeply in `_NESTNodeCollection` or so

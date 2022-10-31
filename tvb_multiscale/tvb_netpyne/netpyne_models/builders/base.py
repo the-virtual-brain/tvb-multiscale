@@ -7,9 +7,7 @@ from tvb_multiscale.core.spiking_models.builders.factory import build_and_connec
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.population import NetpynePopulation
 from tvb_multiscale.tvb_netpyne.netpyne_models.region_node import NetpyneRegionNode
-from tvb_multiscale.tvb_netpyne.netpyne.NodeCollection import NodeCollection
 from tvb_multiscale.tvb_netpyne.netpyne_models.brain import NetpyneBrain
-from tvb_multiscale.tvb_netpyne.netpyne.instance import NetpyneInstance
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
@@ -34,10 +32,9 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
         if self.logger is None:
             self.logger = initialize_logger(__name__, config=self.config)
 
-        self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
-        self.netpyne_instance.importModel(netParams, simConfig)
-        
         super(NetpyneNetworkBuilder, self).configure()
+        self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
+        self.netpyne_instance.importModel(netParams, simConfig, self.spiking_dt, self.config)
 
     @abstractmethod
     def proxy_node_synaptic_model_funcs(self):
@@ -76,10 +73,8 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
         """
         size = int(np.round(size))
 
-        collection = NodeCollection(brain_region, label, size)
-
         global_label = params.get("global_label")
-        population = NetpynePopulation(collection, self.netpyne_instance, label, global_label, brain_region)
+        population = NetpynePopulation(None, self.netpyne_instance, label, global_label, brain_region)
 
         if self.netpyne_instance.autoCreateSpikingNodes:
             print(f"Netpyne:: Creating spiking population '{population.global_label}' of {size} neurons of type '{model}'.")
