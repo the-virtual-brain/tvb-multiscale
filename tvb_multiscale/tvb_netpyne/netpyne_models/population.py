@@ -18,8 +18,13 @@ class NetpynePopulation(SpikingPopulation):
 
         super(NetpynePopulation, self).__init__(nodes, **kwargs)
 
-    def _print_neurons(self):
-        pass
+    def population(self):
+        """Overrides correpondent method of SpikingPopulation"""
+        return self.gids
+
+    def get_size(self):
+        """Overrides correpondent method of SpikingNodeCollection"""
+        return len(self.gids)
 
     @property
     def gids(self):

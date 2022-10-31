@@ -8,9 +8,6 @@ class NetpyneDevice(HasTraits):
     def __init__(self, device, netpyne_instance, *args, **kwargs):
         self.netpyne_instance = netpyne_instance
         HasTraits.__init__(self)
-    
-    def _print_neurons(self):
-        pass
 
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
@@ -175,6 +172,7 @@ class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
 
     def reset(self):
         pass
+
 
     def get_new_events(self, variables=None, **filter_kwargs):
         spktimes, spkgids = self.netpyne_instance.getSpikes(generatedBy=self.neurons, startingFrom=self.latestRecordTime)

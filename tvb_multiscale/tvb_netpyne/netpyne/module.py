@@ -1,13 +1,9 @@
-from random import randint, uniform
-import netpyne
 import numpy as np
-from numpy.core.fromnumeric import shape
-from numpy.lib.utils import source
 
 from netpyne import specs, sim
 from netpyne.sim import *
 
-class NetpyneInstance(object):
+class NetpyneModule(object):
 
     spikeGenerators = []
     
@@ -15,12 +11,18 @@ class NetpyneInstance(object):
         self.spikeGeneratorPops = []
         self.autoCreatedPops = []
 
-    def importModel(self, netParams, simConfig):
+    def importModel(self, netParams, simConfig, dt, config):
+
+        simConfig.dt = dt
+        simConfig.duration = config.simulation_length
+
+        simConfig.simLabel = 'spiking'
+        simConfig.saveFolder = config.out._out_base # TODO: better use some public method
 
         self.netParams = netParams
         self.simConfig = simConfig
 
-        # using VecStim model from NEURON for artificial cells serving as stimuli
+        # using DynamicNetStim model for artificial cells serving as stimuli
         self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicNetStim'}
 
     @property
@@ -35,9 +37,7 @@ class NetpyneInstance(object):
     def time(self):
         return h.t
     
-    def createAndPrepareNetwork(self, simulationLength, dt): # TODO: bad name?
-        self.simConfig.duration = simulationLength
-        self.simConfig.dt = dt
+    def instantiateNetwork(self):
 
         sim.initialize(self.netParams, None) # simConfig to be provided later
         sim.net.createPops()
@@ -53,7 +53,7 @@ class NetpyneInstance(object):
                 return chosen
             include = list(map(includeFor, self.autoCreatedPops))
             self.simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
-            self.simConfig.analysis['plotRaster'] = {'include': self.autoCreatedPops, 'saveFig': True}
+            self.simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': self.autoCreatedPops, 'popRates': 'minimal'}
 
         if self.simConfig.recordCellsSpikes == -1:
             allPopsButSpikeGenerators = [pop for pop in self.netParams.popParams.keys() if pop not in self.spikeGeneratorPops]
@@ -197,14 +197,3 @@ class NetpyneInstance(object):
         sim.run.postRun(stopTime)
         sim.gatherData()
         sim.analyze()
-
-from neuron import h
-class NetpyneProxyDevice(object):
-
-    def __len__(self):
-        return 1 # TODO: at least add some explanatory comment
-
-    netpyne_instance = None
-
-    def __init__(self, netpyne_instance):
-        self.netpyne_instance = netpyne_instance

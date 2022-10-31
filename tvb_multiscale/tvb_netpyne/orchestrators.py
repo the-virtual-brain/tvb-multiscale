@@ -56,7 +56,7 @@ class NetpyneSerialApp(SpikeNetSerialApp):
     def synaptic_weight_scale(self, is_coupling_mode_tvb):
         # TODO: this is not specific to serial app. Once Parallel app is ready, move to some common ancestor, to use in both cases (see also: TVBNetpyneSerialOrchestrator.build_interfaces())
         if is_coupling_mode_tvb:
-            return 1e-3
+            return 1e-2
         else: # "spikeNet"
             return 1
 
@@ -76,10 +76,6 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         # self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
         self.spikeNet_builder.netpyne_synaptic_weight_scale = self.synaptic_weight_scale(is_coupling_mode_tvb=False)
         self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
-
-    def configure_simulation(self):
-        super(NetpyneSerialApp, self).configure_simulation()
-        self.netpyne_instance.createAndPrepareNetwork(self.simulation_length, self.spikeNet_builder.spiking_dt)
 
     def simulate(self, simulation_length=None):
         if simulation_length is None:
@@ -167,7 +163,13 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         default=NetpyneSerialApp()
     )
 
-    def build_interfaces(self):
+    def build(self):
+        self.config.simulation_length = self.simulation_length
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
         self.tvb_app.interfaces_builder.synaptic_model_funcs = self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
-        SerialOrchestrator.build_interfaces(self)
+
+        # NetPyNE model is built in two steps. First need to create declarative-style specification for both spiking network itself and TVB-Netpyne proxy devides (interfaces):
+        SerialOrchestrator.build(self)
+
+        # once done, network can be instantiated based on the specification:
+        self.spikeNet_app.spiking_cosimulator.instantiateNetwork()
