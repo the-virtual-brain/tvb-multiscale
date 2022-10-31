@@ -453,7 +453,10 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
         workflow_fun = run_workflow
     # Specify other parameters or overwrite some:
     params.update(model_params)
-    outputs = workflow_fun(plot_flag=True, model_params=params, config=config, output_folder="G_%g" % params['G'])
+    outputs = workflow_fun(plot_flag=True, model_params=params, config=None,
+                           output_folder="%s/G%g/STIM%g_Is%g_FIC%g_FIC_SPLIT%g" %
+                                         (config.output_base, params['G'], params["STIMULUS"],
+                                          params['I_s'], config.FIC, config.FIC_SPLIT))
     outputs = outputs + (samples_fit, )
     return outputs
 
@@ -489,6 +492,10 @@ if __name__ == "__main__":
         if iG == -1:
             raise ValueError("iG=-1 is not possible for running sbi_infer_for_iG!")
         samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
+    elif parser_args.script_id == 1:
+        simulate_after_fitting(iG, iR=None, config=config,
+                               workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
     else:
         raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
                          "nor 1 for sbi_infer_for_iG!")
+
