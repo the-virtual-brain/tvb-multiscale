@@ -24,7 +24,7 @@ DEFAULT_ARGS = {'G': 1.0, 'STIMULUS': 0.1,
                 'I_e': -0.35, 'I_s': 0.08,
                 'w_ie': -3.0, 'w_rs': -2.0,
                 'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
-                'output_folder': 'cwc_STIM_Is2', 'verbose': 1, 'plot_flag': True}
+                'output_folder': "", 'verbose': 1, 'plot_flag': True}
 
 
 def create_plotter(config):
@@ -73,7 +73,6 @@ def configure(**ARGS):
         outputs_path = os.path.join(outputs_path, args['output_folder'])
     else:
         outputs_path = os.path.join(outputs_path, "cwc")
-    # # outputs_path += '_G%g' % G
     # # if STIMULUS:
     # #     outputs_path += "_Stim%g" % STIMULUS
     # # outputs_path += '_Is%g' % I_s
@@ -82,10 +81,11 @@ def configure(**ARGS):
     # outputs_path += "_%s" % (BRAIN_CONN_FILE.split("Connectivity_")[-1].split(".h5")[0])
     # if args['CONN_LOG']:
     #     outputs_path += "CONN_LOG"
-    if args['FIC']:
-        outputs_path += "_FIC"
-        for fp in FIC_PARAMS:
-            outputs_path += "_%s" % fp
+    # if args['FIC']:
+    #     outputs_path += "_FIC"
+    #     for fp in FIC_PARAMS:
+    #         outputs_path += "_%s" % fp
+    # outputs_path += '_G%g' % G
         # for fp, fv in FIC_PARAMS.items():
         #     outputs_path += "_%s%g" % (fp, fv)
     # outputs_path += "_PRIORS%s" % args['PRIORS_DIST']
@@ -113,11 +113,12 @@ def configure(**ARGS):
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
     # Simulation...
-    config.SIMULATION_LENGTH = 2**12 + 1.0 # 10: 1025, 11: 2049.0, 12: 4097.0
-    config.TRANSIENT_RATIO = 0.25
+    config.SIMULATION_LENGTH = 2**11 + 1.0  # Testing: 10: 1025, 11: 2049.0, Fitting: 12: 4097.0, BOLD: 16: 65537
+    config.TRANSIENT_RATIO = 0.1
     config.NEST_PERIPHERY = False
     config.INVERSE_SIGMOIDAL_NEST_TO_TVB = True
     config.SOURCE_TS_PATH = os.path.join(config.out.FOLDER_RES, "source_ts.pkl")
+    config.BOLD_TS_PATH = os.path.join(config.out.FOLDER_RES, "bold_ts.pkl")
 
     # Connectivity
     config.CONN_SPEED = 3.0
@@ -152,7 +153,7 @@ def configure(**ARGS):
     config.NEST_STIMULUS = 15.0  # Hz
     # Monitors:
     config.RAW_PERIOD = 1.0
-    config.BOLD_PERIOD = None  # 1024.0 or None, If None, BOLD will not be computed
+    config.BOLD_PERIOD = 1024.0  # 1024.0 or None, If None, BOLD will not be computed
 
     # ...and fitting
     config.FIC = args['FIC']
@@ -174,7 +175,7 @@ def configure(**ARGS):
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 15.0, 20.0, 30.0, 50.0, 75.0, 100.0])
+    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]) # 15.0, 20.0, 30.0, 50.0, 75.0, 100.0])
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": -1.0, "max": 1.0, "loc": 0.0, "sc": 0.25},
