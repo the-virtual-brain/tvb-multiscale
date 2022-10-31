@@ -492,7 +492,7 @@ if __name__ == "__main__":
         if iG == -1:
             raise ValueError("iG=-1 is not possible for running sbi_infer_for_iG!")
         samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
-    elif parser_args.script_id == 1:
+    elif parser_args.script_id == 2:
         simulate_after_fitting(iG, iR=None, config=config,
                                workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
     else:
