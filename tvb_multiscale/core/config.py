@@ -9,7 +9,7 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb.datatypes import cortex, connectivity
-from tvb.simulator.plot.config import FiguresConfig
+from tvb.simulator.plot.config import FiguresConfig as FiguresConfigTVB
 from tvb.simulator.models.wilson_cowan import WilsonCowan
 from tvb.simulator.coupling import Linear
 from tvb.simulator.integrators import HeunDeterministic, HeunStochastic, EulerDeterministic
@@ -47,6 +47,9 @@ except:
 
 
 class OutputConfig(HasTraits):
+
+    title = "OutputConfig"
+
     subfolder = None
 
     def __init__(self, out_base=None, separate_by_run=False, initialize_logger=True):
@@ -88,11 +91,14 @@ class OutputConfig(HasTraits):
 
     def info(self, recursive=0):
         info = super(OutputConfig, self).info(recursive=recursive)
-        info.update(self._info_dict('OutputConfig as dict', dict(self)))
+        info.update(self._info_dict('OutputConfig as dict', self.__dict__))
         return info
 
 
 class CalculusConfig(HasTraits):
+
+    title = "CalculusConfig"
+
     # Normalization configuration
     WEIGHTS_NORM_PERCENT = 99
 
@@ -106,7 +112,17 @@ class CalculusConfig(HasTraits):
 
     def info(self, recursive=0):
         info = super(CalculusConfig, self).info(recursive=recursive)
-        info.update(self._info_dict('CalculusConfig as dict', dict(self)))
+        info.update(self._info_dict('CalculusConfig as dict', self.__dict__))
+        return info
+
+
+class FiguresConfig(FiguresConfigTVB, HasTraits):
+
+    title = "FiguresConfig"
+
+    def info(self, recursive=0):
+        info = super(FiguresConfig, self).info(recursive=recursive)
+        info.update(self._info_dict('FiguresConfig as dict', self.__dict__))
         return info
 
 
@@ -142,6 +158,10 @@ class Config(HasTraits):
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
         self.TVB_DATA_PATH = TVB_DATA_PATH
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
+
+    @property
+    def output_base(self):
+        return self.out._out_base
 
     def info(self, recursive=0):
         info = super(Config, self).info(recursive=recursive)
