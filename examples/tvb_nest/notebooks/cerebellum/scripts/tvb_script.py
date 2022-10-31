@@ -459,7 +459,7 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
         mon_raw = Raw()
     if config.BOLD_PERIOD:
         bold = Bold(period=config.BOLD_PERIOD,
-                    variables_of_interest=np.array([2]))  # !!! Set a proper (1-2 sec??) TR time in ms !!!
+                    variables_of_interest=np.array([2]))
         simulator.monitors = (mon_raw, bold)
     else:
         simulator.monitors = (mon_raw,)
