@@ -767,6 +767,11 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
             outputs.append(bold_ts)
 
+            if write_files:
+                if config.VERBOSE:
+                    print("Pickle-dumping bold_ts to %s!" % config.BOLD_TS_PATH)
+                dump_picked_time_series(bold_ts, config.BOLD_TS_PATH)
+
             # bold_t = source_ts.time
 
             # Write to file
