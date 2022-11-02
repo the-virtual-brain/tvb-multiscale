@@ -71,11 +71,11 @@ def set_between_nodes_connection_weight(source_node, target_node, tvb_weights):
 
 
 def tvb_weight(source_node, target_node, tvb_weights):
-    return tvb_weights[target_node, source_node]
+    return tvb_weights[target_node, source_node].item()
 
 
 def scale_tvb_weight(source_node, target_node, tvb_weights, scale=1.0):
-    return scale * tvb_weights[target_node, source_node]
+    return scale * tvb_weights[target_node, source_node].item()
 
 
 def set_between_nodes_connection_delay(source_node, target_node, tvb_delays):
@@ -84,15 +84,15 @@ def set_between_nodes_connection_delay(source_node, target_node, tvb_delays):
 
 
 def tvb_delay(source_node, target_node, tvb_delays):
-    return tvb_delays[target_node, source_node]
+    return tvb_delays[target_node, source_node].item()
 
 
 def scale_tvb_delay(source_node, target_node, tvb_delays, scale=1.0):
-    return scale * tvb_delays[target_node, source_node]
+    return (scale * tvb_delays[target_node, source_node]).item()
 
 
 def add_to_tvb_delay(source_node, target_node, tvb_delays, add=1.0):
-    return add + tvb_delays[target_node, source_node]
+    return (add + tvb_delays[target_node, source_node]).item()
 
 
 """
