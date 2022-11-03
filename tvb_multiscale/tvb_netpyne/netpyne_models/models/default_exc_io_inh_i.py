@@ -1,4 +1,5 @@
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_templates import random_normal_weight, random_normal_tvb_weight, random_uniform_tvb_delay
 from collections import OrderedDict
 import numpy as np
@@ -76,6 +77,8 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         #  "params": netpyne_network_builder.params_I,
              "scale": self.scale_i}]
 
+    # connections between E and I populations of same spiking node
+
     def set_populations_connections(self):
         self.populations_connections = [
             self.set_EE_populations_connections(),
@@ -84,13 +87,12 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
             self.set_II_populations_connections()
         ]
 
-
     def set_EE_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",
             #  "synapse_model": self.default_populations_connection["synapse_model"], # TODO: here and below, is this needed or `receptor_type` below is just enough?
              "conn_spec": self.conn_spec_prob_low,
-             "weight": self.weight_fun(self.w_ee),
+             "weight": self.weight_fun_ee,
              "delay": self.delay,
              "receptor_type": self.receptor_type_E, "nodes": None}  # None means "all"
         # connections.update(self.pop_conns_EE)
@@ -100,7 +102,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         connections = \
             {"source": "E", "target": "I",
              "conn_spec": self.conn_spec_prob_low,
-             "weight": self.weight_fun(self.w_ei),
+             "weight": self.weight_fun_ei,
              "delay": self.delay,
              "receptor_type": self.receptor_type_E, "nodes": None}  # None means "all"
         return connections
@@ -109,7 +111,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         connections = \
             {"source": "I", "target": "E",
              "conn_spec": self.conn_spec_prob_high,
-             "weight": self.weight_fun(self.w_ie),
+             "weight": self.weight_fun_ie,
              "delay": self.delay,
              "receptor_type": self.receptor_type_I, "nodes": None}  # None means "all"
         return connections
@@ -118,10 +120,29 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         connections = \
             {"source": "I", "target": "I",
              "conn_spec": self.conn_spec_prob_high,
-             "weight": self.weight_fun(self.w_ii),
+             "weight": self.weight_fun_ii,
              "delay": self.delay,
              "receptor_type": self.receptor_type_I, "nodes": None}  # None means "all"
         return connections
+
+    def weight_fun_ee(self, nodeId):
+        return self.within_node_weight_fun(self.w_ee, nodeId)
+
+    def weight_fun_ei(self, nodeId):
+        return self.within_node_weight_fun(self.w_ei, nodeId)
+
+    def weight_fun_ie(self, nodeId):
+        return self.within_node_weight_fun(self.w_ie, nodeId)
+
+    def weight_fun_ii(self, nodeId):
+        return self.within_node_weight_fun(self.w_ii, nodeId)
+
+    def within_node_weight_fun(self, weight, nodeId):
+        weights = ensure_list(weight)
+        weight = weights[nodeId] if (len(weights) > 1) else weights[0]
+        return random_normal_weight(weight)
+
+    # connections between population of different spiking nodes
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -143,6 +164,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
                 "receptor_type": self.receptor_type_E, "source_nodes": None, "target_nodes": None  # None means "all"
             })
 
+    # output devices
 
     def set_output_devices(self):
         # Creating  devices to be able to observe NetPyNE activity:
@@ -161,9 +183,6 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
                   "connections": connections, "nodes": None}  # None means all here
         # device.update(self.spike_recorder)
         return device
-
-    def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return random_normal_weight(w, scale, sigma)
 
     def tvb_weight_fun(self, source_node, target_node, lamda=None, sigma=0.1):
         scale = self.global_coupling_scaling * self.netpyne_synaptic_weight_scale

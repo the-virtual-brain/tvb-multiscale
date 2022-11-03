@@ -128,12 +128,12 @@ class SpikeNetProxyNodesBuilder(HasTraits):
     def _default_tvb_weight_fun(self, source_node, target_node, weights=None):
         if weights is None:
             weights = self.tvb_weights
-        return self.global_coupling_scaling[target_node] * weights[target_node, source_node]
+        return self.global_coupling_scaling[target_node].item() * weights[target_node, source_node].item()
 
     def _default_tvb_delay_fun(self, source_node, target_node, delays=None):
         if delays is None:
             delays = self.tvb_delays
-        return delays[source_node, target_node]
+        return delays[target_node, source_node].item()
 
     @abstractmethod
     def _default_receptor_type(self, source_node, target_node):

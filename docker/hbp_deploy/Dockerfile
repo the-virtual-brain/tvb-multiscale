@@ -5,7 +5,7 @@
 # Finally link tvb-scripts and tvb-nest from Github sources
 #
 
-FROM jupyter/minimal-notebook
+FROM jupyter/minimal-notebook:d113a601dbb8
 MAINTAINER lia.domide@codemart.ro
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -59,7 +59,7 @@ RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_
 
 RUN git clone https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
-    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
+    git fetch origin && git checkout c545255f7252308d6e73a851ddeece4f2dffc812; \
     cmake -DCMAKE_INSTALL_PREFIX=$NEST_INSTALL_DIR \
     -Dwith-mpi=ON  \
 #    -Dwith-libneurosim=$VENV \
@@ -79,13 +79,14 @@ WORKDIR $HOME/packages
 RUN pip install pandas xarray pytest pytest-cov pytest-benchmark oct2py elephant sqlalchemy; \
     pip install --ignore-installed entrypoints; \
     pip install scikit-learn scipy
-RUN conda install -y matplotlib==3.2.2
+RUN conda install matplotlib
 RUN conda install -y numba
 
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_ROOT=LATEST
 RUN cd tvb-root; \
+    git pull --allow-unrelated-histories; \
     cd tvb_library; \
     python setup.py develop; \
     cd ../tvb_framework; \
