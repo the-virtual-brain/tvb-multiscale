@@ -6,44 +6,67 @@ import h5py
 import inspect
 import numpy
 
-from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-
 from tvb.core.neocom import h5
+from tvb.basic.logger.builder import get_logger
+from tvb.basic.readers import H5PY_SUPPORT
 from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb.contrib.scripts.utils.data_structures_utils import is_numeric, ensure_list
 from tvb.contrib.scripts.utils.file_utils import change_filename_or_overwrite
-from tvb_multiscale.core.tvb.io.datatypes_h5 import REGISTRY
+from .base import Base
+from .datatypes_h5 import REGISTRY
 
 
 h5.REGISTRY = REGISTRY
 
 
-class H5Writer(object):
+class H5Writer(Base):
 
-    config = CONFIGURED
-    logger = initialize_logger(__name__)
     H5_TYPE_ATTRIBUTE = "Type"
     H5_SUBTYPE_ATTRIBUTE = "Subtype"
     H5_VERSION_ATTRIBUTE = "Version"
     H5_DATE_ATTRIBUTE = "Last_update"
+
+    write_mode = 'w'
     force_overwrite = True
-    write_mode = "a"
 
-    def _open_file(self, name, path=None, h5_file=None):
-        if h5_file is None:
-            if self.write_mode == "w":
-                path = change_filename_or_overwrite(path, self.force_overwrite)
-            self.logger.info("Starting to write %s to: %s" % (name, path))
-            h5_file = h5py.File(path, self.write_mode, libver='latest')
-        return h5_file, path
+    hfd5_target = None
 
-    def _close_file(self, h5_file, close_file=True):
-        if close_file:
-            h5_file.close()
+    def __init__(self, h5_path=""):
+        self.logger = get_logger(__name__)
+        if H5PY_SUPPORT:
+            if len(h5_path):
+                self.hfd5_target = h5py.File(h5_path, 'r', libver='latest')
+        else:
+            self.logger.warning("You need h5py properly installed in order to load from a HDF5 source.")
+        self.h5_path = h5_path
 
-    def _log_success(self, name, path=None):
-        if path is not None:
-            self.logger.info("%s has been written to file: %s" % (name, path))
+    @property
+    def _hdf_file(self):
+        return self.hfd5_target
+
+    def _set_hdf_file(self, hfile):
+        self.hfd5_target = hfile
+
+    @property
+    def _fmode(self):
+        return self.write_mode
+
+    @property
+    def _mode(self):
+        return "write"
+
+    @property
+    def _mode_past(self):
+        return "wrote"
+
+    @property
+    def _to_from(self):
+        return "to"
+
+    def _open_file(self, type_name=""):
+        if self.write_mode == "w":
+            self.h5_path = change_filename_or_overwrite(self.h5_path, self.force_overwrite)
+        super(H5Writer, self)._open_file(type_name)
 
     def _determine_datasets_and_attributes(self, object, datasets_size=None):
         datasets_dict = {}
@@ -89,7 +112,7 @@ class H5Writer(object):
                 self.logger.info(str(object.__dict__))
             except:
                 msg += "\n It has no __dict__ attribute!"
-            warning(msg, self.logger)
+            self.logger.warning(msg)
 
         return datasets_dict, metadata_dict, groups_keys
 
@@ -101,15 +124,15 @@ class H5Writer(object):
                 except:
                     location.create_dataset(key, data=numpy.str(value))
             except Exception as e:
-                warning("Failed to write to %s dataset %s %s:\n%s !\nThe error was:\n%s" %
-                        (str(location), value.__class__, key, str(value), str(e)), self.logger)
+                self.logger.warning("Failed to write to %s dataset %s %s:\n%s !\nThe error was:\n%s" %
+                                    (str(location), value.__class__, key, str(value), str(e)))
 
         for key, value in metadata_dict.items():
             try:
                 location.attrs.create(key, value)
             except Exception as e:
-                warning("Failed to write to %s attribute %s %s:\n%s !\nThe error was:\n%s" %
-                        (str(location), value.__class__, key, str(value), str(e)), self.logger)
+                self.logger.warning("Failed to write to %s attribute %s %s:\n%s !\nThe error was:\n%s" %
+                                    (str(location), value.__class__, key, str(value), str(e)))
         return location
 
     def _prepare_object_for_group(self, group, object, h5_type_attribute="", nr_regions=None,
@@ -152,28 +175,32 @@ class H5Writer(object):
                 return group, subgroups
 
     def write_object(self, object, h5_type_attribute="", nr_regions=None,
-                     path=None, h5_file=None, close_file=True):
+                     path=None, close_file=True):
         """
                 :param object: object to write recursively in H5
                 :param path: H5 path to be written
         """
-        h5_file, path = self._open_file(object.__class__.__name__, path, h5_file)
-        h5_file = self._prepare_object_for_group(h5_file, object, h5_type_attribute, nr_regions)
-        self._close_file(h5_file, close_file)
-        self._log_success(object.__class__.__name__, path)
-        return h5_file, path
+        self._assert_file(path, object.__class__.__name__)
+        try:
+            self.hfd5_target = self._prepare_object_for_group(self.hfd5_target, object, h5_type_attribute, nr_regions)
+            self._log_success_or_warn(None, object.__class__.__name__)
+        except Exception as e:
+            self._log_success_or_warn(e, object.__class__.__name__)
+        self._close_file(close_file)
 
-    def write_list_of_objects(self, list_of_objects, path=None, h5_file=None, close_file=True):
-        h5_file, path = self._open_file("List of objects", path, h5_file)
-        for idict, object in enumerate(list_of_objects):
-            idict_str = str(idict)
-            h5_file.create_group(idict_str)
-            self.write_object(object, h5_file=h5_file[idict_str], close_file=False)
-        h5_file.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of objects"))
-        h5_file.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
-        self._close_file(h5_file, close_file)
-        self._log_success("List of objects", path)
-        return h5_file, path
+    def write_list_of_objects(self, list_of_objects, path=None, close_file=True):
+        self._assert_file(path, "List of objects")
+        try:
+            for idict, object in enumerate(list_of_objects):
+                idict_str = str(idict)
+                self.hfd5_target.create_group(idict_str)
+                self.write_object(object, h5_file=self.hfd5_target[idict_str], close_file=False)
+            self.hfd5_target .attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of objects"))
+            self.hfd5_target .attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
+            self._log_success_or_warn(None, "List of objects")
+        except Exception as e:
+            self._log_success_or_warn(e, "List of objects")
+        self._close_file(close_file)
 
     def _convert_sequences_of_strings(self, sequence):
         new_sequence = []
@@ -210,48 +237,58 @@ class H5Writer(object):
                 self.logger.warning("Did not manage to write %s to h5 file %s !\nThe error was:\n%s"
                                     % (key, str(group), str(e)))
 
-    def write_dictionary(self, dictionary, path=None, h5_file=None, close_file=True):
+    def write_dictionary(self, dictionary, path=None, close_file=True):
         """
         :param dictionary: dictionary/ies to write recursively in H5
         :param path: H5 path to be written
         Use this function only if you have to write dictionaries of data (scalars and arrays or lists of scalars,
         or of more such dictionaries recursively
         """
-        h5_file, path = self._open_file("Dictionary", path, h5_file)
-        self._write_dictionary_to_group(dictionary, h5_file)
-        h5_file.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("Dictionary"))
-        h5_file.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_(dictionary.__class__.__name__))
-        self._close_file(h5_file, close_file)
-        self._log_success("Dictionary", path)
-        return h5_file, path
+        self._assert_file(path, "Dictionary")
+        try:
+            self._write_dictionary_to_group(dictionary, self.hfd5_target)
+            self.hfd5_target.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("Dictionary"))
+            self.hfd5_target.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_(dictionary.__class__.__name__))
+            self._log_success_or_warn(None, "Dictionary")
+        except Exception as e:
+            self._log_success_or_warn(e, "Dictionary")
+        self._close_file(close_file)
 
-    def write_list_of_dictionaries(self, list_of_dicts, path=None, h5_file=None, close_file=True):
-        h5_file, path = self._open_file("List of dictionaries", path, h5_file)
-        for idict, dictionary in enumerate(list_of_dicts):
-            idict_str = str(idict)
-            h5_file.create_group(idict_str)
-            self._write_dictionary_to_group(dictionary, h5_file[idict_str])
-        h5_file.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of dictionaries"))
-        h5_file.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
-        self._close_file(h5_file, close_file)
-        self._log_success("List of dictionaries", path)
-        return h5_file, path
+    def write_list_of_dictionaries(self, list_of_dicts, path=None, close_file=True):
+        self._assert_file(path, "List of Dictionaries")
+        try:
+            for idict, dictionary in enumerate(list_of_dicts):
+                idict_str = str(idict)
+                self.hfd5_target.create_group(idict_str)
+                self._write_dictionary_to_group(dictionary, h5_file[idict_str])
+            self.hfd5_target.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of dictionaries"))
+            self.hfd5_target.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
+            self._log_success_or_warn(None, "List of Dictionaries")
+        except Exception as e:
+            self._log_success_or_warn(e, "List of Dictionaries")
+        self._close_file(close_file)
 
     def write_tvb_to_h5(self, datatype, path=None, recursive=True, force_overwrite=True):
         if path is None:
-            path = self.config.out.FOLDER_RES
+            path = self.h5_path
+        else:
+            self.h5_path = path
         if path.endswith("h5"):
             # It is a file path:
-            dirpath = os.path.dirname(path)
+            dirpath = os.path.dirname(self.h5_path)
             if os.path.isdir(dirpath):
-                path = change_filename_or_overwrite(path, force_overwrite)
+                self.h5_path = change_filename_or_overwrite(self.h5_path, force_overwrite)
             else:
                 os.mkdir(dirpath)
-            h5.store(datatype, path, recursive)
         else:
-            if not os.path.isdir(path):
-                os.mkdir(path)
-            path = os.path.join(path, datatype.title + ".h5")
-            path = change_filename_or_overwrite(path, self.force_overwrite)
-            h5.store(datatype, path, recursive)
-        return path
+            if not os.path.isdir(self.h5_path):
+                os.mkdir(self.h5_path)
+            fname = datatype.__class__.__name__ + '_' + datatype.gid.hex + '.h5'
+            self.h5_path = os.path.join(self.h5_path, fname)
+            self.h5_path = change_filename_or_overwrite(self.h5_path, self.force_overwrite)
+        try:
+            h5.store(datatype, self.h5_path, recursive)
+            self._log_success_or_warn(None, datatype.title)
+        except Exception as e:
+            self._log_success_or_warn(e, datatype.title)
+        return self.h5_path

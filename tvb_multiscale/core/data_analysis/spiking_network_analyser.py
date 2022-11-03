@@ -350,6 +350,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         else:
             # ...create a TVB TimeSeries instance from the results' xarray.DataArray instance......
             time_series = TimeSeries(results)
+        time_series.configure()
 
         # ...and return it...
         return time_series
