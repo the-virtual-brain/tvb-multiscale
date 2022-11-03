@@ -17,7 +17,7 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
 
     def _get_weight_from_model(self, param, default):
         scale = 1e-3 # TODO: de-hardcode
-        weight = self.tvb_serial_sim.get(f"modele.{param}")
+        weight = self.tvb_serial_sim.get(f"model.{param}")
         if weight:
             weight *= scale
         else:

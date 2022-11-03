@@ -15,21 +15,21 @@ import shutil
 import setuptools
 
 
-VERSION = "1.0.2"
+VERSION = "2.0.1"
 
-INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "pyspike", "dill"]
+INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "pyspike", "dill", "ANNarchy", "neuron", "netpyne"]
 
-setuptools.setup(name='tvb-nest',
+setuptools.setup(name='tvb-multiscale',
                  version=VERSION,
                  packages=setuptools.find_packages(),
                  include_package_data=True,
                  install_requires=INSTALL_REQUIREMENTS,
-                 description='A package for multiscale simulations with TVB and NEST.',
+                 description='A package for multiscale co-simulations with TVB and NEST, ANNarchy and NETPYNE (NEURON).',
                  license="GPL v3",
-                 author="Dionysios Perdikis, Lia Domide, TVB Team",
+                 author="Dionysios Perdikis, André Blickensdörfer, Valeryi Bragin, Lia Domide, TVB Team",
                  author_email='tvb.admin@thevirtualbrain.org',
                  url='http://www.thevirtualbrain.org',
                  download_url='https://github.com/the-virtual-brain/tvb-multiscale',
                  keywords='tvb brain simulator nest neuroscience human animal neuronal dynamics builders delay')
 
-shutil.rmtree('tvb_nest.egg-info', True)
+shutil.rmtree('tvb_multiscale.egg-info', True)
