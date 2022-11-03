@@ -85,7 +85,7 @@ class TestIOTimeSeries:
 
         if isinstance(ts, TimeSeriesRegionXarray):
             ts_write = TimeSeriesRegion(data=ts.data, connectivity=ts.connectivity, sample_period=sample_period)
-            ts_write.configure_from_xarray_DataArray(ts._data)
+            ts_write.initialze_from_xarray_DataArray(ts._data)
         else:
             ts_write = ts
         path = writer.write_tvb_to_h5(ts_write, path, recursive=True)
