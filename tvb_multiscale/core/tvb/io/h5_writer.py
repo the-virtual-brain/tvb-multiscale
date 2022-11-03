@@ -193,10 +193,10 @@ class H5Writer(Base):
         try:
             for idict, object in enumerate(list_of_objects):
                 idict_str = str(idict)
-                h5_file.create_group(idict_str)
-                self.write_object(object, h5_file=h5_file[idict_str], close_file=False)
-            h5_file.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of objects"))
-            h5_file.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
+                self.hfd5_target.create_group(idict_str)
+                self.write_object(object, h5_file=self.hfd5_target[idict_str], close_file=False)
+            self.hfd5_target .attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of objects"))
+            self.hfd5_target .attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
             self._log_success_or_warn(None, "List of objects")
         except Exception as e:
             self._log_success_or_warn(e, "List of objects")
@@ -246,9 +246,9 @@ class H5Writer(Base):
         """
         self._assert_file(path, "Dictionary")
         try:
-            self._write_dictionary_to_group(dictionary, h5_file)
-            h5_file.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("Dictionary"))
-            h5_file.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_(dictionary.__class__.__name__))
+            self._write_dictionary_to_group(dictionary, self.hfd5_target)
+            self.hfd5_target.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("Dictionary"))
+            self.hfd5_target.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_(dictionary.__class__.__name__))
             self._log_success_or_warn(None, "Dictionary")
         except Exception as e:
             self._log_success_or_warn(e, "Dictionary")
@@ -259,10 +259,10 @@ class H5Writer(Base):
         try:
             for idict, dictionary in enumerate(list_of_dicts):
                 idict_str = str(idict)
-                h5_file.create_group(idict_str)
+                self.hfd5_target.create_group(idict_str)
                 self._write_dictionary_to_group(dictionary, h5_file[idict_str])
-            h5_file.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of dictionaries"))
-            h5_file.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
+            self.hfd5_target.attrs.create(self.H5_TYPE_ATTRIBUTE, numpy.string_("List of dictionaries"))
+            self.hfd5_target.attrs.create(self.H5_SUBTYPE_ATTRIBUTE, numpy.string_("list"))
             self._log_success_or_warn(None, "List of Dictionaries")
         except Exception as e:
             self._log_success_or_warn(e, "List of Dictionaries")
