@@ -44,6 +44,13 @@ def _initialize(config, plotter, writer):
     return plotter, figsize, writer
 
 
+def write_RegionTimeSeriesXarray_to_h5(ts, writer, path, **kwargs):
+    dummy_ts = TimeSeriesRegion(ts._data, connectivity=source_ts.connectivity)
+    dummy_ts.configure()
+    writer.write_tvb_to_h5(dummy_ts, path, **kwargs)
+    del dummy_ts
+
+
 def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_length, plotter, populations, pop_sizes):
 
     spiking_regions_inds = np.arange(simulator.connectivity.number_of_regions)
@@ -78,6 +85,7 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
                                   plotter_config=plotter.config, figsize=plotter.config.DEFAULT_SIZE)
 
     rates_xr = TimeSeriesXarray(data=rates)
+    rates_xr.configure()
     rates_xr.plot_timeseries(plotter_config=plotter.config,
                              hue="Region" if rates_xr.shape[2] > MAX_REGIONS_IN_ROWS else None,
                              figsize=plotter.config.DEFAULT_SIZE)
@@ -86,6 +94,7 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
 
     for i_pop, spike in enumerate(spikes):
         spike_xr = TimeSeriesXarray(spike)
+        spike_xr.configure()
         spike_xr.plot(y=spike_xr._data.dims[3], row=spike_xr._data.dims[2],
                       robust=True, figsize=(20, 10), plotter_config=plotter.config)
     return spikes, rates
@@ -106,14 +115,15 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
         labels_dimensions={tvb_state_variable_type_label: list(tvb_state_variables_labels),
                            "Region": simulator.connectivity.region_labels.tolist()},
         sample_period=simulator.integrator.dt)
+    source_ts.configure()
 
     if transient:
         source_ts = source_ts[transient:]
     time = source_ts.time
 
     if writer is not None:
-        writer.write_tvb_to_h5(TimeSeriesRegion(source_ts._data, connectivity=source_ts.connectivity),
-                               os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
+        write_RegionTimeSeriesXarray_to_h5(source_ts, writer,
+                                           os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
 
     # if isinstance(simulator.model, SpikingWongWangExcIOInhI):
     #     populations = kwargs.get("populations", ["E", "I"])
@@ -248,40 +258,38 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
             writer.write_object(spikes_res["spikes_correlation_coefficient"].to_dict(),
                                 path=os.path.join(config.out.FOLDER_RES,
                                                   spikes_res["spikes_correlation_coefficient"].name) + ".h5")
-            writer.write_tvb_to_h5(
-                                   TimeSeriesRegion(spikes_res["mean_rate_time_series"]._data,
-                                                    connectivity=spikes_res["mean_rate_time_series"].connectivity),
-                                   os.path.join(config.out.FOLDER_RES,
-                                                spikes_res["mean_rate_time_series"].title) + ".h5",
-                                   recursive=False)
+            write_RegionTimeSeriesXarray_to_h5(spikes_res["mean_rate_time_series"], writer,
+                                               os.path.join(config.out.FOLDER_RES,
+                                                            spikes_res["mean_rate_time_series"].title) + ".h5",
+                                               recursive=False)
 
-            spikes_sync = \
-                spikeNet_analyzer.compute_spikeNet_synchronization(
-                    populations_devices=None, regions=None,
-                    comp_methods=[spikeNet_analyzer.compute_spikes_sync,
-                                  spikeNet_analyzer.compute_spikes_sync_time_series],
-                    computations_kwargs=[{}], data_kwargs={},
-                    return_spikes_trains=False, return_devices=False)
+        spikes_sync = \
+            spikeNet_analyzer.compute_spikeNet_synchronization(
+                populations_devices=None, regions=None,
+                comp_methods=[spikeNet_analyzer.compute_spikes_sync,
+                              spikeNet_analyzer.compute_spikes_sync_time_series],
+                computations_kwargs=[{}], data_kwargs={},
+                return_spikes_trains=False, return_devices=False)
 
-            if spikes_sync is not None:
-                print_spikes_mean_result(spikes_res["spikes_sync"])
-                # Plot spikes' rasters together with mean population's spikes' rates' time series
-                plotter.plot_spike_events(spikes_res["spikes"],
-                                          time_series=spikes_sync["spikes_sync_time_series"],
-                                          mean_results=spikes_sync["spikes_sync"],
-                                          spikes_markersize=0.5, spikes_alpha=0.5,
-                                          n_y_ticks=3, n_time_ticks=6, show_time_axis=True,
-                                          figsize=figsize)
-                if writer:
-                    writer.write_object(spikes_sync["spikes_sync"].to_dict(),
-                                        path=os.path.join(config.out.FOLDER_RES,
-                                                          spikes_sync["spikes_sync"].name) + ".h5")
-                    writer.write_tvb_to_h5(
-                        TimeSeriesRegion(spikes_sync["spikes_sync_time_series"]._data,
-                                         connectivity=spikes_sync["spikes_sync_time_series"].connectivity),
-                        os.path.join(config.out.FOLDER_RES,
-                                     spikes_sync["spikes_sync_time_series"].title) + ".h5",
-                        recursive=False)
+        if spikes_sync is not None:
+            print_spikes_mean_result(spikes_sync["spikes_sync"])
+            # Plot spikes' rasters together with mean population's spikes' rates' time series
+            plotter.plot_spike_events(spikes_res["spikes"],
+                                      time_series=spikes_sync["spikes_sync_time_series"],
+                                      mean_results=spikes_sync["spikes_sync"],
+                                      spikes_markersize=0.5, spikes_alpha=0.5,
+                                      n_y_ticks=3, n_time_ticks=6, show_time_axis=True,
+                                      figsize=figsize)
+            if writer:
+                writer.write_object(spikes_sync["spikes_sync"].to_dict(),
+                                    path=os.path.join(config.out.FOLDER_RES,
+                                                      spikes_sync["spikes_sync"].name) + ".h5")
+                write_RegionTimeSeriesXarray_to_h5(
+                    spikes_sync["spikes_sync_time_series"], writer,
+                    os.path.join(config.out.FOLDER_RES,
+                                 spikes_sync["spikes_sync_time_series"].title) + ".h5",
+                    recursive=False)
+            del spikes_sync
 
         del spikes_res
         if plot_per_neuron:
@@ -361,10 +369,9 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
 
         # Write results to file:
         if writer:
-            writer.write_tvb_to_h5(
-                                   TimeSeriesRegion(mean_field_ts._data,
-                                                    connectivity=mean_field_ts.connectivity),
-                                   os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".h5", recursive=False)
+            write_RegionTimeSeriesXarray_to_h5(mean_field_ts, writer,
+                                               os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".h5",
+                                               recursive=False)
         del mean_field_ts
 
 
