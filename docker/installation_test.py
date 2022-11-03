@@ -59,17 +59,6 @@ except:
 
 # To test TimeSeries datatypes:
 try:
-    from tests.core.test_time_series import TimeSeries, TimeSeriesXarray, test_all
-    test_all(TimeSeriesXarray)
-except:
-    print("Failed to run test_time_series for TimeSeriesXarray!")
-
-try:
-    test_all(TimeSeries)
-except:
-    print("Failed to run test_time_series for TimeSeries!")
-
-try:
     from tests.core.test_time_series_objects import test_time_series_region_object
     test_time_series_region_object()
 except:
