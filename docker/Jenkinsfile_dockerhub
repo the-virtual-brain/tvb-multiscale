@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest'
+        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-multiscale'
     }
 
     stages {
@@ -10,7 +10,7 @@ pipeline {
             steps {
                 script {
                     VERSION_TAG = sh(script: "curl -s 'https://raw.githubusercontent.com/the-virtual-brain/tvb-multiscale/master/setup.py' | grep VERSION | head -1 | tr -d 'VERSION = \"'", returnStdout: true).trim()
-                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root/commits?sha=tvb-multiscale-cosim' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
+                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
                     LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
                     withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
                         def dockerfile = 'docker/Dockerfile'
