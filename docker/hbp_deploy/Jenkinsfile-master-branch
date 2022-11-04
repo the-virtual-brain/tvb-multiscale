@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest3'
+        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-multiscale'
     }
 
     stages {

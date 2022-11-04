@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-nest3'
-        TVB_BRANCH = 'tvb-cosim-consensus-dp'
+        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-multiscale'
+        TVB_BRANCH = 'master'
         MULTISCALE_BRANCH = 'parallelNEST31'
     }
 
