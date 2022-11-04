@@ -17,10 +17,11 @@ class NetpyneModule(object):
             h.DynamicNetStim()
         except:
             print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
+            import sys
             import os
-            # TODO: de-hardcode this path
+            python_path = sys.executable.split("python")[0]
             tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
-            os.system('$VENV/bin/nrnivmodl %s/tvb_multiscale/tvb_netpyne/netpyne/mod' % tvb_multiscale_path)
+            os.system('%snrnivmodl %s/tvb_multiscale/tvb_netpyne/netpyne/mod' % (python_path, tvb_multiscale_path))
             h.nrn_load_dll('./x86_64/libnrnmech.so')
 
     def importModel(self, netParams, simConfig, dt, config):
