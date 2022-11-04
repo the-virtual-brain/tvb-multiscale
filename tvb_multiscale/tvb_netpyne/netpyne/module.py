@@ -11,6 +11,16 @@ class NetpyneModule(object):
         self.spikeGeneratorPops = []
         self.autoCreatedPops = []
 
+        # Make sure that all required mod-files are compiled (is there a better way to check?)
+        try:
+            h.DynamicNetStim()
+        except:
+            print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
+            import os
+            # TODO: de-hardcode this path
+            os.system('nrnivmodl $HOME/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            h.nrn_load_dll('./x86_64/libnrnmech.so')
+
     def importModel(self, netParams, simConfig, dt, config):
 
         simConfig.dt = dt
