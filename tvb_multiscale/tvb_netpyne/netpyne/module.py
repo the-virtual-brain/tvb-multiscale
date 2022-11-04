@@ -3,6 +3,7 @@ import numpy as np
 from netpyne import specs, sim
 from netpyne.sim import *
 
+
 class NetpyneModule(object):
 
     spikeGenerators = []
@@ -18,7 +19,8 @@ class NetpyneModule(object):
             print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
             import os
             # TODO: de-hardcode this path
-            os.system('$VENV/bin/nrnivmodl $HOME/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
+            os.system('$VENV/bin/nrnivmodl %s/tvb_multiscale/tvb_netpyne/netpyne/mod' % tvb_multiscale_path)
             h.nrn_load_dll('./x86_64/libnrnmech.so')
 
     def importModel(self, netParams, simConfig, dt, config):
@@ -197,7 +199,6 @@ class NetpyneModule(object):
             for i, spike in enumerate(spikes[:3]):
                 spks[i] = spike
             sim.net.cells[gid].hPointp.set_next_spikes(intervalEnd, spks[0], spks[1], spks[2])
-
 
     def finalize(self):
         if self.time < sim.cfg.duration:
