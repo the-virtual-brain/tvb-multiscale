@@ -55,7 +55,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
 
     def proxy_node_synaptic_model_funcs(self):
         return {"E": lambda src_node, dst_node: self.receptor_type_E,
-                "I": lambda src_node, dst_node: self.receptor_type_I}
+                "I": lambda src_node, dst_node: self.receptor_type_E}
 
     def set_defaults(self):
         self.set_populations()
