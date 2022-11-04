@@ -1,8 +1,8 @@
 #
-# TVB & NEST simulations environment
+# TVB & NEST simulations environment for OpenShift
 #
 # Prepare conda env, install NEST, then tvb-library from Pypi
-# Finally link tvb-scripts and tvb-nest from Github sources
+# Finally tvb-multiscale from Github sources
 #
 
 FROM jupyter/minimal-notebook:d113a601dbb8
@@ -84,7 +84,7 @@ RUN conda install -y numba
 
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-root.git
-ARG LAST_SHA_ROOT=LATEST
+ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
     cd tvb_library; \
