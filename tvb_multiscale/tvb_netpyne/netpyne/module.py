@@ -3,6 +3,7 @@ import numpy as np
 from netpyne import specs, sim
 from netpyne.sim import *
 
+
 class NetpyneModule(object):
 
     spikeGenerators = []
@@ -10,6 +11,18 @@ class NetpyneModule(object):
     def __init__(self):
         self.spikeGeneratorPops = []
         self.autoCreatedPops = []
+
+        # Make sure that all required mod-files are compiled (is there a better way to check?)
+        try:
+            h.DynamicNetStim()
+        except:
+            print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
+            import sys
+            import os
+            python_path = sys.executable.split("python")[0]
+            tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
+            os.system('%snrnivmodl %s/tvb_multiscale/tvb_netpyne/netpyne/mod' % (python_path, tvb_multiscale_path))
+            h.nrn_load_dll('./x86_64/libnrnmech.so')
 
     def importModel(self, netParams, simConfig, dt, config):
 
@@ -187,7 +200,6 @@ class NetpyneModule(object):
             for i, spike in enumerate(spikes[:3]):
                 spks[i] = spike
             sim.net.cells[gid].hPointp.set_next_spikes(intervalEnd, spks[0], spks[1], spks[2])
-
 
     def finalize(self):
         if self.time < sim.cfg.duration:

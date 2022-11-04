@@ -20,13 +20,13 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     modules_to_install = []
     _spiking_brain = NetpyneBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_ids=[], netpyne_instance=None, config=None, logger=None):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], netpyne_instance=None, config=None, logger=None):
         # Beware: this method can be called multiple times (first - when creating default object)
-        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_ids, config, logger)
+        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
         self.netpyne_instance = netpyne_instance
         self._spiking_brain = NetpyneBrain()
 
-    def configure(self, netParams, simConfig, autoCreateSpikingNodes):
+    def configure(self, netParams, simConfig, autoCreateSpikingNodes=True):
         if self.config is None:
             self.config = CONFIGURED
         if self.logger is None:
