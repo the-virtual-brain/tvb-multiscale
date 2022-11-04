@@ -18,7 +18,7 @@ class NetpyneModule(object):
             print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
             import os
             # TODO: de-hardcode this path
-            os.system('nrnivmodl $HOME/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            os.system('$VENV/bin/nrnivmodl $HOME/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod')
             h.nrn_load_dll('./x86_64/libnrnmech.so')
 
     def importModel(self, netParams, simConfig, dt, config):
