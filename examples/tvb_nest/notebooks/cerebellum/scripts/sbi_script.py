@@ -70,6 +70,35 @@ def priors_samples_per_batch_for_iG(iG, priors_samples=None, config=None, write_
     return priors_samples_per_batch(priors_samples, iG, config, write_to_files)
 
 
+def generate_priors_samples(config=None):
+    from collections import OrderedDict
+    from scripts.sbi_script import configure, priors_samples_per_batch_for_iG
+
+    if config is None:
+        config = configure()[0]
+
+    print("Gs = %s" % str(config.Gs))
+    print("len(Gs)=%d" % len(config.Gs))
+    samples = []
+    for iG, G in enumerate(config.Gs):
+        print('\nG[%d]=%g' % (iG, G))
+        samples.append(priors_samples_per_batch_for_iG(iG, config=config, write_to_files=True))
+        nBs = len(samples[iG])
+        print("len(samples[%d]=%d" % (iG, nBs))
+        print("samples[%d][0].shape=%s" % (iG, str(samples[iG][0].shape)))
+        print("samples[%d][%d].shape=%s" % (iG, nBs - 1, str(samples[iG][nBs - 1].shape)))
+        stats = OrderedDict()
+        for p in ["min", "max", "mean", "std"]:
+            stats[p] = []
+            for iB in range(nBs):
+                stats[p].append(getattr(samples[iG][iB], p)(axis=0))
+            print("\nsamples[%d][:].%s =\n%s" % (iG, p, str(stats[p])))
+
+        print("\nlen(samples)=%d" % len(samples))
+
+    return samples
+
+
 def load_priors_samples_per_batch(iB, iG=None, config=None):
     config = assert_config(config, return_plotter=False)
     filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.BATCH_PRIORS_SAMPLES_FILE))
