@@ -1,97 +1,152 @@
 # -*- coding: utf-8 -*-
-import os
-import shutil
 
 from tvb.basic.profile import TvbProfile
-from tvb_multiscale.core.config import Config
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
+
+import numpy as np
 
 import matplotlib as mpl
 mpl.use('Agg')
 
-from examples.tvb_annarchy.example import main_example, results_path_fun
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.wilson_cowan import WilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.models.basal_ganglia_izhikevich import \
-    BasalGangliaIzhikevichBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.wilson_cowan \
-    import WilsonCowanBuilder as InterfaceWilsonCowanBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.builders.models.red_ww_basal_ganglia_izhikevich import \
-    RedWWexcIOBuilder as IzhikevichRedWWexcIOBuilder
+# from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
+# from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
+# from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+#
+# from tvb_multiscale.tvb_annarchy.annarchy_models.models.default import DefaultExcIOBuilder
+# from tvb_multiscale.tvb_annarchy.annarchy_models.models.wilson_cowan import WilsonCowanBuilder
+# from tvb_multiscale.tvb_annarchy.annarchy_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
+# from tvb_multiscale.tvb_annarchy.interfaces.models.default import DefaultTVBANNarchyInterfaceBuilder
+# from tvb_multiscale.tvb_annarchy.interfaces.models.wilson_cowan import WilsonCowanTVBANNarchyInterfaceBuilder
+# from tvb_multiscale.tvb_annarchy.interfaces.models.basal_ganglia_izhikevich import \
+#     BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder
 
-from tests.core.test_models import test_models as test_models_base
-from tests.core.test_models import model_params_wc
+from examples.tvb_annarchy.example import default_example
+from examples.tvb_annarchy.models.wilson_cowan import wilson_cowan_example
+from examples.tvb_annarchy.models.basal_ganglia_izhikevich import basal_ganglia_izhikevich_example
 
-from tvb.simulator.models.wilson_cowan_constraint import WilsonCowan
-from tvb.simulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
-
-from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
-
-
-class TestModel(object):
-    annarchy_nodes_ids = []
-    annarchy_model_builder = None
-    interface_model_builder = None
-    annarchy_populations_order = 10
-    tvb_to_annarchy_mode = "rate"
-    annarchy_to_tvb = True
-    exclusive_nodes = True
-    delays_flag = True
-    simulation_length = 55.0
-    transient = 5.0
-    plot_write = True
-
-    def __init__(self, model, annarchy_nodes_ids, annarchy_model_builder, interface_model_builder, model_params={}):
-        self.model = model
-        self.annarchy_nodes_ids = annarchy_nodes_ids
-        self.annarchy_model_builder = annarchy_model_builder
-        self.interface_model_builder = interface_model_builder
-        self.model_params = model_params
-
-    @property
-    def results_path(self):
-        return results_path_fun(self.annarchy_model_builder, self.interface_model_builder,
-                                self.tvb_to_annarchy_mode, self.annarchy_to_tvb)
-
-    def run(self, ):
-        os.chdir(os.path.dirname(__file__))
-        results_path = self.results_path
-        delete_folder_safely(os.path.join(results_path, "res"))
-        delete_folder_safely(os.path.join(results_path, "figs"))
-        return main_example(self.model, self.annarchy_model_builder, self.interface_model_builder,
-                            self.annarchy_nodes_ids, annarchy_populations_order=self.annarchy_populations_order,
-                            tvb_to_annarchy_mode=self.tvb_to_annarchy_mode, annarchy_to_tvb=self.annarchy_to_tvb,
-                            exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                            simulation_length=self.simulation_length, transient=self.transient,
-                            plot_write=self.plot_write,
-                            **self.model_params)
+from tests.core.test_models import test_models
+from tests.core.test_spikeNet_models import TestSpikeNetModel
 
 
-class TestWilsonCowan(TestModel):
-    tvb_to_annarchy_mode = "rate"
+class TestDefault(TestSpikeNetModel):
+    # model = Linear()
+    # model_params = {}
+    # spikeNet_model_builder = DefaultExcIOBuilder()
+    # tvb_spikeNet_model_builder = DefaultTVBANNarchyInterfaceBuilder()
+    multisynapse = False
 
-    def __init__(self):
-        super(TestWilsonCowan, self).__init__(WilsonCowan, [33, 34], WilsonCowanBuilder,
-                                              InterfaceWilsonCowanBuilder, model_params_wc)
-
-
-class TestIzhikevichRedWWexcIO(TestModel):
-    tvb_to_annarchy_mode = "rate"
-
-    def __init__(self):
-        super(TestIzhikevichRedWWexcIO, self).__init__(ReducedWongWangExcIO, list(range(10)),
-                                                       BasalGangliaIzhikevichBuilder, IzhikevichRedWWexcIOBuilder, {})
-
-
-# @pytest.mark.skip(reason="These tests are taking too much time")
-def test_models(models_to_test=[TestWilsonCowan, TestIzhikevichRedWWexcIO]):
-    return test_models_base(models_to_test=models_to_test)
+    def run_fun(self):
+        default_example(model=self.tvb_to_spikeNet_mode,
+                        spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+                        exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+                        simulation_length=self.simulation_length, transient=self.transient,
+                        plot_write=self.plot_write)
 
 
-def teardown_function():
-    output_folder = Config().out._out_base
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+class TestDefaultRATE(TestDefault):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "RATE"
+        self.run()
+
+
+class TestDefaultSPIKES(TestDefault):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
+
+
+class TestWilsonCowan(TestSpikeNetModel):
+    # model = WilsonCowan()
+    # model_params = {}
+    # spikeNet_model_builder = WilsonCowanBuilder()
+    # tvb_spikeNet_model_builder = WilsonCowanTVBANNarchyInterfaceBuilder()
+    multisynapse = False
+
+    def run_fun(self):
+        wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
+                             spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+                             simulation_length=self.simulation_length, transient=self.transient,
+                             plot_write=self.plot_write)
+
+
+class TestWilsonCowanRATE(TestWilsonCowan):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "RATE"
+        self.run()
+
+
+class TestWilsonCowanSPIKES(TestWilsonCowan):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
+
+
+class TestBasalGangliaIzhikevich(TestSpikeNetModel):
+
+    # model = LinearReducedWongWangExcIO()
+    # spikeNet_model_builder = BasalGangliaIzhikevichBuilder()
+    # tvb_spikeNet_model_builder = BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder()
+    spiking_proxy_inds = np.arange(10).tolist()
+
+    def run_fun(self):
+        basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
+                                         population_order=self.population_order,
+                                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+                                         simulation_length=self.simulation_length, transient=self.transient,
+                                         plot_write=self.plot_write)
+
+
+class TestBasalGangliaIzhikevichRATE(TestBasalGangliaIzhikevich):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "RATE"
+        self.run()
+
+
+class TestBasalGangliaIzhikevichSPIKES(TestBasalGangliaIzhikevich):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
+
+
+class TestBasalGangliaIzhikevichCURRENT(TestBasalGangliaIzhikevich):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "CURRENT"
+        self.run()
+
+
+models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
+                                TestDefaultSPIKES,                     # 1
+
+                           TestWilsonCowanRATE,                        # 2
+                               TestWilsonCowanSPIKES,                  # 3
+
+                           TestBasalGangliaIzhikevichRATE,             # 4
+                               TestBasalGangliaIzhikevichSPIKES,       # 5
+                                   TestBasalGangliaIzhikevichCURRENT   # 6
+                          ]
 
 
 if __name__ == "__main__":
-    test_models()
+    import sys
+
+    if len(sys.argv) > 1:
+        iM = int(sys.argv[1])
+        print("\n\nTesting model %d" % iM)
+        test_models(models_to_test_ANNarchy, iM=iM)
+    else:
+        test_models(models_to_test_ANNarchy)

@@ -8,6 +8,7 @@ from ANNarchy import Neuron
 
 
 CurrentInjector = Neuron(
+name="CurrentInjector",
 equations="""
     r = amplitude
 """,
@@ -18,9 +19,11 @@ parameters="""
 
 
 DCCurrentInjector = CurrentInjector
+DCCurrentInjector.name = "DCCurrentInjector"
 
 
 ACCurrentInjector = Neuron(
+name="ACCurrentInjector",
 equations="""
     r = amplitude * sin(omega*t + phase) + offset
 """,
@@ -29,5 +32,13 @@ parameters="""
     amplitude = 1.0
     phase = 0.0
     offset = 0.0
+"""
+)
+
+
+CurrentProxy = Neuron(
+name="CurrentProxy",
+equations="""
+    r = sum(exc)
 """
 )

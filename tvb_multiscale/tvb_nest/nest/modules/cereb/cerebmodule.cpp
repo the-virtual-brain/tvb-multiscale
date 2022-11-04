@@ -26,13 +26,8 @@
 #include "config.h"
 
 // include headers with your own stuff
-#include "volume_transmitter_alberto.h"
 #include "eglif_cond_alpha_multisyn.h"
-#include "stdp_connection_sinexp.h"
-#include "stdp_connection_cosexp.h"
-#include "stdp_connection_alpha.h"
-#include "iSTDP.h"
-#include "Sgritta2017.h"
+
 
 // Includes from nestkernel:
 #include "connection_manager_impl.h"
@@ -115,8 +110,7 @@ mynest::CerebModule::init( SLIInterpreter* i )
   /* Register a neuron or device model.
      Give node type as template argument and the name as second argument.
   */
-  nest::kernel().model_manager.register_node_model< mynest::volume_transmitter_alberto >(
-    "volume_transmitter_alberto" );
+
 
   nest::kernel().model_manager.register_node_model< eglif_cond_alpha_multisyn >(
     "eglif_cond_alpha_multisyn" );
@@ -134,24 +128,5 @@ mynest::CerebModule::init( SLIInterpreter* i )
      even further, but limits the number of available rports. Please see
      Kunkel et al, Front Neurofinfom 8:78 (2014), Sec 3.3.2, for details.
   */
-  nest::kernel()
-    .model_manager.register_connection_model< STDPAlphaConnection< nest::
-        TargetIdentifierPtrRport > >( "stdp_synapse_alpha" );
-
-  nest::kernel()
-    .model_manager.register_connection_model< STDPSinExpConnection< nest::
-        TargetIdentifierPtrRport > >( "stdp_synapse_sinexp" );
-
-  nest::kernel()
-    .model_manager.register_connection_model< STDPCosExpConnection< nest::
-        TargetIdentifierPtrRport > >( "stdp_synapse_cosexp" );
-
-  nest::kernel()
-    .model_manager.register_connection_model< iSTDP< nest::
-        TargetIdentifierPtrRport > >( "istdp_synapse" );
-
-  nest::kernel()
-    .model_manager.register_connection_model< Sgritta2017< nest::
-        TargetIdentifierPtrRport > >( "sgritta_synapse" );
 
 } // CerebModule::init()

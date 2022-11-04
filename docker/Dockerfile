@@ -1,21 +1,21 @@
 #
 # TVB & NEST simulations environment
 #
-# Install Python 3.7, NEST, then tvb-library from Pypi
+# Install Python 3.9, NEST, then tvb-library from Pypi
 # Finally link tvb-multiscale from Github sources
 #
 
-FROM neurodebian:buster
+FROM neurodebian:bullseye
 MAINTAINER lia.domide@codemart.ro
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
 RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
-                       wget python3.7 libpython3.7 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
-                       python3.7-dev python3-pip python3-numpy python3-scipy python3-matplotlib python3-nose \
-                       ipython3 python3-venv python-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
-                       subversion cmake zip unzip make; \
+                       wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
+                       python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
+                       ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       python3-pkgconfig subversion cmake zip unzip make; \
     apt-get clean
 
 RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
@@ -39,8 +39,9 @@ RUN mkdir $HOME/env; mkdir $HOME/packages
 ENV VENV=$HOME/env/neurosci
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
-    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba; \
-    $VENV/bin/pip3 install --upgrade nose ipython
+    $VENV/bin/pip3 install --upgrade nose ipython numpy scipy matplotlib; \
+    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba;
+
 # django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
 # Install from sources libneurosim (NEST boost dependency)
@@ -53,34 +54,41 @@ RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$VENV/bin/python $HOME/packages/libneurosim/configure --prefix=$VENV; \
     make; make install; ls $VENV/lib $VENV/include; \
-    ln -s /usr/lib/python3.7/config-x86_64-linux-gnu/libpython3.7.so $VENV/lib/
+    ln -s /usr/lib/python3.9/config-x86_64-linux-gnu/libpython3.9.so $VENV/lib/
 
 # Install NEST, latest stable version (July 2019)
 ARG NEST_VER=dev
 ARG NEST=nest-simulator
 ARG NEST_SRC=$HOME/packages/$NEST
 ARG NEST_INSTALL_DIR=$VENV/nest_build
-ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.7/site-packages
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.9/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
+# Install NEST 3.1
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
-RUN git clone https://github.com/nest/nest-simulator.git
+RUN git clone --branch v3.1 https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
-    git fetch origin && git checkout 1e0ce51e17e48933a95463cc35a5c2c5d99ca366; \
+    git fetch origin && git checkout c545255f7252308d6e73a851ddeece4f2dffc812; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
-          -DPYTHON_INCLUDE_DIR=/usr/include/python3.7m \
+          -DPYTHON_INCLUDE_DIR=/usr/include/python3.9m \
           ${NEST_SRC}; \
     make; make install
 
 # Install nestml
+WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install setuptools; \
-    git clone --depth 1 https://github.com/nest/nestml.git; \
+    git clone https://github.com/nest/nestml.git; \
     cd nestml; \
+    # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
+
+# Install NEURON and NetPyNE
+RUN $VENV/bin/pip3 install neuron
+RUN $VENV/bin/pip3 install netpyne
 
 # Install pyNN
 # RUN pip install pyNN
@@ -91,39 +99,73 @@ RUN $VENV/bin/pip3 install setuptools; \
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+RUN $VENV/bin/pip3 install torch
+RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
+
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark oct2py scikit-learn scipy elephant sqlalchemy numba; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba ; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints; \
+    $VENV/bin/pip3 install werkzeug==2.0.1;
 
-RUN wget https://zenodo.org/record/3688773/files/tvb-data.zip?download=1 -O tvb_data.zip; \
-    mkdir tvb_data; unzip tvb_data.zip -d tvb_data; rm tvb_data.zip; \
-    cd tvb_data; \
-    $VENV/bin/python setup.py develop
+# Install TVB-multiscale specific packages
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install ANNarchy;
 
-RUN git clone --depth 1 --branch tvb-multiscale-cosim https://github.com/the-virtual-brain/tvb-root.git
+WORKDIR $HOME/packages
+RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
+    cd PySpike; \
+    $VENV/bin/python3 setup.py build_ext install;
+
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install elephant dill; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints;
+
+# Clone and install tvb-root
+WORKDIR $HOME/packages
+RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
-    git pull origin tvb-multiscale-cosim --allow-unrelated-histories; \
-    cd scientific_library; \
+    git pull --allow-unrelated-histories; \
+    cd tvb_library; \
     $VENV/bin/python setup.py develop; \
-    cd ../framework_tvb; \
+    cd ../tvb_framework; \
+    $VENV/bin/python setup.py develop; \
+    cd ../tvb_storage; \
     $VENV/bin/python setup.py develop; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
 
-RUN git clone --depth 1 https://github.com/the-virtual-brain/tvb-multiscale.git
+# Clone and install tvb-multiscale
+WORKDIR $HOME/packages
+RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git;
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
-    git pull; \
+    git pull origin --allow-unrelated-histories; \
     $VENV/bin/python setup.py develop --no-deps;
 
-RUN $VENV/bin/pip3 install sympy;
-RUN git clone --depth 1 https://bitbucket.org/annarchy/annarchy.git; \
-    cd annarchy; \
-    $VENV/bin/python3 setup.py install --user
+# Install Jupyter notebook specific packages
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install ipywidgets ipympl;
+RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension;
 
-WORKDIR /home/docker/
+# Checkout specific branch of tvb-multiscale
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    git checkout parallelNEST31; \
+    git pull --allow-unrelated-histories;
+
+# Compile tvb-netpyne .mod files
+WORKDIR $HOME/packages
+RUN cd tvb-multiscale; \
+    $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
+
+WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
 ENV NEST_PYTHON_PREFIX=${NEST_PYTHON_PREFIX}
@@ -196,4 +238,4 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 #Run jupyter notebooks
 CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
-#CMD /bin/bash
+# CMD /bin/bash

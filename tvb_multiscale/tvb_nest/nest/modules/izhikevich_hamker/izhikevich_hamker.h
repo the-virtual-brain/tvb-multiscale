@@ -46,7 +46,7 @@ Implementation of the simple spiking neuron model introduced by Izhikevich
 The dynamics are given by:
   @f[
   dv/dt = n2*v^2 + n1*v + n0 - u/C_m + I_e + I - g_AMPA*(v-E_AMPA) - g_GABA_A*(v-E_GABA) - g_L*v \\
-  du/dt = a*(b*v - u)]
+  du/dt = a*(b*(v-Vr) - u)]
   tau_rise_AMPA*dg_AMPA/dt = -g_AMPA + spikes_exc(t)      (positively weighted spikes at port 1)
   tau_rise_GABA_A*dg_GABA/dt = -g_GABA_A + spikes_inh(t)  (negatively weighted spikes at port 1)
   tau_rise*dg_L/dt = -g_L + spikes_baseline(t)            (only positively -error otherwise- weighted spikes at port 0)
@@ -85,6 +85,7 @@ The following parameters can be set in the status dictionary.
  E_rev_GABA_A           mV       GABA reversal potential
  V_th                   mV       Spike threshold
  V_min                  mV       Absolute lower value for the membrane potential
+ V_r                    mV       Reversal potential threshold
  C_m                    real     Membrane capacitance
  g_L                    nS       Baseline conductance variable
  g_AMPA                 nS       AMPA conductance variable
@@ -210,6 +211,8 @@ private:
     double V_th_;
     /** Lower bound */
     double V_min_;
+    /** Reversal potential threshold */
+    double V_r_;
 
      /** Membrane capacitance */
     double C_m_;

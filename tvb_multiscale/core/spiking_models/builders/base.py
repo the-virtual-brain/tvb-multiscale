@@ -1,32 +1,41 @@
 # -*- coding: utf-8 -*-
+
+import os
 from abc import ABCMeta, abstractmethod
 from six import string_types
 from collections import OrderedDict
+
 import numpy as np
-from pandas import Series
+from pandas import concat
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, property_to_fun
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
+from tvb_multiscale.core.utils.file_utils import load_pickled_dict
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
+    serialize_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
-from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, flatten_tuple, property_to_fun
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
 
-LOG = initialize_logger(__name__)
+LOG = initialize_logger(__name__, config=CONFIGURED)
 
 
-class SpikingModelBuilder(object):
+class SpikingNetworkBuilder(object):
     __metaclass__ = ABCMeta
 
-    """This is the base class of a SpikingModelBuilder, 
+    """This is the base class of a SpikingNetworkBuilder, 
        which builds a SpikingNetwork from user configuration inputs.
        The abstract methods have to be implemented by 
        spiking simulator specific classes that will inherit this class.
        The builder is half way opionionated.
     """
 
-    # Default configuratons modifiable by the user:
+    # Default configurations modifiable by the user:
     config = CONFIGURED
 
+    default_tvb_dt = 0.1
     tvb_to_spiking_dt_ratio = config.TVB_TO_SPIKING_DT_RATIO
     default_min_spiking_dt = config.MIN_SPIKING_DT
     default_min_delay_ratio = config.MIN_DELAY_RATIO
@@ -39,42 +48,54 @@ class SpikingModelBuilder(object):
     population_order = 100
 
     # User inputs:
-    tvb_simulator = None
-    spiking_nodes_ids = []
+    model = None
+    tvb_serial_sim = None
+    spiking_nodes_inds = []
     populations = []
     populations_connections = []
     nodes_connections = []
-    output_devices = [] # Use these to observe Spiking Simulator behavior
-    input_devices = []  # use these for possible external stimulation devices
+    output_devices = []  # Use these to observe Spiking Simulator behavior
+    input_devices = []   # use these for possible external stimulation devices
 
     # Internal configurations and outputs:
     monitor_period = 1.0
-    spiking_dt = 0.1 / tvb_to_spiking_dt_ratio
+    spiking_dt = default_tvb_dt / tvb_to_spiking_dt_ratio
     _spiking_nodes_labels = []
     _populations = []
     _populations_connections = []
     _nodes_connections = []
     _output_devices = []
     _input_devices = []
-    _spiking_brain = SpikingBrain()
+    _spiking_brain = SpikingBrain(name="brain regions")
     _models = []
 
-    def __init__(self, tvb_simulator, spiking_nodes_ids, config=CONFIGURED, logger=LOG):
-        self.config = config
+    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=None, logger=None):
         self.logger = logger
-        self.spiking_nodes_ids = np.unique(spiking_nodes_ids)
-        self.tvb_simulator = tvb_simulator
+        self.config = config
+        self.tvb_serial_sim = tvb_serial_sim
+        self.spiking_nodes_inds = spiking_nodes_inds
 
+    def _assert_tvb_cosimulator(self):
+        if isinstance(self.tvb_serial_sim, os.PathLike):
+            self.tvb_serial_sim = load_pickled_dict(self.tvb_serial_sim)
+        elif not isinstance(self.tvb_serial_sim, dict):
+            self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
+
+    def configure(self):
+        if self.config is None:
+            self.config = CONFIGURED
+        if self.logger is None:
+            self.logger = initialize_logger(__name__, config=self.config)
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
         self.default_min_delay = self.config.MIN_SPIKING_DT
-        self._update_spiking_dt()
-        self._update_default_min_delay()
 
         # Setting SpikingNetwork defaults from config
-        # to be further specified in the each Spiking simulator's specific builder class.
-        self.default_population = {"model": self.config.DEFAULT_MODEL, "scale": 1, "params": {}, "nodes": None}
+        # to be further specified in each Spiking simulator's specific builder class.
+        if self.model is None:
+            self.model = self.config.DEFAULT_SPIKING_MODEL
+        self.default_population = {"model": self.model, "scale": 1, "params": {}, "nodes": None}
 
         self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["nodes"] = None
@@ -86,21 +107,28 @@ class SpikingModelBuilder(object):
         self.default_devices_connection["delay"] = self.default_min_delay
         self.default_devices_connection["nodes"] = None
 
+        self._assert_tvb_cosimulator()
+        self.update_spiking_dt()
+        self.update_default_min_delay()
+
+        # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
+        self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.a", np.array([1.0/256]))[0].item()
+
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
-        self.monitor_period = tvb_simulator.monitors[-1].period
-        self.population_order = 100
-        self._models = []
-        self._spiking_brain = SpikingBrain()
+        self.monitor_period = self.tvb_serial_sim["monitor.period"]
+
+        self.spiking_nodes_inds = np.unique(self.spiking_nodes_inds)
 
     @abstractmethod
-    def build_spiking_population(self, label, model, size, params):
+    def build_spiking_population(self, label, model, brain_region, size, params):
         """This methods builds a SpikingPopulation instance,
            which represents a population of spiking neurons of the same neural model,
            and residing at a particular brain region node.
            Arguments:
             label: name (string) of the population
             model: name (string) of the neural model
+            brain_region: name (string) of the brain reegion the population will reside
             size: number (integer) of the neurons of this population
             params: dictionary of parameters of the neural model to be set upon creation
            Returns:
@@ -111,7 +139,7 @@ class SpikingModelBuilder(object):
     @abstractmethod
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a SpikingRegionNode instance,
-           which consists of a pandas.Series of all SpikingPopulation instances,
+           which consists of all SpikingPopulation instances,
            residing at a particular brain region node.
            Arguments:
             label: name (string) of the region node. Default = ""
@@ -148,7 +176,7 @@ class SpikingModelBuilder(object):
         """Method to connect two SpikingPopulation instances in the SpikingNetwork.
            Arguments:
             source: the source SpikingPopulation of the connection
-            src_inds_fun: a function that selects a subset of the souce population neurons
+            src_inds_fun: a function that selects a subset of the source population neurons
             target: the target SpikingPopulation of the connection
             trg_inds_fun: a function that selects a subset of the target population neurons
             conn_params: a dict of parameters of the connectivity pattern among the neurons of the two populations,
@@ -164,37 +192,58 @@ class SpikingModelBuilder(object):
         pass
 
     @abstractmethod
-    def build(self):
+    def build_spiking_network(self):
         """A method to build the final SpikingNetwork class based on the already created constituents."""
         pass
 
     @property
-    def tvb_model(self):
-        return self.tvb_simulator.model
+    def tvb_dt(self):
+        if self.tvb_serial_sim is None:
+            return self.default_tvb_dt
+        self._assert_tvb_cosimulator()
+        return self.tvb_serial_sim.get("integrator.dt", self.default_tvb_dt)
 
     @property
-    def tvb_connectivity(self):
-        return self.tvb_simulator.connectivity
+    def tvb_model(self):
+        if self.tvb_serial_sim is None:
+            return ""
+        self._assert_tvb_cosimulator()
+        return self.tvb_serial_sim.get("model", "")
+
+    @property
+    def number_of_regions(self):
+        if self.tvb_serial_sim is None:
+            return 1
+        self._assert_tvb_cosimulator()
+        return self.tvb_serial_sim.get("connectivity.number_of_regions", 1)
+
+    @property
+    def region_labels(self):
+        if self.tvb_serial_sim is None:
+            return np.array(["%d" % reg for reg in np.arange(self.number_of_regions)])
+        self._assert_tvb_cosimulator()
+        return self.tvb_serial_sim.get("connectivity.region_labels",
+                                       np.array(["%d" % reg for reg in np.arange(self.number_of_regions)]))
 
     @property
     def tvb_weights(self):
-        return self.tvb_simulator.connectivity.weights
+        if self.tvb_serial_sim is None:
+            return np.ones((self.number_of_regions, self.number_of_regions))
+        self._assert_tvb_cosimulator()
+        return self.tvb_serial_sim.get("connectivity.weights",
+                                       np.ones((self.number_of_regions, self.number_of_regions)))
 
     @property
     def tvb_delays(self):
-        return self.tvb_simulator.connectivity.delays
-
-    @property
-    def tvb_dt(self):
-        return self.tvb_simulator.integrator.dt
-
-    @property
-    def number_of_nodes(self):
-        return self.tvb_connectivity.number_of_regions
+        if self.tvb_serial_sim is None:
+            return self.tvb_dt * np.ones((self.number_of_regions, self.number_of_regions))
+        self._assert_tvb_cosimulator()
+        return self.tvb_serial_sim.get("connectivity.delays",
+                                       self.tvb_dt * np.ones((self.number_of_regions, self.number_of_regions)))
 
     @property
     def number_of_spiking_nodes(self):
-        return np.maximum(len(self.spiking_nodes_ids), 1)
+        return len(self.spiking_nodes_inds)
 
     # The methods below are used in order to return the builder's properties
     # per spiking node or spiking nodes' connection
@@ -204,14 +253,14 @@ class SpikingModelBuilder(object):
         if len(self._spiking_nodes_labels) == self.number_of_spiking_nodes:
             return self._spiking_nodes_labels
         else:
-            return self.tvb_connectivity.region_labels[self.spiking_nodes_ids]
+            return self.region_labels[self.spiking_nodes_inds]
 
     def _population_property_per_node(self, property):
         output = OrderedDict()
         for population in self.populations:
             output[population["label"]] = property_per_node(population[property],
-                                                            population.get("nodes", self.spiking_nodes_ids),
-                                                            self.tvb_connectivity.region_labels)
+                                                            population.get("nodes", self.spiking_nodes_inds),
+                                                            self.region_labels)
         return output
 
     @property
@@ -253,8 +302,8 @@ class SpikingModelBuilder(object):
         output = OrderedDict()
         for conn in connections:
             output[self._connection_label(conn)] = \
-                property_per_node(conn[property], conn.get("nodes", self.spiking_nodes_ids),
-                                  self.tvb_connectivity.region_labels)
+                property_per_node(conn[property], conn.get("nodes", self.spiking_nodes_inds),
+                                  self.region_labels)
         return output
 
     def _population_connection_property_per_node(self, property):
@@ -293,9 +342,9 @@ class SpikingModelBuilder(object):
         for conn in self.nodes_connections:
             output[self._connection_label(conn)] = \
                 property_per_nodes_connection(conn[property],
-                                              conn.get("source_nodes", self.spiking_nodes_ids),
-                                              conn.get("target_nodes", self.spiking_nodes_ids),
-                                              self.spiking_nodes_ids, self.tvb_connectivity.region_labels)
+                                              conn.get("source_nodes", self.spiking_nodes_inds),
+                                              conn.get("target_nodes", self.spiking_nodes_inds),
+                                              self.spiking_nodes_inds, self.region_labels)
         return output
 
     @property
@@ -330,6 +379,26 @@ class SpikingModelBuilder(object):
     def nodes_connections_target_nodes(self):
         return self._nodes_connection_property_per_node("target_nodes")
 
+    def _info_properties(self):
+        output = ""
+        for prop in ["min_delay", "tvb_dt", "monitor_period", "tvb_model",
+                     "number_of_regions", "tvb_weights", "tvb_delays", "region_labels",
+                     "number_of_populations", "populations_models", "populations_nodes",
+                     "populations_scales", "populations_sizes", "populations_params",
+                     "populations_connections_labels", "populations_connections_models",
+                     "populations_connections_nodes",
+                     "populations_connections_weights", "populations_connections_delays",
+                     "populations_connections_receptor_types", "populations_connections_conn_spec",
+                     "nodes_connections_labels", "nodes_connections_models",
+                     "nodes_connections_source_nodes", "nodes_connections_target_nodes",
+                     "nodes_connections_weights", "nodes_connections_delays", "nodes_connections_receptor_types",
+                     "nodes_connections_conn_spec"]:
+            output += "\n%s:\n%s\n" % (prop, str(getattr(self, prop, None)))
+        return output
+
+    def info(self):
+        return self.__str__() + self._info_properties()
+
     def _assert_delay(self, delay):
         assert delay >= 0.0
         return delay
@@ -347,12 +416,12 @@ class SpikingModelBuilder(object):
                             % (delay, self.tvb_dt))
         return self._assert_delay(delay)
 
-    def _update_spiking_dt(self):
+    def update_spiking_dt(self):
         # The TVB dt should be an integer multiple of the spiking simulator dt:
         self.spiking_dt = int(np.round(self.tvb_dt / self.tvb_to_spiking_dt_ratio / self.default_min_spiking_dt)) \
                           * self.default_min_spiking_dt
 
-    def _update_default_min_delay(self):
+    def update_default_min_delay(self):
         # The Spiking Network min delay should be smaller than half the TVB dt,
         # and an integer multiple of the spiking simulator dt
         self.default_min_delay = np.minimum(
@@ -375,7 +444,9 @@ class SpikingModelBuilder(object):
                 _populations[-1]["label"] = "Pop%d" % i_pop
             self.populations_labels.append(_populations[-1]["label"])
             if _populations[-1]["nodes"] is None:
-                _populations[-1]["nodes"] = self.spiking_nodes_ids
+                _populations[-1]["nodes"] = self.spiking_nodes_inds
+            else:
+                _populations[-1]["nodes"] = np.array(ensure_list(_populations[-1]["nodes"]))
             _model = _populations[-1]["model"]
             if _model not in self._models:
                 self._models.append(_model)
@@ -425,8 +496,11 @@ class SpikingModelBuilder(object):
         _populations_connections = self._configure_connections(self.populations_connections,
                                                                self.default_populations_connection)
         for i_conn, connections in enumerate(self.populations_connections):
-            if connections["nodes"] is None:
-                _populations_connections[i_conn]["nodes"] = self.spiking_nodes_ids
+            if connections.get("nodes", None) is None:
+                _populations_connections[i_conn]["nodes"] = self.spiking_nodes_inds
+            else:
+                _populations_connections[i_conn]["nodes"] = \
+                    np.array(ensure_list(_populations_connections[i_conn]["nodes"]))
         self._populations_connections = _populations_connections
         return self._populations_connections
 
@@ -440,23 +514,27 @@ class SpikingModelBuilder(object):
         for i_conn, connections in enumerate(self.nodes_connections):
             for pop in ["source", "target"]:
                 this_pop = "%s_nodes" % pop
-                if connections[this_pop] is None:
-                    _nodes_connections[i_conn][this_pop] = self.spiking_nodes_ids
-        self.tvb_connectivity.configure()
+                if connections.get(this_pop, None) is None:
+                    _nodes_connections[i_conn][this_pop] = self.spiking_nodes_inds
+                else:
+                    _nodes_connections[i_conn][this_pop] = np.array(ensure_list(_nodes_connections[i_conn][this_pop]))
         self._nodes_connections = _nodes_connections
         return self._nodes_connections
 
     def _configure_devices(self, devices):
         # Configure devices by
-        # the variable model they measure or stimulate, and population(s) they target (pandas.Series)
-        # and brain region node (pandas.Series) where they refer to.
+        # the variable model they measure or stimulate, and population(s) they target
+        # and brain region node where they refer to.
         # "weight", "delay" and "receptor_type" are set as functions, following user input
         _devices = list()
         for device in devices:
             _devices.append(dict(device))
-            spiking_nodes = device.get("nodes", self.spiking_nodes_ids)
+            spiking_nodes = device.get("nodes", None)
             if spiking_nodes is None:
-                spiking_nodes = self.spiking_nodes_ids
+                spiking_nodes = self.spiking_nodes_inds
+            else:
+                spiking_nodes = np.array(ensure_list(spiking_nodes))
+                assert np.all([trg_node in self.spiking_nodes_inds for trg_node in spiking_nodes])
             # User inputs
             # ..set/converted to functions
             weights_fun = property_to_fun(device.get("weights",
@@ -465,6 +543,8 @@ class SpikingModelBuilder(object):
                                                     self.default_devices_connection["delay"]))
             receptor_type_fun = property_to_fun(device.get("receptor_type",
                                                            self.default_devices_connection["receptor_type"]))
+            syn_spec_fun = property_to_fun(device.get("syn_spec", None))
+            conn_spec_fun = property_to_fun(device.get("conn_spec", None))
             # Default behavior for any region nodes is to target all of the populations' neurons:
             neurons_fun = device.get("neurons_fun", None)
             if neurons_fun is not None:
@@ -476,19 +556,25 @@ class SpikingModelBuilder(object):
             weights = np.tile(self.default_devices_connection["weight"], shape).astype("O")
             delays = np.tile(self.default_devices_connection["delay"], shape).astype("O")
             neurons = np.tile([None], shape).astype("O")
+            syn_spec = np.tile([None], shape).astype("O")
+            conn_spec = np.tile([None], shape).astype("O")
             # Set now the properties using the above defined functions:
             for i_trg, trg_node in enumerate(spiking_nodes):
                 weights[i_trg] = weights_fun(trg_node)  # a function also of self.tvb_weights
                 delays[i_trg] = delays_fun(trg_node)    # a function also of self.tvb_delays
                 receptor_type[i_trg] = receptor_type_fun(trg_node)
+                syn_spec[i_trg] = syn_spec_fun(trg_node)
+                conn_spec[i_trg] = conn_spec_fun(trg_node)
                 if neurons_fun is not None:
                     neurons[i_trg] = lambda neurons: neurons_fun(trg_node, neurons)
             _devices[-1]["params"] = device.get("params", {})
             _devices[-1]["weights"] = weights
             _devices[-1]["delays"] = delays
             _devices[-1]["receptor_type"] = receptor_type
+            _devices[-1]["syn_spec"] = syn_spec
+            _devices[-1]["conn_spec"] = conn_spec
             _devices[-1]["neurons_fun"] = neurons
-            _devices[-1]["nodes"] = [np.where(self.spiking_nodes_ids == trg_node)[0][0] for trg_node in spiking_nodes]
+            _devices[-1]["nodes"] = [np.where(self.spiking_nodes_inds == trg_node)[0][0] for trg_node in spiking_nodes]
         return _devices
 
     def _configure_output_devices(self):
@@ -499,27 +585,34 @@ class SpikingModelBuilder(object):
         self._input_devices = self._configure_devices(self.input_devices)
         return self._input_devices
 
-    def configure(self):
-        """Method to condigure the builder taking into consideration the input configurations by the user."""
+    def _configure(self):
+        """Method to configure the builder taking into consideration the input configurations by the user."""
+        LOG.info("Configuring populations...")
         self._configure_populations()
+        LOG.info("Configuring populations' connections within spiking region nodes...")
         self._configure_populations_connections()
+        LOG.info("Configuring populations' connections among spiking region nodes...")
         self._configure_nodes_connections()
+        LOG.info("Configuring output devices, if any...")
         self._configure_output_devices()
+        LOG.info("Configuring input devices, if any...")
         self._configure_input_devices()
 
     def build_spiking_region_nodes(self, *args, **kwargs):
         """Method to build all spiking populations with each brain region node."""
         # For every Spiking node
-        for node_id, node_label in zip(self.spiking_nodes_ids, self.spiking_nodes_labels):
+        for node_id, node_label in zip(self.spiking_nodes_inds, self.spiking_nodes_labels):
+            LOG.info("Generating spiking region node: %s..." % node_label)
             self._spiking_brain[node_label] = self.build_spiking_region_node(node_label)
             # ...and every population in it...
             for iP, population in enumerate(self._populations):
                 # ...if this population exists in this node...
                 if node_id in population["nodes"]:
+                    LOG.info("Generating population: %s..." % population["label"])
                     # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
                     self._spiking_brain[node_label][population["label"]] = \
-                        self.build_spiking_population(population["label"], population["model"], size,
+                        self.build_spiking_population(population["label"], population["model"], node_label, size,
                                                       params=population["params"](node_id),
                                                       *args, **kwargs)
 
@@ -527,9 +620,11 @@ class SpikingModelBuilder(object):
         """Method to connect all populations withing each Spiking brain region node."""
         # For every different type of connections between distinct Spiking nodes' populations
         for i_conn, conn in enumerate(ensure_list(self._populations_connections)):
+            LOG.info("Connecting %s -> %s populations \nfor spiking region nodes\n%s..." %
+                             (str(conn["source"]), str(conn["target"]), str(conn["nodes"])))
             # ...and for every brain region node where this connection will be created:
             for node_index in conn["nodes"]:
-                i_node = np.where(self.spiking_nodes_ids == node_index)[0][0]
+                i_node = np.where(self.spiking_nodes_inds == node_index)[0][0]
                 # ...create a synapse parameters dictionary, from the configured inputs:
                 syn_spec = self.set_synapse(conn["synapse_model"],
                                             conn['weight'](node_index),
@@ -543,8 +638,8 @@ class SpikingModelBuilder(object):
                     for pop_trg in ensure_list(conn["target"]):
                         # ...connect the two populations:
                         self.connect_two_populations(
-                            self._spiking_brain[i_node][pop_src], conn["source_inds"],
-                            self._spiking_brain[i_node][pop_trg], conn["target_inds"],
+                            self._spiking_brain[i_node][pop_src], conn["source_neurons"],
+                            self._spiking_brain[i_node][pop_trg], conn["target_neurons"],
                             conn["conn_spec"], syn_spec
                         )
 
@@ -555,10 +650,10 @@ class SpikingModelBuilder(object):
             # ...form the connection for every distinct pair of Spiking nodes
             for source_index in conn["source_nodes"]:
                 # ...get the source spiking brain region indice:
-                i_source_node = np.where(self.spiking_nodes_ids == source_index)[0][0]
+                i_source_node = np.where(self.spiking_nodes_inds == source_index)[0][0]
                 for target_index in conn["target_nodes"]:
                     # ...get the target spiking brain region indice:
-                    i_target_node = np.where(self.spiking_nodes_ids == target_index)[0][0]
+                    i_target_node = np.where(self.spiking_nodes_inds == target_index)[0][0]
                     # ...create a synapse parameters dictionary, from the configured inputs:
                     syn_spec = self.set_synapse(conn["synapse_model"],
                                                 conn["weight"](source_index, target_index),
@@ -566,6 +661,8 @@ class SpikingModelBuilder(object):
                                                 conn["receptor_type"](source_index, target_index)
                                                 )
                     if source_index != target_index:
+                        LOG.info("Connecting for %s -> %s spiking region nodes ..." %
+                                         (str(source_index), str(target_index)))
                         # ...and as long as this is not a within node connection...
                         for conn_src in ensure_list(conn["source"]):
                             # ...and for every combination of source...
@@ -573,61 +670,74 @@ class SpikingModelBuilder(object):
                             for conn_trg in ensure_list(conn["target"]):
                                 # ...and target population...
                                 trg_pop = self._spiking_brain[i_target_node][conn_trg]
-                                self.connect_two_populations(src_pop, conn["source_inds"],
-                                                             trg_pop, conn["target_inds"],
+                                LOG.info("%s -> %s populations ..." %
+                                                 (src_pop.label, trg_pop.label))
+                                self.connect_two_populations(src_pop, conn["source_neurons"],
+                                                             trg_pop, conn["target_neurons"],
                                                              conn['conn_spec'], syn_spec)
 
     def build_spiking_brain(self):
         """Method to build and connect all Spiking brain region nodes,
            first withing, and then, among them.
         """
+        LOG.info("Generating spiking brain regions...")
         self.build_spiking_region_nodes()
+        LOG.info("Connecting populations within spiking brain regions...")
         self.connect_within_node_spiking_populations()
         # Connect Spiking nodes among each other
+        LOG.info("Connecting populations among spiking brain regions...")
         self.connect_spiking_region_nodes()
 
-    def _build_and_connect_devices(self, devices):
+    def _build_and_connect_devices(self, devices, label):
         """Method to build and connect input or output devices, organized by
-           - the variable they measure or stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target."""
-        _devices = Series()
+           - the variable they measure or stimulate, and the
+           - population(s), and
+           - brain region nodes they target."""
+        _devices = []
         for device in devices:
-            _devices = _devices.append(
-                            self.build_and_connect_devices(device))
-        return _devices
+            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
+                     "for nodes %s..." % (str(list(device["connections"].keys())),
+                                          str(list(device["connections"].values())),
+                                          device["model"], str(device["nodes"])))
+            _devices.append(self.build_and_connect_devices(device))
+        if len(_devices):
+            return DeviceSets(concat(_devices), name=label)
+        else:
+            return DeviceSets(name=label)
 
     def build_and_connect_output_devices(self):
         """Method to build and connect output devices, organized by
-          - the variable they measure (pandas.Series), and the
-          - population(s) (pandas.Series), and
-          - brain region nodes (pandas.Series) they target."""
-        return self._build_and_connect_devices(self._output_devices)
+          - the variable they measure, and the
+          - population(s), and
+          - brain region nodes they target."""
+        return self._build_and_connect_devices(self._output_devices, "output_devices")
 
     def build_and_connect_input_devices(self):
         """Method to build and connect input devices, organized by
-           - the variable they stimulate (pandas.Series), and the
-           - population(s) (pandas.Series), and
-           - brain region nodes (pandas.Series) they target."""
-        return self._build_and_connect_devices(self._input_devices)
+           - the variable they stimulate, and the
+           - population(s), and
+           - brain region nodes they target."""
+        return self._build_and_connect_devices(self._input_devices, "input_devices")
 
-    def build_spiking_network(self):
-        """This method will run the whole workflow of
-        configuring the builder and building the spiking network,
-        which will be returned."""
-        # Configure all inputs to set them to the correct formats and sizes
-        self.configure()
+    def build(self):
+        """This method will run the whole workflow of building the spiking network, which will be returned."""
+        # Configure all inputs/configurations for building
+        LOG.info("Configuring spiking network builder...")
+        self._configure()
         # Build and connect the brain network
+        LOG.info("Generating spiking brain...")
         self.build_spiking_brain()
         # Build and connect possible Spiking output devices
         # !!Use it only for extra Spiking quantities
         # that do not correspond to TVB state variables or parameters
         # you wish to transmit from the Spiking simulator to TVB!!
+        LOG.info("Generating and connecting output devices, if any...")
         self._output_devices = self.build_and_connect_output_devices()
         # Build and connect possible Spiking input devices
         # !!Use it only for stimuli, if any, not for transmitting data from TVB to the Spiking simulator!!
+        LOG.info("Generating and connecting input devices, if any...")
         self._input_devices = self.build_and_connect_input_devices()
-        return self.build()
+        return self.build_spiking_network()
 
 
 def node_key_index_and_label(node, labels):
@@ -663,14 +773,14 @@ def property_per_node(property, nodes, nodes_labels):
         return property
 
 
-def property_per_nodes_connection(property, source_nodes, target_nodes, spiking_nodes_ids, nodes_labels):
+def property_per_nodes_connection(property, source_nodes, target_nodes, spiking_nodes_inds, nodes_labels):
     if hasattr(property, "__call__"):
         if source_nodes is None:
-            source_nodes = spiking_nodes_ids
+            source_nodes = spiking_nodes_inds
         else:
             source_nodes = np.unique(source_nodes)
         if target_nodes is None:
-            target_nodes = spiking_nodes_ids
+            target_nodes = spiking_nodes_inds
         else:
             target_nodes = np.unique(target_nodes)
         property_per_nodes_connection = OrderedDict()

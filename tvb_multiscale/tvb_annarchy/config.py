@@ -2,6 +2,8 @@
 
 import os
 
+import numpy as np
+
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 
@@ -25,31 +27,34 @@ class Config(ConfigBase):
 
     MIN_SPIKING_DT = 0.001
 
-    DEFAULT_MODEL = "Izhikevich"
+    DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
 
     # Delays should be at least equal to ANNarchy time resolution
-    DEFAULT_CONNECTION = {"synapse_model": "DefaultSpikingSynapse", "params": {},
+    DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
+    DEFAULT_CONNECTION = {"synapse_model": DEFAULT_SYNAPSE, "params": {},
                           "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
                           "source_inds": None, "target_inds": None,
-                          "conn_spec": {"method": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
+                          "syn_spec": {"synapse_model": DEFAULT_SYNAPSE, "params": {}},
+                          "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
     DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
 
     # Available ANNARCHY output devices for the interface and their default properties
-    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"record_from": "spike", "period": 1.0},
-                                          "spike_multimeter": {"record_from": "spike", "period": 1.0},
-                                          "Monitor": {"record_from": ["v", 'g_exc', 'g_inh'], "period": 1.0}}
+    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"variables": "spike"},
+                                          "spike_multimeter": {"variables": "spike", "period": 1.0},
+                                          "Monitor": {"variables": ["v", 'g_exc', 'g_inh'], "period": 1.0}}
 
-    ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": []},
+    ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": [[0.1]]},
                                          "PoissonPopulation": {"rates": 0.0},
-                                         "HomogeneousCorrelatedSpikeTrains":
-                                             {"rates": 0.0, "corr": 0.0, "tau": 1.0},
-                                         # "CurrentInjector": {"amplitude": 0.0},
-                                         # "DCCurrentInjector": {"amplitude": 0.0},
-                                         # "ACCurrentInjector": {"frequency": 0.0, "amplitude": 1.0,
-                                         #                       "phase": 0.0, "offset": 0.0},
-                                         "TimedArray": {"rates": 0.0, "schedule": 0.0, "period": -1.0},
+                                         "Poisson_neuron": {"rates": 0.0},
+                                         "HomogeneousCorrelatedSpikeTrains": {"rates": [0.001], "corr": 0.0, "tau": 1.0,
+                                                                              "schedule": [0.0], "period": -1.0,
+                                                                              "refractory": None},
+                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": [0.0], "period": -1.0,
+                                                        "proxy": True, "proxy_target": "exc"},
+                                         "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
+                                                                    "schedule": [0.0], "period": -1.0},
                                          }
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
@@ -63,7 +68,7 @@ class Config(ConfigBase):
 CONFIGURED = Config(initialize_logger=False)
 
 
-def initialize_logger(name, target_folder=None):
+def initialize_logger(name="tvb_annarchy", target_folder=None, config=CONFIGURED):
     if target_folder is None:
-        target_folder = Config().out.FOLDER_LOGS
+        target_folder = config.out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)

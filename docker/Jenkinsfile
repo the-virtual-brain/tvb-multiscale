@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        FULL_DOCKER_IMAGE_NAME = 'docker-repository.codemart.ro/tvb-nest'
+        FULL_DOCKER_IMAGE_NAME = 'docker-repository.codemart.ro/tvb-multiscale'
         VERSION_TAG = 'py3'
     }
 
@@ -10,7 +10,7 @@ pipeline {
         stage('Build docker image'){
             steps {
                 script {
-                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root/commits?sha=tvb-multiscale-cosim' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
+                    LAST_SHA_TVB = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-root' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
                     LAST_SHA_MULTISCALE = sh (script: "curl -s 'https://api.github.com/repos/the-virtual-brain/tvb-multiscale/commits' | grep sha | head -1 | tr '\"' '_'", returnStdout: true).trim()
                     def dockerfile = 'docker/Dockerfile'
                     def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}", "--build-arg LAST_SHA_TVB='${LAST_SHA_TVB}' --build-arg LAST_SHA_MULTISCALE='${LAST_SHA_MULTISCALE}' -f ${dockerfile} .")

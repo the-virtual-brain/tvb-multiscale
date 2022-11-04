@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest
+from tvb.basic.neotraits.api import Attr
+
+from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.devices import NESTOutputSpikeDeviceDict, NESTOutputContinuousTimeDeviceDict
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
@@ -26,37 +28,52 @@ class NESTNetwork(SpikingNetwork):
         residing in region node "rh-insula".
     """
 
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
+
+    brain_regions = Attr(
+        field_type=NESTBrain,
+        label="NEST brain regions",
+        default=None,
+        required=True,
+        doc="""A NESTBrain instance holding all NEST neural populations 
+               organized per brain region they reside and neural model""")  # spiking_brain['rh-insula']['E']
+
     nest_instance = None
 
     _OutputSpikeDeviceDict = NESTOutputSpikeDeviceDict
     _OutputContinuousTimeDeviceDict = NESTOutputContinuousTimeDeviceDict
 
-    def __init__(self, nest_instance=None,
-                 brain_regions=None,
-                 output_devices=None,
-                 input_devices=None,
-                 config=CONFIGURED):
-        if nest_instance is None:
-            nest_instance = load_nest(self.config, LOG)
+    def __init__(self, nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
-        super(NESTNetwork, self).__init__(brain_regions, output_devices, input_devices, config)
+        super(NESTNetwork, self).__init__(**kwargs)
 
     @property
     def spiking_simulator_module(self):
         return self.nest_instance
 
+    def Run(self, time):
+        if self.nest_instance is not None:
+            self.nest_instance.Run(time)
+
+    def Simulate(self, time):
+        if self.nest_instance is not None:
+            self.nest_instance.Prepare()
+            self.nest_instance.Run(time)
+
+    def Cleanup(self):
+        if self.nest_instance is not None:
+            self.nest_instance.Cleanup()
+
     @property
     def min_delay(self):
         return self.nest_instance.GetKernelStatus("min_delay")
 
-    def configure(self, *args, **kwargs):
-        """Method to configure NEST network simulation.
-           It will run nest.Prepare(*args, **kwargs)
-        """
-        self.nest_instance.Prepare(*args, **kwargs)
-
-    def Run(self, simulation_length, *args, **kwargs):
-        """Method to simulate the NEST network for a specific simulation_length (in ms).
-           It will run nest.Run(simulation_length, *args, **kwarg)
-        """
-        self.nest_instance.Run(simulation_length, *args, **kwargs)
+    @property
+    def dt(self):
+        return self.nest_instance.GetKernelStatus("resolution")

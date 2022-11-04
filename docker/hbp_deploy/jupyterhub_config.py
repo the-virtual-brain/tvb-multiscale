@@ -4,7 +4,7 @@ from oauthenticator.generic import GenericOAuthenticator
 c.JupyterHub.authenticator_class = GenericOAuthenticator
 c.GenericOAuthenticator.login_service = 'keycloak'
 
-c.OAuthenticator.client_id= "tvb-nest"
+c.OAuthenticator.client_id= "tvb-multiscale"
 c.OAuthenticator.scope = ["profile"]
 c.OAuthenticator.client_secret= os.environ['KEYCLOAK_CLIENT_SECRET']
 c.GenericOAuthenticator.token_url= "https://iam.humanbrainproject.eu/auth/realms/hbp/protocol/openid-connect/token"

@@ -493,7 +493,9 @@ private:
 
     double w_E_g_AMPA;  // w_E * g_AMPA
 
-    double w_E_g_NMDA;  // w_E * g_NMDA
+    double w_E_N_E_g_NMDA;  // w_E * N_E *g_NMDA
+
+    double alpha_N_E;   // alpha / N_E
 
     double w_I_g_GABA_A;  // w_I * g_GABA
 
@@ -566,7 +568,7 @@ private:
   }
 
   inline double get_I_NMDA() const {
-    return V_.w_E_g_NMDA /
+    return V_.w_E_N_E_g_NMDA /
                 ( 1 + P_.lambda_NMDA * std::exp(V_.minus_beta * S_.y_[ State_::V_M ] ) ) *
                 (S_.y_[ State_::V_M ] - P_.E_ex) * S_.y_[State_::S_NMDA];
   }
