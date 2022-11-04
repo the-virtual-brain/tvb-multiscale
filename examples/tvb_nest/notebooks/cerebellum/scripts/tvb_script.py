@@ -710,15 +710,13 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         try:
             # We need framework_tvb for writing and reading from HDF5 files
             from tvb_multiscale.core.tvb.io.h5_writer import H5Writer
+            from examples.plot_write_results import write_RegionTimeSeriesXarray_to_h5
             writer = H5Writer()
         except:
             warnings.warn("H5Writer cannot be imported! Probably you haven't installed tvb_framework.")
 
-    from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
-    from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
-
     # Put the results in a Timeseries instance
-    from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
+    from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
     source_ts = None
     bold_ts = None
@@ -743,9 +741,8 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         # Write to file
         if writer:
             try:
-                writer.write_tvb_to_h5(TimeSeriesRegion(data=source_ts._data,
-                                                        connectivity=source_ts.connectivity),
-                                    os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
+                write_RegionTimeSeriesXarray_to_h5(source_ts, writer,
+                                                   os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
             except Exception as e:
                     warnings.warn("Failed to to write source time series to file with error!:\n%s" % str(e))
 
@@ -777,9 +774,8 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
             # Write to file
             if writer:
                 try:
-                    writer.write_tvb_to_h5(TimeSeriesRegion(data=bold_ts._data,
-                                                            connectivity=bold_ts.connectivity),
-                                        os.path.join(config.out.FOLDER_RES, bold_ts.title) + ".h5")
+                    write_RegionTimeSeriesXarray_to_h5(bold_ts._data, writer,
+                                                       os.path.join(config.out.FOLDER_RES, bold_ts.title) + ".h5")
                 except Exception as e:
                     warnings.warn("Failed to to write BOLD time series to file with error!:\n%s" % str(e))
             
