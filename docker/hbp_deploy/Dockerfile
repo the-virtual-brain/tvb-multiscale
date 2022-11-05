@@ -135,7 +135,7 @@ ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 ARG WORK_DIR=/home/jovyan/packages/notebooks
-ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-NEST-Examples
+ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-Multiscale-Examples
 
 RUN mkdir -m777 $WORK_DIR
 RUN mkdir -m777 $TVB_NEST_Examples
