@@ -5,7 +5,7 @@ pipeline {
 
     environment {
         FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/tvb-multiscale'
-        TVB_BRANCH = 'master'
+        TVB_BRANCH = 'HBP-205'
         MULTISCALE_BRANCH = 'parallelNEST31'
     }
 
