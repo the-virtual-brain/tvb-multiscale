@@ -50,6 +50,7 @@ ARG TVB_BRANCH=master
 RUN git clone --depth 1 --branch $TVB_BRANCH https://github.com/the-virtual-brain/tvb-root.git
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
+    git pull;\
     cd tvb_library; \
     /opt/conda/envs/env_nest/bin/python setup.py develop; \
     cd ../tvb_framework; \
