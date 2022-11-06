@@ -148,7 +148,7 @@ class SpikingNetwork(HasTraits):
         else:
             nodes = ensure_list(regions)
             get_device = lambda device, regions: device[nodes]
-        for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.iteritems()):
+        for i_pop, (pop_label, pop_device) in enumerate(self.output_devices.items()):
             if pop_device.model == model:
                 devices[pop_label] = get_device(pop_device, regions)
         return devices
@@ -234,7 +234,7 @@ class SpikingNetwork(HasTraits):
         """
         spike_devices = self.get_spikes_devices(mode, regions, populations_devices)
         spikes = pd.Series(dtype='object')
-        for i_pop, (pop_label, pop_spike_device) in enumerate(spike_devices.iteritems()):
+        for i_pop, (pop_label, pop_spike_device) in enumerate(spike_devices.items()):
             spikes[pop_label] = \
                 pop_spike_device.do_for_all("get_spikes_events", **kwargs)
         return spikes
@@ -252,7 +252,7 @@ class SpikingNetwork(HasTraits):
         """
         devices = self.get_continuous_time_devices(regions, populations_devices)
         data = pd.Series(dtype='object')
-        for i_pop, (pop_label, pop_device) in enumerate(devices.iteritems()):
+        for i_pop, (pop_label, pop_device) in enumerate(devices.items()):
             data[pop_label] = \
                 pop_device.do_for_all("get_data", **kwargs)
         return data
