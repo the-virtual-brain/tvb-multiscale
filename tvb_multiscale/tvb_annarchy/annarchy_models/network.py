@@ -111,10 +111,10 @@ class ANNarchyNetwork(SpikingNetwork):
         if simulation_length is None:
             simulation_length = self.dt
         measure_time = kwargs.pop("measure_time", False)
-        for dev_name, out_dev_set in self.output_devices.iteritems():
+        for dev_name, out_dev_set in self.output_devices.items():
             out_dev_set.do_for_all("resume")
         self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
-        for dev_name, out_dev_set in self.output_devices.iteritems():
+        for dev_name, out_dev_set in self.output_devices.items():
             out_dev_set.do_for_all("pause")
 
     def info(self, recursive=0):

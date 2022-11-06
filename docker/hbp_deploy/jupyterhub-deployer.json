@@ -262,7 +262,7 @@
                   },
                   {
                     "name": "OAUTH_CALLBACK_URL",
-                    "value": "https://tvb-nest.apps.hbp.eu/hub/oauth_callback"
+                    "value": "https://tvb-multiscale.apps.hbp.eu/hub/oauth_callback"
                   }
                 ],
                 "volumeMounts": [
@@ -326,7 +326,7 @@
         }
       },
       "spec": {
-        "host": "tvb-nest.apps.hbp.eu",
+        "host": "tvb-multiscale.apps.hbp.eu",
         "to": {
           "kind": "Service",
           "name": "${APPLICATION_NAME}",

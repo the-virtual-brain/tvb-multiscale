@@ -46,10 +46,11 @@ RUN cd $NEST; \
     make; make install
 
 USER $NB_UID
-ARG TVB_BRANCH=tvb-cosim-consensus-dp
+ARG TVB_BRANCH=master
 RUN git clone --depth 1 --branch $TVB_BRANCH https://github.com/the-virtual-brain/tvb-root.git
-ARG LAST_SHA_ROOT=LATEST
+ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
+    git pull;\
     cd tvb_library; \
     /opt/conda/envs/env_nest/bin/python setup.py develop; \
     cd ../tvb_framework; \
@@ -72,7 +73,7 @@ RUN /opt/conda/envs/env_nest/bin/pip install netpyne neuron
 RUN /opt/conda/envs/env_nest/bin/pip install sympy pyqtgraph lxml pandoc tensorboardX;
 RUN /opt/conda/envs/env_nest/bin/pip install ANNarchy;
 
-ARG MULTISCALE_BRANCH=parallelNEST31
+ARG MULTISCALE_BRANCH=dev
 RUN git clone --depth 1 --branch $MULTISCALE_BRANCH https://github.com/the-virtual-brain/tvb-multiscale.git
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
@@ -96,7 +97,7 @@ ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 ARG WORK_DIR=/home/jovyan/packages/notebooks
-ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-NEST-Examples
+ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-Multiscale-Examples
 
 RUN mkdir -m777 $WORK_DIR
 RUN mkdir -m777 $TVB_NEST_Examples

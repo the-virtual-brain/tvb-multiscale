@@ -149,6 +149,18 @@ venv.bak/
 /.Trash-1000/
 
 # DS_Store
+*.DS_Store
+
+# dev_or_deprecated
+**/dev_or_deprecated
+
+# Old docs
+/docs/olddocs/
+
+# NETPYNE compilation files
+**/tvb_netpyne/**/x86_64
+
+
 *DS_Store*
 tvb-epilepsy
 *coherence*.pickle
