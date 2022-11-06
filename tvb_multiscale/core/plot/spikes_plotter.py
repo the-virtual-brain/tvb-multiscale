@@ -361,8 +361,8 @@ class SpikesPlotter(BasePlotter):
         figure_name, figsize = self._get_figname_figsize(title, figure_name, figsize)
         pyplot.figure(figure_name, figsize=figsize)
         # Plot by arranging populations in columns and regions in rows
-        for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.iteritems()):
-            for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.iteritems()):
+        for i_pop, (pop_label, pop_spike_detector) in enumerate(spike_detectors.items()):
+            for i_region, (reg_label, region_spike_detector) in enumerate(pop_spike_detector.items()):
                 # Get spikes
                 senders = region_spike_detector.senders
                 neurons = region_spike_detector.neurons
@@ -395,8 +395,8 @@ class SpikesPlotter(BasePlotter):
         figure_name, figsize = self._get_figname_figsize(title, figure_name, figsize)
         pyplot.figure(figure_name, figsize=figsize)
         # Plot by arranging populations in columns and regions in rows
-        for i_pop, (pop_label, pop_spikes_events) in enumerate(spikes_events.iteritems()):
-            for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.iteritems()):
+        for i_pop, (pop_label, pop_spikes_events) in enumerate(spikes_events.items()):
+            for i_region, (reg_label, region_spikes_events) in enumerate(pop_spikes_events.items()):
                 # Define spike senders and time_series' axis
                 neurons = region_spikes_events["senders"]
                 neurons = self._assert_neurons_indices(neurons, n_neurons=None, **kwargs)
