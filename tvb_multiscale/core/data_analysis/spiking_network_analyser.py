@@ -132,7 +132,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         computations_kwargs = ensure_list(computations_kwargs)
         population_sizes = ensure_list(population_sizes)
         # For every region Device or the respective data stored in a pandas.Series...
-        for i_reg, (reg_label, reg_data) in enumerate(reg_device_or_data.iteritems()):
+        for i_reg, (reg_label, reg_data) in enumerate(reg_device_or_data.items()):
             # ...load a dictionary of data, its name, and optionally the number of neurons...
             data = data_method(reg_data, **data_kwargs)
             # ...get the number of neurons...
@@ -201,7 +201,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         data_name = None
         populations_sizes = ensure_list(populations_sizes)
         # For every populations' DeviceSet or the respective data stored in a pandas.Series:
-        for i_pop, (pop_label, pop_data) in enumerate(pop_device_or_data.iteritems()):
+        for i_pop, (pop_label, pop_data) in enumerate(pop_device_or_data.items()):
             # ...initialize the results' OrderedDict...
             pop_results = OrderedDict()
             # ...for every region Device or data...
@@ -393,7 +393,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                     homogeneous = True
                 if not homogeneous:
                     # If the results are to be pandas.Series...
-                    for pop_label, pop_res in result.iteritems():
+                    for pop_label, pop_res in result.items():
                         # ...of heterogeneous xarray.DataArray instances...
                         if isinstance(pop_res, DataArray):
                             # ...transpose the dimensions -without Population- to the desired order:
@@ -610,7 +610,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 # ...if we also return the data loaded...:
                 data_to_return = Series(name=pop_label, dtype='object')
             # ...and for every region Device or data...
-            for reg_label, reg_spikes in pop_spikes.iteritems():
+            for reg_label, reg_spikes in pop_spikes.items():
                 if not regions or reg_label in regions:
                     # ...if no selection of regions is required, or if this region is selected...
                     pop_reg_labels.append((pop_label, reg_label))
@@ -688,9 +688,9 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         all_regions_labels = []
         pop_reg_labels = []
         spikes_trains = []
-        for pop_label, pop_spikes_trains in results[self.spikes_train_name].iteritems():
+        for pop_label, pop_spikes_trains in results[self.spikes_train_name].items():
             pop_labels.append(pop_label)
-            for reg_label, reg_spikes_trains in pop_spikes_trains.iteritems():
+            for reg_label, reg_spikes_trains in pop_spikes_trains.items():
                 pop_reg_labels.append((pop_label, reg_label))
                 if reg_label not in all_regions_labels:
                     all_regions_labels.append(reg_label)
