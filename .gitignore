@@ -106,50 +106,26 @@ venv.bak/
 # IDE
 .idea/
 
-#outputs
-*outputs*
-
-# Docs' drafts
-/docs/documented_example_notebooks/reduced_wong_wang_exc_io_inh_i_only_tvb.ipynb
-/docs/documented_example_notebooks/pics/NESTtoTVB_BG.png
-/docs/documented_example_notebooks/pics/Rate_BG.png
-
-# Examples' drafts
-/examples/tvb_annarchy/Untitled.ipynb
-
-# Annarchy build files
-**/annarchy*
-/examples/tvb_annarchy/notebooks/old_annarchy1/
-
-# pyDSTool files
-**/auto_temp*
-
-# Izhikevich mean field model files
-/examples/notebooks/Izhikevich_MF_model/
-
-# Cerebellum Rising-Net related data files
-/examples/data/cerebellum/
-/examples/tvb_nest/notebooks/cerebellum/working_files/
-/examples/tvb_nest/notebooks/cerebellum/working_files/olivocerebellum_balanced_nest3.py
-# CTWC package files
-/examples/tvb_nest/notebooks/cerebellum/ctwc-model-master
-
-# Basal ganglia DBS project related data files
-/examples/data/basal_ganglia/only_local/
-/examples/data/basal_ganglia/ANNarchyFittedModels.tar
-/examples/data/basal_ganglia/basal_ganglia_conn_incl_cortex.zip
-
-# HKB-NRP example notebook
-/examples/notebooks/HKB-TVB-NRP.ipynb
-
-# SBI logs
-**/sbi-logs*
+# DS_Store
+*.DS_Store
 
 # Trash
 /.Trash-1000/
 
-# DS_Store
-*.DS_Store
+# Annarchy build files
+**/annarchy*
+
+# NETPYNE compilation files
+**/tvb_netpyne/**/x86_64
+
+# pyDSTool files
+**/auto_temp*
+
+# SBI logs
+**/sbi-logs*v
+
+#outputs
+*outputs*
 
 # dev_or_deprecated
 **/dev_or_deprecated
@@ -157,6 +133,21 @@ venv.bak/
 # Old docs
 /docs/olddocs/
 
-# NETPYNE compilation files
-**/tvb_netpyne/**/x86_64
+# Docs' drafts
+/docs/documented_example_notebooks/reduced_wong_wang_exc_io_inh_i_only_tvb.ipynb
+/docs/documented_example_notebooks/pics/NESTtoTVB_BG.png
+/docs/documented_example_notebooks/pics/Rate_BG.png
 
+# Examples' drafts
+/examples/notebooks/working_notebooks
+
+# Cerebellum Rising-Net related data files
+/examples/data/cerebellum/
+/examples/tvb_nest/notebooks/cerebellum/working_files/
+# CTWC package files
+/examples/tvb_nest/notebooks/cerebellum/ctwc-model-master
+
+# Basal ganglia DBS project related data files
+/examples/data/basal_ganglia/only_local/
+/examples/data/basal_ganglia/only_local/ANNarchyFittedModels.tar
+/examples/data/basal_ganglia/only_local/basal_ganglia_conn_incl_cortex.zip
