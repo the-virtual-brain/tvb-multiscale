@@ -21,7 +21,6 @@ pipeline {
                         def dockerfile = 'docker/hbp_deploy/Dockerfile'
                         def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}", "--build-arg TVB_BRANCH='${TVB_BRANCH}' --build-arg MULTISCALE_BRANCH='${MULTISCALE_BRANCH}' --build-arg LAST_SHA_TVB='${LAST_SHA_TVB}' --build-arg LAST_SHA_MULTISCALE='${LAST_SHA_MULTISCALE}' -f ${dockerfile} .")
                         dockerImage.push()
-                        dockerImage.push('${VERSION_NO}')
                         dockerImage.push('latest')
                     }
                 }
