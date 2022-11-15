@@ -588,16 +588,6 @@ class RayNESTClient(object):
         self.nest_server = d.get("nest_server", None)
         self.run_task_ref_obj = d.get("_run_ref", None)
 
-    @property
-    def is_running(self):
-        if self.run_task_ref_obj:
-            done, running = ray.wait([self.run_task_ref_obj], timeout=0)
-            if len(running):
-                return self.run_task_ref_obj
-            else:
-                self.run_task_ref_obj = None
-        return self.run_task_ref_obj
-
     def _gids(self, gids):
         return tuple(ensure_list(gids))
 
@@ -761,19 +751,38 @@ class RayNESTClient(object):
     def get_argv(self):
         return ray.get(self.nest_server.nest.remote("get_argv"))
 
-    def _run(self, method, time):
+    @property
+    def is_running(self):
         if self.run_task_ref_obj is None:
+            return False
+        else:
+            done, running = ray.wait([self.run_task_ref_obj], timeout=0)
+            if len(running):
+                return True
+            else:
+                return False
+
+    @property
+    def block_run(self):
+        if self.is_running:
+            ray.get(self.run_task_ref_obj)
+        self.run_task_ref_obj = None
+        return self.run_task_ref_obj
+
+    def _run(self, method, time):
+        if not self.is_running:
             if method.lower() == "simulate":
                 method = "Simulate"
             else:
                 method = "Run"
-            self.run_task_ref_obj = self.nest_server.nest.remote(method, time)
-            return self.run_task_ref_obj
-        else:
-            return self.is_running
+            run_task_ref_obj = None
+            while run_task_ref_obj is None:
+                run_task_ref_obj = self.nest_server.nest.remote(method, time)
+            self.run_task_ref_obj = run_task_ref_obj
+        return self.run_task_ref_obj
 
     def Prepare(self):
-        return self.nest_server.nest.remote("Prepare")
+        return ray.get(self.nest_server.nest.remote("Prepare"))
 
     def Run(self, time):
         return self._run("Run", time)
