@@ -45,7 +45,7 @@ def _initialize(config, plotter, writer):
 
 
 def write_RegionTimeSeriesXarray_to_h5(ts, writer, path, **kwargs):
-    dummy_ts = TimeSeriesRegion(ts._data, connectivity=source_ts.connectivity)
+    dummy_ts = TimeSeriesRegion(data=ts._data, connectivity=ts.connectivity)
     dummy_ts.configure()
     writer.write_tvb_to_h5(dummy_ts, path, **kwargs)
     del dummy_ts
