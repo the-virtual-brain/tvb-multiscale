@@ -43,10 +43,30 @@ import ray
 
 import numpy as np
 
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
 
 
-class CoSimulatorRay(CoSimulatorParallel):
+class CoSimulatorSerialRay(CoSimulatorSerial):
+
+    spiking_simulator = None
+
+    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+        if self.spiking_simulator is not None:
+            self.spiking_simulator.block_run
+        steps_performed = \
+            super(CoSimulatorSerial, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation, **kwds)
+        if self.spiking_simulator is not None:
+            steps_to_run = np.where(self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
+                                    self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
+                                    steps_performed).item()
+            self.log.info("Simulating the spiking network for %d time steps..." % steps_to_run)
+            self.spiking_simulator.Run(np.around(steps_to_run * self.integrator.dt,
+                                                 decimals=self._number_of_dt_decimals).item())
+        return steps_performed
+
+
+class CoSimulatorParallelRay(CoSimulatorParallel):
 
     spiking_simulator = None
 
