@@ -391,6 +391,13 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.n_tvb_steps_ran_since_last_synch = 0
         return outputs
 
+    def _log_print_progress_message(self, simulated_steps, simulation_length):
+        log_msg = "...%.3f%% completed in %g sec!" % \
+                  ((100 * (simulated_steps * self.integrator.dt) / simulation_length), time.time() - self._tic)
+        self.log.info(log_msg)
+        if self.PRINT_PROGRESSION_MESSAGE:
+            print("\r" + log_msg, end="")
+
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         # Loop of integration for synchronization_time
         self._send_cosim_coupling(self._cosimulation_flag)
@@ -402,9 +409,6 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                     tl.append(t)
                     xl.append(x)
         steps_performed = self.current_step - current_step
-        elapsed_wall_time = time.time() - wall_time_start
-        self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
-                      elapsed_wall_time * 1e3 / self.simulation_length)
         return steps_performed
 
     def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
@@ -422,11 +426,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             simulated_steps += steps_performed
             remaining_steps -= steps_performed
             self.n_tvb_steps_ran_since_last_synch += steps_performed
-            log_msg = "...%.3f%% completed in %g sec!" % \
-                      ((100 * (simulated_steps * self.integrator.dt) / simulation_length), time.time() - self._tic)
-            self.log.info(log_msg)
-            if self.PRINT_PROGRESSION_MESSAGE:
-                print("\r" + log_msg, end="")
+            self._log_print_progress_message(simulated_steps, simulation_length)
         self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
         if self._cosimulation_flag and advance_simulation_for_delayed_monitors_output:
             # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
