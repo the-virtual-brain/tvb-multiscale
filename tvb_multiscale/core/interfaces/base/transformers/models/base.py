@@ -67,7 +67,11 @@ class Transformer(HasTraits):
            It sets the output buffer property"""
         self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs))
 
-    def __call__(self):
+    def __call__(self, data=None, time=None):
+        if data is not None:
+            self.input_buffer = data
+        if time is not None:
+            self.input_time = time
         self.compute_time()
         self.compute()
         return [self.output_time, self.output_buffer]
