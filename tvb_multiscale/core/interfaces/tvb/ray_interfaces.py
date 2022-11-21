@@ -5,137 +5,260 @@ import ray
 import numpy as np
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetInterface, SpikeNetToTVBInterface, \
+    TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
     TVBOutputInterfaces, TVBInputInterfaces, SpikeNetInputInterfaces, SpikeNetOutputInterfaces
 
 
-class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface):
-
-    ray_transformer_flag = False
-
-    transformer_ref_obj = None
-
-    send_ref_obj = None
+class RayTVBSenderInterface(TVBSenderInterface):
+    """
+        RayTVBSenderInterface sends TVB data to a remote TVBtoSpikeNetTransformerInterface
+    """
+    sending_ref_obj = None
 
     def configure(self):
-        super(RayTVBtoSpikeNetInterface, self).configure()
+        self.sending_ref_obj = None
+        super(RayTVBSenderInterface, self).configure()
+
+    def _send_data_block(self):
+        ray.get(self.sending_ref_obj)
+        self.sending_ref_obj = None
+        return self.sending_ref_obj
+
+    def _send_data(self, block=False):
+        if isinstance(self.sending_ref_obj, ray._raylet.ObjectRef):
+            if block:
+                 return self._send_data_block()
+            else:
+                running, done = ray.wait([self.sending_ref_obj])
+                if len(done):
+                    self.sending_ref_obj = None
+        return self.sending_ref_obj
+
+    def __call__(self, data=None, block=False):
+        # Return:
+        # None, if nothing to be done, i.e., sending has been finalized
+        # sending_ref_obj if sending is running
+        if data is not None:
+            self.sending_ref_obj = super(RayTVBSenderInterface, self).__call__(data)
+        return self._send_data(block)
+
+
+class RayTVBReceiverInterface(TVBReceiverInterface):
+    """
+        RayTVBReceiverInterface receives TVB data from a remote SpikeNetToTVBTransformerInterface
+    """
+
+    receiving_ref_obj = None
+
+    def configure(self):
+        self.receiving_ref_obj = None
+        super(RayTVBReceiverInterface, self).configure()
+
+    def _receive_data_block(self):
+        data = ray.get(self.receiving_ref_obj)
+        self.receiving_ref_obj = None
+        return data
+
+    def _receive_data(self, block=False):
+        if isinstance(self.receiving_ref_obj, ray._raylet.ObjectRef):
+            if block:
+                 return self._receive_data_block()
+            else:
+                running, done = ray.wait([self.receiving_ref_obj])
+                if len(done):
+                    return self._receive_data_block()
+            return self.receiving_ref_obj
+        else:
+            data = self.receiving_ref_obj.copy()
+            self.receiving_ref_obj = None
+            return data
+
+    def __call__(self, block=False):
+        # Return:
+        # data, if nothing to be done, i.e., receiving has been finalized
+        # receiving_ref_obj if receiving is running
+        if self.receiving_ref_obj is None:
+            self.receiving_ref_obj = super(RayTVBReceiverInterface, self).__call__()
+        return self._receive_data(block)
+
+
+class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RayTVBSenderInterface):
+    """
+        RayTVBTransformerSenderInterface transforms TVB data and sends them to a remote spikeNet simulator
+    """
+
+    sending_ref_obj = None
+
+    def configure(self):
+        self.sending_ref_obj = None
+        super(RayTVBTransformerSenderInterface, self).configure()
+
+    def __call__(self, data=None, block=False):
+        # Return:
+        # None, if nothing to be done, i.e., transforming and sending has been finalized
+        # send_ref_obj if sending is running
+        if data is not None:
+            self.sending_ref_obj = super(RayTVBTransformerSenderInterface, self).__call__(data)
+        return self._send_data(block)
+
+
+class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayTVBReceiverInterface):
+    """
+        RayTVBReceiverTransformerInterface receives data from a remote spikeNet simulator
+        and transforms them to deliver them to TVB
+    """
+    receiving_ref_obj = None
+
+    def configure(self):
+        self.receiving_ref_obj = None
+        super(RayTVBReceiverTransformerInterface, self).configure()
+
+    def __call__(self, block=False):
+        # Return:
+        # data, if nothing to be done, i.e., receiving and transforming has been finalized
+        # receiving_ref_obj if receiving is running
+        # spiking_simulator.run_task_ref_obj if the spikeNet simulator is still running
+        if self.receiving_ref_obj is None:
+            if self.spiking_simulator.is_running:
+                if block:
+                    self.spiking_simulator.block_run  # BLOCK until spikeNet integration is over
+                else:
+                    return self.spiking_simulator.run_task_ref_obj
+            self.receiving_ref_obj = super(RayTVBReceiverTransformerInterface, self).__call__(block)
+        return self._receive_data(block)
+
+
+class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RayTVBSenderInterface):
+    """
+        RayTVBtoSpikeNetInterface transforms TVB data via a remote Transformer
+        and sends them to a remote spikeNet simulator
+    """
+
+    transformer_ref_obj = None
+    sending_ref_obj = None
+    ray_transformer_flag = False
+    _data = None  # temporary data buffer
+
+    def configure(self):
+        self.transformer_ref_obj = None
+        self.sending_ref_obj = None
+        self._data = None
         self.ray_transformer_flag = False
         if self.transformer.__class__.__name__.find("Ray") > -1:
             self.ray_transformer_flag = True
+        super(RayTVBtoSpikeNetInterface, self).configure()
 
-    def _send_data_block(self):
-        self.send_ref_obj = None
-        return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
+    def _send_data(self, block=False):
+        if self.sending_ref_obj is None:
+            if self.spiking_simulator.is_running:
+                if block:
+                    self.spiking_simulator.block_run
+                else:
+                    return self.spiking_simulator.run_task_ref_obj
+            self.sending_ref_obj = self.set_proxy_data(self._data.copy())
+            self._data = None
+        return super(RayTVBtoSpikeNetInterface, self)._send_data(block)
+
+    def _from_transforming_to_sending(self, block=False):
+        self._data = ray.get(self.transformer_ref_obj)
+        self.transformer_ref_obj = None
+        return self._send_data(block)
 
     def __call__(self, data=None, block=False):
         # Return:
         # None, if nothing to be done or if transforming and sending has been finalized
         # transformer_ref_obj if transforming is running
-        # send_ref_obj if sending is running
+        # a ref object, i.e., send_ref_obj if sending is running, or a spikeNet one if spikeNet simulator is running,
         if isinstance(self.transformer_ref_obj, ray._raylet.ObjectRef):
             # This is the case when transformer is remote and running....
             if block:
-                ray.get(self.transformer_ref_obj)
-                self.transformer_ref_obj = None
-                self.send_ref_obj = 1
-                return self.__call__(block=block)
+                return self._from_transforming_to_sending(block)
             else:
-                return self.transformer_ref_obj
-        elif data is not None:
-            # This is the case when the interface has to start the process by transforming TVB data....
-            self.transformer.input_time = data[0]
-            self.transformer.input_buffer = self.reshape_data(data[1])
-            if self.ray_transformer_flag:
-                self.transformer_ref_obj = self.transformer()
-            else:
-                self.transformer()
-            return self.__call__(block=block)
-        else:
-            # This is the case when we need to send the data.
-            if block:
-                # This is the blocking case
-                ray.get(self.spiking_simulator.run_task_ref_obj)  # BLOCK until spikeNet integration is over
-                return self._send_data_block()
-            else:
-                running, done = ray.wait([self.spiking_simulator.run_task_ref_obj])
+                running, done = ray.wait([self.transformer_ref_obj])
                 if len(done):
-                    # Spiking simulation is done, send data and block
-                    return self._send_data_block()
+                    return self._from_transforming_to_sending(block)
                 else:
-                    # Spiking simulation is not done yet, so, do not block.
-                    self.send_ref_obj = running[0]
-                    return self.send_ref_obj
+                    return self.transformer_ref_obj
+        elif data is not None:
+            # This is the case when the interface has to start the process by transforming TVB data...
+            if self.ray_transformer_flag:
+                self.transformer_ref_obj = self.transformer(data=data[1], time=data[0])
+                if block:
+                    return self._from_transforming_to_sending(block)
+                return self.transformer_ref_obj
+            else:
+                self.transformer.input_time = data[0]
+                self.transformer.input_buffer = data[1]
+                self._data = self.transformer()
+                return self.send_data(block)
+        else:
+            return self.send_data(block)
 
 
-class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface):
-
-    ray_transformer_flag = False
+class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayTVBReceiverInterface):
 
     transformer_ref_obj = None
-
     receive_ref_obj = None
+    ray_transformer_flag = False
 
     def configure(self):
-        super(RaySpikeNetToTVBInterface, self).configure()
+        self.transformer_ref_obj = None
+        self.receive_ref_obj = None
         self.ray_transformer_flag = False
         if self.transformer.__class__.__name__.find("Ray") > -1:
             self.ray_transformer_flag = True
+        super(RaySpikeNetToTVBInterface, self).configure()
+
+    def _get_transformed_data_block(self):
+        data = ray.get(self.transformer_ref_obj)
+        self.transformer_ref_obj = None
+        return data
+
+    def _ray_transform(self, data=None, block=False):
+        if isinstance(self.transformer_ref_obj, ray._raylet.ObjectRef):
+            running, done = ray.wait([self.transformer_ref_obj])
+            if len(done):
+                return self._get_transformed_data_block()
+            else:
+                return self.transformer_ref_obj
+        elif data is not None:
+            self.transformer_ref_obj = self.transformer(data=data[1], time=data[0])
+            if block:
+                # ...run it with blocking:
+                return self._get_transformed_data_block()
+            else:
+                # ...run it without blocking
+                return self.transformer_ref_obj
+        else:
+            return None
 
     def _receive_and_transform(self, block=False):
         # Spiking simulation is done, receive data, which is blocking by definition:
-        data = self.get_proxy_data()
+        self.receive_ref_obj = self._receive_data(block)
+        if isinstance(self.receiving_ref_obj, ray._raylet.ObjectRef):
+            return self.receive_ref_obj
+        data = self.receive_ref_obj.copy()
         self.receive_ref_obj = None
         if data[0][1] < data[0][0]:
             return None
-        # Having received the data, get them to the transformer...
-        self.transformer.input_time = data[0]
-        self.transformer.input_buffer = data[1]
+        # Send data to transformer and start transforming:
         if self.ray_transformer_flag:
-            # If the transformer is remote...
-            if block:
-                # ...run it with blocking:
-                return ray.get(self.transformer())
-            else:
-                # ...run it without blocking
-                self.transformer_ref_obj = self.transformer()
-                return self.transformer_ref_obj
+            return self._ray_transform(data, block)
         else:
-            # ...else if the transformer is not remote, run it locally and block:
+            self.transformer.input_time = data[0]
+            self.transformer.output_time = data[1]
             return self.transformer()
-
-    def _get_transformed_data_block(self):
-        transformer_outputs = ray.get(self.transformer_ref_obj)
-        self.transformer_ref_obj = None
-        return transformer_outputs
 
     def __call__(self, block=False):
         # Return:
         # data, if receiving and transforming data has been finalized
         # transformer_ref_obj if transforming is running
-        # receive_ref_obj if receiving is running
+        # receive_ref_obj if receiving is running, i.e., if spiking simulator is running,
+        # because we assume that receiving of data is sequential and blocking anyway
         if self.transformer_ref_obj:
             # This is the case when a remote transformer is running...
-            if block:
-                # ...and we want to block:
-                return self._get_transformed_data_block()
-            else:
-                # ...or not...
-                running, done = ray.wait([self.transformer_ref_obj])
-                if len(done):
-                    return self._get_transformed_data_block()
-                else:
-                    return self.transformer_ref_obj
+            return self._ray_transform(block=block)
         else:
-            # This is the case when we need to receive data...
-            if self.receive_ref_obj is None:
-                self.receive_ref_obj = self.spiking_simulator.run_task_ref_obj
-            if block:
-                ray.get(self.receive_ref_obj)  # BLOCK until spikeNet integration is over
-            else:
-                running, done = ray.wait([self.receive_ref_obj])
-                if len(running):
-                    # Spiking simulation is not done yet. Do not block.
-                    self.receive_ref_obj = running[0]
-                    return self.receive_ref_obj
             return self._receive_and_transform(block)
 
 
@@ -159,13 +282,12 @@ class RayTVBOutputInterfaces(TVBOutputInterfaces):
 
     def __call__(self, data=None, block=False):
         if data is None:
-            for interface, running_task_ref in zip(self.interfaces, self.running_tasks_refs):
+            for ii, (interface, running_task_ref) in enumarete(zip(self.interfaces, self.running_tasks_refs)):
                 if running_task_ref is not None:
                     # Only if there is a transforming or sending task pending, rerun the interface:
-                    self.running_tasks_refs.append(interface(block=block))
+                    self.running_task_refs[ii] = interface(block=block)
         else:
             # This is the case we need to transform data before sending them:
-            self.running_tasks_refs = []
             for interface in self.interfaces:
                 #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
                 self.running_tasks_refs.append(
@@ -206,17 +328,17 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
             self.running_tasks_refs = [1] * self.number_of_interfaces
         for ii, (interface, running_task_ref) in enumerate(zip(self.interfaces, self.running_tasks_refs)):
             if self.running_tasks_refs[ii] is not None:
-                # Get data or reference to a remote task of receiving or transforming data:
-                data = interface(block=block)
-                if isinstance(data, ray._raylet.ObjectRef):
-                    # If it is a reference to a remote task, set it:
-                    self.running_tasks_refs[ii] = data
-                elif data is not None:
-                    # If it is data, place them to cosim_updates
+                # Get data or reference to a remote task of receiving annd/or transforming data:
+                self.running_tasks_refs[ii] = interface(block=block)
+                if not isinstance(self.running_tasks_refs[ii], ray._raylet.ObjectRef)  \
+                    and self.running_tasks_refs[ii] is not None:
+                    # It is data, place them to cosim_updates
+                    data = self.running_tasks_refs[ii].copy()
                     self.cosim_updates, time_steps = \
-                        self._set_data_from_interface(self.cosim_updates, interface, data, good_cosim_update_values_shape)
+                        self._set_data_from_interface(self.cosim_updates, interface,
+                                                      data, good_cosim_update_values_shape)
                     self.all_time_steps += time_steps.tolist()
-                    self.running_tasks_refs[ii] = None  # mark this interface as done
+                    self.running_tasks_refs[ii] = None
         if np.all([running_task_ref is None for running_task_ref in self.running_tasks_refs]):
             self.running_tasks_refs = []
             # Return cosim_updates data:
@@ -225,8 +347,7 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
             self.all_time_steps = []
             return inputs
         else:
-            # Return pending task references:
-            return [task_ref for task_ref in self.running_tasks_refs if task_ref is not None]
+            return self.running_tasks_refs
 
 
 class RayTVBtoSpikeNetInterfaces(RayTVBOutputInterfaces, SpikeNetInputInterfaces):

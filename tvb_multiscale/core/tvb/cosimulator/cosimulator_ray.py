@@ -83,21 +83,11 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         else:
             for cosim_update in cosim_updates:
                 if isinstance(cosim_update, ray._raylet.ObjectRef):
-                    cosim_updates = self._get_cosim_updates(cosimulation, block=block)
+                    cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
                     break
         if cosim_updates is not None and np.all(np.isnan(cosim_updates)):
             cosim_updates = None
         return cosim_updates
-
-    @ray.remote
-    def _print_progress_message(self, wall_time_start, spike_net_Run_lock=None):
-        if spike_net_Run_lock is not None:
-            # Wait until spikeNet integration has stopped
-            ray.get(spike_net_Run_lock)  # BLOCKING here!
-        elapsed_wall_time = time.time() - wall_time_start
-        msg = "%.3f s elapsed, %.3fx real time" % (elapsed_wall_time, elapsed_wall_time * 1e3 / self.simulation_length)
-        self.log.info(msg)
-        print(msg)
 
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         # Loop of integration for synchronization_time
@@ -106,30 +96,27 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         # 1. spikeNet output, 2. spikeNet input, 3. spikeNet integration
         # So, we submit these remote jobs in that order:
 
-        # 1. Start processing TVB data and send them to spikeNet when the latter is ready
-        # Transform and send TVB -> spikeNet
-        tvb_to_spikeNet_locks = self._send_cosim_coupling(self._cosimulation_flag)  # NON BLOCKING
-
-        # -----------------BLOCK at this point for the spikeNet simulator to finish integrating----------------------:
-        if self.spiking_simulator is not None:
-            ray.get(self.spiking_simulator.run_task_ref_obj)
-
-        # 2. Get data from spikeNet and start processing them
-        # Receive and transform TVB <- spikeNet
-        cosim_updates = self._get_cosim_updates(cosimulation, block=False)  # NON BLOCKING
-
-        # 3. Start simulating spikeNet as long as the TVB data have arrived.
-        # Integrate spikeNet
         if cosimulation and self.spiking_simulator is not None:
+            # 1. Start processing TVB data and send them to spikeNet when the latter is ready
+            # Transform and send TVB -> spikeNet
+            tvb_to_spikeNet_locks = self._send_cosim_coupling(self._cosimulation_flag)  # NON BLOCKING
+
+            # -----------------BLOCK at this point for the spikeNet simulator to finish integrating----------------:
+            if self.spiking_simulator.is_running:
+                self.spiking_simulator.block_run
+
+            # 2. Get data from spikeNet and start processing them
+            # Receive and transform TVB <- spikeNet
+            cosim_updates = self._get_cosim_updates(cosimulation, block=False)  # NON BLOCKING
+
+            # 3. Start simulating spikeNet as long as the TVB data have arrived.
+            # Integrate spikeNet
             self.log.info("Simulating the spiking network for %d time steps...",
                           self.n_tvb_steps_sent_to_cosimulator_at_last_synch)
-            spike_net_Run_lock = \
-                self.spiking_simulator.RunLock(
+            self.spiking_simulator.RunLock(
                     self.n_tvb_steps_sent_to_cosimulator_at_last_synch * self.integrator.dt,
                     self._send_cosim_coupling(self._cosimulation_flag, tvb_to_spikeNet_locks, block=True)
                 )  # tvb_to_spikeNet_locks are used in order to block spikeNet simulator from starting to integrate
-        else:
-            spike_net_Run_lock = None
 
         # 4. Start simulating TVB as long as the spikeNet data have been processed.
         # Integrate TVB
@@ -143,5 +130,4 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                     tl.append(t)
                     xl.append(x)
         steps_performed = self.current_step - current_step
-        self._print_progress_message(wall_time_start, spike_net_Run_lock)  # NON BLOCKING!
         return steps_performed
