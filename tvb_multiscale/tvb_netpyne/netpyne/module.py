@@ -58,7 +58,7 @@ class NetpyneModule(object):
 
         if len(self.autoCreatedPops):
             # choose N random cells from each population to plot traces for
-            n = 3
+            n = 1
             rnd = np.random.RandomState(0)
             def includeFor(pop):
                 popSize = len(sim.net.pops[pop].cellGids)
@@ -68,12 +68,14 @@ class NetpyneModule(object):
             self.simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
             self.simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': self.autoCreatedPops, 'popRates': 'minimal'}
 
-        if self.simConfig.recordCellsSpikes == -1:
-            allPopsButSpikeGenerators = [pop for pop in self.netParams.popParams.keys() if pop not in self.spikeGeneratorPops]
-            self.simConfig.recordCellsSpikes = allPopsButSpikeGenerators
+            if self.simConfig.recordCellsSpikes == -1:
+                allPopsButSpikeGenerators = [pop for pop in self.netParams.popParams.keys() if pop not in self.spikeGeneratorPops]
+                self.simConfig.recordCellsSpikes = allPopsButSpikeGenerators
 
         sim.setSimCfg(self.simConfig)
         sim.setNetParams(self.netParams)
+        sim.net.params.synMechParams.preprocessStringFunctions()
+        sim.net.params.cellParams.preprocessStringFunctions()
 
         sim.net.connectCells()
         sim.net.addStims()
@@ -176,11 +178,18 @@ class NetpyneModule(object):
             while (self.nextIntervalFuncCall < tvbIterationEnd):
                 if self.time < sim.cfg.duration:
                     sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
-                self.intervalFunc(self.time)
-                self.nextIntervalFuncCall += self.interval
+                    self.intervalFunc(self.time)
+                    self.nextIntervalFuncCall = self.time + self.interval
+                else:
+                    break
         if tvbIterationEnd > self.time:
             if self.time < sim.cfg.duration:
                 sim.run.runForInterval(tvbIterationEnd - self.time, _)
+
+                if self.nextIntervalFuncCall:
+                    # add correction to avoid accumulation of arithmetic error due to that h.t advances slightly more than the requested interval
+                    correction = self.time - tvbIterationEnd
+                    self.nextIntervalFuncCall += correction
 
     def stimulate(self, length):
         allNeuronsSpikes = {}
