@@ -133,10 +133,6 @@ venv.bak/
 # Old docs
 /docs/olddocs/
 
-# Docs' drafts
-/docs/documented_example_notebooks/reduced_wong_wang_exc_io_inh_i_only_tvb.ipynb
-/docs/documented_example_notebooks/pics/NESTtoTVB_BG.png
-/docs/documented_example_notebooks/pics/Rate_BG.png
 
 # Examples' drafts
 /examples/notebooks/working_notebooks
