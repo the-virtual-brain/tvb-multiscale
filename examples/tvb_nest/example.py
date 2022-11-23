@@ -13,8 +13,8 @@ from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOMulti
 from examples.example import default_example as default_example_base
 
 
-def main_example(model_fun_to_run, ann_model_builder, tvb_ann_model_builder, **kwargs):
-    return model_fun_to_run(ann_model_builder, tvb_ann_model_builder, TVBNESTSerialOrchestrator,
+def main_example(model_fun_to_run, nest_model_builder, tvb_nest_model_builder, **kwargs):
+    return model_fun_to_run(nest_model_builder, tvb_nest_model_builder, TVBNESTSerialOrchestrator,
                             config_type=Config, logger_initializer=initialize_logger, **kwargs)
 
 

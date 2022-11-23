@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'docker_build'
+    }
 
     environment {
         FULL_DOCKER_IMAGE_NAME = 'docker-repository.codemart.ro/tvb-multiscale'
@@ -19,18 +21,15 @@ pipeline {
             }
         }
         stage ('Run tests in Python 3') {
-            agent {
-                docker {
-                    image '${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}'
-                }
-            }
             steps {
+                withDockerContainer(image: '${FULL_DOCKER_IMAGE_NAME}:${VERSION_TAG}') {
                 sh '''#!/bin/bash
                     source /home/docker/env/neurosci/bin/activate
                     python setup.py develop
                     pytest --cov-config .coveragerc --cov=tvb tests --cov-branch --cov-report xml:tvb_multiscale_coverage.xml --junitxml=tvb_multiscale_test_results.xml
                     exit 0
                 '''
+                }
                 junit 'tvb_multiscale_test_results.xml'
                 step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'tvb_multiscale_coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
             }

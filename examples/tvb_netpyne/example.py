@@ -6,6 +6,7 @@ from tvb_multiscale.tvb_netpyne.orchestrators import TVBNetpyneSerialOrchestrato
 from tvb_multiscale.tvb_netpyne.interfaces.models.default import RedWongWangExcIOInhITVBNetpyneInterfaceBuilder
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 
+
 def main_example(model_fun_to_run, netpyne_model_builder, tvb_netpyne_interface_builder, **kwargs):
 
     if "simulation_length" not in kwargs: kwargs["simulation_length"] = 500
