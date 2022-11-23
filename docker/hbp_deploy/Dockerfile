@@ -101,7 +101,7 @@ ARG TVB_NEST_Examples=/home/jovyan/packages/notebooks/TVB-Multiscale-Examples
 
 RUN mkdir -m777 $WORK_DIR
 RUN mkdir -m777 $TVB_NEST_Examples
-RUN cp -r /home/jovyan/packages/tvb-multiscale/docs/documented_example_notebooks $TVB_NEST_Examples
+RUN cp -r /home/jovyan/packages/tvb-multiscale/docs/notebooks $TVB_NEST_Examples
 RUN cp -r /home/jovyan/packages/tvb-multiscale/examples $TVB_NEST_Examples
 RUN chmod -R 777 $WORK_DIR
 RUN chmod -R 777 $TVB_NEST_Examples
