@@ -21,17 +21,21 @@ class RayTVBSpikeNetInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
     _output_interface_type = RayTVBtoSpikeNetInterface
     _input_interface_type = RaySpikeNetToTVBInterface
 
+    default_to_ray_transformer_flag = False
+
     def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
         model = interface.get("transformer", interface.pop("transformer_model", None))
         if isinstance(model, RayClient):
             # If it is a Ray Transformer Client already built, do nothing more
-            interface["transformer"] = RayClient
             return
-        elif isinstance(model, string_types) and model.find("Ray") == 0:
-            # If the user has given the Transformer model with the prefix Ray,
-            # remove the prefix and set the parallel flag to True
-            interface["transformer"] = model.split("Ray")[-1]
-            interface["parallel"] = True
+        else:
+            if isinstance(model, string_types) and model.find("Ray") == 0:
+                # If the user has given the Transformer model with the prefix Ray,
+                # remove the prefix and set the parallel flag to True
+                interface["transformer"] = model.split("Ray")[-1]
+                interface["parallel"] = True
+            elif self.default_to_ray_transformer_flag is True:
+                interface["parallel"] = True
         # Now it is safe to call the corresponding parent class method:
         super(RayTVBSpikeNetInterfaceBuilder, self)._configure_transformer_model(
             interface, interface_models, default_transformer_models, transformer_models)
