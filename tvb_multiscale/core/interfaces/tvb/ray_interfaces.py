@@ -4,20 +4,18 @@ import ray
 
 import numpy as np
 
+from tvb.basic.neotraits.api import Attr
+
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.interfaces.base.io import Sender, Receiver
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetInterface, SpikeNetToTVBInterface, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
     TVBOutputInterfaces, TVBInputInterfaces, SpikeNetInputInterfaces, SpikeNetOutputInterfaces
 
 
-class RayTVBSenderInterface(TVBSenderInterface):
-    """
-        RayTVBSenderInterface sends TVB data to a remote TVBtoSpikeNetTransformerInterface
-    """
-    sending_ref_obj = None
+class RaySenderInterface(HasTraits):
 
-    def configure(self):
-        self.sending_ref_obj = None
-        super(RayTVBSenderInterface, self).configure()
+    sending_ref_obj = None
 
     def _send_data_block(self):
         ray.get(self.sending_ref_obj)
@@ -27,12 +25,55 @@ class RayTVBSenderInterface(TVBSenderInterface):
     def _send_data(self, block=False):
         if isinstance(self.sending_ref_obj, ray._raylet.ObjectRef):
             if block:
-                 return self._send_data_block()
+                return self._send_data_block()
             else:
                 running, done = ray.wait([self.sending_ref_obj])
                 if len(done):
                     self.sending_ref_obj = None
         return self.sending_ref_obj
+
+
+class RayReceiverInterface(HasTraits):
+
+    receiving_ref_obj = None
+
+    def _receive_data_block(self):
+        data = ray.get(self.receiving_ref_obj)
+        self.receiving_ref_obj = None
+        return data
+
+    def _receive_data(self, block=False):
+        if isinstance(self.receiving_ref_obj, ray._raylet.ObjectRef):
+            if block:
+                return self._receive_data_block()
+            else:
+                running, done = ray.wait([self.receiving_ref_obj])
+                if len(done):
+                    return self._receive_data_block()
+            return self.receiving_ref_obj
+        elif self.receiving_ref_obj is not None:
+            data = self.receiving_ref_obj.copy()
+            self.receiving_ref_obj = None
+            return data
+        else:
+            return self.receiving_ref_obj
+
+
+class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
+    """
+        RayTVBSenderInterface sends TVB data to a remote TVBtoSpikeNetTransformerInterface
+    """
+
+    sender = Attr(
+        label="Sender",
+        field_type=Sender,
+        doc="""A Sender class instance to send data to the transformer/cosimulator.""",
+        required=False
+    )
+
+    def configure(self):
+        self.sending_ref_obj = None
+        super(RayTVBSenderInterface, self).configure()
 
     def __call__(self, data=None, block=False):
         # Return:
@@ -43,35 +84,21 @@ class RayTVBSenderInterface(TVBSenderInterface):
         return self._send_data(block)
 
 
-class RayTVBReceiverInterface(TVBReceiverInterface):
+class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
     """
         RayTVBReceiverInterface receives TVB data from a remote SpikeNetToTVBTransformerInterface
     """
 
-    receiving_ref_obj = None
+    receiver = Attr(
+        label="Receiver",
+        field_type=Receiver,
+        doc="""A Receiver class instance to receive data from the transformer/cosimulator.""",
+        required=False
+    )
 
     def configure(self):
         self.receiving_ref_obj = None
         super(RayTVBReceiverInterface, self).configure()
-
-    def _receive_data_block(self):
-        data = ray.get(self.receiving_ref_obj)
-        self.receiving_ref_obj = None
-        return data
-
-    def _receive_data(self, block=False):
-        if isinstance(self.receiving_ref_obj, ray._raylet.ObjectRef):
-            if block:
-                 return self._receive_data_block()
-            else:
-                running, done = ray.wait([self.receiving_ref_obj])
-                if len(done):
-                    return self._receive_data_block()
-            return self.receiving_ref_obj
-        else:
-            data = self.receiving_ref_obj.copy()
-            self.receiving_ref_obj = None
-            return data
 
     def __call__(self, block=False):
         # Return:
@@ -82,12 +109,10 @@ class RayTVBReceiverInterface(TVBReceiverInterface):
         return self._receive_data(block)
 
 
-class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RayTVBSenderInterface):
+class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderInterface):
     """
         RayTVBTransformerSenderInterface transforms TVB data and sends them to a remote spikeNet simulator
     """
-
-    sending_ref_obj = None
 
     def configure(self):
         self.sending_ref_obj = None
@@ -102,12 +127,11 @@ class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RayTVBSend
         return self._send_data(block)
 
 
-class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayTVBReceiverInterface):
+class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayReceiverInterface):
     """
         RayTVBReceiverTransformerInterface receives data from a remote spikeNet simulator
         and transforms them to deliver them to TVB
     """
-    receiving_ref_obj = None
 
     def configure(self):
         self.receiving_ref_obj = None
@@ -128,14 +152,13 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayTVB
         return self._receive_data(block)
 
 
-class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface):  # RayTVBSenderInterface
+class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
     """
         RayTVBtoSpikeNetInterface transforms TVB data via an optionally remote Transformer
         and sends them to a remote spikeNet simulator
     """
 
     transformer_ref_obj = None
-    sending_ref_obj = None
     ray_transformer_flag = False
     _data = None  # temporary data buffer
 
@@ -195,14 +218,13 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface):  # RayTVBSenderInterfac
             return self.send_data(block)
 
 
-class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayTVBReceiverInterface):
+class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
     """
         RaySpikeNetToTVBInterface transforms receives data from a remote spikeNet simulator
         and transforms them via an optionally remote Transformer
     """
 
     transformer_ref_obj = None
-    receive_ref_obj = None
     ray_transformer_flag = False
 
     def configure(self):
@@ -241,6 +263,8 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayTVBReceiverInterface)
         self.receive_ref_obj = self._receive_data(block)
         if isinstance(self.receiving_ref_obj, ray._raylet.ObjectRef):
             return self.receive_ref_obj
+        elif self.receiving_ref_obj is None:
+            return None
         data = self.receive_ref_obj.copy()
         self.receive_ref_obj = None
         if data[0][1] < data[0][0]:
