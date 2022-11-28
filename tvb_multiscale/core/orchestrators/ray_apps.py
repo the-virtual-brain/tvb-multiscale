@@ -5,7 +5,7 @@ import ray
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.ray.client import RayClient
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_ray import CoSimulatorRay
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_ray import CoSimulatorParallelRay
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorRayBuilder
 from tvb_multiscale.core.spiking_models.builders.ray_builder import RaySpikingNetworkBuilder
 from tvb_multiscale.core.interfaces.tvb.ray_builder import RayTVBSpikeNetInterfaceBuilder
@@ -55,8 +55,8 @@ class TVBRayApp(TVBSerialApp):
     )
 
     cosimulator = Attr(
-        label="TVB CoSimulatorRay",
-        field_type=CoSimulatorRay,
+        label="TVB CoSimulatorParallelRay",
+        field_type=CoSimulatorParallelRay,
         doc="""Instance of TVB CoSimulatorRay for Ray cosimulation.""",
         required=False,
         default=None
@@ -77,6 +77,9 @@ class TVBRayApp(TVBSerialApp):
         required=False,
         default=None
     )
+
+    _cosimulator_builder_type = CoSimulatorRayBuilder
+    _default_interface_builder = RayTVBSpikeNetInterfaceBuilder
 
     def start(self):
         ray.init(ignore_reinit_error=True)

@@ -43,8 +43,8 @@ def ray_default_example(**kwargs):
         nest_model_builder = create_ray_nest_network_builder_type(DefaultExcIOBuilder)()
         tvb_nest_model_builder = create_ray_TVB_NEST_interface_builder_type(DefaultTVBNESTInterfaceBuilder)()
 
-    return model_fun_to_run(nest_model_builder, tvb_nest_model_builder, TVBNESTRayOrchestrator,
-                            config_type=Config, logger_initializer=initialize_logger, **kwargs)
+    return default_example_base(nest_model_builder, tvb_nest_model_builder, TVBNESTRayOrchestrator,
+                                config_type=Config, logger_initializer=initialize_logger, **kwargs)
 
 
 if __name__ == "__main__":

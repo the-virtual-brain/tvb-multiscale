@@ -55,8 +55,8 @@ class NESTRayApp(SpikeNetRayApp):
 
     spiking_cosimulator_server = Attr(
         label="NEST Server",
-        field_type=RayNESTServer,
-        doc="""Instance of a server to a running NEST.""",
+        field_type=ray.actor.ActorHandle,
+        doc="""Handle to an instance of a server to a running NEST.""",
         required=False,
         default=None
     )

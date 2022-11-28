@@ -18,7 +18,7 @@ from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_ray import CoSimulatorRay
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_ray import CoSimulatorParallelRay
 
 
 class CoSimulatorBuilder(HasTraits):
@@ -349,4 +349,4 @@ class CoSimulatorRayBuilder(CoSimulatorBuilder):
        - set monitor (including model's variables of interest and period)
     """
 
-    _cosimulator_type = CoSimulatorRay
+    _cosimulator_type = CoSimulatorParallelRay

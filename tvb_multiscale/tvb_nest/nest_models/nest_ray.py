@@ -712,7 +712,7 @@ class RayNESTClient(object):
         return ray.get(self.nest_server.nest.remote("EnableStructuralPlasticity"))
 
     def ResetKernel(self):
-        return ray.get(ray.get(self.nest_server.nest.remote("ResetKernel")))
+        return ray.get(self.nest_server.nest.remote("ResetKernel"))
 
     def GetKernelStatus(self, *args):
         return ray.get(self.nest_server.nest.remote("GetKernelStatus", *args))
@@ -720,11 +720,11 @@ class RayNESTClient(object):
     def SetKernelStatus(self, values_dict):
         return ray.get(self.nest_server.nest.remote("SetKernelStatus", values_dict))
 
-    def set_verbocity(self, level):
-        return ray.get(self.nest_server.nest.remote("set_verbocity", level))
+    def set_verbosity(self, level):
+        return ray.get(self.nest_server.nest.remote("set_verbosity", level))
 
-    def get_verbocity(self):
-        return ray.get(self.nest_server.nest.remote("get_verbocity"))
+    def get_verbosity(self):
+        return ray.get(self.nest_server.nest.remote("get_verbosity"))
 
     def sysinfo(self):
         return ray.get(self.nest_server.nest.remote("sysinfo"))

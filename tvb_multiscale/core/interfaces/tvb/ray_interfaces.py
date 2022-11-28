@@ -128,9 +128,9 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayTVB
         return self._receive_data(block)
 
 
-class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RayTVBSenderInterface):
+class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface):  # RayTVBSenderInterface
     """
-        RayTVBtoSpikeNetInterface transforms TVB data via a remote Transformer
+        RayTVBtoSpikeNetInterface transforms TVB data via an optionally remote Transformer
         and sends them to a remote spikeNet simulator
     """
 
@@ -196,6 +196,10 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RayTVBSenderInterface):
 
 
 class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayTVBReceiverInterface):
+    """
+        RaySpikeNetToTVBInterface transforms receives data from a remote spikeNet simulator
+        and transforms them via an optionally remote Transformer
+    """
 
     transformer_ref_obj = None
     receive_ref_obj = None
