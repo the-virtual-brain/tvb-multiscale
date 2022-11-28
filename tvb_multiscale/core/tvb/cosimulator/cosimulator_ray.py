@@ -78,14 +78,15 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
 
     def _get_cosim_updates(self, cosimulation=True, block=False, cosim_updates=None):
         # Get the update data from the other cosimulator, including any transformations
-        if cosim_updates is None and cosimulation and self.input_interfaces:
-            cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
-        else:
-            for cosim_update in cosim_updates:
-                if isinstance(cosim_update, ray._raylet.ObjectRef):
-                    cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
-                    break
-        if cosim_updates is not None and np.all(np.isnan(cosim_updates)):
+        if cosimulation and self.input_interfaces:
+            if cosim_updates is None:
+                cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
+            else:
+                for cosim_update in cosim_updates:
+                    if isinstance(cosim_update, ray._raylet.ObjectRef):
+                        cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
+                        break
+        if cosim_updates is not None and np.all(np.isnan(cosim_updates[-1])):
             cosim_updates = None
         return cosim_updates
 
@@ -117,6 +118,8 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                     self.n_tvb_steps_sent_to_cosimulator_at_last_synch * self.integrator.dt,
                     self._send_cosim_coupling(self._cosimulation_flag, tvb_to_spikeNet_locks, block=True)
                 )  # tvb_to_spikeNet_locks are used in order to block spikeNet simulator from starting to integrate
+        else:
+            cosim_updates = None
 
         # 4. Start simulating TVB as long as the spikeNet data have been processed.
         # Integrate TVB
