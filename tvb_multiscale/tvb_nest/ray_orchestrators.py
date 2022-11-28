@@ -126,7 +126,6 @@ class NESTRayApp(SpikeNetRayApp):
 
     def stop(self):
         ray.kill(self.spiking_cosimulator_server)
-        del self.spiking_cosimulator
         self.spiking_cosimulator = None
         super(NESTRayApp, self).stop()
 
