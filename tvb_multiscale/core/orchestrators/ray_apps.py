@@ -40,8 +40,6 @@ class SpikeNetRayApp(SpikeNetApp):
 
     def stop(self):
         super(SpikeNetRayApp, self).stop()
-        if ray.is_initialized():
-            ray.shutdown()
 
 
 class TVBRayApp(TVBSerialApp):
@@ -87,8 +85,6 @@ class TVBRayApp(TVBSerialApp):
 
     def stop(self):
         super(TVBRayApp, self).stop()
-        if ray.is_initialized():
-            ray.shutdown()
 
 
 class RayOrchestrator(SerialOrchestrator):
