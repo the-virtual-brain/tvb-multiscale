@@ -54,3 +54,5 @@ if __name__ == "__main__":
         default_example(model="RATE", multisynapse=True)
     elif sys.argv[-1] == "2":
         ray_default_example(model="RATE")
+    else:
+        default_example(model="RATE", multisynapse=False)
