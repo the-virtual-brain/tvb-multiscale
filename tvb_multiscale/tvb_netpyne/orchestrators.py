@@ -92,6 +92,7 @@ class NetpyneSerialApp(SpikeNetSerialApp):
     def stop(self):
         pass
 
+
 class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
@@ -128,6 +129,7 @@ class TVBSerialApp(TVBSerialAppBase):
     )
 
     _default_interface_builder = TVBNetpyneInterfaceBuilder
+
 
 class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
 
