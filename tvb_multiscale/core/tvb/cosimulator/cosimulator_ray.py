@@ -72,7 +72,7 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
 
     def _send_cosim_coupling(self, cosimulation=True, outputs=[], block=False):
         if len(outputs) == 0:
-            return super(CoSimulatorRay, self)._send_cosim_coupling(cosimulation)
+            return super(CoSimulatorParallelRay, self)._send_cosim_coupling(cosimulation)
         else:
             return self.output_interfaces(block=block)
 
