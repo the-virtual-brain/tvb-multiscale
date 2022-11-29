@@ -1161,7 +1161,8 @@ class DeviceSet(SpikingNodesSet):
 
         for i_n, node in enumerate(self.devices(nodes)):
             try:
-                # Good for spike times and weights of spike generator
+                # Good for spike times and weights of spike generator,
+                # as well as rates of inhomogeneous_poisson_generator
                 value_dict_i_n = get_scalar_dict1(value_dict, i_n)
                 self[node].Set(value_dict_i_n)
             except:
