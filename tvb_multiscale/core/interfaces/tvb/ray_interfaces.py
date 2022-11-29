@@ -213,9 +213,9 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
                 self.transformer.input_time = data[0]
                 self.transformer.input_buffer = data[1]
                 self._data = self.transformer()
-                return self.send_data(block)
+                return self._send_data(block)
         else:
-            return self.send_data(block)
+            return self._send_data(block)
 
 
 class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
