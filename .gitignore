@@ -139,7 +139,7 @@ venv.bak/
 
 # Cerebellum Rising-Net related data files
 /examples/data/cerebellum/
-/examples/tvb_nest/notebooks/cerebellum/working_files/
+/examples/tvb_nest/notebooks/cerebellum/working_files/cwc_*
 # CTWC package files
 /examples/tvb_nest/notebooks/cerebellum/ctwc-model-master
 
