@@ -58,11 +58,14 @@ class SerialOrchestrator(Orchestrator):
         self.tvb_app.start()
         self.spikeNet_app.start()
 
+    def link_spikeNet_to_TVB_cosimulator(self):
+        self.tvb_app.cosimulator.simulate_spiking_simulator = self.spikeNet_app.simulate
+
     def build_cosimulators(self):
         self.tvb_app.build_tvb_simulator()
         self.spikeNet_app.tvb_cosimulator_serialized = self.tvb_app.serialize_tvb_cosimulator()
         self.spikeNet_app.build_spiking_network()
-        self.tvb_app.cosimulator.simulate_spiking_simulator = self.spikeNet_app.simulate
+        self.link_spikeNet_to_TVB_cosimulator()
 
     @property
     def populations_sizes(self):
