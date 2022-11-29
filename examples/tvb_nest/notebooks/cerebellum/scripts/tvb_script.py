@@ -756,6 +756,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         if len(results) > 1:
             bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
                 data=results[1][1], time=results[1][0],
+                sample_period=simulator.monitors[1].period,
                 connectivity=simulator.connectivity,
                 labels_ordering=["Time", "State Variable", "Region", "Neurons"],
                 labels_dimensions={"State Variable": ["BOLD"],
@@ -810,38 +811,38 @@ def plot_tvb(transient, inds,
         source_ts[:, :, :, :].plot_timeseries(plotter_config=plotter.config,
                                               hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                               per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
-                                              figsize=FIGSIZE);
+                                              figsize=FIGSIZE)
     # Focus on the m1 and s1 barrel field nodes:
     if source_ts is not None:
         source_ts_m1s1brl = source_ts[-10000:, :, inds["m1s1brl"]]
         source_ts_m1s1brl.plot_timeseries(plotter_config=plotter.config,
                                           hue="Region" if source_ts_m1s1brl.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                           per_variable=source_ts_m1s1brl.shape[1] > MAX_VARS_IN_COLS,
-                                          figsize=FIGSIZE, figname="M1 and S1 barrel field nodes TVB Time Series");
-    # Focus on the the motor pathway:
+                                          figsize=FIGSIZE, figname="M1 and S1 barrel field nodes TVB Time Series")
+    # Focus on the motor pathway:
     if source_ts is not None:
         source_ts_motor = source_ts[-10000:, :, inds["motor"]]
         source_ts_motor.plot_timeseries(plotter_config=plotter.config,
                                         hue="Region" if source_ts_motor.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                         per_variable=source_ts_motor.shape[1] > MAX_VARS_IN_COLS,
-                                        figsize=FIGSIZE, figname="Motor pathway TVB Time Series");
-    # Focus on the motor pathway: raster plot
-    if source_ts_motor is not None and source_ts_motor.number_of_labels > MIN_REGIONS_FOR_RASTER_PLOT:
-        source_ts_motor.plot_raster(plotter_config=plotter.config,
-                                    per_variable=source_ts_motor.shape[1] > MAX_VARS_IN_COLS,
-                                    figsize=FIGSIZE, figname="Motor pathway TVB Time Series Raster");
+                                        figsize=FIGSIZE, figname="Motor pathway TVB Time Series")
+
     # Focus on the sensory pathway:
     if source_ts is not None:
         source_ts_sens = source_ts[-10000:, :, inds["sens"]]
         source_ts_sens.plot_timeseries(plotter_config=plotter.config,
                                        hue="Region" if source_ts_sens.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                        per_variable=source_ts_sens.shape[1] > MAX_VARS_IN_COLS,
-                                       figsize=FIGSIZE, figname="Sensory pathway TVB Time Series");
-    # Focus on the sensory pathway: raster plot
-    if source_ts is not None and source_ts_sens.number_of_labels > MIN_REGIONS_FOR_RASTER_PLOT:
-        source_ts_sens.plot_raster(plotter_config=plotter.config,
-                                   per_variable=source_ts_sens.shape[1] > MAX_VARS_IN_COLS,
-                                   figsize=FIGSIZE, figname="Sensory pathway TVB Time Series Raster");
+                                       figsize=FIGSIZE, figname="Sensory pathway TVB Time Series")
+
+    # Focus on regions potentially modelled in NEST (ansiform lobule, interposed nucleus, inferior olive):
+    if source_ts is not None:
+        source_ts_cereb = source_ts[-10000:, :, inds["cereb"]]
+        source_ts_cereb.plot_timeseries(plotter_config=plotter.config,
+                                       hue="Region" if source_ts_cereb.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                       per_variable=source_ts_cereb.shape[1] > MAX_VARS_IN_COLS,
+                                       figsize=FIGSIZE, figname="Cerebellum TVB Time Series")
+
     # bold_ts TVB time series
     if bold_ts is not None:
         bold_ts.plot_timeseries(plotter_config=plotter.config,
