@@ -168,7 +168,7 @@ def configure(**ARGS):
     config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.npy")
     config.N_FIT_RUNS = 0  # 3 - 10
     config.N_SIMULATIONS = 6000
-    config.N_SIM_BATCHES = 120
+    config.N_SIM_BATCHES = 500
     config.SPLIT_RUN_SAMPLES = 1
     config.N_SAMPLES_PER_RUN = 1000
     config.BATCH_FILE_FORMAT = "%s_%03d%s"
