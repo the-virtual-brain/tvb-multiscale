@@ -16,9 +16,14 @@ from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
 class ThalamoCorticalWCInverseSigmoidal(HasTraits):
 
     Rmin = NArray(
-        label=r":math:`R_max`",
-        default=np.array([0.1, ]),
+        label=r":math:`R_min`",
+        default=np.array([0.5 * 1e-4, ]),
         doc="""[Hz]. Minimum rate.""")
+
+    Rmax = NArray(
+        label=r":math:`R_max`",
+        default=np.array([1.0 - 1e-9, ]),
+        doc="""[Hz]. Maximum rate.""")
 
     sigma = NArray(
         label=r":math:sigma`",
@@ -39,7 +44,8 @@ class ThalamoCorticalWCInverseSigmoidal(HasTraits):
         doc="""Rate weight scaling.""")
 
     def _compute(self, input_buffer):
-        return self.sigma - np.log(1.0 / np.maximum(self.w * input_buffer, self.Rmin) - 1) / self.beta
+        return self.sigma - np.log(1.0 /
+                                   np.minimum(self.Rmax, np.maximum(self.w * input_buffer, self.Rmin)) - 1) / self.beta
 
 
 class SpikesToRatesThalamoCorticalWCInverseSigmoidal(SpikesToRates, ThalamoCorticalWCInverseSigmoidal, ABC):
@@ -56,8 +62,8 @@ class SpikesToRatesThalamoCorticalWCInverseSigmoidal(SpikesToRates, ThalamoCorti
 
 
 class ElephantSpikesHistogramThalamoCorticalWCInverseSigmoidal(ElephantSpikesHistogram,
-                                                       SpikesToRatesThalamoCorticalWCInverseSigmoidal,
-                                                       ThalamoCorticalWCInverseSigmoidal):
+                                                               SpikesToRatesThalamoCorticalWCInverseSigmoidal,
+                                                               ThalamoCorticalWCInverseSigmoidal):
 
     def configure(self):
         SpikesToRatesThalamoCorticalWCInverseSigmoidal.configure(self)
@@ -69,8 +75,8 @@ class ElephantSpikesHistogramThalamoCorticalWCInverseSigmoidal(ElephantSpikesHis
 
 
 class ElephantSpikesHistogramRateThalamoCorticalWCInverseSigmoidal(ElephantSpikesHistogramRate,
-                                                           SpikesToRatesThalamoCorticalWCInverseSigmoidal,
-                                                           ThalamoCorticalWCInverseSigmoidal):
+                                                                   SpikesToRatesThalamoCorticalWCInverseSigmoidal,
+                                                                   ThalamoCorticalWCInverseSigmoidal):
 
     def configure(self):
         SpikesToRatesThalamoCorticalWCInverseSigmoidal.configure(self)
