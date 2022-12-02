@@ -232,7 +232,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
         # Default behavior for any combination of region nodes and populations
         # is to target all of their neurons:
-        neurons_inds_fun = interface.pop("neurons_inds", None)
+        neurons_inds_fun = interface.pop("neurons_fun", None)
         if neurons_inds_fun is not None:
             neurons_inds_fun = property_to_fun(neurons_inds_fun)
         # Defaults just follow TVB connectivity
@@ -263,7 +263,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         _interface["receptor_type"] = receptor_type
         _interface["syn_spec"] = syn_spec
         _interface["conn_spec"] = conn_spec
-        _interface["neurons_inds"] = neurons_inds
+        _interface["neurons_fun"] = neurons_inds
         _interface["nodes"] = [np.where(self.proxy_inds == trg_node)[0][0]
                                for trg_node in interface["spiking_proxy_inds"]]
         _interface["model"] = interface["proxy"].model
@@ -285,7 +285,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
         # Default behavior for any region node and any combination of populations
         # is to target all of their neurons:
-        neurons_inds_fun = interface.pop("neurons_inds", None)
+        neurons_inds_fun = interface.pop("neurons_fun", None)
         if neurons_inds_fun is not None:
             neurons_inds_fun = property_to_fun(neurons_inds_fun)
         shape = (len(interface["spiking_proxy_inds"]),)
@@ -297,7 +297,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
         _interface = dict()
         _interface["delays"] = delays
-        _interface["neurons_inds"] = neurons_inds
+        _interface["neurons_fun"] = neurons_inds
         # Convert TVB node index to interface SpikeNet node index:
         _interface["nodes"] = [np.where(self.proxy_inds == spiking_node)[0][0]
                                for spiking_node in interface["spiking_proxy_inds"]]

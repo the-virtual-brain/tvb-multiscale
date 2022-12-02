@@ -276,7 +276,7 @@ class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
     """
         ElephantSpikesHistogramRate Transformer class using the function time_histogram of elephant software.
         The algorithm is based just on computing a time histogram of the spike trains,
-        and the dividing with the bin width.
+        and then dividing with the bin width.
     """
 
     def _compute_fun(self, spiketrains):
