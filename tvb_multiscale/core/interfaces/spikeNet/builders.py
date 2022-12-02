@@ -306,7 +306,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         # TODO: Figure out if we ever going to need interfaces for multiple state variables!
         label = "%s->" % str(interface["populations"])
         if "voi_labels" in interface:
-            label +=  str(interface["voi_labels"])
+            label += str(interface["voi_labels"])
         _interface["connections"] = {label: interface["populations"]}
         # Generate the devices <== "proxy TVB nodes":
         interface["proxy"] = \
