@@ -684,8 +684,7 @@ def compute_data_PSDs_m1s1brl(raw_results, PSD_target, inds, transient=None, wri
             plt.show()
         else:
             plt.close(fig)
-    # if write_files:
-    #     np.save
+
     return Pxx_den.flatten()
 
 
@@ -964,6 +963,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True
     if config.VERBOSE:
         print("\nFinished TVB workflow in %g sec!\n" % (time.time() - tic))
     return outputs
+
 
 if __name__ == "__main__":
     parser = args_parser("tvb_script")

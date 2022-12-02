@@ -461,7 +461,7 @@ def build_NEST_network(config=None):
     return nest_network, nest_nodes_inds, neuron_models, neuron_number
 
 
-def plot_nest_results(nest_network, neuron_models, neuron_number, config):
+def plot_nest_results_raster(nest_network, neuron_models, neuron_number, config):
 
     import plotly.graph_objs as go
     from plotly.subplots import make_subplots
@@ -657,7 +657,12 @@ def run_nest_workflow(PSD_target=None, model_params={}, config=None, **config_ar
     nest_network = simulate_nest_network(nest_network, config, neuron_models, neuron_number)
     # Plot results
     if plotter is not None:
-        plot_nest_results(nest_network, neuron_models, neuron_number, config)
+        from examples.plot_write_results import plot_write_spiking_network_results
+        simulation_length, transient = configure_simulation_length_with_transient(config)
+        plot_write_spiking_network_results(nest_network, connectivity=connectivity,
+                                           time=None, transient=transient, monitor_period=simulator.monitors[0].period,
+                                           plot_per_neuron=False, plotter=plotter, writer=None, config=config)
+        plot_nest_results_raster(nest_network, neuron_models, neuron_number, config)
     if config.VERBOSE:
         print("\nFinished NEST workflow in %g sec!\n" % (time.time() - tic))
     return nest_network, simulator, config
