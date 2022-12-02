@@ -153,23 +153,23 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     for iP, (pop, regions) in enumerate(zip(pops, regs)):
         pop_regions_inds = []
         numbers_of_neurons = nest_network.brain_regions[regions[0]][pop].number_of_neurons
-        time_scale_factor = 1e-3 * simulator.integrator.dt  # convert TVB time step to secs
-        # Basic w to convert spikes' counts to rates in Hz:
-        w_NEST_to_TVB = np.array([time_scale_factor]) / numbers_of_neurons / max_rate
+        # Basic w to convert total rates to mean rates in Hz, and then into the interval [0.0, 1.0]:
+        w_NEST_to_TVB = np.array([1.0]) / numbers_of_neurons / max_rate
         for region in regions:
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         pop_regions_inds = np.array(pop_regions_inds)
         if config.INVERSE_SIGMOIDAL_NEST_TO_TVB:
             # !!! Parameters for inverse sigmoidal NEST -> TVB transformer: !!!
             transformer_params = {"w": w_NEST_to_TVB,
-                                  "Rmin": np.array([0.1]),  # we cannot allow 0 rate values leading to Inf!
-                                  # we take beta and sigma value from model's sigmoidal activation function params:
+                                  "Rmax": np.array([1.0 - 1e-9]),
+                                  # We cannot allow 0 rate values leading the inverse sigmoidal to Inf!
+                                  "Rmin": np.array([0.5*1e-4]),  # this leads to a minimum activity of -0.5 if...
+                                  # ...we take beta and sigma value from model's sigmoidal activation function params:
                                   "beta": simulator.model.beta[[0]], "sigma": simulator.model.sigma[[0]]}
             w_name = "w"
         else:
             # !!! Parameters for linear NEST -> TVB transformer: !!!
-            transformer_params = {"scale_factor": w_NEST_to_TVB,
-                                   "translation_factor": np.array([-0.5])}
+            transformer_params = {"scale_factor": w_NEST_to_TVB, "translation_factor": np.array([-0.5])}
             w_name = "scale_factor"
         tvb_spikeNet_model_builder.input_interfaces.append(
             {'voi': np.array(['E']),
@@ -192,7 +192,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              'transformer_params': transformer_params
              })
         if pop == "granule_cell":
-            tvb_spikeNet_model_builder.input_interfaces[-1]["neurons_inds"] = lambda nodes: nodes[0::10]
+            # We only record from 1 every 10 granule cells!:
+            tvb_spikeNet_model_builder.input_interfaces[-1]["neurons_fun"] = lambda i_node, nodes: nodes[0::10]
             tvb_spikeNet_model_builder.input_interfaces[-1]['transformer_params'][w_name] *= 10
     # Configure:
     tvb_spikeNet_model_builder.configure()
@@ -250,7 +251,7 @@ def simulate_tvb_nest(simulator, nest_network, config):
 
 def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_files=True, **config_args):
     tic = time.time()
-    from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results
+    from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results_raster
 
     plot_flag = config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag'))
     config, plotter = assert_config(config, return_plotter=True, **config_args)
@@ -290,9 +291,14 @@ def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_f
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
     outputs = (PSD, results, transient, simulator, nest_network, config)
     if plotter is not None:
+        from examples.plot_write_results import plot_write_spiking_network_results
         outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
                                      simulator=simulator, plotter=plotter, config=config, write_files=write_files)
-        plot_nest_results(nest_network, neuron_models, neuron_number, config)
+        plot_write_spiking_network_results(nest_network, connectivity=connectivity,
+                                           time=results[0][0], transient=transient,
+                                           monitor_period=simulator.monitors[0].period,
+                                           plot_per_neuron=False, plotter=plotter, writer=None, config=config)
+        plot_nest_results_raster(nest_network, neuron_models, neuron_number, config)
     else:
         if write_files:
             outputs = outputs + tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
