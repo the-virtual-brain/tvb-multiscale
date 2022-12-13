@@ -65,10 +65,11 @@ class TestRedWongWangRATE(TestRedWongWang):
         self.run()
 
 models_to_test_netpyne = [
-    TestDefaultRATE,
-    TestDefaultSPIKES,
-    TestWilsonCowanRATE,
-    TestWilsonCowanSPIKES,
+    TestDefaultRATE, # PASSES
+    TestDefaultSPIKES, # FAILS -- Assertion Error
+    TestWilsonCowanRATE, # PASSES
+    TestWilsonCowanSPIKES, # FAILS -- Assertion Error
+    TestRedWongWangRATE # PASSES
 ]
 #class MyTestCase(unittest.TestCase):
 #    def test_something(self):
