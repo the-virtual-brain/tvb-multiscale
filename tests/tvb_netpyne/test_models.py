@@ -14,36 +14,61 @@ from examples.tvb_netpyne.models.wilson_cowan import wilson_cowan_example
 from examples.tvb_netpyne.models.red_wong_wang import excio_inhi_example
 
 class TestDefault(TestSpikeNetModel):
-#    multisynapse = False
     def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
+        default_example(model=self.tvb_to_spikeNet_mode,
                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                         simulation_length=self.simulation_length, transient=self.transient,
                         plot_write=self.plot_write)
 
 class TestDefaultRATE(TestDefault):
+    # PASSED
     def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
-class TestWilsonCowan(TestSpikeNetModel):
-#    multisynapse = False
-    def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
-                        spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                        exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                        simulation_length=self.simulation_length, transient=self.transient,
-                        plot_write=self.plot_write)
+class TestDefaultSPIKES(TestDefault):
+    def test(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
 
-class TestWilsonCowanRATE(TestDefault):
+class TestWilsonCowan(TestSpikeNetModel):
+    def run_fun(self):
+        wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
+                             spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+                             simulation_length=self.simulation_length, transient=self.transient,
+                             plot_write=self.plot_write)
+
+class TestWilsonCowanRATE(TestWilsonCowan):
+    def test(self):
+        self.tvb_to_spikeNet_mode = "RATE"
+        self.run()
+
+class TestWilsonCowanSPIKES(TestWilsonCowan):
+    def test(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
+
+class TestRedWongWang(TestSpikeNetModel):
+    def run_fun(self):
+        excio_inhi_example(model=self.tvb_to_spikeNet_mode,
+                           spiking_proxy_inds=self.spiking_proxy_inds,
+                           population_order=self.population_order,
+                           exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+                           simulation_length=self.simulation_length, transient=self.transient,
+                           plot_write=self.plot_write)
+
+class TestRedWongWangRATE(TestRedWongWang):
     def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
 
 models_to_test_netpyne = [
     TestDefaultRATE,
-    TestWilsonCowanRATE
+    TestDefaultSPIKES,
+    TestWilsonCowanRATE,
+    TestWilsonCowanSPIKES,
 ]
 #class MyTestCase(unittest.TestCase):
 #    def test_something(self):
@@ -51,6 +76,7 @@ models_to_test_netpyne = [
 
 
 if __name__ == '__main__':
+    print("running tests")
     test_models(models_to_test_netpyne)
 
 #    unittest.main()
