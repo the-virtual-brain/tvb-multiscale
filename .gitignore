@@ -147,3 +147,5 @@ venv.bak/
 /examples/data/basal_ganglia/only_local/
 /examples/data/basal_ganglia/only_local/ANNarchyFittedModels.tar
 /examples/data/basal_ganglia/only_local/basal_ganglia_conn_incl_cortex.zip
+
+netpyne/
