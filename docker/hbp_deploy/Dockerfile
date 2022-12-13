@@ -67,7 +67,10 @@ RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
 RUN /opt/conda/envs/env_nest/bin/pip install elephant dill
 
 # TVB-NETPYNE:
-RUN /opt/conda/envs/env_nest/bin/pip install netpyne neuron
+RUN /opt/conda/envs/env_nest/bin/pip install neuron optuna
+RUN git clone https://github.com/Neurosim-lab/netpyne.git; \
+    cd netpyne; \
+    /opt/conda/envs/env_nest/bin/pip install -e .
 
 # TVB-ANNARCHY:
 RUN /opt/conda/envs/env_nest/bin/pip install sympy pyqtgraph lxml pandoc tensorboardX;
