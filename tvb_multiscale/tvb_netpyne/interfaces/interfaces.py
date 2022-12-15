@@ -43,7 +43,7 @@ class NetpyneInterface(HasTraits):
         return self.netpyne_instance.time
 
 
-class NetpyneOutputInterface(SpikeNetOutputInterface, NetpyneInterface):
+class NetpyneOutputInterface(NetpyneInterface, SpikeNetOutputInterface):
 
     """NetpyneOutputInterface base class for interfaces sending data from NetPyNE."""
 
