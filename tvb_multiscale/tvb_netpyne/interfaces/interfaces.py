@@ -15,8 +15,10 @@ from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneInputDeviceSet, NetpyneOutputDeviceSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 
+
 TVBtoNetpyneModels = TVBtoSpikeNetModels
 NetpyneToTVBModels = SpikeNetToTVBModels
+
 
 class NetpyneInterface(HasTraits):
     __metaclass__ = ABCMeta
