@@ -114,6 +114,7 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
 
 
 class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
+
     """NESTInterfaceBuilder class"""
 
     _tvb_to_spikeNet_models = TVBtoNESTModels
