@@ -65,7 +65,7 @@ class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
         return self._get_proxy_gids(self.proxy.source)
 
 
-class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
+class ANNarchySenderInterface(ANNarchyOutputInterface, SpikeNetSenderInterface):
 
     """ANNarchySenderInterface"""
 
@@ -73,7 +73,7 @@ class ANNarchySenderInterface(SpikeNetSenderInterface, ANNarchyOutputInterface):
         return self.send(ANNarchyOutputInterface.get_proxy_data(self))
 
 
-class ANNarchyTransformerSenderInterface(SpikeNetTransformerSenderInterface, ANNarchyOutputInterface):
+class ANNarchyTransformerSenderInterface(ANNarchyOutputInterface, SpikeNetTransformerSenderInterface):
     
     """ANNarchyTransformerSenderInterface"""
 
@@ -96,21 +96,21 @@ class ANNarchyInputInterface(ANNarchyInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class ANNarchyReceiverInterface(SpikeNetReceiverInterface, ANNarchyInputInterface):
+class ANNarchyReceiverInterface(ANNarchyInputInterface, SpikeNetReceiverInterface):
 
     """ANNarchyReceiverInterface"""
 
     pass
 
 
-class ANNarchyReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, ANNarchyInputInterface):
+class ANNarchyReceiverTransformerInterface(ANNarchyInputInterface, SpikeNetReceiverTransformerInterface):
 
     """ANNarchyReceiverTransformerInterface"""
 
     pass
 
 
-class TVBtoANNarchyInterface(TVBtoSpikeNetInterface, ANNarchyInputInterface):
+class TVBtoANNarchyInterface(ANNarchyInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoANNarchyInterface class to get data from TVB, transform them,
        and finally set them to ANNarchy, all processes taking place in shared memory.
@@ -119,7 +119,7 @@ class TVBtoANNarchyInterface(TVBtoSpikeNetInterface, ANNarchyInputInterface):
     pass
 
 
-class ANNarchyToTVBInterface(SpikeNetToTVBInterface, ANNarchyOutputInterface):
+class ANNarchyToTVBInterface(ANNarchyOutputInterface, SpikeNetToTVBInterface):
 
     """ANNarchyToTVBInterface class to get data from ANNarchy, transform them,
        and finally set them to TVB, all processes taking place in shared memory.
@@ -158,28 +158,28 @@ class ANNarchyInterfaces(HasTraits):
             return None
 
 
-class ANNarchyOutputInterfaces(SpikeNetOutputRemoteInterfaces, ANNarchyInterfaces):
+class ANNarchyOutputInterfaces(ANNarchyInterfaces, SpikeNetOutputRemoteInterfaces):
 
     """ANNarchyOutputInterfaces holding a list of ANNarchyOutputInterface instances"""
 
     pass
 
 
-class ANNarchyInputInterfaces(SpikeNetInputRemoteInterfaces, ANNarchyInterfaces):
+class ANNarchyInputInterfaces(ANNarchyInterfaces, SpikeNetInputRemoteInterfaces):
 
     """ANNarchyInputInterfaces holding a list of ANNarchyInputInterface instances"""
 
     pass
 
 
-class TVBtoANNarchyInterfaces(TVBOutputInterfaces, ANNarchyInputInterfaces):
+class TVBtoANNarchyInterfaces(ANNarchyInputInterfaces, TVBOutputInterfaces):
 
     """TVBtoANNarchyInterfaces class holding a list of TVBtoANNarchyInterface instances"""
 
     pass
 
 
-class ANNarchyToTVBInterfaces(TVBInputInterfaces, ANNarchyOutputInterfaces):
+class ANNarchyToTVBInterfaces(ANNarchyOutputInterfaces, TVBInputInterfaces):
 
     """ANNarchyToTVBInterfaces class holding a list of ANNarchyToTVBInterface instances"""
 
