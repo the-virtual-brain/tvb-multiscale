@@ -2,7 +2,7 @@
 
 import ray
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.nest_ray import RayNESTServer, RayNESTClient
+from tvb_multiscale.tvb_nest.nest_models.ray import RayNESTServer, RayNESTClient
 
 
 if __name__ == "__main__":

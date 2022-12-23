@@ -7,12 +7,13 @@ import ray
 import numpy
 import pandas
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED
-
-from tvb_multiscale.core.utils.data_structures_utils import is_iterable
-
 from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, dicts_of_lists_to_lists_of_dicts, list_of_dicts_to_dict_of_tuples
+
+from tvb_multiscale.core.utils.data_structures_utils import is_iterable
+from tvb_multiscale.core.spiking_models.ray import RaySpikingNetwork
+
+from tvb_multiscale.tvb_nest.config import CONFIGURED
 
 
 #@serve.deployment
@@ -797,3 +798,8 @@ class RayNESTClient(object):
 
     def Cleanup(self):
         return ray.get(self.nest_server.nest.remote("Cleanup"))
+
+
+class RayNESTNetwork(RaySpikingNetwork):
+
+    pass
