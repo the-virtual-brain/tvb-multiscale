@@ -60,6 +60,7 @@ class RayReceiverInterface(HasTraits):
 
 
 class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
+
     """
         RayTVBSenderInterface sends TVB data to a remote TVBtoSpikeNetTransformerInterface
     """
@@ -85,6 +86,7 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
 
 
 class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
+
     """
         RayTVBReceiverInterface receives TVB data from a remote SpikeNetToTVBTransformerInterface
     """
@@ -110,6 +112,7 @@ class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
 
 
 class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderInterface):
+
     """
         RayTVBTransformerSenderInterface transforms TVB data and sends them to a remote spikeNet simulator
     """
@@ -128,6 +131,7 @@ class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderI
 
 
 class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayReceiverInterface):
+
     """
         RayTVBReceiverTransformerInterface receives data from a remote spikeNet simulator
         and transforms them to deliver them to TVB
@@ -153,6 +157,7 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
 
 
 class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
+
     """
         RayTVBtoSpikeNetInterface transforms TVB data via an optionally remote Transformer
         and sends them to a remote spikeNet simulator
@@ -219,6 +224,7 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
 
 
 class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
+
     """
         RaySpikeNetToTVBInterface transforms receives data from a remote spikeNet simulator
         and transforms them via an optionally remote Transformer
@@ -292,8 +298,10 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
 
 class RayTVBOutputInterfaces(TVBOutputInterfaces):
 
-    """TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
-       and sends data to them."""
+    """
+    TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
+       and sends data to them.
+    """
 
     running_tasks_refs = []
 
@@ -330,8 +338,10 @@ class RayTVBOutputInterfaces(TVBOutputInterfaces):
 
 class RayTVBInputInterfaces(TVBInputInterfaces):
 
-    """TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
-       and receives data from them."""
+    """
+        TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
+       and receives data from them.
+    """
 
     running_tasks_refs = []
     cosim_updates = np.array([])
