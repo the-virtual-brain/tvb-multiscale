@@ -7,6 +7,7 @@ from tvb_multiscale.core.spiking_models.builders.ray_builder import \
     RunLock, RaySpikingNetworkBuilder, create_ray_spiking_network_builder_type
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
+from tvb_multiscale.tvb_nest.nest_models.ray import RayNESTNetwork
 
 
 class RayNESTNetworkBuilder(NESTNetworkBuilder, RaySpikingNetworkBuilder):
@@ -14,7 +15,9 @@ class RayNESTNetworkBuilder(NESTNetworkBuilder, RaySpikingNetworkBuilder):
     def build_spiking_network(self):
         """A method to build the final NESTNetwork class based on the already created constituents."""
         ray_nest_network = \
-            create_ray_client(NESTNetwork, non_blocking_methods=["Run", "Simulate"],
+            create_ray_client(NESTNetwork,
+                              client_type=RayNESTNetwork,
+                              non_blocking_methods=["Run", "Simulate"],
                               nest_instance=self.nest_instance,
                               brain_regions=self._spiking_brain,
                               output_devices=self._output_devices,
