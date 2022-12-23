@@ -5,9 +5,24 @@ from tvb.basic.neotraits.api import Attr
 from tvb_multiscale.core.interfaces.tvb.ray_builder import \
     RayTVBSpikeNetInterfaceBuilder, create_ray_TVB_spikeNet_interface_builder_type
 from tvb_multiscale.tvb_nest.nest_models.ray import RayNESTNetwork
-from tvb_multiscale.tvb_nest.interfaces.ray_interfaces import \
+from tvb_multiscale.tvb_nest.interfaces.interfaces import TVBtoNESTInterfaces, NESTtoTVBInterfaces
+from tvb_multiscale.tvb_nest.interfaces.ray_interfaces import TVBtoNESTinRayInterface, NESTinRayToTVBInterface, \
     RayTVBtoNESTInterface, RayNESTtoTVBInterface, RayTVBtoNESTInterfaces, RayNESTtoTVBInterfaces
 from tvb_multiscale.tvb_nest.interfaces.builders import TVBNESTInterfaceBuilder
+
+
+class TVBNESTinRayInterfaceBuilder(TVBNESTInterfaceBuilder):
+
+    _output_interfaces_type = TVBtoNESTInterfaces
+    _input_interfaces_type = NESTtoTVBInterfaces
+
+    _output_interface_type = TVBtoNESTinRayInterface
+    _input_interface_type = NESTinRayToTVBInterface
+
+    spiking_network = Attr(label="NEST Network Ray client",
+                           doc="""A Ray client to an instance of NESTNetwork class""",
+                           field_type=RayNESTNetwork,
+                           required=True)
 
 
 class RayTVBNESTInterfaceBuilder(TVBNESTInterfaceBuilder, RayTVBSpikeNetInterfaceBuilder):
