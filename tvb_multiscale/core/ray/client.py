@@ -43,12 +43,12 @@ def create_ray_client_function(name, parallel=False):
         return ray_function
 
 
-def create_ray_client(input_class, non_blocking_methods=[], *args, **kwargs):
+def create_ray_client(input_class, client_type=RayClient, non_blocking_methods=[], *args, **kwargs):
 
     ray_server = create_ray_server(input_class, *args, **kwargs)
 
-    RayClient.__name___ = "Ray%s" % input_class.__name__
-    RayClient.ray_server = ray_server
+    # RayClient.__name___ = "Ray%s" % input_class.__name__
+    client_type.ray_server = ray_server
 
     for server_method in ray_server.__dict__['_ray_method_signatures']:
         if hasattr(input_class, server_method) and \
@@ -58,10 +58,9 @@ def create_ray_client(input_class, non_blocking_methods=[], *args, **kwargs):
             else:
                 fun = create_ray_client_function(server_method, False)
             if isinstance(getattr(input_class, server_method), property):
-                setattr(RayClient, server_method, property(fun))
+                setattr(client_type, server_method, property(fun))
             else:
-                setattr(RayClient, server_method, MethodType(fun, RayClient))
+                setattr(client_type, server_method, MethodType(fun, client_type))
 
-    return RayClient(ray_server)
-
+    return client_type(ray_server)
 
