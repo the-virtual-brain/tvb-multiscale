@@ -77,7 +77,7 @@ class NetpyneInputInterface(NetpyneInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class TVBtoNetpyneInterface(TVBtoSpikeNetInterface, NetpyneInputInterface):
+class TVBtoNetpyneInterface(NetpyneInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoNetpyneInterface class to get data from TVB, transform them,
        and finally set them to NetPyNE, all processes taking place in shared memmory.
@@ -86,7 +86,7 @@ class TVBtoNetpyneInterface(TVBtoSpikeNetInterface, NetpyneInputInterface):
     pass
 
 
-class NetpyneToTVBInterface(SpikeNetToTVBInterface, NetpyneOutputInterface):
+class NetpyneToTVBInterface(NetpyneOutputInterface, SpikeNetToTVBInterface):
 
     """NetpyneToTVBInterface class to get data from NetPyNE, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
