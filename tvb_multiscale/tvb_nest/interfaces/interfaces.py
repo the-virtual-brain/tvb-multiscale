@@ -13,9 +13,9 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 
+from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTInputDeviceSet, NESTOutputDeviceSet
-from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 
 
 TVBtoNESTModels = TVBtoSpikeNetModels
