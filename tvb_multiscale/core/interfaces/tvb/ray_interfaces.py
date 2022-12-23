@@ -61,9 +61,7 @@ class RayReceiverInterface(HasTraits):
 
 class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
 
-    """
-        RayTVBSenderInterface sends TVB data to a remote TVBtoSpikeNetTransformerInterface
-    """
+    """RayTVBSenderInterface sends TVB data to a remote TVBtoSpikeNetTransformerInterface"""
 
     sender = Attr(
         label="Sender",
@@ -87,9 +85,7 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
 
 class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
 
-    """
-        RayTVBReceiverInterface receives TVB data from a remote SpikeNetToTVBTransformerInterface
-    """
+    """RayTVBReceiverInterface receives TVB data from a remote SpikeNetToTVBTransformerInterface"""
 
     receiver = Attr(
         label="Receiver",
@@ -113,9 +109,7 @@ class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
 
 class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderInterface):
 
-    """
-        RayTVBTransformerSenderInterface transforms TVB data and sends them to a remote spikeNet simulator
-    """
+    """RayTVBTransformerSenderInterface transforms TVB data and sends them to a remote spikeNet simulator"""
 
     def configure(self):
         self.sending_ref_obj = None
@@ -132,10 +126,8 @@ class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderI
 
 class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayReceiverInterface):
 
-    """
-        RayTVBReceiverTransformerInterface receives data from a remote spikeNet simulator
-        and transforms them to deliver them to TVB
-    """
+    """RayTVBReceiverTransformerInterface receives data from a remote spikeNet simulator
+        and transforms them to deliver them to TVB"""
 
     def configure(self):
         self.receiving_ref_obj = None
@@ -158,10 +150,8 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
 
 class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
 
-    """
-        RayTVBtoSpikeNetInterface transforms TVB data via an optionally remote Transformer
-        and sends them to a remote spikeNet simulator
-    """
+    """RayTVBtoSpikeNetInterface transforms TVB data via an optionally remote Transformer
+        and sends them to a remote spikeNet simulator"""
 
     transformer_ref_obj = None
     ray_transformer_flag = False
@@ -225,10 +215,8 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
 
 class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
 
-    """
-        RaySpikeNetToTVBInterface transforms receives data from a remote spikeNet simulator
-        and transforms them via an optionally remote Transformer
-    """
+    """RaySpikeNetToTVBInterface transforms receives data from a remote spikeNet simulator
+        and transforms them via an optionally remote Transformer"""
 
     transformer_ref_obj = None
     ray_transformer_flag = False
@@ -298,10 +286,8 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
 
 class RayTVBOutputInterfaces(TVBOutputInterfaces):
 
-    """
-    TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
-       and sends data to them.
-    """
+    """TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
+       and sends data to them."""
 
     running_tasks_refs = []
 
@@ -338,10 +324,8 @@ class RayTVBOutputInterfaces(TVBOutputInterfaces):
 
 class RayTVBInputInterfaces(TVBInputInterfaces):
 
-    """
-        TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
-       and receives data from them.
-    """
+    """TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
+       and receives data from them."""
 
     running_tasks_refs = []
     cosim_updates = np.array([])
