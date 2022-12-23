@@ -47,7 +47,7 @@ class NESTInterface(HasTraits):
         return self.spiking_network.nest_instance
 
 
-class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
+class NESTOutputInterface(NESTInterface, SpikeNetOutputInterface):
 
     """NESTOutputInterface base class for interfaces sending data from NEST."""
 
@@ -75,7 +75,7 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
         return self._get_proxy_gids(self.proxy.source)
 
 
-class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
+class NESTSenderInterface(NESTOutputInterface, SpikeNetSenderInterface):
 
     """NESTSenderInterface"""
 
@@ -88,7 +88,7 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
         return self.send(NESTOutputInterface.get_proxy_data(self))
 
 
-class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOutputInterface):
+class NESTTransformerSenderInterface(NESTOutputInterface, SpikeNetTransformerSenderInterface):
     """NESTTransformerSenderInterface"""
 
     def __init__(self, spiking_network=None, **kwargs):
@@ -120,7 +120,7 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
+class NESTReceiverInterface(NESTInputInterface, SpikeNetReceiverInterface):
     """NESTReceiverInterface"""
 
     def __init__(self, spiking_network=None, **kwargs):
@@ -129,7 +129,7 @@ class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
         super().__init__(**kwargs)
 
 
-class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
+class NESTReceiverTransformerInterface(NESTInputInterface, SpikeNetReceiverTransformerInterface):
     """NESTReceiverTransformerInterface"""
 
     def __init__(self, spiking_network=None, **kwargs):
@@ -138,7 +138,7 @@ class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NES
         super().__init__(**kwargs)
 
 
-class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
+class TVBtoNESTInterface(NESTInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoNESTInterface class to get data from TVB, transform them,
        and finally set them to NEST, all processes taking place in shared memmory.
@@ -150,7 +150,7 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
         super().__init__(**kwargs)
 
 
-class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
+class NESTtoTVBInterface(NESTOutputInterface, SpikeNetToTVBInterface):
 
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
