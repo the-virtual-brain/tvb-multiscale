@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 
 import numpy
 import pandas
@@ -7,6 +8,54 @@ from six import string_types
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.utils.data_structures_utils import is_iterable
+from tvb_multiscale.tvb_nest.nest_models.ray.node_collection import RayNodeCollection
+
+
+def serializable(data):
+    """Make data serializable for JSON.
+       Modified from pynest utils.
+
+    Parameters
+    ----------
+    data : any
+
+    Returns
+    -------
+    data_serialized : str, int, float, list, dict
+        Data can be encoded to JSON
+    """
+
+    if isinstance(data, (numpy.ndarray, RayNodeCollection)):
+        return data.tolist()
+    if isinstance(data, RaySynapseCollection):
+        # Get full information from SynapseCollection
+        return serializable(data.todict())
+    if isinstance(data, (list, tuple)):
+        return [serializable(d) for d in data]
+    if isinstance(data, dict):
+        return dict([(key, serializable(value)) for key, value in data.items()])
+    return data
+
+
+def to_json(data, **kwargs):
+    """Serialize data to JSON.
+       Modified from pynest utils.
+
+    Parameters
+    ----------
+    data : any
+    kwargs : keyword argument pairs
+        Named arguments of parameters for `json.dumps` function.
+
+    Returns
+    -------
+    data_json : str
+        JSON format of the data
+    """
+
+    data_serialized = serializable(data)
+    data_json = json.dumps(data_serialized, **kwargs)
+    return data_json
 
 
 class RaySynapseCollectionIterator(object):
@@ -191,8 +240,6 @@ class RaySynapseCollection(object):
         KeyError
             If the specified parameter does not exist for the connections.
         """
-
-        from tvb_multiscale.tvb_nest.nest_models.ray.nest_client import to_json
 
         pandas_output = output == 'pandas'
 

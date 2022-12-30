@@ -18,53 +18,6 @@ from tvb_multiscale.tvb_nest.nest_models.ray.node_collection import RayNodeColle
 from tvb_multiscale.tvb_nest.nest_models.ray.synapse_collection import RaySynapseCollection
 
 
-def serializable(data):
-    """Make data serializable for JSON.
-       Modified from pynest utils.
-
-    Parameters
-    ----------
-    data : any
-
-    Returns
-    -------
-    data_serialized : str, int, float, list, dict
-        Data can be encoded to JSON
-    """
-
-    if isinstance(data, (numpy.ndarray, RayNodeCollection)):
-        return data.tolist()
-    if isinstance(data, RaySynapseCollection):
-        # Get full information from SynapseCollection
-        return serializable(data.todict())
-    if isinstance(data, (list, tuple)):
-        return [serializable(d) for d in data]
-    if isinstance(data, dict):
-        return dict([(key, serializable(value)) for key, value in data.items()])
-    return data
-
-
-def to_json(data, **kwargs):
-    """Serialize data to JSON.
-       Modified from pynest utils.
-
-    Parameters
-    ----------
-    data : any
-    kwargs : keyword argument pairs
-        Named arguments of parameters for `json.dumps` function.
-
-    Returns
-    -------
-    data_json : str
-        JSON format of the data
-    """
-
-    data_serialized = serializable(data)
-    data_json = json.dumps(data_serialized, **kwargs)
-    return data_json
-
-
 class RayNESTClient(object):
 
     run_task_ref_obj = None
