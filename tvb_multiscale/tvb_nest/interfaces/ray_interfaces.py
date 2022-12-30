@@ -4,7 +4,7 @@ from tvb.basic.neotraits.api import HasTraits, Attr
 
 from tvb_multiscale.core.interfaces.tvb.ray_interfaces import \
     RayTVBtoSpikeNetInterface, RaySpikeNetToTVBInterface, RayTVBOutputInterfaces, RayTVBInputInterfaces
-from tvb_multiscale.tvb_nest.nest_models.ray import RayNESTNetwork
+from tvb_multiscale.tvb_nest.nest_models.ray.nest_network import RayNESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.interfaces import TVBtoNESTInterface, NESTtoTVBInterface, \
     NESTOutputInterface, NESTInputInterface, NESTOutputInterfaces, NESTInputInterfaces
 

@@ -7,7 +7,7 @@ from tvb_multiscale.core.spiking_models.builders.ray_builder import \
     RunLock, RaySpikingNetworkBuilder, create_ray_spiking_network_builder_type
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.ray import RayNESTNetwork
+from tvb_multiscale.tvb_nest.nest_models.ray.nest_network import RayNESTNetwork
 
 
 class RayNESTNetworkBuilder(NESTNetworkBuilder, RaySpikingNetworkBuilder):

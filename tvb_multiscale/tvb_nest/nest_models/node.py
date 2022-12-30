@@ -17,7 +17,7 @@ LOG = initialize_logger(__name__)
 
 
 try:
-    from tvb_multiscale.tvb_nest.nest_models.ray import RayNodeCollection
+    from tvb_multiscale.tvb_nest.nest_models.ray.node_collection import RayNodeCollection
 except:
     LOG.warn('Unable to import RayNodeCollection! ray remote co-simulation will not be possible!')
     RayNodeCollection = None

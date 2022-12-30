@@ -11,7 +11,8 @@ from tvb_multiscale.core.orchestrators.ray_apps import \
     SpikeNetRayApp, TVBRayApp as TVBRayAppBase, RayOrchestrator
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.ray import RayNESTServer, RayNESTClient
+from tvb_multiscale.tvb_nest.nest_models.ray.nest_client import RayNESTClient
+from tvb_multiscale.tvb_nest.nest_models.ray.nest_server import RayNESTServer
 from tvb_multiscale.tvb_nest.nest_models.builders.ray_builder import RayNESTNetworkBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import configure_nest_kernel
 from tvb_multiscale.tvb_nest.interfaces.ray_builder import RayTVBNESTInterfaceBuilder
