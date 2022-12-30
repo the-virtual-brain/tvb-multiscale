@@ -11,7 +11,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
     ensure_list, dicts_of_lists_to_lists_of_dicts, list_of_dicts_to_dict_of_tuples
 
 from tvb_multiscale.core.utils.data_structures_utils import is_iterable
-from tvb_multiscale.core.spiking_models.ray import RaySpikingNetwork
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.ray.node_collection import RayNodeCollection
@@ -20,16 +19,16 @@ from tvb_multiscale.tvb_nest.nest_models.ray.synapse_collection import RaySynaps
 
 class RayNESTClientBase(object):
 
-    obj_ref = list()
+    run_task_ref_obj = None
 
     def __init__(self, *args, **kwargs):
-        self.obj_ref = list()
+        self.run_task_ref_obj = None
 
     def __getstate__(self):
-        return {"obj_refs": list(self.obj_refs)}
+        return {"run_task_ref_obj": self.run_task_ref_obj}
 
     def __setstate__(self, d):
-        self.obj_refs = d.get("obj_refs", self.obj_refs)
+        self.run_task_ref_obj = d.get("run_task_ref_obj", self.run_task_ref_obj)
 
     def request(self, call, *args, **kwargs):
         pass
@@ -72,9 +71,9 @@ class RayNESTClientBase(object):
 
     def set(self, nodes, params=None, **kwargs):
         if self._block(kwargs):
-            return self.request("set", self._nodes(nodes), *params, **kwargs)
+            return self.request("set", self._nodes(nodes), params=params, **kwargs)
         else:
-            return self.async_request("set", self._nodes(nodes), *params, **kwargs)
+            return self.async_request("set", self._nodes(nodes), params=params, **kwargs)
 
     def GetStatus(self, nodes, attrs=None, output=None, block=True):
         if block:
@@ -285,6 +284,7 @@ class RayNESTClientBase(object):
             while run_task_ref_obj is None:
                 if block:
                     self.request(method, time)
+                    break
                 else:
                     run_task_ref_obj = self.async_request(method, time)
             self.run_task_ref_obj = run_task_ref_obj
@@ -315,6 +315,8 @@ class RayNESTClientBase(object):
 
 
 class RayNESTClient(RayNESTClientBase):
+
+    nest_server = None
 
     def __init__(self, nest_server):
         self.nest_server = nest_server
