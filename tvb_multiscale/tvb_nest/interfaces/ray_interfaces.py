@@ -11,18 +11,12 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import TVBtoNESTInterface, NE
 
 class TVBtoNESTinRayInterface(TVBtoNESTInterface):
 
-    spiking_network = Attr(label="NEST Network Ray client",
-                           doc="""A Ray client to an instance of NESTNetwork class""",
-                           field_type=RayNESTNetwork,
-                           required=True)
+    pass
 
 
 class NESTinRayToTVBInterface(NESTtoTVBInterface):
 
-    spiking_network = Attr(label="NEST Network Ray client",
-                           doc="""A Ray client to an instance of NESTNetwork class""",
-                           field_type=RayNESTNetwork,
-                           required=True)
+    pass
 
 
 class RayTVBtoNESTInterface(RayTVBtoSpikeNetInterface, NESTInputInterface):

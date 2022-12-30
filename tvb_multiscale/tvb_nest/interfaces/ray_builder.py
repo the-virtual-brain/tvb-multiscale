@@ -19,11 +19,6 @@ class TVBNESTinRayInterfaceBuilder(TVBNESTInterfaceBuilder):
     _output_interface_type = TVBtoNESTinRayInterface
     _input_interface_type = NESTinRayToTVBInterface
 
-    spiking_network = Attr(label="NEST Network Ray client",
-                           doc="""A Ray client to an instance of NESTNetwork class""",
-                           field_type=RayNESTNetwork,
-                           required=True)
-
 
 class RayTVBNESTInterfaceBuilder(TVBNESTInterfaceBuilder, RayTVBSpikeNetInterfaceBuilder):
 
