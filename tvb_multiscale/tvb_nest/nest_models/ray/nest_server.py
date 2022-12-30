@@ -67,7 +67,7 @@ class RayNESTServer(object):
     @ray.method(num_returns=1)
     def GetStatus(self, nodes, attrs=None, output=None):
         if len(nodes):
-            output = self.nest_instance.GetStatus(self._nodes_or_synapses(nodes), attrs, output)
+            return self.nest_instance.GetStatus(self._nodes_or_synapses(nodes), attrs, output)
         else:
             return ()
 
