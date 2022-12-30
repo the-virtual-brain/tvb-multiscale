@@ -107,18 +107,11 @@ class RayNESTServer(object):
             return ()
 
     @ray.method(num_returns=1)
-    def Connect(self, pre, post, conn_spec=None, syn_spec=None, return_synapsecollection=False):
-        if return_synapsecollection:
-            return self._synapse_collection_to_dict(
-                self.nest_instance.Connect(self.NodeCollection(pre),
-                                           self.NodeCollection(post),
-                                           conn_spec=conn_spec, syn_spec=syn_spec,
-                                           return_synapsecollection=True))
-        else:
-            return self.nest_instance.Connect(self.NodeCollection(pre),
-                                              self.NodeCollection(post),
-                                              conn_spec=conn_spec, syn_spec=syn_spec,
-                                              return_synapsecollection=False)
+    def Connect(self, pre, post, conn_spec=None, syn_spec=None):
+        # return self._synapse_collection_to_dict(
+        return self.nest_instance.Connect(self.NodeCollection(pre),
+                                          self.NodeCollection(post),
+                                          conn_spec=conn_spec, syn_spec=syn_spec)  # )
 
     @ray.method(num_returns=1)
     def Disconnect(self, pre, post, conn_spec='one_to_one', syn_spec='static_synapse'):
