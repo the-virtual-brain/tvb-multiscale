@@ -55,7 +55,7 @@ class RayNodeCollection(object):
         if attr in ["nest_instance", "gids"]:
             super(RayNodeCollection, self).__setattr__(attr, value)
         elif self.nest_instance:
-            return self.set({"attr": value})
+            return self.set({attr: value})
 
     def __getstate__(self):
         return {"gids": self.gids, "nest_instance": self.nest_instance}
@@ -107,7 +107,7 @@ class RayNodeCollection(object):
         return self.nest_instance.get(self, *params, **kwargs)
 
     def set(self, params=None, **kwargs):
-        return self.nest_instance.set(self, params, **kwargs)
+        return self.nest_instance.set(self, params=params, **kwargs)
 
     def tolist(self):
         """
