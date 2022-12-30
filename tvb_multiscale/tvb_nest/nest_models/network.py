@@ -57,18 +57,18 @@ class NESTNetwork(SpikingNetwork):
     def spiking_simulator_module(self):
         return self.nest_instance
 
-    def Run(self, time):
+    def Run(self, time, **kwargs):
         if self.nest_instance is not None:
-            self.nest_instance.Run(time)
+            self.nest_instance.Run(time, **kwargs)
 
-    def Simulate(self, time):
+    def Simulate(self, time, **kwargs):
         if self.nest_instance is not None:
             self.nest_instance.Prepare()
-            self.nest_instance.Run(time)
+            self.nest_instance.Run(time, **kwargs)
 
-    def Cleanup(self):
+    def Cleanup(self, **kwargs):
         if self.nest_instance is not None:
-            self.nest_instance.Cleanup()
+            self.nest_instance.Cleanup(**kwargs)
 
     @property
     def min_delay(self):
