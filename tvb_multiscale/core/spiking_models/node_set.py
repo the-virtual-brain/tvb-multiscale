@@ -61,8 +61,8 @@ class SpikingNodesSet(pd.Series, HasTraits):
     @property
     def spiking_simulator_module(self):
         for i_n, nod_lbl, nodes in self._loop_generator():
-            if nodes.spiking_simulator is not None:
-                return nodes.spiking_simulator
+            if nodes.spiking_simulator_module is not None:
+                return nodes.spiking_simulator_module
         return None
 
     def __len__(self):
