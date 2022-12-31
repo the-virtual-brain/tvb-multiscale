@@ -2,6 +2,7 @@
 
 import requests
 from werkzeug.exceptions import BadRequest
+import ray
 
 from NESTServerClient import NESTServerClient
 
@@ -15,11 +16,15 @@ def encode(response):
         raise BadRequest(response.text)
 
 
-@ray.remote
-def ray_nest_request(url, headers, call, *args, **kwargs):
+def nest_server_request(url, headers, call, *args, **kwargs):
     kwargs.update({'args': args})
     response = requests.post(url + 'api/' + call, json=kwargs, headers=headers)
     return encode(response)
+
+
+@ray.remote
+def ray_nest_server_request(url, headers, call, *args, **kwargs):
+    return nest_server_request(url, headers, call, *args, **kwargs)
 
 
 # class RayNESTRequest(object):
@@ -63,10 +68,11 @@ class RayNESTServerClient(RayNESTClientBase, NESTServerClient):
         self.headers = d.get("headers", {'Content-type': 'application/json', 'Accept': 'text/plain'})
         # self.ray = RayNESTRequest.remote(host=self.host, port=self.port)
 
+    def _node_collection_to_gids(self, node_collection):
+        return [int(gid) for gid in RayNESTClientBase._node_collection_to_gids(self, node_collection)]
+
     def request(self, call, *args, **kwargs):
-        kwargs.update({'args': args})
-        response = requests.post(url + 'api/' + call, json=kwargs, headers=headers)
-        return encode(response)
+        return nest_server_request(self.url, self.headers, call, *args, **kwargs)
 
     def async_request(self, call, *args, **kwargs):
-        return ray_nest_request.remote(self.url, self.headers, call, *args, **kwargs)
+        return ray_nest_server_request.remote(self.url, self.headers, call, *args, **kwargs)
