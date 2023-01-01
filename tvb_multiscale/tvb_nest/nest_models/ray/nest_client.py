@@ -63,29 +63,17 @@ class RayNESTClientBase(object):
     def _block(self, kwargs):
         return kwargs.pop("block", True)
 
-    def get(self, nodes, *params, **kwargs):
-        if self._block(kwargs):
-            return self.request("get", self._nodes(nodes), *params, **kwargs)
-        else:
-            return self.async_request("get", self._nodes(nodes), *params, **kwargs)
-
-    def set(self, nodes, params=None, **kwargs):
-        if self._block(kwargs):
-            return self.request("set", self._nodes(nodes), params=params, **kwargs)
-        else:
-            return self.async_request("set", self._nodes(nodes), params=params, **kwargs)
-
-    def GetStatus(self, nodes, attrs=None, output=None, block=True):
+    def GetStatus(self, nodes, keys=None, output='', block=True):
         if block:
-            return self.request("GetStatus", self._nodes(nodes), attrs, output)
+            return self.request("GetStatus", self._nodes(nodes), keys=keys, outpu=output)
         else:
-            return self.async_request("GetStatus", self._nodes(nodes), attrs, output)
+            return self.async_request("GetStatus", self._nodes(nodes), keys=keys, outpu=output)
 
     def SetStatus(self, nodes, params, val=None, block=True):
         if block:
-            return self.request("SetStatus", self._nodes(nodes), params, val)
+            return self.request("SetStatus", self._nodes(nodes), params, val=val)
         else:
-            return self.async_request("SetStatus", self._nodes(nodes), params, val)
+            return self.async_request("SetStatus", self._nodes(nodes), params, val=val)
 
     def Create(self, model, n=1, params=None, positions=None, block=True):
         if block:
@@ -338,3 +326,15 @@ class RayNESTClient(RayNESTClientBase):
 
     def request(self, call, *args, **kwargs):
         return ray.get(self.async_request(call, *args, **kwargs))
+
+    def get(self, nodes, *params, **kwargs):
+        if self._block(kwargs):
+            return self.request("get", self._nodes(nodes), *params, **kwargs)
+        else:
+            return self.async_request("get", self._nodes(nodes), *params, **kwargs)
+
+    def set(self, nodes, params=None, **kwargs):
+        if self._block(kwargs):
+            return self.request("set", self._nodes(nodes), params=params, **kwargs)
+        else:
+            return self.async_request("set", self._nodes(nodes), params=params, **kwargs)
