@@ -60,21 +60,21 @@ class RayNESTServer(object):
     @ray.method(num_returns=1)
     def set(self, nodes, params=None, **kwargs):
         if len(nodes):
-            return self._nodes_or_synapses(nodes).set(params, **kwargs)
+            return self._nodes_or_synapses(nodes).set(params=params, **kwargs)
         else:
             return None
 
     @ray.method(num_returns=1)
-    def GetStatus(self, nodes, attrs=None, output=None):
+    def GetStatus(self, nodes, keys=None, output=''):
         if len(nodes):
-            return self.nest_instance.GetStatus(self._nodes_or_synapses(nodes), attrs, output)
+            return self.nest_instance.GetStatus(self._nodes_or_synapses(nodes), keys=keys, output=output)
         else:
             return ()
 
     @ray.method(num_returns=1)
-    def SetStatus(self, nodes, params, val):
+    def SetStatus(self, nodes, params, val=None):
         if len(nodes):
-            return self.nest_instance.SetStatus(self._nodes_or_synapses(nodes), params, val)
+            return self.nest_instance.SetStatus(self._nodes_or_synapses(nodes), params, val=val)
         else:
             return None
 
