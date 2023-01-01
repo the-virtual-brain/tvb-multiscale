@@ -4,6 +4,8 @@ import requests
 from werkzeug.exceptions import BadRequest
 import ray
 
+import numpy as np
+
 from NESTServerClient import NESTServerClient
 
 from tvb_multiscale.tvb_nest.nest_models.ray.nest_client import RayNESTClientBase
@@ -76,3 +78,22 @@ class RayNESTServerClient(RayNESTClientBase, NESTServerClient):
 
     def async_request(self, call, *args, **kwargs):
         return ray_nest_server_request.remote(self.url, self.headers, call, *args, **kwargs)
+
+    def get(self, nodes, *params, **kwargs):
+        if self._block(kwargs):
+            outputs = self.request("GetStatus", self._nodes(nodes), *params, **kwargs)
+            if len(params) <= 1:
+                # if len(params) == 0, tuple(dict(params, params_vals)) of all params
+                # elif len(params) == 1, tuple(values) of a single param
+                return outputs[0]
+            else:
+                # if len(params) > 0, tuple of param_values per node, needs transposing to be returned as a dict
+                return dict(zip(params, np.array(outputs).T))
+        else:
+            return self.async_request("GetStatus", self._nodes(nodes), *params, **kwargs)
+
+    def set(self, nodes, params=None, **kwargs):
+        if self._block(kwargs):
+            return self.request("SetStatus", self._nodes(nodes), params=params, **kwargs)
+        else:
+            return self.async_request("SetStatus", self._nodes(nodes), params=params, **kwargs)
