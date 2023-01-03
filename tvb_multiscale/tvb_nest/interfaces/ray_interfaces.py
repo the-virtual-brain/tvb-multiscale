@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from tvb.basic.neotraits.api import HasTraits, Attr
-
 from tvb_multiscale.core.interfaces.tvb.ray_interfaces import \
     RayTVBtoSpikeNetInterface, RaySpikeNetToTVBInterface, RayTVBOutputInterfaces, RayTVBInputInterfaces
-from tvb_multiscale.tvb_nest.nest_models.ray.nest_network import RayNESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.interfaces import TVBtoNESTInterface, NESTtoTVBInterface, \
     NESTOutputInterface, NESTInputInterface, NESTOutputInterfaces, NESTInputInterfaces
 
@@ -25,10 +22,7 @@ class RayTVBtoNESTInterface(RayTVBtoSpikeNetInterface, NESTInputInterface):
        and finally set them to NEST, all processes taking place in shared memory.
     """
 
-    spiking_network = Attr(label="NEST Network Ray client",
-                           doc="""A Ray client to an instance of NESTNetwork class""",
-                           field_type=RayNESTNetwork,
-                           required=True)
+    pass
 
 
 class RayNESTtoTVBInterface(RaySpikeNetToTVBInterface, NESTOutputInterface):
@@ -37,10 +31,7 @@ class RayNESTtoTVBInterface(RaySpikeNetToTVBInterface, NESTOutputInterface):
        and finally set them to TVB, all processes taking place in shared memory.
     """
 
-    spiking_network = Attr(label="NEST Network Ray client",
-                           doc="""A Ray client to an instance of NESTNetwork class""",
-                           field_type=RayNESTNetwork,
-                           required=True)
+    pass
 
 
 class RayTVBtoNESTInterfaces(RayTVBOutputInterfaces, NESTInputInterfaces):

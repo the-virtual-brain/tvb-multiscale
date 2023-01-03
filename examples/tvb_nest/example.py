@@ -31,12 +31,11 @@ def default_example(**kwargs):
 
 
 def ray_default_example(**kwargs):
-    from tvb_multiscale.tvb_nest.nest_models.builders.ray_builder import create_ray_nest_network_builder_type
     from tvb_multiscale.tvb_nest.interfaces.ray_builder import create_ray_TVB_NEST_interface_builder_type
     from tvb_multiscale.tvb_nest.ray_orchestrators import TVBNESTRayOrchestrator
 
     if kwargs.pop("multisynapse", False):
-        nest_model_builder = create_ray_nest_network_builder_type(DefaultExcIOMultisynapseBuilder)()
+        nest_model_builder = DefaultExcIOMultisynapseBuilder()
         tvb_nest_model_builder = \
             create_ray_TVB_NEST_interface_builder_type(DefaultMultisynapseTVBNESTInterfaceBuilder)()
     else:

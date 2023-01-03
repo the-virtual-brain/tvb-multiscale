@@ -11,9 +11,10 @@ from tvb_multiscale.core.orchestrators.ray_apps import \
     SpikeNetRayApp, TVBRayApp as TVBRayAppBase, RayOrchestrator
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.ray.nest_client import RayNESTClient
-from tvb_multiscale.tvb_nest.nest_models.ray.nest_server import RayNESTServer
-from tvb_multiscale.tvb_nest.nest_models.builders.ray_builder import RayNESTNetworkBuilder
+from tvb_multiscale.tvb_nest.nest_models.server_client.ray import RayNESTClient
+from tvb_multiscale.tvb_nest.nest_models.server_client.ray import RayNESTServer
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
+from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import configure_nest_kernel
 from tvb_multiscale.tvb_nest.interfaces.ray_builder import RayTVBNESTInterfaceBuilder
 
@@ -39,17 +40,17 @@ class NESTRayApp(SpikeNetRayApp):
     )
 
     spikeNet_builder = Attr(
-        label="Ray NEST Network Builder",
-        field_type=RayNESTNetworkBuilder,
+        label="NEST Network Builder",
+        field_type=NESTNetworkBuilder,
         doc="""Instance of NEST Model Builder.""",
         required=True,
-        default=RayNESTNetworkBuilder()
+        default=NESTNetworkBuilder()
     )
 
     spiking_network = Attr(
         label="NEST Network",
-        field_type=RayClient,
-        doc="""Instance of NESTNetwork RayClient class.""",
+        field_type=NESTNetwork,
+        doc="""Instance of NESTNetwork.""",
         required=False,
         default=None
     )
