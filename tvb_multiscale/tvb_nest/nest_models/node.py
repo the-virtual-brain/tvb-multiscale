@@ -12,15 +12,10 @@ from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
 
+from tvb_multiscale.tvb_nest.nest_models.server_client.node_collection import NodeCollection as RemoteNodeCollection
+
 
 LOG = initialize_logger(__name__)
-
-
-try:
-    from tvb_multiscale.tvb_nest.nest_models.ray.node_collection import RayNodeCollection
-except:
-    LOG.warn('Unable to import RayNodeCollection! ray remote co-simulation will not be possible!')
-    RayNodeCollection = None
 
 
 class _NESTNodeCollection(HasTraits):
@@ -113,8 +108,8 @@ class _NESTNodeCollection(HasTraits):
         if nodes is None:
             return self._nodes
         """Method to assert that the node of the network is valid"""
-        if RayNodeCollection is not None:
-            available_classes = (NodeCollection, RayNodeCollection)
+        if RemoteNodeCollection is not None:
+            available_classes = (NodeCollection, RemoteNodeCollection)
         else:
             available_classes = NodeCollection
         if not isinstance(nodes, available_classes):
