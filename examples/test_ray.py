@@ -2,8 +2,8 @@
 
 import ray
 from tvb_multiscale.tvb_nest.config import CONFIGURED
-from tvb_multiscale.tvb_nest.nest_models.ray.nest_server import RayNESTServer
-from tvb_multiscale.tvb_nest.nest_models.ray.nest_client import RayNESTClient
+from tvb_multiscale.tvb_nest.nest_models.server_client.ray import RayNESTServer
+from tvb_multiscale.tvb_nest.nest_models.server_client.ray import RayNESTClient
 
 
 if __name__ == "__main__":
