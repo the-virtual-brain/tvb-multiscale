@@ -131,6 +131,9 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
+RUN $VENV/bin/pip3 install numpy==1.23.4
+RUN $VENV/bin/pip3 install pandas==1.5.2
+
 WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=/opt/nest
