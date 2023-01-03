@@ -8,7 +8,7 @@ from six import string_types
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.utils.data_structures_utils import is_iterable
-from tvb_multiscale.tvb_nest.nest_models.ray.node_collection import RayNodeCollection
+from tvb_multiscale.tvb_nest.nest_models.server_client.node_collection import NodeCollection
 
 
 def serializable(data):
@@ -25,9 +25,9 @@ def serializable(data):
         Data can be encoded to JSON
     """
 
-    if isinstance(data, (numpy.ndarray, RayNodeCollection)):
+    if isinstance(data, (numpy.ndarray, NodeCollection)):
         return data.tolist()
-    if isinstance(data, RaySynapseCollection):
+    if isinstance(data, SynapseCollection):
         # Get full information from SynapseCollection
         return serializable(data.todict())
     if isinstance(data, (list, tuple)):
@@ -58,9 +58,9 @@ def to_json(data, **kwargs):
     return data_json
 
 
-class RaySynapseCollectionIterator(object):
+class SynapseCollectionIterator(object):
     """
-    Iterator class for RaySynapseCollection.
+    Iterator class for SynapseCollection.
     Modifying the corresponding class for SynapseCollectionIterator of pynest.
     """
 
@@ -72,12 +72,12 @@ class RaySynapseCollectionIterator(object):
         return self
 
     def __next__(self):
-        return RaySynapseCollection(self.nest_instance, next(self._iter))
+        return SynapseCollection(self.nest_instance, next(self._iter))
 
 
-class RaySynapseCollection(object):
+class SynapseCollection(object):
     """
-    Class for RaySynapseCollection.
+    Class for SynapseCollection.
     Modifying the corresponding class for SynapseCollection of pynest.
 
     """
@@ -127,18 +127,18 @@ class RaySynapseCollection(object):
         return d
 
     def __setstate__(self, d):
-        super(RaySynapseCollection, self).__setattr__("nest_instance", d.pop("nest_instance", None))
-        super(RaySynapseCollection, self).__setattr__("_attributes", d.pop("_attributes", self._attributes))
+        super(SynapseCollection, self).__setattr__("nest_instance", d.pop("nest_instance", None))
+        super(SynapseCollection, self).__setattr__("_attributes", d.pop("_attributes", self._attributes))
         self.fromdict(d)
 
     def __iter__(self):
-        return RaySynapseCollectionIterator(self)
+        return SynapseCollectionIterator(self)
 
     def __len__(self):
         return len(self.source)
 
     def __eq__(self, other):
-        if not isinstance(other, RaySynapseCollection):
+        if not isinstance(other, SynapseCollection):
             raise NotImplementedError()
 
         if self.__len__() != other.__len__():
@@ -150,7 +150,7 @@ class RaySynapseCollection(object):
         return True
 
     def __neq__(self, other):
-        if not isinstance(other, RaySynapseCollection):
+        if not isinstance(other, SynapseCollection):
             raise NotImplementedError()
         return not self == other
 

@@ -8,7 +8,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.tvb_nest.config import CONFIGURED
 
 
-#@serve.deployment
 class RayNESTServer(object):
 
     def __init__(self, config=CONFIGURED):
@@ -110,8 +109,8 @@ class RayNESTServer(object):
     def Connect(self, pre, post, conn_spec=None, syn_spec=None):
         # return self._synapse_collection_to_dict(
         return self.nest_instance.Connect(self.NodeCollection(pre),
-                                          self.NodeCollection(post),
-                                          conn_spec=conn_spec, syn_spec=syn_spec)  # )
+                                           self.NodeCollection(post),
+                                           conn_spec=conn_spec, syn_spec=syn_spec)  # )
 
     @ray.method(num_returns=1)
     def Disconnect(self, pre, post, conn_spec='one_to_one', syn_spec='static_synapse'):

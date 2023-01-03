@@ -5,15 +5,15 @@ import numpy
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 
-class RayNodeCollectionIterator(object):
+class NodeCollectionIterator(object):
     """
-    Iterator class for `RayNodeCollectionIterator`.
+    Iterator class for `NodeCollectionIterator`.
     Modifying the corresponding class for NodeCollectionIterator of pynest.
 
     Returns
     -------
     `NodeCollection`:
-        Single node ID `RayNodeCollectionIterator` of respective iteration.
+        Single node ID `NodeCollectionIterator` of respective iteration.
     """
 
     def __init__(self, nc):
@@ -32,9 +32,9 @@ class RayNodeCollectionIterator(object):
         return val
 
 
-class RayNodeCollection(object):
+class NodeCollection(object):
     """
-    Class for `RayNodeCollection`.
+    Class for `NodeCollection`.
     Modifying the corresponding class for NodeCollection of pynest.
     """
 
@@ -53,7 +53,7 @@ class RayNodeCollection(object):
 
     def __setattr__(self, attr, value):
         if attr in ["nest_instance", "gids"]:
-            super(RayNodeCollection, self).__setattr__(attr, value)
+            super(NodeCollection, self).__setattr__(attr, value)
         elif self.nest_instance:
             return self.set({attr: value})
 
@@ -61,14 +61,14 @@ class RayNodeCollection(object):
         return {"gids": self.gids, "nest_instance": self.nest_instance}
 
     def __setstate__(self, d):
-        super(RayNodeCollection, self).__setattr__("gids", d.get("gids", ()))
-        super(RayNodeCollection, self).__setattr__("nest_instance", d.get("nest_instance", None))
+        super(NodeCollection, self).__setattr__("gids", d.get("gids", ()))
+        super(NodeCollection, self).__setattr__("nest_instance", d.get("nest_instance", None))
 
     def __iter__(self):
-        return RayNodeCollectionIterator(self)
+        return NodeCollectionIterator(self)
 
     def __add__(self, other):
-        if not isinstance(other, RayNodeCollection):
+        if not isinstance(other, NodeCollection):
             raise NotImplementedError()
 
         return self.__class__(self.nest_instance, self.gids + other.gids)
@@ -80,7 +80,7 @@ class RayNodeCollection(object):
         return node_id in self.gids
 
     def __eq__(self, other):
-        if not isinstance(other, RayNodeCollection):
+        if not isinstance(other, NodeCollection):
             raise NotImplementedError('Cannot compare NodeCollection to {}'.format(type(other).__name__))
 
         if self.__len__() != other.__len__():
@@ -89,7 +89,7 @@ class RayNodeCollection(object):
         return self.gids == other.gids
 
     def __neq__(self, other):
-        if not isinstance(other, RayNodeCollection):
+        if not isinstance(other, NodeCollection):
             raise NotImplementedError()
 
         return not self == other
