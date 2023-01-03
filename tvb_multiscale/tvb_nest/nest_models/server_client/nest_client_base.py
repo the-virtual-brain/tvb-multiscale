@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import ray
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
