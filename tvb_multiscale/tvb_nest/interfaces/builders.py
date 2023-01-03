@@ -15,7 +15,7 @@ from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesB
     SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
-from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_nest.config import TVBNESTConfig, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTOutputInterface, NESTInputInterface, \
     NESTSenderInterface, NESTReceiverInterface, \
@@ -125,7 +125,7 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
 
     config = Attr(
         label="Configuration",
-        field_type=Config,
+        field_type=TVBNESTConfig,
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED

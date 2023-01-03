@@ -2,7 +2,7 @@
 
 from tvb.basic.neotraits.api import Attr
 
-from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_nest.config import TVBNESTConfig, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.devices import NESTOutputSpikeDeviceDict, NESTOutputContinuousTimeDeviceDict
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -30,7 +30,7 @@ class NESTNetwork(SpikingNetwork):
 
     config = Attr(
         label="Configuration",
-        field_type=Config,
+        field_type=TVBNESTConfig,
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
