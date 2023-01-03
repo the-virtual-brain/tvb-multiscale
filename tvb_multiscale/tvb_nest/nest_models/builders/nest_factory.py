@@ -5,7 +5,7 @@ import shutil
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_nest.config import CONFIGURED, ServerConfig, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.devices import \
     NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
 
@@ -52,7 +52,28 @@ def configure_nest_kernel(nest_instance, config=CONFIGURED):
     nest_instance.SetKernelStatus(kernel_config)
     return nest_instance
 
-    
+
+def stop_nest_server_client(config=None):
+    if config is None:
+        config = ServerConfig(initialize_logger=False)
+    try:
+        # Just in case NEST Server is hanging...
+        exec("%s/bin/nest-server stop" % config.NEST_PATH)
+    except:
+        pass
+
+
+def start_nest_server_client(config=None, nest_server_client_type=None, **kwargs):
+    if config is None:
+        config = ServerConfig(initialize_logger=False)
+    if nest_server_client_type is None:
+        from tvb_multiscale.tvb_nest.nest_models.server_client.nest_server_client import NESTServerClient
+        nest_server_client_type = NESTServerClient
+    stop_nest_server_client(config)
+    exec("/opt/nest/bin/-server start")
+    return nest_server_client_type(**kwargs)
+
+
 def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     """Function to compile NEST modules.
        Arguments:
