@@ -242,8 +242,8 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
                     return self._from_transforming_to_sending(block)
                 return self.transformer_ref_obj
             else:
-                self._data = self.transform_data(data)
-                return self._send_data(data=data, block=block)
+                return self._send_data(data=self.transform_data(data),
+                                       block=block)
         else:
             return self._send_data(block=block)
 
