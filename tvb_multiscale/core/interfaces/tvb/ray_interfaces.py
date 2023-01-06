@@ -380,7 +380,7 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
 
     def __call__(self, good_cosim_update_values_shape=None, block=False):
         if not self.is_running:
-            print("\nInitializing for this syncrun...")
+            print("\nInitializing cosim_updates for this syncrun...")
             # Initialize at first call for this instance of synchronization:
             self.cosim_updates, self.all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
             self.running_tasks_refs = [1] * self.number_of_interfaces
