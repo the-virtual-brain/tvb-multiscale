@@ -54,6 +54,8 @@ class RayReceiverInterface(HasTraits):
         elif self.receiving_ref_obj is not None:
             data = self.receiving_ref_obj.copy()
             self.receiving_ref_obj = None
+            if data[0][1] < data[0][0]:
+                return None
             return data
         else:
             return self.receiving_ref_obj
@@ -74,13 +76,16 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
         self.sending_ref_obj = None
         super(RayTVBSenderInterface, self).configure()
 
+    def send_data(self, data):
+        return super(RayTVBSenderInterface, self).__call__(data)
+
     def __call__(self, data=None, block=False):
         # Return:
         # None, if nothing to be done, i.e., sending has been finalized
         # sending_ref_obj if sending is running
         if data is not None:
-            self.sending_ref_obj = super(RayTVBSenderInterface, self).__call__(data)
-        return self._send_data(block)
+            self.sending_ref_obj = self.send_data(data)
+        return self._send_data(block=block)
 
 
 class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
@@ -98,12 +103,15 @@ class RayTVBReceiverInterface(TVBReceiverInterface, RayReceiverInterface):
         self.receiving_ref_obj = None
         super(RayTVBReceiverInterface, self).configure()
 
+    def receive_data(self):
+        return super(RayTVBReceiverInterface, self).__call__()
+
     def __call__(self, block=False):
         # Return:
         # data, if nothing to be done, i.e., receiving has been finalized
         # receiving_ref_obj if receiving is running
         if self.receiving_ref_obj is None:
-            self.receiving_ref_obj = super(RayTVBReceiverInterface, self).__call__()
+            self.receiving_ref_obj = self.receive_data()
         return self._receive_data(block)
 
 
@@ -115,13 +123,16 @@ class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderI
         self.sending_ref_obj = None
         super(RayTVBTransformerSenderInterface, self).configure()
 
+    def send_data(self, data):
+        return super(RayTVBTransformerSenderInterface, self).__call__(data)
+
     def __call__(self, data=None, block=False):
         # Return:
         # None, if nothing to be done, i.e., transforming and sending has been finalized
         # send_ref_obj if sending is running
         if data is not None:
-            self.sending_ref_obj = super(RayTVBTransformerSenderInterface, self).__call__(data)
-        return self._send_data(block)
+            self.sending_ref_obj = self.send_data(data)
+        return self._send_data(block=block)
 
 
 class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayReceiverInterface):
@@ -132,6 +143,9 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
     def configure(self):
         self.receiving_ref_obj = None
         super(RayTVBReceiverTransformerInterface, self).configure()
+
+    def receive_data(self):
+        return super(RayTVBReceiverTransformerInterface, self).__call__()
 
     def __call__(self, block=False):
         # Return:
@@ -144,8 +158,27 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
                     self.spiking_simulator.block_run  # BLOCK until spikeNet integration is over
                 else:
                     return self.spiking_simulator.run_task_ref_obj
-            self.receiving_ref_obj = super(RayTVBReceiverTransformerInterface, self).__call__(block)
+            self.receiving_ref_obj = self.receive_data()
         return self._receive_data(block)
+
+
+def check_data(data, msg=""):
+    print("\n" + msg)
+    print("type=%s" % str(type(data)))
+    print("len=%d" % len(data))
+    types = [type(d) for d in data]
+    print("types=%s" % str(types))
+    shapes = [d.shape for d in data]
+    print("shapes=%s" % str(shapes))
+    if data[-1].size > 0:
+        try:
+            isnans = np.isnan(data[-1])
+            if np.all(isnans):
+                print("All NaNs!")
+            elif np.any(isnans):
+                print("Some NaNs found!")
+        except Exception as e:
+            print("\nWTF?: %s" % str(data))
 
 
 class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
@@ -166,21 +199,24 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
             self.ray_transformer_flag = True
         super(RayTVBtoSpikeNetInterface, self).configure()
 
-    def _send_data(self, block=False):
+    def _send_data(self, data=None, block=False):
         if self.sending_ref_obj is None:
             if self.spiking_simulator.is_running:
                 if block:
                     self.spiking_simulator.block_run
                 else:
                     return self.spiking_simulator.run_task_ref_obj
-            self.sending_ref_obj = self.set_proxy_data(self._data.copy())
+            if data is None:
+                data = self._data.copy()
+            check_data(data, msg="Sending transformed data from TVB!")
+            self.sending_ref_obj = self.send_data(data)
             self._data = None
-        return super(RayTVBtoSpikeNetInterface, self)._send_data(block)
+        return super(RayTVBtoSpikeNetInterface, self)._send_data(block=block)
 
     def _from_transforming_to_sending(self, block=False):
         self._data = ray.get(self.transformer_ref_obj)
         self.transformer_ref_obj = None
-        return self._send_data(block)
+        return self._send_data(self._data, block=block)
 
     def __call__(self, data=None, block=False):
         # Return:
@@ -199,18 +235,17 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
                     return self.transformer_ref_obj
         elif data is not None:
             # This is the case when the interface has to start the process by transforming TVB data...
+            data = self.reshape_data(data)
             if self.ray_transformer_flag:
                 self.transformer_ref_obj = self.transformer(data=data[1], time=data[0])
                 if block:
                     return self._from_transforming_to_sending(block)
                 return self.transformer_ref_obj
             else:
-                self.transformer.input_time = data[0]
-                self.transformer.input_buffer = data[1]
-                self._data = self.transformer()
-                return self._send_data(block)
+                self._data = self.transform_data(data)
+                return self._send_data(data=data, block=block)
         else:
-            return self._send_data(block)
+            return self._send_data(block=block)
 
 
 class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
@@ -230,7 +265,8 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
         super(RaySpikeNetToTVBInterface, self).configure()
 
     def _get_transformed_data_block(self):
-        data = ray.get(self.transformer_ref_obj)
+        data = self.reshape_data(
+            ray.get(self.transformer_ref_obj))
         self.transformer_ref_obj = None
         return data
 
@@ -252,24 +288,23 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
         else:
             return None
 
+    def receive_data(self):
+        return super(RaySpikeNetToTVBInterface, self).receive_data()
+
     def _receive_and_transform(self, block=False):
-        # Spiking simulation is done, receive data, which is blocking by definition:
-        self.receive_ref_obj = self._receive_data(block)
-        if isinstance(self.receiving_ref_obj, ray._raylet.ObjectRef):
-            return self.receive_ref_obj
-        elif self.receiving_ref_obj is None:
-            return None
-        data = self.receive_ref_obj.copy()
-        self.receive_ref_obj = None
-        if data[0][1] < data[0][0]:
-            return None
+        # Spiking simulation is done, receive data:
+        if self.receiving_ref_obj is None:
+            self.receiving_ref_obj = self.receive_data()
+        data = self._receive_data(block)
+        if isinstance(data, ray._raylet.ObjectRef) or data is None:
+            return data
+        check_data(data, msg="Received data from NEST!")
         # Send data to transformer and start transforming:
         if self.ray_transformer_flag:
-            return self._ray_transform(data, block)
+            return self._ray_transform(data=data, block=block)
         else:
-            self.transformer.input_time = data[0]
-            self.transformer.output_time = data[1]
-            return self.transformer()
+            return self.reshape_data(
+                self.transform_data(data))
 
     def __call__(self, block=False):
         # Return:
@@ -281,7 +316,7 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
             # This is the case when a remote transformer is running...
             return self._ray_transform(block=block)
         else:
-            return self._receive_and_transform(block)
+            return self._receive_and_transform(block=block)
 
 
 class RayTVBOutputInterfaces(TVBOutputInterfaces):
@@ -345,23 +380,27 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
 
     def __call__(self, good_cosim_update_values_shape=None, block=False):
         if not self.is_running:
+            print("\nInitializing for this syncrun...")
             # Initialize at first call for this instance of synchronization:
             self.cosim_updates, self.all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
             self.running_tasks_refs = [1] * self.number_of_interfaces
         for ii, (interface, running_task_ref) in enumerate(zip(self.interfaces, self.running_tasks_refs)):
             if self.running_tasks_refs[ii] is not None:
+                print("\nNot running...Get data...")
                 # Get data or reference to a remote task of receiving annd/or transforming data:
                 self.running_tasks_refs[ii] = interface(block=block)
                 if not isinstance(self.running_tasks_refs[ii], ray._raylet.ObjectRef)  \
                     and self.running_tasks_refs[ii] is not None:
                     # It is data, place them to cosim_updates
                     data = self.running_tasks_refs[ii].copy()
+                    print("\nIt must be data: %s..." % str(type(data)))
                     self.cosim_updates, time_steps = \
                         self._set_data_from_interface(self.cosim_updates, interface,
                                                       data, good_cosim_update_values_shape)
                     self.all_time_steps += time_steps.tolist()
                     self.running_tasks_refs[ii] = None
         if np.all([running_task_ref is None for running_task_ref in self.running_tasks_refs]):
+            print("\nAll interfaces finished. Returning data!")
             self.running_tasks_refs = []
             # Return cosim_updates data:
             inputs = self.get_inputs(self.cosim_updates, self.all_time_steps, good_cosim_update_values_shape)
@@ -369,6 +408,7 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
             self.all_time_steps = []
             return inputs
         else:
+            print("\nStill some interfaces running....!")
             return self.running_tasks_refs
 
 
