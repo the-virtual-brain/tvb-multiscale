@@ -109,7 +109,7 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
             # 2. Get data from spikeNet and start processing them
             # Receive and transform TVB <- spikeNet
             cosim_updates = self._get_cosim_updates(cosimulation, block=False)  # NON BLOCKING
-
+            # print("\nNONBLOCK cosim_updates %s" % str(type(cosim_updates)))
             # 3. Start simulating spikeNet as long as the TVB data have arrived.
             # Integrate spikeNet
             self.log.info("Simulating the spiking network for %d time steps...",
@@ -124,8 +124,9 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         # 4. Start simulating TVB as long as the spikeNet data have been processed.
         # Integrate TVB
         current_step = int(self.current_step)
-        for data in self(cosim_updates=self._get_cosim_updates(cosimulation,
-                                                               block=True, cosim_updates=cosim_updates),  # BLOCKING
+        cosim_updates = self._get_cosim_updates(cosimulation, block=True, cosim_updates=cosim_updates)
+        # print("\nBLOCK cosim_updates %s" % str(type(cosim_updates)))
+        for data in self(cosim_updates=cosim_updates,  # BLOCKING
                          **kwds):
             for tl, xl, t_x in zip(ts, xs, data):
                 if t_x is not None:
