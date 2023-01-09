@@ -381,7 +381,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                 cosim_updates = None
                 self.log.warning("No or all NaN valued cosimulator updates at time step %d!" % self.current_step)
             elif numpy.any(isnans):
-                self.log.warning("NaN values detected in cosimulator updates at time step %d!" % self.current_step)
+                msg = "NaN values detected in cosimulator updates at time step %d!" % self.current_step
+                self.log.error(msg)
+                raise Exception(msg)
         return cosim_updates
 
     def _send_cosim_coupling(self, cosimulation=True):
