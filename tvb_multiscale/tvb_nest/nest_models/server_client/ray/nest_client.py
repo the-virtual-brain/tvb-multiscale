@@ -2,7 +2,7 @@
 
 import ray
 
-from tvb_multiscale.tvb_nest.nest_models.server_client.nest_client_base import NESTClientAsyncBase
+from tvb_multiscale.tvb_nest.nest_models.server_client.nest_client_base import NESTClientAsyncBase  #, decode_args_kwargs
 from tvb_multiscale.tvb_nest.nest_models.server_client.node_collection import NodeCollection
 from tvb_multiscale.tvb_nest.nest_models.server_client.synapse_collection import SynapseCollection
 
@@ -30,6 +30,8 @@ class RayNESTClient(NESTClientAsyncBase):
             return getattr(self.nest_server, "nest").remote(call, *args, **kwargs)
 
     def request(self, call, *args, **kwargs):
+        # args2, kwargs2 = decode_args_kwargs(args, kwargs)
+        # return ray.get(self.async_request(call, *args2, **kwargs2))
         return ray.get(self.async_request(call, *args, **kwargs))
 
     def get(self, nodes, *params, block=True, **kwargs):

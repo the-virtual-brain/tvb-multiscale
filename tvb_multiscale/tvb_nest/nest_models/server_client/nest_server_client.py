@@ -7,7 +7,7 @@ import numpy as np
 
 from NESTServerClient import NESTServerClient as NESTServerClientBase
 
-from tvb_multiscale.tvb_nest.nest_models.server_client.nest_client_base import NESTClientBase
+from tvb_multiscale.tvb_nest.nest_models.server_client.nest_client_base import NESTClientBase  # , decode_args_kwargs
 
 
 def encode(response):
@@ -17,9 +17,27 @@ def encode(response):
         raise BadRequest(response.text)
 
 
+# import json
+# class NpEncoder(json.JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, np.integer):
+#             return int(obj)
+#         if isinstance(obj, np.floating):
+#             return float(obj)
+#         if isinstance(obj, np.ndarray):
+#             return obj.tolist()
+#         return json.JSONEncoder.default(self, obj)
+
+
 def nest_server_request(url, headers, call, *args, **kwargs):
+    # args2, kwargs2 = decode_args_kwargs(args, kwargs)
+    # kwargs2.update({'args': args2})
+    # response = requests.post(url + 'api/' + call, data=json.dumps(kwargs2.copy(), cls=NpEncoder), headers=headers)
     kwargs.update({'args': args})
     response = requests.post(url + 'api/' + call, json=kwargs, headers=headers)
+    if not response.ok:
+        print("\nResponse NOT OK!:")
+        print(kwargs)
     return encode(response)
 
 

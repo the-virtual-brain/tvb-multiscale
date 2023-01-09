@@ -8,6 +8,61 @@ from tvb_multiscale.tvb_nest.nest_models.server_client.node_collection import No
 from tvb_multiscale.tvb_nest.nest_models.server_client.synapse_collection import SynapseCollection
 
 
+# def decode_numpy(inarr):
+#     outlist = []
+#     for elem in inarr:
+#         if elem.size == 0:
+#             outlist.append(elem)
+#         elif elem.size == 1:
+#             outlist.append(elem.item())
+#         else:
+#             outlist.append(decode_numpy(elem))
+#     return outarr
+
+
+# import numpy as np
+# def decode_list(lin):
+#     lout = list()
+#     for ll in lin:
+#         if isinstance(ll, np.ndarray):
+#             print("\nnumpy array!: %s" % str(ll))
+#             lout.append(ll.tolist())
+#             print("\ntolist: %s" % str(lout[-1]))
+#         elif isinstance(ll, dict):
+#             lout.append(decode_dict(ll))
+#         elif isinstance(ll, list):
+#             lout.append(decode_list(ll))
+#         else:
+#             lout.append(ll)
+#     return lout
+#
+#
+# def decode_tuple(tin):
+#     return tuple(decode_list(list(tin)))
+#
+#
+# def decode_dict(din):
+#     dout = dict()
+#     for key, val in din.items():
+#         if isinstance(val, np.ndarray):
+#             # print("\nnumpy array!: %s" % str(val))
+#             dout[key] = val.tolist()
+#             # print("\nnumpy array!: %s" % str(dout[key]))
+#         elif isinstance(val, dict):
+#             dout[key] = decode_dict(val)
+#         elif isinstance(val, list):
+#             dout[key] = decode_list(val)
+#         elif isinstance(val, tuple):
+#             dout[key] = decode_tuple(val)
+#         else:
+#             dout[key] = val
+#     return dout
+#
+#
+# def decode_args_kwargs(argsin, kwargsin):
+#     return decode_list(argsin), decode_dict(kwargsin)
+
+
 class NESTClientBase(object):
 
     def __getstate__(self):
