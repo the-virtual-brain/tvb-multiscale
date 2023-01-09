@@ -381,27 +381,27 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
 
     def __call__(self, good_cosim_update_values_shape=None, block=False):
         if not self.is_running:
-            print("\nInitializing cosim_updates for this syncrun...")
+            # print("\nInitializing cosim_updates for this syncrun...")
             # Initialize at first call for this instance of synchronization:
             self.cosim_updates, self.all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
             self.running_tasks_refs = [1] * self.number_of_interfaces
         for ii, (interface, running_task_ref) in enumerate(zip(self.interfaces, self.running_tasks_refs)):
             if self.running_tasks_refs[ii] is not None:
-                print("\nNot running...Get data...")
+                # print("\nNot running...Get data...")
                 # Get data or reference to a remote task of receiving annd/or transforming data:
                 self.running_tasks_refs[ii] = interface(block=block)
                 if not isinstance(self.running_tasks_refs[ii], ray._raylet.ObjectRef)  \
                     and self.running_tasks_refs[ii] is not None:
                     # It is data, place them to cosim_updates
                     data = self.running_tasks_refs[ii].copy()
-                    print("\nIt must be data: %s..." % str(type(data)))
+                    # print("\nIt must be data: %s..." % str(type(data)))
                     self.cosim_updates, time_steps = \
                         self._set_data_from_interface(self.cosim_updates, interface,
                                                       data, good_cosim_update_values_shape)
                     self.all_time_steps += time_steps.tolist()
                     self.running_tasks_refs[ii] = None
         if np.all([running_task_ref is None for running_task_ref in self.running_tasks_refs]):
-            print("\nAll interfaces finished. Returning data!")
+            # print("\nAll interfaces finished. Returning data!")
             self.running_tasks_refs = []
             # Return cosim_updates data:
             inputs = self.get_inputs(self.cosim_updates, self.all_time_steps, good_cosim_update_values_shape)
@@ -409,7 +409,7 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
             self.all_time_steps = []
             return inputs
         else:
-            print("\nStill some interfaces running....!")
+            # print("\nStill some interfaces running....!")
             return self.running_tasks_refs
 
 
