@@ -162,23 +162,24 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
         return self._receive_data(block)
 
 
-def check_data(data, msg=""):
-    print("\n" + msg)
-    print("type=%s" % str(type(data)))
-    print("len=%d" % len(data))
-    types = [type(d) for d in data]
-    print("types=%s" % str(types))
-    shapes = [d.shape for d in data]
-    print("shapes=%s" % str(shapes))
-    if data[-1].size > 0:
-        try:
-            isnans = np.isnan(data[-1])
-            if np.all(isnans):
-                print("All NaNs!")
-            elif np.any(isnans):
-                print("Some NaNs found!")
-        except Exception as e:
-            print("\nWTF?: %s" % str(data))
+# def check_data(data, msg=""):
+#     print("\n" + msg)
+#     print("type=%s" % str(type(data)))
+#     print("len=%d" % len(data))
+#     types = [type(d) for d in data]
+#     print("types=%s" % str(types))
+#     shapes = [d.shape for d in data]
+#     print("shapes=%s" % str(shapes))
+#     if data[-1].size > 0:
+#         try:
+#             isnans = np.isnan(data[-1])
+#             if np.all(isnans):
+#                 print("All NaNs!")
+#             elif np.any(isnans):
+#                 print("Some NaNs found!")
+#         except Exception as e:
+#             pass
+#             #print("\nWTF?: %s" % str(data))
 
 
 class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
@@ -208,7 +209,7 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
                     return self.spiking_simulator.run_task_ref_obj
             if data is None:
                 data = self._data.copy()
-            check_data(data, msg="Sending transformed data from TVB!")
+            # check_data(data, msg="Sending transformed data from TVB!")
             self.sending_ref_obj = self.send_data(data)
             self._data = None
         return super(RayTVBtoSpikeNetInterface, self)._send_data(block=block)
@@ -298,7 +299,7 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
         data = self._receive_data(block)
         if isinstance(data, ray._raylet.ObjectRef) or data is None:
             return data
-        check_data(data, msg="Received data from NEST!")
+        # check_data(data, msg="Received data from NEST!")
         # Send data to transformer and start transforming:
         if self.ray_transformer_flag:
             return self._ray_transform(data=data, block=block)
