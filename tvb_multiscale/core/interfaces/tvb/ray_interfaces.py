@@ -201,16 +201,18 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
         super(RayTVBtoSpikeNetInterface, self).configure()
 
     def _send_data(self, data=None, block=False):
+        if data is None and self._data is not None:
+            data = self._data.copy()
         if self.sending_ref_obj is None:
             if self.spiking_simulator.is_running:
                 if block:
                     self.spiking_simulator.block_run
                 else:
+                    self._data = data
                     return self.spiking_simulator.run_task_ref_obj
-            if data is None:
-                data = self._data.copy()
-            # check_data(data, msg="Sending transformed data from TVB!")
-            self.sending_ref_obj = self.send_data(data)
+            if data is not None:
+                # check_data(data, msg="Sending transformed data from TVB!")
+                self.sending_ref_obj = self.send_data(data)
             self._data = None
         return super(RayTVBtoSpikeNetInterface, self)._send_data(block=block)
 
@@ -340,10 +342,10 @@ class RayTVBOutputInterfaces(TVBOutputInterfaces):
 
     def __call__(self, data=None, block=False):
         if data is None:
-            for ii, (interface, running_task_ref) in enumarete(zip(self.interfaces, self.running_tasks_refs)):
+            for ii, (interface, running_task_ref) in enumerate(zip(self.interfaces, self.running_tasks_refs)):
                 if running_task_ref is not None:
                     # Only if there is a transforming or sending task pending, rerun the interface:
-                    self.running_task_refs[ii] = interface(block=block)
+                    self.running_tasks_refs[ii] = interface(block=block)
         else:
             # This is the case we need to transform data before sending them:
             for interface in self.interfaces:
