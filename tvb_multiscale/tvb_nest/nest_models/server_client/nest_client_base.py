@@ -303,7 +303,7 @@ class NESTClientAsyncBase(NESTClientBase):
         self.run_task_ref_obj = None
         return self.run_task_ref_obj
 
-    def _run(self, method, time, block=True):
+    def _run(self, method, time, block=False):
         if not self.is_running:
             if method.lower() == "simulate":
                 method = "Simulate"
@@ -325,15 +325,15 @@ class NESTClientAsyncBase(NESTClientBase):
     #     else:
     #         return self.async_request("Prepare")
 
-    def Run(self, time, block=True):
+    def Run(self, time, block=False):
         return self._run("Run", time, block)
 
-    def RunLock(self, time, ref_objs=[]):
+    def RunLock(self, time, ref_objs=[], block=False):
         if len(ref_objs):
             ray.get(ref_objs)
-        return self._run("Run", time, block=True)
+        return self._run("Run", time, block=block)
 
-    def Simulate(self, time, block=True):
+    def Simulate(self, time, block=False):
         return self._run("Simulate", time, block)
 
     # def Cleanup(self, block=True):
