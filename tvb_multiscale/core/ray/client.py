@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from types import MethodType
+from types import FunctionType, MethodType
 
 import ray
 
@@ -9,7 +9,10 @@ from tvb_multiscale.core.ray.server import create_ray_server
 
 class RayClient(object):
 
-    def __init__(self, ray_server):
+    _own_attributes = ["ray", "ray_server"]
+
+    def __init__(self, ray_server, ray_module=ray):
+        self.ray = ray_module
         self.ray_server = ray_server
         super(RayClient, self).__init__()
 
@@ -17,7 +20,7 @@ class RayClient(object):
         return ray.get(self.ray_server.__getattribute__.remote(attr))
 
     def __setattr__(self, attr, value):
-        if attr.find("ray_server") > -1:
+        if attr in self._own_attributes:
             super(RayClient, self).__setattr__(attr, value)
         else:
             ray.get(self.ray_server.__setattr__.remote(attr, value))
@@ -30,37 +33,41 @@ class RayClient(object):
 
 
 def create_ray_client_function(name, parallel=False):
-
-    def ray_function(cls, *args, **kwargs):
-        return ray.get(getattr(cls.ray_server, name).remote(*args, **kwargs))
-
-    def ray_parallel_function(cls, *args, **kwargs):
-        return getattr(cls.ray_server, name).remote(*args, **kwargs)
-
     if parallel:
-        return ray_parallel_function
+        funcode = compile("def %s(cls, *args, **kwargs): "
+                          "return getattr(cls.ray_server, '%s').remote(*args, **kwargs)"
+                          % (name, name), "<string>", "exec")
     else:
-        return ray_function
+        funcode = compile("def %s(cls, *args, **kwargs): "
+                          "return cls.ray.get(getattr(cls.ray_server, '%s').remote(*args, **kwargs))"
+                          % (name, name), "<string>", "exec")
+    return FunctionType(funcode.co_consts[0], globals(), name)
 
 
-def create_ray_client(input_class, client_type=RayClient, non_blocking_methods=[], *args, **kwargs):
-
-    ray_server = create_ray_server(input_class, *args, **kwargs)
-
-    # RayClient.__name___ = "Ray%s" % input_class.__name__
-    client_type.ray_server = ray_server
-
+def create_ray_client_type_methods(ray_server, target_server_class, non_blocking_methods=[], attrs_dict={}):
+    # ...and add methods and properties derived from the target_server_class instance and its ray_server:
     for server_method in ray_server.__dict__['_ray_method_signatures']:
-        if hasattr(input_class, server_method) and \
+        if hasattr(target_server_class, server_method) and \
                 server_method not in ["__init__", "__getattribute__", "__getattr__", "__setattr__"]:
             if server_method in non_blocking_methods:
-                fun = create_ray_client_function(server_method, True)
+                parallel = True
             else:
-                fun = create_ray_client_function(server_method, False)
-            if isinstance(getattr(input_class, server_method), property):
-                setattr(client_type, server_method, property(fun))
-            else:
-                setattr(client_type, server_method, MethodType(fun, client_type))
+                parallel = False
+            attrs_dict[server_method] = create_ray_client_function(server_method, parallel)
+    return attrs_dict
 
-    return client_type(ray_server)
+
+def create_ray_client(target_server_class, ray_client_type=RayClient, non_blocking_methods=[], *args, **kwargs):
+    # Instantiate a Ray server to an instance of target_server_class:
+    ray_server = create_ray_server(target_server_class, *args, **kwargs)
+    # Generate a new ray client type based on ray_client_type...
+    # ...with the proper name:
+    new_ray_client_type_name = "%s%s" % (ray_client_type.__name__, target_server_class.__name__)
+    # ...and with the class' attributes' dictionary with all necessary methods:
+    d = create_ray_client_type_methods(ray_server, target_server_class, non_blocking_methods,
+                                       {'ray_server': None, 'ray': ray})
+    # ...this is the new type:
+    new_ray_client_type = type(new_ray_client_type_name, (ray_client_type,), d)
+    # Finally, generate an instance of this client and return it:
+    return new_ray_client_type(ray_server, ray)
 
