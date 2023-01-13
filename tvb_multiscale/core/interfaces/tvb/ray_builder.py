@@ -9,8 +9,9 @@ from tvb_multiscale.core.interfaces.tvb.ray_interfaces import \
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 
 
-def create_ray_transformer(transformer_type, **kwargs):
-    return create_ray_client(transformer_type, non_blocking_methods=["Run", "Simulate"], **kwargs)
+def create_ray_transformer(transformer_type, *args, **kwargs):
+    return create_ray_client(transformer_type,
+                             ray_client_type=RayClient, non_blocking_methods="__call__", *args, **kwargs)
 
 
 class RayTVBSpikeNetInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
@@ -29,13 +30,18 @@ class RayTVBSpikeNetInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
             # If it is a Ray Transformer Client already built, do nothing more
             return
         else:
+            parallel = False
             if isinstance(model, string_types) and model.find("Ray") == 0:
                 # If the user has given the Transformer model with the prefix Ray,
                 # remove the prefix and set the parallel flag to True
                 interface["transformer"] = model.split("Ray")[-1]
-                interface["parallel"] = True
+                parallel = True
             elif self.default_to_ray_transformer_flag is True:
-                interface["parallel"] = True
+                parallel = True
+            if parallel:
+                d = interface.get("transformer_params", {})
+                d["parallel"] = True
+                interface["transformer_params"] = d
         # Now it is safe to call the corresponding parent class method:
         super(RayTVBSpikeNetInterfaceBuilder, self)._configure_transformer_model(
             interface, interface_models, default_transformer_models, transformer_models)
