@@ -4,10 +4,10 @@ import ray
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr
-
-from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits, Attr
+from tvb_multiscale.core.ray.client import RayClient
 from tvb_multiscale.core.interfaces.base.io import Sender, Receiver
+from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetInterface, SpikeNetToTVBInterface, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
     TVBOutputInterfaces, TVBInputInterfaces, SpikeNetInputInterfaces, SpikeNetOutputInterfaces
@@ -76,7 +76,7 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
         self.sending_ref_obj = None
         super(RayTVBSenderInterface, self).configure()
 
-    def send_data(self, data):
+    def transform_and_send_data(self, data):
         return super(RayTVBSenderInterface, self).__call__(data)
 
     def __call__(self, data=None, block=False):
@@ -84,7 +84,7 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
         # None, if nothing to be done, i.e., sending has been finalized
         # sending_ref_obj if sending is running
         if data is not None:
-            self.sending_ref_obj = self.send_data(data)
+            self.sending_ref_obj = self.transform_and_send_data(data)
         return self._send_data(block=block)
 
 
@@ -144,7 +144,7 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
         self.receiving_ref_obj = None
         super(RayTVBReceiverTransformerInterface, self).configure()
 
-    def receive_data(self):
+    def receive_and_transform_data(self):
         return super(RayTVBReceiverTransformerInterface, self).__call__()
 
     def __call__(self, block=False):
@@ -158,7 +158,7 @@ class RayTVBReceiverTransformerInterface(TVBReceiverTransformerInterface, RayRec
                     self.spiking_simulator.block_run  # BLOCK until spikeNet integration is over
                 else:
                     return self.spiking_simulator.run_task_ref_obj
-            self.receiving_ref_obj = self.receive_data()
+            self.receiving_ref_obj = self.receive_and_transform_data()
         return self._receive_data(block)
 
 
@@ -191,10 +191,18 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
     ray_transformer_flag = False
     _data = None  # temporary data buffer
 
+    transformer = Attr(
+        label="Transformer",
+        field_type=(Transformer, RayClient),
+        doc="""A Transformer class instance to process data.""",
+        required=True
+    )
+
     def configure(self):
         self.transformer_ref_obj = None
         self.sending_ref_obj = None
         self._data = None
+        assert isinstance(self.transformer, (Transformer, RayClient))
         self.ray_transformer_flag = False
         if self.transformer.__class__.__name__.find("Ray") > -1:
             self.ray_transformer_flag = True
@@ -259,9 +267,17 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
     transformer_ref_obj = None
     ray_transformer_flag = False
 
+    transformer = Attr(
+        label="Transformer",
+        field_type=(Transformer, RayClient),
+        doc="""A Transformer class instance to process data.""",
+        required=True
+    )
+
     def configure(self):
         self.transformer_ref_obj = None
         self.receive_ref_obj = None
+        assert isinstance(self.transformer, (Transformer, RayClient))
         self.ray_transformer_flag = False
         if self.transformer.__class__.__name__.find("Ray") > -1:
             self.ray_transformer_flag = True
@@ -301,6 +317,8 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
         data = self._receive_data(block)
         if isinstance(data, ray._raylet.ObjectRef) or data is None:
             return data
+        elif data[0][1] < data[0][0]:
+            return None
         # check_data(data, msg="Received data from NEST!")
         # Send data to transformer and start transforming:
         if self.ray_transformer_flag:
