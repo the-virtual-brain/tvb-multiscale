@@ -86,7 +86,8 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                     if isinstance(cosim_update, ray._raylet.ObjectRef):
                         cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape, block=block)
                         break
-        if cosim_updates is not None and np.all(np.isnan(cosim_updates[-1])):
+        if cosim_updates is not None and isinstance(cosim_updates[-1], np.ndarray) \
+                and np.all(np.isnan(cosim_updates[-1])):
             cosim_updates = None
         return cosim_updates
 
