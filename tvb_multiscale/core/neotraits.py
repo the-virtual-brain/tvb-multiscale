@@ -1,11 +1,81 @@
 # -*- coding: utf-8 -*-
 
+import types
 import typing
+import inspect
 from collections import OrderedDict
 
+from tvb.basic.neotraits._attr import Attr as AttrTVB
 from tvb.basic.neotraits.api import HasTraits as HasTraitsTVB
 from tvb.basic.neotraits.ex import TraitError
 from tvb_multiscale.core.utils.data_structures_utils import trait_object_str, trait_object_repr_html, summary_info
+
+
+class Attr(AttrTVB):
+
+    def __init__(
+            self, field_type, default=None, doc='', label='', required=True, final=False, choices=None
+    ):
+        # type: ((type, tuple), typing.Any, str, str, bool, bool, typing.Optional[tuple]) -> None
+        """
+        :param field_type: the python type of this attribute or a tuple of such possible types
+        :param default: A shared default value. Behaves like class level attribute assignment.
+                        Take care with mutable defaults.
+        :param doc: Documentation for this field.
+        :param label: A short description.
+        :param required: required fields should not be None.
+        :param final: Final fields can only be assigned once.
+        :param choices: A tuple of the values that this field is allowed to take.
+        """
+        if not isinstance(field_type, tuple):
+            field_type = tuple([field_type])
+        super(Attr, self).__init__(field_type[0], default, doc, label, required, final, choices)
+        self.field_type = field_type
+
+    def __validate(self, value):
+        """ check field_type and choices """
+        if not isinstance(value, self.field_type) and not (
+                inspect.isclass(self.default) and issubclass(value, self.field_type)):
+            raise TraitTypeError("Attribute can't be set to an instance of {}".format(type(value)), attr=self)
+        if self.choices is not None:
+            if value not in self.choices and not (value is None and not self.required):
+                raise TraitValueError("Value {!r} must be one of {}".format(value, self.choices), attr=self)
+
+    def _post_bind_validate(self):
+        # type: () -> None
+        """
+        Validates this instance of Attr.
+        This is called just after field_name is set, by MetaType.
+        We do checks here and not in init in order to give better error messages.
+        Attr should be considered initialized only after this has run
+        """
+        if not isinstance(self.field_type, type):
+            if isinstance(self.field_type, tuple):
+                for it, typ in enumerate(self.field_type):
+                    if not isinstance(typ, type):
+                        msg = 'Every element of field_type must be type but the {!r}th one is {!r}.'.format(it+1, typ)
+                        raise TraitTypeError(msg, attr=self)
+            else:
+                msg = 'Field_type must be a type or tuple of types not {!r}. Did you mean to declare a default?'.format(
+                    self.field_type
+                )
+                raise TraitTypeError(msg, attr=self)
+
+        skip_default_checks = self.default is None or isinstance(self.default, types.FunctionType)
+
+        if not skip_default_checks:
+            self.__validate(self.default)
+
+        # heuristic check for mutability. might be costly. hasattr(__hash__) is fastest but less reliable
+        try:
+            hash(self.default)
+        except TypeError:
+            from tvb_multiscale.core.config import initialize_logger
+            LOG = initialize_logger(__name__)
+            LOG.warning('Field seems mutable and has a default value. '
+                        'Consider using a lambda as a value factory \n   attribute {}'.format(self))
+        # we do not check here if we have a value for a required field
+        # it is too early for that, owner.__init__ has not run yet
 
 
 class HasTraits(HasTraitsTVB):
