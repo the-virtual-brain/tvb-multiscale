@@ -211,9 +211,9 @@ def build_NEST_network(config=None):
 
     if 'eglif_cond_alpha_multisyn' not in nest.Models():
         try:
-            nest.Install('cerebmodule')
             if config.VERBOSE:
                 print("Installing cereb module...")
+            nest.Install('cerebmodule')
         except:
             if config.VERBOSE:
                 print("FAILED! Needing to compile it first!")
