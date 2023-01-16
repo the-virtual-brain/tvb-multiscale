@@ -137,10 +137,10 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         """A method to compute mean (across time) rate from an input of spikes' events or spikes' times
            using the elephant.statistics.mean_firing_rate method.
            Arguments:
-            - spikes: a neo.core.SpikeTrain or
-                      an array of spikes' times or a dict with a key-value pair of "times" and spikes' times array
-            - number_of_neurons=1: the number (integer) of neurons
-            - duration: Default=None, in which case it is computed by start_time and end_time
+            - spikes_times: a neo.core.SpikeTrain or
+                            an array of spikes' times or a dict with a key-value pair of "times" and spikes' times array
+            - res_type: the name of the result
+            - **elephant_kwargs: kwargs to the elephant mean firing rate function
            Returns:
             - the mean rate (float)
             - the neo.core.SpikeTrain used for the computation
