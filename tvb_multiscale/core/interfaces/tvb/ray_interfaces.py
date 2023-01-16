@@ -28,7 +28,7 @@ class RaySenderInterface(HasTraits):
                 return self._send_data_block()
             else:
                 running, done = ray.wait([self.sending_ref_obj])
-                if len(done):
+                if len(running) == 0:
                     self.sending_ref_obj = None
         return self.sending_ref_obj
 
@@ -48,7 +48,7 @@ class RayReceiverInterface(HasTraits):
                 return self._receive_data_block()
             else:
                 running, done = ray.wait([self.receiving_ref_obj])
-                if len(done):
+                if len(running) == 0:
                     return self._receive_data_block()
             return self.receiving_ref_obj
         elif self.receiving_ref_obj is not None:
@@ -240,7 +240,7 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
                 return self._from_transforming_to_sending(block)
             else:
                 running, done = ray.wait([self.transformer_ref_obj])
-                if len(done):
+                if len(running) == 0:
                     return self._from_transforming_to_sending(block)
                 else:
                     return self.transformer_ref_obj
@@ -292,7 +292,7 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
     def _ray_transform(self, data=None, block=False):
         if isinstance(self.transformer_ref_obj, ray._raylet.ObjectRef):
             running, done = ray.wait([self.transformer_ref_obj])
-            if len(done):
+            if block or len(running) == 0:
                 return self._get_transformed_data_block()
             else:
                 return self.transformer_ref_obj
