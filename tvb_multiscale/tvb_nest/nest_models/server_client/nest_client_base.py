@@ -122,14 +122,20 @@ class NESTClientBase(object):
         else:
             return self.NodeCollection(())
 
+    def _get_kwargs_for_GetConnections(self, **kwargs):
+        for source_or_target in ["source", "target"]:
+            if source_or_target in kwargs:
+                if kwargs[source_or_target] is None:
+                    del kwargs[source_or_target]
+                elif isinstance(kwargs[source_or_target], NodeCollection):
+                    kwargs[source_or_target] = self._node_collection_to_gids(kwargs[source_or_target])
+        return kwargs
+
     def GetConnections(self, source=None, target=None, synapse_model=None, synapse_label=None):
-        if isinstance(source, NodeCollection):
-            source = self._node_collection_to_gids(source)
-        if isinstance(target, NodeCollection):
-            target = self._node_collection_to_gids(target)
         conns = self.request("GetConnections",
-                             source=source, target=target,
-                             synapse_model=synapse_model, synapse_label=synapse_label)
+                             **self._get_kwargs_for_GetConnections(source=source, target=target,
+                                                                   synapse_model=synapse_model,
+                                                                   synapse_label=synapse_label))
         if isinstance(conns, dict):
             return self.SynapseCollection(conns)
         return conns
@@ -267,17 +273,15 @@ class NESTClientAsyncBase(NESTClientBase):
             return self.NodeCollection(())
 
     def GetConnections(self, source=None, target=None, synapse_model=None, synapse_label=None, block=True):
-        if isinstance(source, NodeCollection):
-            source = self._node_collection_to_gids(source)
-        if isinstance(target, NodeCollection):
-            target = self._node_collection_to_gids(target)
         if block:
-            return super(NESTClientAsyncBase, self).GetConnections(
-                source=source, target=target, synapse_model=synapse_model, synapse_label=synapse_label)
+            return super(NESTClientAsyncBase, self).GetConnections(source=source, target=target,
+                                                                   synapse_model=synapse_model,
+                                                                   synapse_label=synapse_label)
         else:
             return self.async_request("GetConnections",
-                                      source=source, target=target,
-                                      synapse_model=synapse_model, synapse_label=synapse_label)
+                                      **self._get_kwargs_for_GetConnections(source=source, target=target,
+                                                                            synapse_model=synapse_model,
+                                                                            synapse_label=synapse_label))
 
     def GetNodes(self, properties={}, local_only=False, block=True):
         if block:
