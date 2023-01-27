@@ -15,7 +15,7 @@ def test( dt = 0.1, duration = 100, config=CONFIGURED ):
     connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
     connectivity.configure()
 
-    nodes = [ 0 ] # tvb-multiscale/examples/data/tvb_data/berlinSubjects/QL_20120814 ?
+    nodes = [0, 1] # the indices of fine scale regions modeled with NetPyNE
 
     simulator = Simulator()
     simulator.integrator.dt = dt
