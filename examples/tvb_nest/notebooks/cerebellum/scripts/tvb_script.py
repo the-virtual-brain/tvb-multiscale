@@ -165,11 +165,11 @@ def build_connectivity(connectome, inds, config):
     # Retain connections
     # from spinal nucleus of the trigeminal to S1 barrel field specific thalamus:
     w_s1brlthal_trigeminal = connectivity.weights[inds["s1brlthal"], inds["trigeminal"]].copy()
-    # from interposed nucleus to M1:
-    w_m1thal_cerebnuclei = connectivity.weights[inds["m1thal"], inds["interposed"]].copy()
+    # from merged Cerebellar Nuclei to M1:
+    w_m1thal_cerebnuclei = connectivity.weights[inds["m1thal"], inds["cereb_nuclei"]].copy()
     connectivity.weights[inds["thalspec"][:, None], inds["subcrtx_not_thalspec"][None, :]] = 0.0
     connectivity.weights[inds["s1brlthal"], inds["trigeminal"]] = w_s1brlthal_trigeminal
-    connectivity.weights[inds["m1thal"], inds["interposed"]] = w_m1thal_cerebnuclei
+    connectivity.weights[inds["m1thal"], inds["cereb_nuclei"]] = w_m1thal_cerebnuclei
 
     # Homogenize crtx <-> subcrtx connnectivity
     # connectivity.weights[inds["crtx"][:, None], inds["subcrtx_not_thalspec"][None, :]] *= 0.0 # 0.0 # 0.02
@@ -243,7 +243,7 @@ def build_model(number_of_regions, inds, maps, config):
     # Retain connections
     # from spinal nucleus of the trigeminal to S1 barrel field specific thalamus:
     model.G[inds["s1brlthal"]] = model.G[inds["crtx"][0]]
-    # from interposed nucleus to M1:
+    # from Cerebellar Nuclei to M1:
     model.G[inds["m1thal"]] = model.G[inds["crtx"][0]]
 
     return model
@@ -834,7 +834,7 @@ def plot_tvb(transient, inds,
                                        per_variable=source_ts_sens.shape[1] > MAX_VARS_IN_COLS,
                                        figsize=FIGSIZE, figname="Sensory pathway TVB Time Series")
 
-    # Focus on regions potentially modelled in NEST (ansiform lobule, interposed nucleus, inferior olive):
+    # Focus on regions potentially modelled in NEST (ansiform lobule, Cerebellar Nuclei, inferior olive):
     if source_ts is not None:
         source_ts_cereb = source_ts[-10000:, :, inds["cereb"]]
         source_ts_cereb.plot_timeseries(plotter_config=plotter.config,

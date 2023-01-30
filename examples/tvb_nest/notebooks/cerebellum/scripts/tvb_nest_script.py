@@ -143,7 +143,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # These are user defined Spiking Network -> TVB interfaces configurations:
     pops = ["granule_cell", "dcn_cell_glut_large", "io_cell"]
     regs = [['Right Ansiform lobule', 'Left Ansiform lobule'],
-            ['Right Interposed nucleus', 'Left Interposed nucleus'],
+            ['Right Cerebellar Nuclei', 'Left Cerebellar Nuclei'],
             ['Right Inferior olivary complex', 'Left Inferior olivary complex']]
     if config.NEST_PERIPHERY:
         pops = ["parrot_medulla", "parrot_ponssens"] + pops
