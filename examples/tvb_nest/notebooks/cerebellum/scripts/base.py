@@ -187,7 +187,8 @@ def configure(**ARGS):
          "FIC": {"min": 0.0, "max": 2.0, "loc": 1.0, "sc": 0.25},
          "FIC_SPLIT": {"min": 0.0, "max": 0.5, "loc": 0.25, "sc": 0.05}
         }
-    config.PRIORS_PARAMS_NAMES = ['I_s']  # 'STIMULUS',  , 'w_ie', 'w_rs', 'FIC',
+
+    config.PRIORS_PARAMS_NAMES = ['I_s']  # 'STIMULUS', 'w_ie', 'w_rs', 'FIC',
     if config.FIC == "fit":
         config.FIC = 1.0
         config.PRIORS_PARAMS_NAMES.append("FIC")

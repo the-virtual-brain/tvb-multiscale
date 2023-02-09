@@ -15,8 +15,10 @@ from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneInputDeviceSet, NetpyneOutputDeviceSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 
+
 TVBtoNetpyneModels = TVBtoSpikeNetModels
 NetpyneToTVBModels = SpikeNetToTVBModels
+
 
 class NetpyneInterface(HasTraits):
     __metaclass__ = ABCMeta
@@ -41,7 +43,7 @@ class NetpyneInterface(HasTraits):
         return self.netpyne_instance.time
 
 
-class NetpyneOutputInterface(SpikeNetOutputInterface, NetpyneInterface):
+class NetpyneOutputInterface(NetpyneInterface, SpikeNetOutputInterface):
 
     """NetpyneOutputInterface base class for interfaces sending data from NetPyNE."""
 
@@ -75,7 +77,7 @@ class NetpyneInputInterface(NetpyneInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class TVBtoNetpyneInterface(TVBtoSpikeNetInterface, NetpyneInputInterface):
+class TVBtoNetpyneInterface(NetpyneInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoNetpyneInterface class to get data from TVB, transform them,
        and finally set them to NetPyNE, all processes taking place in shared memmory.
@@ -84,7 +86,7 @@ class TVBtoNetpyneInterface(TVBtoSpikeNetInterface, NetpyneInputInterface):
     pass
 
 
-class NetpyneToTVBInterface(SpikeNetToTVBInterface, NetpyneOutputInterface):
+class NetpyneToTVBInterface(NetpyneOutputInterface, SpikeNetToTVBInterface):
 
     """NetpyneToTVBInterface class to get data from NetPyNE, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.

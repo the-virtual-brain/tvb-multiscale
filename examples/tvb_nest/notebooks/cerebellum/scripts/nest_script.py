@@ -134,8 +134,8 @@ neuron_types_to_region = {'golgi_cell': ['Right Ansiform lobule', 'Left Ansiform
                           'purkinje_cell': ['Right Ansiform lobule', 'Left Ansiform lobule'],
                           'basket_cell': ['Right Ansiform lobule', 'Left Ansiform lobule'],
                           'stellate_cell': ['Right Ansiform lobule', 'Left Ansiform lobule'],
-                          'dcn_cell_glut_large': ['Right Interposed nucleus', 'Left Interposed nucleus'],
-                          'dcn_cell_GABA': ['Right Interposed nucleus', 'Left Interposed nucleus'],
+                          'dcn_cell_glut_large': ['Right Cerebellar Nuclei', 'Left Cerebellar Nuclei'],
+                          'dcn_cell_GABA': ['Right Cerebellar Nuclei', 'Left Cerebellar Nuclei'],
                           'io_cell': ['Right Inferior olivary complex', 'Left Inferior olivary complex'],
                           'glomerulus': ['Right Ansiform lobule', 'Left Ansiform lobule'],
                           'mossy_fibers': ['Right Ansiform lobule', 'Left Ansiform lobule'],
@@ -211,9 +211,9 @@ def build_NEST_network(config=None):
 
     if 'eglif_cond_alpha_multisyn' not in nest.Models():
         try:
-            nest.Install('cerebmodule')
             if config.VERBOSE:
                 print("Installing cereb module...")
+            nest.Install('cerebmodule')
         except:
             if config.VERBOSE:
                 print("FAILED! Needing to compile it first!")
@@ -494,11 +494,11 @@ def plot_nest_results_raster(nest_network, neuron_models, neuron_number, config)
     io_evs = io_events['senders']
     io_times = io_events['times']
 
-    dcng_events = nest_network.output_devices['dcn_cell_GABA']['Left Interposed nucleus'].events
+    dcng_events = nest_network.output_devices['dcn_cell_GABA']['Left Cerebellar Nuclei'].events
     dcng_evs = dcng_events['senders']
     dcng_times = dcng_events['times']
 
-    dcn_events = nest_network.output_devices['dcn_cell_glut_large']['Left Interposed nucleus'].events
+    dcn_events = nest_network.output_devices['dcn_cell_glut_large']['Left Cerebellar Nuclei'].events
     dcn_evs = dcn_events['senders']
     dcn_times = dcn_events['times']
 

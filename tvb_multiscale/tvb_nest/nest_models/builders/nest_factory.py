@@ -94,9 +94,9 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             logger.info("Compiling %s..." % module)
             logger.info("in build directory %s..." % module_bld_dir)
             success_message = "DONE compiling and installing %s!" % module
-            from pynestml.frontend.pynestml_frontend import install_nest
             try:
-                install_nest(module_bld_dir, config.NEST_PATH)
+                from pynestml.frontend.pynestml_frontend import generate_nest_target
+                generate_nest_target(module_bld_dir, config.NEST_PATH)
             except Exception as e:
                 raise e
             logger.info("Compiling finished without errors...")

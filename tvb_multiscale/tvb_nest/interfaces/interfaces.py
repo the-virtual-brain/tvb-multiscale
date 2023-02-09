@@ -13,9 +13,9 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetSenderInterface, SpikeNetReceiverInterface, \
     SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
 
+from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTInputDeviceSet, NESTOutputDeviceSet
-from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 
 
 TVBtoNESTModels = TVBtoSpikeNetModels
@@ -41,7 +41,7 @@ class NESTInterface(HasTraits):
         return self.spiking_network.nest_instance
 
 
-class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
+class NESTOutputInterface(NESTInterface, SpikeNetOutputInterface):
 
     """NESTOutputInterface base class for interfaces sending data from NEST."""
 
@@ -60,7 +60,7 @@ class NESTOutputInterface(SpikeNetOutputInterface, NESTInterface):
         return self._get_proxy_gids(self.proxy.source)
 
 
-class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
+class NESTSenderInterface(NESTOutputInterface, SpikeNetSenderInterface):
 
     """NESTSenderInterface"""
 
@@ -68,7 +68,7 @@ class NESTSenderInterface(SpikeNetSenderInterface, NESTOutputInterface):
         return self.send(NESTOutputInterface.get_proxy_data(self))
 
 
-class NESTTransformerSenderInterface(SpikeNetTransformerSenderInterface, NESTOutputInterface):
+class NESTTransformerSenderInterface(NESTOutputInterface, SpikeNetTransformerSenderInterface):
     """NESTTransformerSenderInterface"""
 
     def __call__(self):
@@ -90,19 +90,19 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class NESTReceiverInterface(SpikeNetReceiverInterface, NESTInputInterface):
+class NESTReceiverInterface(NESTInputInterface, SpikeNetReceiverInterface):
     """NESTReceiverInterface"""
 
     pass
 
 
-class NESTReceiverTransformerInterface(SpikeNetReceiverTransformerInterface, NESTInputInterface):
+class NESTReceiverTransformerInterface(NESTInputInterface, SpikeNetReceiverTransformerInterface):
     """NESTReceiverTransformerInterface"""
 
     pass
 
 
-class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
+class TVBtoNESTInterface(NESTInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoNESTInterface class to get data from TVB, transform them,
        and finally set them to NEST, all processes taking place in shared memmory.
@@ -111,7 +111,7 @@ class TVBtoNESTInterface(TVBtoSpikeNetInterface, NESTInputInterface):
     pass
 
 
-class NESTtoTVBInterface(SpikeNetToTVBInterface, NESTOutputInterface):
+class NESTtoTVBInterface(NESTOutputInterface, SpikeNetToTVBInterface):
 
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.

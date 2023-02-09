@@ -38,6 +38,7 @@ It inherits the Simulator class.
 """
 
 import time
+import warnings
 from decimal import Decimal
 
 import numpy
@@ -376,8 +377,14 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         if cosimulation and self.input_interfaces:
             # Get the update data from the other cosimulator
             cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape)
-            if numpy.all(numpy.isnan(cosim_updates[-1])):
+            isnans = numpy.isnan(cosim_updates[-1])
+            if numpy.all(isnans):
                 cosim_updates = None
+                self.log.warning("No or all NaN valued cosimulator updates at time step %d!" % self.current_step)
+            elif numpy.any(isnans):
+                msg = "NaN values detected in cosimulator updates at time step %d!" % self.current_step
+                self.log.error(msg)
+                raise Exception(msg)
         return cosim_updates
 
     def _send_cosim_coupling(self, cosimulation=True):
