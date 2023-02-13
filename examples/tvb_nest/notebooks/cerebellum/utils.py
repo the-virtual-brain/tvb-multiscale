@@ -56,6 +56,8 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
     f, Pxx_den = signal.welch(data, fs, nperseg=nperseg)
 
     fig, axes = plt.subplots(n_regions, 2, figsize=(figsize[0], figsize[1]*n_regions))
+    if axes.ndim == 1:
+        axes = np.array([axes])
     for ii in range(n_regions):
         iR = ii*2
         iL = ii*2 + 1
@@ -159,7 +161,6 @@ def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fm
     
     if save_flag and len(figures_path):
         plt.savefig(os.path.join(figures_path, "COHselectDiff.%s" % figformat))
-
 
 
 def compute_plot_ica(data, time, variable="BOLD", n_components=10, plotter=None):
