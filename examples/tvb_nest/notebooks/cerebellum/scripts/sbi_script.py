@@ -174,7 +174,7 @@ def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=Non
     return priors, priors_samples, sim_res
 
 
-def posterior_filepath(config, iG=None, iR=None, filepath=None, extension=None):
+def posterior_filepath(config, iG=None, iR=None, label="", filepath=None, extension=None):
     if iG is None and iR is None:
         return str(config.POSTERIOR_PATH)
     if filepath is None or extension is None:
@@ -183,73 +183,91 @@ def posterior_filepath(config, iG=None, iR=None, filepath=None, extension=None):
         filepath += "_iG%02d" % iG
     if iR is not None:
         filepath += "_iR%02d" % iR
-    return "%s%s" % (filepath, extension)
+    if len(label):
+        label = "_%s" % label
+    return "%s%s%s" % (filepath, label, extension)
 
 
-def posterior_samples_filepath(config, iG=None, filepath=None, extension=None):
+def posterior_samples_filepath(config, iG=None, label="", filepath=None, extension=None):
     if iG is None:
         return config.POSTERIOR_SAMPLES_PATH
     if filepath is None or extension is None:
         filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES,
                                                             config.POSTERIOR_SAMPLES_PATH))
-    return "%s_iG%02d%s" % (filepath, iG, extension)
+    if len(label):
+        label = "_%s" % label
+    return "%s_iG%02d%s%s" % (filepath, iG, label, extension)
 
 
-def write_posterior(posterior, iG=None, iR=None, config=None):
+def write_posterior(posterior, iG=None, iR=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
-    filepath = posterior_filepath(config, iG, iR)
+    filepath = posterior_filepath(config, iG, label, iR)
     with open(filepath, "wb") as handle:
         pickle.dump(posterior, handle)
 
 
-def write_posterior_samples(samples, map=None, iG=None, config=None):
+def samples_diagnostics(samples, config, priors=None, map=None, ground_truth=None):
+    res = {}
+    res["samples"] = samples.numpy()
+    if map is not None:
+        res['map'] = map
+    res['mean'].append(samples.mean(axis=0).numpy())
+    res['std'].append(samples.std(axis=0).numpy())
+    if ground_truth:
+        res["diff"] = ground_truth - res['mean']
+        if ground_truth != 0.0:
+            res["accuracy"] = 100*(1.0 - np.abs(res['diff']/ground_truth))
+        res["zscore"] = res["diff"] / res["std"]
+    if priors is None:
+        priors = build_priors(config)
+    res["shrinkage"] = 1 - np.power(res['std'], 2) / np.power(priors.stddev.numpy(), 2)
+    return res
+
+
+def write_posterior_samples(results, iG=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
-    filepath = posterior_samples_filepath(config, iG)
+    filepath = posterior_samples_filepath(config, iG, label)
     if os.path.isfile(filepath):
         samples_fit = np.load(filepath, allow_pickle=True).item()
     else:
         samples_fit = {}
         # Get G for this run:
         samples_fit["G"] = config.Gs[iG]
-        samples_fit['samples'] = []
-        samples_fit['mean'] = []
-        samples_fit['std'] = []
-        samples_fit['map'] = []
-    samples_fit['samples'].append(samples.numpy())
-    samples_fit['mean'].append(samples.mean(axis=0).numpy())
-    samples_fit['std'].append(samples.std(axis=0).numpy())
-    if map is not None:
-        samples_fit['map'].append(map.numpy())
+    for key, val in results:
+        if key in samples_fit:
+            samples_fit["key"].append(val)
+        else:
+            samples_fit["key"] = [val]
     np.save(filepath, samples_fit, allow_pickle=True)
     return samples_fit
 
 
-def load_posterior(iG=None, iR=None, config=None):
+def load_posterior(iG=None, iR=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
-    filepath = posterior_filepath(config, iG, iR)
+    filepath = posterior_filepath(config, iG, iR, label)
     with open(filepath, "rb") as handle:
         posterior = pickle.load(handle)
     return posterior
 
 
-def load_posterior_samples(iG=None, config=None):
+def load_posterior_samples(iG=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
-    filepath = posterior_samples_filepath(config, iG)
+    filepath = posterior_samples_filepath(config, iG, label)
     return np.load(filepath, allow_pickle=True).item()
 
 
-def load_posterior_samples_all_Gs(config=None):
+def load_posterior_samples_all_Gs(label="", config=None):
     config = assert_config(config, return_plotter=False)
     samples = OrderedDict()
     for iG, G in enumerate(config.Gs):
         try:
-            samples[G] = load_posterior_samples(iG, config)
+            samples[G] = load_posterior_samples(iG, label, config)
         except Exception as e:
             warnings.warn("Failed to load posterior samples for iG=%d, G=%g!\n%s" % (iG, G, str(e)))
     return samples
 
 
-def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbose):
+def sbi_train(priors, priors_samples, sim_res, verbose):
     # Initialize the inference algorithm class instance:
     inference = SNPE(prior=priors)
     # Append to the inference the priors samples and simulations results
@@ -271,11 +289,21 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
             keep_building += 1
     if posterior is None:
         raise Exception(exception)
+    return posterior
+
+
+def sbi_estimate(posterior, target, n_samples_per_run):
     posterior.set_default_x(target)
     return posterior, posterior.sample((n_samples_per_run,)), posterior.map()
 
+
+def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbose):
+    # Train the neural network to approximate the posterior and return the posterior estimation:
+    return sbi_estimate(sbi_train(priors, priors_samples, sim_res, verbose),
+                        target, n_samples_per_run)
+
     
-def plot_infer_for_iG(iG, iR=None, samples=None, config=None):
+def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
     if samples is None:
         samples = load_posterior_samples(iG, config)
@@ -304,7 +332,11 @@ def plot_infer_for_iG(iG, iR=None, samples=None, config=None):
                                   points_offdiag={'markersize': 6},
                                   points_colors=['r'] * config.n_priors)
     if config.figures.SAVE_FLAG:
-        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, 'sbi_pairplot_G%g.png' % samples ['G']))
+        if len(label):
+            filename = 'sbi_pairplot_G%g_%s.png' % (samples['G'], label)
+        else:
+            filename = 'sbi_pairplot_G%g.png' % samples ['G']
+        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, filename))
     if config.figures.SHOW_FLAG:
         plt.show()
     else:
@@ -321,8 +353,8 @@ def sbi_infer_for_iG(iG, config=None):
         print("\n\nFitting for G = %g!\n" % G)
     # Load the target
     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
-    if G> 0.0:
-        # If this we are fitting for a connected network...
+    if G > 0.0:
+        # If we are fitting for a connected network...
         # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
         #                                        right                       left
         psd_targ = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
@@ -334,23 +366,25 @@ def sbi_infer_for_iG(iG, config=None):
     if priors_samples.shape[0] > n_samples:
         warnings.warn("We have only %d simulations for iG=%d, less than priors' samples (=%d)!"
                       % (n_samples, iG, priors_samples.shape[0]))
-    all_inds = list(range(n_samples))
-    n_train_samples = int(np.ceil(1.0*n_samples / config.SPLIT_RUN_SAMPLES))
-    for iR in range(config.N_FIT_RUNS):
-        # For every fitting run...
-        if config.VERBOSE:
-            print("\n\nFitting run %d!..\n" % iR)
-        ticR = time.time()
-        # Choose a subsample of the whole set of samples:
-        sampl_inds = random.sample(all_inds, n_train_samples)
-        # Train the network, build the posterior and sample it:
-        posterior, posterior_samples, map = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
-                                                      config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
-        # Write posterior and samples to files:
-        write_posterior(posterior, iG, iR, config)
-        samples_fit = write_posterior_samples(posterior_samples, map, iG, config)
-        if config.VERBOSE:
-            print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
+    if config.N_FIT_RUNS > 0:
+        all_inds = list(range(n_samples))
+        n_train_samples = int(np.ceil(1.0*n_samples / config.SPLIT_RUN_SAMPLES))
+        for iR in range(config.N_FIT_RUNS):
+            # For every fitting run...
+            if config.VERBOSE:
+                print("\n\nFitting run %d!..\n" % iR)
+            ticR = time.time()
+            # Choose a subsample of the whole set of samples:
+            sampl_inds = random.sample(all_inds, n_train_samples)
+            # Train the network, build the posterior and sample it:
+            posterior, posterior_samples, map = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
+                                                          config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
+            # Write posterior and samples to files:
+            write_posterior(posterior, iG, iR, config=config)
+            diagnostics = samples_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
+            samples_fit = write_posterior_samples(diagnostics, iG, config=config)
+            if config.VERBOSE:
+                print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
 
     # Fit once more using all samples!
     if config.VERBOSE:
@@ -361,7 +395,8 @@ def sbi_infer_for_iG(iG, config=None):
                                                   config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
     # Write posterior and samples to files:
     write_posterior(posterior, iG, iR=None, config=config)
-    samples_fit = write_posterior_samples(posterior_samples, map, iG, config)
+    diagnostics = samples_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
+    samples_fit = write_posterior_samples(diagnostics, iG, config=config)
     if config.VERBOSE:
         print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
@@ -373,6 +408,58 @@ def sbi_infer_for_iG(iG, config=None):
         print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
     return posterior_samples  # , results, fig, simulator, output_config
+
+
+def get_train_test_samples(iG, config, n_train_samples=None):
+    priors, priors_samples, sim_res = load_priors_and_simulations_for_sbi(iG, config=config)
+    n_samples = sim_res.shape[0]
+    # Test samples are always going to be the LAST samples:
+    n_test_samples = int(np.floor(config.TEST_SAMPLES_RATIO, n_samples))
+    test_samples = priors_samples[-n_test_samples:]
+    test_res = sim_res[-n_test_samples:]
+    if n_train_samples is None:
+        n_train_samples = n_samples - n_test_samples
+    all_inds = list(range(n_samples))
+    sampl_inds = random.sample(all_inds, n_train_samples)
+    train_samples = priors_samples[sampl_inds]
+    train_res = sim_res[sampl_inds]
+    return train_samples, train_res, test_samples, test_res
+
+
+def sbi_test_for_iG(iG, config, posterior=None, priors=None, test_samples=None, test_res=None, label=""):
+    if posterior is None:
+        posterior = load_posterior(iG, iR=None, label=label, config=config)
+    if test_samples is None or test_res is None:
+        test_samples, test_res = get_train_test_samples(iG, config)[-2:]
+    if priors is None:
+        priors = build_priors(config)
+    samples_fit = {}
+    for ts, rs in zip(test_samples, test_res):
+        posterior, posterior_samples, map = sbi_estimate(posterior, rs.numpy(), config.N_SAMPLES_PER_RUN)
+        write_posterior(posterior, iG, iR=None, label=label, config=config)
+        diagnostics = samples_diagnostics(posterior_samples, config, priors, map, ts.numpy())
+        samples_fit = write_posterior_samples(diagnostics, iG, label=label, config=config)
+    return samples_fit
+
+
+def sbi_train_and_test_for_iG(iG, config, n_train_samples=None):
+    tic = time.time()
+    train_samples, train_res, test_samples, test_res = get_train_test_samples(iG, config, n_train_samples)
+    label = "%04d_Train" % train_res.shape[0]
+    # Train:
+    priors = build_priors(config)
+    posterior = sbi_train(priors, train_samples, train_res, config.VERBOSE)
+    write_posterior(posterior, iG, iR=None, config=config)
+    # Test:
+    samples_fit = sbi_test_for_iG(iG, config, posterior, priors, test_samples, test_res, label)
+    if config.VERBOSE:
+        print("Done with fitting with all samples in sec!")
+    # Plot posterior:
+    plot_infer_for_iG(iG, iR=None, samples=samples_fit, label=label, config=config);
+    if config.VERBOSE:
+        print("\n\nFinished after %g sec!" % (time.time() - tic))
+        print("\n\nFind results in %s!" % config.out.FOLDER_RES)
+    return samples_fit
 
 
 def plot_sbi_fit(config=None):
@@ -446,13 +533,14 @@ def plot_sbi_fit(config=None):
     return fig, axes
 
 
-def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None):
+def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None,
+                           label=""):
 
     config = assert_config(config, return_plotter=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
 
-    samples_fit = load_posterior_samples(iG, config=config)
+    samples_fit = load_posterior_samples(iG, label=label, config=config)
     if iR is None:
         iR = -1
 
@@ -482,10 +570,12 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
         workflow_fun = run_workflow
     # Specify other parameters or overwrite some:
     params.update(model_params)
+    if len(label):
+        label = "_%s" % label
     outputs = workflow_fun(plot_flag=True, model_params=params, config=None,
-                           output_folder="%s/G%g/STIM%0.2f_Is%0.2f_FIC%0.2f_FIC_SPLIT%0.2f" %
+                           output_folder="%s/G%g/STIM%0.2f_Is%0.2f_FIC%0.2f_FIC_SPLIT%0.2f%s" %
                                          (config.output_base, params['G'], params["STIMULUS"],
-                                          params['I_s'], config.FIC, config.FIC_SPLIT))
+                                          params['I_s'], config.FIC, config.FIC_SPLIT, label))
     outputs = outputs + (samples_fit, )
     return outputs
 
@@ -505,6 +595,14 @@ if __name__ == "__main__":
                         dest='iG', metavar='iG',
                         type=int, required=False, default=-1, # nargs=1,
                         help="G values' integer indice. Default = -1 will be interpreted as None.")
+    parser.add_argument('--num_train_samples', '-nts',
+                        dest='num_train_samples', metavar='num_train_samples',
+                        type=int, required=False, default=-1,  # nargs=1,
+                        help="Number of training samples. Default = -1 will be interpreted as None.")
+    parser.add_argument('--train_samples_label', '-nsl',
+                        dest='train_samples_label', metavar='train_samples_label',
+                        type=str, required=False, default="",  # nargs=1,
+                        help="Data file label depending on the number of training samples. Default = ''")
     args, parser_args, parser = parse_args(parser, def_args=DEFAULT_ARGS)
     verbose = args.get('verbose', DEFAULT_ARGS['verbose'])
     if verbose:
@@ -517,14 +615,24 @@ if __name__ == "__main__":
         if iG == -1:
             iG = None
         sim_res = simulate_TVB_for_sbi_batch(parser_args.iB, iG, config=config, write_to_file=True)
-    elif parser_args.script_id == 1:
+    else:
         if iG == -1:
             raise ValueError("iG=-1 is not possible for running sbi_infer_for_iG!")
-        samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
-    elif parser_args.script_id == 2:
-        simulate_after_fitting(iG, iR=None, config=config,
-                               workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
-    else:
-        raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
-                         "nor 1 for sbi_infer_for_iG!")
+        elif parser_args.script_id == 1:
+            samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
+        elif parser_args.script_id == 2:
+            simulate_after_fitting(iG, iR=None, config=config,
+                                   workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
+        elif parser_args.script_id == 3:
+            num_train_samples = parser_args.num_train_samples
+            if num_train_samples == -1:
+                num_train_samples = None
+            samples_fit = sbi_train_and_test_for_iG(iG, config, n_train_samples=num_train_samples)
+        elif parser_args.script_id == 4:
+            train_samples_label = parser_args.train_samples_label
+            samples_fit = sbi_test_for_iG(iG, config, posterior=None, priors=None,
+                                          test_samples=None, test_res=None, label=train_samples_label)
+        else:
+            raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
+                             "nor 1 for sbi_infer_for_iG!")
 
