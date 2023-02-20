@@ -42,7 +42,7 @@ def Calc_Zs_Shrink_param(param,iG,TrainSamples):
             Z.append(z)
             S.append(s)
         Zgst.append(numpy.std(Z))
-        Zg.append(numpy.mean(Z))
+        Zg.append(numpy.mean(np.abs(Z)))
         Sg.append(numpy.mean(S))
     
     #plt.plot(TrainSamples,Zg)
