@@ -170,6 +170,7 @@ def configure(**ARGS):
     config.N_SIMULATIONS = 6000
     config.N_SIM_BATCHES = 500
     config.SPLIT_RUN_SAMPLES = 1
+    config.TEST_SAMPLES_RATIO = 0.2
     config.N_SAMPLES_PER_RUN = 1000
     config.BATCH_FILE_FORMAT = "%s_%03d%s"
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
