@@ -112,3 +112,113 @@ class Linear(Model):
             return deriv.T[..., numpy.newaxis]
         else:
             return self._numpy_fun(state, coupling, local_coupling)
+
+
+@guvectorize([(float64[:],)*5], '(n),(m)' + ',()'*2 + '->(n)', nopython=True)
+def _numba_update_non_state_variables_before_integration(R, c, lc_0, g, newR):
+    "Gufunc for reduced Wong-Wang model equations."
+    newR[0] = R[0]  # R
+    newR[1] = g[0]*c[0] + lc_0[0]*R[0]  # Rin
+
+
+@guvectorize([(float64[:],)*6], '(n),(m)' + ',()'*3 + '->(n)', nopython=True)
+def _numba_dfun_Rin(R, rin, t, gm, io, dR):
+    "Gufunc for Linear model equations."
+    dR[0] = (gm[0] * R[0] + rin[0]) / t[0] + io[0]
+
+
+class LinearRin(Linear):
+
+    state_variable_range = Final(
+        label="State Variable ranges [lo, hi]",
+        default={"R": numpy.array([0, 100.0]),
+                 "Rin": numpy.array([-100.0, 100.0])},
+        doc="Range used for state variable initialization and visualization.")
+
+    state_variable_boundaries = Final(
+        default={"R": numpy.array([0.0, None]),
+                 "Rin": numpy.array([None, None])},
+        label="State Variable boundaries [lo, hi]",
+        doc="""The values for each state-variable should be set to encompass
+                    the boundaries of the dynamic range of that state-variable. 
+                    Set None for one-sided boundaries""")
+
+    variables_of_interest = List(
+        of=str,
+        label="Variables watched by Monitors",
+        choices=("R", " Rin"),
+        default=("R", " Rin"), )
+
+    state_variables = ('R', "Rin")
+    _nvar = 2
+    non_integrated_variables = ['Rin']
+
+    _Rin = None
+    _stimulus = 0.0
+
+    def update_derived_parameters(self):
+        """
+        When needed, this should be a method for calculating parameters that are
+        calculated based on paramaters directly set by the caller. For example,
+        see, ReducedSetFitzHughNagumo. When not needed, this pass simplifies
+        code that updates an arbitrary models parameters -- ie, this can be
+        safely called on any model, whether it's used or not.
+        """
+        self.n_nonintvar = self.nvar - self.nintvar
+        self._Rin = None
+        self._stimulus = 0.0
+
+    def update_state_variables_before_integration(self, state_variables, coupling, local_coupling=0.0, stimulus=0.0):
+        self._stimulus = stimulus
+        if self.use_numba:
+            sv_ = state_variables.reshape(state_variables.shape[:-1]).T
+            c_ = coupling.reshape(coupling.shape[:-1]).T
+            lc_0 = numpy.array([local_coupling, ])
+            state_variables = \
+                _numba_update_non_state_variables_before_integration(sv_, c_,       # variables
+                                                                     lc_0, self.G)  # parameters
+            state_variables = state_variables.T[..., numpy.newaxis]
+        else:
+            R = state_variables[0, :]  # synaptic gating dynamics
+
+            c_0 = coupling[0, :]
+
+            # if applicable
+            lc_0 = local_coupling * R[0]
+
+            Rin = self.G * (c_0 + lc_0)
+
+            state_variables[1, :] = Rin
+
+        # Keep them here so that they are not recomputed in the dfun
+        self._Rin = numpy.copy(state_variables[1, :])
+        return state_variables
+
+    def _numpy_dfun(self, integration_variables, Rin):
+        R = integration_variables[0, :]
+        dR = (self.gamma * R + Rin) / self.tau + self.I_o
+        return numpy.array([dR])
+
+    def _integration_to_state_variables(self, integration_variables):
+        return numpy.array(integration_variables.tolist() + [0.0*integration_variables[0]] * self.n_nonintvar)
+
+    def dfun(self, x, c, local_coupling=0.0):
+        if self._Rin is None:
+            state_variables = self._integration_to_state_variables(x)
+            state_variables = \
+                self.update_state_variables_before_integration(state_variables, c, local_coupling, self._stimulus)
+            Rin = state_variables[1]  # Input Rates
+        else:
+            Rin = self._Rin
+        if self.use_numba:
+            x_ = x.reshape(x.shape[:-1]).T
+            rin = Rin.reshape(x.shape[:-1]).T
+            deriv = _numba_dfun_Rin(x_, rin,                        # variables
+                                    self.tau, self.gamma, self.I_o) # parameters
+            deriv = deriv.T[..., numpy.newaxis]
+        else:
+            deriv = self._numpy_dfun(x, Rin)
+        #  Set them to None so that they are recomputed on subsequent steps
+        #  for multistep integration schemes such as Runge-Kutta:
+        self._Rin = None
+        return deriv
