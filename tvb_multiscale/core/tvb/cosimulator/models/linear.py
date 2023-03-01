@@ -212,9 +212,9 @@ class LinearRin(Linear):
             Rin = self._Rin
         if self.use_numba:
             x_ = x.reshape(x.shape[:-1]).T
-            rin = Rin.reshape(x.shape[:-1]).T
-            deriv = _numba_dfun_Rin(x_, rin,                        # variables
-                                    self.tau, self.gamma, self.I_o) # parameters
+            rin = Rin.reshape(Rin.shape[:-1]).T
+            deriv = _numba_dfun_Rin(x_, rin,                         # variables
+                                    self.tau, self.gamma, self.I_o)  # parameters
             deriv = deriv.T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, Rin)
