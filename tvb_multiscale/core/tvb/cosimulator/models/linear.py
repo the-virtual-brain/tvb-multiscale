@@ -32,8 +32,15 @@ Generic linear model.
 """
 
 import numpy
+from numba import guvectorize, float64
 from tvb.simulator.models.base import Model
 from tvb.basic.neotraits.api import NArray, Final, List, Range
+
+
+@guvectorize([(float64[:],)*8], '(n),(m)' + ',()'*5 + '->(n)', nopython=True)
+def _numba_dfun(R, c, lc, t, gm, io, g, dR):
+    "Gufunc for Linear model equations."
+    dR[0] = (gm[0] * R[0] + g[0] * c[0] + lc[0]) / t[0] + io[0]
 
 
 class Linear(Model):
@@ -84,13 +91,24 @@ class Linear(Model):
     state_variables = ('R',)
     _nvar = 1
     cvar = numpy.array([0], dtype=numpy.int32)
+    use_numba = True
+
+    def _numpy_fun(self, state, coupling, local_coupling=0.0):
+        R, = state
+        c, = coupling
+        dR = (self.gamma * R + self.G * c + local_coupling * R) / self.tau + self.I_o
+        return numpy.array([dR])
 
     def dfun(self, state, coupling, local_coupling=0.0):
         """
         .. math::
             dR = ({\gamma}R + G * coupling + local_coupling * R)/{\tau} + I_o
         """
-        R, = state
-        c, = coupling
-        dR = (self.gamma * R + self.G * c + local_coupling * R) / self.tau + self.I_o
-        return numpy.array([dR])
+        if self.use_numba:
+            lc_0 = local_coupling * state[0, :, 0]
+            R_ = state.reshape(state.shape[:-1]).T
+            c_ = coupling.reshape(coupling.shape[:-1]).T
+            deriv = _numba_dfun(R_, c_, lc_0, self.tau, self.gamma, self.I_o, self.G)
+            return deriv.T[..., numpy.newaxis]
+        else:
+            return self._numpy_fun(state, coupling, local_coupling)
