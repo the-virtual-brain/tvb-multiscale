@@ -218,7 +218,7 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
             state_variables[1] = R
 
         # Keep them here so that they are not recomputed in the dfun
-        self._R = numpy.copy(state_variables[1, :])
+        self._R = numpy.copy(state_variables[1])
 
         return state_variables
 
@@ -235,7 +235,7 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
                  \dot{S}_k &= -\dfrac{S_k}{\tau_s} + (1 - S_k) \, H(x_k) \, \gamma
 
         """
-        S = integration_variables[0, :]  # Synaptic gating dynamics
+        S = integration_variables[0]  # Synaptic gating dynamics
 
         # Synaptic gating dynamics
         dS = - (S / self.tau_s) + (1 - S) * R * self.gamma
