@@ -185,9 +185,9 @@ class LinearRin(Linear):
                                                                      lc_0, self.G)  # parameters
             state_variables = state_variables.T[..., numpy.newaxis]
         else:
-            R = state_variables[0, :]  # synaptic gating dynamics
+            R = state_variables[0]  # synaptic gating dynamics
 
-            c_0 = coupling[0, :]
+            c_0 = coupling[0]
 
             # if applicable
             lc_0 = local_coupling * R[0]
