@@ -177,17 +177,19 @@ class LinearRin(Linear):
     def update_state_variables_before_integration(self, state_variables, coupling, local_coupling=0.0, stimulus=0.0):
         self._stimulus = stimulus
         if self.use_numba:
+            # Variables (n_regions, n_svs):
             sv_ = state_variables.reshape(state_variables.shape[:-1]).T
             c_ = coupling.reshape(coupling.shape[:-1]).T
+            # Parameters (n_regions, )
             lc_0 = numpy.array([local_coupling, ])  # as parameter, or local_coupling *  numpy.ones((1,1)) as variable
             state_variables = \
                 _numba_update_non_state_variables_before_integration(sv_, c_,       # variables
                                                                      lc_0, self.G)  # parameters
             state_variables = state_variables.T[..., numpy.newaxis]
         else:
-            R = state_variables[0, :]  # synaptic gating dynamics
+            R = state_variables[0]  # synaptic gating dynamics
 
-            c_0 = coupling[0, :]
+            c_0 = coupling[0]
 
             # if applicable
             lc_0 = local_coupling * R[0]
@@ -218,9 +220,8 @@ class LinearRin(Linear):
             Rin = self._Rin
         if self.use_numba:
             # Variables
-            x_ = x.reshape(x.shape[:-1]).T
-            rin = Rin.T  # Rin[:, 0] as parameter
-            deriv = _numba_dfun_Rin(x_, rin,                         # variables
+            deriv = _numba_dfun_Rin(x.reshape(x.shape[:-1]).T,  # variables (n_regions, n_svs)
+                                    Rin,  # Rin for as a variable, Rin[:, 0] for as a parameter (n_regions, )
                                     self.tau, self.gamma, self.I_o)  # parameters
             deriv = deriv.T[..., numpy.newaxis]
         else:
