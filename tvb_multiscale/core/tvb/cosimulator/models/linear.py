@@ -37,7 +37,8 @@ from tvb.simulator.models.base import Model
 from tvb.basic.neotraits.api import NArray, Final, List, Range
 
 
-@guvectorize([(float64[:],)*8], '(n),(m)' + ',()'*5 + '->(n)', nopython=True)
+# @guvectorize([(float64[:],)*8], '(n),(m)(k)' + ',()'*4 + '->(n)', nopython=True)  # lc_0 as variable
+@guvectorize([(float64[:],)*8], '(n),(m)' + ',()'*5 + '->(n)', nopython=True)  # lc_0 as parameter
 def _numba_dfun(R, c, lc, t, gm, io, g, dR):
     "Gufunc for Linear model equations."
     dR[0] = (gm[0] * R[0] + g[0] * c[0] + lc[0]) / t[0] + io[0]
@@ -105,23 +106,28 @@ class Linear(Model):
             dR = ({\gamma}R + G * coupling + local_coupling * R)/{\tau} + I_o
         """
         if self.use_numba:
-            lc_0 = local_coupling * state[0, :, 0]
+            # Variables:
             R_ = state.reshape(state.shape[:-1]).T
             c_ = coupling.reshape(coupling.shape[:-1]).T
-            deriv = _numba_dfun(R_, c_, lc_0, self.tau, self.gamma, self.I_o, self.G)
+            lc_0 = local_coupling * state[0]
+            deriv = _numba_dfun(R_, c_,
+                                lc_0[:, 0],  # as parameter, or lc_0 as variable
+                                self.tau, self.gamma, self.I_o, self.G)
             return deriv.T[..., numpy.newaxis]
         else:
             return self._numpy_fun(state, coupling, local_coupling)
 
 
-@guvectorize([(float64[:],)*5], '(n),(m)' + ',()'*2 + '->(n)', nopython=True)
+# @guvectorize([(float64[:],)*5], '(n),(m)(k)' + ',()' + '->(n)', nopython=True)  # lc_0 as variable
+@guvectorize([(float64[:],)*5], '(n),(m)' + ',()'*2 + '->(n)', nopython=True)   # lc_0 as parameter
 def _numba_update_non_state_variables_before_integration(R, c, lc_0, g, newR):
     "Gufunc for reduced Wong-Wang model equations."
     newR[0] = R[0]  # R
     newR[1] = g[0]*c[0] + lc_0[0]*R[0]  # Rin
 
 
-@guvectorize([(float64[:],)*6], '(n),(m)' + ',()'*3 + '->(n)', nopython=True)
+# @guvectorize([(float64[:],)*6], '(n)' + ',()'*4 + '->(n)', nopython=True)  # Rin as parameter
+@guvectorize([(float64[:],)*6], '(n),(m)' + ',()'*3 + '->(n)', nopython=True)  # Rin as variable
 def _numba_dfun_Rin(R, rin, t, gm, io, dR):
     "Gufunc for Linear model equations."
     dR[0] = (gm[0] * R[0] + rin[0]) / t[0] + io[0]
@@ -173,7 +179,7 @@ class LinearRin(Linear):
         if self.use_numba:
             sv_ = state_variables.reshape(state_variables.shape[:-1]).T
             c_ = coupling.reshape(coupling.shape[:-1]).T
-            lc_0 = numpy.array([local_coupling, ])
+            lc_0 = numpy.array([local_coupling, ])  # as parameter, or local_coupling *  numpy.ones((1,1)) as variable
             state_variables = \
                 _numba_update_non_state_variables_before_integration(sv_, c_,       # variables
                                                                      lc_0, self.G)  # parameters
@@ -188,14 +194,14 @@ class LinearRin(Linear):
 
             Rin = self.G * (c_0 + lc_0)
 
-            state_variables[1, :] = Rin
+            state_variables[1] = Rin
 
         # Keep them here so that they are not recomputed in the dfun
-        self._Rin = numpy.copy(state_variables[1, :])
+        self._Rin = numpy.copy(state_variables[1])
         return state_variables
 
     def _numpy_dfun(self, integration_variables, Rin):
-        R = integration_variables[0, :]
+        R = integration_variables[0]
         dR = (self.gamma * R + Rin) / self.tau + self.I_o
         return numpy.array([dR])
 
@@ -211,8 +217,9 @@ class LinearRin(Linear):
         else:
             Rin = self._Rin
         if self.use_numba:
+            # Variables
             x_ = x.reshape(x.shape[:-1]).T
-            rin = Rin.reshape(Rin.shape[:-1]).T
+            rin = Rin.T  # Rin[:, 0] as parameter
             deriv = _numba_dfun_Rin(x_, rin,                         # variables
                                     self.tau, self.gamma, self.I_o)  # parameters
             deriv = deriv.T[..., numpy.newaxis]
