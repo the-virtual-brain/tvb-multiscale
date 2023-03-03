@@ -80,7 +80,8 @@ class LinearReducedWongWangExcIO(ReducedWongWangExcIO):
         else:
             R = self._R
         if self.use_numba:
-            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(R.shape[:-1]).T, self.gamma, self.tau_s)
+            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R,  # Variables (n_regions, n_svs)
+                                self.gamma, self.tau_s)        # Parameters (n_regions, )
             deriv = deriv.T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, R)
