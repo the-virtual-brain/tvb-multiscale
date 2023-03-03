@@ -192,8 +192,10 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
         if self.use_numba:
             state_variables = \
                 _numba_update_non_state_variables_before_integration(
+                    # Variables (n_regions, n_svs):
                     state_variables.reshape(state_variables.shape[:-1]).T,
                     coupling.reshape(coupling.shape[:-1]).T + local_coupling * state_variables[0],
+                    # Parameters (n_regions, ):
                     self.a, self.b, self.d, self.w, self.J_N, self.G, self.I_o)
             state_variables = state_variables.T[..., numpy.newaxis]
 
@@ -251,7 +253,8 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
         else:
             R = self._R
         if self.use_numba:
-            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(R.shape[:-1]).T, self.gamma, self.tau_s)
+            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R,  # Variables (n_regions, n_svs)
+                                self.gamma, self.tau_s)        # Parameters (n_regions, )
             deriv = deriv.T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, R)
