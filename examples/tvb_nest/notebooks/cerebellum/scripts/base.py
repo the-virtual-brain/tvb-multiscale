@@ -165,8 +165,8 @@ def configure(**ARGS):
     config.PSD_TARGET_PATH = os.path.join(config.out.FOLDER_RES, "PSD_target.npy")
     config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.POSTERIOR_PATH = os.path.join(config.out.FOLDER_RES, "posterior.pkl")
-    config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.npy")
-    config.N_FIT_RUNS = 0  # 3 - 10
+    config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.pkl")
+    config.N_FIT_RUNS = 10  # 3 - 10
     config.N_SIMULATIONS = 6000
     config.N_SIM_BATCHES = 500
     config.SPLIT_RUN_SAMPLES = 1
@@ -209,7 +209,8 @@ def configure(**ARGS):
     config.n_priors = len(config.PRIORS_PARAMS_NAMES)
     config.SBI_FIT_PLOT_PATH = os.path.join(config.figures.FOLDER_FIGURES, "sbi_fit.%s" % config.figures.FIG_FORMAT)
     config.OPT_RES_MODE = "map"  # or "mean"
-    
+    config.MIN_ACCURACY = -np.inf
+
     if config.VERBOSE:
         print(config)
 
