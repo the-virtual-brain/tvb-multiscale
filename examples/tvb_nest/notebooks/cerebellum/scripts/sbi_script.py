@@ -260,7 +260,6 @@ def write_posterior_samples(results, config,
     filepath = posterior_samples_filepath(config, iG, label)
     if samples_fit is None:
         if os.path.isfile(filepath):
-            print(os.path.isfile(filepath))
             with open(filepath, "rb") as handle:
                 samples_fit = pickle.load(handle)
         else:
@@ -292,7 +291,9 @@ def load_posterior(iG=None, iR=None, label="", config=None):
 def load_posterior_samples(iG=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
     filepath = posterior_samples_filepath(config, iG, label)
-    return np.load(filepath, allow_pickle=True).item()
+    with open(filepath, "rb") as handle:
+        samples_fit = pickle.load(handle)
+    return samples_fit
 
 
 def load_posterior_samples_all_Gs(label="", config=None):
@@ -647,6 +648,82 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
                                           params['I_s'], config.FIC, config.FIC_SPLIT, label))
     outputs = outputs + (samples_fit, )
     return outputs
+
+
+def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None,
+                           colors=['b', "g", "m"], marker='.', linestyle='-',
+                           ax=None, figsize=None):
+
+    if num_train_samples is None:
+        num_train_samples = config.N_TRAIN_SAMPLES_LIST
+
+    if params is None:
+        params = config.PRIORS_PARAMS_NAMES
+
+    if figsize is None:
+        figsize = config.figures.DEFAULT_SIZE
+
+    if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    else:
+        fig = None
+
+    res = []
+    for nts in num_train_samples:
+        samples_fit = load_posterior_samples(iG, "%04d_Train" % nts, config)
+        res.append(np.concatenate(samples_fit[diagnostic]))
+    res = np.array(res)
+    res = np.mean(res, axis=1)
+
+    for iP, (param, col) in enumerate(zip(params, colors)):
+        ax.plot(num_train_samples, res[:, iP], color=col, marker=marker, markersize=5, linestyle=linestyle,
+                label="%s" % param)
+        ax.set_title("iG=%d" % iG)
+        ax.set_xlabel("N training samples")
+        ax.set_ylabel(diagnostic)
+        ax.legend()
+
+    if fig is None:
+        return ax
+    else:
+        return ax, fig
+
+
+def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore_prior", "zscore", "shrinkage"],
+                      params=None, num_train_samples=None,
+                      colors=['b', "g", "m"], marker='.', linestyle='-', figsize=None):
+
+    if iGs is None:
+        iGs = list(range(len(config.Gs)))
+
+    if num_train_samples is None:
+        num_train_samples = config.N_TRAIN_SAMPLES_LIST
+
+    if params is None:
+        params = config.PRIORS_PARAMS_NAMES
+
+    if figsize is None:
+        figsize = config.figures.DEFAULT_SIZE
+
+    figsize = np.array(figsize)
+    nGs = len(iGs)
+    nDs = len(diagnostics)
+    figsize[0] = figsize[0] * nDs
+    figsize[1] = figsize[1] * nGs
+    figsize = tuple(figsize.tolist())
+
+    fig, axes = plt.subplots(nrows=nDs, ncols=nGs, figsize=figsize)
+    if nDs == 1:
+        axes = axes[np.newaxis]
+    elif nGs == 1:
+        axes = axes[:, np.newaxis]
+    for iD, diagnostic in enumerate(diagnostics):
+        for iiG, iG in enumerate(iGs):
+            axes[iD, iiG] = plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples, params,
+                                                   colors, marker, linestyle,
+                                                   ax=axes[iD, iiG])
+
+    return fig, axes
 
 
 if __name__ == "__main__":
