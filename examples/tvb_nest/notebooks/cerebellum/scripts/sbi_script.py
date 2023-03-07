@@ -695,12 +695,16 @@ if __name__ == "__main__":
         elif parser_args.script_id == 3:
             num_train_samples = parser_args.num_train_samples
             if num_train_samples == -1:
-                num_train_samples = None
-            if config.N_FIT_RUNS == 1:
-                samples_fit = sbi_train_and_test_for_iG(iG, config, n_train_samples=num_train_samples)
+                num_train_samples = config.N_TRAIN_SAMPLES_LIST
             else:
-                for iR in range(config.N_FIT_RUNS):
-                    samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=num_train_samples)
+                num_train_samples = [num_train_samples]
+            if config.N_FIT_RUNS == 1:
+                for nts in num_train_samples:
+                    samples_fit = sbi_train_and_test_for_iG(iG, config, n_train_samples=nts)
+            else:
+                for nts in num_train_samples:
+                    for iR in range(config.N_FIT_RUNS):
+                        samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=nts)
         elif parser_args.script_id == 4:
             train_samples_label = parser_args.train_samples_label
             if config.N_FIT_RUNS == 1:
