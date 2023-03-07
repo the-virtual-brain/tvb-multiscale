@@ -165,19 +165,19 @@ def configure(**ARGS):
     config.PSD_TARGET_PATH = os.path.join(config.out.FOLDER_RES, "PSD_target.npy")
     config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.POSTERIOR_PATH = os.path.join(config.out.FOLDER_RES, "posterior.pkl")
-    config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.npy")
-    config.N_FIT_RUNS = 0  # 3 - 10
+    config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.pkl")
+    config.N_FIT_RUNS = 10  # 3 - 10
     config.N_SIMULATIONS = 6000
     config.N_SIM_BATCHES = 500
     config.SPLIT_RUN_SAMPLES = 1
+    config.N_TRAIN_SAMPLES_LIST = [100,  200, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000]
     config.TEST_SAMPLES_RATIO = 0.2
     config.N_SAMPLES_PER_RUN = 1000
     config.BATCH_FILE_FORMAT = "%s_%03d%s"
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.Gs = np.array([1.0, 5.0, 10.0])
-    # np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]) # 15.0, 20.0, 30.0, 50.0, 75.0, 100.0])
+    config.Gs = np.array([0.1, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0]) # 15.0, 20.0, 30.0, 50.0, 75.0, 100.0])
     config.PRIORS_DIST = args['PRIORS_DIST']  # "normal" or "uniform"
     config.PRIORS_DEF = \
         {"STIMULUS": {"min": -1.0, "max": 1.0, "loc": 0.0, "sc": 0.25},
@@ -209,7 +209,8 @@ def configure(**ARGS):
     config.n_priors = len(config.PRIORS_PARAMS_NAMES)
     config.SBI_FIT_PLOT_PATH = os.path.join(config.figures.FOLDER_FIGURES, "sbi_fit.%s" % config.figures.FIG_FORMAT)
     config.OPT_RES_MODE = "map"  # or "mean"
-    
+    config.MIN_ACCURACY = -np.inf
+
     if config.VERBOSE:
         print(config)
 
