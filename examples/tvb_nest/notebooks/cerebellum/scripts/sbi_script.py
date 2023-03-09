@@ -2,6 +2,8 @@
 
 import warnings
 import pickle
+
+import numpy as np
 import torch
 from sbi.inference.base import infer, prepare_for_sbi, simulate_for_sbi
 from sbi.inference import SNPE
@@ -213,7 +215,7 @@ def compute_diagnostics(samples, config, priors=None, map=None, ground_truth=Non
     res = {}
     res["samples"] = samples.numpy()
     if map is not None:
-        res['map'] = map
+        res['map'] = map.numpy()
     res['mean'] = samples.mean(axis=0).numpy()
     res['std'] = samples.std(axis=0).numpy()
     if ground_truth is not None:
@@ -347,27 +349,32 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
     if samples is None:
         samples = load_posterior_samples(iG, label, config)
+    if iR is None:
+        all_samples = np.concatenate(samples['samples'], axis=1).squeeze()
+        optimum = np.concatenate(samples[config.OPT_RES_MODE]).mean(axis=0).flatten()
+        run_lbl = ""
+        run_str = run_lbl
+    else:
+        all_samples = np.array(samples['samples'][iR]).squeeze()
+        optimum = np.array(samples[config.OPT_RES_MODE][iR]).flatten()
+        run_lbl = "_iR%02d" % iR
+        run_str = ", iR=%d" % iR
+    print(optimum)
     # Get the default values for the parameter except for G
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
         params[pname] = pval
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples[config.OPT_RES_MODE][-1])))
+    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, optimum)))
     limits = []
     for pmin, pmax in zip(config.prior_min, config.prior_max):
         limits.append([pmin, pmax])
     if config.VERBOSE:
-        print("\nPlotting posterior for G[%d]=%g..." % (iG, samples['G']))
-    pvals = np.array([val.numpy() if not isinstance(val, (np.ndarray, float)) else val for val in params.values()])
+        print("\nPlotting posterior for G[%d]=%g%s..." % (iG, samples['G'], run_str))
+    pvals = np.array(list(params.values()))
     labels = []
     for p, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
-        labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval)) 
-    if iR is None:
-        samples = np.concatenate(samples['samples'])
-        run_str = ""
-    else:
-        samples = samples['samples'][iR]
-        run_str = "_iR%02d" % iR
-    fig, axes = analysis.pairplot(samples,
+        labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval))
+    fig, axes = analysis.pairplot(all_samples,
                                   limits=limits,
                                   ticks=limits,
                                   figsize=(10, 10),
@@ -377,9 +384,9 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
                                   points_colors=['r'] * config.n_priors)
     if config.figures.SAVE_FLAG:
         if len(label):
-            filename = 'sbi_pairplot_G%g_%s%s.png' % (samples['G'], label, run_str)
+            filename = 'sbi_pairplot_G%g_%s%s.png' % (samples['G'], label, run_lbl)
         else:
-            filename = 'sbi_pairplot_G%g%s%s.png' % (samples['G'], run_str)
+            filename = 'sbi_pairplot_G%g%s%s.png' % (samples['G'], run_lbl)
         plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, filename))
     if config.figures.SHOW_FLAG:
         plt.show()
@@ -453,7 +460,7 @@ def sbi_infer_for_iG(iG, config=None):
         print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
     # Plot posterior:
-    plot_infer_for_iG(iG, iR=None, samples=samples_fit, config=config);
+    plot_infer_for_iG(iG, iR=-1, samples=samples_fit, config=config);
 
     if config.VERBOSE:
         print("\n\nFinished after %g sec!" % (time.time() - tic))
@@ -704,7 +711,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
 
 def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None,
                            colors=['b', "g", "m"], marker='.', linestyle='-',
-                           ax=None, figsize=None):
+                           ax=None, figsize=(4,2)):
 
     if num_train_samples is None:
         num_train_samples = config.N_TRAIN_SAMPLES_LIST
@@ -741,9 +748,10 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
         return ax, fig
 
 
-def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore_prior", "zscore", "shrinkage"],
+def plot_all_together(config, iGs=None,
+                      diagnostics=["mean", "map", "std", "diff", "accuracy", "zscore_prior", "zscore", "shrinkage"],
                       params=None, num_train_samples=None,
-                      colors=['b', "g", "m"], marker='.', linestyle='-', figsize=None):
+                      colors=['b', "g", "m"], marker='.', linestyle='-', figsize=(4,2)):
 
     if iGs is None:
         iGs = list(range(len(config.Gs)))
@@ -760,8 +768,8 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
     figsize = np.array(figsize)
     nGs = len(iGs)
     nDs = len(diagnostics)
-    figsize[0] = figsize[0] * nDs
-    figsize[1] = figsize[1] * nGs
+    figsize[1] = figsize[1] * nDs
+    figsize[0] = figsize[0] * nGs
     figsize = tuple(figsize.tolist())
 
     fig, axes = plt.subplots(nrows=nDs, ncols=nGs, figsize=figsize)
