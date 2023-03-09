@@ -346,9 +346,7 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
 def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
     if samples is None:
-        samples = load_posterior_samples(iG, config)
-    if iR is None:
-        iR = -1
+        samples = load_posterior_samples(iG, label, config)
     # Get the default values for the parameter except for G
     params = OrderedDict()
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
@@ -359,11 +357,17 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
         limits.append([pmin, pmax])
     if config.VERBOSE:
         print("\nPlotting posterior for G[%d]=%g..." % (iG, samples['G']))
-    pvals = np.array(list(params.values()))
+    pvals = np.array([val.numpy() if not isinstance(val, (np.ndarray, float)) else val for val in params.values()])
     labels = []
     for p, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
         labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval)) 
-    fig, axes = analysis.pairplot(samples['samples'][iR],
+    if iR is None:
+        samples = np.concatenate(samples['samples'])
+        run_str = ""
+    else:
+        samples = samples['samples'][iR]
+        run_str = "_iR%02d" % iR
+    fig, axes = analysis.pairplot(samples,
                                   limits=limits,
                                   ticks=limits,
                                   figsize=(10, 10),
@@ -373,15 +377,29 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
                                   points_colors=['r'] * config.n_priors)
     if config.figures.SAVE_FLAG:
         if len(label):
-            filename = 'sbi_pairplot_G%g_%s.png' % (samples['G'], label)
+            filename = 'sbi_pairplot_G%g_%s%s.png' % (samples['G'], label, run_str)
         else:
-            filename = 'sbi_pairplot_G%g.png' % samples['G']
+            filename = 'sbi_pairplot_G%g%s%s.png' % (samples['G'], run_str)
         plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, filename))
     if config.figures.SHOW_FLAG:
         plt.show()
     else:
         plt.close(fig)
     return fig, axes
+
+
+def load_target(config, G=1.0):
+    # Load the target
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
+    if G > 0.0:
+        # If we are fitting for a connected network...
+        # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
+        #                                        right                       left
+        psd_targ = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
+                                   PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]])  # S1
+    else:
+        psd_targ = PSD_target['PSD_target']
+    return psd_targ
 
 
 def sbi_infer_for_iG(iG, config=None):
@@ -392,15 +410,7 @@ def sbi_infer_for_iG(iG, config=None):
     if config.VERBOSE:
         print("\n\nFitting for G = %g!\n" % G)
     # Load the target
-    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
-    if G > 0.0:
-        # If we are fitting for a connected network...
-        # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
-        #                                        right                       left
-        psd_targ = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
-                                   PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]]) # S1
-    else:
-        psd_targ = PSD_target['PSD_target']
+    psd_targ = load_target(config, G)
     priors, priors_samples, sim_res = load_priors_and_simulations_for_sbi(iG, config=config)
     n_samples = sim_res.shape[0]
     if priors_samples.shape[0] > n_samples:
@@ -526,6 +536,48 @@ def sbi_train_and_test_for_iG(iG, config, iR=None, n_train_samples=None):
     samples_fit = sbi_test_for_iG(iG, config, iR, posterior, priors, test_samples, test_res, label)
     if config.VERBOSE:
         print("Done with fitting with all samples in %g sec!"  % (time.time() - tic))
+    if config.VERBOSE:
+        print("\n\nFinished after %g sec!" % (time.time() - tic))
+        print("\n\nFind results in %s!" % config.out.FOLDER_RES)
+    return samples_fit
+
+
+def sbi_estimate_for_iG(iG, config,
+                        iR=None, posterior=None, priors=None, label="", plot=True):
+    if posterior is None:
+        posterior = load_posterior(iG, iR=iR, label=label, config=config)
+    if priors is None:
+        priors = build_priors(config)
+    if config.VERBOSE:
+        if iR is None:
+            run_str = ""
+        else:
+            run_str = ", iR=%d" % iR
+        print("\nEstimating data with network for iG=%d%s by sampling %d posterior samples!" %
+              (iG, run_str, config.N_SAMPLES_PER_RUN))
+    # Load the target
+    psd_targ = load_target(config, config.Gs[iG])
+    posterior, posterior_samples, map = sbi_estimate(posterior, psd_targ, config.N_SAMPLES_PER_RUN)
+    write_posterior(posterior, iG, iR=iR, label=label, config=config)
+    diagnostics = compute_diagnostics(posterior_samples, config, priors, map)
+    samples_fit = write_posterior_samples(diagnostics, config, iG, iR,
+                                          label=label, samples_fit=None, save_samples=True)
+    # Plot posterior:
+    if plot:
+        plot_infer_for_iG(iG, iR, samples=samples_fit, label=label,  config=config);
+    return samples_fit
+
+
+def sbi_train_and_estimate_for_iG(iG, config, iR=None, n_train_samples=None, plot=True):
+    tic = time.time()
+    # Train:
+    posterior, priors, train_samples, train_res = \
+        sbi_train_for_iG(iG, config, iR, n_train_samples)[:4]
+    label = "%04d_Train" % train_res.shape[0]
+    # Test:
+    samples_fit = sbi_estimate_for_iG(iG, config, iR, posterior, priors, label, plot=plot)
+    if config.VERBOSE:
+        print("Done with estimating in %g sec!"  % (time.time() - tic))
     if config.VERBOSE:
         print("\n\nFinished after %g sec!" % (time.time() - tic))
         print("\n\nFind results in %s!" % config.out.FOLDER_RES)
