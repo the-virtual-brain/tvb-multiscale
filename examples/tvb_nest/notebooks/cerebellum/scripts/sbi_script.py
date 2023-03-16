@@ -2,6 +2,8 @@
 
 import warnings
 import pickle
+
+import numpy as np
 import torch
 from sbi.inference.base import infer, prepare_for_sbi, simulate_for_sbi
 from sbi.inference import SNPE
