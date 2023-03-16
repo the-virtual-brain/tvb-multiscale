@@ -174,29 +174,29 @@ def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=Non
     return priors, priors_samples, sim_res
 
 
-def posterior_filepath(config, iG=None, iR=None, label="", filepath=None, extension=None):
-    if iG is None and iR is None:
-        return str(config.POSTERIOR_PATH)
-    if filepath is None or extension is None:
-        filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, config.POSTERIOR_PATH))
+def filepath_prefixes(filepath, iG=None, iR=None, label=""):
     if iG is not None:
         filepath += "_iG%02d" % iG
     if iR is not None:
         filepath += "_iR%02d" % iR
     if len(label):
-        label = "_%s" % label
-    return "%s%s%s" % (filepath, label, extension)
+        filepath += "_%s" % label
+    return filepath
 
 
-def posterior_samples_filepath(config, iG=None, label="", filepath=None, extension=None):
-    if iG is None:
-        return config.POSTERIOR_SAMPLES_PATH
+def construct_filepath(default_filepath, config, iG=None, iR=None, label="", filepath=None, extension=None):
     if filepath is None or extension is None:
-        filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES,
-                                                            config.POSTERIOR_SAMPLES_PATH))
-    if len(label):
-        label = "_%s" % label
-    return "%s_iG%02d%s%s" % (filepath, iG, label, extension)
+        filepath, extension = os.path.splitext(os.path.join(config.out.FOLDER_RES, default_filepath))
+    filepath = filepath_prefixes(filepath, iG, iR, label)
+    return "%s%s" % (filepath, extension)
+
+
+def posterior_filepath(config, iG=None, iR=None, label="", filepath=None, extension=None):
+    return construct_filepath(config.POSTERIOR_PATH, config, iG, iR, label, filepath, extension)
+
+
+def posterior_samples_filepath(config, iG=None, iR=None, label="", filepath=None, extension=None):
+    return construct_filepath(config.POSTERIOR_SAMPLES_PATH, config, iG, iR, label, filepath, extension)
 
 
 def write_posterior(posterior, iG=None, iR=None, label="", config=None):
@@ -225,7 +225,7 @@ def compute_diagnostics(samples, config, priors=None, map=None, ground_truth=Non
     return res
 
 
-def safely_set_key_list(d, iR, key, defval):
+def safely_set_key_list_iR(d, iR, key, defval):
     # Make sure the key exists:
     if key not in d:
         d[key] = []
@@ -245,9 +245,9 @@ def safely_set_key_list(d, iR, key, defval):
     return d, iR
 
 
-def safely_append_item(d, iR, key, val):
+def safely_append_item_iR(d, iR, key, val):
     # Make sure the key exists and determine iR:
-    d, iR = safely_set_key_list(d, iR, key, [])
+    d, iR = safely_set_key_list_iR(d, iR, key, [])
     # Append now the current value:
     d[key][iR].append(val)
     return d
@@ -257,22 +257,22 @@ def write_posterior_samples(results, config,
                             iG=None, iR=None, label="",
                             samples_fit=None, save_samples=True):
     config = assert_config(config, return_plotter=False)
-    filepath = posterior_samples_filepath(config, iG, label)
+    filepath = posterior_samples_filepath(config, iG, iR, label)
     if samples_fit is None:
         if os.path.isfile(filepath):
             with open(filepath, "rb") as handle:
                 samples_fit = pickle.load(handle)
         else:
             samples_fit = {}
-    if iR is None:
-        iir = -1
-    else:
-        iir = iR
+    # if iR is None:
+    #     iir = -1
+    # else:
+    #     iir = iR
     # Get G for this run:
     if iG is not None:
         samples_fit["G"] = config.Gs[iG]
     for key, val in results.items():
-        samples_fit = safely_append_item(samples_fit, iir, key, val)
+        samples_fit = safely_append_item_iR(samples_fit, 0, key, val)
     if not save_samples:
         del samples_fit["samples"]
     with open(filepath, "wb") as handle:
@@ -288,22 +288,51 @@ def load_posterior(iG=None, iR=None, label="", config=None):
     return posterior
 
 
-def load_posterior_samples(iG=None, label="", config=None):
+def load_posterior_samples(iG=None, iR=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
-    filepath = posterior_samples_filepath(config, iG, label)
+    filepath = posterior_samples_filepath(config, iG, iR, label)
     with open(filepath, "rb") as handle:
         samples_fit = pickle.load(handle)
     return samples_fit
 
 
-def load_posterior_samples_all_Gs(label="", config=None):
+def add_posterior_samples_iR(all_samples, samples_iR):
+    for key, val in samples_iR.items():
+        if key != "G":
+            if key not in all_samples:
+                all_samples[key] = []
+            all_samples[key].append(val[0])
+    return all_samples
+
+
+def load_posterior_samples_all_runs(iG, runs=None, label="", samples=None, config=None):
+    config = assert_config(config, return_plotter=False)
+    if samples is None:
+        samples = OrderedDict()
+    if runs is None:
+        runs = list(range(config.N_FIT_RUNS))
+    for iR in runs:
+        try:
+            samples_iR = load_posterior_samples(iG, iR, label, config)
+            samples = add_posterior_samples_iR(samples, samples_iR)
+        except Exception as e:
+            warnings.warn("Failed to load posterior samples for iG=%d, G=%g, iR=%d!\n%s" % (iG, config.Gs[iG], iR, str(e)))
+    return samples
+
+
+def load_posterior_samples_all_Gs(iGs=None, runs=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
     samples = OrderedDict()
-    for iG, G in enumerate(config.Gs):
+    if iGs is None:
+        iGs = range(len(config.Gs))
+    for iG in iGs:
         try:
-            samples[G] = load_posterior_samples(iG, label, config)
+            if runs is False:
+                samples[G] = load_posterior_samples(iG, None, label, config)
+            else:
+                samples[G] = load_posterior_samples_all_runs(iG, runs, label, config=config)
         except Exception as e:
-            warnings.warn("Failed to load posterior samples for iG=%d, G=%g!\n%s" % (iG, G, str(e)))
+            warnings.warn("Failed to load posterior samples for iG=%d, G=%g!\n%s" % (iG, config.Gs[iG], str(e)))
     return samples
 
 
@@ -346,7 +375,7 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
 def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
     if samples is None:
-        samples = load_posterior_samples(iG, config)
+        samples = load_posterior_samples(iG, iR, label, config)
     if iR is None:
         iR = -1
     # Get the default values for the parameter except for G
@@ -384,7 +413,7 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     return fig, axes
 
 
-def sbi_infer_for_iG(iG, config=None):
+def sbi_infer_for_iG(iG, label="", config=None):
     tic = time.time()
     config = assert_config(config, return_plotter=False)
     # Get G for this run:
@@ -421,10 +450,9 @@ def sbi_infer_for_iG(iG, config=None):
             posterior, posterior_samples, map = sbi_infer(priors, priors_samples[sampl_inds], sim_res[sampl_inds],
                                                           config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
             # Write posterior and samples to files:
-            write_posterior(posterior, iG, iR, config=config)
+            write_posterior(posterior, iG, iR, label, config=config)
             diagnostics = compute_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
-            samples_fit = write_posterior_samples(diagnostics, config,
-                                                  iG, iR)
+            samples_fit = write_posterior_samples(diagnostics, config, iG, iR, label)
             if config.VERBOSE:
                 print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
 
@@ -436,9 +464,9 @@ def sbi_infer_for_iG(iG, config=None):
     posterior, posterior_samples, map = sbi_infer(priors, priors_samples[:n_samples], sim_res,
                                                   config.N_SAMPLES_PER_RUN, psd_targ, config.VERBOSE)
     # Write posterior and samples to files:
-    write_posterior(posterior, iG, iR=None, config=config)
+    write_posterior(posterior, iG, iR=None, label=label, config=config)
     diagnostics = compute_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
-    samples_fit = write_posterior_samples(diagnostics, config, iG, samples_fit=samples_fit)
+    samples_fit = write_posterior_samples(diagnostics, config, iG, label, samples_fit=samples_fit)
     if config.VERBOSE:
         print("Done with fitting with all samples in %g sec!" % (time.time() - ticR))
 
@@ -489,7 +517,8 @@ def sbi_train_for_iG(iG, config, iR=None, n_train_samples=None):
 
 
 def sbi_test_for_iG(iG, config,
-                    iR=None, posterior=None, priors=None, test_samples=None, test_res=None, label=""):
+                    iR=None, label="",
+                    posterior=None, priors=None, test_samples=None, test_res=None):
     if posterior is None:
         posterior = load_posterior(iG, iR=iR, label=label, config=config)
     if test_samples is None or test_res is None:
@@ -511,8 +540,8 @@ def sbi_test_for_iG(iG, config,
         posterior, posterior_samples, map = sbi_estimate(posterior, rs.numpy(), config.N_SAMPLES_PER_RUN)
         # write_posterior(posterior, iG, iR=iR, label=label, config=config)
         diagnostics = compute_diagnostics(posterior_samples, config, priors, map, ts.numpy())
-        samples_fit = write_posterior_samples(diagnostics, config, iG, iR,
-                                              label=label, samples_fit=samples_fit, save_samples=False)
+        samples_fit = write_posterior_samples(diagnostics, config, iG, iR, label,
+                                              samples_fit=samples_fit, save_samples=False)
     return samples_fit
 
 
@@ -523,7 +552,7 @@ def sbi_train_and_test_for_iG(iG, config, iR=None, n_train_samples=None):
         sbi_train_for_iG(iG, config, iR, n_train_samples)
     label = "%04d_Train" % train_res.shape[0]
     # Test:
-    samples_fit = sbi_test_for_iG(iG, config, iR, posterior, priors, test_samples, test_res, label)
+    samples_fit = sbi_test_for_iG(iG, config, iR, label, posterior, priors, test_samples, test_res)
     if config.VERBOSE:
         print("Done with fitting with all samples in %g sec!"  % (time.time() - tic))
     if config.VERBOSE:
@@ -603,14 +632,14 @@ def plot_sbi_fit(config=None):
     return fig, axes
 
 
-def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None,
-                           label=""):
+def simulate_after_fitting(iG, iR=None, label="", config=None,
+                           workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None):
 
     config = assert_config(config, return_plotter=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
 
-    samples_fit = load_posterior_samples(iG, label=label, config=config)
+    samples_fit = load_posterior_samples(iG, iR, label, config=config)
     if iR is None:
         iR = -1
 
@@ -650,7 +679,7 @@ def simulate_after_fitting(iG, iR=None, config=None, workflow_fun=None, model_pa
     return outputs
 
 
-def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None,
+def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None,
                            colors=['b', "g", "m"], marker='.', linestyle='-',
                            ax=None, figsize=None):
 
@@ -670,9 +699,9 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
 
     res = []
     for nts in num_train_samples:
-        samples_fit = load_posterior_samples(iG, "%04d_Train" % nts, config)
+        samples_fit = load_posterior_samples_all_runs(iG, runs, label="%04d_Train" % nts, config=config)
         res.append(np.concatenate(samples_fit[diagnostic]))
-    res = np.array(res)
+    res = np.stack(res)
     res = np.mean(res, axis=1)
 
     for iP, (param, col) in enumerate(zip(params, colors)):
@@ -690,7 +719,7 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
 
 
 def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore_prior", "zscore", "shrinkage"],
-                      params=None, num_train_samples=None,
+                      params=None, num_train_samples=None, runs=None,
                       colors=['b', "g", "m"], marker='.', linestyle='-', figsize=None):
 
     if iGs is None:
@@ -719,7 +748,7 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
         axes = axes[:, np.newaxis]
     for iD, diagnostic in enumerate(diagnostics):
         for iiG, iG in enumerate(iGs):
-            axes[iD, iiG] = plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples, params,
+            axes[iD, iiG] = plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples, params, runs,
                                                    colors, marker, linestyle,
                                                    ax=axes[iD, iiG])
 
@@ -741,14 +770,15 @@ if __name__ == "__main__":
                         dest='iG', metavar='iG',
                         type=int, required=False, default=-1, # nargs=1,
                         help="G values' integer indice. Default = -1 will be interpreted as None.")
+    parser.add_argument('--iR', '-ir',
+                        dest='iR', metavar='iR',
+                        type=int, required=False, default=-1,  # nargs=1,
+                        help="Run. Default = -1 will be interpreted as None.")
     parser.add_argument('--num_train_samples', '-nts',
                         dest='num_train_samples', metavar='num_train_samples',
                         type=int, required=False, default=-1,  # nargs=1,
                         help="Number of training samples. Default = -1 will be interpreted as None.")
-    parser.add_argument('--train_samples_label', '-nsl',
-                        dest='train_samples_label', metavar='train_samples_label',
-                        type=str, required=False, default="",  # nargs=1,
-                        help="Data file label depending on the number of training samples. Default = ''")
+
     args, parser_args, parser = parse_args(parser, def_args=DEFAULT_ARGS)
     verbose = args.get('verbose', DEFAULT_ARGS['verbose'])
     if verbose:
@@ -756,6 +786,9 @@ if __name__ == "__main__":
         print(parser_args, "\n")
         print(args, "\n")
     config = configure(**args)[0]
+    iR = parser_args.iR
+    if iR == -1:
+        iR = None
     iG = parser_args.iG
     if parser_args.script_id == 0:
         if iG == -1:
@@ -767,31 +800,15 @@ if __name__ == "__main__":
         elif parser_args.script_id == 1:
             samples_fit_Gs, results, fig, simulator, output_config = sbi_infer_for_iG(iG, config)
         elif parser_args.script_id == 2:
-            simulate_after_fitting(iG, iR=None, config=config,
+            simulate_after_fitting(iG, iR=iR, config=config,
                                    workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
         elif parser_args.script_id == 3:
             num_train_samples = parser_args.num_train_samples
-            if num_train_samples == -1:
-                num_train_samples = config.N_TRAIN_SAMPLES_LIST
-            else:
-                num_train_samples = [num_train_samples]
-            if config.N_FIT_RUNS == 1:
-                for nts in num_train_samples:
-                    samples_fit = sbi_train_and_test_for_iG(iG, config, n_train_samples=nts)
-            else:
-                for nts in num_train_samples:
-                    for iR in range(config.N_FIT_RUNS):
-                        samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=nts)
+            samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=nts)
         elif parser_args.script_id == 4:
-            train_samples_label = parser_args.train_samples_label
-            if config.N_FIT_RUNS == 1:
-                samples_fit = sbi_test_for_iG(iG, config, posterior=None, priors=None,
-                                              test_samples=None, test_res=None, label=train_samples_label)
-            else:
-                for iR in range(config.N_FIT_RUNS):
-                    samples_fit = sbi_test_for_iG(iG, config, iR=iR, posterior=None, priors=None,
-                                                  test_samples=None, test_res=None, label=train_samples_label)
+            num_train_samples = parser_args.num_train_samples
+            samples_fit = sbi_test_for_iG(iG, config, iR, "%04d_Train" % num_train_samples,
+                                          posterior=None, priors=None, test_samples=None, test_res=None)
         else:
             raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
                              "nor 1 for sbi_infer_for_iG!")
-
