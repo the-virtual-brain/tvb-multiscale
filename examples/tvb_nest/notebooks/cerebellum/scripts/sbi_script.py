@@ -717,13 +717,13 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
     params = dict(config.model_params)
     params['G'] = G
     # Set the posterior means or maps of the parameters:        
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR]):
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR][0]):
         if pname == "FIC":
-            config.FIC = pval
+            config.FIC = pval.numpy()
         elif pname == "FIC_SPLIT":
-            config.FIC_SPLIT = pval
+            config.FIC_SPLIT = pval.numpy()
         else:
-            params[pname] = pval
+            params[pname] = pval.numpy()
     if FIC is not None:
         config.FIC = FIC
     if FIC_SPLIT is not None:
