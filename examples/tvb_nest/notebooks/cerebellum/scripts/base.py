@@ -165,7 +165,7 @@ def configure(**ARGS):
     config.PSD_TARGET_PATH = os.path.join(config.out.FOLDER_RES, "PSD_target.npy")
     config.TARGET_FREQS = np.arange(5.0, 48.0, 1.0)
     config.POSTERIOR_PATH = os.path.join(config.out.FOLDER_RES, "posterior.pkl")
-    config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "samples_fit.pkl")
+    config.POSTERIOR_SAMPLES_PATH = os.path.join(config.out.FOLDER_RES, "data_samples_fit.pkl")
     config.N_FIT_RUNS = 10  # 3 - 10
     config.N_SIMULATIONS = 6000
     config.N_SIM_BATCHES = 500
