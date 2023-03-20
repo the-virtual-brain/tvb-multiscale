@@ -303,7 +303,7 @@ def add_posterior_samples_iR(all_samples, samples_iR):
         if key != "G":
             if key not in all_samples:
                 all_samples[key] = []
-            all_samples[key].append(val[0])
+            all_samples[key].append(val[0])  # [-1200:] for when old samples are saved
     return all_samples
 
 
@@ -707,12 +707,13 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
     res = np.mean(res, axis=1)
 
     for iP, (param, col) in enumerate(zip(params, colors)):
-        ax.plot(num_train_samples, res[:, iP], color=col, marker=marker, markersize=5, linestyle=linestyle,
+        ax.plot(num_train_samples, res[:, iP],
+                color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
                 label="%s" % param)
-        ax.set_title("iG=%d" % iG)
-        ax.set_xlabel("N training samples")
-        ax.set_ylabel(diagnostic)
-        ax.legend()
+        ax.set_title("iG=%d" % iG, fontsize=18)
+        ax.set_xlabel("N training samples", fontsize=14)
+        ax.set_ylabel(diagnostic, fontsize=14)
+        ax.legend(prop={'size': 14})
 
     if fig is None:
         return ax
@@ -739,8 +740,8 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
     figsize = np.array(figsize)
     nGs = len(iGs)
     nDs = len(diagnostics)
-    figsize[0] = figsize[0] * nDs
-    figsize[1] = figsize[1] * nGs
+    figsize[0] = figsize[1] * nDs
+    figsize[1] = figsize[0] * nGs
     figsize = tuple(figsize.tolist())
 
     fig, axes = plt.subplots(nrows=nDs, ncols=nGs, figsize=figsize)
