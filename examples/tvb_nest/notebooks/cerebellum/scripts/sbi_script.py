@@ -420,8 +420,12 @@ def sbi_infer_for_iG(iG, label="", config=None):
     config = assert_config(config, return_plotter=False)
     # Get G for this run:
     G = config.Gs[iG]
+    if len(label):
+        lblmsg = ", for %s" % label
+    else:
+        lblmsg = ""
     if config.VERBOSE:
-        print("\n\nFitting for G = %g!\n" % G)
+        print("\n\nFitting for G=%g%s!\n" % (G, lblmsg))
     # Load the target
     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
     if G > 0.0:
@@ -479,7 +483,68 @@ def sbi_infer_for_iG(iG, label="", config=None):
         print("\n\nFinished after %g sec!" % (time.time() - tic))
         print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
-    return posterior_samples  # , results, fig, simulator, output_config
+    return posterior_samples  # , samples_fit, results, fig, simulator, output_config
+
+
+def sbi_estimate_for_iG(iG, label="", config=None):
+    tic = time.time()
+    config = assert_config(config, return_plotter=False)
+    # Get G for this run:
+    G = config.Gs[iG]
+    if len(label):
+        lblmsg = ", for %s" % label
+    else:
+        lblmsg = ""
+    if config.VERBOSE:
+        print("\n\nFitting for G=%g%s!\n" % (G, lblmsg))
+    # Build priors:
+    priors = build_priors(config)
+    # Load the target
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
+    if G > 0.0:
+        # If we are fitting for a connected network...
+        # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
+        #                                        right                       left
+        psd_targ = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
+                                   PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]]) # S1
+    else:
+        psd_targ = PSD_target['PSD_target']
+    samples_fit = None
+    if config.N_FIT_RUNS > 0:
+        for iR in range(config.N_FIT_RUNS):
+            # For every fitting run...
+            if config.VERBOSE:
+                print("\n\nEstimating run %d!..\n" % iR)
+            ticR = time.time()
+            posterior = load_posterior(iG, iR=iR, label=label, config=config)
+            posterior, posterior_samples, map = sbi_estimate(posterior, psd_targ, config.N_SAMPLES_PER_RUN)
+            # Write posterior and samples to files:
+            write_posterior(posterior, iG, iR, label, config=config)
+            diagnostics = compute_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
+            samples_fit = write_posterior_samples(diagnostics, config, iG, iR, label)
+            if config.VERBOSE:
+                print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
+    else:
+        if config.VERBOSE:
+            print("\n\nEstimating!..\n")
+        ticR = time.time()
+        posterior = load_posterior(iG, iR=None, label=label, config=config)
+        posterior, posterior_samples, map = sbi_estimate(posterior, PSD_target, config.N_SAMPLES_PER_RUN)
+        # Write posterior and samples to files:
+        write_posterior(posterior, iG, None, label, config=config)
+        diagnostics = compute_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
+        samples_fit = write_posterior_samples(diagnostics, config, iG, None, label)
+        if config.VERBOSE:
+            print("Done in %g sec!" % (time.time() - ticR))
+
+        # Plot posterior:
+        plot_infer_for_iG(iG, iR=None, samples=samples_fit, config=config);
+
+    if config.VERBOSE:
+        print("\n\nFinished after %g sec!" % (time.time() - tic))
+        print("\n\nFind results in %s!" % config.out.FOLDER_RES)
+
+    return samples_fit
 
 
 def get_train_test_samples(iG, config, n_train_samples=None):
@@ -745,7 +810,9 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
     figsize = tuple(figsize.tolist())
 
     fig, axes = plt.subplots(nrows=nDs, ncols=nGs, figsize=figsize)
-    if nDs == 1:
+    if nGs == 1 and nDs == 1:
+        axes = np.array([[axes]])
+    elif nDs == 1:
         axes = axes[np.newaxis]
     elif nGs == 1:
         axes = axes[:, np.newaxis]
