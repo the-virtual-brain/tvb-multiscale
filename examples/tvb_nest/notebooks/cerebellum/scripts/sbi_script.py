@@ -215,6 +215,8 @@ def compute_diagnostics(samples, config, priors=None, map=None, ground_truth=Non
     res = {}
     res["samples"] = samples.numpy()
     if map is not None:
+        if not isinstance(map, np.ndarray):
+            map = map.numpy()
         res['map'] = map
     res['mean'] = samples.mean(axis=0).numpy()
     res['std'] = samples.std(axis=0).numpy()
@@ -303,7 +305,13 @@ def add_posterior_samples_iR(all_samples, samples_iR):
         if key != "G":
             if key not in all_samples:
                 all_samples[key] = []
-            all_samples[key].append(val[0])  # [-1200:] for when old samples are saved
+            vals = []
+            for vl in val[0]:
+                if isinstance(vl, np.ndarray):
+                    vals.append(vl)
+                else:
+                    vals.append(vl.numpy())
+            all_samples[key].append(vals)  # [-1200:] for when old samples are saved
     return all_samples
 
 
@@ -365,7 +373,7 @@ def sbi_train(priors, priors_samples, sim_res, verbose):
 
 def sbi_estimate(posterior, target, n_samples_per_run):
     posterior.set_default_x(target)
-    return posterior, posterior.sample((n_samples_per_run,)), posterior.map(num_iter=n_samples_per_run)
+    return posterior, posterior.sample((n_samples_per_run,)), posterior.map(num_iter=n_samples_per_run).numpy()
 
 
 def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbose):
@@ -381,16 +389,14 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     if iR is None:
         iR = -1
     # Get the default values for the parameter except for G
-    params = OrderedDict()
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-        params[pname] = pval
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples[config.OPT_RES_MODE][-1])))
+    pvals = samples[config.OPT_RES_MODE][-1]
+    if not isinstance(pvals, np.ndarray):
+        pvals = param_val.numpy()
     limits = []
     for pmin, pmax in zip(config.prior_min, config.prior_max):
         limits.append([pmin, pmax])
     if config.VERBOSE:
         print("\nPlotting posterior for G[%d]=%g..." % (iG, samples['G']))
-    pvals = np.array(list(params.values()))
     labels = []
     for p, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
         labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval)) 
@@ -718,12 +724,16 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
     params['G'] = G
     # Set the posterior means or maps of the parameters:        
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR][0]):
-        if pname == "FIC":
-            config.FIC = pval.numpy()
-        elif pname == "FIC_SPLIT":
-            config.FIC_SPLIT = pval.numpy()
+        if isinstance(pval, np.ndarray):
+            np_pval = pval
         else:
-            params[pname] = pval.numpy()
+            np_pval = pval.numpy()
+        if pname == "FIC":
+            config.FIC = np_pval
+        elif pname == "FIC_SPLIT":
+            config.FIC_SPLIT = np_pval
+        else:
+            params[pname] = np_pval
     if FIC is not None:
         config.FIC = FIC
     if FIC_SPLIT is not None:
