@@ -31,11 +31,12 @@ def load_nest(config=CONFIGURED, logger=LOG):
         Returns:
          the imported NEST instance
     """
-    try:
-        import nest
-    except:
-        config.configure_nest_path(logger=logger)
-        import nest
+    import nest
+    # try:
+    #     import nest
+    # except:
+    #     config.configure_nest_path(logger=logger)
+    #     import nest
 
     nest.ResetKernel()
     return nest
