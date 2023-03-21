@@ -20,19 +20,19 @@ from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries, TimeSer
 class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
 
     elephant_analyser = None
-    pyspike_analyser = None
+    # pyspike_analyser = None
 
-    def __init__(self, elephant=True, pyspike=True, **kwargs):
+    def __init__(self, elephant=True, **kwargs):  # pyspike=True,
         super(SpikingNetworkAnalyser, self).__init__(**kwargs)
         self.configure()
         if elephant:
             from tvb_multiscale.tvb_elephant.spiking_network_analyser \
                 import SpikingNetworkAnalyser as SpikingNetworkAnalyserElephant
             self.elephant_analyser = SpikingNetworkAnalyserElephant().from_instance(self, **kwargs)
-        if pyspike:
-            from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
-                import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
-            self.pyspike_analyser = SpikingNetworkAnalyserPySpike().from_instance(self, **kwargs)
+        # if pyspike:
+        #     from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
+        #         import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
+        #     self.pyspike_analyser = SpikingNetworkAnalyserPySpike().from_instance(self, **kwargs)
 
     def __getattr__(self, attr):
         if hasattr(SpikingNetworkAnalyser, attr):
@@ -45,13 +45,14 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 if not isinstance(self.elephant_analyser, SpikingNetworkAnalyserElephant):
                     self.elephant_analyser = SpikingNetworkAnalyserElephant().from_instance(self)
                 return getattr(self.elephant_analyser, attr)
-            except:
-                from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
-                    import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
-                assert hasattr(SpikingNetworkAnalyserPySpike, attr)
-                if not isinstance(self.pyspike_analyser, SpikingNetworkAnalyserPySpike):
-                    self.pyspike_analyser = SpikingNetworkAnalyserPySpike().from_instance(self)
-                return getattr(self.pyspike_analyser, attr)
+            except Exception as e:
+                # from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
+                #     import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
+                # assert hasattr(SpikingNetworkAnalyserPySpike, attr)
+                # if not isinstance(self.pyspike_analyser, SpikingNetworkAnalyserPySpike):
+                #     self.pyspike_analyser = SpikingNetworkAnalyserPySpike().from_instance(self)
+                # return getattr(self.pyspike_analyser, attr)
+                raise e
 
     def _setattr_to_elephant_analyser(self, attr, val):
         try:
@@ -62,14 +63,14 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         if isinstance(self.elephant_analyser, SpikingNetworkAnalyserElephant):
             setattr(self.elephant_analyser, attr, val)
 
-    def _setattr_to_pyspike_analyser(self, attr, val):
-        try:
-            from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
-                import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
-        except:
-            return
-        if isinstance(self.pyspike_analyser, SpikingNetworkAnalyserPySpike):
-            setattr(self.pyspike_analyser, attr, val)
+    # def _setattr_to_pyspike_analyser(self, attr, val):
+    #     try:
+    #         from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
+    #             import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
+    #     except:
+    #         return
+    #     if isinstance(self.pyspike_analyser, SpikingNetworkAnalyserPySpike):
+    #         setattr(self.pyspike_analyser, attr, val)
 
     def __setattr__(self, attr, val):
         if hasattr(SpikingNetworkAnalyser, attr):
@@ -77,7 +78,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             SpikingNetworkAnalyserBase.__setattr__(self, attr, val)
             if attr != "gid":
                 self._setattr_to_elephant_analyser(attr, val)
-                self._setattr_to_pyspike_analyser(attr, val)
+                # self._setattr_to_pyspike_analyser(attr, val)
             return
         else:
             try:
@@ -88,19 +89,20 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                     self.elephant_analyser = SpikingNetworkAnalyserElephant().from_instance(self)
                 setattr(self.elephant_analyser, attr, val)
                 return
-            except:
-                from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
-                    import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
-                if hasattr(SpikingNetworkAnalyserPySpike, attr):
-                    if not isinstance(self.pyspike_analyser, SpikingNetworkAnalyserPySpike):
-                        self.pyspike_analyser = SpikingNetworkAnalyserPySpike().from_instance(self)
-                    setattr(self.pyspike_analyser, attr, val)
-                    return
+            except Exception as e:
+                # from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
+                #     import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
+                # if hasattr(SpikingNetworkAnalyserPySpike, attr):
+                #     if not isinstance(self.pyspike_analyser, SpikingNetworkAnalyserPySpike):
+                #         self.pyspike_analyser = SpikingNetworkAnalyserPySpike().from_instance(self)
+                #     setattr(self.pyspike_analyser, attr, val)
+                #     return
+                raise e
         # Add a new common attribute:
         SpikingNetworkAnalyserBase.__setattr__(self, attr, val)
         if attr != "gid":
             self._setattr_to_elephant_analyser(attr, val)
-            self._setattr_to_pyspike_analyser(attr, val)
+            # self._setattr_to_pyspike_analyser(attr, val)
 
     def _regions_generator(self, reg_device_or_data, population_sizes=[],
                            computation_methods=[lambda x, **kwargs: x], computations_kwargs=[{}],
