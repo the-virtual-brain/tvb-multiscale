@@ -1,3 +1,8 @@
+# Ignoring annarchy, netpyne, pyspike
+**annarchy**
+**netpyne**
+**pyspike**
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
