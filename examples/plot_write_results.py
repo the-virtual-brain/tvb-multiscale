@@ -207,7 +207,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         start_time = None
         end_time = None
 
-    spikeNet_analyzer = SpikingNetworkAnalyser(elephant=True, pyspike=True, spikeNet=spiking_network,
+    spikeNet_analyzer = SpikingNetworkAnalyser(elephant=True, spikeNet=spiking_network,  # pyspike=True,
                                                start_time=start_time, end_time=end_time,
                                                period=monitor_period, transient=transient,
                                                time_series_output_type="TVB", return_data=True,
@@ -263,33 +263,34 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                                             spikes_res["mean_rate_time_series"].title) + ".h5",
                                                recursive=False)
 
-        spikes_sync = \
-            spikeNet_analyzer.compute_spikeNet_synchronization(
-                populations_devices=None, regions=None,
-                comp_methods=[spikeNet_analyzer.compute_spikes_sync,
-                              spikeNet_analyzer.compute_spikes_sync_time_series],
-                computations_kwargs=[{}], data_kwargs={},
-                return_spikes_trains=False, return_devices=False)
-
-        if spikes_sync is not None:
-            print_spikes_mean_result(spikes_sync["spikes_sync"])
-            # Plot spikes' rasters together with mean population's spikes' rates' time series
-            plotter.plot_spike_events(spikes_res["spikes"],
-                                      time_series=spikes_sync["spikes_sync_time_series"],
-                                      mean_results=spikes_sync["spikes_sync"],
-                                      spikes_markersize=0.5, spikes_alpha=0.5,
-                                      n_y_ticks=3, n_time_ticks=6, show_time_axis=True,
-                                      figsize=figsize)
-            if writer:
-                writer.write_object(spikes_sync["spikes_sync"].to_dict(),
-                                    path=os.path.join(config.out.FOLDER_RES,
-                                                      spikes_sync["spikes_sync"].name) + ".h5")
-                write_RegionTimeSeriesXarray_to_h5(
-                    spikes_sync["spikes_sync_time_series"], writer,
-                    os.path.join(config.out.FOLDER_RES,
-                                 spikes_sync["spikes_sync_time_series"].title) + ".h5",
-                    recursive=False)
-            del spikes_sync
+        # This requires pyspike!:
+        # spikes_sync = \
+        #     spikeNet_analyzer.compute_spikeNet_synchronization(
+        #         populations_devices=None, regions=None,
+        #         comp_methods=[spikeNet_analyzer.compute_spikes_sync,
+        #                       spikeNet_analyzer.compute_spikes_sync_time_series],
+        #         computations_kwargs=[{}], data_kwargs={},
+        #         return_spikes_trains=False, return_devices=False)
+        #
+        # if spikes_sync is not None:
+        #     print_spikes_mean_result(spikes_sync["spikes_sync"])
+        #     # Plot spikes' rasters together with mean population's spikes' rates' time series
+        #     plotter.plot_spike_events(spikes_res["spikes"],
+        #                               time_series=spikes_sync["spikes_sync_time_series"],
+        #                               mean_results=spikes_sync["spikes_sync"],
+        #                               spikes_markersize=0.5, spikes_alpha=0.5,
+        #                               n_y_ticks=3, n_time_ticks=6, show_time_axis=True,
+        #                               figsize=figsize)
+        #     if writer:
+        #         writer.write_object(spikes_sync["spikes_sync"].to_dict(),
+        #                             path=os.path.join(config.out.FOLDER_RES,
+        #                                               spikes_sync["spikes_sync"].name) + ".h5")
+        #         write_RegionTimeSeriesXarray_to_h5(
+        #             spikes_sync["spikes_sync_time_series"], writer,
+        #             os.path.join(config.out.FOLDER_RES,
+        #                          spikes_sync["spikes_sync_time_series"].title) + ".h5",
+        #             recursive=False)
+        #     del spikes_sync
 
         del spikes_res
         if plot_per_neuron:
