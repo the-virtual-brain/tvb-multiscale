@@ -2,6 +2,9 @@
 **annarchy**
 **netpyne**
 **pyspike**
+**tvb_annarchy**
+**tvb_netpyne**
+**tvb_pyspike**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
