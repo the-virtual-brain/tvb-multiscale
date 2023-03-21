@@ -17,7 +17,7 @@ import setuptools
 
 VERSION = "2.0.2"
 
-INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "pyspike", "dill"]
+INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "dill"]
 
 setuptools.setup(name='tvb-multiscale',
                  version=VERSION,
