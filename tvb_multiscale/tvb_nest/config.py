@@ -68,7 +68,7 @@ class TVBNESTConfig(ConfigBase):
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
         super(TVBNESTConfig, self).__init__(output_base, separate_by_run, initialize_logger)
-        self.NEST_PATH = os.environ.get("NEST_INSTALL_DIR", DEFAULT_NEST_INSTALL_DIR)
+        # self.NEST_PATH = os.environ.get("NEST_INSTALL_DIR", DEFAULT_NEST_INSTALL_DIR)
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
         self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
@@ -105,44 +105,44 @@ class Config(TVBNESTConfig):
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
         super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
-        self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
-        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
-        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
-        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
-        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
+        # self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
+        # self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
+        # self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
+        #self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
+        # self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
         self.MYMODULES_DIR = MYMODULES_DIR
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
-    def configure_nest_path(self, logger=None):
-            if logger is None:
-                logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
-            logger.info("Loading a NEST instance...")
-            nest_path = self.NEST_PATH
-            os.environ['NEST_INSTALL_DIR'] = nest_path
-            log_path('NEST_INSTALL_DIR', logger)
-            os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-            log_path('NEST_DATA_DIR', logger)
-            os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-            log_path('NEST_DOC_DIR', logger)
-            os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-            log_path('NEST_MODULE_PATH', logger)
-            os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-            log_path('PATH', logger)
-            LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-            if len(LD_LIBRARY_PATH) > 0:
-                LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-            os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-            log_path('LD_LIBRARY_PATH', logger)
-            os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
-            log_path('SLI_PATH', logger)
-            os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
-            log_path('NEST_PYTHON_PREFIX', logger)
-            sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-            syspath = "[\n"
-            for p in sys.path:
-                syspath += "%s\n" % p
-            syspath += "]\n"
-            logger.info("%s:\n%s" % ("system path", syspath))
+    # def configure_nest_path(self, logger=None):
+    #         if logger is None:
+    #             logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
+    #         logger.info("Loading a NEST instance...")
+    #         nest_path = self.NEST_PATH
+    #         os.environ['NEST_INSTALL_DIR'] = nest_path
+    #         log_path('NEST_INSTALL_DIR', logger)
+    #         os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
+    #         log_path('NEST_DATA_DIR', logger)
+    #         os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
+    #         log_path('NEST_DOC_DIR', logger)
+    #         os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
+    #         log_path('NEST_MODULE_PATH', logger)
+    #         os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
+    #         log_path('PATH', logger)
+    #         LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
+    #         if len(LD_LIBRARY_PATH) > 0:
+    #             LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
+    #         os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
+    #         log_path('LD_LIBRARY_PATH', logger)
+    #         os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
+    #         log_path('SLI_PATH', logger)
+    #         os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
+    #         log_path('NEST_PYTHON_PREFIX', logger)
+    #         sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
+    #         syspath = "[\n"
+    #         for p in sys.path:
+    #             syspath += "%s\n" % p
+    #         syspath += "]\n"
+    #         logger.info("%s:\n%s" % ("system path", syspath))
 
 
 class ServerConfig(TVBNESTConfig):
