@@ -15,7 +15,7 @@ import shutil
 import setuptools
 
 
-VERSION = "2.0.2"
+VERSION = "2.0.3"
 
 INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "pyspike", "dill", "ANNarchy", "neuron", "netpyne"]
 

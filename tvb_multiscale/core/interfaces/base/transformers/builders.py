@@ -174,7 +174,7 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
-                interface["transformer"] = interface["transformer"].value(**params)
+                interface["transformer"] = self.build_transformer(interface["transformer"].value, **params)
             elif inspect.isclass(interface["transformer"]):
                 # ...or a Transformer type:
                 interface["transformer"] = self.build_transformer(interface["transformer"], **params)

@@ -41,7 +41,7 @@ class SpikeNetInterface(HasTraits):
 
     @property
     def spiking_simulator(self):
-        return self.spiking_network.spiking_simulator
+        return self.spiking_network.spiking_simulator_module
 
     @property
     def label(self):

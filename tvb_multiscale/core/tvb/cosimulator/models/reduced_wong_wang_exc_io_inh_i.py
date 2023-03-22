@@ -153,44 +153,48 @@ class ReducedWongWangExcIOInhI(TVBReducedWongWangExcInh):
         if self.use_numba:
             state_variables = \
                 _numba_update_non_state_variables_before_integration(
+                    # Variables (n_regions, n_svs):
                     state_variables.reshape(state_variables.shape[:-1]).T,
-                    coupling.reshape(coupling.shape[:-1]).T +
-                    local_coupling * state_variables[0],
+                    coupling.reshape(coupling.shape[:-1]).T + local_coupling * state_variables[0],
+                    # Parameters (n_regions, ):
                     self.a_e, self.b_e, self.d_e,  self.w_p, self.W_e, self.J_N,
                     self.a_i, self.b_i, self.d_i, self.W_i, self.J_i,
                     self.G, self.lamda, self.I_o, self.I_ext)
-            return state_variables.T[..., numpy.newaxis]
+            state_variables = state_variables.T[..., numpy.newaxis]
 
-        # In this case, rates (H_e, H_i) are non-state variables,
-        # i.e., they form part of state_variables but have no dynamics assigned on them
-        # Most of the computations of this dfun aim at computing rates, including coupling considerations.
-        # Therefore, we compute and update them only once a new state is computed,
-        # and we consider them constant for any subsequent possible call to this function,
-        # by any integration scheme
+        else:
+            # In this case, rates (H_e, H_i) are non-state variables,
+            # i.e., they form part of state_variables but have no dynamics assigned on them
+            # Most of the computations of this dfun aim at computing rates, including coupling considerations.
+            # Therefore, we compute and update them only once a new state is computed,
+            # and we consider them constant for any subsequent possible call to this function,
+            # by any integration scheme
 
-        S = state_variables[:2, :]  # synaptic gating dynamics
+            S = state_variables[:2]  # synaptic gating dynamics
 
-        c_0 = coupling[0, :]
+            c_0 = coupling[0]
 
-        # if applicable
-        lc_0 = local_coupling * S[0]
+            # if applicable
+            lc_0 = local_coupling * S[0]
 
-        coupling = self.G * self.J_N * (c_0 + lc_0)
+            coupling = self.G * self.J_N * (c_0 + lc_0)
 
-        J_N_S_e = self.J_N * S[0]
+            J_N_S_e = self.J_N * S[0]
 
-        # TODO: Confirm that this computation is correct for this model depending on the r_e and r_i values!
-        I_e = self.w_p * J_N_S_e - self.J_i * S[1] + self.W_e * self.I_o + coupling + self.I_ext
-        x_e = self.a_e * I_e - self.b_e
-        R_e =  x_e / (1 - numpy.exp(-self.d_e * x_e))
+            # TODO: Confirm that this computation is correct for this model depending on the r_e and r_i values!
+            I_e = self.w_p * J_N_S_e - self.J_i * S[1] + self.W_e * self.I_o + coupling + self.I_ext
+            x_e = self.a_e * I_e - self.b_e
+            R_e =  x_e / (1 - numpy.exp(-self.d_e * x_e))
 
-        I_i = J_N_S_e - S[1] + self.W_i * self.I_o + self.lamda * coupling
-        x_i = self.a_i * I_i - self.b_i
-        R_i = x_i / (1 - numpy.exp(-self.d_i * x_i))
+            I_i = J_N_S_e - S[1] + self.W_i * self.I_o + self.lamda * coupling
+            x_i = self.a_i * I_i - self.b_i
+            R_i = x_i / (1 - numpy.exp(-self.d_i * x_i))
 
-        # We now update the state_variable vector with the new rates:
-        state_variables[2, :] = R_e
-        state_variables[3, :] = R_i
+            # We now update the state_variable vector with the new rates:
+            state_variables[2] = R_e
+            state_variables[3] = R_i
+
+        self._R = state_variables[2:4].copy()
 
         return state_variables
 
@@ -212,7 +216,7 @@ class ReducedWongWangExcIOInhI(TVBReducedWongWangExcInh):
 
         """
 
-        S = integration_variables[:2, :]     # Synaptic gating dynamics
+        S = integration_variables[:2]     # Synaptic gating dynamics
 
         # Synaptic gating dynamics
         dS_e = - (S[0] / self.tau_e) + (1 - S[0]) * R[0] * self.gamma_e
@@ -229,7 +233,10 @@ class ReducedWongWangExcIOInhI(TVBReducedWongWangExcInh):
         else:
             R = self._R
         if self.use_numba:
-            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T,
+            deriv = _numba_dfun(# Variables (n_regions, n_svs):
+                                x.reshape(x.shape[:-1]).T,
+                                R.reshape(R.shape[:-1]).T,
+                                # Parameters (n_regions, ):
                                 self.gamma_e, self.tau_e, self.gamma_i, self.tau_i).T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, R)

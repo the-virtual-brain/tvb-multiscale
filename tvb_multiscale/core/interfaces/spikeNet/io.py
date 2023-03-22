@@ -102,7 +102,7 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
 
     def configure(self):
         super(SpikeNetOutputDeviceSet, self).configure()
-        self.variables = []
+        self.variables = list()
         if self.source.size:
             for device in self.source:
                 assert isinstance(device, self._spikeNet_output_device_type)
@@ -111,13 +111,13 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
 
     @property
     def data(self):
-        data = []
+        data = list()
         # We need to get only the newly recorded events since last time:
         for i_node, node in enumerate(self.source.devices()):
-            data.append({})
+            data.append(dict)
             for var, val in self.source[node].get_new_events(self.variables).items():
                 data[i_node][var] = val
-        return [[], data]
+        return [list(), data]
 
     def receive(self):
         return self.data
@@ -137,13 +137,13 @@ class SpikeNetSpikeRecorderDeviceSet(SpikeNetOutputDeviceSet):
 
     @property
     def data(self):
-        data = []
+        data = list()
         # We need to get only the newly recorded events since last time:
         for i_node, node in enumerate(self.source.devices()):
-            data.append({})
+            data.append(dict())
             for var, val in self.source[node].get_new_events(self.variables).items():
                 data[i_node][var] = val
-        return [[], data]
+        return [list(), data]
 
 
 class SpikeNetSpikeRecorderTotalDeviceSet(SpikeNetSpikeRecorderDeviceSet):
@@ -158,11 +158,11 @@ class SpikeNetSpikeRecorderTotalDeviceSet(SpikeNetSpikeRecorderDeviceSet):
 
     @property
     def data(self):
-        spike_data = []
+        spike_data = list()
         for node in self.source.devices():
-            spike_data.append([])
+            spike_data.append(list())
             spike_data[-1] = self.source[node].new_spikes_times
-        return [[], np.array(spike_data, dtype='object')]
+        return [list(), np.array(spike_data, dtype='object')]
 
 
 class SpikeNetMultimeterDeviceSetBase(SpikeNetOutputDeviceSet, ABC):

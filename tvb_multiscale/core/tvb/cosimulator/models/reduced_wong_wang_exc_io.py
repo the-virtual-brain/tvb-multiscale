@@ -192,33 +192,35 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
         if self.use_numba:
             state_variables = \
                 _numba_update_non_state_variables_before_integration(
+                    # Variables (n_regions, n_svs):
                     state_variables.reshape(state_variables.shape[:-1]).T,
-                    coupling.reshape(coupling.shape[:-1]).T +
-                    local_coupling * state_variables[0],
+                    coupling.reshape(coupling.shape[:-1]).T + local_coupling * state_variables[0],
+                    # Parameters (n_regions, ):
                     self.a, self.b, self.d, self.w, self.J_N, self.G, self.I_o)
-            return state_variables.T[..., numpy.newaxis]
+            state_variables = state_variables.T[..., numpy.newaxis]
 
-        S = state_variables[0, :]  # synaptic gating dynamics
+        else:
+            S = state_variables[0]  # synaptic gating dynamics
 
-        c_0 = coupling[0, :]
+            c_0 = coupling[0]
 
-        # if applicable
-        lc_0 = local_coupling * S[0]
+            # if applicable
+            lc_0 = local_coupling * S[0]
 
-        coupling = self.G * self.J_N * (c_0 + lc_0)
+            coupling = self.G * self.J_N * (c_0 + lc_0)
 
-        # Currents
-        I = self.w * self.J_N * S + self.I_o + coupling
-        x = self.a * I - self.b
+            # Currents
+            I = self.w * self.J_N * S + self.I_o + coupling
+            x = self.a * I - self.b
 
-        # Rates
-        R = x / (1 - numpy.exp(-self.d * x))
+            # Rates
+            R = x / (1 - numpy.exp(-self.d * x))
 
-        # We now update the state_variable vector with the new rate:
-        state_variables[1, :] = R
+            # We now update the state_variable vector with the new rate:
+            state_variables[1] = R
 
         # Keep them here so that they are not recomputed in the dfun
-        self._R = numpy.copy(R)
+        self._R = numpy.copy(state_variables[1])
 
         return state_variables
 
@@ -235,7 +237,7 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
                  \dot{S}_k &= -\dfrac{S_k}{\tau_s} + (1 - S_k) \, H(x_k) \, \gamma
 
         """
-        S = integration_variables[0, :]  # Synaptic gating dynamics
+        S = integration_variables[0]  # Synaptic gating dynamics
 
         # Synaptic gating dynamics
         dS = - (S / self.tau_s) + (1 - S) * R * self.gamma
@@ -251,7 +253,8 @@ class ReducedWongWangExcIO(TVBReducedWongWang):
         else:
             R = self._R
         if self.use_numba:
-            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R.reshape(x.shape[:-1]).T, self.gamma, self.tau_s)
+            deriv = _numba_dfun(x.reshape(x.shape[:-1]).T, R,  # Variables (n_regions, n_svs)
+                                self.gamma, self.tau_s)        # Parameters (n_regions, )
             deriv = deriv.T[..., numpy.newaxis]
         else:
             deriv = self._numpy_dfun(x, R)
