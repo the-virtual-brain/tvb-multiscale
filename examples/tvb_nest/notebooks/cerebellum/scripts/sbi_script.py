@@ -123,17 +123,12 @@ def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
     write_batch_sim_res_to_file(sim_res, iB, iG, config)
 
 
-def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
-    config = assert_config(config, return_plotter=False)
-    # Get the default values for the parameter except for G
-    batch_samples = load_priors_samples_per_batch_per_iG(iB, iG, config)
-    n_simulations = batch_samples.shape[0]
+def simulate_batch(iB, iG, G, batch_samples, priors_param_names, run_workflow, write_to_file=None):
     sim_res = []
-    for iS in range(n_simulations):
+    for iS in range(batch_samples.shape[0]):
         priors_params = OrderedDict()
-        if iG is not None:
-            priors_params["G"] = config.Gs[iG]
-        for prior_name, prior in zip(config.PRIORS_PARAMS_NAMES, batch_samples[iS]):
+        priors_params["G"] = G
+        for prior_name, prior in zip(priors_param_names, batch_samples[iS]):
             try:
                 numpy_prior = prior.numpy()
             except:
@@ -145,12 +140,22 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
             else:
                 priors_params[prior_name] = numpy_prior
         if config.VERBOSE:
-            print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS+1, n_simulations, iG, iB))
+            print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS + 1, batch_samples.shape[0], iG, iB))
             print("Simulating for parameters:\n%s" % str(priors_params))
         sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False, write_files=False)[0])
         if write_to_file:
-            write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config)
+            write_to_file(sim_res, iB, iG, config)
     return sim_res
+
+
+def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
+    config = assert_config(config, return_plotter=False)
+    # Get the default values for the parameter except for G
+    batch_samples = load_priors_samples_per_batch_per_iG(iB, iG, config)
+    if write_to_file:
+        write_to_file = write_batch_sim_res_to_file_per_iG
+    return simulate_batch(iB, iG, config.Gs[iG], batch_samples,
+                          config.PRIORS_PARAMS_NAMES, run_workflow, write_to_file)
 
 
 def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=None, sim_res=None, config=None):
@@ -569,6 +574,13 @@ def get_train_test_samples(iG, config, n_train_samples=None):
     return train_samples, train_res, test_samples, test_res
 
 
+def num_train_sample_to_label(nts, format="", config=None):
+    if len(format) == 0:
+        config = assert_config(config, return_plotter=False)
+        format = config.N_TRAIN_SAMPLES_LABEL
+    return format % nts
+
+
 def sbi_train_for_iG(iG, config, iR=None, n_train_samples=None):
     tic = time.time()
     if config.VERBOSE:
@@ -578,7 +590,7 @@ def sbi_train_for_iG(iG, config, iR=None, n_train_samples=None):
             run_str = ", iR=%d" % iR
         print("\nTraining network with %d samples for iG=%d%s!" % (n_train_samples, iG, run_str))
     train_samples, train_res, test_samples, test_res = get_train_test_samples(iG, config, n_train_samples)
-    label = "%04d_Train" % train_res.shape[0]
+    label = num_train_sample_to_label(train_res.shape[0], format=config.N_TRAIN_SAMPLES_LABEL)
     # Train:
     priors = build_priors(config)
     posterior = sbi_train(priors, train_samples, train_res, config.VERBOSE)
@@ -623,7 +635,7 @@ def sbi_train_and_test_for_iG(iG, config, iR=None, n_train_samples=None):
     # Train:
     posterior, priors, train_samples, train_res, test_samples, test_res = \
         sbi_train_for_iG(iG, config, iR, n_train_samples)
-    label = "%04d_Train" % train_res.shape[0]
+    label = num_train_sample_to_label(train_res.shape[0], format=config.N_TRAIN_SAMPLES_LABEL)
     # Test:
     samples_fit = sbi_test_for_iG(iG, config, iR, label, posterior, priors, test_samples, test_res)
     if config.VERBOSE:
@@ -756,6 +768,41 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
     return outputs
 
 
+def ppt_batch_sim_res_filepath(iB, config, iG=None, filepath=None, extension=None):
+    return batch_filepath(iB, config, iG, filepath, extension, config.PPT_BATCH_SIM_RES_FILE)
+
+
+def write_ppt_batch_sim_res_to_file(sim_res, iB, iG=None, config=None):
+    np.save(batch_sim_res_filepath(iB, assert_config(config, return_plotter=False), iG), sim_res, allow_pickle=True)
+
+
+def write_ppt_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
+    write_batch_sim_res_to_file(sim_res, iB, iG, config)
+
+
+def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=None,  iR=None,
+                                                     workflow_fun=run_workflow, write_to_file=True, config=None):
+    config = assert_config(config, return_plotter=False)
+    if num_train_samples is not None:
+        label = num_train_sample_to_label(num_train_samples, config.N_TRAIN_SAMPLES_LABEL)
+    else:
+        label = ""
+    samples_fit = load_posterior_samples(iG, iR, label, config=config)
+    samples = samples_fit["samples"]
+    n_samples = samples.shape[0]
+    # Split the total number of samples into N_PPT_SIM_BATCHES consecutive segments...
+    n_possible_samples_per_batch = int(n_samples / config.N_PPT_SIM_BATCHES)
+    # ...and choose the segment that corresponds to this batch iB:
+    samples_for_batch = samples[iB*n_possible_samples_per_batch:(iB+1)*n_possible_samples_per_batch]
+    # Now choose N_PPT_SIMS_PER_BATCH randomly among the samples meant for this batch
+    sampl_inds = random.sample(list(range(n_possible_samples_per_batch)), config.N_PPT_SIMS_PER_BATCH)
+    samples = samples[sampl_inds]
+    if write_to_file:
+        write_to_file = write_ppt_batch_sim_res_to_file_per_iG
+    return simulate_batch(iB, iG, config.Gs[iG], samples,
+                          config.PRIORS_PARAMS_NAMES, run_workflow, write_to_file)
+
+
 def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None,
                            colors=['b', "g", "m"], marker='.', linestyle='-',
                            ax=None, figsize=None):
@@ -776,7 +823,11 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
 
     res = []
     for nts in num_train_samples:
-        samples_fit = load_posterior_samples_all_runs(iG, runs, label="%04d_Train" % nts, config=config)
+        samples_fit = \
+            load_posterior_samples_all_runs(iG, runs,
+                                            label=num_train_sample_to_label(nts,
+                                                                            format=config.N_TRAIN_SAMPLES_LABEL),
+                                            config=config)
         res.append(np.concatenate(samples_fit[diagnostic]))
     res = np.stack(res)
     res = np.mean(res, axis=1)
@@ -887,8 +938,19 @@ if __name__ == "__main__":
             samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=nts)
         elif parser_args.script_id == 4:
             num_train_samples = parser_args.num_train_samples
-            samples_fit = sbi_test_for_iG(iG, config, iR, "%04d_Train" % num_train_samples,
+            samples_fit = sbi_test_for_iG(iG, config, iR,
+                                          num_train_sample_to_label(num_train_samples,
+                                                                    format=config.N_TRAIN_SAMPLES_LABEL),
                                           posterior=None, priors=None, test_samples=None, test_res=None)
+        elif parser_args.script_id == 5:
+            if iG == -1:
+                iG = None
+            num_train_samples = parser_args.num_train_samples
+            sim_res = \
+                posterior_predictive_check_simulations_for_iG_iB(parser_args.iB,
+                                                                 num_train_samples=num_train_samples, iR=iR,
+                                                                 workflow_fun=run_workflow, write_to_file=True,
+                                                                 config=config)
         else:
             raise ValueError("Input argument script_id=%s is neither 0 for simulate_TVB_for_sbi_batch "
                              "nor 1 for sbi_infer_for_iG!")
