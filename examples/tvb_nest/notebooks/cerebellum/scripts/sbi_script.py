@@ -788,19 +788,20 @@ def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=N
     else:
         label = ""
     samples_fit = load_posterior_samples(iG, iR, label, config=config)
-    samples = samples_fit["samples"]
+    samples = samples_fit["samples"].copy()
+    del samples_fit
     n_samples = samples.shape[0]
     # Split the total number of samples into N_PPT_SIM_BATCHES consecutive segments...
     n_possible_samples_per_batch = int(n_samples / config.N_PPT_SIM_BATCHES)
     # ...and choose the segment that corresponds to this batch iB:
-    samples_for_batch = samples[iB*n_possible_samples_per_batch:(iB+1)*n_possible_samples_per_batch]
+    samples = samples[iB*n_possible_samples_per_batch:(iB+1)*n_possible_samples_per_batch]
     # Now choose N_PPT_SIMS_PER_BATCH randomly among the samples meant for this batch
     sampl_inds = random.sample(list(range(n_possible_samples_per_batch)), config.N_PPT_SIMS_PER_BATCH)
     samples = samples[sampl_inds]
     if write_to_file:
         write_to_file = write_ppt_batch_sim_res_to_file_per_iG
     return simulate_batch(iB, iG, config.Gs[iG], samples,
-                          config.PRIORS_PARAMS_NAMES, run_workflow, write_to_file)
+                          config.PRIORS_PARAMS_NAMES, workflow_fun, write_to_file)
 
 
 def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None,
