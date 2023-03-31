@@ -17,7 +17,7 @@ from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel, CoSimulatorNetpyne
 
 
 class CoSimulatorBuilder(HasTraits):
@@ -321,6 +321,15 @@ class CoSimulatorParallelBuilder(CoSimulatorBuilder):
     """
 
     _cosimulator_type = CoSimulatorParallel
+
+
+class CoSimulatorNetpyneBuilder(CoSimulatorBuilder):
+
+    """CoSimulatorNetpyneBuilder is an opinionated builder for a TVB CoSimulatorNetpyne,
+       adjusted for parallel cosimulation.
+    """
+
+    _cosimulator_type = CoSimulatorNetpyne
 
 
 class CoSimulatorSerialBuilder(CoSimulatorBuilder):

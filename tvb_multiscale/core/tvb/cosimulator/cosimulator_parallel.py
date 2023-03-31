@@ -39,6 +39,9 @@ It inherits the Simulator class.
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
+import numpy as np
+import time, sys
+from threading import Thread
 
 class CoSimulatorParallel(CoSimulator):
 
@@ -60,3 +63,48 @@ class CoSimulatorMPI(CoSimulatorParallel):
     #         self.input_interfaces[0].end_mpi()
     #     self.MPI.Finalize()  # ending with MPI
     #     self.logger.info("TVB exit")
+
+class CoSimulatorNetpyne(CoSimulator):
+
+    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+
+        self.synchronize_spiking_simulator()
+
+        # root node performs co-simulation updates in both directions (spiking <-> TVB) and calculates spiking simulation length for this iteration
+        if self.isRootNode():
+            self._send_cosim_coupling(self._cosimulation_flag)
+            cosim_updates = self._get_cosim_updates(cosimulation)
+
+            n_steps = self._prepare_simulation(cosim_updates=cosim_updates)
+            steps_to_run_spiking = np.where(self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
+                                            self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
+                                            n_steps).item()
+            spiking_simulation_length = np.around(steps_to_run_spiking * self.integrator.dt,
+                                                  decimals=self._number_of_dt_decimals).item()
+        else:
+            spiking_simulation_length, n_steps = (0, 0) # just a placeholder
+
+        # transfer to other MPI nodes
+        spiking_simulation_length, n_steps = self.synchronize_spiking_simulator(
+            gatherSimData=False,
+            additionalData = [spiking_simulation_length, n_steps]
+        )
+        n_steps = int(n_steps)
+
+        if self.isRootNode():
+            # root node performs TVB simulation and spiking simulation for its share of spiking cells in separate threads. Spiking cells load balancing between MPI nodes is done the way that root node gets minority of it, so it should have enough idle time to bypass the curse of global interpreter lock, thus justifying the threading approach
+
+            def runTVB():
+                data = self(cosim_updates=cosim_updates, n_steps=n_steps, recompute_steps=False, **kwds)
+                self._update_monitors_with_new_output(ts, xs, data)
+
+            tvbThread = Thread(target=runTVB)
+            tvbThread.start()
+            self.simulate_spiking_simulator(spiking_simulation_length)
+            tvbThread.join()
+        else:
+            # the rest of nodes run only spiking simulation
+            self.simulate_spiking_simulator(spiking_simulation_length)
+
+        sys.stdout.flush() # workaround for logs congestion issue
+        return n_steps

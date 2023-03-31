@@ -98,10 +98,19 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
-    print(orchestrator.print_summary_info_details(recursive=2, connectivity=False))
-    print(orchestrator.spikeNet_app.spiking_network.print_summary_info_details(recursive=3, connectivity=False))
-    print(orchestrator.tvb_cosimulator.output_interfaces.print_summary_info_details(recursive=1, connectivity=False))
-    print(orchestrator.tvb_cosimulator.input_interfaces.print_summary_info_details(recursive=1, connectivity=False))
+    print_summary = True
+
+    if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
+        not orchestrator.spikeNet_app.spiking_cosimulator.isRootNode():
+        # specific to Netpyne parallel simulation
+        print_summary = False
+        plot_write = False
+
+    if print_summary:
+        print(orchestrator.print_summary_info_details(recursive=2, connectivity=False))
+        print(orchestrator.spikeNet_app.spiking_network.print_summary_info_details(recursive=3, connectivity=False))
+        print(orchestrator.tvb_cosimulator.output_interfaces.print_summary_info_details(recursive=1, connectivity=False))
+        print(orchestrator.tvb_cosimulator.input_interfaces.print_summary_info_details(recursive=1, connectivity=False))
 
     # -------------------------------------4. Configure, Simulate and gather results------------------------------------
     print("\n\nSimulating...")

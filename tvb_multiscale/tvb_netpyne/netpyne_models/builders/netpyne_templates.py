@@ -43,6 +43,7 @@ or in their source_nodes and target_nodes ranges
 
 def random_normal_weight(weight, scale=1.0, sigma=0.1):
     w = weight * scale
+    # TODO: in NEURON, it's variance, not sigma!
     return f"max(0.0, normal({w}, {w * sigma}))"
 
 def random_normal_tvb_weight(source_node, target_node, tvb_weights, scale=1.0, sigma=0.1):

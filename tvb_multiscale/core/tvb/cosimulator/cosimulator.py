@@ -287,19 +287,15 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             stimulus = super(CoSimulator, self)._prepare_stimulus()
         return stimulus
 
-    def __call__(self, simulation_length=None, random_state=None, n_steps=None,
-                 cosim_updates=None, recompute_requirements=False):
-        """
-        Return an iterator which steps through simulation time, generating monitor outputs.
+    def _prepare_simulation(self, simulation_length=None, n_steps=None, cosim_updates=None):
 
-        See the run method for a convenient way to collect all output in one call.
+        """
+        Checks if the cosimulation update inputs (if any) are correct and update cosimulation history. Updates simulation length.
 
         :param simulation_length: Length of the simulation to perform in ms.
-        :param random_state:  State of NumPy RNG to use for stochastic integration.
         :param n_steps: Length of the simulation to perform in integration steps. Overrides simulation_length.
         :param cosim_updates: data from the other co-simulator to update TVB state and history
-        :param recompute_requirements: check if the requirement of the simulation
-        :return: Iterator over monitor outputs.
+        :return: Number of steps that simulation will require.
         """
 
         self.calls += 1
@@ -307,7 +303,6 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         if simulation_length is not None:
             self.simulation_length = float(simulation_length)
 
-        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
         if self._cosimulation_flag:
             if n_steps is not None:
                 raise ValueError("n_steps is not used in cosimulation!")
@@ -341,7 +336,24 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                 if not numpy.issubdtype(type(n_steps), numpy.integer):
                     raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
                 self.simulation_length = n_steps * self.integrator.dt
+        return n_steps
+    def __call__(self, simulation_length=None, random_state=None, n_steps=None,
+                 cosim_updates=None, recompute_requirements=False, recompute_steps=True):
+        """
+        Return an iterator which steps through simulation time, generating monitor outputs.
 
+        See the run method for a convenient way to collect all output in one call.
+
+        :param simulation_length: Length of the simulation to perform in ms.
+        :param random_state:  State of NumPy RNG to use for stochastic integration.
+        :param n_steps: Length of the simulation to perform in integration steps. Overrides simulation_length.
+        :param cosim_updates: data from the other co-simulator to update TVB state and history
+        :param recompute_requirements: check if the requirement of the simulation
+        :return: Iterator over monitor outputs.
+        """
+
+        if recompute_steps:
+            n_steps = self._prepare_simulation(simulation_length, n_steps, cosim_updates)
 
         # Initialization
         if self._compute_requirements or recompute_requirements:
@@ -408,14 +420,18 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         # Loop of integration for synchronization_time
         self._send_cosim_coupling(self._cosimulation_flag)
         current_step = int(self.current_step)
-        for data in self(cosim_updates=self._get_cosim_updates(cosimulation), **kwds):
+        data = self(cosim_updates=self._get_cosim_updates(cosimulation), **kwds)
+        self._update_monitors_with_new_output(ts, xs, data)
+        steps_performed = self.current_step - current_step
+        return steps_performed
+
+    def _update_monitors_with_new_output(self, ts, xs, output):
+        for data in output:
             for tl, xl, t_x in zip(ts, xs, data):
                 if t_x is not None:
                     t, x = t_x
                     tl.append(t)
                     xl.append(x)
-        steps_performed = self.current_step - current_step
-        return steps_performed
 
     def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
         simulated_steps = 0

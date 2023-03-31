@@ -5,6 +5,9 @@ from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, Sp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorNetpyne
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNetpyneBuilder
+
 from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
@@ -97,6 +100,21 @@ class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
 
+    cosimulator_builder = Attr(
+        label="TVB CoSimulatorSerialBuilder",
+        field_type=CoSimulatorNetpyneBuilder,
+        doc="""Instance of TVB Serial CoSimulator Builder class.""",
+        required=False,
+        default=CoSimulatorNetpyneBuilder()
+    )
+
+    cosimulator = Attr(
+        label="TVB CoSimulatorSerial",
+        field_type=CoSimulatorNetpyne,
+        doc="""Instance of TVB CoSimulator for serial cosimulation.""",
+        required=False
+    )
+
     config = Attr(
         label="Configuration",
         field_type=Config,
@@ -128,6 +146,7 @@ class TVBSerialApp(TVBSerialAppBase):
         required=False
     )
 
+    _cosimulator_builder_type = CoSimulatorNetpyneBuilder
     _default_interface_builder = TVBNetpyneInterfaceBuilder
 
 
@@ -164,6 +183,12 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         required=False,
         default=NetpyneSerialApp()
     )
+
+    def link_spikeNet_to_TVB_cosimulator(self):
+        super(TVBNetpyneSerialOrchestrator, self).link_spikeNet_to_TVB_cosimulator()
+        # for parallel spiking simulation
+        self.tvb_app.cosimulator.isRootNode = self.spikeNet_app.spiking_cosimulator.isRootNode
+        self.tvb_app.cosimulator.synchronize_spiking_simulator = self.spikeNet_app.spiking_cosimulator.gatherFromNodes
 
     def build(self):
         self.config.simulation_length = self.simulation_length
