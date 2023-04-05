@@ -18,6 +18,8 @@ from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_ray import CoSimulatorParallelRay
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_nrp import CoSimulatorParallelNRP
 
 
 class CoSimulatorBuilder(HasTraits):
@@ -335,3 +337,17 @@ class CoSimulatorSerialBuilder(CoSimulatorBuilder):
     """
 
     _cosimulator_type = CoSimulatorSerial
+
+
+class CoSimulatorNRPBuilder(CoSimulatorParallelBuilder):
+    """CoSimulatorNRPBuilder is an opinionated builder for a TVB CoSimulatorParallelNRP,
+       adjusted for NRP cosimulation.
+       Depending on its properties set, the builder may
+       - scale/normalize the connectivity weights,
+       - remove time delays or not,
+       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
+       - set integrator (including noise and integration step),
+       - set monitor (including model's variables of interest and period)
+    """
+
+    _cosimulator_type = CoSimulatorParallelNRP
