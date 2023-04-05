@@ -220,6 +220,8 @@ def compute_diagnostics(samples, config, priors=None, map=None, ground_truth=Non
     res = {}
     res["samples"] = samples.numpy()
     if map is not None:
+        if not isinstance(map, np.ndarray):
+            map = map.numpy()
         res['map'] = map
     res['mean'] = samples.mean(axis=0).numpy()
     res['std'] = samples.std(axis=0).numpy()
@@ -308,7 +310,13 @@ def add_posterior_samples_iR(all_samples, samples_iR):
         if key != "G":
             if key not in all_samples:
                 all_samples[key] = []
-            all_samples[key].append(val[0])
+            vals = []
+            for vl in val[0]:
+                if isinstance(vl, np.ndarray):
+                    vals.append(vl)
+                else:
+                    vals.append(vl.numpy())
+            all_samples[key].append(vals)  # [-1200:] for when old samples are saved
     return all_samples
 
 
@@ -370,7 +378,7 @@ def sbi_train(priors, priors_samples, sim_res, verbose):
 
 def sbi_estimate(posterior, target, n_samples_per_run):
     posterior.set_default_x(target)
-    return posterior, posterior.sample((n_samples_per_run,)), posterior.map(num_iter=n_samples_per_run)
+    return posterior, posterior.sample((n_samples_per_run,)), posterior.map(num_iter=n_samples_per_run).numpy()
 
 
 def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbose):
@@ -386,16 +394,14 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     if iR is None:
         iR = -1
     # Get the default values for the parameter except for G
-    params = OrderedDict()
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, config.model_params.values()):
-        params[pname] = pval
-    params.update(dict(zip(config.PRIORS_PARAMS_NAMES, samples[config.OPT_RES_MODE][-1])))
+    pvals = samples[config.OPT_RES_MODE][-1]
+    if not isinstance(pvals, np.ndarray):
+        pvals = param_val.numpy()
     limits = []
     for pmin, pmax in zip(config.prior_min, config.prior_max):
         limits.append([pmin, pmax])
     if config.VERBOSE:
         print("\nPlotting posterior for G[%d]=%g..." % (iG, samples['G']))
-    pvals = np.array(list(params.values()))
     labels = []
     for p, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
         labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval)) 
@@ -425,8 +431,12 @@ def sbi_infer_for_iG(iG, label="", config=None):
     config = assert_config(config, return_plotter=False)
     # Get G for this run:
     G = config.Gs[iG]
+    if len(label):
+        lblmsg = ", for %s" % label
+    else:
+        lblmsg = ""
     if config.VERBOSE:
-        print("\n\nFitting for G = %g!\n" % G)
+        print("\n\nFitting for G=%g%s!\n" % (G, lblmsg))
     # Load the target
     PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
     if G > 0.0:
@@ -484,7 +494,68 @@ def sbi_infer_for_iG(iG, label="", config=None):
         print("\n\nFinished after %g sec!" % (time.time() - tic))
         print("\n\nFind results in %s!" % config.out.FOLDER_RES)
 
-    return posterior_samples  # , results, fig, simulator, output_config
+    return posterior_samples  # , samples_fit, results, fig, simulator, output_config
+
+
+def sbi_estimate_for_iG(iG, label="", config=None):
+    tic = time.time()
+    config = assert_config(config, return_plotter=False)
+    # Get G for this run:
+    G = config.Gs[iG]
+    if len(label):
+        lblmsg = ", for %s" % label
+    else:
+        lblmsg = ""
+    if config.VERBOSE:
+        print("\n\nFitting for G=%g%s!\n" % (G, lblmsg))
+    # Build priors:
+    priors = build_priors(config)
+    # Load the target
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
+    if G > 0.0:
+        # If we are fitting for a connected network...
+        # Duplicate the target for the two M1 regions (right, left) and the two S1 regions (right, left)
+        #                                        right                       left
+        psd_targ = np.concatenate([PSD_target["PSD_M1_target"], PSD_target["PSD_M1_target"],  # M1
+                                   PSD_target["PSD_S1_target"], PSD_target["PSD_S1_target"]]) # S1
+    else:
+        psd_targ = PSD_target['PSD_target']
+    samples_fit = None
+    if config.N_FIT_RUNS > 0:
+        for iR in range(config.N_FIT_RUNS):
+            # For every fitting run...
+            if config.VERBOSE:
+                print("\n\nEstimating run %d!..\n" % iR)
+            ticR = time.time()
+            posterior = load_posterior(iG, iR=iR, label=label, config=config)
+            posterior, posterior_samples, map = sbi_estimate(posterior, psd_targ, config.N_SAMPLES_PER_RUN)
+            # Write posterior and samples to files:
+            write_posterior(posterior, iG, iR, label, config=config)
+            diagnostics = compute_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
+            samples_fit = write_posterior_samples(diagnostics, config, iG, iR, label)
+            if config.VERBOSE:
+                print("Done with run %d in %g sec!" % (iR, time.time() - ticR))
+    else:
+        if config.VERBOSE:
+            print("\n\nEstimating!..\n")
+        ticR = time.time()
+        posterior = load_posterior(iG, iR=None, label=label, config=config)
+        posterior, posterior_samples, map = sbi_estimate(posterior, PSD_target, config.N_SAMPLES_PER_RUN)
+        # Write posterior and samples to files:
+        write_posterior(posterior, iG, None, label, config=config)
+        diagnostics = compute_diagnostics(posterior_samples, config, priors=priors, map=map, ground_truth=None)
+        samples_fit = write_posterior_samples(diagnostics, config, iG, None, label)
+        if config.VERBOSE:
+            print("Done in %g sec!" % (time.time() - ticR))
+
+        # Plot posterior:
+        plot_infer_for_iG(iG, iR=None, samples=samples_fit, config=config);
+
+    if config.VERBOSE:
+        print("\n\nFinished after %g sec!" % (time.time() - tic))
+        print("\n\nFind results in %s!" % config.out.FOLDER_RES)
+
+    return samples_fit
 
 
 def get_train_test_samples(iG, config, n_train_samples=None):
@@ -664,13 +735,17 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
     params = dict(config.model_params)
     params['G'] = G
     # Set the posterior means or maps of the parameters:        
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR]):
-        if pname == "FIC":
-            config.FIC = pval
-        elif pname == "FIC_SPLIT":
-            config.FIC_SPLIT = pval
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR][0]):
+        if isinstance(pval, np.ndarray):
+            np_pval = pval
         else:
-            params[pname] = pval
+            np_pval = pval.numpy()
+        if pname == "FIC":
+            config.FIC = np_pval
+        elif pname == "FIC_SPLIT":
+            config.FIC_SPLIT = np_pval
+        else:
+            params[pname] = np_pval
     if FIC is not None:
         config.FIC = FIC
     if FIC_SPLIT is not None:
@@ -712,8 +787,10 @@ def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=N
         label = num_train_sample_to_label(num_train_samples, config.N_TRAIN_SAMPLES_LABEL)
     else:
         label = ""
-    samples_fit = load_posterior_samples(iG, iR, label, config=config)
-    samples = samples_fit["samples"].copy()
+    if iR is not None:
+        iR = ensure_list(iR)
+    samples_fit = load_posterior_samples_all_runs(iG, runs=iR, label=label, samples=None, config=config)
+    samples = np.hstack(samples_fit["samples"])[0].copy()
     del samples_fit
     n_samples = samples.shape[0]
     # Split the total number of samples into N_PPT_SIM_BATCHES consecutive segments...
@@ -759,12 +836,13 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
     res = np.mean(res, axis=1)
 
     for iP, (param, col) in enumerate(zip(params, colors)):
-        ax.plot(num_train_samples, res[:, iP], color=col, marker=marker, markersize=5, linestyle=linestyle,
+        ax.plot(num_train_samples, res[:, iP],
+                color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
                 label="%s" % param)
-        ax.set_title("iG=%d" % iG)
-        ax.set_xlabel("N training samples")
-        ax.set_ylabel(diagnostic)
-        ax.legend()
+        ax.set_title("iG=%d" % iG, fontsize=18)
+        ax.set_xlabel("N training samples", fontsize=14)
+        ax.set_ylabel(diagnostic, fontsize=14)
+        ax.legend(prop={'size': 14})
 
     if fig is None:
         return ax
@@ -791,12 +869,14 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
     figsize = np.array(figsize)
     nGs = len(iGs)
     nDs = len(diagnostics)
-    figsize[0] = figsize[0] * nDs
-    figsize[1] = figsize[1] * nGs
+    figsize[0] = figsize[1] * nDs
+    figsize[1] = figsize[0] * nGs
     figsize = tuple(figsize.tolist())
 
     fig, axes = plt.subplots(nrows=nDs, ncols=nGs, figsize=figsize)
-    if nDs == 1:
+    if nGs == 1 and nDs == 1:
+        axes = np.array([[axes]])
+    elif nDs == 1:
         axes = axes[np.newaxis]
     elif nGs == 1:
         axes = axes[:, np.newaxis]
