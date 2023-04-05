@@ -178,7 +178,7 @@ def configure(**ARGS):
     config.BATCH_FILE_FORMAT_G = "%s_iG%02d_%03d%s"
     config.BATCH_PRIORS_SAMPLES_FILE = "bps.pt"  # bps_iG01_iB010.pt
     config.BATCH_SIM_RES_FILE = "bsr.npy"  # bsr_iG01_iB010.npy
-    config.N_PPT_SIM_BATCHES = 10
+    config.N_PPT_SIM_BATCHES = 50
     config.N_PPT_SIMS_PER_BATCH = 12
     config.PPT_BATCH_SIM_RES_FILE = "ppt_bsr.npy"  # ppt_bsr_iG01_iB010.npy
     config.Gs = np.array([1.0, 5.0, 6.0, 10.0])
