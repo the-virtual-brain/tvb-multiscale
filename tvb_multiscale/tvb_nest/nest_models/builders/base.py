@@ -22,18 +22,21 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a NESTNetworkBuilder,
        which builds a NESTNetwork from user configuration inputs.
-       The builder is half way opionionated.
+       The builder is half way opinionated.
     """
 
     config = CONFIGURED
-    nest_instance = None
+    _spiking_simulator_name = "nest_instance"
     modules_to_install = []
     _spiking_brain = NESTBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
-        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
-        self.nest_instance = nest_instance
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
         self._spiking_brain = NESTBrain()
+
+    @property
+    def nest_instance(self):
+        return self.spiking_simulator
 
     def __str__(self):
         return super(NESTNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.nest_instance)

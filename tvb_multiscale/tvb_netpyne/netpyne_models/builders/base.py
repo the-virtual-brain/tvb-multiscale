@@ -11,19 +11,21 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.brain import NetpyneBrain
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
+
 LOG = initialize_logger(__name__)
+
 
 class NetpyneNetworkBuilder(SpikingNetworkBuilder):
 
     config = CONFIGURED
-    netpyne_instance = None
+    _spiking_simulator_name = "netpyne_instance"
     modules_to_install = []
     _spiking_brain = NetpyneBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], netpyne_instance=None, config=None, logger=None):
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
         # Beware: this method can be called multiple times (first - when creating default object)
-        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
-        self.netpyne_instance = netpyne_instance
+        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
+                                                    config, logger)
         self._spiking_brain = NetpyneBrain()
 
     def configure(self, netParams, simConfig, autoCreateSpikingNodes=True):
@@ -39,7 +41,6 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     @abstractmethod
     def proxy_node_synaptic_model_funcs(self):
         pass
-
 
     def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
         """Method to set the synaptic model, the weight, the delay,

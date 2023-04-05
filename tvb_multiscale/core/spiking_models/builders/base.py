@@ -32,6 +32,9 @@ class SpikingNetworkBuilder(object):
        The builder is half way opionionated.
     """
 
+    spiking_simulator = None
+    _spiking_simulator_name = ""
+
     # Default configurations modifiable by the user:
     config = CONFIGURED
 
@@ -69,11 +72,18 @@ class SpikingNetworkBuilder(object):
     _spiking_brain = SpikingBrain(name="brain regions")
     _models = []
 
-    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], config=None, logger=None):
+    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
         self.logger = logger
         self.config = config
         self.tvb_serial_sim = tvb_serial_sim
         self.spiking_nodes_inds = spiking_nodes_inds
+        self.spiking_simulator = spiking_simulator
+
+    def __setattr__(self, attr, val):
+        if attr == self._spiking_simulator_name:
+            self.spiking_simulator = val
+        else:
+            super(SpikingNetworkBuilder, self).__setattr__(attr, val)
 
     def _assert_tvb_cosimulator(self):
         if isinstance(self.tvb_serial_sim, os.PathLike):
