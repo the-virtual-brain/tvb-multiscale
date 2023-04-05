@@ -13,9 +13,9 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
     w_ie = -10.0
     w_ii = -1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
                  config=None, logger=None):
-        super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
+        super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
     def set_defaults(self, **kwargs):
         self.w_ee = np.abs(kwargs.get("w_ee", self.tvb_serial_sim.get("model.c_ee", np.array([self.w_ee])))[0].item())
@@ -34,9 +34,9 @@ class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
     w_ie = 10.0
     w_ii = 1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
                  config=None, logger=None):
-        super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+        super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
                                                              config, logger)
 
     def set_defaults(self, **kwargs):

@@ -14,8 +14,8 @@ class JansenRitBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
-        super(JansenRitBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+        super(JansenRitBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
