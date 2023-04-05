@@ -787,8 +787,10 @@ def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=N
         label = num_train_sample_to_label(num_train_samples, config.N_TRAIN_SAMPLES_LABEL)
     else:
         label = ""
-    samples_fit = load_posterior_samples(iG, iR, label, config=config)
-    samples = samples_fit[config.OPT_RES_MODE].copy()
+    if iR is not None:
+        iR = ensure_list(iR)
+    samples_fit = load_posterior_samples_all_runs(iG, runs=iR, label=label, samples=None, config=config)
+    samples = np.hstack(samples_fit["samples"])[0].copy()
     del samples_fit
     n_samples = samples.shape[0]
     # Split the total number of samples into N_PPT_SIM_BATCHES consecutive segments...
