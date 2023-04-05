@@ -72,6 +72,8 @@ class TransformerBuilder(HasTraits):
                doc="Time step of simulation",
                required=True, default=0.0)
 
+    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds", "dt"]
+
     def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
         # Return a model or an Enum
         model = interface.get("transformer", interface.pop("transformer_model", None))

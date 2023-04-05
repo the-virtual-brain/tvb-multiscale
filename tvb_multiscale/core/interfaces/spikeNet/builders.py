@@ -350,6 +350,8 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
                            default=True,
                            required=True)
 
+    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds", "dt"]
+
     @property
     def tvb_dt(self):
         return self.tvb_simulator_serialized.get("integrator.dt", self.config.DEFAULT_DT)

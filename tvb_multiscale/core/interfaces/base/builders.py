@@ -69,6 +69,8 @@ class InterfaceBuilder(HasTraits, ABC):
         default="spikeNet"
     )
 
+    _config_attrs = ["default_coupling_mode", "proxy_inds"]
+
     _output_interfaces = None
     _input_interfaces = None
 
@@ -220,12 +222,16 @@ class InterfaceBuilder(HasTraits, ABC):
         return self._output_interfaces, self._input_interfaces
 
     @property
+    def interface_filepath(self):
+        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_interface')
+
+    @property
     def output_interfaces_filepath(self):
-        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_output_interfaces')
+        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_output_interface')
 
     @property
     def input_interfaces_filepath(self):
-        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_input_interfaces')
+        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_input_interface')
 
     def dump_interface(self, interface, filepath):
         dump_pickled_dict(interface, filepath)
@@ -245,6 +251,10 @@ class InterfaceBuilder(HasTraits, ABC):
         self.dump_interfaces(self.input_interfaces, self.input_interfaces_filepath)
 
     def dump_all_interfaces(self):
+        dict_to_dump = {}
+        for attr in self._config_attrs:
+            dict_to_dump[attr] = getattr(self, attr)
+        dump_pickled_dict(dict_to_dump, self.interface_filepath)
         self.dump_output_interfaces()
         self.dump_input_interfaces()
 
@@ -262,6 +272,9 @@ class InterfaceBuilder(HasTraits, ABC):
         self.load_interfaces("input")
 
     def load_all_interfaces(self):
+        dict_to_load = self.load_interface(self.interface_filepath)
+        for attr, val in dict_to_load.items():
+            setattr(self, attr, val)
         self.load_output_interfaces()
         self.load_input_interfaces()
 

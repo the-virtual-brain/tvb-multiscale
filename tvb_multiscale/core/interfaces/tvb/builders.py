@@ -67,6 +67,8 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     _default_out_proxy_inds = np.array([])
     _tvb_delays = None
 
+    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds"]
+
     @property
     def tvb_dt(self):
         if self.tvb_cosimulator is None:
