@@ -10,50 +10,16 @@ from tvb_multiscale.core.ray.client import RayClient
 from tvb_multiscale.core.orchestrators.ray_apps import \
     SpikeNetRayApp, TVBRayApp as TVBRayAppBase, RayOrchestrator
 
-from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_nest.config import Config, CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.server_client.ray import RayNESTClient
 from tvb_multiscale.tvb_nest.nest_models.server_client.ray import RayNESTServer
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import configure_nest_kernel
 from tvb_multiscale.tvb_nest.interfaces.ray_builder import RayTVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.orchestrators import NESTApp
 
 
-class NESTRayApp(SpikeNetRayApp):
+class NESTRayApp(NESTApp, SpikeNetRayApp):
 
     """NESTRayApp class"""
-
-    config = Attr(
-        label="Configuration",
-        field_type=Config,
-        doc="""Config class instance.""",
-        required=True,
-        default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
-    )
-
-    spikeNet_builder = Attr(
-        label="NEST Network Builder",
-        field_type=NESTNetworkBuilder,
-        doc="""Instance of NEST Model Builder.""",
-        required=True,
-        default=NESTNetworkBuilder()
-    )
-
-    spiking_network = Attr(
-        label="NEST Network",
-        field_type=NESTNetwork,
-        doc="""Instance of NESTNetwork.""",
-        required=False,
-        default=None
-    )
 
     spiking_cosimulator_server = Attr(
         label="NEST Server",
@@ -71,20 +37,8 @@ class NESTRayApp(SpikeNetRayApp):
         default=None
     )
 
-    @property
-    def nest_instance(self):
-        return self.spiking_cosimulator
-
-    @property
-    def nest_network(self):
-        return self.spiking_network
-
-    @property
-    def nest_model_builder(self):
-        return self.spikeNet_builder
-
     def start(self):
-        super(SpikeNetRayApp, self).start()
+        SpikeNetRayApp.start(self)
         RayNESTServerActor = ray.remote(RayNESTServer)
         try:
             self.spiking_cosimulator_server = \
@@ -95,21 +49,12 @@ class NESTRayApp(SpikeNetRayApp):
         self.spiking_cosimulator = RayNESTClient(self.spiking_cosimulator_server)
 
     def configure(self):
-        super(NESTRayApp, self).configure()
-        self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
-        self.spikeNet_builder.nest_instance = self.spiking_cosimulator
+        SpikeNetRayApp.configure(self)
+        NESTApp.configure(self)
 
     def configure_simulation(self):
-        super(NESTRayApp, self).configure_simulation()
-        try:
-            self.spiking_cosimulator.Prepare()
-        except:
-            pass
-
-    def simulate(self, simulation_length=None):
-        if simulation_length is None:
-            simulation_length = self.simulation_length
-        self.spiking_cosimulator.Run(simulation_length)
+        SpikeNetRayApp.configure_simulation(self)
+        NESTApp.configure_simulation(self)
 
     def run(self, *args, **kwargs):
         self.configure()
@@ -123,13 +68,13 @@ class NESTRayApp(SpikeNetRayApp):
         self.spiking_cosimulator.Cleanup()
 
     def reset(self):
-        super(NESTRayApp, self).reset()
-        self.spiking_cosimulator.ResetKernel()
+        SpikeNetRayApp.reset(self)
+        NESTApp.reset(self)
+        self.spiking_cosimulator = None
 
     def stop(self):
-        ray.kill(self.spiking_cosimulator_server)
-        self.spiking_cosimulator = None
-        super(NESTRayApp, self).stop()
+        NESTApp.stop(self)
+        SpikeNetRayApp.stop(self)
 
 
 class TVBRayApp(TVBRayAppBase):
@@ -142,14 +87,6 @@ class TVBRayApp(TVBRayAppBase):
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     interfaces_builder = Attr(
@@ -179,14 +116,6 @@ class TVBNESTRayOrchestrator(RayOrchestrator):
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     tvb_app = Attr(
