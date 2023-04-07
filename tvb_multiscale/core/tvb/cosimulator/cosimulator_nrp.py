@@ -37,6 +37,8 @@ It inherits the Simulator class.
 
 """
 
+import numpy as np
+
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
 
 
@@ -48,7 +50,7 @@ class CoSimulatorParallelNRP(CoSimulatorParallel):
     def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
 
         steps_performed = \
-            super(CoSimulatorSerial, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation,
+            super(CoSimulatorParallelNRP, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation,
                                                                          **kwds)
 
         if self.simulate_spiking_simulator is not None:
