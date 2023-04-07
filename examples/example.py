@@ -118,7 +118,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
         tic = time.time()
         # try:
         plot_write_results(results, simulator,
-                           orchestrator.spiking_network, orchestrator.spiking_proxy_inds,
+                           orchestrator.spiking_network, orchestrator.proxy_inds,
                            transient=transient, tvb_state_variable_type_label="State Variables",
                            tvb_state_variables_labels=simulator.model.variables_of_interest,
                            plot_per_neuron=True, plotter=plotter, config=config)
@@ -179,5 +179,5 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     return main_example(orchestrator_app,
                         Linear(), model_params,
-                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]),
+                        spikeNet_model_builder, kwargs.pop("proxy_inds", [0, 1]),
                         tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)
