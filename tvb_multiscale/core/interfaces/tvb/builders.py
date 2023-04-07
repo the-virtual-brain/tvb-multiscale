@@ -349,8 +349,18 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder, RemoteInterfaceBuilder):
 
     _output_interface_type = TVBSenderInterface
     _input_interface_type = TVBReceiverInterface
-    
+
     _label = "TVB"
+
+    input_label = Attr(field_type=str, default="TVBtoTrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TransToTVB", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
 
     def configure(self):
         TVBInterfaceBuilder.configure(self)
@@ -377,6 +387,16 @@ class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpike
 
     """TVBOutputTransformerInterfaceBuilder class"""
 
+    input_label = Attr(field_type=str, default="TransToTVB", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                                          to be used for files' names and Receiver class instance labels, 
+                                          for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TVBtransToSpikeNet", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                                          to be used for files' names and Sender class instance labels, 
+                                          for the communication of data starting from this CoSimulator""")
+
     _output_interface_type = TVBTransformerSenderInterface
     _input_interface_type = TVBReceiverInterface
 
@@ -395,6 +415,16 @@ class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToT
     _output_interface_type = TVBSenderInterface
     _input_interface_type = TVBReceiverTransformerInterface
 
+    input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                                              to be used for files' names and Receiver class instance labels, 
+                                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TVBtoTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                                              to be used for files' names and Sender class instance labels, 
+                                              for the communication of data starting from this CoSimulator""")
+
     def configure(self):
         if self.dt == 0.0:
             # From TVBInterfaceBuilder to TransformerBuilder:
@@ -410,6 +440,16 @@ class TVBTransfomerInterfaceBuilder(TVBRemoteInterfaceBuilder,
 
     _output_interface_type = TVBTransformerSenderInterface
     _input_interface_type = TVBReceiverTransformerInterface
+
+    input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                                                  to be used for files' names and Receiver class instance labels, 
+                                                  for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TVBtransToSpikeNet", required=True, label="Output label",
+                        doc="""Output label of interface builder, 
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
 
     def configure(self):
         if self.dt == 0.0:

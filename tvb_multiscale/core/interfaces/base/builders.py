@@ -317,12 +317,12 @@ class RemoteInterfaceBuilder(InterfaceBuilder, ABC):
     _default_remote_sender_type = RemoteSenders.WRITER_TO_NUMPY
     _default_remote_receiver_type = RemoteReceivers.READER_FROM_NUMPY
 
-    input_label = Attr(field_type=str, default="", required=True, label="Input label",
+    input_label = Attr(field_type=str, default="Input", required=True, label="Input label",
                        doc="""Input label of interface builder,
                               to be used for files' names and Receiver class instance labels, 
                               for the communication of data towards this CoSimulator""")
 
-    output_label = Attr(field_type=str, default="", required=True, label="Output label",
+    output_label = Attr(field_type=str, default="Output", required=True, label="Output label",
                        doc="""Output label of interface builder,
                               to be used for files' names and Sender class instance labels, 
                               for the communication of data starting from this CoSimulator""")
@@ -395,6 +395,16 @@ class RemoteTransformerBuilder(RemoteInterfaceBuilder, TransformerBuilder, ABC):
     __metaclass__ = ABCMeta
 
     """RemoteTransformerBuilder class"""
+
+    input_label = Attr(field_type=str, default="InToTrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="OutFromTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
 
     _output_interface_type = RemoteTransformerInterface
     _input_interface_type = RemoteTransformerInterface
@@ -476,6 +486,11 @@ class RemoteTransformerBuilder(RemoteInterfaceBuilder, TransformerBuilder, ABC):
 class TVBtoSpikeNetRemoteTransformerBuilder(RemoteTransformerBuilder, TVBtoSpikeNetTransformerBuilder):
     """TVBtoSpikeNetRemoteTransformerBuilder class"""
 
+    output_label = Attr(field_type=str, default="TVBtToSpikeNetTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
+
     _output_interface_type = TVBtoSpikeNetRemoteTransformerInterface
     _output_interfaces_type = TVBtoSpikeNetRemoteTransformerInterfaces
 
@@ -509,6 +524,11 @@ class TVBtoSpikeNetRemoteTransformerBuilder(RemoteTransformerBuilder, TVBtoSpike
 
 class SpikeNetToTVBRemoteTransformerBuilder(RemoteTransformerBuilder, SpikeNetToTVBTransformerBuilder):
     """SpikeNetToTVBRemoteTransformerBuilder class"""
+
+    input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
 
     _input_interface_type = SpikeNetToTVBRemoteTransformerInterface
     _input_interfaces_type = SpikeNetToTVBRemoteTransformerInterfaces
@@ -570,6 +590,16 @@ class EBRAINSSpikeNetToTVBRemoteTransformerBuilder(SpikeNetToTVBRemoteTransforme
 class TVBspikeNetRemoteTransformerBuilder(RemoteTransformerBuilder,
                                           TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
     """TVBspikeNetRemoteTransformerBuilder class"""
+
+    output_label = Attr(field_type=str, default="TVBToSpikeNetTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
+
+    input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
 
     _output_interface_type = TVBtoSpikeNetRemoteTransformerInterface
     _input_interface_type = SpikeNetToTVBRemoteTransformerInterface

@@ -501,6 +501,16 @@ class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, RemoteInterfaceBu
 
     _label = "spikeNet"
 
+    input_label = Attr(field_type=str, default="TransToSpikeNet", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                                  to be used for files' names and Receiver class instance labels, 
+                                  for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="SpikeNetToTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                                   to be used for files' names and Sender class instance labels, 
+                                   for the communication of data starting from this CoSimulator""")
+
     def configure(self):
         SpikeNetInterfaceBuilder.configure(self)
         RemoteInterfaceBuilder.configure(self)
@@ -536,6 +546,16 @@ class SpikeNetTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder,
 
     _transformer_types = Transformers
 
+    input_label = Attr(field_type=str, default="TVBToSpikeNetTrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                                      to be used for files' names and Receiver class instance labels, 
+                                      for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="SpikeNetTransToTVB", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                                       to be used for files' names and Sender class instance labels, 
+                                       for the communication of data starting from this CoSimulator""")
+
     def configure(self):
         super(SpikeNetTransformerInterfaceBuilder, self).configure()
         TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
@@ -556,6 +576,16 @@ class SpikeNetOutputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, 
     _output_interface_type = SpikeNetTransformerSenderInterface
     _input_interface_type = SpikeNetReceiverInterface
 
+    input_label = Attr(field_type=str, default="TransToSpikeNet", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                                          to be used for files' names and Receiver class instance labels, 
+                                          for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="SpikeNetTransToTVB", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                                           to be used for files' names and Sender class instance labels, 
+                                           for the communication of data starting from this CoSimulator""")
+
     def configure(self):
         super(SpikeNetOutputTransformerInterfaceBuilder, self).configure()
         SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
@@ -571,6 +601,16 @@ class SpikeNetInputTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, T
 
     _output_interface_type = SpikeNetSenderInterface
     _input_interface_type = SpikeNetReceiverTransformerInterface
+
+    input_label = Attr(field_type=str, default="TVBToSpikeNetTrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="SpikeNetToTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
 
     def configure(self):
         super(SpikeNetInputTransformerInterfaceBuilder, self).configure()
