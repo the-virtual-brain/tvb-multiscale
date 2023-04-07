@@ -39,6 +39,7 @@ class SpikeNetRayApp(SpikeNetApp):
         super(SpikeNetRayApp, self).start()
 
     def stop(self):
+        ray.kill(self.spiking_cosimulator_server)
         super(SpikeNetRayApp, self).stop()
 
 
