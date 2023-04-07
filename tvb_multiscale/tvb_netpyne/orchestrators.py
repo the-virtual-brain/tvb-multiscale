@@ -1,7 +1,8 @@
 from logging import Logger
 from tvb.basic.neotraits._attr import Attr
 
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp  # , SpikeNetParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
@@ -10,13 +11,13 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import l
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
-from tvb_multiscale.tvb_netpyne.interfaces.builders import NetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder
+from tvb_multiscale.tvb_netpyne.interfaces.builders import TVBNetpyneInterfaceBuilder
 from tvb_multiscale.tvb_netpyne.interfaces.models.default import DefaultTVBNetpyneInterfaceBuilder
     
 
-class NetpyneSerialApp(SpikeNetSerialApp):
+class NetpyneApp(HasTraits):
 
-    """NetpyneSerialApp class"""
+    """NetpyneApp class"""
 
     config = Attr(
         label="Configuration",
@@ -24,14 +25,6 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         doc="""Config class instance.""",
         required=True,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     spikeNet_builder = Attr(
@@ -57,7 +50,7 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         # TODO: this is not specific to serial app. Once Parallel app is ready, move to some common ancestor, to use in both cases (see also: TVBNetpyneSerialOrchestrator.build_interfaces())
         if is_coupling_mode_tvb:
             return 1e-2
-        else: # "spikeNet"
+        else:  # "spikeNet"
             return 1
 
     # @property
@@ -72,8 +65,6 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         self.spiking_cosimulator = load_netpyne(self.config)
 
     def configure(self):
-        super(NetpyneSerialApp, self).configure()
-        # self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
         self.spikeNet_builder.netpyne_synaptic_weight_scale = self.synaptic_weight_scale(is_coupling_mode_tvb=False)
         self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
 
@@ -82,15 +73,24 @@ class NetpyneSerialApp(SpikeNetSerialApp):
             simulation_length = self.simulation_length
         self.spiking_cosimulator.run(simulation_length)
 
-    def run(self, *args, **kwargs):
-        self.configure()
-        self.build()
-
     def clean_up(self):
         self.spiking_cosimulator.finalize()
 
     def stop(self):
         pass
+
+
+class NetpyneSerialApp(NetpyneApp, SpikeNetSerialApp):
+
+    """NetpyneSerialApp class"""
+
+    def configure(self):
+        SpikeNetSerialApp.configure(self)
+        NetpyneApp.configure(self)
+
+    def run(self, *args, **kwargs):
+        self.configure()
+        self.build()
 
 
 class TVBSerialApp(TVBSerialAppBase):
@@ -103,14 +103,6 @@ class TVBSerialApp(TVBSerialAppBase):
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     interfaces_builder = Attr(
