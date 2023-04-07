@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_nrp import CoSimulatorParallelNRP as CoSimulator
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
-from tvb_multiscale.core.interfaces.tvb.builders import TVBRemoteInterfaceBuilder
 from tvb_multiscale.core.nrp.config import configure
 from tvb_multiscale.core.nrp.tvb import prepare_TVB_interface
 
@@ -162,11 +162,9 @@ def configure_TVB_interfaces(simulator=None):
 
     # This is how the user defined TVB -> Spiking Network interface looks after configuration
     print("\noutput (TVB-> coupling) interfaces' configurations:\n")
-    display(tvb_interface_builder.output_interfaces)
 
     # This is how the user defined Spiking Network -> TVB interfaces look after configuration
     print("\ninput (TVB<- update) interfaces' configurations:\n")
-    display(tvb_interface_builder.input_interfaces)
 
     tvb_interface_builder.dump_all_interfaces()
 

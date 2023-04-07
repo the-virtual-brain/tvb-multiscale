@@ -9,7 +9,7 @@ from tvb_multiscale.core.nrp.spikeNet import prepare_spikeNet_interface_builder
 # These is an example that could be modified by users:
 def configure_spikeNet_interfaces():
 
-    spikeNet_interface_builder, spiking_nodes_inds, n_neurons = prepare_spikeNet_interface_builder(spiking_network)
+    spikeNet_interface_builder, spiking_nodes_inds, n_neurons = prepare_spikeNet_interface_builder()
 
     #     # Using all default parameters for this example of an opinionated builder
     #     tvb_spikeNet_model_builder.default_config()
@@ -63,11 +63,9 @@ def configure_spikeNet_interfaces():
 
     # This is how the user defined TVB -> Spiking Network interface looks after configuration
     print("\noutput (spikeNet -> coupling) interfaces' configurations:\n")
-    display(spikeNet_interface_builder.output_interfaces)
 
     # This is how the user defined Spiking Network -> TVB interfaces look after configuration
     print("\ninput (spikeNet <- update) interfaces' configurations:\n")
-    display(spikeNet_interface_builder.input_interfaces)
 
     spikeNet_interface_builder.dump_all_interfaces()
 

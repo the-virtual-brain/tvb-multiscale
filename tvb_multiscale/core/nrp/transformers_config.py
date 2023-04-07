@@ -3,6 +3,7 @@
 import numpy as np
 
 from tvb_multiscale.core.config import Config
+from tvb_multiscale.core.nrp.config import configure
 from tvb_multiscale.core.nrp.transformers import \
     prepare_TVBtoSpikeNet_transformer_interface, prepare_spikeNetToTVB_transformer_interface
 
@@ -50,7 +51,6 @@ def configure_TVBtoSpikeNet_transformer_interfaces(config_class=Config):
 
     # This is how the user defined TVB -> Spiking Network interface looks after configuration
     print("\noutput (->Transformer-> coupling) interfaces' configurations:\n")
-    display(tvb_to_spikeNet_trans_interface_builder.output_interfaces)
 
     tvb_to_spikeNet_trans_interface_builder.dump_all_interfaces()
 
@@ -64,9 +64,9 @@ def configure_spikeNetToTVB_transformer_interfaces(config_class=Config):
     spikeNet_to_TVB_transformer_interface_builder = prepare_spikeNetToTVB_transformer_interface()
 
     # This can be used to set default transformer and proxy models:
-    spikeNet_to_tvb_trans_interface_builder.model = "RATE"  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
-    spikeNet_to_tvb_trans_interface_builder.N_E = n_neurons
-    spikeNet_to_tvb_trans_interface_builder.N_I = n_neurons
+    spikeNet_to_TVB_transformer_interface_builder.model = "RATE"  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
+    spikeNet_to_TVB_transformer_interface_builder.N_E = n_neurons
+    spikeNet_to_TVB_transformer_interface_builder.N_I = n_neurons
 
     for ii, N in enumerate([spikeNet_to_TVB_transformer_interface_builder.N_E,
                             spikeNet_to_TVB_transformer_interface_builder.N_I]):
@@ -85,7 +85,6 @@ def configure_spikeNetToTVB_transformer_interfaces(config_class=Config):
 
     # This is how the user defined Spiking Network -> TVB interfaces look after configuration
     print("\ninput (TVB<-...-Transformer<-...-spikeNet update) interfaces' configurations:\n")
-    display(spikeNet_to_TVB_transformer_interface_builder.input_interfaces)
 
     spikeNet_to_TVB_transformer_interface_builder.dump_all_interfaces()
 

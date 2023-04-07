@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
+import numpy as np
+
 from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
@@ -7,6 +10,8 @@ from tvb_multiscale.core.interfaces.base.transformers.builders import \
         DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.base.builders import \
     TVBtoSpikeNetRemoteTransformerBuilder, SpikeNetToTVBRemoteTransformerBuilder
+from tvb_multiscale.core.nrp.config import configure
+from tvb_multiscale.core.nrp.tvb_config import build_tvb_simulator
 
 
 # FRONTEND used for user configuration of interfaces.

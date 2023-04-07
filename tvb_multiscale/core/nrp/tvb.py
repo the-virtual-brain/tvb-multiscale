@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
+import numpy as np
+
 from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator

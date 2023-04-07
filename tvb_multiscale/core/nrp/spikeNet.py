@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
+import numpy as np
+
 from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.nrp.config import configure
+from tvb_multiscale.core.nrp.tvb_config import build_tvb_simulator
 
 
 # This would run on spiking simulator only before creating any multiscale cosimulation interface connections.
