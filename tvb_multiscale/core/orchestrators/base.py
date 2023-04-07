@@ -12,6 +12,7 @@ from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
+from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 
 
 class App(HasTraits):
@@ -32,7 +33,7 @@ class App(HasTraits):
         field_type=Logger,
         doc="""logging.Logger instance.""",
         required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
+        default=None
     )
 
     default_tvb_serial_cosim_path = Attr(
@@ -43,20 +44,25 @@ class App(HasTraits):
         default=""
     )
 
-    spiking_proxy_inds = NArray(
+    proxy_inds = NArray(
         dtype=np.int,
-        label="Indices of Spiking Network proxy nodes",
-        doc="""Indices of Spiking Network proxy nodes""",
+        label="Indices of proxy nodes",
+        doc="""Indices of proxy nodes""",
         required=True,
     )
 
     exclusive_nodes = Attr(label="Flag of exclusive nodes",
-                           doc="""Boolean flag that is true 
-                                      if the co-simulator nodes are modelled exclusively by the co-simulator, 
-                                      i.e., they are not simulated by TVB""",
+                           doc="""Boolean flag that is true if the co-simulator nodes are modelled exclusively
+                                  by the co-simulator, i.e., they are not simulated by TVB""",
                            field_type=bool,
                            default=True,
                            required=True)
+
+    synchronization_time = Float(
+        label="Synchronization time (ms)",
+        default=0.0,
+        required=True,
+        doc="""Synchronization time (default in milliseconds).""")
 
     simulation_length = Float(
         label="Simulation Length (ms)",
@@ -65,25 +71,25 @@ class App(HasTraits):
         doc="""The length of a simulation (default in milliseconds). 
                It will be corrected by ceiling to a multiple of the cosimulators synchronization time.""")
 
-    synchronization_time = Float(
-        label="Synchronization time (ms)",
-        default=0.0,
-        required=True,
-        doc="""Synchronization time (default in milliseconds).""")
+    _attrs_to_info = []
 
     def setup_from_another_app(self, app):
         self.config = app.config
         self.logger = app.logger
-        self.spiking_proxy_inds = app.spiking_proxy_inds
+        self.default_tvb_serial_cosim_path = app.default_tvb_serial_cosim_path
+        self.proxy_inds = app.proxy_inds
         self.exclusive_nodes = app.exclusive_nodes
         self.simulation_length = app.simulation_length
         self.synchronization_time = app.synchronization_time
 
     def configure(self):
+        if self.logger is None:
+            self.logger = initialize_logger(__name__, config=self.config)
         super(App, self).configure()
         if len(self.default_tvb_serial_cosim_path) == 0:
             self.default_tvb_serial_cosim_path = \
-                os.path.join(self.config.out.FOLDER_RES, "tvb_cosimulator_serialized.pkl")
+                getattr(self.config, "DEFAULT_TVB_SERIAL_COSIM_PATH",
+                        os.path.join(self.config.out.FOLDER_RES, "tvb_cosimulator_serialized.pkl"))
 
     @abstractmethod
     def start(self):
@@ -113,8 +119,78 @@ class App(HasTraits):
     def stop(self):
         pass
 
+    def _add_attrs_to_info(self, info):
+        for attr in self._attrs_to_info:
+            info[attr] = getattr(self, attr, None)
+        return info
 
-class NonTVBApp(App, ABC):
+    def info(self, recursive=0):
+        return self._add_attrs_to_info(super(App, self).info(recursive=recursive))
+
+    def info_details(self, recursive=0, **kwargs):
+        return self._add_attrs_to_info(super(App, self).info_details(recursive=recursive, **kwargs))
+
+
+class CoSimulatorApp(App, ABC):
+    __metaclass__ = ABCMeta
+
+    """CoSimulatorApp abstract base class"""
+
+    interfaces_builder = Attr(
+        label="Interfaces builder",
+        field_type=InterfaceBuilder,
+        doc="""Instance of Interfaces' builder class.""",
+        required=False
+    )
+
+    _interfaces_built = False
+
+    def configure_interfaces_builder(self):
+        # Get default options from the App and the TVB CoSimulator:
+        self._interfaces_builder.tvb_cosimulator = self._cosimulator
+        self.interfaces_builder.config = self.config
+        self.interfaces_builder.logger = self.logger
+        self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
+        self.interfaces_builder.proxy_inds = self.proxy_inds
+        # Now further configure the interfaces builder...
+        if hasattr(self.interfaces_builder, "default_config"):
+            # ...either from its default configuration, if any:
+            self.interfaces_builder.default_config()
+        elif os.path.isfile(self.interfaces_builder.interface_filepath):
+            # ...or from loading configurations from file:
+            self.interfaces_builder.load_all_interfaces()
+        # Run the configuration of the builder:
+        self.interfaces_builder.configure()
+        # Update proxy inds and exclusive nodes:
+        self.proxy_inds = self.interfaces_builder.proxy_inds
+        self.exclusive_nodes = self.interfaces_builder.exclusive_nodes
+
+    @property
+    def _interfaces_builder(self):
+        if not isinstance(self.interfaces_builder, self._default_interface_builder):
+            self.interfaces_builder = self._default_interface_builder(config=self.config, logger=self.logger)
+        return self.interfaces_builder
+
+    @abstractmethod
+    def build_interfaces(self):
+        pass
+
+    def build(self):
+        self.build_interfaces()
+
+    def run(self, *args, **kwargs):
+        self.configure()
+        self.build()
+        self.configure_simulation()
+        self.simulate()
+
+    def reset(self):
+        self.output_interfaces = None
+        self.input_interfaces = None
+        self._interfaces_built = False
+
+
+class NonTVBApp(CoSimulatorApp, ABC):
     __metaclass__ = ABCMeta
 
     """NonTVBApp abstract base class"""
@@ -125,6 +201,21 @@ class NonTVBApp(App, ABC):
         doc="""Dictionary of TVB (Co)Simulator serialization.""",
         required=False
     )
+
+    def load_serialized_tvb_cosimulator(self, filepath=None):
+        if not filepath:
+            filepath = self.default_tvb_serial_cosim_path
+        try:
+            self.tvb_cosimulator_serialized = load_pickled_dict(filepath)
+        except:
+            # TODO: Decide whether to raise an exception here
+            warning("Failed to load serialized TVB CoSimulator from file!:\n%s" % filepath)
+
+    @property
+    def _serialized_tvb_cosimulator(self):
+        if len(self.tvb_cosimulator_serialized) == 0:
+            self.load_serialized_tvb_cosimulator()
+        return self.tvb_cosimulator_serialized
 
     @property
     def tvb_dt(self):
@@ -162,14 +253,14 @@ class NonTVBApp(App, ABC):
     def tvb_delays(self):
         return self.tvb_cosimulator_serialized["connectivity.delays"]
 
-    def load_serialized_tvb_cosimulator(self, filepath=None):
-        if not filepath:
-            filepath = self.default_tvb_serial_cosim_path
-        try:
-            self.tvb_cosimulator_serialized = load_pickled_dict(filepath)
-        except:
-            # TODO: Decide whether to raise an exception here
-            warning("Failed to load serialized TVB CoSimulator from file!:\n%s" % filepath)
+    def build_interfaces(self):
+        if not self._interfaces_built:
+            self.output_interfaces, self.input_interfaces = self._interfaces_builder.build()
+            self._interfaces_built = True
+
+    def configure_simulation(self):
+        self.output_interfaces.configure()
+        self.input_interfaces.configure()
 
 
 class Orchestrator(App, ABC):
