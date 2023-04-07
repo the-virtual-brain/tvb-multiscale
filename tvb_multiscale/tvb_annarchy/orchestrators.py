@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import os
-from logging import Logger
-
 from tvb.basic.neotraits._attr import Attr
 
+from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
-from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 from tvb_multiscale.tvb_annarchy.annarchy_models.models.default import DefaultExcIOBuilder
@@ -20,9 +18,9 @@ from tvb_multiscale.tvb_annarchy.interfaces.models.default import \
     DefaultANNarchyRemoteInterfaceBuilder, DefaultTVBANNarchyInterfaceBuilder
 
 
-class ANNarchySerialApp(SpikeNetSerialApp):
+class ANNarchyApp(HasTraits):
 
-    """ANNarchySerialApp class"""
+    """ANNarchyApp class"""
 
     config = Attr(
         label="Configuration",
@@ -30,14 +28,6 @@ class ANNarchySerialApp(SpikeNetSerialApp):
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     network_path = Attr(
@@ -79,7 +69,6 @@ class ANNarchySerialApp(SpikeNetSerialApp):
         self.spiking_cosimulator = load_annarchy(self.config)
 
     def configure(self, **kwargs):
-        super(ANNarchySerialApp, self).configure()
         self.annarchy_instance.clear()  # This will restart ANNarchy!
         self.spikeNet_builder.annarchy_instance = self.spiking_cosimulator
         self.spikeNet_builder.update_spiking_dt()
@@ -91,16 +80,11 @@ class ANNarchySerialApp(SpikeNetSerialApp):
 
     def configure_simulation(self):
         self.spiking_network.network_path = self.network_path
-        super(ANNarchySerialApp, self).configure_simulation()
 
     def simulate(self, simulation_length=None):
         if simulation_length is None:
             simulation_length = self.simulation_length
         self.spiking_network.Run(simulation_length)
-
-    def run(self, *args, **kwargs):
-        self.configure(**kwargs)
-        self.build()
 
     def clean_up(self):
         pass
@@ -109,8 +93,28 @@ class ANNarchySerialApp(SpikeNetSerialApp):
         pass
 
     def reset(self):
-        super(ANNarchySerialApp, self).reset()
         self.annarchy_instance.clear()
+
+
+class ANNarchySerialApp(ANNarchyApp, SpikeNetSerialApp):
+
+    """ANNarchySerialApp class"""
+
+    def configure(self, **kwargs):
+        SpikeNetSerialApp.configure(self)
+        ANNarchyApp.configure(self)
+
+    def configure_simulation(self):
+        SpikeNetSerialApp.configure_simulation(self)
+        ANNarchyApp.configure_simulation(self)
+
+    def run(self, *args, **kwargs):
+        self.configure(**kwargs)
+        self.build()
+
+    def reset(self):
+        SpikeNetSerialApp.reset(self)
+        ANNarchyApp.reset(self)
 
 
 class ANNarchyParallelApp(ANNarchySerialApp, SpikeNetParallelApp):
@@ -161,14 +165,6 @@ class TVBSerialApp(TVBSerialAppBase):
         default=CONFIGURED
     )
 
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
-    )
-
     interfaces_builder = Attr(
         label="TVBANNarchyInterfaces builder",
         field_type=TVBANNarchyInterfaceBuilder,
@@ -195,14 +191,6 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     tvb_app = Attr(
