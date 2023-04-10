@@ -126,7 +126,7 @@ def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
 def simulate_batch(iB, iG, G, batch_samples, priors_param_names, run_workflow, write_to_file=None):
     sim_res = []
     for iS in range(batch_samples.shape[0]):
-        priors_params = OrderedDict()
+        priors_params = OrderedDict(config.model_params)
         priors_params["G"] = G
         for prior_name, prior in zip(priors_param_names, batch_samples[iS]):
             try:
@@ -341,13 +341,14 @@ def load_posterior_samples_all_Gs(iGs=None, runs=None, label="", config=None):
     if iGs is None:
         iGs = range(len(config.Gs))
     for iG in iGs:
+        G = config.Gs[iG]
         try:
             if runs is False:
                 samples[G] = load_posterior_samples(iG, None, label, config)
             else:
                 samples[G] = load_posterior_samples_all_runs(iG, runs, label, config=config)
         except Exception as e:
-            warnings.warn("Failed to load posterior samples for iG=%d, G=%g!\n%s" % (iG, config.Gs[iG], str(e)))
+            warnings.warn("Failed to load posterior samples for iG=%d, G=%g!\n%s" % (iG, G, str(e)))
     return samples
 
 
@@ -396,7 +397,7 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     # Get the default values for the parameter except for G
     pvals = samples[config.OPT_RES_MODE][-1]
     if not isinstance(pvals, np.ndarray):
-        pvals = param_val.numpy()
+        pvals = pvals.numpy()
     limits = []
     for pmin, pmax in zip(config.prior_min, config.prior_max):
         limits.append([pmin, pmax])
@@ -736,7 +737,7 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
     params['G'] = G
     # Set the posterior means or maps of the parameters:        
     for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR][0]):
-        if isinstance(pval, np.ndarray):
+        if isinstance(pval, np.floating):
             np_pval = pval
         else:
             np_pval = pval.numpy()
@@ -938,7 +939,7 @@ if __name__ == "__main__":
                                    workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
         elif parser_args.script_id == 3:
             num_train_samples = parser_args.num_train_samples
-            samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=nts)
+            samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=num_train_samples)
         elif parser_args.script_id == 4:
             num_train_samples = parser_args.num_train_samples
             samples_fit = sbi_test_for_iG(iG, config, iR,
