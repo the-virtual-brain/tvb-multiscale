@@ -5,7 +5,7 @@ from abc import ABC, ABCMeta
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
-from tvb_multiscale.core.interfaces.base.builders import RemoteTransformerBuilder, \
+from tvb_multiscale.core.interfaces.base.builders import TVBspikeNetRemoteTransformerBuilder, \
     TVBtoSpikeNetRemoteTransformerBuilder, SpikeNetToTVBRemoteTransformerBuilder
 from tvb_multiscale.core.interfaces.base.interfaces import \
     TVBtoSpikeNetRemoteTransformerInterfaces, SpikeNetToTVBRemoteTransformerInterfaces
@@ -18,7 +18,7 @@ class TransformerApp(NonTVBApp, ABC):
 
     interfaces_builder = Attr(
         label="TVB<->spikeNet Remote Transformer Interfaces builder",
-        field_type=RemoteTransformerBuilder,
+        field_type=TVBspikeNetRemoteTransformerBuilder,
         doc="""Instance of RemoteTransformerBuilder class.""",
         required=False
     )
@@ -41,6 +41,9 @@ class TransformerApp(NonTVBApp, ABC):
 
     # def configure(self):
     #     super(TransformerApp, self).configure()
+
+    def build(self):
+        self.build_interfaces()
 
     # def configure_simulation(self):
     #     super(TransformerApp, self).configure()
