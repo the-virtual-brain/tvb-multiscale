@@ -7,6 +7,8 @@ from tvb.basic.neotraits._attr import Attr
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_nrp import CoSimulatorParallelNRP
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNRPBuilder
+from tvb_multiscale.core.interfaces.models.default import \
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
 from tvb_multiscale.core.orchestrators.tvb_app import TVBParallelApp
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetParallelApp
 from tvb_multiscale.core.orchestrators.transformer_app import \
@@ -47,7 +49,7 @@ class NRPApp(HasTraits):
         self.stop()
 
 
-class NRPTVBapp(TVBParallelApp, NRPApp):
+class NRPTVBApp(TVBParallelApp, NRPApp):
 
     """NRPTVBApp class"""
 
@@ -65,6 +67,9 @@ class NRPTVBapp(TVBParallelApp, NRPApp):
         doc="""Instance of TVB CoSimulator.""",
         required=False
     )
+
+    _cosimulator_builder_type = CoSimulatorNRPBuilder
+    _default_interface_builder = DefaultTVBRemoteInterfaceBuilder
 
 
 class NRPSpikeNetApp(SpikeNetParallelApp, NRPApp, ABC):
