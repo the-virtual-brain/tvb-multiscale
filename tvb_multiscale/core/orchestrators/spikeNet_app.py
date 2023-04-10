@@ -113,7 +113,7 @@ class SpikeNetParallelApp(SpikeNetApp, ABC):
         required=False
     )
 
-    _default_interface_builder = SpikeNetInterfaceBuilder
+    _default_interface_builder = SpikeNetRemoteInterfaceBuilder
 
     def configure_interfaces_builder(self):
         # Get default options from the App and the TVB CoSimulator:
