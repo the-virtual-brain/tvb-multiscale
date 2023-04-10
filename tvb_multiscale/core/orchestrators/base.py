@@ -48,7 +48,7 @@ class App(HasTraits):
         dtype=np.int,
         label="Indices of proxy nodes",
         doc="""Indices of proxy nodes""",
-        required=True,
+        required=True
     )
 
     exclusive_nodes = Attr(label="Flag of exclusive nodes",
