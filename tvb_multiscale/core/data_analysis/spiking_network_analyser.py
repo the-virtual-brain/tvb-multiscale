@@ -164,15 +164,15 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 if computation_method.__name__.find("rate") > -1:
                     # ...check whether a Spikes Train (Elephant/neo) has already being computed,
                     # to not repeat this computation...
-                    this_data = outputs.get(self.spikes_train_name, this_data)
+                    this_data = outputs.get(self.spikes_trains_name, this_data)
                 if computation_method.__name__.find("spikes_co") > -1:
                     # ...check whether a BinnedSpikesTrain (Elephant/neo) has already being computed,
                     # to not repeat this computation...
-                    this_data = outputs.get(self.binned_spikes_train_name, this_data)
+                    this_data = outputs.get(self.binned_spikes_trains_name, this_data)
                 elif computation_method.__name__.find("spikes") > -1:
                     # ...check whether a collection of SpikesTrain (PySpike) has already being computed,
                     # to not repeat this computation...
-                    this_data = outputs.get(self.spikes_train_name, this_data)
+                    this_data = outputs.get(self.spikes_trains_name, this_data)
                 # ...and eventually call the computation and collect the results:
                 outputs.update(computation_method(this_data, number_of_neurons=population_size,
                                                   **self._get_safely_computation_kwargs(i_comput, computations_kwargs)))
@@ -476,7 +476,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             corr = computation_method(spikes_trains,
                                       self._get_safely_computation_kwargs(i_comput, computations_kwargs))
             # ...unpack the results...
-            spikes_trains = corr.get(self.binned_spikes_train_name, spikes_trains)
+            spikes_trains = corr.get(self.binned_spikes_trains_name, spikes_trains)
             corr = corr[res_name]
             if self.force_homogeneous_results:
                 # ...reshape the result for the case of a (Population_i, Population_j, Region_i, Region_j) output:
@@ -549,7 +549,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         results = self._prepare_results(results_names, computations_methods)
         if return_spikes_trains:
             if not isinstance(return_spikes_trains, string_types):
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             # Add the spikes trains to the results dicts if required:
             results[return_spikes_trains] = Series(name="Spikes Trains", dtype='object')
         if len(spikes_data):
@@ -692,13 +692,13 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         # Compute first the spikes' rate results:
         results = self.compute_spikes_measures(spikes_data, populations_sizes,
                                                rates_methods, rates_kwargs, rate_results_names,
-                                               data_method, data_kwargs, return_spikes_trains=self.spikes_train_name)
+                                               data_method, data_kwargs, return_spikes_trains=self.spikes_trains_name)
         # Loop over the resulting Spikes Trains and prepare for the correlations' computations:
         pop_labels = []
         all_regions_labels = []
         pop_reg_labels = []
         spikes_trains = []
-        for pop_label, pop_spikes_trains in results[self.spikes_train_name].items():
+        for pop_label, pop_spikes_trains in results[self.spikes_trains_name].items():
             pop_labels.append(pop_label)
             for reg_label, reg_spikes_trains in pop_spikes_trains.items():
                 pop_reg_labels.append((pop_label, reg_label))
@@ -782,7 +782,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             # Compute if there are any such devices:
             computations_kwargs["rate_method"] = self.compute_rate
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    [self.compute_spikes_rates_by_neuron], [computations_kwargs],
                                                    ["Neurons' Spikes' Rates"],
@@ -817,7 +817,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             # Compute if there are any such devices:
             computations_kwargs["rate_method"] = self.compute_rate_time_series
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    [self.compute_spikes_rates_by_neuron], [computations_kwargs],
                                                    ["Neurons' Spikes' Rates' Time Series"],
@@ -856,7 +856,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if data_method is None:
                 data_method = self.get_spikes_times_from_device
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    [self.compute_mean_rate], [computations_kwargs],
                                                    ["Mean Populations' Spikes' Rates"],
@@ -894,7 +894,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if data_method is None:
                 data_method = self.get_spikes_times_from_device
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    [self.compute_mean_instant_rate], [computations_kwargs],
                                                    ["Mean Populations' Spikes' Rates' Time Series"],
@@ -932,7 +932,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if data_method is None:
                 data_method = self.get_spikes_times_from_device
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    [self.compute_total_rate], [computations_kwargs],
                                                    ["Total Populations' Spikes' Rates"],
@@ -970,7 +970,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if data_method is None:
                 data_method = self.get_spikes_times_from_device
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    [self.compute_total_instant_rate], [computations_kwargs],
                                                    ["Total Populations' Spikes' Rates' Time Series"],
@@ -1112,7 +1112,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if len(comp_methods) == 0:
                 comp_methods = [self.compute_spikes_sync]
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_train_name
+                return_spikes_trains = self.spikes_trains_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    comp_methods, computations_kwargs,
                                                    ["Populations' Spikes' Synchronization"],

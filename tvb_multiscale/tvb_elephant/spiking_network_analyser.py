@@ -138,7 +138,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         else:
             result = 0.0
         return {res_type: DataArray([1000 * float(result)]).squeeze(),
-                self.spikes_train_name: spikes_train}
+                self.spikes_trains_name: spikes_train}
 
     def compute_rate(self, spikes, number_of_neurons=1, duration=None, **kwargs):
         """A method to compute rate from an input of spikes' events or spikes' times.
@@ -220,13 +220,13 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         # TODO: A better solution for handling the last time point with elephant!
         try:
             return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time}),
-                    self.spikes_train_name: spikes_train}
+                    self.spikes_trains_name: spikes_train}
         except Exception as e:
             LOG.warning("Failed with exception %s!\n"
                         "Length of time is %d and of rates is %d.\n"
                         "Removing last time point and retrying!" % (str(e), len(time), len(rates)))
             return {res_type: DataArray(rates, dims=["Time"], coords={"Time": time[:-1]}),
-                    self.spikes_train_name: spikes_train}
+                    self.spikes_trains_name: spikes_train}
 
     def compute_spikes_rates_by_neuron(self, spikes, number_of_neurons=1, rate_method=None, **kwargs):
         """A method to compute any type of spiking rate, but separately for each neuron.
@@ -285,7 +285,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         binned_spikes_trains = self._assert_binned_spikes_trains(binned_spikes_trains, binsize, num_bins)
         from elephant.spike_train_correlation import correlation_coefficient
         return {self._get_comput_res_type(): correlation_coefficient(binned_spikes_trains, **kwargs),
-                self.binned_spikes_train_name: binned_spikes_trains}
+                self.binned_spikes_trains_name: binned_spikes_trains}
 
     def compute_spikes_covariance(self, binned_spikes_trains, binsize=None, num_bins=None, **kwargs):
         """A method to compute the covariances
@@ -304,4 +304,4 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         binned_spikes_trains = self._assert_binned_spikes_trains(binned_spikes_trains, binsize, num_bins)
         from elephant.spike_train_correlation import covariance
         return {self._get_comput_res_type(): covariance(binned_spikes_trains, **kwargs),
-                self.binned_spikes_train_name: binned_spikes_trains}
+                self.binned_spikes_trains_name: binned_spikes_trains}
