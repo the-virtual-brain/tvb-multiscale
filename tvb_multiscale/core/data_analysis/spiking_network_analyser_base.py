@@ -117,7 +117,7 @@ class SpikingNetworkAnalyserBase(HasTraits):
     _fmax = np.finfo(dtype="f").max
     _fmin_resolution = np.finfo(dtype="f").resolution
 
-    _spikes_train_name = None
+    _spikes_trains_name = None
     _binned_spikes_trains_name = None
 
     def __init__(self, spikeNet=None, **kwargs):
