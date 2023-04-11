@@ -167,11 +167,11 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 if computation_method.__name__.find("spikes_co") > -1:
                     # ...check whether a BinnedSpikesTrain (Elephant/neo) has already being computed,
                     # to not repeat this computation...
-                    this_data = outputs.get(self.binned_spikes_trains_name, this_data)
+                    this_data = outputs.get(self.binned_spikes_train_name, this_data)
                 elif computation_method.__name__.find("spikes") > -1:
                     # ...check whether a collection of SpikesTrain (PySpike) has already being computed,
                     # to not repeat this computation...
-                    this_data = outputs.get(self.spikes_trains_name, this_data)
+                    this_data = outputs.get(self.spikes_train_name, this_data)
                 # ...and eventually call the computation and collect the results:
                 outputs.update(computation_method(this_data, number_of_neurons=population_size,
                                                   **self._get_safely_computation_kwargs(i_comput, computations_kwargs)))
@@ -475,7 +475,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             corr = computation_method(spikes_trains,
                                       self._get_safely_computation_kwargs(i_comput, computations_kwargs))
             # ...unpack the results...
-            spikes_trains = corr.get(self.binned_spikes_trains_name, spikes_trains)
+            spikes_trains = corr.get(self.binned_spikes_train_name, spikes_trains)
             corr = corr[res_name]
             if self.force_homogeneous_results:
                 # ...reshape the result for the case of a (Population_i, Population_j, Region_i, Region_j) output:
@@ -535,7 +535,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             - data_kwargs={}: a dictionary of potential keyword arguments to be passed to the data_method.
             - return_spikes_trains=False: flag to return the Spikes Trains used in the computations or not,
                                           if it is a string, it will be the name of the returned spikes' train result,
-                                          default name is taken from spikes_train_name attribute
+                                          default name is taken from spikes_trains_name attribute
         """
         computations_methods = ensure_list(computations_methods)
         computations_kwargs = ensure_list(computations_kwargs)
@@ -1111,7 +1111,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             if len(comp_methods) == 0:
                 comp_methods = [self.compute_spikes_sync]
             if return_spikes_trains:
-                return_spikes_trains = self.spikes_trains_name
+                return_spikes_trains = self.spikes_train_name
             results = self.compute_spikes_measures(spikes_devices, [],
                                                    comp_methods, computations_kwargs,
                                                    ["Populations' Spikes' Synchronization"],

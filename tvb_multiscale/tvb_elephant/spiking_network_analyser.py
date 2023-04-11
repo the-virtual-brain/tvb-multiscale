@@ -58,13 +58,6 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             t_stop = self.period
         return SpikeTrain(spikes*ms, t_stop=t_stop*ms)
 
-    @property
-    def spikes_train_name(self):
-        """A method to set and return the name of the Spikes Train data type."""
-        if not self._spikes_train_name:
-            self._spikes_train_name = self._get_comput_res_type(self.compute_spikes_train)
-        return self._spikes_train_name
-
     def _assert_spikes_train(self, spikes):
         """A method to assert that an argument is of neo.core.SpikesTrain data type.
            If not, a neo.core.SpikesTrain is computed from the input spikes' times array.
@@ -292,7 +285,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         binned_spikes_trains = self._assert_binned_spikes_trains(binned_spikes_trains, binsize, num_bins)
         from elephant.spike_train_correlation import correlation_coefficient
         return {self._get_comput_res_type(): correlation_coefficient(binned_spikes_trains, **kwargs),
-                self.binned_spikes_trains_name: binned_spikes_trains}
+                self.binned_spikes_train_name: binned_spikes_trains}
 
     def compute_spikes_covariance(self, binned_spikes_trains, binsize=None, num_bins=None, **kwargs):
         """A method to compute the covariances
@@ -311,4 +304,4 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         binned_spikes_trains = self._assert_binned_spikes_trains(binned_spikes_trains, binsize, num_bins)
         from elephant.spike_train_correlation import covariance
         return {self._get_comput_res_type(): covariance(binned_spikes_trains, **kwargs),
-                self.binned_spikes_trains_name: binned_spikes_trains}
+                self.binned_spikes_train_name: binned_spikes_trains}
