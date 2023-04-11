@@ -46,6 +46,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                     self.elephant_analyser = SpikingNetworkAnalyserElephant().from_instance(self)
                 return getattr(self.elephant_analyser, attr)
             except Exception as e:
+                print("Failed to get attribute!: %s" % attr)
                 # from tvb_multiscale.tvb_pyspike.spiking_network_analyser \
                 #     import SpikingNetworkAnalyser as SpikingNetworkAnalyserPySpike
                 # assert hasattr(SpikingNetworkAnalyserPySpike, attr)
