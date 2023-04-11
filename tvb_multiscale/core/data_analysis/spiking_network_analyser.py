@@ -73,7 +73,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
     #         setattr(self.pyspike_analyser, attr, val)
 
     def __setattr__(self, attr, val):
-        if attr == "gid":
+        if attr in ["gid", "tags", "log"]:
             SpikingNetworkAnalyserBase.__setattr__(self, attr, val)
             return
         elif attr == "title":
