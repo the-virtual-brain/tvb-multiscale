@@ -73,12 +73,19 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
     #         setattr(self.pyspike_analyser, attr, val)
 
     def __setattr__(self, attr, val):
-        if hasattr(SpikingNetworkAnalyser, attr):
+        if attr == "gid":
+            SpikingNetworkAnalyserBase.__setattr__(self, attr, val)
+            return
+        elif attr == "title":
+            SpikingNetworkAnalyserBase.__setattr__(self, attr, val)
+            if self.elephant_analyser:
+                self.elephant_analyser.set_title()
+            # if self.pyspike_analyser:
+            #     self.pyspike_analyser.set_title()
+            return
+        elif hasattr(SpikingNetworkAnalyser, attr):
             # If it is a common attribute:
             SpikingNetworkAnalyserBase.__setattr__(self, attr, val)
-            if attr != "gid":
-                self._setattr_to_elephant_analyser(attr, val)
-                # self._setattr_to_pyspike_analyser(attr, val)
             return
         else:
             try:
