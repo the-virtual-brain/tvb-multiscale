@@ -41,10 +41,6 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                                             dividing the total number of spikes_train by the total number of neurons,
                                             without using elephant.""")
 
-    _spikes_train_name = None
-
-    _binned_spikes_trains_name = None
-
     def compute_spikes_train(self, spikes):
         """Method to compute a neo.core.SpikesTrain data type from an array of spikes" times.
            Arguments:
@@ -106,13 +102,6 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         elif num_bins is None:
             binsize = self.period * ms
         return BinnedSpikeTrain(spikes_trains, binsize=binsize, num_bins=num_bins, t_start=t_start, t_stop=t_stop)
-
-    @property
-    def binned_spikes_trains_name(self):
-        """A method to set and return the name of the Binned Spikes Train data type."""
-        if not self._binned_spikes_trains_name:
-            self._binned_spikes_trains_name = self._get_comput_res_type(self.compute_binned_spikes_trains)
-        return self._binned_spikes_trains_name
 
     def _assert_binned_spikes_trains(self, spikes_trains, binsize=None, num_bins=None):
         """Method to assert that the input is of a elephant.conversion.BinnedSpikeTrain data type.

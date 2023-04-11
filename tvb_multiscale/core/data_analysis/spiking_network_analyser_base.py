@@ -117,6 +117,9 @@ class SpikingNetworkAnalyserBase(HasTraits):
     _fmax = np.finfo(dtype="f").max
     _fmin_resolution = np.finfo(dtype="f").resolution
 
+    _spikes_train_name = None
+    _binned_spikes_trains_name = None
+
     def __init__(self, spikeNet=None, **kwargs):
         if spikeNet:
             self.spikeNet = spikeNet
@@ -392,6 +395,20 @@ class SpikingNetworkAnalyserBase(HasTraits):
             - the name of the result
         """
         return self._get_method_name(method, caller_id=3).split("compute_")[-1]
+
+    @property
+    def spikes_trains_name(self):
+        """A method to set and return the name of the Spikes Train data type."""
+        if not self._spikes_trains_name:
+            self._spikes_trains_name = self._get_comput_res_type(self.compute_spikes_trains)
+        return self._spikes_trains_name
+
+    @property
+    def binned_spikes_trains_name(self):
+        """A method to set and return the name of the Binned Spikes Train data type."""
+        if not self._binned_spikes_trains_name:
+            self._binned_spikes_trains_name = self._get_comput_res_type(self.compute_binned_spikes_trains)
+        return self._binned_spikes_trains_name
 
     def _compute_rate_base(self, spikes_times, res_type, number_of_neurons=1, duration=None, **kwargs):
         if not duration:
