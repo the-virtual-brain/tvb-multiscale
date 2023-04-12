@@ -774,11 +774,11 @@ def ppt_batch_sim_res_filepath(iB, config, iG=None, filepath=None, extension=Non
 
 
 def write_ppt_batch_sim_res_to_file(sim_res, iB, iG=None, config=None):
-    np.save(batch_sim_res_filepath(iB, assert_config(config, return_plotter=False), iG), sim_res, allow_pickle=True)
+    np.save(ppt_batch_sim_res_filepath(iB, assert_config(config, return_plotter=False), iG), sim_res, allow_pickle=True)
 
 
 def write_ppt_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
-    write_batch_sim_res_to_file(sim_res, iB, iG, config)
+    write_ppt_batch_sim_res_to_file(sim_res, iB, iG, config)
 
 
 def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=None,  iR=None,
