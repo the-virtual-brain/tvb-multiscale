@@ -123,12 +123,13 @@ def write_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
     write_batch_sim_res_to_file(sim_res, iB, iG, config)
 
 
-def simulate_batch(iB, iG, G, batch_samples, priors_param_names, run_workflow, write_to_file=None):
+def simulate_batch(iB, iG, batch_samples, run_workflow, write_to_file=None, config=None):
+    config = assert_config(config, return_plotter=False)
     sim_res = []
     for iS in range(batch_samples.shape[0]):
         priors_params = OrderedDict(config.model_params)
-        priors_params["G"] = G
-        for prior_name, prior in zip(priors_param_names, batch_samples[iS]):
+        priors_params["G"] = config.Gs[iG]
+        for prior_name, prior in zip(config.PRIORS_PARAMS_NAMES, batch_samples[iS]):
             try:
                 numpy_prior = prior.numpy()
             except:
@@ -154,8 +155,7 @@ def simulate_TVB_for_sbi_batch(iB, iG=None, config=None, write_to_file=True):
     batch_samples = load_priors_samples_per_batch_per_iG(iB, iG, config)
     if write_to_file:
         write_to_file = write_batch_sim_res_to_file_per_iG
-    return simulate_batch(iB, iG, config.Gs[iG], batch_samples,
-                          config.PRIORS_PARAMS_NAMES, run_workflow, write_to_file)
+    return simulate_batch(iB, iG, batch_samples, run_workflow, write_to_file, config)
 
 
 def load_priors_and_simulations_for_sbi(iG=None, priors=None, priors_samples=None, sim_res=None, config=None):
@@ -803,8 +803,7 @@ def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=N
     samples = samples[sampl_inds]
     if write_to_file:
         write_to_file = write_ppt_batch_sim_res_to_file_per_iG
-    return simulate_batch(iB, iG, config.Gs[iG], samples,
-                          config.PRIORS_PARAMS_NAMES, workflow_fun, write_to_file)
+    return simulate_batch(iB, iG, samples, workflow_fun, write_to_file, config)
 
 
 def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None,
