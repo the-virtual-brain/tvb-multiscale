@@ -5,6 +5,7 @@ from scipy.signal import welch
 from scipy.interpolate import interp1d
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
+from examples.tvb_nest.notebooks.cerebellum.utils import get_regions_indices
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 
 
@@ -128,16 +129,22 @@ def prepare_connectome(config, plotter=None):
     return connectome, major_structs_labels, voxel_count, inds, maps
 
 
+def scale_connections(connectivity, brain_connections_to_scale):
+    # Selectively scale some connections, if required:
+    for reg1, reg2, sc in brain_connections_to_scale:
+        connectivity.weights[get_regions_indices(reg1, connectivity.region_labels),
+                             get_regions_indices(reg2, connectivity.region_labels)] *= sc
+    return connectivity
+
+
 def build_connectivity(connectome, inds, config):
     from tvb.datatypes.connectivity import Connectivity
 
     connectivity = Connectivity(**connectome)
 
-    # Selectively scale up some connections, if required:
-    for reg1, reg2, sc in config.BRAIN_CONNECTIONS_TO_SCALE:
-        iR1 = np.where([reg in reg1 for reg in connectivity.region_labels])[0]
-        iR2 = np.where([reg in reg2 for reg in connectivity.region_labels])[0]
-        connectivity.weights[iR1, iR2] *= sc
+    # Selectively scale some connections, if required:
+    if config.BRAIN_CONNECTIONS_TO_SCALE:
+        connectivity = scale_connections(connectivity, config.BRAIN_CONNECTIONS_TO_SCALE)
 
     # Normalize connectivity weights
     connectivity.weights[np.logical_or(np.isnan(connectivity.weights), np.isinf(connectivity.weights))] = 0.0
@@ -192,17 +199,18 @@ def build_model(number_of_regions, inds, maps, config):
     if config.VERBOSE:
         print("Configuring model with parameters:\n%s" % str(config.model_params))
 
-    STIMULUS = config.model_params.pop("STIMULUS", None)
+    STIMULUS = config.model_params.get("STIMULUS", None)
 
     model_params = {}
     for p, pval in config.model_params.items():
-        if pval is not None:
-            pval = np.array([pval]).flatten()
-            if p == 'G':
-                # G normalized by the number of regions as in Griffiths et al paper
-                # Geff = G /(number_of_regions - inds['thalspec'].size)
-                pval = pval / (number_of_regions - inds['thalspec'].size)
-            model_params[p] = pval
+        if p != "STIMULUS":
+            if pval is not None:
+                pval = np.array([pval]).flatten()
+                if p == 'G':
+                    # G normalized by the number of regions as in Griffiths et al paper
+                    # Geff = G /(number_of_regions - inds['thalspec'].size)
+                    pval = pval / (number_of_regions - inds['thalspec'].size)
+                model_params[p] = pval
 
     if STIMULUS:
         if model_params.get("G", WilsonCowanThalamoCortical.G.default)[0].item() > 0.0:
@@ -722,7 +730,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
     outputs = []
     if results is not None:
-        source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
+        source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion for TVB like functionality
             data=results[0][1], time=results[0][0],
             connectivity=simulator.connectivity,
             labels_ordering=["Time", "State Variable", "Region", "Neurons"],
