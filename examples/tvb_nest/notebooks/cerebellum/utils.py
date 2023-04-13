@@ -6,7 +6,7 @@ from scipy import signal
 from sklearn.decomposition import FastICA
 from matplotlib import pyplot as plt
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries as TimeSeriesX
-from tvb.contrib.scripts.utils.data_structures_utils import is_integer, is_float
+from tvb.contrib.scripts.utils.data_structures_utils import is_integer, is_float, ensure_list
 
 
 def print_lbl(lbl, siz, prnt=""):
@@ -42,6 +42,23 @@ def print_conn(d={}, prnt="", maxrow=200, printit=True):
     if printit:
         print(prnt)
     return prnt
+
+
+def get_region_indice(reg, labels):
+    if isinstance(reg, str):
+        return np.where(labels==reg)[0].item()
+    if is_integer(reg):
+        return reg
+    raise ValueError("reg should be either a region label or integer indice, but it is %s!" % str(reg))
+
+
+def get_regions_indices(regs, labels):
+    if regs is None:
+        return slice(None)
+    iR = []
+    for reg in ensure_list(regs):
+        iR.append(get_region_indice(reg, labels))
+    return iR
 
 
 def compute_plot_selected_spectra_coherence(source_ts, inds,
