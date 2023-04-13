@@ -127,7 +127,7 @@ def simulate_batch(iB, iG, batch_samples, run_workflow, write_to_file=None, conf
     config = assert_config(config, return_plotter=False)
     sim_res = []
     for iS in range(batch_samples.shape[0]):
-        priors_params = OrderedDict(config.model_params)
+        priors_params = OrderedDict(config.model_params.copy())
         priors_params["G"] = config.Gs[iG]
         for prior_name, prior in zip(config.PRIORS_PARAMS_NAMES, batch_samples[iS]):
             try:
@@ -316,7 +316,7 @@ def add_posterior_samples_iR(all_samples, samples_iR):
                     vals.append(vl)
                 else:
                     vals.append(vl.numpy())
-            all_samples[key].append(vals)  # [-1200:] for when old samples are saved
+            all_samples[key].append(vals)
     return all_samples
 
 
@@ -390,12 +390,16 @@ def sbi_infer(priors, priors_samples, sim_res, n_samples_per_run, target, verbos
     
 def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     config = assert_config(config, return_plotter=False)
+
     if samples is None:
-        samples = load_posterior_samples(iG, iR, label, config)
+        samples = load_posterior_samples_all_runs(iG, iR, label, config)
+
     if iR is None:
-        iR = -1
+        iR = slice(None)
     # Get the default values for the parameter except for G
-    pvals = samples[config.OPT_RES_MODE][-1]
+    pvals = np.concatenate(samples_fit[config.OPT_RES_MODE][iR]).mean(axis=0)
+    samples_points = np.concatenate(samples_fit['samples'][iR])
+
     if not isinstance(pvals, np.ndarray):
         pvals = pvals.numpy()
     limits = []
@@ -406,7 +410,7 @@ def plot_infer_for_iG(iG, iR=None, samples=None, label="", config=None):
     labels = []
     for p, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
         labels.append("%s %s = %g" % (p, config.OPT_RES_MODE, pval)) 
-    fig, axes = analysis.pairplot(samples['samples'][iR],
+    fig, axes = analysis.pairplot(samples_points,
                                   limits=limits,
                                   ticks=limits,
                                   figsize=(10, 10),
@@ -719,24 +723,27 @@ def plot_sbi_fit(config=None):
 
 
 def simulate_after_fitting(iG, iR=None, label="", config=None,
-                           workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None):
+                           workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None,
+                           plot_flag=True, **config_args):
 
     config = assert_config(config, return_plotter=False)
     with open(os.path.join(config.out.FOLDER_RES, 'config.pkl'), 'wb') as file:
         dill.dump(config, file, recurse=1)
 
-    samples_fit = load_posterior_samples(iG, iR, label, config=config)
+    samples_fit = load_posterior_samples_all_runs(iG, iR, label, config=config)
     if iR is None:
-        iR = -1
+        iR = slice(None)
+    # Get the default values for the parameter except for G
+    pvals = np.concatenate(samples_fit[config.OPT_RES_MODE][iR]).mean(axis=0)
 
     # Get G for this run:
-    G = samples_fit['G']  # config.Gs[iG]
+    G = samples_fit.get("G", config.Gs[iG])
 
     # Get the default values for the parameter except for G
-    params = dict(config.model_params)
+    params = config.model_params.copy()
     params['G'] = G
     # Set the posterior means or maps of the parameters:        
-    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, samples_fit[config.OPT_RES_MODE][iR][0]):
+    for pname, pval in zip(config.PRIORS_PARAMS_NAMES, pvals):
         if isinstance(pval, np.floating):
             np_pval = pval
         else:
@@ -753,18 +760,22 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
         config.FIC_SPLIT = FIC_SPLIT
     # Run one simulation with the posterior means:
     if config.VERBOSE:
-        print("Simulating using the estimate of the %s of the parameters' posterior distribution!" % config.OPT_RES_MODE)
+        print("Simulating using the estimate of the %s of the parameters' posterior distribution!"
+              % config.OPT_RES_MODE)
         print("params =\n", params)
+        print("FIC=%g" % config.FIC)
+        print("FIC_SPLIT=%g" % config.FIC_SPLIT)
     if workflow_fun is None:
         workflow_fun = run_workflow
     # Specify other parameters or overwrite some:
     params.update(model_params)
     if len(label):
         label = "_%s" % label
-    outputs = workflow_fun(plot_flag=True, model_params=params, config=None,
+    outputs = workflow_fun(model_params=params, config=config,
                            output_folder="%s/G%g/STIM%0.2f_Is%0.2f_FIC%0.2f_FIC_SPLIT%0.2f%s" %
                                          (config.output_base, params['G'], params["STIMULUS"],
-                                          params['I_s'], config.FIC, config.FIC_SPLIT, label))
+                                          params['I_s'], config.FIC, config.FIC_SPLIT, label),
+                           plot_flag=plot_flag, **config_args)
     outputs = outputs + (samples_fit, )
     return outputs
 
