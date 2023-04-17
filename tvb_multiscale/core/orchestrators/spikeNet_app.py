@@ -75,6 +75,11 @@ class SpikeNetApp(NonTVBApp, ABC):
     def configure_simulation(self):
         self.spiking_network.configure()
 
+    def simulate(self, simulation_length=None):
+        if simulation_length is None:
+            simulation_length = self.simulation_length
+        return self.spiking_network.run(simulation_length)
+
     def reset(self):
         self.spiking_network = None
 
