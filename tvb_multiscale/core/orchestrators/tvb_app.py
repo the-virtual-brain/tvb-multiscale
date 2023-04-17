@@ -4,7 +4,7 @@ import numpy as np
 
 from tvb.basic.neotraits._attr import Attr
 
-from tvb_multiscale.core.orchestrators.base import App
+from tvb_multiscale.core.orchestrators.base import CoSimulatorApp
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
@@ -19,7 +19,7 @@ from tvb_multiscale.core.interfaces.models.default import \
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
-class TVBApp(App):
+class TVBApp(CoSimulatorApp):
 
     """TVBApp base class"""
 
