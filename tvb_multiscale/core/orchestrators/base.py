@@ -103,9 +103,14 @@ class App(HasTraits):
     def configure_simulation(self):
         pass
 
-    @abstractmethod
+    def init(self):
+        self.configure()
+        self.build()
+        self.configure_simulation()
+
     def run(self):
-        pass
+        self.init()
+        self.simulate()
 
     @abstractmethod
     def clean_up(self):
@@ -131,10 +136,10 @@ class App(HasTraits):
         return self._add_attrs_to_info(super(App, self).info_details(recursive=recursive, **kwargs))
 
 
-class CoSimulatorApp(App, ABC):
+class AppWithInterfaces(App, ABS):
     __metaclass__ = ABCMeta
 
-    """CoSimulatorApp abstract base class"""
+    """AppWithInterfaces abstract base class"""
 
     interfaces_builder = Attr(
         label="Interfaces builder",
@@ -146,8 +151,6 @@ class CoSimulatorApp(App, ABC):
     _interfaces_built = False
 
     def configure_interfaces_builder(self):
-        # Get default options from the App and the TVB CoSimulator:
-        self._interfaces_builder.tvb_cosimulator = self._cosimulator
         self.interfaces_builder.config = self.config
         self.interfaces_builder.logger = self.logger
         self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
@@ -178,16 +181,17 @@ class CoSimulatorApp(App, ABC):
     def build(self):
         self.build_interfaces()
 
-    def run(self, *args, **kwargs):
-        self.configure()
-        self.build()
-        self.configure_simulation()
-        self.simulate()
-
     def reset(self):
         self.output_interfaces = None
         self.input_interfaces = None
         self._interfaces_built = False
+
+
+class CoSimulatorApp(AppWithInterfaces, ABC):
+    __metaclass__ = ABCMeta
+
+    """CoSimulatorApp abstract base class"""
+
 
 
 class NonTVBApp(CoSimulatorApp, ABC):
