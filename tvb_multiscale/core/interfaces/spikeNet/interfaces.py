@@ -280,38 +280,42 @@ class SpikeNetInterfaces(HasTraits):
         info["spiking_proxy_inds"] = self.spiking_proxy_inds
         return info
 
+    def __call__(self):
+        results = []
+        for interface in self.interfaces:
+            results.append(interface())
+        return results
+
 
 class SpikeNetOutputInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetOutputInterfaces"""
 
-    pass
+    interfaces = List(of=SpikeNetOutputInterface)
 
 
-class SpikeNetOutputRemoteInterfaces(SpikeNetOutputInterfaces):
+class SpikeNetSenderInterfaces(SpikeNetOutputInterfaces):
 
-    """SpikeNetOutputRemoteInterfaces"""
+    """SpikeNetSenderInterfaces"""
 
-    def __call__(self):
-        outputs = []
-        for interface in self.interfaces:
-            outputs.append(interface())
-        return outputs
+    interfaces = List(of=SpikeNetSenderInterface)
 
 
-class SpikeNetInputInterfaces(BaseInterfaces, SpikeNetInterfaces):
+class SpikeNetReceiverInterfaces(BaseInterfaces, SpikeNetInterfaces):
+
+    """SpikeNetReceiverInterfaces"""
+
+    interfaces = List(of=SpikeNetReceiverInterface)
+
+
+class SpikeNetInputInterfaces(SpikeNetReceiverInterfaces):
 
     """SpikeNetInputInterfaces"""
 
-    pass
+    interfaces = List(of=SpikeNetInputInterface)
 
-
-class SpikeNetInputRemoteInterfaces(SpikeNetInputInterfaces):
-
-    """SpikeNetInputRemoteInterfaces"""
-
-    def __call__(self, *args):
+    def __call__(self, input_datas):
         results = []
-        for interface in self.interfaces:
-            results.append(interface(*args))
+        for interface, input_data in zip(self.interfaces, input_datas):
+            results.append(interface(input_data))
         return results

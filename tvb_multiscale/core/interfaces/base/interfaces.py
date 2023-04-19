@@ -336,91 +336,6 @@ class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
     pass
 
 
-class RemoteTVBtoSpikeNetTransformerInterfaces(TVBtoSpikeNetTransformerInterfaces):
-
-    """RemoteTVBtoSpikeNetTransformerInterfaces"""
-
-    interfaces = List(of=TVBtoSpikeNetTransformerInterface)
-
-    receiver = Attr(
-        label="Receiver communicator",
-        field_type=Receiver,
-        doc="""A Communicator class instance to receive data from TVB for the transformers.""",
-        required=True
-    )
-
-    sender = Attr(
-        label="Communicator after transformation",
-        field_type=Sender,
-        doc="""A Communicator class instance to send data to the spiking network cosimulators.""",
-        required=True
-    )
-
-    def __call__(self, *args):
-        data = self.receiver()
-        if data is not None:
-            time, data, _ = tuple(data)
-            datas = []
-            for ii, interface in enumerate(self.interfaces):
-                #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-                datas.append(interface([time,
-                             data[:, interface.voi_loc][:, :, interface.proxy_inds],
-                             ii]))
-        self.sender(datas)
-
-
-class RemoteSpikeNetToTVBTransformerInterfaces(SpikeNetToTVBTransformerInterfaces):
-
-    """SpikeNetToTVBTransformerInterfaces"""
-
-    interfaces = List(of=RemoteSpikeNetToTVBTransformerInterfaces)
-
-    receiver = Attr(
-        label="Receiver communicator",
-        field_type=Receiver,
-        doc="""A Communicator class instance to receive data from the spiking network cosimulators for the transformers.""",
-        required=True
-    )
-
-    sender = Attr(
-        label="Communicator after transformation",
-        field_type=Sender,
-        doc="""A Communicator class instance to send data to TVB.""",
-        required=True
-    )
-
-    def _get_from_interface(self, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape):
-        data = interface()  # [start_and_time_steps, values]
-        if data is not None:
-            cosim_updates, time_steps = \
-                self._set_data_from_interface(cosim_updates, interface, data, good_cosim_update_values_shape)
-            all_time_steps += time_steps.tolist()
-            return cosim_updates, all_time_steps
-        else:
-            return cosim_updates, all_time_steps
-
-    def _prepare_cosim_upadate(self, good_cosim_update_values_shape):
-        cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
-        cosim_updates[:] = np.NAN
-        all_time_steps = []
-        return cosim_updates, all_time_steps
-
-    def get_inputs(self, cosim_updates, all_time_steps, good_cosim_update_values_shape):
-        if len(all_time_steps):
-            all_time_steps = np.unique(all_time_steps)
-            return [all_time_steps, cosim_updates[all_time_steps % good_cosim_update_values_shape[0]]]
-        else:
-            return [all_time_steps, cosim_updates]
-
-    def __call__(self, good_cosim_update_values_shape):
-        datas = self.receiver()
-        cosim_updates, all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
-        for interface, data in zip(self.interfaces, datas):
-            cosim_updates, all_time_steps = \
-                self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
-        return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
-
-
 class RemoteTransformerInterfaces(BaseInterfaces):
 
     """RemoteTransformerInterfaces"""
@@ -436,7 +351,7 @@ class TVBtoSpikeNetRemoteTransformerInterfaces(RemoteTransformerInterfaces):
 
     """TVBtoSpikeNetRemoteTransformerInterfaces"""
 
-    interfaces = List(of=TVBtoSpikeNetRemoteTransformerInterfaceRemoteTransformerInterface)
+    interfaces = List(of=TVBtoSpikeNetRemoteTransformerInterface)
 
     pass
 
