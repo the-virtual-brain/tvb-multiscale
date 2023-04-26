@@ -4,13 +4,16 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 import numpy as np
+from tvb.basic.neotraits._attr import List
 
 from tvb.basic.neotraits.api import Attr, Float, Int, NArray, List
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, TransformerInterface, \
-    SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
+from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, SenderInterface, ReceiverInterface, \
+    BaseInterfaces
+from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
+    TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
@@ -570,3 +573,37 @@ class TVBtoSpikeNetModels(Enum):
 class SpikeNetToTVBModels(Enum):
     SPIKES = 0
     VOLTAGE = 1
+
+
+class TVBtoSpikeNetTransformerInterface(TransformerInterface):
+    """TVBtoSpikeNetTransformerInterface  class for TVB -> spikeNet transformations
+       - setting data received for a Transformer from TVB,
+       - performing the Transformer computation,
+       - and outputing data to be sent to the (spiking) cosimulator.
+    """
+
+    pass
+
+
+class SpikeNetToTVBTransformerInterface(TransformerInterface):
+    """SpikeNetToTVBTransformerInterface  class for spikeNet -> TVB transformations
+       - setting data from a (spiking) cosimulator for a Transformer,
+       - performing the Transformer computation,
+       - and outputing data to be sent to TVB.
+    """
+
+    pass
+
+
+class TVBtoSpikeNetTransformerInterfaces(TransformerInterfaces):
+
+    """TVBtoSpikeNetTransformerInterfaces"""
+
+    interfaces = List(of=TVBtoSpikeNetTransformerInterface)
+
+
+class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
+
+    """SpikeNetToTVBTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetToTVBTransformerInterface)

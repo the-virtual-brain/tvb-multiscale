@@ -5,10 +5,10 @@ from abc import ABC, ABCMeta
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
-from tvb_multiscale.core.interfaces.base.builders import TVBspikeNetRemoteTransformerBuilder, \
-    TVBtoSpikeNetRemoteTransformerBuilder, SpikeNetToTVBRemoteTransformerBuilder
-from tvb_multiscale.core.interfaces.base.interfaces import \
-    TVBtoSpikeNetRemoteTransformerInterfaces, SpikeNetToTVBRemoteTransformerInterfaces
+from tvb_multiscale.core.interfaces.base.transformers.builders import TVBtoSpikeNetRemoteTransformerBuilder, \
+    SpikeNetToTVBRemoteTransformerBuilder, TVBspikeNetRemoteTransformerBuilder
+from tvb_multiscale.core.interfaces.base.transformers.interfaces import TVBtoSpikeNetRemoteTransformerInterfaces, \
+    SpikeNetToTVBRemoteTransformerInterfaces
 
 
 class TransformerApp(NonTVBApp, ABC):

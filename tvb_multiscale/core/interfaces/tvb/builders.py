@@ -11,12 +11,10 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimCoupling, CosimMonitorFromCoupling
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder, \
-    SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TVBtoSpikeNetTransformerBuilder
+    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBOutputInterfaces, TVBInputInterfaces, TVBOutputInterface, TVBInputInterface, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
