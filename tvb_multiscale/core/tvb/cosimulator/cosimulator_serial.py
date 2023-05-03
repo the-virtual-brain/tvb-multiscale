@@ -37,6 +37,8 @@ It inherits the Simulator class.
 
 """
 
+import time
+
 import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
@@ -51,11 +53,11 @@ class CoSimulatorSerial(CoSimulator):
         if cosimulation and self.input_interfaces:
             # Get the update data from the other cosimulator
             cosim_updates = self.input_interfaces(self.good_cosim_update_values_shape)
-            isnans = numpy.isnan(cosim_updates[-1])
-            if numpy.all(isnans):
+            isnans = np.isnan(cosim_updates[-1])
+            if np.all(isnans):
                 cosim_updates = None
                 self.log.warning("No or all NaN valued cosimulator updates at time step %d!" % self.current_step)
-            elif numpy.any(isnans):
+            elif np.any(isnans):
                 msg = "NaN values detected in cosimulator updates at time step %d!" % self.current_step
                 self.log.error(msg)
                 raise Exception(msg)
@@ -90,10 +92,10 @@ class CoSimulatorSerial(CoSimulator):
         synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
         if self.n_tvb_steps_ran_since_last_synch is None:
             self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
-        remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
+        remaining_steps = int(np.round(simulation_length / self.integrator.dt))
         self._tic = time.time()
         while remaining_steps > 0:
-            self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
+            self.synchronization_n_step = np.minimum(remaining_steps, synchronization_n_step)
             steps_performed = \
                 self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
             simulated_steps += steps_performed
@@ -104,13 +106,13 @@ class CoSimulatorSerial(CoSimulator):
         if self._cosimulation_flag and advance_simulation_for_delayed_monitors_output:
             # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
             remaining_steps = \
-                int(numpy.round((simulation_length + self.synchronization_time - simulated_steps*self.integrator.dt)
+                int(np.round((simulation_length + self.synchronization_time - simulated_steps*self.integrator.dt)
                              / self.integrator.dt))
             if remaining_steps:
                 self.log.info("Simulating for synchronization excess time %0.3f...",
                               remaining_steps * self.integrator.dt)
                 synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-                self.synchronization_n_step = numpy.minimum(synchronization_n_step, remaining_steps)
+                self.synchronization_n_step = np.minimum(synchronization_n_step, remaining_steps)
                 self._run_for_synchronization_time(ts, xs, wall_time_start,
                                                    cosimulation=False, **kwds)  # Run only TVB
                 self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
@@ -132,6 +134,6 @@ class CoSimulatorSerial(CoSimulator):
         else:
             self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
-            ts[i] = numpy.array(ts[i])
-            xs[i] = numpy.array(xs[i])
+            ts[i] = np.array(ts[i])
+            xs[i] = np.array(xs[i])
         return list(zip(ts, xs))
