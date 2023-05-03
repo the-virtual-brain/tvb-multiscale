@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNRPBuilder
-from tvb_multiscale.core.interfaces.tvb.builders import TVBRemoteInterfaceBuilder
+from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder
 from tvb_multiscale.core.orchestrators.nrp_apps import NRPTVBApp
 
 
-def tvb_init(config, tvb_cosimulator_builder=None, tvb_interfaces_builder=TVBRemoteInterfaceBuilder):
+def tvb_init(config, tvb_cosimulator_builder=None, tvb_interfaces_builder=TVBInterfaceBuilder):
 
     # Create a NRPTVBApp
     tvb_app = NRPTVBApp(config=config,
