@@ -15,8 +15,6 @@ from tvb.basic.neotraits._attr import Attr, List, NArray
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TransformerBuilder, TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summary_info, get_enum_values
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict, load_pickled_dict
