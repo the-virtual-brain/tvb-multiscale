@@ -9,6 +9,7 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
+    SpikeNetInputInterfaces, SpikeNetOutputInterfaces, \
     SpikeNetInputRemoteInterfaces, SpikeNetOutputRemoteInterfaces
 
 
@@ -99,26 +100,26 @@ class SpikeNetParallelApp(SpikeNetApp, ABC):
 
     interfaces_builder = Attr(
         label="Spiking Network interfaces builder",
-        field_type=SpikeNetRemoteInterfaceBuilder,
+        field_type=SpikeNetInterfaceBuilder,
         doc="""Instance of Spiking Network interfaces' builder class.""",
         required=False
     )
 
     output_interfaces = Attr(
         label="Spiking Network output interfaces",
-        field_type=SpikeNetOutputRemoteInterfaces,
+        field_type=SpikeNetOutputInterfaces,
         doc="""Instance of output Spiking Network interfaces.""",
         required=False
     )
 
     input_interfaces = Attr(
         label="Spiking Network input interfaces",
-        field_type=SpikeNetInputRemoteInterfaces,
+        field_type=SpikeNetInputInterfaces,
         doc="""Instance of input Spiking Network interfaces.""",
         required=False
     )
 
-    _default_interface_builder = SpikeNetRemoteInterfaceBuilder
+    _default_interface_builder = SpikeNetInterfaceBuilder
 
     def configure_interfaces_builder(self):
         # Get default options from the App and the TVB CoSimulator:
@@ -139,3 +140,34 @@ class SpikeNetParallelApp(SpikeNetApp, ABC):
         self.input_interfaces = None
         self.output_interfaces = None
         self._interfaces_built = False
+
+
+class SpikeNetRemoteParallelApp(SpikeNetParallelApp, ABC):
+    __metaclass__ = ABCMeta
+
+    """SpikeNetRemoteParallelApp abstract base class"""
+
+    interfaces_builder = Attr(
+        label="Spiking Network remote interfaces builder",
+        field_type=SpikeNetRemoteInterfaceBuilder,
+        doc="""Instance of Spiking Network remote interfaces' builder class.""",
+        required=False
+    )
+
+    output_interfaces = Attr(
+        label="Spiking Network remote output interfaces",
+        field_type=SpikeNetOutputRemoteInterfaces,
+        doc="""Instance of output Spiking Network remote interfaces.""",
+        required=False
+    )
+
+    input_interfaces = Attr(
+        label="Spiking Network remote input interfaces",
+        field_type=SpikeNetInputRemoteInterfaces,
+        doc="""Instance of input Spiking Network remote interfaces.""",
+        required=False
+    )
+
+    _default_interface_builder = SpikeNetRemoteInterfaceBuilder
+
+    pass
