@@ -4,7 +4,6 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 import numpy as np
-from tvb.basic.neotraits._attr import List
 
 from tvb.basic.neotraits.api import Attr, Float, Int, NArray, List
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
