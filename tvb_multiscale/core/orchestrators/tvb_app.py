@@ -15,7 +15,7 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serial
 from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder, TVBRemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.models.default import \
-    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
@@ -225,6 +225,37 @@ class TVBSerialApp(TVBApp):
 class TVBParallelApp(TVBApp):
 
     """TVBParallelApp class"""
+
+    cosimulator_builder = Attr(
+        label="TVB CoSimulatorParallelBuilder",
+        field_type=CoSimulatorParallelBuilder,
+        doc="""Instance of TVB Parallel CoSimulator Builder class.""",
+        required=False,
+        default=CoSimulatorParallelBuilder()
+    )
+
+    cosimulator = Attr(
+        label="TVB CoSimulator",
+        field_type=CoSimulatorParallel,
+        doc="""Instance of TVB CoSimulator.""",
+        required=False
+    )
+
+    interfaces_builder = Attr(
+        label="TVBRemoteInterfaceBuilder builder",
+        field_type=TVBInterfaceBuilder,
+        doc="""Instance of TVBRemoteInterfaceBuilder' builder class.""",
+        required=False,
+        default=DefaultTVBInterfaceBuilder()
+    )
+
+    _cosimulator_builder_type = CoSimulatorParallelBuilder
+    _default_interface_builder = DefaultTVBInterfaceBuilder
+
+
+class TVBRemoteParallelApp(TVBParallelApp):
+
+    """TVBRemoteParallelApp class"""
 
     cosimulator_builder = Attr(
         label="TVB CoSimulatorParallelBuilder",
