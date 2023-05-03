@@ -22,6 +22,7 @@ from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, Remot
 from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
     RemoteTransformerInterface, RemoteTransformerInterfaces, \
     TVBtoSpikeNetTransformerInterface, TVBtoSpikeNetTransformerInterfaces, \
+    SpikeNetToTVBTransformerInterface, SpikeNetToTVBTransformerInterfaces, \
     TVBtoSpikeNetRemoteTransformerInterface, TVBtoSpikeNetRemoteTransformerInterfaces, \
     SpikeNetToTVBRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerInterfaces
 

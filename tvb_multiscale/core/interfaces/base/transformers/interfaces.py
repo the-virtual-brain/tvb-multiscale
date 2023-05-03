@@ -38,6 +38,24 @@ class TransformerInterface(BaseInterface):
         return self.transform(data)
 
 
+class TVBtoSpikeNetTransformerInterface(TransformerInterface):
+    """TVBtoSpikeNetTransformerInterface class
+           - setting TVB data to a Transformer,
+           - performing the Transformer computation,
+           - and outputing the data for the spiking network cosimulator.
+    """
+    pass
+
+
+class SpikeNetToTVBTransformerInterface(TransformerInterface):
+    """SpikeNetToTVBTransformerInterface class
+           - setting data from a spiking network cosimulator to a Transformer,
+           - performing the Transformer computation,
+           - and outputing the data for TVB.
+    """
+    pass
+
+
 class TransformerSenderInterface(TransformerInterface):
     """TransformerSenderInterface base class
        - setting data to a Transformer,
@@ -169,6 +187,20 @@ class TransformerInterfaces(BaseInterfaces):
     """TransformerInterfaces"""
 
     interfaces = List(of=TransformerInterface)
+
+
+class TVBtoSpikeNetTransformerInterfaces(TransformerInterfaces):
+
+    """TVBtoSpikeNetTransformerInterfaces"""
+
+    interfaces = List(of=TVBtoSpikeNetTransformerInterface)
+
+
+class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
+
+    """SpikeNetToTVBTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetToTVBTransformerInterface)
 
 
 class RemoteTransformerInterfaces(BaseInterfaces):
