@@ -8,7 +8,7 @@ from tvb.basic.profile import TvbProfile
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.core.config import Config
+from tvb_multiscale.tvb_nest.config import Config
 
 
 def configure(config_class=Config):
@@ -47,4 +47,10 @@ def configure(config_class=Config):
     config.figures.FIG_FORMAT = 'png'
     # config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
 
-    return config, SIM_MODE, n_regions, SPIKENET_MODEL_BUILDERS, spiking_nodes_inds, n_neurons
+    config.SIM_MODE = SIM_MODE
+    config.n_regions = n_regions
+    config.SPIKENET_MODEL_BUILDERS = SPIKENET_MODEL_BUILDERS
+    config.spiking_nodes_inds = spiking_nodes_inds
+    config.n_neurons = n_neurons
+
+    return config

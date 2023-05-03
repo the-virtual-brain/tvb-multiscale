@@ -2,10 +2,8 @@
 
 import numpy as np
 
-from tvb_multiscale.core.config import Config
+from tvb_multiscale.tvb_nest.config import Config
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_nrp import CoSimulatorParallelNRP as CoSimulator
-from tvb_multiscale.core.nrp.config import configure
-from tvb_multiscale.core.nrp.tvb import prepare_TVB_interface
 
 
 # This would run on TVB engine before creating any multiscale cosimulation interface connections.
@@ -15,12 +13,14 @@ def build_tvb_simulator(config_class=Config):
     # Create a TVB simulator and set all desired inputs
     # (connectivity, model, surface, stimuli etc)
 
-    from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
     from tvb.datatypes.connectivity import Connectivity
     from tvb.simulator.integrators import HeunStochastic
     from tvb.simulator.monitors import Raw  # , Bold, EEG
 
-    config, SIM_MODE, n_regions = configure(config_class)[:3]
+    from examples.tvb_nrp.nest.wilson_cowan.config import configure
+    from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+
+    config = configure(config_class)
 
     # We choose all defaults in this example
     # -----------------------------------Wilson Cowan oscillatory regime--------------------------------
@@ -64,7 +64,7 @@ def build_tvb_simulator(config_class=Config):
     connectivity = Connectivity.from_file(config.DEFAULT_CONNECTIVITY_ZIP)
 
     # -------------- Pick a minimal brain of only the first n_regions regions: ----------------
-    n_regions = 4
+    n_regions = config.n_regions
     connectivity.number_of_regions = n_regions
     connectivity.region_labels = connectivity.region_labels[:n_regions]
     connectivity.centres = connectivity.centres[:n_regions]
@@ -117,17 +117,28 @@ def build_tvb_simulator(config_class=Config):
 
     simulator.configure()
 
-    return simulator
+    return simulator, config
 
 
 # FRONTEND used for user configuration of interfaces.
 
 # These is an example that could be modified by users:
 
-def configure_TVB_interfaces(simulator=None):
-    tvb_interface_builder, spiking_nodes_inds = prepare_TVB_interface(simulator=simulator)
+def configure_TVB_interfaces(simulator=None, config=None, config_class=Config):
+
+    if config is None:
+        from examples.tvb_nrp.nest.wilson_cowan.config import configure
+        config = configure(config_class)
+
+    from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder
+
+
+    tvb_interface_builder = TVBInterfaceBuilder(config=config)
 
     # or setting a nonopinionated builder:
+
+    if simulator is not None:
+        tvb_interface_builder.tvb_cosimulator = simulator
 
     # This can be used to set default tranformer and proxy models:
     tvb_interface_builder.model = "RATE"  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
@@ -148,7 +159,7 @@ def configure_TVB_interfaces(simulator=None):
           # --------------- Arguments that can default if not given by the user:------------------------------
           'model': 'RATE',  # This can be used to set default tranformer and proxy models
           'coupling_mode': 'TVB',  # or "spikeNet", "spikeNet", etc
-          'proxy_inds': spiking_nodes_inds  # TVB proxy region nodes' indices
+          'proxy_inds': config.spiking_nodes_inds  # TVB proxy region nodes' indices
           }
          ]
 
@@ -156,7 +167,7 @@ def configure_TVB_interfaces(simulator=None):
     for pop, sv in zip(["E", "I"], ["E", "I"]):
         tvb_interface_builder.input_interfaces.append(
             {'voi': np.array([sv]),
-             'proxy_inds': spiking_nodes_inds
+             'proxy_inds': config.spiking_nodes_inds
              }
         )
 
