@@ -136,7 +136,7 @@ class App(HasTraits):
         return self._add_attrs_to_info(super(App, self).info_details(recursive=recursive, **kwargs))
 
 
-class AppWithInterfaces(App, ABS):
+class AppWithInterfaces(App, ABC):
     __metaclass__ = ABCMeta
 
     """AppWithInterfaces abstract base class"""
