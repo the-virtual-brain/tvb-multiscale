@@ -2,27 +2,27 @@
 
 import numpy as np
 
-from tvb_multiscale.core.config import Config
-from tvb_multiscale.core.nrp.config import configure
-from tvb_multiscale.core.nrp.transformers import \
-    prepare_TVBtoSpikeNet_transformer_interface, prepare_spikeNetToTVB_transformer_interface
+from tvb_multiscale.tvb_nest.config import Config
+from examples.tvb_nrp.nest.wilson_cowan.config import configure
 
 
 # FRONTEND used for user configuration of interfaces.
 
-def configure_TVBtoSpikeNet_transformer_interfaces(config_class=Config):
+def configure_TVBtoSpikeNet_transformer_interfaces(config=None, config_class=Config):
 
-    config, SIM_MODE, n_regions, SPIKENET_MODEL_BUILDERS, spiking_nodes_inds, n_neurons = configure(config_class)
-
-    tvb_to_spikeNet_trans_interface_builder = prepare_TVBtoSpikeNet_transformer_interface()
-
-    # or setting a nonopinionated builder:
+    from tvb_multiscale.core.interfaces.base.builders import TVBtoSpikeNetTransformerBuilder
     from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
+
+    if config is None:
+        from examples.tvb_nrp.nest.wilson_cowan.config import configure
+        config = configure(config_class)
+
+    tvb_to_spikeNet_trans_interface_builder = TVBtoSpikeNetTransformerBuilder(config=config)
 
     # This can be used to set default tranformer and proxy models:
     tvb_to_spikeNet_trans_interface_builder.model = "RATE"  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
-    tvb_to_spikeNet_trans_interface_builder.N_E = n_neurons
-    tvb_to_spikeNet_trans_interface_builder.N_I = n_neurons
+    tvb_to_spikeNet_trans_interface_builder.N_E = config.n_neurons
+    tvb_to_spikeNet_trans_interface_builder.N_I = config.n_neurons
 
     # This is a user defined TVB -> Spiking Network interface configuration:
     tvb_to_spikeNet_trans_interface_builder.output_interfaces = \
@@ -57,16 +57,21 @@ def configure_TVBtoSpikeNet_transformer_interfaces(config_class=Config):
     return tvb_to_spikeNet_trans_interface_builder
 
 
-def configure_spikeNetToTVB_transformer_interfaces(config_class=Config):
+def configure_spikeNetToTVB_transformer_interfaces(config=None, config_class=Config):
 
-    config, SIM_MODE, n_regions, SPIKENET_MODEL_BUILDERS, spiking_nodes_inds, n_neurons = configure(config_class)
+    from tvb_multiscale.core.interfaces.base.builders import SpikeNetToTVBTransformerBuilder
+    # from tvb_multiscale.core.interfaces.tvb.interfaces import SpikeNetToTVBModels
 
-    spikeNet_to_TVB_transformer_interface_builder = prepare_spikeNetToTVB_transformer_interface()
+    if config is None:
+        from examples.tvb_nrp.nest.wilson_cowan.config import configure
+        config = configure(config_class)
+
+    spikeNet_to_TVB_transformer_interface_builder = SpikeNetToTVBTransformerBuilder(config=config)
 
     # This can be used to set default transformer and proxy models:
     spikeNet_to_TVB_transformer_interface_builder.model = "RATE"  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
-    spikeNet_to_TVB_transformer_interface_builder.N_E = n_neurons
-    spikeNet_to_TVB_transformer_interface_builder.N_I = n_neurons
+    spikeNet_to_TVB_transformer_interface_builder.N_E = config.n_neurons
+    spikeNet_to_TVB_transformer_interface_builder.N_I = config.n_neurons
 
     for ii, N in enumerate([spikeNet_to_TVB_transformer_interface_builder.N_E,
                             spikeNet_to_TVB_transformer_interface_builder.N_I]):
