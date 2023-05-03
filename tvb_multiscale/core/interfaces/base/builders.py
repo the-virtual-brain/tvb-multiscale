@@ -19,9 +19,6 @@ from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import summary_info, get_enum_values
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict, load_pickled_dict
 from tvb_multiscale.core.interfaces.base.interfaces import SenderInterface, ReceiverInterface
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import RemoteTransformerInterface, \
-    TVBtoSpikeNetRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerInterface, \
-    TVBtoSpikeNetRemoteTransformerInterfaces, SpikeNetToTVBRemoteTransformerInterfaces, RemoteTransformerInterfaces
 from tvb_multiscale.core.interfaces.base.io import RemoteSenders, RemoteReceivers, MPIWriter, MPIReader
 
 
