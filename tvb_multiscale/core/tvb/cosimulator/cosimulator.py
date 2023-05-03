@@ -391,3 +391,15 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     def summary_info_details(self, recursive=0, **kwargs):
         return HasTraits.summary_info_details(self, recursive=recursive, **kwargs)
+
+    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, **kwds):
+        # Loop of integration for synchronization_time
+        current_step = int(self.current_step)
+        for data in self(cosim_updates=cosim_updates, **kwds):
+            for tl, xl, t_x in zip(ts, xs, data):
+                if t_x is not None:
+                    t, x = t_x
+                    tl.append(t)
+                    xl.append(x)
+        steps_performed = self.current_step - current_step
+        return steps_performed
