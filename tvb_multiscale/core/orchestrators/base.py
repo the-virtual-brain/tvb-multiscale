@@ -193,7 +193,6 @@ class CoSimulatorApp(AppWithInterfaces, ABC):
     """CoSimulatorApp abstract base class"""
 
 
-
 class NonTVBApp(CoSimulatorApp, ABC):
     __metaclass__ = ABCMeta
 
