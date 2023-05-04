@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNRPBuilder
-from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder
 from tvb_multiscale.core.orchestrators.nrp_apps import NRPTVBApp
 
 
-def tvb_init(config, tvb_cosimulator_builder=None, tvb_interfaces_builder=TVBInterfaceBuilder):
+def tvb_init(config, tvb_cosimulator_builder=None, **kwargs):
 
     # Create a NRPTVBApp
     tvb_app = NRPTVBApp(config=config,
                         proxy_inds=config.PROXY_INDS,
                         synchronization_time=getattr(config.SYNCHRONIZATION_TIME, 0.0),
                         exclusive_nodes=getattr(config.EXCLUSIVE_NODES, True),
-                        interfaces_builder=tvb_interfaces_builder,
-                        simulation_length=config.SIMULATION_LENGTH)
+                        simulation_length=config.SIMULATION_LENGTH,
+                        **kwargs)
 
     # Set...
     if isinstance(tvb_cosimulator_builder, CoSimulatorNRPBuilder):

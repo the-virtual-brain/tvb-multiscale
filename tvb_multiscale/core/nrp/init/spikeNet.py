@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBuilder
 from tvb_multiscale.core.orchestrators.nrp_apps import NRPSpikeNetApp
 
 
-def spikeNet_init(config, nrp_spikenet_app=NRPSpikeNetApp,
-                  spiking_network_builder=None, spikeNet_interfaces_builder=SpikeNetInterfaceBuilder):
+def spikeNet_init(config, nrp_spikenet_app=NRPSpikeNetApp, spiking_network_builder=None, **kwargs):
 
     # Create a NRPTVBApp
     spikeNet_app = nrp_spikenet_app(config=config,
                                     proxy_inds=config.PROXY_INDS,
                                     synchronization_time=getattr(config.SYNCHRONIZATION_TIME, 0.0),
                                     exclusive_nodes=getattr(config.EXCLUSIVE_NODES, True),
-                                    interfaces_builder=spikeNet_interfaces_builder,
-                                    simulation_length=config.SIMULATION_LENGTH)
+                                    simulation_length=config.SIMULATION_LENGTH,
+                                    **kwargs)
 
     # Set...
-    if isinstance(spikeNet_interfaces_builder, SpikingNetworkBuilder):
+    if isinstance(spiking_network_builder, SpikingNetworkBuilder):
         # ...a Spiking Network builder class instance:
         spikeNet_app.spiking_network_builder = spiking_network_builder
     else:
