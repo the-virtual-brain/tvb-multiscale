@@ -37,35 +37,34 @@ It inherits the Simulator class.
 
 """
 
+import numpy
+
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
+
+
+class CoSimulatorRemoteParallel(CoSimulator):
+
+    pass
 
 
 class CoSimulatorParallel(CoSimulator):
 
-    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, cosim_updates=None, **kwds):
-        current_step = int(self.current_step)
-        for data in self(cosim_updates=cosim_updates, **kwds):
-            for tl, xl, t_x in zip(ts, xs, data):
-                if t_x is not None:
-                    t, x = t_x
-                    tl.append(t)
-                    xl.append(x)
-        steps_performed = self.current_step - current_step
-        return steps_performed
+    def get_cosim_updates(self, cosim_updates, cosimulation=True):
+        cosim_updates = None
+        if cosimulation and self.input_interfaces:
+            # Get the update data from the other cosimulator
+            cosim_updates = self.input_interfaces(cosim_updates, self.good_cosim_update_values_shape)
+            isnans = numpy.isnan(cosim_updates[-1])
+            if numpy.all(isnans):
+                cosim_updates = None
+                self.log.warning("No or all NaN valued cosimulator updates at time step %d!" % self.current_step)
+            elif numpy.any(isnans):
+                msg = "NaN values detected in cosimulator updates at time step %d!" % self.current_step
+                self.log.error(msg)
+                raise Exception(msg)
+        return cosim_updates
 
 
-class CoSimulatorMPI(CoSimulatorParallel):
+class CoSimulatorParallelNRP(CoSimulatorParallel):
 
     pass
-    # def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
-    #     super(CoSimulatorMPI, self)._run_cosimulation(ts, xs, wall_time_start,
-    #                                                   advance_simulation_for_delayed_monitors_output, **kwds)
-    #     self.logger.info(" TVB finish")
-    #     if self.n_output_interfaces:
-    #         logger.info('end comm send')
-    #         self.output_interfaces[0].end_mpi()
-    #     if self.n_input_interfaces:
-    #         logger.info('end comm receive')
-    #         self.input_interfaces[0].end_mpi()
-    #     self.MPI.Finalize()  # ending with MPI
-    #     self.logger.info("TVB exit")
