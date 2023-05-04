@@ -5,7 +5,7 @@ from abc import ABC, ABCMeta, abstractmethod
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_nrp import CoSimulatorParallelNRP
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallelNRP
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNRPBuilder
 from tvb_multiscale.core.interfaces.models.default import \
     DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
