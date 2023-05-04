@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import time
+
 import numpy as np
 
 from tvb.basic.neotraits._attr import Attr
@@ -252,6 +254,33 @@ class TVBParallelApp(TVBApp):
     _cosimulator_builder_type = CoSimulatorParallelBuilder
     _default_interface_builder = DefaultTVBInterfaceBuilder
 
+    _wall_time_start = None
+    _ts = None
+    _xs = None
+
+    def configure_simulation(self):
+        super(TVBParallelApp, self).configure_simulation()
+        ts, xs = [], []
+        for _ in self.cosimulator.monitors:
+            ts.append([])
+            xs.append([])
+        self._wall_time_start = time.time()
+        self._ts = ts
+        self._xs = xs
+        self.send_cosim_coupling()  # We need to send the TVB initial condition to the the Spiking CoSimulator
+
+    def run_for_synchronization_time(self, cosim_updates):
+        steps_performed = \
+            self._run_for_synchronization_time(self._ts, self._xs, self._wall_time_start,
+                                               cosim_updates=self.cosimulator.get_cosim_updates(cosim_updates))
+        return self.cosimulator.send_cosim_coupling()
+
+    def reset(self):
+        super(TVBParallelApp, self).reset()
+        self._ts = None
+        self._xs = None
+        self._wall_time_start = None
+
 
 class TVBRemoteParallelApp(TVBParallelApp):
 
@@ -282,3 +311,10 @@ class TVBRemoteParallelApp(TVBParallelApp):
 
     _cosimulator_builder_type = CoSimulatorParallelBuilder
     _default_interface_builder = DefaultTVBRemoteInterfaceBuilder
+
+    def run_for_synchronization_time(self):
+        """Convenience method to call the CoSimulator with **kwds and collect output data."""
+        steps_performed = \
+            self._run_for_synchronization_time(self._ts, self._xs, self._wall_time_start,
+                                               cosim_updates=self.cosimulator.get_cosim_updates())
+        return self.cosimulator.send_cosim_coupling()

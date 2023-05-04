@@ -48,14 +48,8 @@ class TransformerApp(NonTVBApp, ABC):
     def build(self):
         self.build_interfaces()
 
-    # def configure_simulation(self):
-    #     super(TransformerApp, self).configure()
-
-    # def run(self, *args, **kwargs):
-    #     self.configure()
-    #     self.build()
-    #     self.configure_simulation()
-    #     self.simulate()
+    def run_for_synchronization_time(self, input_cosim_updates, output_cosim_updates):
+        return self.output_interfaces(output_cosim_updates), self.input_interfaces(input_cosim_updates)
 
 
 class TVBtoSpikeNetTransformerApp(NonTVBApp, ABC):
@@ -85,6 +79,9 @@ class TVBtoSpikeNetTransformerApp(NonTVBApp, ABC):
         if not self._interfaces_built:
             self.output_interfaces = self._interfaces_builder.build()
             self._interfaces_built = True
+
+    def run_for_synchronization_time(self, cosim_updates):
+        return self.output_interfaces(cosim_updates)
 
     def reset(self):
         self.output_interfaces = None
@@ -118,6 +115,9 @@ class SpikeNetToTVBTransformerApp(NonTVBApp, ABC):
         if not self._interfaces_built:
             self.input_interfaces = self._interfaces_builder.build()
             self._interfaces_built = True
+
+    def run_for_synchronization_time(self, cosim_updates):
+        return self.input_interfaces(cosim_updates)
 
     def reset(self):
         self.input_interfaces = None

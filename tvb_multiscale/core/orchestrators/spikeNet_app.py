@@ -8,9 +8,7 @@ from tvb_multiscale.core.orchestrators.base import NonTVBApp
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
-from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetInputInterfaces, SpikeNetOutputInterfaces, \
-    SpikeNetInputRemoteInterfaces, SpikeNetOutputRemoteInterfaces
+from tvb_multiscale.core.interfaces.spikeNet.interfaces import SpikeNetInputInterfaces, SpikeNetOutputInterfaces
 
 
 class SpikeNetApp(NonTVBApp, ABC):
@@ -135,39 +133,13 @@ class SpikeNetParallelApp(SpikeNetApp, ABC):
         self.output_interfaces.configure()
         self.input_interfaces.configure()
 
+    def run_for_synchronization_time(self, cosim_updates):
+        self.input_interfaces(cosim_updates)
+        self.simulate(self.synchronization_time)
+        return self.output_interfaces(cosim_updates)
+
     def reset(self):
         super(SpikeNetParallelApp, self).reset()
         self.input_interfaces = None
         self.output_interfaces = None
         self._interfaces_built = False
-
-
-class SpikeNetRemoteParallelApp(SpikeNetParallelApp, ABC):
-    __metaclass__ = ABCMeta
-
-    """SpikeNetRemoteParallelApp abstract base class"""
-
-    interfaces_builder = Attr(
-        label="Spiking Network remote interfaces builder",
-        field_type=SpikeNetRemoteInterfaceBuilder,
-        doc="""Instance of Spiking Network remote interfaces' builder class.""",
-        required=False
-    )
-
-    output_interfaces = Attr(
-        label="Spiking Network remote output interfaces",
-        field_type=SpikeNetOutputRemoteInterfaces,
-        doc="""Instance of output Spiking Network remote interfaces.""",
-        required=False
-    )
-
-    input_interfaces = Attr(
-        label="Spiking Network remote input interfaces",
-        field_type=SpikeNetInputRemoteInterfaces,
-        doc="""Instance of input Spiking Network remote interfaces.""",
-        required=False
-    )
-
-    _default_interface_builder = SpikeNetRemoteInterfaceBuilder
-
-    pass
