@@ -148,6 +148,7 @@ class AppWithInterfaces(App, ABC):
         required=False
     )
 
+    _default_interface_builder = InterfaceBuilder
     _interfaces_built = False
 
     def configure_interfaces_builder(self):
