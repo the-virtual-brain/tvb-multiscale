@@ -3,7 +3,7 @@
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import Config
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_nrp import CoSimulatorParallelNRP as CoSimulator
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallelNRP as CoSimulator
 
 
 # This would run on TVB engine before creating any multiscale cosimulation interface connections.
