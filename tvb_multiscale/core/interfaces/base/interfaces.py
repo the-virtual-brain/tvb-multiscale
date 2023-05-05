@@ -4,9 +4,6 @@ from tvb.basic.neotraits._attr import Attr, Int, Float, List
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.io import Sender, Receiver
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
-    RemoteTransformerInterface
 
 
 class BaseInterface(HasTraits):

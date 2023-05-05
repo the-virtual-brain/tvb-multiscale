@@ -11,8 +11,8 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import \
     SenderInterface, ReceiverInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerSenderInterface, \
-    ReceiverTransformerInterface
+from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, \
+    TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
@@ -181,6 +181,30 @@ class SpikeNetInputInterface(SpikeNetInterface):
             return None
 
 
+class SpikeNetOutputTransformerInterface(SpikeNetOutputInterface, TransformerInterface):
+
+    """SpikeNetOutputTransformerInterface class."""
+
+    def configure(self):
+        SpikeNetOutputInterface.configure(self)
+        TransformerInterface.configure(self)
+
+    def __call__(self):
+        return self.transform(self.get_proxy_data())
+
+
+class SpikeNetInputTransformerInterface(SpikeNetInputInterface, TransformerInterface):
+
+    """SpikeNetInputTransformerInterface class."""
+
+    def configure(self):
+        SpikeNetInputInterface.configure(self)
+        TransformerInterface.configure(self)
+
+    def __call__(self, data):
+        return self.set_proxy_data(self.transform(data))
+
+
 class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
 
     """SpikeNetSenderInterface class."""
@@ -296,6 +320,13 @@ class SpikeNetOutputInterfaces(BaseInterfaces, SpikeNetInterfaces):
     interfaces = List(of=SpikeNetOutputInterface)
 
 
+class SpikeNetOutputTransformerInterfaces(SpikeNetOutputInterfaces):
+
+    """SpikeNetOutputTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetOutputTransformerInterface)
+
+
 class SpikeNetSenderInterfaces(SpikeNetOutputInterfaces):
 
     """SpikeNetSenderInterfaces"""
@@ -303,11 +334,25 @@ class SpikeNetSenderInterfaces(SpikeNetOutputInterfaces):
     interfaces = List(of=SpikeNetSenderInterface)
 
 
+class SpikeNetTransformerSenderInterfaces(SpikeNetOutputInterfaces):
+
+    """SpikeNetTransformerSenderInterfaces"""
+
+    interfaces = List(of=SpikeNetTransformerSenderInterface)
+
+
 class SpikeNetReceiverInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetReceiverInterfaces"""
 
     interfaces = List(of=SpikeNetReceiverInterface)
+
+
+class SpikeNetReceiverTransformerInterfaces(BaseInterfaces, SpikeNetInterfaces):
+
+    """SpikeNetReceiverTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetReceiverTransformerInterface)
 
 
 class SpikeNetInputInterfaces(SpikeNetReceiverInterfaces):
@@ -321,3 +366,10 @@ class SpikeNetInputInterfaces(SpikeNetReceiverInterfaces):
         for interface, input_data in zip(self.interfaces, input_datas):
             results.append(interface(input_data))
         return results
+
+
+class SpikeNetInputTransformerInterfaces(SpikeNetInputInterfaces):
+
+    """SpikeNetInputTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetInputTransformerInterface)

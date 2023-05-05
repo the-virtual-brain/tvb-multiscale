@@ -537,6 +537,8 @@ class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
 
     """TVBtoSpikeNetInterfaces"""
 
+    interfaces = List(of=TVBtoSpikeNetInterface)
+
     def info(self, recursive=0):
         info = SpikeNetInputInterfaces.info(self, recursive=recursive)
         info.update(TVBOutputInterfaces.info(self, recursive=recursive))
@@ -548,9 +550,11 @@ class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
         return info
 
 
-class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
+class SpikeNetToTVBInterfaces(TVBReceiverInterfaces, SpikeNetOutputInterfaces):
 
     """SpikeNetToTVBInterfaces"""
+
+    interfaces = List(of=SpikeNetToTVBInterface)
 
     def info(self, recursive=0):
         info = SpikeNetOutputInterfaces.info(self, recursive=recursive)
@@ -561,17 +565,6 @@ class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
         info = SpikeNetOutputInterfaces.info_details(self, recursive=recursive, **kwargs)
         info.update(TVBInputInterfaces.info_details(self, recursive=recursive))
         return info
-
-
-class TVBtoSpikeNetModels(Enum):
-    RATE = 0
-    SPIKES = 1
-    CURRENT = 2
-
-
-class SpikeNetToTVBModels(Enum):
-    SPIKES = 0
-    VOLTAGE = 1
 
 
 class TVBtoSpikeNetTransformerInterface(TransformerInterface):
@@ -606,3 +599,14 @@ class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
     """SpikeNetToTVBTransformerInterfaces"""
 
     interfaces = List(of=SpikeNetToTVBTransformerInterface)
+
+
+class TVBtoSpikeNetModels(Enum):
+    RATE = 0
+    SPIKES = 1
+    CURRENT = 2
+
+
+class SpikeNetToTVBModels(Enum):
+    SPIKES = 0
+    VOLTAGE = 1
