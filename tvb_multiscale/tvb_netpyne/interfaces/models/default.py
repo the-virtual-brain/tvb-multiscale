@@ -1,14 +1,15 @@
 from abc import ABCMeta, ABC
 
+import numpy as np
+
 from tvb_multiscale.core.interfaces.models.default import DefaultTVBSpikeNetInterfaceBuilder, \
-    DefaultSpikeNetRemoteInterfaceBuilder, \
-    DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder
+    DefaultSpikeNetRemoteInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
-from tvb_multiscale.core.interfaces.models.red_wong_wang import \
-    RedWongWangExcIOInhITVBSpikeNetInterfaceBuilder, RedWongWangExcIOInhISpikeNetProxyNodesBuilder, RedWongWangExcIOInhITVBInterfaceBuilder
+from tvb_multiscale.core.interfaces.models.red_wong_wang import RedWongWangExcIOInhITVBInterfaceBuilder, \
+    RedWongWangExcIOInhITVBSpikeNetInterfaceBuilder, RedWongWangExcIOInhISpikeNetProxyNodesBuilder
 from tvb_multiscale.tvb_netpyne.interfaces.builders import NetpyneProxyNodesBuilder, NetpyneInterfaceBuilder, \
     NetpyneRemoteInterfaceBuilder, TVBNetpyneInterfaceBuilder
-import numpy as np
+
 
 class DefaultNetpyneProxyNodesBuilder(NetpyneProxyNodesBuilder, DefaultSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
@@ -19,8 +20,9 @@ class DefaultNetpyneProxyNodesBuilder(NetpyneProxyNodesBuilder, DefaultSpikeNetP
 class DefaultNetpyneInterfaceBuilder(DefaultNetpyneProxyNodesBuilder, NetpyneInterfaceBuilder, DefaultSpikeNetInterfaceBuilder):
     pass
 
+
 class DefaultTVBNetpyneInterfaceBuilder(DefaultNetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder,
-                                     DefaultTVBSpikeNetInterfaceBuilder):
+                                        DefaultTVBSpikeNetInterfaceBuilder):
 
     def default_output_config(self):
         DefaultTVBSpikeNetInterfaceBuilder.default_output_config(self)
@@ -28,13 +30,16 @@ class DefaultTVBNetpyneInterfaceBuilder(DefaultNetpyneProxyNodesBuilder, TVBNetp
     def default_input_config(self):
         DefaultTVBSpikeNetInterfaceBuilder.default_input_config(self)
 
+
 class RedWongWangExcIOInhINetpyneProxyNodesBuilder(NetpyneProxyNodesBuilder,
-                                                RedWongWangExcIOInhISpikeNetProxyNodesBuilder):
+                                                   RedWongWangExcIOInhISpikeNetProxyNodesBuilder):
 
     def _default_receptor_type(self, source_node, target_node):
         return None
 
-class RedWongWangExcIOInhITVBNetpyneInterfaceBuilder(RedWongWangExcIOInhINetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder,
+
+class RedWongWangExcIOInhITVBNetpyneInterfaceBuilder(RedWongWangExcIOInhINetpyneProxyNodesBuilder,
+                                                     TVBNetpyneInterfaceBuilder,
                                                      RedWongWangExcIOInhITVBSpikeNetInterfaceBuilder):
 
     def default_output_config(self):
