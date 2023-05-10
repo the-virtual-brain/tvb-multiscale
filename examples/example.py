@@ -58,7 +58,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
         config=config,
         logger=logger,
         exclusive_nodes=exclusive_nodes,
-        spiking_proxy_inds=spiking_proxy_inds,
+        proxy_inds=spiking_proxy_inds,
         simulation_length=simulation_length
     )
     orchestrator.start()
