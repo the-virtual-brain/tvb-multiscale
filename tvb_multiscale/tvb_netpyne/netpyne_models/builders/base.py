@@ -28,6 +28,10 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
                                                     config, logger)
         self._spiking_brain = NetpyneBrain()
 
+    @property
+    def netpyne_instance(self):
+        return self.spiking_simulator
+
     def configure(self, netParams, simConfig, autoCreateSpikingNodes=True):
         if self.config is None:
             self.config = CONFIGURED
