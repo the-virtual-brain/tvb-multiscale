@@ -105,6 +105,13 @@ class ANNarchyInputInterface(ANNarchyInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
+class ANNarchyInputTransformerInterface(ANNarchyInputInterface, SpikeNetInputTransformerInterface):
+
+    """ANNarchyInputTransformerInterface"""
+
+    pass
+
+
 class ANNarchyReceiverInterface(ANNarchyInputInterface, SpikeNetReceiverInterface):
 
     """ANNarchyReceiverInterface"""
@@ -226,7 +233,8 @@ class TVBtoANNarchyInterfaces(TVBOutputInterfaces, ANNarchyInputInterfaces):
     interfaces = List(of=TVBtoANNarchyInterface)
 
 
-class ANNarchytoTVBInterfaces(TVBReceiverInterfaces, ANNarchyOutputInterfaces):
-    """ANNarchytoTVBInterfaces class holding a list of ANNarchytoTVBInterface instances"""
+class ANNarchyToTVBInterfaces(TVBReceiverInterfaces, ANNarchyOutputInterfaces):
 
-    interfaces = List(of=ANNarchytoTVBInterface)
+    """ANNarchyToTVBInterfaces class holding a list of ANNarchyToTVBInterface instances"""
+
+    interfaces = List(of=ANNarchyToTVBInterface)
