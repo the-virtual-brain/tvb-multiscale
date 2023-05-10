@@ -26,7 +26,7 @@ def test( dt = 0.1, duration = 100, config=CONFIGURED ):
     simulator.monitors = (mon_raw,)
 
     config.simulation_length = duration
-    netpyne_model_builder = DefaultExcIOInhIBuilder(simulator, nodes, netpyne_instance=(load_netpyne()), config=config)
+    netpyne_model_builder = DefaultExcIOInhIBuilder(simulator, nodes, spiking_simulator(load_netpyne()), config=config)
     netpyne_model_builder.configure()
     print(netpyne_model_builder.info())
 
