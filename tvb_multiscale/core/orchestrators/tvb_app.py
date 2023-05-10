@@ -214,11 +214,6 @@ class TVBSerialApp(TVBApp):
         self.interfaces_builder.spiking_network = self.spiking_network
         super(TVBSerialApp, self).configure_interfaces_builder()
 
-    def build_interfaces(self):
-        if not self._interfaces_built:
-            self.output_interfaces, self.input_interfaces = self._interfaces_builder.build()
-            self._interfaces_built = True
-
     def reset(self):
         super(TVBSerialApp, self).reset()
         self.spiking_network = None

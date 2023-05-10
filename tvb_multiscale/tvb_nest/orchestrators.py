@@ -114,7 +114,7 @@ class NESTParallelApp(NESTSerialApp, SpikeNetParallelApp):
 
     interfaces_builder = Attr(
         label="NEST interfaces builder",
-        field_type=NESTProxyNodesBuilder,
+        field_type=NESTRemoteInterfaceBuilder,
         doc="""Instance of NEST Network interfaces' builder class.""",
         required=False,
         default=DefaultNESTRemoteInterfaceBuilder()

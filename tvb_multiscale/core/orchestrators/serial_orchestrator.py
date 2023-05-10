@@ -49,9 +49,9 @@ class SerialOrchestrator(Orchestrator):
 
     def configure(self):
         super(Orchestrator, self).configure()
-        self.tvb_app.setup_from_orchestrator(self)
+        self.tvb_app.setup_from_another_app(self)
         self.tvb_app.configure()
-        self.spikeNet_app.setup_from_orchestrator(self)
+        self.spikeNet_app.setup_from_another_app(self)
         self.spikeNet_app.configure()
 
     def start(self):

@@ -61,7 +61,7 @@ class SpikeNetApp(NonTVBApp, ABC):
                 self.spikeNet_builder.population_order = self.population_order
             else:
                 self.population_order = self.spikeNet_builder.population_order
-            self.spikeNet_builder.spiking_nodes_inds = self.spiking_proxy_inds
+            self.spikeNet_builder.spiking_nodes_inds = self.proxy_inds
 
     def build_spiking_network(self):
         self.spikeNet_builder.tvb_serial_sim = self._serialized_tvb_cosimulator
