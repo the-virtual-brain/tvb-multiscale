@@ -41,22 +41,22 @@ def configure_TVBtoSpikeNet_transformer_interfaces(
         }
         ]
 
-    for interface in tvb_spikeNet_model_builder.output_interfaces:
+    for interface in tvb_to_spikeNet_trans_interface_builder.output_interfaces:
         # The "scale_factor" scales the TVB state variable to convert it to an
         # instantaneous rate:
-        if tvb_spikeNet_model_builder.model == TVBtoSpikeNetModels.SPIKES.name:
+        if tvb_to_spikeNet_trans_interface_builder.model == TVBtoSpikeNetModels.SPIKES.name:
             # The "number_of_neurons" will determine how many spike trains will be generated:
             interface["transformer_params"] = \
                 {"scale_factor": np.array([100 * config.W_TVB_TO_SPIKENET]),
-                 "number_of_neurons": np.array([tvb_spikeNet_model_builder.N_E])}
-        elif tvb_spikeNet_model_builder.model == TVBtoSpikeNetModels.CURRENT.name:  # CURRENT
+                 "number_of_neurons": np.array([tvb_to_spikeNet_trans_interface_builder.N_E])}
+        elif tvb_to_spikeNet_trans_interface_builder.model == TVBtoSpikeNetModels.CURRENT.name:  # CURRENT
             # Here the rate is a total rate, assuming a number of sending neurons:
             interface["transformer_params"] = {
-                "scale_factor": config.W_TVB_TO_SPIKENET / 25 * np.array([tvb_spikeNet_model_builder.N_E])}
+                "scale_factor": config.W_TVB_TO_SPIKENET / 25 * np.array([tvb_to_spikeNet_trans_interface_builder.N_E])}
         else:  # RATE
             # Here the rate is a total rate, assuming a number of sending neurons:
             interface["transformer_params"] = {
-                "scale_factor": config.W_TVB_TO_SPIKENET * np.array([tvb_spikeNet_model_builder.N_E])}
+                "scale_factor": config.W_TVB_TO_SPIKENET * np.array([tvb_to_spikeNet_trans_interface_builder.N_E])}
 
     # This is how the user defined TVB -> Spiking Network interface looks after configuration
     print("\noutput (->Transformer-> coupling) interfaces' configurations:\n")
@@ -87,6 +87,7 @@ def configure_spikeNetToTVB_transformer_interfaces(
     spikeNet_to_TVB_transformer_interface_builder.N_E = config.N_NEURONS
     spikeNet_to_TVB_transformer_interface_builder.N_I = config.N_NEURONS
 
+    spikeNet_to_TVB_transformer_interface_builder.input_interfaces = []
     for ii, N in enumerate([spikeNet_to_TVB_transformer_interface_builder.N_E,
                             spikeNet_to_TVB_transformer_interface_builder.N_I]):
         spikeNet_to_TVB_transformer_interface_builder.input_interfaces.append(

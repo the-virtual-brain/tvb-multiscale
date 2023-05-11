@@ -41,11 +41,6 @@ def configure(config_class=Config):
     elif SPIKENET_MODEL_BUILDERS == "nonopinionated":
         outputs_path += "NonOpinionBuilders"
 
-    if SIM_MODE.lower() == "spikeNet":
-        outputs_path += "spikeNetonly"
-    elif SIM_MODE.lower() == "tvb":
-        outputs_path += "TVBonly"
-
     # Generate a configuration class instance
     config = config_class(output_base=outputs_path)
     config.figures.SHOW_FLAG = True
