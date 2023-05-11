@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import numpy as np
 
 from tvb_multiscale.core.config import Config
+from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
 
 from examples.parallel.wilson_cowan.config import configure
 
@@ -113,10 +117,15 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
 
     # simulator = simulator_builder.build()
 
-    # simulator.print_summary_info_details(recursive=1)
-
     simulator._preconfigure_synchronization_time()
+
+    # Dumping the serialized TVB cosimulator to a file will be necessary for parallel cosimulation.
+    sim_serial = serialize_tvb_cosimulator(simulator)
+    sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
+    dump_pickled_dict(sim_serial, sim_serial_filepath)
 
     simulator.configure()
 
-    return simulator, config
+    simulator.print_summary_info_details(recursive=1)
+
+    return simulator
