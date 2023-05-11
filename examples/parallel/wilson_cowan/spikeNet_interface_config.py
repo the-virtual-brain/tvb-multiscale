@@ -32,7 +32,14 @@ def configure_spikeNet_interfaces(spike_interface_builder_class,
     spikeNet_interface_builder.N_I = config.N_NEURONS
     # Set exclusive_nodes = True (Default) if the spiking regions substitute for the TVB ones:
     spikeNet_interface_builder.exclusive_nodes = config.EXCLUSIVE_NODES
-    
+
+    if spikeNet_interface_builder.default_coupling_mode == "TVB":
+        spikeNet_interface_builder.proxy_inds = config.SPIKING_NODES_INDS
+    else:
+        spikeNet_interface_builder.proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
+        spikeNet_interface_builder.proxy_inds = np.delete(spikeNet_interface_builder.proxy_inds,
+                                                          config.SPIKING_NODES_INDS)
+
     # This is a user defined TVB -> Spiking Network interface configuration:
     spikeNet_interface_builder.input_interfaces = \
         [{'populations': np.array(["E"]),  # spikeNet populations to couple to
@@ -49,6 +56,7 @@ def configure_spikeNet_interfaces(spike_interface_builder_class,
          ]
 
     # These are user defined Spiking Network -> TVB interfaces configurations:
+    spikeNet_interface_builder.output_interfaces = []
     for pop in ["E", "I"]:
         spikeNet_interface_builder.output_interfaces.append(
             {'populations': np.array([pop]),

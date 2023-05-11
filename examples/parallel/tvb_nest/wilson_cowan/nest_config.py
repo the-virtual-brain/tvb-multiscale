@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import numpy as np
 
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
@@ -17,7 +19,7 @@ def build_nest_network(config=None, config_class=Config):
         config = configure(config_class)
 
     # Build a NEST network model with the corresponding builder
-
+    sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
     sim_serial = load_pickled_dict(sim_serial_filepath)
 
     # Load NEST and use defaults to configure its kernel:
@@ -325,4 +327,4 @@ def build_nest_network(config=None, config_class=Config):
     nest_network.configure()
     nest_network.print_summary_info_details(recursive=3, connectivity=True)
 
-    return nest_network
+    return nest_network, nest_nodes_inds

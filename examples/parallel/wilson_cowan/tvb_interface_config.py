@@ -37,21 +37,29 @@ def configure_TVB_interfaces(simulator=None, tvb_interface_builder_class=TVBInte
     # Set exclusive_nodes = True (Default) if the spiking regions substitute for the TVB ones:
     tvb_interface_builder.exclusive_nodes = config.EXCLUSIVE_NODES
 
+    if tvb_interface_builder.default_coupling_mode == "TVB":
+        tvb_interface_builder.proxy_inds = config.SPIKING_NODES_INDS
+    else:
+        tvb_interface_builder.proxy_inds = np.arange(simulator.connectivity.number_of_regions).astype('i')
+        tvb_interface_builder.proxy_inds = np.delete(tvb_interface_builder.proxy_inds, config.SPIKING_NODES_INDS)
+
+
     # This is a user defined TVB -> Spiking Network interface configuration:
     tvb_interface_builder.output_interfaces = \
         [{'voi': np.array(["E"]),  # TVB state variable to get data from
           # --------------- Arguments that can default if not given by the user:------------------------------
           'model': 'RATE',  # This can be used to set default tranformer and proxy models
           'coupling_mode': 'TVB',  # or "spikeNet", "spikeNet", etc
-          'proxy_inds': config.spiking_nodes_inds  # TVB proxy region nodes' indices
+          'proxy_inds': config.SPIKING_NODES_INDS  # TVB proxy region nodes' indices
           }
          ]
 
     # These are user defined Spiking Network -> TVB interfaces configurations:
+    tvb_interface_builder.input_interfaces = []
     for pop, sv in zip(["E", "I"], ["E", "I"]):
         tvb_interface_builder.input_interfaces.append(
             {'voi': np.array([sv]),
-             'proxy_inds': config.spiking_nodes_inds
+             'proxy_inds': config.SPIKING_NODES_INDS
              }
         )
 

@@ -14,8 +14,7 @@ from tvb_multiscale.core.config import Config
 def configure(config_class=Config):
 
     # ----------- Simulation options ----------------
-    SIM_MODE = "tvb-spikeNet"  # "tvb-spikeNet"  for multiscale cosimulation, "tvb" ("spikeNet")
-                               # for only TVB (spikeNET) simulation, respectively
+
     SPIKENET_MODEL_BUILDERS = None  # only None will work!, "opinionated", "nonopinionated", None
 
     # For a minimal example, select:
@@ -42,11 +41,6 @@ def configure(config_class=Config):
     elif SPIKENET_MODEL_BUILDERS == "nonopinionated":
         outputs_path += "NonOpinionBuilders"
 
-    if SIM_MODE.lower() == "spikeNet":
-        outputs_path += "spikeNetonly"
-    elif SIM_MODE.lower() == "tvb":
-        outputs_path += "TVBonly"
-
     # Generate a configuration class instance
     config = config_class(output_base=outputs_path)
     config.figures.SHOW_FLAG = True
@@ -54,7 +48,6 @@ def configure(config_class=Config):
     config.figures.FIG_FORMAT = 'png'
     # config.figures.DEFAULT_SIZE = config.figures.NOTEBOOK_SIZE
 
-    config.SIM_MODE = SIM_MODE
     config.N_REGIONS = N_REGIONS
     config.SPIKENET_MODEL_BUILDERS = SPIKENET_MODEL_BUILDERS
     config.SPIKING_NODES_INDS = SPIKING_NODES_INDS
