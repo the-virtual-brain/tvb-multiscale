@@ -2,22 +2,27 @@
 
 import numpy as np
 
-from tvb_multiscale.tvb_multiscale.config import Config
-from tvb_multiscale.core.interfaces.base.builders import \
-    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
+from tvb_multiscale.core.config import Config
+from tvb_multiscale.core.interfaces.base.transformers.builders import \
+    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, \
+    TVBtoSpikeNetRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 
 from examples.parallel.wilson_cowan.config import configure
 
 
 # FRONTEND used for user configuration of interfaces.
+# These is an example that could be modified by users:
 
-def configure_TVBtoSpikeNet_transformer_interfaces(config=None, config_class=Config, dump_configs=True):
+
+def configure_TVBtoSpikeNet_transformer_interfaces(
+        tvb_interface_builder_class=TVBtoSpikeNetTransformerBuilder,
+        config=None, config_class=Config, dump_configs=True):
 
     if config is None:
         config = configure(config_class)
 
-    tvb_to_spikeNet_trans_interface_builder = TVBtoSpikeNetTransformerBuilder(config=config)
+    tvb_to_spikeNet_trans_interface_builder = tvb_interface_builder_class(config=config)
 
     # This can be used to set default tranformer and proxy models:
     tvb_to_spikeNet_trans_interface_builder.model = config.INTERFACE_MODEL  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
@@ -62,12 +67,20 @@ def configure_TVBtoSpikeNet_transformer_interfaces(config=None, config_class=Con
     return tvb_to_spikeNet_trans_interface_builder
 
 
-def configure_spikeNetToTVB_transformer_interfaces(config=None, config_class=Config, dump_configs=True):
+def configure_TVBtoSpikeNet_remote_transformer_interfaces(
+        tvb_interface_builder_class=TVBtoSpikeNetTransformerBuilder,
+        config=None, config_class=Config):
+    return configure_TVBtoSpikeNet_transformer_interfaces(tvb_interface_builder_class, config, config_class, True)
+
+
+def configure_spikeNetToTVB_transformer_interfaces(
+        tvb_interface_builder_class=SpikeNetToTVBTransformerBuilder,
+        config=None, config_class=Config, dump_configs=True):
 
     if config is None:
         config = configure(config_class)
 
-    spikeNet_to_TVB_transformer_interface_builder = SpikeNetToTVBTransformerBuilder(config=config)
+    spikeNet_to_TVB_transformer_interface_builder = tvb_interface_builder_class(config=config)
 
     # This can be used to set default transformer and proxy models:
     spikeNet_to_TVB_transformer_interface_builder.model = config.INTERFACE_MODEL # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
@@ -96,3 +109,9 @@ def configure_spikeNetToTVB_transformer_interfaces(config=None, config_class=Con
         spikeNet_to_TVB_transformer_interface_builder.dump_all_interfaces()
 
     return spikeNet_to_TVB_transformer_interface_builder
+
+
+def configure_spikeNetToTVB_remote_transformer_interfaces(
+        tvb_interface_builder_class=SpikeNetToTVBRemoteTransformerBuilder,
+        config=None, config_class=Config):
+    return configure_spikeNetToTVB_transformer_interfaces(tvb_interface_builder_class, config, config_class, True)

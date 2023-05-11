@@ -2,21 +2,24 @@
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import Config
-from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder
+from tvb_multiscale.core.config import Config
+from tvb_multiscale.core.interfaces.tvb.builders import TVBInterfaceBuilder, TVBRemoteInterfaceBuilder
 
 from examples.parallel.wilson_cowan.config import configure
 
 
 # FRONTEND used for user configuration of interfaces.
 # These is an example that could be modified by users:
-def configure_TVB_interfaces(simulator=None, config=None, config_class=Config, dump_configs=True):
+
+
+def configure_TVB_interfaces(simulator=None, tvb_interface_builder_class=TVBInterfaceBuilder,
+                             config=None, config_class=Config, dump_configs=True):
 
     if config is None:
         config = configure(config_class)
 
     # Configuring a nonopinionated builder:
-    tvb_interface_builder = TVBInterfaceBuilder(config=config)
+    tvb_interface_builder = tvb_interface_builder_class(config=config)
 
     if simulator is not None:
         tvb_interface_builder.tvb_cosimulator = simulator
@@ -62,3 +65,10 @@ def configure_TVB_interfaces(simulator=None, config=None, config_class=Config, d
         tvb_interface_builder.dump_all_interfaces()
 
     return tvb_interface_builder
+
+
+# FRONTEND used for user configuration of interfaces.
+# These is an example that could be modified by users:
+def configure_TVB_remote_interfaces(simulator=None, tvb_interface_class=TVBRemoteInterfaceBuilder,
+                                    config=None, config_class=Config):
+    return configure_TVB_interfaces(simulator, tvb_interface_class, config, config_class, True)

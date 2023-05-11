@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from tvb_multiscale.tvb_multiscale.config import Config
+from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
 
 from examples.parallel.wilson_cowan.config import configure
