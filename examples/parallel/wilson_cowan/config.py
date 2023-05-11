@@ -8,7 +8,7 @@ from tvb.basic.profile import TvbProfile
 
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
-from tvb_multiscale.tvb_multiscale.config import Config
+from tvb_multiscale.core.config import Config
 
 
 def configure(config_class=Config):

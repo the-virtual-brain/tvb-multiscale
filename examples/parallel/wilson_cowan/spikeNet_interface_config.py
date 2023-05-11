@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from tvb_multiscale.tvb_multiscale.config import Config
+from tvb_multiscale.core.config import Config
 
 from examples.parallel.wilson_cowan.config import configure
 
@@ -11,8 +11,6 @@ from examples.parallel.wilson_cowan.config import configure
 # These is an example that could be modified by users:
 def configure_spikeNet_interfaces(spike_interface_builder_class,
                                   config=None, config_class=Config, dump_configs=True):
-
-    from tvb_multiscale.tvb_nest.interfaces.builders import NESTInterfaceBuilder
 
     if config is None:
         config = configure(config_class)

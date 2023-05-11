@@ -3,13 +3,14 @@
 import numpy as np
 
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
-
 from tvb_multiscale.tvb_nest.config import Config
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest, configure_nest_kernel
 
 from examples.parallel.wilson_cowan.config import configure
 
 
+# This would run on NEST process before creating any multiscale cosimulation interface connections.
+# Users can adapt it to their use case.
 def build_nest_network(config=None, config_class=Config):
 
     if config is None:
