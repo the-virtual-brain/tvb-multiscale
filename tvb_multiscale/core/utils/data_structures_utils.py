@@ -6,6 +6,7 @@ from collections import OrderedDict
 from six import string_types
 from enum import Enum
 import typing
+from copy import deepcopy
 
 import numpy as np
 from scipy.stats import describe
@@ -409,3 +410,9 @@ def summary_info(info, to_string=False):
             print(Warning(e))
     return ret
 
+
+def property_to_fun(property):
+    if hasattr(property, "__call__"):
+        return property
+    else:
+        return lambda *args, **kwargs: deepcopy(property)
