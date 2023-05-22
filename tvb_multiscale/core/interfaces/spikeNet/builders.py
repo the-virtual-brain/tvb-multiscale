@@ -7,9 +7,9 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits._attr import NArray, Attr, Float
-from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
 
 from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.utils.data_structures_utils import property_to_fun
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder, \
     SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
