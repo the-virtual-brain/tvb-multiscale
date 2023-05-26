@@ -14,14 +14,13 @@ class NetpyneModule(object):
 
         # Make sure that all required mod-files are compiled (is there a better way to check?)
         try:
-            h.DynamicNetStim()
+            h.DynamicVecStim()
         except:
             print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
-            import sys
-            import os
+            import sys, os
             python_path = sys.executable.split("python")[0]
             tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
-            os.system('%snrnivmodl %s/tvb_multiscale/tvb_netpyne/netpyne/mod' % (python_path, tvb_multiscale_path))
+            os.system(f'{python_path}nrnivmodl {tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
             h.nrn_load_dll('./x86_64/libnrnmech.so')
 
     def importModel(self, netParams, simConfig, dt, config):
@@ -35,8 +34,8 @@ class NetpyneModule(object):
         self.netParams = netParams
         self.simConfig = simConfig
 
-        # using DynamicNetStim model for artificial cells serving as stimuli
-        self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicNetStim'}
+        # using DynamicVecStim model for artificial cells serving as stimuli
+        self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicVecStim'}
 
     @property
     def dt(self):
@@ -227,14 +226,10 @@ class NetpyneModule(object):
             allNeurons = [gid for gid in allNeurons if gid in sim.net.gid2lid]
 
         for gid in allNeurons:
-            # currently used .mod implementation allows no more then 3 spikes during the interval.
-            # if for given cell they are less than 3, use -1 for the rest. If they are more, the rest will be lost. But for the reasonable spiking rates, this latter case is highly unlikely. 
             spikes = allNeuronsSpikes.get(gid, [])
-            spks = [-1] * 3
-            for i, spike in enumerate(spikes[:3]):
-                spks[i] = spike
             lid = sim.net.gid2lid[gid]
-            sim.net.cells[lid].hPointp.set_next_spikes(intervalEnd, spks[0], spks[1], spks[2])
+            spikes = h.Vector(spikes)
+            sim.net.cells[lid].hPointp.play(spikes, intervalEnd)
 
     def finalize(self):
         if self.time < sim.cfg.duration:

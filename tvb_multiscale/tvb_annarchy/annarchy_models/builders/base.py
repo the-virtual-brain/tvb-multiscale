@@ -22,11 +22,11 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a ANNarchyNetworkBuilder,
        which builds a ANNarchyNetwork from user configuration inputs.
-       The builder is half way opionionated.
+       The builder is half way opinionated.
     """
 
     config = CONFIGURED
-    annarchy_instance = None
+    _spiking_simulator_name = "annarchy_instance"
     modules_to_install = []
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
@@ -34,17 +34,21 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=None, logger=None):
-        self.annarchy_instance = annarchy_instance
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
+    def __init__(self, tvb_simulator, spiking_nodes_inds, spiking_simulator=None, config=None, logger=None):
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
+                                                     config, logger)
         self._spiking_brain = ANNarchyBrain()
 
+    @property
+    def annarchy_instance(self):
+        return self.spiking_simulator
+
     def __str__(self):
-        return super(ANNarchyNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.annarchy_instance)
+        return super(ANNarchyNetworkBuilder, self).__str__() + "\nannarchy simulator: %s" % str(self.annarchy_instance)
 
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
-            self.annarchy_instance = load_annarchy(self.config, self.logger)
+            self.spiking_simulator = load_annarchy(self.config, self.logger)
             self.annarchy_instance.clear()  # This will restart ANNarchy!
             self.update_spiking_dt()
             self.update_default_min_delay()
