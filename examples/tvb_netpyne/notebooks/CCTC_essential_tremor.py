@@ -725,6 +725,10 @@ for trg_pop, target_nodes, conn_scaling, this_conn_spec, scale_factor in \
         # with the interface scale factor (normalized by TVB indegree to STN/Striatum)
         # and the global coupling scaling.
         if tvb_spikeNet_model_builder.output_interfaces[-1]["coupling_mode"] == "spikeNet":
+            # scale_factor was originally fitted with assumption that it depends on number of neurons in spike generating device.
+            # However, with NetPyNE, due to the way it generates spikes, no scaling by population size is needed. Hence, downscale back:
+            scale_factor /= tvb_spikeNet_model_builder.N_E
+
             tvb_spikeNet_model_builder.output_interfaces[-1]["proxy_inds"] = proxy_inds
             # In this case connections from each TVB proxy to TC 
             # are scaled additionally with the Maith et al. optimized weights
