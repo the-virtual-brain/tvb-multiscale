@@ -866,6 +866,6 @@ from netpyne import sim
 popIds = [id for id in sim.net.pops.keys()][4] # only thalamus
 sa = sim.analysis
 #%matplotlib inline
-sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='weight');
-sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='prob');
-sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='probability');
+# sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='weight');
+# sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='prob');
+# sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='probability');
