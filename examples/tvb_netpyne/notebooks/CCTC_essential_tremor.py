@@ -83,111 +83,6 @@ from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import 
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.monitors import Raw  # , Bold, EEG
-    
-
-# 0. GPe_Left, 1. GPi_Left, 2. STN_Left, 3. Striatum_Left, 4. Thal_Left
-BG_opt_matrix_weights = np.zeros((5, 5))
-conn_mode = "subject" # subject" or "average"
-if conn_mode == "average":
-    weights_maith = np.array([1.93, 3.56, 1.46, 4.51, 3.52, 2.30, 2.34, 3.78, 1.98, 
-                             1.30, 1.82, 3.56, 3.02, 1.78, 1.36, 2.27, 4.13, 2.74, 3.27])*1e-3  # controls
-#     weights_maith = np.array([3.27, 3.80, 2.65, 3.66, 3.06, 3.06, 3.25, 4.02, 3.32, 
-#                             2.98, 3.45, 3.64, 2.50, 2.12, 2.86, 2.79, 3.96, 3.69, 3.87])*1e-3   # patients
-    # probs_maith = ????
-else:
-    import scipy.io as sio
-    weights=sio.loadmat(subject_data)    # weights start from index 19
-    weights_maith = weights["X"][0, 19:] # these are indices 19 till 37
-    probs_maith = weights["X"][0, :19]   # these are indices 0 till 18
-
-wdSNGPi = BG_opt_matrix_weights[3, 1] = weights_maith[0].item()
-wiSNGPe = BG_opt_matrix_weights[3, 0] = weights_maith[1].item()
-wGPeSTN = BG_opt_matrix_weights[0, 2] = weights_maith[2].item()
-wSTNGPe = BG_opt_matrix_weights[2, 0] = weights_maith[3].item()
-wSTNGPi = BG_opt_matrix_weights[2, 1] = weights_maith[4].item()
-wGPeGPi = BG_opt_matrix_weights[0, 1] = weights_maith[5].item()  
-wGPiTh = BG_opt_matrix_weights[1, 4] = weights_maith[8].item()
-wThdSN = BG_opt_matrix_weights[4, 3] = weights_maith[10].item() # Th -> dSN
-    
-sliceBGnet = slice(0,5)
-
-wGPeGPe = weights_maith[6].item()   # "GPe" -> "GPe" 
-wGPiGPi = weights_maith[7].item()   # "GPi" -> "GPi" 
-wThiSN = weights_maith[9].item()    # "Eth" -> "IiSN" 
-
-wdSNdSN = weights_maith[11].item()  # "IdSN" -> "IdSN" 
-wiSNiSN = weights_maith[12].item()  # "IiSN" -> "IiSN" 
-wCtxdSN = weights_maith[13].item()  # "CxE" -> "IdSN" 
-wCtxiSN = weights_maith[14].item()  # "CxE" -> "IiSN" 
-wCtxSTN = weights_maith[15].item()  # "CxE" -> "Estn"
-wCtxEtoI = weights_maith[16].item() # "CxE" -> "CxI"
-wCtxItoE = weights_maith[17].item() # "CxI" -> "CxE"
-wCtxItoI = weights_maith[18].item() # "CxI" -> "CxI"
-
-pdSNGPi = probs_maith[0].item()
-piSNGPe = probs_maith[1].item()
-pGPeSTN = probs_maith[2].item()
-pSTNGPe = probs_maith[3].item()
-pSTNGPi = probs_maith[4].item()
-pGPeGPi = probs_maith[5].item()
-pGPeGPe = probs_maith[6].item()     # "GPe" -> "GPe" 
-pGPiGPi = probs_maith[7].item()     # "GPi" -> "GPi" 
-pGPiTh = probs_maith[8].item()
-pThiSN =  probs_maith[9].item()     # "Eth" -> "IiSN
-pThdSN = probs_maith[10].item()     # Th --> dSN
-pdSNdSN = probs_maith[11].item()    # "IdSN" -> "IdSN" 
-piSNiSN = probs_maith[12].item()    # "IiSN" -> "IiSN" 
-pCtxdSN = probs_maith[13].item()    # "CxE" -> "IdSN" 
-pCtxiSN = probs_maith[14].item()    # "CxE" -> "IiSN" 
-pCtxSTN = probs_maith[15].item()    # "CxE" -> "Estn"
-pCtxEtoI = probs_maith[16].item()   # "CxE" -> "CxI"
-pCtxItoE = probs_maith[17].item()   # "CxI" -> "CxE"
-pCtxItoI = probs_maith[18].item()   # "CxI" -> "CxI"
-pCtxCtx = probs_maith[16:19].mean() # "Ctx" -> "Ctx"
-
-loadedParams ={'dSNGPi_probs': probs_maith[0],
-    	'dSNGPi_weights'  : weights_maith[0],
-    	'iSNGPe_probs'   : probs_maith[1],
-    	'iSNGPe_weights'  : weights_maith[1],
-    	'GPeSTN_probs'   : probs_maith[2],
-    	'GPeSTN_weights'  : weights_maith[2],
-    	'STNGPe_probs'   : probs_maith[3],
-    	'STNGPe_weights'  : weights_maith[3],
-    	'STNGPi_probs'   : probs_maith[4],
-    	'STNGPi_weights' : weights_maith[4],
-    	'GPeGPi_probs'   : probs_maith[5],
-    	'GPeGPi_weights'  : weights_maith[5],
-    	'GPeGPe_probs'   : probs_maith[6],
-    	'GPeGPe_weights'  : weights_maith[6],
-    	'GPiGPi_probs'   : probs_maith[7],
-    	'GPiGPi_weights'  : weights_maith[7],
-    	'GPiThal_probs'   : probs_maith[8],
-    	'GPiThal_weights'  : weights_maith[8],
-    	'ThaliSN_probs'   : probs_maith[9],
-    	'ThaliSN_weights'  : weights_maith[9],
-    	'ThaldSN_probs'   : probs_maith[10],
-    	'ThaldSN_weights'  : weights_maith[10],
-    	'dSNdSN_probs'   : probs_maith[11],
-    	'dSNdSN_weights'  : weights_maith[11],
-    	'iSNiSN_probs'   : probs_maith[12],
-    	'iSNiSN_weights'  : weights_maith[12],
-    	'CtxdSN_probs'   : probs_maith[13],
-    	'CtxdSN_weights'  : weights_maith[13],
-    	'CtxiSN_probs'   : probs_maith[14],
-    	'CtxiSN_weights'  : weights_maith[14],
-    	'CtxSTN_probs'   : probs_maith[15],
-    	'CtxSTN_weights'  : weights_maith[15],
-    	'CtxECtxI_probs'    : probs_maith[16],
-    	'CtxECtxI_weights'  : weights_maith[16],
-    	'CtxICtxE_probs'    : probs_maith[17],
-    	'CtxICtxE_weights'  : weights_maith[17],
-    	'CtxICtxI_probs'   : probs_maith[18],
-    	'CtxICtxI_weights'  : weights_maith[18],
-        'CtxThal_weights': 0.0,
-        'CtxThal_probs': 1.0}
-#print(loadedParams)
-
-assert_loadedParams = dict(zip(loadedParams.values(), loadedParams.keys()))
 
 # Load full TVB connectome connectivity
 
@@ -199,55 +94,11 @@ cTVB = np.loadtxt(os.path.join(conn_path, "aal_plus_BG_centers.txt"),usecols=ran
 rlTVB = np.loadtxt(os.path.join(conn_path, "aal_plus_BG_centers.txt"),dtype="str", usecols=(0,))
 tlTVB = np.loadtxt(os.path.join(conn_path, "BGplusAAL_tract_lengths.txt"))
 
-# Remove the second Thalamus, Pallidum (GPe/i), Putamen and Caudate (Striatum):
-inds_Th = (rlTVB.tolist().index("Thalamus_L"), rlTVB.tolist().index("Thalamus_R"))
-inds_Pall = (rlTVB.tolist().index("Pallidum_L"), rlTVB.tolist().index("Pallidum_R"))
-inds_Put = (rlTVB.tolist().index("Putamen_L"), rlTVB.tolist().index("Putamen_R"))
-inds_Caud = (rlTVB.tolist().index("Caudate_L"), rlTVB.tolist().index("Caudate_R"))
-inds_rm = inds_Th + inds_Pall + inds_Put + inds_Caud
-#print("Connections of Thalami, Pallidum (GPe/i), Putamen and Caudate (Striatum) removed!:\n", 
-wTVB[inds_rm, :][:, inds_rm]
-wTVB = np.delete(wTVB, inds_rm, axis=0)
-wTVB = np.delete(wTVB, inds_rm, axis=1)
-tlTVB = np.delete(tlTVB, inds_rm, axis=0)
-tlTVB = np.delete(tlTVB, inds_rm, axis=1)
-rlTVB = np.delete(rlTVB, inds_rm, axis=0)
-cTVB = np.delete(cTVB, inds_rm, axis=0)
-
 number_of_regions = len(rlTVB)
 speed = np.array([4.0])
 min_tt = speed.item() * 0.1
-sliceBG = [0, 1, 2, 3, 6, 7]
+sliceTC = [8,9]
 sliceCortex = slice(10, number_of_regions)
-
-# Remove BG -> Cortex connections
-#print("Removing BG -> Cortex connections with max:")
-#print(wTVB[sliceCortex, :][:, sliceBG].max())
-wTVB[sliceCortex, sliceBG] = 0.0
-tlTVB[sliceCortex, sliceBG] = min_tt
-
-"""
-# Remove Cortex -> Thalamus connections
-# They need to be removed because I'm creating an interface between the TVB motor cortex and the spiking thalamus (TC_pop).
-# That will be the only/"replacement connection" between the motor cortex and the thalamus
-# TODO: add this code back. I'm keeping it for now because otherwise I get a "divide by zero" error downstream
-# TODO: why is sliceThal = 8 & 9 here when thalamus node number is 4?
-sliceThal = [8, 9]
-#print("Removing Cortex -> Thalamus connections with summed weight:")
-#print(wTVB[sliceThal, sliceCortex].sum())
-wTVB[sliceThal, sliceCortex] = 0.0
-tlTVB[sliceThal, sliceCortex] = min_tt
-"""
-
-# Remove Cortex -> GPe/i connections
-sliceGP = [0, 1, 2, 3]
-#print("Removing Cortex -> GPe/i connections with max:")
-#print(wTVB[sliceGP, sliceCortex].max())
-wTVB[sliceGP,  sliceCortex] = 0.0
-tlTVB[sliceGP, sliceCortex] = min_tt
-
-# # Minimize all delays for the optimized network
-# tlTVB[:7][:, :7] = min_tt
 
 connTVB = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_lengths=tlTVB, speed=speed)
 
@@ -255,70 +106,39 @@ connTVB = Connectivity(region_labels=rlTVB, weights=wTVB, centres=cTVB, tract_le
 connTVB.weights = connTVB.scaled_weights(mode="region")
 connTVB.weights /= np.percentile(connTVB.weights, 99)
 
-# Keep only left hemisphere and remove Vermis:
-sliceLeft = slice(0, connTVB.number_of_regions -8, 2)
+sliceTCnet = slice(8,10) #BG (0,5) from both hemispheres = (0,10). only thalamus (bilateral) = 8&9
 
-connLeft = Connectivity(region_labels=connTVB.region_labels[sliceLeft], 
-                        centres=connTVB.centres[sliceLeft],
-                        weights=connTVB.weights[sliceLeft][:, sliceLeft],
-                        tract_lengths=connTVB.tract_lengths[sliceLeft][:, sliceLeft], 
-                        speed=connTVB.speed)
-connLeft.configure()
+connTVBTC = Connectivity(region_labels=connTVB.region_labels[sliceTCnet], 
+                             centres=connTVB.centres[sliceTCnet],
+                             weights=connTVB.weights[sliceTCnet][:, sliceTCnet],
+                             tract_lengths=connTVB.tract_lengths[sliceTCnet][:, sliceTCnet], 
+                            speed=connTVB.speed)
+connTVBTC.configure()
 
-#print("\nLeft cortex connectome, after removing direct BG -> Cortex and interhemispheric BG <-> BG connections:")
-# plotter.plot_tvb_connectivity(connLeft);
-
-sliceBGnet = slice(0,5)
-connTVBleftBG = Connectivity(region_labels=connLeft.region_labels[sliceBGnet], 
-                             centres=connLeft.centres[sliceBGnet],
-                             weights=connLeft.weights[sliceBGnet][:, sliceBGnet],
-                             tract_lengths=connLeft.tract_lengths[sliceBGnet][:, sliceBGnet], 
-                            speed=connLeft.speed)
-connTVBleftBG.configure()
-
-#print("\nLeft BG TVB network:")
 # plotter.plot_tvb_connectivity(connTVBleftBG);
 
-scaleBGoptTOtvb = np.percentile(BG_opt_matrix_weights, 95) /\
-                  np.percentile(connTVBleftBG.weights, 95)
-                  
-#print("Scaling factor of TVB BG network connectome to optimal one = %g" % scaleBGoptTOtvb)
-# confirmed: 0.000771577
-
 # Construct the final connectivity to use for simulation:
-# Rescale the 
-ww = scaleBGoptTOtvb * np.array(connLeft.weights)
-ww[sliceBGnet, sliceBGnet] = BG_opt_matrix_weights.T  # !!!NOTE TVB indices convention Wi<-j!!!
+connectivity = Connectivity(region_labels=connTVB.region_labels, 
+                            centres=connTVB.centres,
+                            weights=connTVB.weights,
+                            tract_lengths=connTVB.tract_lengths, 
+                            speed=connTVB.speed)
 
-connectivity = Connectivity(region_labels=connLeft.region_labels, 
-                            centres=connLeft.centres,
-                            weights=ww, tract_lengths=connLeft.tract_lengths, 
-                            speed=connLeft.speed)
+#connectivity = connTVB
 connectivity.configure()
 
-#print("connectivity info")
-#print(connLeft.region_labels[4])
-#print(ww[4,:])
-#print(ww[:,4])
-
-print("\nFinal connectivity:")
 plotter.plot_tvb_connectivity(connectivity);
 
 import matplotlib.pyplot as plt
 
+# CHECK CONNECTOME
+
 # plot connectome weights & tract lengths
 f = plt.matshow(wTVB)
 plt.savefig(sim_mode_path+"/figs/"+"connectivity.png")
-f = plt.matshow(connLeft.tract_lengths)
+f = plt.matshow(connTVB.tract_lengths)
 plt.savefig(sim_mode_path+"/figs/"+"tracts_lengths.png")
 
-# Construct only the optimized BG connectivity only for plotting:
-connBGopt = Connectivity(region_labels=connectivity.region_labels[sliceBGnet], 
-                         centres=connectivity.centres[sliceBGnet],
-                         weights=connectivity.weights[sliceBGnet][:, sliceBGnet],
-                         tract_lengths=connectivity.tract_lengths[sliceBGnet][:, sliceBGnet], 
-                         speed=connectivity.speed)
-connBGopt.configure()
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial as CoSimulator
 
@@ -328,7 +148,7 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSe
 # We choose all defaults in this example
 simulator = CoSimulator()
 #simulator.use_numba = False
-model_params = {"G": np.array([15.0/scaleBGoptTOtvb])}
+model_params = {"G": np.array([15.0])}
 simulator.model = ReducedWongWangExcIO(**model_params)
 
 simulator.connectivity = connectivity
@@ -339,18 +159,9 @@ simulator.integrator.noise.nsig = np.array([1e-4])  # 1e-5
 
 mon_raw = Raw(period=1.0)  # ms
 simulator.monitors = (mon_raw, )
-
-init_cond_filepath = os.path.join(data_path, "tvb_init_cond_left.npy")
-init_cond = np.load(init_cond_filepath)   # 
-init_cond = np.abs(init_cond *(1 + init_cond_jitter * np.random.normal(size=init_cond.shape)))
 simulator.connectivity.set_idelays(simulator.integrator.dt)
-simulator.initial_conditions = init_cond * np.ones((simulator.connectivity.idelays.max(),
-                                                    simulator.model.nvar,
-                                                    simulator.connectivity.number_of_regions,
-                                                    simulator.model.number_of_modes))
+simulator.initial_conditions = None
 
-
-print("\nConnectome used for simulations:")
 plotter.plot_tvb_connectivity(simulator.connectivity);
 
 
@@ -372,7 +183,7 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetwo
 
 # Select the regions for the fine scale modeling with NetPyNE spiking networks
 # numbers come from overall connectome, so find where CCTC regions are. Add more for e.g. DCN and NO if they're the same region? or just do thalamus for now
-spiking_nodes_ids = [4] # the indices of fine scale regions modeled with NetPyNE
+spiking_nodes_ids = [1] # the indices of fine scale regions modeled with NetPyNE
 
 # Build a ANNarchy network model with the corresponding builder
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
@@ -398,7 +209,7 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.models.thalamic_VIM_ET.src.cfg im
 # arguments (region_index=None) returning the corresponding property
 
 # TODO: allow for having several nodes in single entry
-vim_node_id = [4]
+vim_node_id = [1]
 spiking_network_builder.populations = [
     {"label": "TC_pop", 
      "params":  {"global_label": "TC_pop"}, 
@@ -520,7 +331,6 @@ def synaptic_weight_scale_func(is_coupling_mode_tvb):
     else: # "spikeNet"
         return 1 # 5
 
-
 # spiking_network_builder.global_coupling_scaling *= simulator.model.G
 spiking_network_builder.netpyne_synaptic_weight_scale = synaptic_weight_scale_func(is_coupling_mode_tvb=INTERFACE_COUPLING_MODE=="TVB")
 
@@ -528,9 +338,6 @@ spiking_network_builder.netpyne_synaptic_weight_scale = synaptic_weight_scale_fu
 netpyne_network = spiking_network_builder.build() # set_defaults=False
 # confirmed: 6 spiking pops of 200 neurs
 
-#print("\n\nLOOK HERE\n\n")
-#print("print(spiking_network_builder.netpyne_instance.netParams.connParams.items())")
-#print(spiking_network_builder.netpyne_instance.netParams.connParams.items())
 for i, (connId, conn) in enumerate(spiking_network_builder.netpyne_instance.netParams.connParams.items()):
     print(f"{i}. {connId}: {conn.get('weight')} {conn.get('probability')}")
 # confirmed: 13 connections between pops (weights and probs confirmed)
@@ -543,7 +350,6 @@ print("Population sizes: ")
 for pop in spiking_network_builder.populations:
     populations_sizes.append(int(np.round(pop["scale"] * spiking_network_builder.population_order)))
     print("%s: %d" % (pop["label"], populations_sizes[-1]))
-
 
 from tvb_multiscale.tvb_netpyne.interfaces.builders import TVBNetpyneInterfaceBuilder
     
@@ -584,38 +390,8 @@ tvb_spikeNet_model_builder.global_coupling_scaling = \
     tvb_spikeNet_model_builder.tvb_cosimulator.coupling.a[0].item() * simulator.model.G
 print("global_coupling_scaling = %g" % tvb_spikeNet_model_builder.global_coupling_scaling)
 
-"""
-# Total TVB indegree weight to STN:
-wTVBSTNs = simulator.connectivity.weights[Estn_nodes_ids, 5:].squeeze()
-wTVBSTN = wTVBSTNs.sum().item()
-print("wTVBSTN = %g" % wTVBSTN)
-CTXtoSTNinds = 5 + np.where(wTVBSTNs > 0.0)[0] # indices of TVB regions coupling to STN
-
-# Total TVB indegree weight to Striatum:
-wTVBSNs = simulator.connectivity.weights[Istr_nodes_ids, 5:].squeeze()
-wTVBSN = wTVBSNs.sum().item()
-print("wTVBSN = %g" % wTVBSN)
-CTXtoSNinds = 5 + np.where(wTVBSNs > 0.0)[0]  # indices of TVB regions coupling to Striatum
-
-# Approximate effective scaling of TVB coupling to STN
-# after normalizing with STN indegree and 
-# multiplying with the Maith et al. optimized CTX -> STN weight
-iwCtxSTN = STN_factor*wCtxSTN / wTVBSTN
-print("iwCtxSTN = %g" % iwCtxSTN)
-
-# Approximate effective scaling of TVB coupling to dSN
-# after normalizing with Striatum indegree and 
-# multiplying with the Maith et al. optimized CTX -> dSN weight
-iwCtxdSN = dSN_factor*wCtxdSN / wTVBSN  
-print("iwCtxdSN = %g" % iwCtxdSN)
-
-# Approximate effective scaling of TVB coupling to iSN
-# after normalizing with Striatum indegree and 
-# multiplying with the Maith et al. optimized CTX -> iSN weight
-iwCtxiSN = iSN_factor*wCtxiSN / wTVBSN
-print("iwCtxiSN = %g" % iwCtxiSN)
-"""
 #TVB (cortex) connects to & provides INPUT to spiking region TC_pop (vim)
+
 # Total TVB indegree weight to TC_pop:
 wTVBTCs = simulator.connectivity.weights[vim_node_id, 5:].squeeze()
 print("simulator.connectivity.weights")
@@ -635,14 +411,6 @@ pCtxTC = 0.5 # random temp value I picked (maith value range unknown)
 iwCtxTC = TC_factor*wCtxTC / wTVBTC
 print("iwCtxTC = %g" % iwCtxTC)
 
-# confirmed:
-# global_coupling_scaling = 75.9402
-# wTVBSTN = 0.013739
-# wTVBSN = 0.0503774
-# iwCtxSTN = 0.0530743
-# iwCtxdSN = 0.00666963
-# iwCtxiSN = 0.0045056
-
 # ----------------------------------------------------------------------------------------------------------------
 # ----------------------------------------- BUILDER --------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------
@@ -661,7 +429,9 @@ if tvb_spikeNet_model_builder.default_coupling_mode == "spikeNet":
     # If coupling is computing in NetPyNE, we need as many TVB proxies 
     # as TVB regions coupling to Thalamus
     proxy_inds = np.unique(np.concatenate([CTXtoTCinds]))
-    
+    print("############## proxy_inds ################")
+    print(proxy_inds)
+    print(type(proxy_inds))
     # This is the TVB coupling weight function that will determine the connections' weights 
     # from TVB proxies to the target TC population:
     class TVBWeightFunInterface(object):
@@ -674,19 +444,7 @@ if tvb_spikeNet_model_builder.default_coupling_mode == "spikeNet":
 
     # A similar function for TVB coupling delays is also applied in the background 
     # without need to be explicitly defined by the user
-    
-# Optionally adjust interface scale factors here 
-# to have the same result counter act possible changes to G and coupling.a:
-# STN_factor /= tvb_spikeNet_model_builder.global_coupling_scaling
-# dSN_factor /= tvb_spikeNet_model_builder.global_coupling_scaling
-# iSN_factor /= tvb_spikeNet_model_builder.global_coupling_scaling
 
-#dSN_factor *= 40
-#iSN_factor *= 40
-
-
-
-# 
 tvb_spikeNet_model_builder.synaptic_weight_scale_func = synaptic_weight_scale_func
     
 tvb_spikeNet_model_builder.output_interfaces = []
@@ -725,10 +483,6 @@ for trg_pop, target_nodes, conn_scaling, this_conn_spec, scale_factor in \
         # with the interface scale factor (normalized by TVB indegree to STN/Striatum)
         # and the global coupling scaling.
         if tvb_spikeNet_model_builder.output_interfaces[-1]["coupling_mode"] == "spikeNet":
-            # scale_factor was originally fitted with assumption that it depends on number of neurons in spike generating device.
-            # However, with NetPyNE, due to the way it generates spikes, no scaling by population size is needed. Hence, downscale back:
-            scale_factor /= tvb_spikeNet_model_builder.N_E
-
             tvb_spikeNet_model_builder.output_interfaces[-1]["proxy_inds"] = proxy_inds
             # In this case connections from each TVB proxy to TC 
             # are scaled additionally with the Maith et al. optimized weights
@@ -762,9 +516,9 @@ from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang impor
 tvb_spikeNet_model_builder.input_interfaces = []
 # TVB <-- ANNarchy:
 for src_pop, nodes, in zip(
-                # Source populations in ANNarchy:
+                # Source populations in NetPyNE:
                 [np.array(["TC_pop"])],
-                # Source regions indices in ANNarchy:
+                # Source regions indices in NetPyNE:
                 [vim_node_id]):          # Thalamus
         #            TVB <- NetPyNE
         tvb_spikeNet_model_builder.input_interfaces.append(
@@ -803,6 +557,8 @@ display(tvb_spikeNet_model_builder.output_interfaces)
 print("\ninput (NetPyNE->TVB update) interfaces' configurations:\n")
 display(tvb_spikeNet_model_builder.input_interfaces)
 
+print(proxy_inds)
+
 simulator = tvb_spikeNet_model_builder.build()
 
 # NetPyNE model is built in two steps. First need to create declarative-style specification for both spiking network itself and TVB-Netpyne proxy devides (interfaces).
@@ -812,8 +568,8 @@ netpyne.simConfig.duration = simulation_length # TODO: do it properly! (find out
 netpyne.simConfig.dt = spiking_network_builder.spiking_dt
 netpyne.allowSelfConns = True
 
-netpyne_network.netpyne_instance.instantiateNetwork()
-
+netpyne_network.netpyne_instance.instantiateNetwork() #netpyne structure created
+# can inspect connectivity params
 
 simulator.simulate_spiking_simulator = netpyne_network.netpyne_instance.run  # set the method to run NetPyNE
     
@@ -862,9 +618,9 @@ print("\nSimulated in %f secs!" % (time.time() - t_start))
 
 netpyne.finalize()
 
-from netpyne import sim
-popIds = [id for id in sim.net.pops.keys()][4] # only thalamus
-sa = sim.analysis
+#from netpyne import sim
+#popIds = [id for id in sim.net.pops.keys()][4] # only thalamus
+#sa = sim.analysis
 #%matplotlib inline
 # sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='weight');
 # sim.analysis.plotConn(showFig=True, includePre=popIds, includePost=popIds, feature='prob');
