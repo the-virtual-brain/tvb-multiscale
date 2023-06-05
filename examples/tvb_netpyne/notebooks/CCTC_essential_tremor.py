@@ -384,7 +384,6 @@ netpyne_network.print_summary_info_details(recursive=2, connectivity=False)
 simulator.configure()
 
 simulation_length = np.ceil(simulation_length / simulator.synchronization_time) * simulator.synchronization_time
-
 advance_simulation_for_delayed_monitors_output = True
 if simulation_mode == "rs":
     simulation_length = simulation_length
@@ -392,11 +391,9 @@ else:
     start_stimulus = np.ceil(start_stimulus / simulator.synchronization_time) * simulator.synchronization_time
     simulation_length = start_stimulus
     advance_simulation_for_delayed_monitors_output = False
-
 t_start = time.time()
 
 results = simulator.run(simulation_length=simulation_length, advance_simulation_for_delayed_monitors_output=advance_simulation_for_delayed_monitors_output) # 35.0 with stimulus application
-    
 print("\nSimulated in %f secs!" % (time.time() - t_start))
 
 netpyne.finalize()
