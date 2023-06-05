@@ -108,7 +108,9 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetwo
 
 # Select the regions for the fine scale modeling with NetPyNE spiking networks
 # TODO: numbers come from overall connectome, so find where CCTC regions are. Just thalamus (bilateral) for now. Add more for e.g. DCN and NO if they're the same region?
-spiking_nodes_ids = [8,9] # the indices of fine scale regions modeled with NetPyNE
+vim_node_id = 8
+cerebellum_node_id = 125
+spiking_nodes_ids = [vim_node_id, cerebellum_node_id] # the indices of fine scale regions modeled with NetPyNE
 
 # Build a NetPyNE network model with the corresponding builder
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
@@ -121,11 +123,14 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.models.thalamic_VIM_ET.src.netPar
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.thalamic_VIM_ET.src.cfg import cfg
 
 # Populations' configurations # TODO: allow for having several nodes in single entry
-vim_node_ids = [8,9]
 spiking_network_builder.populations = [
     {"label": "TC_pop", 
      "params":  {"global_label": "TC_pop"}, 
-     "nodes": vim_node_ids,
+     "nodes": vim_node_id, # not needed, probably just used ffor internal validation
+     "scale": 1.0},
+     {"label": "PC_pop", 
+     "params":  {"global_label": "PC_pop"}, 
+     "nodes": cerebellum_node_id, # not needed, probably just used ffor internal validation
      "scale": 1.0}
 ]
 
@@ -241,7 +246,8 @@ tvb_spikeNet_model_builder.default_coupling_mode = INTERFACE_COUPLING_MODE # "sp
 # Number of neurons per population to be used to compute population mean instantaneous firing rates:
 tvb_spikeNet_model_builder.proxy_inds = np.array(spiking_nodes_ids)
 tvb_spikeNet_model_builder.N_E = spiking_network_builder.population_order
-tvb_spikeNet_model_builder.TC_proxy_inds = np.array(vim_node_ids)
+tvb_spikeNet_model_builder.TC_proxy_inds = np.array(vim_node_id)
+tvb_spikeNet_model_builder.PC_proxy_inds = np.array(cerebellum_node_id)
 
 # Set exclusive_nodes = True (Default) if the spiking regions substitute for the TVB ones:
 tvb_spikeNet_model_builder.exclusive_nodes = True  
@@ -255,24 +261,27 @@ tvb_spikeNet_model_builder.global_coupling_scaling = \
     tvb_spikeNet_model_builder.tvb_cosimulator.coupling.a[0].item() * simulator.model.G
 print("global_coupling_scaling = %g" % tvb_spikeNet_model_builder.global_coupling_scaling)
 
-#TODO: FIX THIS
+#TODO: FIX THIS # shouldn't there by only 2 proxy nodes created? It seems to be making them for the thalamus to all regions right now
 #TVB (thalamus) connects to & provides INPUT to spiking region TC_pop (vim)
 # Total TVB indegree weight to left thalamus:
-wTVBTCs_L = simulator.connectivity.weights[8, 10:].squeeze()
+#wTVBTCs_L = simulator.connectivity.weights[8, 8].squeeze()
 #wTVBTC_L = wTVBTCs_L.sum().item()
 #print("wTVBTC_L = %g" % wTVBTC_L)
-LThalamustoTCinds = 10 + np.where(wTVBTCs_L > 0.0)[0] # indices of TVB regions coupling to left thalamus
+#LThalamustoTCinds = 10 + np.where(wTVBTCs_L > 0.0)[0] # indices of TVB regions coupling to left thalamus
 
 # Total TVB indegree weight to right thalamus:
-wTVBTCs_R = simulator.connectivity.weights[9, 10:].squeeze()
+#wTVBTCs_R = simulator.connectivity.weights[9, 9].squeeze()
 #wTVBTC_R = wTVBTCs_R.sum().item()
 #print("wTVBTC_R = %g" % wTVBTC_R)
-RThalamustoTCinds = 10 + np.where(wTVBTCs_R > 0.0)[0] # indices of TVB regions coupling to right thalamus
+#RThalamustoTCinds = 10 + np.where(wTVBTCs_R > 0.0)[0] # indices of TVB regions coupling to right thalamus
 
-print(LThalamustoTCinds)
-print(RThalamustoTCinds)
-print(np.concatenate([LThalamustoTCinds, RThalamustoTCinds]))
-print(np.unique(np.concatenate([LThalamustoTCinds, RThalamustoTCinds])))
+#print(LThalamustoTCinds)
+#print(RThalamustoTCinds)
+#print(np.concatenate([LThalamustoTCinds, RThalamustoTCinds]))
+#print(np.unique(np.concatenate([LThalamustoTCinds, RThalamustoTCinds])))
+
+LThalamustoTCinds = 8
+RCerebellumtoPCinds = 125
 
 """ print("wTVBTCs")
 print(wTVBTCs)
@@ -290,7 +299,7 @@ from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang impor
 # TVB -> NetPyNE
 if tvb_spikeNet_model_builder.default_coupling_mode == "spikeNet":
     # If coupling is computing in NetPyNE, we need as many TVB proxies as TVB regions coupling to Thalamus
-    proxy_inds = np.unique(np.concatenate([LThalamustoTCinds, RThalamustoTCinds]))
+    proxy_inds = [8, 125] #np.unique(np.concatenate([LThalamustoTCinds, RCerebellumtoPCinds]))
     # This is the TVB coupling weight function that will determine the connections' weights from TVB proxies to the target TC population:
     class TVBWeightFunInterface(object):
     
@@ -308,9 +317,9 @@ tvb_spikeNet_model_builder.synaptic_weight_scale_func = synaptic_weight_scale_fu
 tvb_spikeNet_model_builder.output_interfaces = []
 # Mean spike rates are applied in parallel to all target neurons
 for trg_pop, target_nodes in \
-                  zip(["TC_pop"], # NetPyNE target populations
-                      # Target region indices in NetPyNE:  
-                      [tvb_spikeNet_model_builder.TC_proxy_inds]):          
+                  zip(["TC_pop", "PC_pop"], # NetPyNE target populations
+                      [tvb_spikeNet_model_builder.TC_proxy_inds, tvb_spikeNet_model_builder.PC_proxy_inds]):    # Target region indices in NetPyNE:      
+        
         tvb_spikeNet_model_builder.output_interfaces.append(
             {"voi": np.array(["R"]),             # Source TVB state variable
              "populations": np.array([trg_pop]), # NetPyNE target population
@@ -339,9 +348,9 @@ tvb_spikeNet_model_builder.input_interfaces = []
 # TVB <-- NetPyNE:
 for src_pop, nodes, in zip(
                 # Source populations in NetPyNE:
-                [np.array(["TC_pop"])],
+                ["TC_pop", "PC_pop"],
                 # Source regions indices in NetPyNE:
-                [vim_node_ids]):          # Thalamus
+                [tvb_spikeNet_model_builder.TC_proxy_inds, tvb_spikeNet_model_builder.PC_proxy_inds]):          # Thalamus, cerebellum
         #            TVB <- NetPyNE
         tvb_spikeNet_model_builder.input_interfaces.append(
             {"voi": np.array(["S", "R"]),  # Target state variables in TVB
