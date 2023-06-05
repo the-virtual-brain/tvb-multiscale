@@ -261,37 +261,6 @@ tvb_spikeNet_model_builder.global_coupling_scaling = \
     tvb_spikeNet_model_builder.tvb_cosimulator.coupling.a[0].item() * simulator.model.G
 print("global_coupling_scaling = %g" % tvb_spikeNet_model_builder.global_coupling_scaling)
 
-#TODO: FIX THIS # shouldn't there by only 2 proxy nodes created? It seems to be making them for the thalamus to all regions right now
-#TVB (thalamus) connects to & provides INPUT to spiking region TC_pop (vim)
-# Total TVB indegree weight to left thalamus:
-#wTVBTCs_L = simulator.connectivity.weights[8, 8].squeeze()
-#wTVBTC_L = wTVBTCs_L.sum().item()
-#print("wTVBTC_L = %g" % wTVBTC_L)
-#LThalamustoTCinds = 10 + np.where(wTVBTCs_L > 0.0)[0] # indices of TVB regions coupling to left thalamus
-
-# Total TVB indegree weight to right thalamus:
-#wTVBTCs_R = simulator.connectivity.weights[9, 9].squeeze()
-#wTVBTC_R = wTVBTCs_R.sum().item()
-#print("wTVBTC_R = %g" % wTVBTC_R)
-#RThalamustoTCinds = 10 + np.where(wTVBTCs_R > 0.0)[0] # indices of TVB regions coupling to right thalamus
-
-#print(LThalamustoTCinds)
-#print(RThalamustoTCinds)
-#print(np.concatenate([LThalamustoTCinds, RThalamustoTCinds]))
-#print(np.unique(np.concatenate([LThalamustoTCinds, RThalamustoTCinds])))
-
-LThalamustoTCinds = 8
-RCerebellumtoPCinds = 125
-
-""" print("wTVBTCs")
-print(wTVBTCs)
-print("np.where(wTVBTCs > 0.0)[0]")
-print(np.where(wTVBTCs > 0.0)[0])
-print("8 + np.where(wTVBTCs > 0.0)[0]")
-print(8 + np.where(wTVBTCs > 0.0)[0])
-print("np.where(wTVBTCs > 0.0)[1]")
-print(np.where(wTVBTCs > 0.0)[1]) """
-
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import RedWongWangExc
 
 # --------For spike transmission from TVB to NetPyNE devices acting as TVB proxy nodes with TVB delays:--------
@@ -299,7 +268,7 @@ from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang impor
 # TVB -> NetPyNE
 if tvb_spikeNet_model_builder.default_coupling_mode == "spikeNet":
     # If coupling is computing in NetPyNE, we need as many TVB proxies as TVB regions coupling to Thalamus
-    proxy_inds = [8, 125] #np.unique(np.concatenate([LThalamustoTCinds, RCerebellumtoPCinds]))
+    proxy_inds = [8, 125]
     # This is the TVB coupling weight function that will determine the connections' weights from TVB proxies to the target TC population:
     class TVBWeightFunInterface(object):
     
@@ -346,31 +315,29 @@ from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang impor
 tvb_spikeNet_model_builder.input_interfaces = []
 
 # TVB <-- NetPyNE:
-for src_pop, nodes, in zip(
-                # Source populations in NetPyNE:
-                ["TC_pop", "PC_pop"],
-                # Source regions indices in NetPyNE:
-                [tvb_spikeNet_model_builder.TC_proxy_inds, tvb_spikeNet_model_builder.PC_proxy_inds]):          # Thalamus, cerebellum
-        #            TVB <- NetPyNE
-        tvb_spikeNet_model_builder.input_interfaces.append(
-            {"voi": np.array(["S", "R"]),  # Target state variables in TVB
-             "populations": src_pop,  # Source populations in NetPyNE
-             # This transformer not only converts spike counts to rates for state variable R,
-             # but also integrates the dS/dt to compute the respective S!:
-             "transformer": ElephantSpikesRateRedWongWangExc,
-             "transformer_params": 
-                 # Spike counts are converted to rates via:
-                 # number_of_spikes / number_of_neurons_per_population / number_of_populations
-                 {"scale_factor": np.array([1.0]) / tvb_spikeNet_model_builder.N_E / len(src_pop),
-                  # The integrator used to integrate dS/dt
-                   "integrator":CONFIGURED.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(
-                                       dt=simulator.integrator.dt),
-                    "state": np.zeros((2, len(nodes))), # initial condition
-                    # Parameters of the dS/dt differential equation:
-                    "tau_s": simulator.model.tau_s, # time constant of integrating S
-                    "tau_r": np.array([10.0]),      # time constant of integrating R to low pass filter it
-                    "gamma": simulator.model.gamma}, 
-             "proxy_inds": np.array(nodes)})  # None means all here
+for src_pop, nodes in zip(
+    ["TC_pop", "PC_pop"], # Source populations in NetPyNE
+    [[tvb_spikeNet_model_builder.TC_proxy_inds], [tvb_spikeNet_model_builder.PC_proxy_inds]]): # Source regions indices in NetPyNE: thalamus, cerebellum
+    # TVB <- NetPyNE
+    tvb_spikeNet_model_builder.input_interfaces.append(
+        {"voi": np.array(["S", "R"]),  # Target state variables in TVB
+            "populations": src_pop,  # Source populations in NetPyNE
+            # This transformer not only converts spike counts to rates for state variable R,
+            # but also integrates the dS/dt to compute the respective S!:
+            "transformer": ElephantSpikesRateRedWongWangExc,
+            "transformer_params": 
+                # Spike counts are converted to rates via:
+                # number_of_spikes / number_of_neurons_per_population / number_of_populations
+                {"scale_factor": np.array([1.0]) / tvb_spikeNet_model_builder.N_E / len(src_pop),
+                # The integrator used to integrate dS/dt
+                "integrator":CONFIGURED.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(
+                                    dt=simulator.integrator.dt),
+                "state": np.zeros((2, len(nodes))), # initial condition
+                # Parameters of the dS/dt differential equation:
+                "tau_s": simulator.model.tau_s, # time constant of integrating S
+                "tau_r": np.array([10.0]),      # time constant of integrating R to low pass filter it
+                "gamma": simulator.model.gamma}, 
+            "proxy_inds": np.array(nodes)})  # None means all here
 
 # Configure and build:
 tvb_spikeNet_model_builder.configure()
