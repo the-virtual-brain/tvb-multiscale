@@ -15,6 +15,10 @@ def generateSpikesForPopulation(numNeurons, rates, times):
     for iInterval in range(1, len(times)):
 
         rate = rates[iInterval]
+
+        if not (rate > 0):
+            continue
+
         intervalStart = times[iInterval - 1]
         dt = times[iInterval] - intervalStart
 

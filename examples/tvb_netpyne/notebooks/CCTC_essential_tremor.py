@@ -307,7 +307,7 @@ for trg_pop, target_nodes in \
     # with the interface scale factor (normalized by TVB indegree to TC)
     # and the global coupling scaling.
     if tvb_spikeNet_model_builder.output_interfaces[-1]["coupling_mode"] == "spikeNet":
-        tvb_spikeNet_model_builder.output_interfaces[-1]["proxy_inds"] = proxy_inds       
+        tvb_spikeNet_model_builder.output_interfaces[-1]["proxy_inds"] = target_nodes # proxy_inds
             
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 tvb_spikeNet_model_builder.input_interfaces = []
