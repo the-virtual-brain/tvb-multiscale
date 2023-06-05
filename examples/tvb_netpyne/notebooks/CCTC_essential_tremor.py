@@ -282,38 +282,35 @@ if tvb_spikeNet_model_builder.default_coupling_mode == "spikeNet":
     # without need to be explicitly defined by the user
 
 tvb_spikeNet_model_builder.synaptic_weight_scale_func = synaptic_weight_scale_func
-    
 tvb_spikeNet_model_builder.output_interfaces = []
 # Mean spike rates are applied in parallel to all target neurons
 for trg_pop, target_nodes in \
-                  zip(["TC_pop", "PC_pop"], # NetPyNE target populations
-                      [tvb_spikeNet_model_builder.TC_proxy_inds, tvb_spikeNet_model_builder.PC_proxy_inds]):    # Target region indices in NetPyNE:      
-        
-        tvb_spikeNet_model_builder.output_interfaces.append(
-            {"voi": np.array(["R"]),             # Source TVB state variable
-             "populations": np.array([trg_pop]), # NetPyNE target population
-             "model": "RATE",
-             "spiking_proxy_inds": target_nodes, # Target region indices in NetPyNE
-             # This spike generator device generates spike trains
-             # with autocorrelation corr at a time scale tau
-             "proxy_model": NetpyneInputProxyModels.RATE,
-             "proxy_params": {"geometry": 600, "record": ["spike"],
-                              "corr": 0.3, "tau": 10.0, # comment for RATE_TO_SPIKES
-                              "number_of_neurons": tvb_spikeNet_model_builder.N_E, # todo: de-hardcode
-                              },
-             'coupling_mode': tvb_spikeNet_model_builder.default_coupling_mode
-        })
-        
-        # For both coupling modes, we scale the TVB rate already at the TVB -> NetPyNE transformer
-        # with the interface scale factor (normalized by TVB indegree to TC)
-        # and the global coupling scaling.
-        if tvb_spikeNet_model_builder.output_interfaces[-1]["coupling_mode"] == "spikeNet":
-            tvb_spikeNet_model_builder.output_interfaces[-1]["proxy_inds"] = proxy_inds       
+    zip(["TC_pop", "PC_pop"], # NetPyNE target populations
+        [tvb_spikeNet_model_builder.TC_proxy_inds, tvb_spikeNet_model_builder.PC_proxy_inds]): # Target region indices in NetPyNE:      
+    
+    tvb_spikeNet_model_builder.output_interfaces.append(
+        {"voi": np.array(["R"]),             # Source TVB state variable
+        "populations": np.array([trg_pop]), # NetPyNE target population
+        "model": "RATE",
+        "spiking_proxy_inds": target_nodes, # Target region indices in NetPyNE
+        # This spike generator device generates spike trains
+        # with autocorrelation corr at a time scale tau
+        "proxy_model": NetpyneInputProxyModels.RATE,
+        "proxy_params": {"geometry": 600, "record": ["spike"],
+                        "corr": 0.3, "tau": 10.0, # comment for RATE_TO_SPIKES
+                        "number_of_neurons": tvb_spikeNet_model_builder.N_E, # todo: de-hardcode
+                        },
+        'coupling_mode': tvb_spikeNet_model_builder.default_coupling_mode
+    })
+    
+    # For both coupling modes, we scale the TVB rate already at the TVB -> NetPyNE transformer
+    # with the interface scale factor (normalized by TVB indegree to TC)
+    # and the global coupling scaling.
+    if tvb_spikeNet_model_builder.output_interfaces[-1]["coupling_mode"] == "spikeNet":
+        tvb_spikeNet_model_builder.output_interfaces[-1]["proxy_inds"] = proxy_inds       
             
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
-
 tvb_spikeNet_model_builder.input_interfaces = []
-
 # TVB <-- NetPyNE:
 for src_pop, nodes in zip(
     ["TC_pop", "PC_pop"], # Source populations in NetPyNE
@@ -321,23 +318,23 @@ for src_pop, nodes in zip(
     # TVB <- NetPyNE
     tvb_spikeNet_model_builder.input_interfaces.append(
         {"voi": np.array(["S", "R"]),  # Target state variables in TVB
-            "populations": src_pop,  # Source populations in NetPyNE
-            # This transformer not only converts spike counts to rates for state variable R,
-            # but also integrates the dS/dt to compute the respective S!:
-            "transformer": ElephantSpikesRateRedWongWangExc,
-            "transformer_params": 
-                # Spike counts are converted to rates via:
-                # number_of_spikes / number_of_neurons_per_population / number_of_populations
-                {"scale_factor": np.array([1.0]) / tvb_spikeNet_model_builder.N_E / len(src_pop),
-                # The integrator used to integrate dS/dt
-                "integrator":CONFIGURED.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(
-                                    dt=simulator.integrator.dt),
-                "state": np.zeros((2, len(nodes))), # initial condition
-                # Parameters of the dS/dt differential equation:
-                "tau_s": simulator.model.tau_s, # time constant of integrating S
-                "tau_r": np.array([10.0]),      # time constant of integrating R to low pass filter it
-                "gamma": simulator.model.gamma}, 
-            "proxy_inds": np.array(nodes)})  # None means all here
+        "populations": src_pop,  # Source populations in NetPyNE
+        # This transformer not only converts spike counts to rates for state variable R,
+        # but also integrates the dS/dt to compute the respective S!:
+        "transformer": ElephantSpikesRateRedWongWangExc,
+        "transformer_params": 
+            # Spike counts are converted to rates via:
+            # number_of_spikes / number_of_neurons_per_population / number_of_populations
+            {"scale_factor": np.array([1.0]) / tvb_spikeNet_model_builder.N_E / len(src_pop),
+            # The integrator used to integrate dS/dt
+            "integrator":CONFIGURED.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(
+                                dt=simulator.integrator.dt),
+            "state": np.zeros((2, len(nodes))), # initial condition
+            # Parameters of the dS/dt differential equation:
+            "tau_s": simulator.model.tau_s, # time constant of integrating S
+            "tau_r": np.array([10.0]),      # time constant of integrating R to low pass filter it
+            "gamma": simulator.model.gamma}, 
+        "proxy_inds": np.array(nodes)})  # None means all here
 
 # Configure and build:
 tvb_spikeNet_model_builder.configure()
@@ -362,7 +359,6 @@ netpyne_network.netpyne_instance.instantiateNetwork() #netpyne structure created
 # can inspect connectivity params
 
 simulator.simulate_spiking_simulator = netpyne_network.netpyne_instance.run  # set the method to run NetPyNE
-    
 # simulator.print_summary_info(recursive=3)
 # simulator.print_summary_info_details(recursive=3)
     
@@ -391,15 +387,15 @@ simulation_length = np.ceil(simulation_length / simulator.synchronization_time) 
 
 advance_simulation_for_delayed_monitors_output = True
 if simulation_mode == "rs":
-    simulation_length1 = simulation_length
+    simulation_length = simulation_length
 else:
     start_stimulus = np.ceil(start_stimulus / simulator.synchronization_time) * simulator.synchronization_time
-    simulation_length1 = start_stimulus
+    simulation_length = start_stimulus
     advance_simulation_for_delayed_monitors_output = False
 
 t_start = time.time()
 
-results = simulator.run(simulation_length=simulation_length1, advance_simulation_for_delayed_monitors_output=advance_simulation_for_delayed_monitors_output) # 35.0 with stimulus application
+results = simulator.run(simulation_length=simulation_length, advance_simulation_for_delayed_monitors_output=advance_simulation_for_delayed_monitors_output) # 35.0 with stimulus application
     
 print("\nSimulated in %f secs!" % (time.time() - t_start))
 
