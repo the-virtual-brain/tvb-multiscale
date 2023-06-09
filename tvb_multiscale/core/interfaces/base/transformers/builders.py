@@ -194,7 +194,7 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
 
 class TransformerInterfaceBuilder(InterfaceBuilder, TransformerBuilder, ABC):
 
-    """RemoteTransformerBuilder class"""
+    """TransformerInterfaceBuilder class"""
 
     input_label = Attr(field_type=str, default="InToTrans", required=True, label="Input label",
                        doc="""Input label of interface builder,
@@ -329,11 +329,11 @@ class SpikeNetToTVBTransformerInterfaceBuilder(TransformerInterfaceBuilder, Spik
         return input_interfaces
 
 
-class RemoteTransformerBuilder(TransformerInterfaceBuilder, RemoteInterfaceBuilder, ABC):
+class RemoteTransformerInterfaceBuilder(TransformerInterfaceBuilder, RemoteInterfaceBuilder, ABC):
 
     __metaclass__ = ABCMeta
 
-    """RemoteTransformerBuilder class"""
+    """RemoteTransformerInterfaceBuilder class"""
 
     _output_interface_type = RemoteTransformerInterface
     _input_interface_type = RemoteTransformerInterface
@@ -346,49 +346,71 @@ class RemoteTransformerBuilder(TransformerInterfaceBuilder, RemoteInterfaceBuild
             self._remote_sender_types, ["sender", "sender_model"], self._default_remote_sender_type)
         self._assert_output_interfaces_component_config(
             self._remote_receiver_types, ["receiver", "receiver_model"], self._default_remote_receiver_type)
-        super(RemoteTransformerBuilder, self)._configure_output_interfaces()
+        super(RemoteTransformerInterfaceBuilder, self)._configure_output_interfaces()
 
     def _configure_input_interfaces(self):
         self._assert_input_interfaces_component_config(
             self._remote_sender_types, ["sender", "sender_model"], self._default_remote_sender_type)
         self._assert_input_interfaces_component_config(
             self._remote_receiver_types, ["receiver", "receiver_model"], self._default_remote_receiver_type)
-        super(RemoteTransformerBuilder, self)._configure_input_interfaces()
+        super(RemoteTransformerInterfaceBuilder, self)._configure_input_interfaces()
 
     def _get_output_interface_arguments(self, interface, ii=0):
-        interface = super(RemoteTransformerBuilder, self)._get_output_interface_arguments(interface, ii)
+        interface = super(RemoteTransformerInterfaceBuilder, self)._get_output_interface_arguments(interface, ii)
         interface = self._build_communicator(interface, "receiver", ii)
         interface = self._build_communicator(interface, "sender", ii)
         return interface
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        interface = super(RemoteTransformerBuilder, self)._get_input_interface_arguments(interface, ii)
+        interface = super(RemoteTransformerInterfaceBuilder, self)._get_input_interface_arguments(interface, ii)
         interface = self._build_communicator(interface, "receiver", ii)
         interface = self._build_communicator(interface, "sender", ii)
         return interface
 
 
-class TVBtoSpikeNetRemoteTransformerBuilder(TVBtoSpikeNetTransformerInterfaceBuilder, RemoteTransformerBuilder):
-    """TVBtoSpikeNetRemoteTransformerBuilder class"""
+class TVBtoSpikeNetRemoteTransformerInterfaceBuilder(TVBtoSpikeNetTransformerInterfaceBuilder,
+                                                     RemoteTransformerInterfaceBuilder):
+    """TVBtoSpikeNetRemoteTransformerInterfaceBuilder class"""
+
+    input_label = Attr(field_type=str, default="TVBToTrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TransToSpikeNet", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
 
     _output_interface_type = TVBtoSpikeNetRemoteTransformerInterface
     _output_interfaces_type = TVBtoSpikeNetRemoteTransformerInterfaces
 
     def _configure_output_interfaces(self):
-        RemoteTransformerBuilder._configure_output_interfaces(self)
+        return RemoteTransformerInterfaceBuilder._configure_output_interfaces(self)
 
-    def _get_output_interface_arguments(self):
-        RemoteTransformerBuilder._get_output_interface_arguments(self)
+    def _get_output_interface_arguments(self, interface, ii=0):
+        return RemoteTransformerInterfaceBuilder._get_output_interface_arguments(self, interface, ii)
 
 
-class SpikeNetToTVBRemoteTransformerBuilder(SpikeNetToTVBTransformerInterfaceBuilder, RemoteTransformerBuilder):
-    """SpikeNetToTVBRemoteTransformerBuilder class"""
+class SpikeNetToTVBRemoteTransformerInterfaceBuilder(SpikeNetToTVBTransformerInterfaceBuilder,
+                                                     RemoteTransformerInterfaceBuilder):
+    """SpikeNetToTVBRemoteTransformerInterfaceBuilder class"""
+
+    input_label = Attr(field_type=str, default="SpikeNetToTrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TransToTVB", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
 
     _input_interface_type = SpikeNetToTVBRemoteTransformerInterface
     _input_interfaces_type = SpikeNetToTVBRemoteTransformerInterfaces
 
     def _configure_input_interfaces(self):
-        RemoteTransformerBuilder._configure_input_interfaces(self)
+        return RemoteTransformerInterfaceBuilder._configure_input_interfaces(self)
 
-    def _get_input_interface_arguments(self):
-        RemoteTransformerBuilder._get_input_interface_arguments(self)
+    def _get_input_interface_arguments(self, interface, ii=0):
+        return RemoteTransformerInterfaceBuilder._get_input_interface_arguments(self, interface, ii)
