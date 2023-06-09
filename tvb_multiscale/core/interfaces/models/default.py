@@ -9,7 +9,7 @@ from tvb.basic.neotraits._attr import Attr, Int
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBRemoteInterfaceBuilder, TVBSpikeNetInterfaceBuilder, \
-    TVBTransfomerInterfaceBuilder, TVBOutputTransformerInterfaceBuilder, TVBInputTransformerInterfaceBuilder, \
+    TVBTransformerInterfaceBuilder, TVBOutputTransformerInterfaceBuilder, TVBInputTransformerInterfaceBuilder, \
     TVBInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder,  \
     SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder, SpikeNetInterfaceBuilder
@@ -137,7 +137,7 @@ class DefaultTVBInputTransformerInterfaceBuilder(TVBInputTransformerInterfaceBui
         DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.input_interfaces)
 
 
-class DefaultTVBTransfomerInterfaceBuilder(TVBTransfomerInterfaceBuilder,
+class DefaultTVBTransfomerInterfaceBuilder(TVBTransformerInterfaceBuilder,
                                            DefaultTVBtoSpikeNetTransformerBuilder,
                                            DefaultSpikeNetToTVBTransformerBuilder,
                                            DefaultTVBInterfaceBuilder):
