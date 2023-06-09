@@ -456,13 +456,22 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
     def _get_output_interface_arguments(self, interface, ii=0):
         interface = self._get_interface_arguments(interface, ii)
         interface["dt"] = self.dt
-        return self._build_spikeNet_to_tvb_interface_proxy_nodes(
+        interface = self._build_spikeNet_to_tvb_interface_proxy_nodes(
             self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes))
+        if "proxy_inds" in interface:
+            del interface["proxy_inds"]
+        return interface
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        return self._build_tvb_to_spikeNet_interface_proxy_nodes(
+        interface = self._build_tvb_to_spikeNet_interface_proxy_nodes(
             self._get_spiking_proxy_inds_for_input_interface(
                 self._get_interface_arguments(interface, ii), self.exclusive_nodes))
+        # We don't need these anymore for interfaces without TVB:
+        if "proxy_inds" in interface:
+            del interface["proxy_inds"]
+        if 'coupling_mode' in interface:
+            del interface['coupling_mode']
+        return interface
 
     def build(self):
         self.build_interfaces()
@@ -547,23 +556,15 @@ class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, RemoteInterfaceBu
         RemoteInterfaceBuilder.configure(self)
 
     def _get_output_interface_arguments(self, interface, ii=0):
-        interface = RemoteInterfaceBuilder._get_output_interface_arguments(self,
+        return RemoteInterfaceBuilder._get_output_interface_arguments(self,
                                                         SpikeNetInterfaceBuilder._get_output_interface_arguments(
                                                                           self, interface, ii), ii)
-        if "proxy_inds" in interface:
-            del interface["proxy_inds"]
-        return interface
+
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        interface = RemoteInterfaceBuilder._get_input_interface_arguments(self,
+        return RemoteInterfaceBuilder._get_input_interface_arguments(self,
                                                         SpikeNetInterfaceBuilder._get_input_interface_arguments(
                                                                          self, interface, ii), ii)
-        # We don't need these anymore for interfaces without TVB:
-        if "proxy_inds" in interface:
-            del interface["proxy_inds"]
-        if 'coupling_mode' in interface:
-            del interface['coupling_mode']
-        return interface
 
 
 class SpikeNetRemoteTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,
