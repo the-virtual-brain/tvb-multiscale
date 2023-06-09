@@ -44,14 +44,18 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 class CoSimulatorRemoteParallel(CoSimulator):
 
-    pass
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True):
+        outputs = self.send_cosim_coupling(cosimulation)
+        self.n_tvb_steps_ran_since_last_synch = \
+            super(CoSimulatorRemoteParallel, self).run_for_synchronization_time(
+                ts, xs, wall_time_start, cosim_updates=self.get_cosim_updates(cosimulation))
+        return outputs
 
 
 class CoSimulatorParallel(CoSimulator):
 
-    def get_cosim_updates(self, cosim_updates, cosimulation=True):
-        cosim_updates = None
-        if cosimulation and self.input_interfaces:
+    def get_cosim_updates(self, cosim_updates=None, cosimulation=True):
+        if cosimulation and self.input_interfaces and cosim_updates is not None:
             # Get the update data from the other cosimulator
             cosim_updates = self.input_interfaces(cosim_updates, self.good_cosim_update_values_shape)
             isnans = numpy.isnan(cosim_updates[-1])
@@ -63,6 +67,14 @@ class CoSimulatorParallel(CoSimulator):
                 self.log.error(msg)
                 raise Exception(msg)
         return cosim_updates
+
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True):
+        outputs = self.send_cosim_coupling(cosimulation)
+        self.n_tvb_steps_ran_since_last_synch = \
+            super(CoSimulatorParallel, self).run_for_synchronization_time(
+                ts, xs, wall_time_start,
+                cosim_updates=self.get_cosim_updates(cosim_updates, cosimulation))
+        return outputs
 
 
 class CoSimulatorParallelNRP(CoSimulatorParallel):

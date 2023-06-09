@@ -396,7 +396,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.n_tvb_steps_ran_since_last_synch = 0
         return outputs
 
-    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, **kwds):
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, **kwds):
         # Loop of integration for synchronization_time
         current_step = int(self.current_step)
         for data in self(cosim_updates=cosim_updates, **kwds):
@@ -426,7 +426,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         while remaining_steps > 0:
             self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
             steps_performed = \
-                self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
+                self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
             simulated_steps += steps_performed
             remaining_steps -= steps_performed
             self.n_tvb_steps_ran_since_last_synch += steps_performed
@@ -442,8 +442,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                               remaining_steps * self.integrator.dt)
                 synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
                 self.synchronization_n_step = numpy.minimum(synchronization_n_step, remaining_steps)
-                self._run_for_synchronization_time(ts, xs, wall_time_start,
-                                                   cosimulation=False, **kwds)  # Run only TVB
+                self.run_for_synchronization_time(ts, xs, wall_time_start,
+                                                  cosimulation=False, **kwds)  # Run only TVB
                 self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
         self.simulation_length = simulation_length  # recover the configured value
 
@@ -461,7 +461,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                                    advance_simulation_for_delayed_monitors_output=asfdmo,
                                    **kwds)
         else:
-            self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
+            self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
             ts[i] = numpy.array(ts[i])
             xs[i] = numpy.array(xs[i])
