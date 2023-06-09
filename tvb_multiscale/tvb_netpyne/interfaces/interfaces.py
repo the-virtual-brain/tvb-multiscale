@@ -171,7 +171,7 @@ class NetpyneOutputInterfaces(SpikeNetOutputInterfaces, NetpyneInterfaces):
 
     """NetpyneSenderInterfaces holding a list of NetpyneSenderInterface instances"""
 
-    interfaces = List(of=NetpyneSenderInterface)
+    interfaces = List(of=NetpyneOutputInterface)
 
 
 class NetpyneInputInterfaces(SpikeNetInputInterfaces, NetpyneInterfaces):
@@ -185,7 +185,7 @@ class NetpyneOutputTransformerInterfaces(SpikeNetOutputTransformerInterfaces, Ne
 
     """NetpyneOutputTransformerInterfaces holding a list of NetpyneOutputTransformerInterface instances"""
 
-    interfaces = List(of=NetpyneOutputInterface)
+    interfaces = List(of=NetpyneOutputTransformerInterface)
 
 
 class NetpyneInputTransformerInterfaces(SpikeNetInputTransformerInterfaces, NetpyneInterfaces):

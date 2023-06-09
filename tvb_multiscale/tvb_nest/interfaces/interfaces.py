@@ -168,7 +168,7 @@ class NESTOutputInterfaces(SpikeNetOutputInterfaces, NESTInterfaces):
 
     """NESTSenderInterfaces holding a list of NESTSenderInterface instances"""
 
-    interfaces = List(of=NESTSenderInterface)
+    interfaces = List(of=NESTOutputInterface)
 
 
 class NESTInputInterfaces(SpikeNetInputInterfaces, NESTInterfaces):
@@ -182,7 +182,7 @@ class NESTOutputTransformerInterfaces(SpikeNetOutputTransformerInterfaces, NESTI
 
     """NESTOutputTransformerInterfaces holding a list of NESTOutputTransformerInterface instances"""
 
-    interfaces = List(of=NESTOutputInterface)
+    interfaces = List(of=NESTOutputTransformerInterface)
 
 
 class NESTInputTransformerInterfaces(SpikeNetInputTransformerInterfaces, NESTInterfaces):

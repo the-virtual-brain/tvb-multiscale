@@ -174,7 +174,7 @@ class ANNarchyOutputInterfaces(SpikeNetOutputInterfaces, ANNarchyInterfaces):
 
     """ANNarchySenderInterfaces holding a list of ANNarchySenderInterface instances"""
 
-    interfaces = List(of=ANNarchySenderInterface)
+    interfaces = List(of=ANNarchyOutputInterface)
 
 
 class ANNarchyInputInterfaces(SpikeNetInputInterfaces, ANNarchyInterfaces):
@@ -188,7 +188,7 @@ class ANNarchyOutputTransformerInterfaces(SpikeNetOutputTransformerInterfaces, A
 
     """ANNarchyOutputTransformerInterfaces holding a list of ANNarchyOutputTransformerInterface instances"""
 
-    interfaces = List(of=ANNarchyOutputInterface)
+    interfaces = List(of=ANNarchyOutputTransformerInterface)
 
 
 class ANNarchyInputTransformerInterfaces(SpikeNetInputTransformerInterfaces, ANNarchyInterfaces):
