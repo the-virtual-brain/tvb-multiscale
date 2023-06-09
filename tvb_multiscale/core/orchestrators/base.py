@@ -1,22 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABC, ABCMeta, abstractmethod
 import os
 from logging import Logger
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr, Float, NArray
+from tvb.basic.neotraits.api import Attr, Float
 from tvb.contrib.scripts.utils.log_error_utils import warning
 
-from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 
 
 class App(HasTraits):
-    __metaclass__ = ABCMeta
 
     """App abstract base class"""
 
@@ -44,85 +42,73 @@ class App(HasTraits):
         default=""
     )
 
-    proxy_inds = NArray(
-        dtype=np.int,
-        label="Indices of proxy nodes",
-        doc="""Indices of proxy nodes""",
-        required=True
-    )
-
-    exclusive_nodes = Attr(label="Flag of exclusive nodes",
-                           doc="""Boolean flag that is true if the co-simulator nodes are modelled exclusively
-                                  by the co-simulator, i.e., they are not simulated by TVB""",
-                           field_type=bool,
-                           default=True,
-                           required=True)
-
-    synchronization_time = Float(
-        label="Synchronization time (ms)",
-        default=0.0,
-        required=True,
-        doc="""Synchronization time (default in milliseconds).""")
-
-    simulation_length = Float(
-        label="Simulation Length (ms)",
-        default=110.0,
-        required=True,
-        doc="""The length of a simulation (default in milliseconds). 
-               It will be corrected by ceiling to a multiple of the cosimulators synchronization time.""")
-
+    _app_or_orchestrator = "App"
     _attrs_to_info = []
+
+    def _logprint(self, msg):
+        msg = "\n" + msg
+        try:
+            self.logger(msg)
+        except:
+            pass
+        if self.verbosity:
+            print(msg)
 
     def setup_from_another_app(self, app):
         self.config = app.config
         self.logger = app.logger
         self.default_tvb_serial_cosim_path = app.default_tvb_serial_cosim_path
-        self.proxy_inds = app.proxy_inds
-        self.exclusive_nodes = app.exclusive_nodes
-        self.simulation_length = app.simulation_length
-        self.synchronization_time = app.synchronization_time
 
-    def configure(self):
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
-        super(App, self).configure()
+    def configure_tvb_serial_cosim_path(self):
         if len(self.default_tvb_serial_cosim_path) == 0:
             self.default_tvb_serial_cosim_path = \
                 getattr(self.config, "DEFAULT_TVB_SERIAL_COSIM_PATH",
-                        os.path.join(self.config.out.FOLDER_RES, "tvb_cosimulator_serialized.pkl"))
+                        os.path.join(self.config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl"))
 
-    @abstractmethod
+    def configure(self):
+        try:
+            self.logger
+        except:
+            self.logger = initialize_logger(__name__, config=self.config)
+        super(App, self).configure()
+        self.configure_tvb_serial_cosim_path()
+
+    @property
+    def verbosity(self):
+        return self.config.VERBOSITY
+
     def start(self):
-        pass
+        self._logprint("Starting %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
-    @abstractmethod
     def build(self):
-        pass
+        self._logprint("Building with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
-    @abstractmethod
     def configure_simulation(self):
-        pass
+        self._logprint("Configuring simulation with %s %s..."
+                       % (self._app_or_orchestrator, self.__class__.__name__))
 
     def init(self):
+        self._logprint("Initializing %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
         self.configure()
         self.build()
         self.configure_simulation()
 
+    def simulate(self):
+        self._logprint("Simulating with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
+
     def run(self):
+        self._logprint("Running simulation with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
         self.init()
         self.simulate()
 
-    @abstractmethod
     def clean_up(self):
-        pass
+        self._logprint("Cleaning up %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
-    @abstractmethod
     def reset(self):
-        pass
+        self._logprint("Resetting %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
-    @abstractmethod
     def stop(self):
-        pass
+        self._logprint("Stopping %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
     def _add_attrs_to_info(self, info):
         for attr in self._attrs_to_info:
@@ -136,8 +122,7 @@ class App(HasTraits):
         return self._add_attrs_to_info(super(App, self).info_details(recursive=recursive, **kwargs))
 
 
-class AppWithInterfaces(App, ABC):
-    __metaclass__ = ABCMeta
+class AppWithInterfaces(App):
 
     """AppWithInterfaces abstract base class"""
 
@@ -148,54 +133,64 @@ class AppWithInterfaces(App, ABC):
         required=False
     )
 
-    _default_interface_builder = InterfaceBuilder
+    _default_interface_builder_type = InterfaceBuilder
     _interfaces_built = False
 
     def configure_interfaces_builder(self):
-        self.interfaces_builder.config = self.config
+        self._logprint("Configuring interfaces' builder %s of App %s..."
+                       % (self._interfaces_builder.__class__.__name__, self.__class__.__name__))
+        self._interfaces_builder.config = self.config
         self.interfaces_builder.logger = self.logger
-        self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
-        self.interfaces_builder.proxy_inds = self.proxy_inds
         # Now further configure the interfaces builder...
         if hasattr(self.interfaces_builder, "default_config"):
             # ...either from its default configuration, if any:
+            if self.verbosity:
+                self._logprint("Configuring default interfaces...")
             self.interfaces_builder.default_config()
         elif os.path.isfile(self.interfaces_builder.interface_filepath):
             # ...or from loading configurations from file:
+            if self.verbosity:
+                self._logprint("Reading interfaces' configurations from files...")
             self.interfaces_builder.load_all_interfaces()
         # Run the configuration of the builder:
         self.interfaces_builder.configure()
-        # Update proxy inds and exclusive nodes:
-        self.proxy_inds = self.interfaces_builder.proxy_inds
-        self.exclusive_nodes = self.interfaces_builder.exclusive_nodes
 
     @property
     def _interfaces_builder(self):
-        if not isinstance(self.interfaces_builder, self._default_interface_builder):
-            self.interfaces_builder = self._default_interface_builder(config=self.config, logger=self.logger)
+        try:
+            assert isinstance(self.interfaces_builder, self._default_interface_builder_type)
+        except:
+            self._logprint("Instantiating interfaces' builder %s of App %s..."
+                           % (self._default_interface_builder_type.__name__, self.__class__.__name__))
+            self.interfaces_builder = self._default_interface_builder_type(config=self.config, logger=self.logger)
         return self.interfaces_builder
 
-    @abstractmethod
     def build_interfaces(self):
-        pass
+        self._logprint("Building interfaces' with builder %s of App %s..."
+                       % (self._default_interface_builder_type.__name__, self.__class__.__name__))
+        self.configure_interfaces_builder()
 
     def build(self):
+        super(AppWithInterfaces, self).build()
         self.build_interfaces()
 
     def reset(self):
-        self.output_interfaces = None
-        self.input_interfaces = None
+        super(AppWithInterfaces, self).reset()
+        self._interfaces_built = False
+
+    def stop(self):
+        super(AppWithInterfaces, self).stop()
         self._interfaces_built = False
 
 
-class CoSimulatorApp(AppWithInterfaces, ABC):
-    __metaclass__ = ABCMeta
+class CoSimulatorApp(AppWithInterfaces):
 
     """CoSimulatorApp abstract base class"""
 
+    pass
 
-class NonTVBApp(CoSimulatorApp, ABC):
-    __metaclass__ = ABCMeta
+
+class NonTVBApp(CoSimulatorApp):
 
     """NonTVBApp abstract base class"""
 
@@ -213,12 +208,15 @@ class NonTVBApp(CoSimulatorApp, ABC):
             self.tvb_cosimulator_serialized = load_pickled_dict(filepath)
         except:
             # TODO: Decide whether to raise an exception here
-            warning("Failed to load serialized TVB CoSimulator from file!:\n%s" % filepath)
+            self.logger.warning("Failed to load serialized TVB CoSimulator from file!:\n%s" % filepath)
+        return self.tvb_cosimulator_serialized
 
     @property
     def _serialized_tvb_cosimulator(self):
-        if len(self.tvb_cosimulator_serialized) == 0:
-            self.load_serialized_tvb_cosimulator()
+        try:
+            assert isinstance(self.tvb_cosimulator_serialized, dict)
+        except:
+            self.tvb_cosimulator_serialized = self.load_serialized_tvb_cosimulator()
         return self.tvb_cosimulator_serialized
 
     @property
@@ -257,25 +255,28 @@ class NonTVBApp(CoSimulatorApp, ABC):
     def tvb_delays(self):
         return self.tvb_cosimulator_serialized["connectivity.delays"]
 
-    def build_interfaces(self):
-        if not self._interfaces_built:
-            self.output_interfaces, self.input_interfaces = self._interfaces_builder.build()
-            self._interfaces_built = True
+    @property
+    def tvb_delays(self):
+        return self.tvb_cosimulator_serialized["connectivity.delays"]
+
+    def configure_interfaces_builder(self):
+        self._interfaces_builder.tvb_simulator_serialized = self._serialized_tvb_cosimulator
+        super(NonTVBApp, self).configure_interfaces_builder()
 
     def configure_simulation(self):
-        self.output_interfaces.configure()
-        self.input_interfaces.configure()
+        super(NonTVBApp, self).configure_simulation()
 
 
-class Orchestrator(App, ABC):
-    __metaclass__ = ABCMeta
+class Orchestrator(App):
 
     """Orchestrator abstract base class"""
 
-    @abstractmethod
+    _app_or_orchestrator = "App"
+
     def build_interfaces(self):
-        pass
+        self._logprint("Building interfaces with Orchestrator %s...", self.__class__.__name__)
 
     def build(self):
+        super(Orchestrator, self).build()
         self.build_cosimulators()
         self.build_interfaces()
