@@ -70,16 +70,17 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
     connectivity = Connectivity.from_file(config.DEFAULT_CONNECTIVITY_ZIP)
 
     # -------------- Pick a minimal brain of only the first n_regions regions: ----------------
-    n_regions = config.N_REGIONS
-    connectivity.number_of_regions = n_regions
-    connectivity.region_labels = connectivity.region_labels[:n_regions]
-    connectivity.centres = connectivity.centres[:n_regions]
-    connectivity.areas = connectivity.areas[:n_regions]
-    connectivity.orientations = connectivity.orientations[:n_regions]
-    connectivity.hemispheres = connectivity.hemispheres[:n_regions]
-    connectivity.cortical = connectivity.cortical[:n_regions]
-    connectivity.weights = connectivity.weights[:n_regions][:, :n_regions]
-    connectivity.tract_lengths = connectivity.tract_lengths[:n_regions][:, :n_regions]
+    if config.N_REGIONS:
+        n_regions = config.N_REGIONS
+        connectivity.number_of_regions = n_regions
+        connectivity.region_labels = connectivity.region_labels[:n_regions]
+        connectivity.centres = connectivity.centres[:n_regions]
+        connectivity.areas = connectivity.areas[:n_regions]
+        connectivity.orientations = connectivity.orientations[:n_regions]
+        connectivity.hemispheres = connectivity.hemispheres[:n_regions]
+        connectivity.cortical = connectivity.cortical[:n_regions]
+        connectivity.weights = connectivity.weights[:n_regions][:, :n_regions]
+        connectivity.tract_lengths = connectivity.tract_lengths[:n_regions][:, :n_regions]
     # Remove diagonal self-connections:
     np.fill_diagonal(connectivity.weights, 0.0)
     # -----------------------------------------------------------------------------------------
@@ -126,6 +127,7 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
 
     simulator.configure()
 
-    simulator.print_summary_info_details(recursive=1)
+    if config.VERBOSITY:
+        simulator.print_summary_info_details(recursive=1)
 
     return simulator

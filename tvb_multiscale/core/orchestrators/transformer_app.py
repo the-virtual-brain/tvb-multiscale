@@ -1,219 +1,209 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABC, ABCMeta
-
-from tvb.basic.neotraits._attr import Attr
+from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TransformerInterfaceBuilder, RemoteTransformerBuilder, \
-    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, \
-    TVBtoSpikeNetRemoteTransformerBuilder, SpikeNetToTVBRemoteTransformerBuilder
+    TransformerInterfaceBuilder, RemoteTransformerInterfaceBuilder, \
+    TVBtoSpikeNetTransformerInterfaceBuilder, SpikeNetToTVBTransformerInterfaceBuilder, \
+    TVBtoSpikeNetRemoteTransformerInterfaceBuilder, SpikeNetToTVBRemoteTransformerInterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.interfaces import \
     TVBtoSpikeNetTransformerInterfaces, SpikeNetToTVBTransformerInterfaces, \
     TVBtoSpikeNetRemoteTransformerInterfaces, SpikeNetToTVBRemoteTransformerInterfaces
 
 
-class TransformerApp(NonTVBApp, ABC):
-    __metaclass__ = ABCMeta
+class TransformerApp(NonTVBApp):
 
-    """TransformerApp abstract base class"""
+    """TransformerApp base class"""
 
     interfaces_builder = Attr(
         label="TVB<->spikeNet Remote Transformer Interfaces builder",
         field_type=TransformerInterfaceBuilder,
-        doc="""Instance of RemoteTransformerBuilder class.""",
+        doc="""Instance of RemoteTransformerInterfaceBuilder class.""",
         required=False
     )
 
-    output_interfaces = Attr(
-        label="Output (TVB->spikeNet) Transformer interfaces",
+    tvb_to_spikeNet_interfaces = Attr(
+        label="TVB->spikeNet Transformer interfaces",
         field_type=TVBtoSpikeNetTransformerInterfaces,
         doc="""Instance of TVBtoSpikeNetRemoteTransformerInterfaces.""",
         required=False
     )
 
-    input_interfaces = Attr(
+    spikeNet_to_tvb_interfaces = Attr(
         label="Input (TVB<-spikeNet) Remote Transformer interfaces",
         field_type=SpikeNetToTVBTransformerInterfaces,
         doc="""Instance of SpikeNetToTVBRemoteTransformerInterfaces.""",
         required=False
     )
 
-    _default_interface_builder = TransformerInterfaceBuilder
+    _default_interface_builder_type = TransformerInterfaceBuilder
 
-    # def configure(self):
-    #     super(TransformerApp, self).configure()
+    def build_interfaces(self):
+        if not self._interfaces_built:
+            super(TransformerApp, self).build_interfaces()
+            self.tvb_to_spikeNet_interfaces, self.spikeNet_to_tvb_interfaces = self._interfaces_builder.build()
+            self._interfaces_built = True
+            if self.verbosity:
+                self._logprint(self.tvb_to_spikeNet_interfaces.summary_info_to_string(recursive=2))
+                self._logprint(self.spikeNet_to_tvb_interfaces.summary_info_to_string(recursive=2))
 
-    def build(self):
-        self.build_interfaces()
+    def configure_simulation(self):
+        super(TransformerApp, self).configure_simulation()
+        self.tvb_to_spikeNet_interfaces.configure()
+        self.spikeNet_to_tvb_interfaces.configure()
 
-    def run_for_synchronization_time(self, input_cosim_updates, output_cosim_updates):
-        return self.output_interfaces(output_cosim_updates), self.input_interfaces(input_cosim_updates)
+    def run_for_synchronization_time(self, tvb_to_spikeNet_cosim_updates, spikeNet_to_tvb_cosim_updates):
+        return self.tvb_to_spikeNet_interfaces(tvb_to_spikeNet_cosim_updates), \
+               self.spikeNet_to_tvb_interfaces(spikeNet_to_tvb_cosim_updates)
 
 
-class TVBtoSpikeNetTransformerApp(NonTVBApp, ABC):
-    __metaclass__ = ABCMeta
+class TVBtoSpikeNetTransformerApp(NonTVBApp):
 
-    """TVBtoSpikeNetTransformerApp abstract base class"""
+    """TVBtoSpikeNetTransformerApp class"""
 
     interfaces_builder = Attr(
         label="TVB->spikeNet Transformer Interfaces builder",
-        field_type=TVBtoSpikeNetTransformerBuilder,
-        doc="""Instance of TVBtoSpikeNetTransformerBuilder class.""",
+        field_type=TVBtoSpikeNetTransformerInterfaceBuilder,
+        doc="""Instance of TVBtoSpikeNetTransformerInterfaceBuilder class.""",
         required=False
     )
 
-    output_interfaces = Attr(
-        label="Output (TVB->spikeNet) Transformer interfaces",
+    tvb_to_spikeNet_interfaces = Attr(
+        label="TVB->spikeNet Transformer interfaces",
         field_type=TVBtoSpikeNetTransformerInterfaces,
         doc="""Instance of TVBtoSpikeNetTransformerInterfaces.""",
         required=False
     )
 
-    input_interfaces = None
-
-    _default_interface_builder = TVBtoSpikeNetTransformerBuilder
+    _default_interface_builder_type = TVBtoSpikeNetTransformerInterfaceBuilder
 
     def build_interfaces(self):
         if not self._interfaces_built:
-            self.output_interfaces = self._interfaces_builder.build()
+            super(TVBtoSpikeNetTransformerApp, self).build_interfaces()
+            self.tvb_to_spikeNet_interfaces = self._interfaces_builder.build()
             self._interfaces_built = True
+            if self.verbosity:
+                self._logprint(self.tvb_to_spikeNet_interfaces.summary_info_to_string(recursive=2))
+
+    def configure_simulation(self):
+        super(TVBtoSpikeNetTransformerApp, self).configure_simulation()
+        self.tvb_to_spikeNet_interfaces.configure()
 
     def run_for_synchronization_time(self, cosim_updates):
-        return self.output_interfaces(cosim_updates)
-
-    def reset(self):
-        self.output_interfaces = None
-        self._interfaces_built = False
+        return self.tvb_to_spikeNet_interfaces(cosim_updates)
 
 
-class SpikeNetToTVBTransformerApp(NonTVBApp, ABC):
-    __metaclass__ = ABCMeta
+class SpikeNetToTVBTransformerApp(NonTVBApp):
 
-    """SpikeNetToTVBTransformerApp abstract base class"""
+    """SpikeNetToTVBTransformerApp class"""
 
     interfaces_builder = Attr(
         label="TVB<-spikeNet Transformer Interfaces builder",
-        field_type=SpikeNetToTVBTransformerBuilder,
-        doc="""Instance of TVBtoSpikeNetTransformerBuilder class.""",
+        field_type=SpikeNetToTVBTransformerInterfaceBuilder,
+        doc="""Instance of SpikeNetToTVBTransformerInterfaceBuilder class.""",
         required=False
     )
 
-    input_interfaces = Attr(
-        label="Input (TVB<-spikeNet) Transformer interfaces",
+    spikeNet_to_tvb_interfaces = Attr(
+        label="TVB<-spikeNet Transformer interfaces",
         field_type=SpikeNetToTVBTransformerInterfaces,
         doc="""Instance of SpikeNetToTVBTransformerInterfaces.""",
         required=False
     )
 
-    output_interfaces = None
-
-    _default_interface_builder = SpikeNetToTVBTransformerBuilder
+    _default_interface_builder_type = SpikeNetToTVBTransformerInterfaceBuilder
 
     def build_interfaces(self):
         if not self._interfaces_built:
-            self.input_interfaces = self._interfaces_builder.build()
+            super(SpikeNetToTVBTransformerApp, self).build_interfaces()
+            self.spikeNet_to_tvb_interfaces = self._interfaces_builder.build()
             self._interfaces_built = True
+            if self.verbosity:
+                self._logprint(self.spikeNet_to_tvb_interfaces.summary_info_to_string(recursive=2))
+
+    def configure_simulation(self):
+        super(SpikeNetToTVBTransformerApp, self).configure_simulation()
+        self.spikeNet_to_tvb_interfaces.configure()
 
     def run_for_synchronization_time(self, cosim_updates):
-        return self.input_interfaces(cosim_updates)
-
-    def reset(self):
-        self.input_interfaces = None
-        self._interfaces_built = False
+        return self.spikeNet_to_tvb_interfaces(cosim_updates)
 
 
-class RemoteTransformerApp(TransformerApp, ABC):
-    __metaclass__ = ABCMeta
+class RemoteTransformerApp(TransformerApp):
 
-    """RemoteTransformerApp abstract base class"""
+    """RemoteTransformerApp class"""
 
     interfaces_builder = Attr(
         label="TVB<->spikeNet Remote Transformer Interfaces builder",
-        field_type=RemoteTransformerBuilder,
-        doc="""Instance of RemoteTransformerBuilder class.""",
+        field_type=RemoteTransformerInterfaceBuilder,
+        doc="""Instance of RemoteTransformerInterfaceBuilder class.""",
         required=False
     )
 
-    output_interfaces = Attr(
+    tvb_to_spikeNet_interfaces = Attr(
         label="Output (TVB->spikeNet) Remote Transformer interfaces",
         field_type=TVBtoSpikeNetRemoteTransformerInterfaces,
         doc="""Instance of TVBtoSpikeNetRemoteTransformerInterfaces.""",
         required=False
     )
 
-    input_interfaces = Attr(
+    spikeNet_to_tvb_interfaces = Attr(
         label="Input (TVB<-spikeNet) Remote Transformer interfaces",
         field_type=SpikeNetToTVBRemoteTransformerInterfaces,
         doc="""Instance of SpikeNetToTVBRemoteTransformerInterfaces.""",
         required=False
     )
 
-    _default_interface_builder = RemoteTransformerBuilder
+    _default_interface_builder_type = RemoteTransformerInterfaceBuilder
+
+    def run_for_synchronization_time(self):
+        return self.tvb_to_spikeNet_interfaces(), self.spikeNet_to_tvb_interfaces()
 
 
-class TVBtoSpikeNetRemoteTransformerApp(NonTVBApp, ABC):
-    __metaclass__ = ABCMeta
+class TVBtoSpikeNetRemoteTransformerApp(TVBtoSpikeNetTransformerApp):
 
-    """TVBtoSpikeNetRemoteTransformerApp abstract base class"""
+    """TVBtoSpikeNetRemoteTransformerApp class"""
 
     interfaces_builder = Attr(
         label="TVB->spikeNet Remote Transformer Interfaces builder",
-        field_type=TVBtoSpikeNetRemoteTransformerBuilder,
-        doc="""Instance of TVBtoSpikeNetRemoteTransformerBuilder class.""",
+        field_type=TVBtoSpikeNetRemoteTransformerInterfaceBuilder,
+        doc="""Instance of TVBtoSpikeNetRemoteTransformerInterfaceBuilder class.""",
         required=False
     )
 
-    output_interfaces = Attr(
+    tvb_to_spikeNet_interfaces = Attr(
         label="Output (TVB->spikeNet) Remote Transformer interfaces",
         field_type=TVBtoSpikeNetRemoteTransformerInterfaces,
         doc="""Instance of TVBtoSpikeNetRemoteTransformerInterfaces.""",
         required=False
     )
 
-    input_interfaces = None
+    _default_interface_builder_type = TVBtoSpikeNetRemoteTransformerInterfaceBuilder
 
-    _default_interface_builder = TVBtoSpikeNetRemoteTransformerBuilder
-
-    def build_interfaces(self):
-        if not self._interfaces_built:
-            self.output_interfaces = self._interfaces_builder.build()
-            self._interfaces_built = True
-
-    def reset(self):
-        self.output_interfaces = None
-        self._interfaces_built = False
+    def run_for_synchronization_time(self):
+        return self.tvb_to_spikeNet_interfaces()
 
 
-class SpikeNetToTVBRemoteTransformerApp(NonTVBApp, ABC):
-    __metaclass__ = ABCMeta
+class SpikeNetToTVBRemoteTransformerApp(SpikeNetToTVBTransformerApp):
 
-    """SpikeNetToTVBRemoteTransformerApp abstract base class"""
+    """SpikeNetToTVBRemoteTransformerApp class"""
 
     interfaces_builder = Attr(
         label="TVB<-spikeNet Remote Transformer Interfaces builder",
-        field_type=SpikeNetToTVBRemoteTransformerBuilder,
-        doc="""Instance of TVBtoSpikeNetRemoteTransformerBuilder class.""",
+        field_type=SpikeNetToTVBRemoteTransformerInterfaceBuilder,
+        doc="""Instance of TVBtoSpikeNetRemoteTransformerInterfaceBuilder class.""",
         required=False
     )
 
-    input_interfaces = Attr(
+    spikeNet_to_tvb_interfaces = Attr(
         label="Input (TVB<-spikeNet) Remote Transformer interfaces",
         field_type=SpikeNetToTVBRemoteTransformerInterfaces,
         doc="""Instance of SpikeNetToTVBRemoteTransformerInterfaces.""",
         required=False
     )
 
-    output_interfaces = None
+    _default_interface_builder_type = SpikeNetToTVBRemoteTransformerInterfaceBuilder
 
-    _default_interface_builder = SpikeNetToTVBRemoteTransformerBuilder
-
-    def build_interfaces(self):
-        if not self._interfaces_built:
-            self.input_interfaces = self._interfaces_builder.build()
-            self._interfaces_built = True
-
-    def reset(self):
-        self.input_interfaces = None
-        self._interfaces_built = False
+    def run_for_synchronization_time(self):
+        return self.spikeNet_to_tvb_interfaces()

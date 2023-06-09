@@ -345,7 +345,7 @@ class RemoteInterfaceBuilder(InterfaceBuilder, ABC):
         params = interface.pop(communicator + "_params", {})
         if interface[communicator] in (MPIWriter, MPIReader):
             self._mpi_flag = True
-        if isinstance(interface[communicator].__class__, type):
+        if isinstance(interface[communicator], type):
             # Generate the communicator instance from a type
             if self._mpi_flag:
                 # There is only 1 MPI communicator for all interfaces:

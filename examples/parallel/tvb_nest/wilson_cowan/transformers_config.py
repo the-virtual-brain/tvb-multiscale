@@ -26,4 +26,4 @@ def configure_NESTtoTVB_transformer_interfaces(config=None, config_class=Config,
 
 
 def configure_NESTtoTVB_remote_transformer_interfaces(config=None, config_class=Config, **kwargs):
-    return configure_spikeNetToTVB_transformer_interfaces(config=config, config_class=config_class, **kwargs)
+    return configure_spikeNetToTVB_remote_transformer_interfaces(config=config, config_class=config_class, **kwargs)

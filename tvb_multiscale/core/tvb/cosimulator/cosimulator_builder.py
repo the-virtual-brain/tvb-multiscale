@@ -17,7 +17,7 @@ from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel, CoSimulatorParallelNRP
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel, CoSimulatorRemoteParallel
 
 
 class CoSimulatorBuilder(HasTraits):
@@ -323,6 +323,21 @@ class CoSimulatorParallelBuilder(CoSimulatorBuilder):
     _cosimulator_type = CoSimulatorParallel
 
 
+class CoSimulatorRemoteParallelBuilder(CoSimulatorBuilder):
+
+    """CoSimulatorParallelBuilder is an opinionated builder for a TVB CoSimulatorParallel,
+       adjusted for parallel cosimulation.
+       Depending on its properties set, the builder may
+       - scale/normalize the connectivity weights,
+       - remove time delays or not,
+       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
+       - set integrator (including noise and integration step),
+       - set monitor (including model's variables of interest and period)
+    """
+
+    _cosimulator_type = CoSimulatorRemoteParallel
+
+
 class CoSimulatorSerialBuilder(CoSimulatorBuilder):
     """CoSimulatorSerialBuilder is an opinionated builder for a TVB CoSimulatorSerial,
        adjusted for serial cosimulation.
@@ -335,17 +350,3 @@ class CoSimulatorSerialBuilder(CoSimulatorBuilder):
     """
 
     _cosimulator_type = CoSimulatorSerial
-
-
-class CoSimulatorNRPBuilder(CoSimulatorParallelBuilder):
-    """CoSimulatorNRPBuilder is an opinionated builder for a TVB CoSimulatorParallelNRP,
-       adjusted for NRP cosimulation.
-       Depending on its properties set, the builder may
-       - scale/normalize the connectivity weights,
-       - remove time delays or not,
-       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
-       - set integrator (including noise and integration step),
-       - set monitor (including model's variables of interest and period)
-    """
-
-    _cosimulator_type = CoSimulatorParallelNRP

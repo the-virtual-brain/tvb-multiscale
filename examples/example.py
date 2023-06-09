@@ -57,9 +57,6 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator = orchestrator_app(
         config=config,
         logger=logger,
-        exclusive_nodes=exclusive_nodes,
-        proxy_inds=spiking_proxy_inds,
-        simulation_length=simulation_length
     )
     orchestrator.start()
 
@@ -106,7 +103,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     # -------------------------------------4. Configure, Simulate and gather results------------------------------------
     print("\n\nSimulating...")
     tic = time.time()
-    orchestrator.simulate()
+    orchestrator.simulate(simulation_length)
     print("\nSimulated in %f secs!\n" % (time.time() - tic))
 
     simulator = orchestrator.tvb_cosimulator
@@ -118,7 +115,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
         tic = time.time()
         # try:
         plot_write_results(results, simulator,
-                           orchestrator.spiking_network, orchestrator.proxy_inds,
+                           orchestrator.spiking_network, spiking_proxy_inds,
                            transient=transient, tvb_state_variable_type_label="State Variables",
                            tvb_state_variables_labels=simulator.model.variables_of_interest,
                            plot_per_neuron=True, plotter=plotter, config=config)

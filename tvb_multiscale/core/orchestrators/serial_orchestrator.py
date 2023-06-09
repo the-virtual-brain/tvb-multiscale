@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tvb.basic.neotraits._attr import Attr
+from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.orchestrators.base import Orchestrator
 from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp
@@ -27,14 +27,6 @@ class SerialOrchestrator(Orchestrator):
         default=None
     )
 
-    exclusive_nodes = Attr(label="Flag of exclusive nodes",
-                           doc="""Boolean flag that is true 
-                                  if the co-simulator nodes are modelled exclusively by the co-simulator, 
-                                  i.e., they are not simulated by TVB""",
-                           field_type=bool,
-                           default=True,
-                           required=True)
-
     @property
     def tvb_cosimulator(self):
         return self.tvb_app.cosimulator
@@ -48,13 +40,14 @@ class SerialOrchestrator(Orchestrator):
         return self.spikeNet_app.spiking_network
 
     def configure(self):
-        super(Orchestrator, self).configure()
+        super(SerialOrchestrator, self).configure()
         self.tvb_app.setup_from_another_app(self)
         self.tvb_app.configure()
         self.spikeNet_app.setup_from_another_app(self)
         self.spikeNet_app.configure()
 
     def start(self):
+        super(SerialOrchestrator, self).start()
         self.tvb_app.start()
         self.spikeNet_app.start()
 
@@ -62,6 +55,8 @@ class SerialOrchestrator(Orchestrator):
         self.tvb_app.cosimulator.simulate_spiking_simulator = self.spikeNet_app.simulate
 
     def build_cosimulators(self):
+        if self.verbosity:
+            self.logger.info("Building cosimulators with %s..." % self.__class__.__name__)
         self.tvb_app.build_tvb_simulator()
         self.spikeNet_app.tvb_cosimulator_serialized = self.tvb_app.serialize_tvb_cosimulator()
         self.spikeNet_app.build_spiking_network()
@@ -72,34 +67,38 @@ class SerialOrchestrator(Orchestrator):
         return self.spikeNet_app.populations_sizes
 
     def build_interfaces(self):
+        super(SerialOrchestrator, self).build_interfaces()
         self.tvb_app.spiking_network = self.spiking_network
         self.tvb_app.build_interfaces()
 
     def configure_simulation(self):
+        super(SerialOrchestrator, self).configure_simulation()
         self.tvb_app.configure_simulation()
-        self.simulation_length = self.tvb_app.simulation_length
-        self.synchronization_time = self.tvb_app.synchronization_time
-        self.spikeNet_app.simulation_length = self.simulation_length
-        self.spikeNet_app.synchronization_time = self.synchronization_time
+        self.spikeNet_app.synchronization_time = self.cosimulator.synchronization_time
         self.spikeNet_app.configure_simulation()
 
     def simulate(self):
+        super(SerialOrchestrator, self).simulate()
         self.configure_simulation()
         self.tvb_app.simulate()
 
     def run(self):
+        super(SerialOrchestrator, self).run()
         self.configure()
         self.build()
         self.simulate()
 
     def stop(self):
+        super(SerialOrchestrator, self).stop()
         self.tvb_app.stop()
         self.spikeNet_app.stop()
 
     def clean_up(self):
+        super(SerialOrchestrator, self).clean_up()
         self.tvb_app.clean_up()
         self.spikeNet_app.clean_up()
 
     def reset(self):
+        super(SerialOrchestrator, self).reset()
         self.tvb_app.reset()
         self.spikeNet_app.reset()

@@ -188,6 +188,16 @@ class TransformerInterfaces(BaseInterfaces):
 
     interfaces = List(of=TransformerInterface)
 
+    def __call__(self, cosim_updates):
+        outputs = []
+        if cosim_updates is not None:
+            for ii, (interface, cosim_update) in enumerate(zip(self.interfaces, cosim_updates)):
+                if cosim_update is not None and len(cosim_update) > 2:
+                    assert cosim_update[2] == ii
+                    cosim_update = cosim_update[:2]
+                outputs.append(interface(cosim_update) + [ii])
+        return outputs
+
 
 class TVBtoSpikeNetTransformerInterfaces(TransformerInterfaces):
 
@@ -208,6 +218,12 @@ class RemoteTransformerInterfaces(BaseInterfaces):
     """RemoteTransformerInterfaces"""
 
     interfaces = List(of=RemoteTransformerInterface)
+
+    def __call__(self):
+        outputs = []
+        for interface in self.interfaces:
+            outputs.append(interface())
+        return outputs
 
 
 class TVBtoSpikeNetRemoteTransformerInterfaces(RemoteTransformerInterfaces):

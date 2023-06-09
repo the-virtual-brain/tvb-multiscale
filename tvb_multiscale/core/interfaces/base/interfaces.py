@@ -73,6 +73,7 @@ class ReceiverInterface(BaseInterface):
 
 
 class BaseInterfaces(HasTraits):
+    __metaclass__ = ABCMeta
 
     """BaseInterfaces
        This class holds a list of interfaces"""
@@ -115,11 +116,9 @@ class BaseInterfaces(HasTraits):
             labels += "\n" + interface.label
         return labels
 
+    @abstractmethod
     def __call__(self):
-        outputs = []
-        for interface in self.interfaces:
-            outputs.append(interface())
-        return outputs
+        pass
 
     def info(self, recursive=0):
         info = super(BaseInterfaces, self).info(recursive=recursive)

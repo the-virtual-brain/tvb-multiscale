@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABC, ABCMeta
+from types import FunctionType
 
-from tvb.basic.neotraits._attr import Attr, Int
+from tvb.basic.neotraits.api import Attr, Float, Int
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -11,16 +11,22 @@ from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetInterfaceBu
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import SpikeNetInputInterfaces, SpikeNetOutputInterfaces
 
 
-class SpikeNetApp(NonTVBApp, ABC):
-    __metaclass__ = ABCMeta
+class SpikeNetApp(NonTVBApp):
 
-    """SpikeNetApp abstract base class"""
+    """SpikeNetApp base class"""
 
     spikeNet_builder = Attr(
         label="Spiking Network Builder",
         field_type=SpikingNetworkBuilder,
         doc="""Instance of Spiking Network Builder.""",
-        required=True
+        required=False
+    )
+
+    spikeNet_builder_function = Attr(
+        label="Spiking Network Builder function",
+        field_type=FunctionType,
+        doc="""Instance of Spiking Network builder function.""",
+        required=False
     )
 
     spiking_network = Attr(
@@ -30,71 +36,95 @@ class SpikeNetApp(NonTVBApp, ABC):
         required=False
     )
 
-    population_order = Int(
-        label="Spiking Network populations' order",
-        doc="""Size of spiking populations.""",
-        required=False,
-        default=None
-    )
-
     spiking_cosimulator = None
+
+    _spikeNet_builder_type = SpikingNetworkBuilder
+    _spikeNet_type = SpikingNetwork
+
     _attrs_to_info = ["spiking_cosimulator"]
+
+    def start(self):
+        super(SpikeNetApp, self).start()
 
     @property
     def _spiking_cosimulator(self):
-        if self.spiking_cosimulator is None:
+        try:
+            assert self.spiking_cosimulator is not None
+        except:
             self.start()
         return self.spiking_cosimulator
 
     @property
+    def _spikeNet_builder(self):
+        if isinstance(self.spikeNet_builder, self._spikeNet_builder_type):
+            return self.spikeNet_builder
+        elif hasattr(self.spikeNet_builder_function, "__call__"):
+            return self.spikeNet_builder_function
+        else:
+            raise Exception("Neither a spiking network, "
+                            "nor a spiking network builder has been provided as input to spikeNetApp!")
+
+    @property
     def _spiking_network(self):
-        if self.spiking_network is None:
+        try:
+            assert isinstance(self.spiking_network, self._spikeNet_type)
+        except:
             self.build_spiking_network()
         return self.spiking_network
 
     def configure(self):
         super(SpikeNetApp, self).configure()
         if self.spiking_network is None:
-            self.spikeNet_builder.config = self.config
-            self.spikeNet_builder.logger = self.logger
-            if self.population_order is not None:
-                self.spikeNet_builder.population_order = self.population_order
-            else:
-                self.population_order = self.spikeNet_builder.population_order
-            self.spikeNet_builder.spiking_nodes_inds = self.proxy_inds
+            if isinstance(self._spikeNet_builder, self._spikeNet_builder_type):
+                self.spikeNet_builder.config = self.config
+                self.spikeNet_builder.logger = self.logger
+                self.spikeNet_builder.spiking_simulator = self._spiking_cosimulator
 
     def build_spiking_network(self):
-        self.spikeNet_builder.tvb_serial_sim = self._serialized_tvb_cosimulator
-        self.spikeNet_builder.configure()
-        self.spiking_network = self.spikeNet_builder.build()
+        if isinstance(self._spikeNet_builder, self._spikeNet_builder_type):
+            self._logprint("Building Spiking Network with builder %s of App %s..."
+                           % (self.spikeNet_builder.__class__.__name__, self.__class__.__name__))
+            self.spikeNet_builder.tvb_serial_sim = self._serialized_tvb_cosimulator
+            self.spikeNet_builder.configure()
+            self.spiking_network = self.spikeNet_builder.build()
+        else:
+            self._logprint("Building Spiking Network with builder script %s of App %s..."
+                           % (self.spikeNet_builder_function.__name__, self.__class__.__name__))
+            self.spiking_network = self.spikeNet_builder_function(self.config)
 
     def build(self):
+        self._logprint("Building with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
         assert self._spiking_network
 
     def configure_simulation(self):
+        super(SpikeNetApp, self).configure_simulation()
         self.spiking_network.configure()
 
-    def simulate(self, simulation_length=None):
-        if simulation_length is None:
-            simulation_length = self.simulation_length
-        return self.spiking_network.run(simulation_length)
+    def simulate(self, simulation_length):
+        super(SpikeNetApp, self).simulate()
+        return self.spiking_network.Run(simulation_length)
 
     def reset(self):
+        super(SpikeNetApp, self).reset()
         self.spiking_network = None
 
 
-class SpikeNetSerialApp(SpikeNetApp, ABC):
-    __metaclass__ = ABCMeta
+class SpikeNetSerialApp(SpikeNetApp):
 
-    """SpikeNetSerialApp abstract base class"""
+    """SpikeNetSerialApp base class"""
 
     pass
 
 
-class SpikeNetParallelApp(SpikeNetApp, ABC):
-    __metaclass__ = ABCMeta
+class SpikeNetParallelApp(SpikeNetApp):
 
-    """SpikeNetParallelApp abstract base class"""
+    """SpikeNetParallelApp base class"""
+
+    synchronization_time = Float(
+        label="Synchronization time (ms)",
+        default=0.0,
+        required=True,
+        doc="""Synchronization time (default in milliseconds).""")
 
     interfaces_builder = Attr(
         label="Spiking Network interfaces builder",
@@ -103,43 +133,63 @@ class SpikeNetParallelApp(SpikeNetApp, ABC):
         required=False
     )
 
-    output_interfaces = Attr(
-        label="Spiking Network output interfaces",
-        field_type=SpikeNetOutputInterfaces,
-        doc="""Instance of output Spiking Network interfaces.""",
-        required=False
-    )
-
-    input_interfaces = Attr(
-        label="Spiking Network input interfaces",
-        field_type=SpikeNetInputInterfaces,
-        doc="""Instance of input Spiking Network interfaces.""",
-        required=False
-    )
-
-    _default_interface_builder = SpikeNetInterfaceBuilder
+    _default_interface_builder_type = SpikeNetInterfaceBuilder
 
     def configure_interfaces_builder(self):
         # Get default options from the App and the TVB CoSimulator:
-        self.interfaces_builder.spiking_network = self._spiking_network
+        self._interfaces_builder.spiking_network = self._spiking_network
         super(SpikeNetParallelApp, self).configure_interfaces_builder()
+
+    def build_interfaces(self):
+        if self._interfaces_built is False:
+            super(SpikeNetParallelApp, self).build_interfaces()
+            self.spiking_network = self.interfaces_builder.build()
+            self._interfaces_build = True
+            if self.verbosity:
+                self._logprint(self.spiking_network.input_interfaces.summary_info_to_string(recursive=2))
+                self._logprint(self.spiking_network.output_interfaces.summary_info_to_string(recursive=2))
 
     def build(self):
         super(SpikeNetParallelApp, self).build()
         self.build_interfaces()
 
     def configure_simulation(self):
-        self.spiking_network.configure()
-        self.output_interfaces.configure()
-        self.input_interfaces.configure()
+        super(SpikeNetParallelApp, self).configure_simulation()
+        self.spiking_network.input_interfaces.configure()
+        self.spiking_network.output_interfaces.configure()
+        try:
+            assert self.synchronization_time == self.spiking_network.input_interfaces.synchronization_time
+        except:
+            self.synchronization_time = self.spiking_network.input_interfaces.synchronization_time
+            self._logprint("Setting %s synchronization_time from interfaces = %g" %
+                           (self.__class__.__name__, self.synchronization_time))
 
-    def run_for_synchronization_time(self, cosim_updates):
-        self.input_interfaces(cosim_updates)
-        self.simulate(self.synchronization_time)
-        return self.output_interfaces(cosim_updates)
+    def run_for_synchronization_time(self, cosim_updates, cosimulation=True):
+        if cosimulation: self.spiking_network.input_interfaces(cosim_updates)
+        self.spiking_network.Run(self.synchronization_time)
+        if cosimulation:
+            return self.spiking_network.output_interfaces()
 
     def reset(self):
         super(SpikeNetParallelApp, self).reset()
-        self.input_interfaces = None
-        self.output_interfaces = None
         self._interfaces_built = False
+
+
+class SpikeNetRemoteParallelApp(SpikeNetParallelApp):
+
+    """SpikeNetRemoteParallelApp base class"""
+
+    interfaces_builder = Attr(
+        label="Spiking Network interfaces builder",
+        field_type=SpikeNetRemoteInterfaceBuilder,
+        doc="""Instance of Spiking Network interfaces' builder class.""",
+        required=False
+    )
+
+    _default_interface_builder_type = SpikeNetRemoteInterfaceBuilder
+
+    def run_for_synchronization_time(self, cosimulation=True):
+        if cosimulation: self.spiking_network.input_interfaces()
+        self.spiking_network.Run(self.synchronization_time)
+        if cosimulation:
+            return self.spiking_network.output_interfaces()

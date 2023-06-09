@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from tvb.basic.neotraits._attr import Attr
+from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
+from tvb_multiscale.core.orchestrators.spikeNet_app import \
+    SpikeNetSerialApp, SpikeNetParallelApp, SpikeNetRemoteParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest, configure_nest_kernel
 from tvb_multiscale.tvb_nest.interfaces.interfaces import NESTReceiverInterface, NESTSenderInterface
-from tvb_multiscale.tvb_nest.interfaces.builders import NESTRemoteInterfaceBuilder, TVBNESTInterfaceBuilder
-from tvb_multiscale.tvb_nest.interfaces.models.default import \
-    DefaultNESTRemoteInterfaceBuilder, DefaultTVBNESTInterfaceBuilder
+from tvb_multiscale.tvb_nest.interfaces.builders import \
+    NESTInterfaceBuilder, NESTRemoteInterfaceBuilder, TVBNESTInterfaceBuilder
 
 
 class NESTApp(HasTraits):
@@ -32,8 +31,7 @@ class NESTApp(HasTraits):
         label="NEST Network Builder",
         field_type=NESTNetworkBuilder,
         doc="""Instance of NEST Model Builder.""",
-        required=True,
-        default=DefaultExcIOBuilder()
+        required=False
     )
 
     spiking_network = Attr(
@@ -42,6 +40,9 @@ class NESTApp(HasTraits):
         doc="""Instance of NESTNetwork class.""",
         required=False
     )
+
+    _spikeNet_builder_type = NESTNetworkBuilder
+    _spikeNet_type = NESTNetwork
 
     @property
     def nest_instance(self):
@@ -60,18 +61,12 @@ class NESTApp(HasTraits):
 
     def configure(self):
         self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
-        self.spikeNet_builder.nest_instance = self.spiking_cosimulator
 
     def configure_simulation(self):
         try:
             self.spiking_cosimulator.Prepare()
         except:
             pass
-
-    def simulate(self, simulation_length=None):
-        if simulation_length is None:
-            simulation_length = self.simulation_length
-        self.spiking_cosimulator.Run(simulation_length)
 
     def clean_up(self):
         # # Integrate NEST for one more NEST time step so that multimeters get the last time point
@@ -83,13 +78,14 @@ class NESTApp(HasTraits):
     def reset(self):
         self.spiking_cosimulator.ResetKernel()
 
-    def stop(self):
-        pass
-
 
 class NESTSerialApp(NESTApp, SpikeNetSerialApp):
 
     """NESTSerialApp class"""
+
+    def start(self):
+        SpikeNetSerialApp.start(self)
+        NESTApp.start(self)
 
     def configure(self):
         SpikeNetSerialApp.configure(self)
@@ -99,49 +95,87 @@ class NESTSerialApp(NESTApp, SpikeNetSerialApp):
         SpikeNetSerialApp.configure_simulation(self)
         NESTApp.configure_simulation(self)
 
-    def run(self, *args, **kwargs):
-        self.configure()
-        self.build()
-
     def reset(self):
-        SpikeNetSerialApp.reset(self)
         NESTApp.reset(self)
+        SpikeNetSerialApp.reset(self)
+
+    def clean_up(self):
+        NESTApp.clean_up(self)
+        SpikeNetSerialApp.clean_up(self)
 
 
-class NESTParallelApp(NESTSerialApp, SpikeNetParallelApp):
+class NESTParallelApp(NESTApp, SpikeNetParallelApp):
 
     """NESTParallelApp class"""
+
+    interfaces_builder = Attr(
+        label="NEST interfaces builder",
+        field_type=NESTInterfaceBuilder,
+        doc="""Instance of NEST Network interfaces' builder class.""",
+        required=False,
+    )
+
+    _default_interface_builder_type = NESTInterfaceBuilder
+
+    def start(self):
+        SpikeNetParallelApp.start(self)
+        NESTApp.start(self)
+
+    def configure(self):
+        SpikeNetParallelApp.configure(self)
+        NESTApp.configure(self)
+
+    def build(self):
+        SpikeNetParallelApp.build(self)
+
+    def configure_simulation(self):
+        SpikeNetParallelApp.configure_simulation(self)
+        NESTApp.configure_simulation(self)
+
+    def reset(self):
+        NESTApp.reset(self)
+        SpikeNetParallelApp.reset(self)
+
+    def clean_up(self):
+        NESTApp.clean_up(self)
+        SpikeNetParallelApp.clean_up(self)
+
+
+class NESTRemoteParallelApp(NESTApp, SpikeNetRemoteParallelApp):
+
+    """NESTRemoteParallelApp class"""
 
     interfaces_builder = Attr(
         label="NEST interfaces builder",
         field_type=NESTRemoteInterfaceBuilder,
         doc="""Instance of NEST Network interfaces' builder class.""",
         required=False,
-        default=DefaultNESTRemoteInterfaceBuilder()
     )
 
-    output_interfaces = Attr(
-        label="NEST Network output interfaces",
-        field_type=NESTSenderInterface,
-        doc="""Instance of output NEST Network interfaces.""",
-        required=False
-    )
+    _default_interface_builder_type = NESTRemoteInterfaceBuilder
 
-    input_interfaces = Attr(
-        label="NEST Network input interfaces",
-        field_type=NESTReceiverInterface,
-        doc="""Instance of input NEST Network interfaces.""",
-        required=False
-    )
+    def start(self):
+        SpikeNetRemoteParallelApp.start(self)
+        NESTApp.start(self)
 
-    _default_interface_builder = NESTRemoteInterfaceBuilder
+    def configure(self):
+        SpikeNetRemoteParallelApp.configure(self)
+        NESTApp.configure(self)
 
     def build(self):
-        SpikeNetParallelApp.build(self)
+        SpikeNetRemoteParallelApp.build(self)
+
+    def configure_simulation(self):
+        SpikeNetRemoteParallelApp.configure_simulation(self)
+        NESTApp.configure_simulation(self)
 
     def reset(self):
-        NESTSerialApp.reset(self)
-        SpikeNetParallelApp.reset(self)
+        NESTApp.reset(self)
+        SpikeNetRemoteParallelApp.reset(self)
+
+    def clean_up(self):
+        NESTApp.clean_up(self)
+        SpikeNetRemoteParallelApp.clean_up(self)
 
 
 class TVBSerialApp(TVBSerialAppBase):
@@ -160,8 +194,7 @@ class TVBSerialApp(TVBSerialAppBase):
         label="TVBNESTInterfaces builder",
         field_type=TVBNESTInterfaceBuilder,
         doc="""Instance of TVBNESTInterfaces' builder class.""",
-        required=True,
-        default=DefaultTVBNESTInterfaceBuilder()
+        required=False
     )
 
     spiking_network = Attr(
@@ -171,7 +204,7 @@ class TVBSerialApp(TVBSerialAppBase):
         required=False
     )
 
-    _default_interface_builder = TVBNESTInterfaceBuilder
+    _default_interface_builder_type = TVBNESTInterfaceBuilder
 
 
 class TVBNESTSerialOrchestrator(SerialOrchestrator):
