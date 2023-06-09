@@ -212,10 +212,8 @@ class NESTMPIInterfaceBuilder(NESTRemoteInterfaceBuilder):
             in_gids.append(interface.proxy_gids)
         with open(self._file_path(self.output_label) + "_gids.pkl", 'wb') as file:
             pickle.dump(out_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
-        # print(out_gids)
         with open(self._file_path(self.input_label) + "_gids.pkl", 'wb') as file:
             pickle.dump(in_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
-        # print(in_gids)
 
     def build(self):
         output_interfaces, input_interfaces = super(NESTMPIInterfaceBuilder, self).build()
