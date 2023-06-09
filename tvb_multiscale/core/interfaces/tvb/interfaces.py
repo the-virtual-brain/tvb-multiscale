@@ -18,7 +18,7 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 
 
-class TVBInterface(HasTraits):
+class TVBInterface(BaseInterface):
     __metaclass__ = ABCMeta
 
     """TVBInterface base class for interfaces sending/receivng data from/for TVB to/from a transformer of cosimulator"""
@@ -203,7 +203,7 @@ class TVBReceiverTransformerInterface(TVBInputInterface, ReceiverTransformerInte
         return TVBInputInterface.__call__(self, ReceiverTransformerInterface.receive_transform(self))
 
 
-class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInterface):
+class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
 
     """TVBtoSpikeNetInterface class to get data from TVB, transform them,
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
@@ -237,19 +237,17 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
     def info(self, recursive=0):
-        info = BaseInterface.info(self, recursive=recursive)
         info.update(SpikeNetInputInterface.info(self, recursive=recursive))
         info.update(TVBOutputInterface.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info = BaseInterface.info_details(self, recursive=recursive)
         info.update(SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs))
         info.update(TVBOutputInterface.info_details(self, recursive=recursive))
         return info
 
 
-class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInterface):
+class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
 
     """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
@@ -285,13 +283,11 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         return self.reshape_data()
 
     def info(self, recursive=0):
-        info = BaseInterface.info(self, recursive=recursive)
         info.update(SpikeNetOutputInterface.info(self, recursive=recursive))
         info.update(TVBInputInterface.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info = BaseInterface.info_details(self, recursive=recursive)
         info.update(SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs))
         info.update(TVBInputInterface.info_details(self, recursive=recursive))
         return info
@@ -461,7 +457,7 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
         else:
             return cosim_updates, all_time_steps
 
-    def _prepare_cosim_upadate(self, good_cosim_update_values_shape):
+    def _prepare_cosim_update(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
         cosim_updates[:] = np.NAN
         all_time_steps = []
@@ -475,10 +471,13 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
             return [all_time_steps, cosim_updates]
 
     def __call__(self, input_datas, good_cosim_update_values_shape):
-        cosim_updates, all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
-        for interface, input_data in zip(self.interfaces, input_datas):
+        cosim_updates, all_time_steps = self._prepare_cosim_update(good_cosim_update_values_shape)
+        for ii, (interface, input_data) in enumerate(zip(self.interfaces, input_datas)):
+            if len(input_data) > 2:
+                assert input_data[2] == ii
+                input_data = input_data[:2]
             cosim_updates, all_time_steps = \
-                self._get_from_interface(input_data, interface, cosim_updates,
+                self._get_from_interface(interface(input_data), interface, cosim_updates,
                                          all_time_steps, good_cosim_update_values_shape)
         return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
 
@@ -516,7 +515,7 @@ class TVBReceiverInterfaces(TVBInputInterfaces):
             data, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
 
     def __call__(self, good_cosim_update_values_shape):
-        cosim_updates, all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
+        cosim_updates, all_time_steps = self._prepare_cosim_update(good_cosim_update_values_shape)
         for interface in self.interfaces:
             cosim_updates, all_time_steps = \
                 self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
