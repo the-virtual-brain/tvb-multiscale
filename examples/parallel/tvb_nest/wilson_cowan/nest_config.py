@@ -205,7 +205,7 @@ def build_nest_network(config=None, config_class=Config):
         # First configure NEST kernel:
         nest.SetKernelStatus({"resolution": 0.05})
 
-        print("Building NESTNetwork...")
+        if config.VERBOSITY: print("Building NESTNetwork...")
 
         # Create NEST network...
         nest_network = NESTNetwork(nest)
@@ -222,7 +222,8 @@ def build_nest_network(config=None, config_class=Config):
                     NESTPopulation(nest.Create(config.DEFAULT_SPIKING_MODEL, config.N_NEURONS),
                                    # possible NEST model params as well here
                                    nest, label=pop, brain_region=region_name)
-                print("\n...created: %s..." % nest_network.brain_regions[region_name][pop].summary_info())
+                if config.VERBOSITY:
+                    print("\n...created: %s..." % nest_network.brain_regions[region_name][pop].summary_info())
 
         # "static_synapse" by default:
         synapse_model = config.DEFAULT_CONNECTION["synapse_model"]
@@ -254,8 +255,9 @@ def build_nest_network(config=None, config_class=Config):
                                      syn_spec={"synapse_model": synapse_model,
                                                "weight": w, "delay": 0.1, "receptor_type": 0},
                                      conn_spec=conn_spec)
-                        print("\n...connected populations %s -> %s in brain region %s..."
-                              % (src_pop, trg_pop, src_node_lbl))
+                        if config.VERBOSITY:
+                            print("\n...connected populations %s -> %s in brain region %s..."
+                                  % (src_pop, trg_pop, src_node_lbl))
                 else:
 
                     # ...between brain regions...:
@@ -272,7 +274,8 @@ def build_nest_network(config=None, config_class=Config):
                                                               trg_node_ind, src_node_ind].item()),
                                            "receptor_type": 0},
                                  conn_spec=conn_spec)
-                    print("\n...connected populations E - %s -> [E, I] - %s..." % (src_node_lbl, trg_node_lbl))
+                    if config.VERBOSITY:
+                        print("\n...connected populations E - %s -> [E, I] - %s..." % (src_node_lbl, trg_node_lbl))
 
         # Create output recorder devices:
         params_spike_recorder = config.NEST_OUTPUT_DEVICES_PARAMS_DEF["spike_recorder"].copy()
@@ -295,7 +298,9 @@ def build_nest_network(config=None, config_class=Config):
                 nest.Connect(nest_network.brain_regions[region_name][pop].nodes,
                              nest_network.output_devices[pop][region_name].device)
                 nest_network.output_devices[pop].update()  # update DeviceSet after the new NESTDevice entry
-                print("\n...created spike_recorder device for population %s in brain region %s..." % (pop, region_name))
+                if config.VERBOSITY:
+                    print("\n...created spike_recorder device for population %s in brain region %s..." %
+                          (pop, region_name))
 
                 # Create and connect population multimeter for this region:
                 nest_network.output_devices[pop_lbl][region_name] = \
@@ -304,7 +309,9 @@ def build_nest_network(config=None, config_class=Config):
                 nest.Connect(nest_network.output_devices[pop_lbl][region_name].device,
                              nest_network.brain_regions[region_name][pop].nodes)
                 nest_network.output_devices[pop_lbl].update()  # update DeviceSet after the new NESTDevice entry
-                print("\n...created multimeter device for population %s in brain region %s..." % (pop, region_name))
+                if config.VERBOSITY:
+                    print("\n...created multimeter device for population %s in brain region %s..." %
+                          (pop, region_name))
 
         # Create input stimulation devices:
         nest_network.input_devices["Stimulus"] = DeviceSet(label="Stimulus", model="poisson_generator")
@@ -321,10 +328,13 @@ def build_nest_network(config=None, config_class=Config):
                          nest_network.brain_regions[region_name]["E"].nodes,
                          syn_spec={"weight": 1.0, "delay": nest_dt})
             nest_network.input_devices["Stimulus"].update()  # update DeviceSet after the new NESTDevice entry
-            print("\n...created poisson_generator device for population E in brain region %s..." % region_name)
+            if config.VERBOSITY:
+                print("\n...created poisson_generator device for population E in brain region %s..." % region_name)
 
-            # Configure NESTNetwork class:
+    # Configure NESTNetwork class:
     nest_network.configure()
-    nest_network.print_summary_info_details(recursive=3, connectivity=True)
 
-    return nest_network, nest_nodes_inds
+    if config.VERBOSITY:
+        nest_network.print_summary_info_details(recursive=3, connectivity=True)
+
+    return nest_network
