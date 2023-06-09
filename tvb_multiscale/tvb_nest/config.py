@@ -64,8 +64,8 @@ class Config(ConfigBase):
                                      "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
                                      }
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
-        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
         self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
         self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
         self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
