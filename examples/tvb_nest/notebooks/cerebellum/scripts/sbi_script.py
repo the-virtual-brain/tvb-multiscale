@@ -303,7 +303,7 @@ def add_posterior_samples_iR(all_samples, samples_iR):
         if key != "G":
             if key not in all_samples:
                 all_samples[key] = []
-            all_samples[key].append(val[0])  # [-1200:] for when old samples are saved
+            all_samples[key].append(val[0][-1200:])  # [-1200:] for when old samples are saved
     return all_samples
 
 
