@@ -807,7 +807,7 @@ if __name__ == "__main__":
                                    workflow_fun=None, model_params={}, FIC=None, FIC_SPLIT=None)
         elif parser_args.script_id == 3:
             num_train_samples = parser_args.num_train_samples
-            samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=nts)
+            samples_fit = sbi_train_and_test_for_iG(iG, config, iR=iR, n_train_samples=num_train_samples)
         elif parser_args.script_id == 4:
             num_train_samples = parser_args.num_train_samples
             samples_fit = sbi_test_for_iG(iG, config, iR, "%04d_Train" % num_train_samples,
