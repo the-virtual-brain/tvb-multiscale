@@ -207,12 +207,12 @@ class CerebBuilder(NESTNetworkBuilder):
                                   'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None,
                  pops_to_nodes_inds={}, path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
         self.spiking_nodes_inds = np.unique(spiking_nodes_inds)
         super(CerebBuilder, self).__init__(tvb_simulator, self.spiking_nodes_inds,
-                                           nest_instance, config, logger)
+                                           spiking_simulator, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
 
     def _initialize(self):

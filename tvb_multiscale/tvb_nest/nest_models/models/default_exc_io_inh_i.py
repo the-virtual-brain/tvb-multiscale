@@ -14,8 +14,8 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -233,10 +233,10 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
     model = "aeif_cond_alpha_multisynapse"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
                  config=None, logger=None):
 
-        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance,
+        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
                                                                   config, logger)
 
         self.w_ie = 1.0
