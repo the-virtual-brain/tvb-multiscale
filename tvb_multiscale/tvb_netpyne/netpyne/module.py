@@ -92,23 +92,30 @@ class NetpyneModule(object):
         else:
             self.nextIntervalFuncCall = None
 
-    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType):
+
+    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, prob=None):
         # TODO: randomize weight and delay, if values do not already contain sting func
         # (e.g. use random_normal_weight() and random_uniform_delay() from netpyne_templates)
         sourceCells = self.netParams.popParams[sourcePop]['numCells']
         targetCells = self.netParams.popParams[targetPop]['numCells']
 
+        if prob:
+            rule = 'probability'
+            val = prob
+
         # connect cells roughly one-to-one ('lamda' for E -> I connections is already taken into account, as it baked into source population size)
-        if sourceCells <= targetCells:
+        elif sourceCells <= targetCells:
             rule = 'divergence'
+            val = 1.0
         else:
             rule = 'convergence'
+            val = 1.0
 
         connLabel = sourcePop + '->' + targetPop
         self.netParams.connParams[connLabel] = {
             'preConds': {'pop': sourcePop},
             'postConds': {'pop': targetPop},
-            rule: 1.0,
+            rule: val,
             'weight': weight,
             'delay': delay,
             'synMech': receptorType
