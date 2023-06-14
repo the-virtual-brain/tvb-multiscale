@@ -717,16 +717,19 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
 
     for iP, (param, col) in enumerate(zip(params, colors)):
         if err is not None:
-            ax.errorbar(num_train_samples, mean[:, iP], yerr=err[:, :, iP], capsize=2.0,
+            ax.errorbar(num_train_samples, mean[:, iP], yerr=err[:, :, iP], capsize=5,
                         color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
                         label="%s" % param)
         else:
             ax.plot(num_train_samples, mean[:, iP],
                     color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
                     label="%s" % param)
-        ax.set_title("G=%g" % config.Gs[iG], fontsize=14)
-        ax.set_xlabel("N training samples", fontsize=14)
-        ax.set_ylabel(diagnostic, fontsize=14)
+        if title:
+            ax.set_title("G=%g" % config.Gs[iG], fontsize=14)
+        if xlabel:
+            ax.set_xlabel("N training samples", fontsize=14)
+        if ylabel:
+            ax.set_ylabel(diagnostic, fontsize=14)
         ax.legend(prop={'size': 14})
 
     if fig is None:
@@ -759,15 +762,25 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
     figsize = tuple(figsize.tolist())
 
     fig, axes = plt.subplots(nrows=nDs, ncols=nGs, figsize=figsize)
-    if nDs == 1:
+    if nGs == 1 and nDs == 1:
+        axes = np.array([[axes]])
+    elif nDs == 1:
         axes = axes[np.newaxis]
     elif nGs == 1:
         axes = axes[:, np.newaxis]
+
     for iD, diagnostic in enumerate(diagnostics):
         for iiG, iG in enumerate(iGs):
             axes[iD, iiG] = plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples, params, runs,
-                                                   confidence, colors, marker, linestyle, ax=axes[iD, iiG])
-
+                                                   confidence, colors, marker, linestyle,
+                                                   title=False, xlabel=False, ylabel=False,
+                                                   ax=axes[iD, iiG])
+        if iD == 0:
+            axes[iD, iiG].set_title("G=%g" % config.Gs[iG], fontsize=14)
+        if iD == nDs:
+            axes[iD, iiG].set_xlabel("N training samples", fontsize=14)
+        if iiG == 0:
+            axes[iD, iiG].set_ylabel(diagnostic, fontsize=14)
     return fig, axes
 
 
