@@ -681,9 +681,8 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
     return outputs
 
 
-def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None,
-                           colors=['b', "g", "m"], marker='.', linestyle='-',
-                           ax=None, figsize=None):
+def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None, confidence="5%",
+                           colors=['b', "g", "m"], marker='.', linestyle='-', ax=None, figsize=None):
 
     if num_train_samples is None:
         num_train_samples = config.N_TRAIN_SAMPLES_LIST
@@ -718,14 +717,14 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
 
     for iP, (param, col) in enumerate(zip(params, colors)):
         if err is not None:
-            ax.errorbar(num_train_samples, mean[:, iP], yerr=err[:, :, iP],
+            ax.errorbar(num_train_samples, mean[:, iP], yerr=err[:, :, iP], capsize=2.0,
                         color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
                         label="%s" % param)
         else:
             ax.plot(num_train_samples, mean[:, iP],
                     color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
                     label="%s" % param)
-        ax.set_title("iG=%d" % iG, fontsize=18)
+        ax.set_title("G=%g" % config.Gs[iG], fontsize=14)
         ax.set_xlabel("N training samples", fontsize=14)
         ax.set_ylabel(diagnostic, fontsize=14)
         ax.legend(prop={'size': 14})
