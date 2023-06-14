@@ -682,7 +682,9 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
 
 
 def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None, confidence="5%",
-                           colors=['b', "g", "m"], marker='.', linestyle='-', ax=None, figsize=None):
+                           colors=['b', "g", "m"], marker='.', linestyle='-',
+                           title=True, xlabel=True, ylabel=True,
+                           ax=None, figsize=None):
 
     if num_train_samples is None:
         num_train_samples = config.N_TRAIN_SAMPLES_LIST
