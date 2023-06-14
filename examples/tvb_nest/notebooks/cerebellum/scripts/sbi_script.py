@@ -792,7 +792,7 @@ def write_ppt_batch_sim_res_to_file_per_iG(sim_res, iB, iG, config=None):
     write_ppt_batch_sim_res_to_file(sim_res, iB, iG, config)
 
 
-def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=None,  iR=None,
+def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=None, iR=None,
                                                      workflow_fun=run_workflow, write_to_file=True, config=None):
     config = assert_config(config, return_plotter=False)
     if num_train_samples is not None:
@@ -817,9 +817,8 @@ def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=N
     return simulate_batch(iB, iG, samples, workflow_fun, write_to_file, config)
 
 
-def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None,
-                           colors=['b', "g", "m"], marker='.', linestyle='-',
-                           ax=None, figsize=None):
+def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None, confidence=True,
+                           colors=['b', "g", "m"], marker='.', linestyle='-', ax=None, figsize=None):
 
     if num_train_samples is None:
         num_train_samples = config.N_TRAIN_SAMPLES_LIST
@@ -844,12 +843,27 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
                                             config=config)
         res.append(np.concatenate(samples_fit[diagnostic]))
     res = np.stack(res)
-    res = np.mean(res, axis=1)
+    mean = np.mean(res, axis=1)
+    err = None
+    if confidence:
+        if confidence == "std":
+            std = np.std(res, axis=1)
+            err = np.array([std]*2)
+        else:
+            percent = float(confidence.split("%")[0])
+            err = np.percentile(res, [percent, 100-percent], axis=1)
+            err[0] = mean - err[0]
+            err[1] = err[1] - mean
 
     for iP, (param, col) in enumerate(zip(params, colors)):
-        ax.plot(num_train_samples, res[:, iP],
-                color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
-                label="%s" % param)
+        if err is not None:
+            ax.errorbar(num_train_samples, mean[:, iP], yerr=err[:, :, iP],
+                        color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
+                        label="%s" % param)
+        else:
+            ax.plot(num_train_samples, mean[:, iP],
+                    color=col, marker=marker, markersize=5, linestyle=linestyle, linewidth=2,
+                    label="%s" % param)
         ax.set_title("iG=%d" % iG, fontsize=18)
         ax.set_xlabel("N training samples", fontsize=14)
         ax.set_ylabel(diagnostic, fontsize=14)
@@ -862,7 +876,7 @@ def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, param
 
 
 def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore_prior", "zscore", "shrinkage"],
-                      params=None, num_train_samples=None, runs=None,
+                      params=None, num_train_samples=None, runs=None, confidence="5%",
                       colors=['b', "g", "m"], marker='.', linestyle='-', figsize=None):
 
     if iGs is None:
@@ -894,8 +908,7 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
     for iD, diagnostic in enumerate(diagnostics):
         for iiG, iG in enumerate(iGs):
             axes[iD, iiG] = plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples, params, runs,
-                                                   colors, marker, linestyle,
-                                                   ax=axes[iD, iiG])
+                                                   confidence, colors, marker, linestyle, ax=axes[iD, iiG])
 
     return fig, axes
 
