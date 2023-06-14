@@ -779,7 +779,7 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
                                                    ax=axes[iD, iiG])
         if iD == 0:
             axes[iD, iiG].set_title("G=%g" % config.Gs[iG], fontsize=14)
-        if iD == nDs:
+        if iD == nDs-1:
             axes[iD, iiG].set_xlabel("N training samples", fontsize=14)
         if iiG == 0:
             axes[iD, iiG].set_ylabel(diagnostic, fontsize=14)
