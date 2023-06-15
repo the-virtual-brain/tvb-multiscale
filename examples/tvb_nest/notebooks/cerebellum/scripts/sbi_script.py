@@ -783,6 +783,13 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
             axes[iD, iiG].set_xlabel("N training samples", fontsize=14)
         if iiG == 0:
             axes[iD, iiG].set_ylabel(diagnostic, fontsize=14)
+
+    plt.figure(fig.number)
+    if config.figures.SAVE_FLAG:
+        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "Diagnostics_%s.png" % "_".join(diagnostics)))
+    if config.figures.SHOW_FLAG:
+        plt.show()
+
     return fig, axes
 
 
