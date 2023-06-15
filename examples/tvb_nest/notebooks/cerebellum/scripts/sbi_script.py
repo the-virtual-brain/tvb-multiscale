@@ -13,7 +13,7 @@ from sbi import analysis as analysis
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
-from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import run_workflow
+from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import run_workflow, load_connectome
 
 
 def build_priors(config):
@@ -817,6 +817,91 @@ def posterior_predictive_check_simulations_for_iG_iB(iB, iG, num_train_samples=N
     return simulate_batch(iB, iG, samples, workflow_fun, write_to_file, config)
 
 
+def read_ppt_batch_sim_res_from_file(iB, iG=None, config=None):
+    return np.load(ppt_batch_sim_res_filepath(iB, assert_config(config, return_plotter=False), iG))
+
+
+def read_ppt_batch_sim_res_from_file_for_iG(iB, iG, config=None):
+    return read_ppt_batch_sim_res_from_file(iB, iG, config)
+
+
+def read_all_ppt_batch_sim_res_files_for_iG(iG, config=None):
+    config = assert_config(config, return_plotter=False)
+    pptPSDs = []
+    for iB in range(config.N_PPT_SIM_BATCHES):
+        pptPSDs.append(read_ppt_batch_sim_res_from_file_for_iG(iB, iG, config))
+    return pptPSDs
+
+
+def plot_ppt_PSDs(iGs=None, config=None, confidence="5%", figsize=None):
+    config = assert_config(config, return_plotter=False)
+
+    if figsize is None:
+        figsize = config.figures.DEFAULT_SIZE
+
+    connectome, _, _, inds = load_connectome(config)
+    inds = inds['m1s1brl']
+    region_labels = connectome["region_labels"][inds]
+    del connectome, inds
+
+    PSD_target = np.load(config.PSD_TARGET_PATH, allow_pickle=True).item()
+    f = PSD_target["f"]
+    nfs = f.size
+    PSD_target = [PSD_target["PSD_M1_target"], PSD_target["PSD_S1_target"]]*2
+
+    if iGs is None:
+        iGs = np.arange(len(config.Gs))
+
+    def plot_ax(plot_fun, axes, axi, axj, finds, f, PSDs, PSDtarg, reg_lbl, conf=None):
+        pfun = getattr(axes[axi, axj], plot_fun)
+        pfun(f, PSDs[finds, 0], color='b', linewidth=1, linestyle='-', alpha=0.1, label="PSD samples")
+        pfun(f, PSDs[finds, 1:], color='b', linewidth=1, linestyle='-', alpha=0.1)
+        pfun(f, PSDtarg, color='r', linewidth=2, linestyle='-', label="PSD target")
+        if conf is not None:
+            pfun(f, conf[0][finds], color='k', linewidth=2, linestyle='-')
+            pfun(f, conf[1][finds], color='k', linewidth=2, linestyle='-')
+        if axi == 1:
+            axes[axi, axj].set_xlabel('f (Hz)', fontsize=12)
+        if axi == 1 and axj == 1:
+            axes[axi, axj].legend(prop={'size': 12})
+        axes[axi, axj].set_title(reg_lbl, fontsize=12)
+        return axes
+
+    conf = None
+    for iG in ensure_list(iGs):
+        PSDs = np.vstack(read_all_ppt_batch_sim_res_files_for_iG(iG, config)).T
+        if confidence:
+            if confidence == "std":
+                conf = np.std(PSDs, axis=1)
+                mean = np.mean(PSDs, axis=1)
+                conf = np.array([mean-conf, mean+conf])
+                del mean
+            else:
+                percent = float(confidence.split("%")[0])
+                conf = np.percentile(PSDs, [percent, 100-percent], axis=1)
+                del percent
+        fig_lin, axes_lin = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+        fig_lin.suptitle('Power spectral densities', fontsize=14)
+        fig_semilog, axes_semilog = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+        fig_semilog.suptitle('Logpower spectral densities', fontsize=14)
+        for iR in range(4):
+            finds = np.arange(nfs*iR, nfs*(iR+1)).astype("i")
+            axi = int(iR > 1)
+            axj = 1-np.mod(iR, 2)
+            axes_lin = plot_ax("plot", axes_lin, axi, axj, finds, f, PSDs, PSD_target[iR],
+                               region_labels[iR], conf=conf)
+            axes_semilog = plot_ax("semilogy", axes_semilog, axi, axj,  finds, f, PSDs, PSD_target[iR],
+                                    region_labels[iR], conf=conf)
+
+    for fig, figname in zip([fig_lin, fig_semilog], ["pptPSDlin", "pptPSDsemilog"]):
+        plt.figure(fig.number)
+        if config.figures.SAVE_FLAG:
+            plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, figname+".png"))
+        if config.figures.SHOW_FLAG:
+            plt.show()
+    return fig_lin, axes_lin, fig_semilog, axes_semilog
+
+
 def plot_diagnostic_for_iG(iG, diagnostic, config, num_train_samples=None, params=None, runs=None, confidence=True,
                            colors=['b', "g", "m"], marker='.', linestyle='-', title=True, xlabel=True, ylabel=True,
                            ax=None, figsize=None):
@@ -922,6 +1007,13 @@ def plot_all_together(config, iGs=None, diagnostics=["diff", "accuracy", "zscore
             axes[iD, iiG].set_xlabel("N training samples", fontsize=14)
         if iiG == 0:
             axes[iD, iiG].set_ylabel(diagnostic, fontsize=14)
+
+    plt.figure(fig.number)
+    if config.figures.SAVE_FLAG:
+        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "Diagnostics_%s.png" % "_".join(diagnostics)))
+    if config.figures.SHOW_FLAG:
+        plt.show()
+
     return fig, axes
 
 
