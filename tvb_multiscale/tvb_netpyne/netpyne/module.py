@@ -11,18 +11,29 @@ class NetpyneModule(object):
     def __init__(self):
         self.spikeGeneratorPops = []
         self.autoCreatedPops = []
+        self._compileOrLoadMod()
 
+    def _compileOrLoadMod(self):
         # Make sure that all required mod-files are compiled (is there a better way to check?)
         try:
-            h.DynamicNetStim()
+            h.DynamicVecStim()
         except:
-            print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
-            import sys
-            import os
+            import sys, os
+            currDir = os.getcwd()
+
             python_path = sys.executable.split("python")[0]
             tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
-            os.system('%snrnivmodl %s/tvb_multiscale/tvb_netpyne/netpyne/mod' % (python_path, tvb_multiscale_path))
-            h.nrn_load_dll('./x86_64/libnrnmech.so')
+            # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
+            os.chdir(f'{tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            if not os.path.exists('x86_64'):
+                print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
+                os.system(f'{python_path}nrnivmodl .')
+            else:
+                print(f"NetPyNE will load mod-files from {os.getcwd()}.")
+            import neuron
+            neuron.load_mechanisms('.')
+
+            os.chdir(currDir)
 
     def importModel(self, netParams, simConfig, dt, config):
 
@@ -35,8 +46,8 @@ class NetpyneModule(object):
         self.netParams = netParams
         self.simConfig = simConfig
 
-        # using DynamicNetStim model for artificial cells serving as stimuli
-        self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicNetStim'}
+        # using DynamicVecStim model for artificial cells serving as stimuli
+        self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicVecStim'}
 
     @property
     def dt(self):
@@ -93,23 +104,30 @@ class NetpyneModule(object):
         else:
             self.nextIntervalFuncCall = None
 
-    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType):
+
+    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, prob=None):
         # TODO: randomize weight and delay, if values do not already contain sting func
         # (e.g. use random_normal_weight() and random_uniform_delay() from netpyne_templates)
         sourceCells = self.netParams.popParams[sourcePop]['numCells']
         targetCells = self.netParams.popParams[targetPop]['numCells']
 
+        if prob:
+            rule = 'probability'
+            val = prob
+
         # connect cells roughly one-to-one ('lamda' for E -> I connections is already taken into account, as it baked into source population size)
-        if sourceCells <= targetCells:
+        elif sourceCells <= targetCells:
             rule = 'divergence'
+            val = 1.0
         else:
             rule = 'convergence'
+            val = 1.0
 
         connLabel = sourcePop + '->' + targetPop
         self.netParams.connParams[connLabel] = {
             'preConds': {'pop': sourcePop},
             'postConds': {'pop': targetPop},
-            rule: 1.0,
+            rule: val,
             'weight': weight,
             'delay': delay,
             'synMech': receptorType
@@ -175,13 +193,10 @@ class NetpyneModule(object):
         tvbIterationEnd = self.time + length
         def _(simTime): pass
         if self.nextIntervalFuncCall:
-            while (self.nextIntervalFuncCall < tvbIterationEnd):
-                if self.time < sim.cfg.duration:
-                    sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
-                    self.intervalFunc(self.time)
-                    self.nextIntervalFuncCall = self.time + self.interval
-                else:
-                    break
+            while (self.nextIntervalFuncCall < min(tvbIterationEnd, sim.cfg.duration)):
+                sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
+                self.intervalFunc(self.time)
+                self.nextIntervalFuncCall = self.time + self.interval
         if tvbIterationEnd > self.time:
             if self.time < sim.cfg.duration:
                 sim.run.runForInterval(tvbIterationEnd - self.time, _)
@@ -202,13 +217,9 @@ class NetpyneModule(object):
 
         intervalEnd = h.t + length
         for gid in allNeurons:
-            # currently used .mod implementation allows no more then 3 spikes during the interval.
-            # if for given cell they are less than 3, use -1 for the rest. If they are more, the rest will be lost. But for the reasonable spiking rates, this latter case is highly unlikely. 
             spikes = allNeuronsSpikes.get(gid, [])
-            spks = [-1] * 3
-            for i, spike in enumerate(spikes[:3]):
-                spks[i] = spike
-            sim.net.cells[gid].hPointp.set_next_spikes(intervalEnd, spks[0], spks[1], spks[2])
+            spikes = h.Vector(spikes)
+            sim.net.cells[gid].hPointp.play(spikes, intervalEnd)
 
     def finalize(self):
         if self.time < sim.cfg.duration:
