@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 from tvb.basic.neotraits._attr import Attr, Int, Float, List
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.io import Sender, Receiver
@@ -100,7 +101,7 @@ class BaseInterfaces(HasTraits):
     def _loop_get_from_interfaces(self, attr):
         out = []
         for interfaces in self.interfaces:
-            out += list(getattr(interfaces, attr))
+            out += ensure_list(getattr(interfaces, attr))
         return out
 
     def configure(self):
