@@ -155,6 +155,13 @@ class ANNarchyParallelApp(ANNarchyApp, SpikeNetParallelApp):
         SpikeNetParallelApp.clean_up(self)
 
 
+class ANNarchyNRPApp(ANNarchyParallelApp):
+
+    """ANNarchyNRPApp class"""
+
+    pass
+
+
 class ANNarchyRemoteParallelApp(ANNarchyApp, SpikeNetRemoteParallelApp):
 
     """ANNarchyRemoteParallelApp class"""

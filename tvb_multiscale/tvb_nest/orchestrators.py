@@ -141,6 +141,13 @@ class NESTParallelApp(NESTApp, SpikeNetParallelApp):
         SpikeNetParallelApp.clean_up(self)
 
 
+class NESTNRPApp(NESTParallelApp):
+
+    """NESTNRPApp class"""
+
+    pass
+
+
 class NESTRemoteParallelApp(NESTApp, SpikeNetRemoteParallelApp):
 
     """NESTRemoteParallelApp class"""

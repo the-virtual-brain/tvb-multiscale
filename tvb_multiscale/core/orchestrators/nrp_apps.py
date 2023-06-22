@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABC, ABCMeta, abstractmethod
-
 from tvb.basic.neotraits._attr import Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallelNRP
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNRPBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorParallelBuilder
 from tvb_multiscale.core.interfaces.models.default import \
     DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
 from tvb_multiscale.core.orchestrators.tvb_app import TVBParallelApp
@@ -15,86 +13,37 @@ from tvb_multiscale.core.orchestrators.transformer_app import \
     TransformerApp, TVBtoSpikeNetTransformerApp, SpikeNetToTVBTransformerApp
 
 
-class NRPApp(HasTraits):
-    __metaclass__ = ABCMeta
-
-    """NRPApp abstract base class"""
-
-    @abstractmethod
-    def start(self):
-        pass
-
-    @abstractmethod
-    def build(self):
-        pass
-
-    @abstractmethod
-    def clean_up(self):
-        pass
-
-    @abstractmethod
-    def reset(self):
-        pass
-
-    @abstractmethod
-    def stop(self):
-        pass
-
-    def init(self):
-        self.start()
-        self.build()
-
-    def final(self):
-        self.clean_up()
-        self.stop()
 
 
-class NRPTVBApp(TVBParallelApp, NRPApp):
+class NRPTVBApp(TVBParallelApp):
 
     """NRPTVBApp class"""
 
-    cosimulator_builder = Attr(
-        label="TVB CoSimulatorParallelBuilder",
-        field_type=CoSimulatorNRPBuilder,
-        doc="""Instance of TVB Parallel CoSimulator Builder class.""",
-        required=False,
-        default=CoSimulatorNRPBuilder()
-    )
-
-    cosimulator = Attr(
-        label="TVB CoSimulator",
-        field_type=CoSimulatorParallelNRP,
-        doc="""Instance of TVB CoSimulator.""",
-        required=False
-    )
-
-    _cosimulator_builder_type = CoSimulatorNRPBuilder
     _default_interface_builder = DefaultTVBRemoteInterfaceBuilder
 
 
-class NRPSpikeNetApp(SpikeNetParallelApp, NRPApp, ABC):
-    __metaclass__ = ABCMeta
+class NRPSpikeNetApp(SpikeNetParallelApp):
 
     """NRPSpikeNetapp abstract base class"""
 
     pass
 
 
-class NRPTransformerApp(TransformerApp, NRPApp):
+class NRPTransformerApp(TransformerApp):
 
     """NRPTransformerApp class"""
 
     pass
 
 
-class NRPTVBtoSpikeNetTransformerApp(TVBtoSpikeNetTransformerApp, NRPApp):
+class NRPTVBtoSpikeNetTransformerApp(TVBtoSpikeNetTransformerApp):
 
     """NRPTVBtoSpikeNetTransformerApp class"""
 
     pass
 
 
-class NRPSpikeNetToTVBTransformerApp(SpikeNetToTVBTransformerApp, NRPApp):
+class NRPSpikeNetToTVBTransformerApp(SpikeNetToTVBTransformerApp):
 
     """NRPSpikeNetToTVBTransformerApp class"""
 
