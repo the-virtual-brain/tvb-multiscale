@@ -7,7 +7,7 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits._attr import NArray, Attr, Float
-from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun
+from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun, ensure_list
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
@@ -450,7 +450,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
 
     def _get_interface_arguments(self, interface, ii=0):
         interface.update({"spiking_network": self.spiking_network,
-                          "populations": np.array(interface["populations"])})
+                          "populations": np.array(ensure_list(interface["populations"]))})
         return interface
 
     def _get_output_interface_arguments(self, interface, ii=0):
