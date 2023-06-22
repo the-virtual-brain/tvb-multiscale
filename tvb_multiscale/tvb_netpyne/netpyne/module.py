@@ -11,17 +11,29 @@ class NetpyneModule(object):
     def __init__(self):
         self.spikeGeneratorPops = []
         self.autoCreatedPops = []
+        self._compileOrLoadMod()
 
+    def _compileOrLoadMod(self):
         # Make sure that all required mod-files are compiled (is there a better way to check?)
         try:
             h.DynamicVecStim()
         except:
-            print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
             import sys, os
+            currDir = os.getcwd()
+
             python_path = sys.executable.split("python")[0]
             tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
-            os.system(f'{python_path}nrnivmodl {tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
-            h.nrn_load_dll('./x86_64/libnrnmech.so')
+            # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
+            os.chdir(f'{tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            if not os.path.exists('x86_64'):
+                print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
+                os.system(f'{python_path}nrnivmodl .')
+            else:
+                print(f"NetPyNE will load mod-files from {os.getcwd()}.")
+            import neuron
+            neuron.load_mechanisms('.')
+
+            os.chdir(currDir)
 
     def importModel(self, netParams, simConfig, dt, config):
 
@@ -181,13 +193,10 @@ class NetpyneModule(object):
         tvbIterationEnd = self.time + length
         def _(simTime): pass
         if self.nextIntervalFuncCall:
-            while (self.nextIntervalFuncCall < tvbIterationEnd):
-                if self.time < sim.cfg.duration:
-                    sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
-                    self.intervalFunc(self.time)
-                    self.nextIntervalFuncCall = self.time + self.interval
-                else:
-                    break
+            while (self.nextIntervalFuncCall < min(tvbIterationEnd, sim.cfg.duration)):
+                sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
+                self.intervalFunc(self.time)
+                self.nextIntervalFuncCall = self.time + self.interval
         if tvbIterationEnd > self.time:
             if self.time < sim.cfg.duration:
                 sim.run.runForInterval(tvbIterationEnd - self.time, _)
