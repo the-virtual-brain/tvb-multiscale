@@ -1,26 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNRPBuilder
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorParallelBuilder
 from tvb_multiscale.core.orchestrators.nrp_apps import NRPTVBApp
 
 
 def tvb_init(config, tvb_cosimulator_builder=None, **kwargs):
 
-    # Create a NRPTVBApp
-    tvb_app = NRPTVBApp(config=config,
-                        proxy_inds=config.PROXY_INDS,
-                        synchronization_time=getattr(config.SYNCHRONIZATION_TIME, 0.0),
-                        exclusive_nodes=getattr(config.EXCLUSIVE_NODES, True),
-                        simulation_length=config.SIMULATION_LENGTH,
-                        **kwargs)
-
+    # Create a TVBApp
+    tvb_app = NRPTVBApp(config=config, **kwargs)
     # Set...
-    if isinstance(tvb_cosimulator_builder, CoSimulatorNRPBuilder):
+    if isinstance(tvb_cosimulator_builder, CoSimulatorParallelBuilder):
         # ...a TVB CoSimulator builder class instance:
         tvb_app.cosimulator_builder = tvb_cosimulator_builder
     else:
-        # ...or, assuming a callable function script, build and set the TVB CoSimulator
-        tvb_app.cosimulator = tvb_cosimulator_builder(config)
+        # ...or, a callable function
+        tvb_app.cosimulator_builder_function = tvb_cosimulator_builder
 
     tvb_app.start()
     # Configure App (and CoSimulator and interface builders)
@@ -28,5 +22,8 @@ def tvb_init(config, tvb_cosimulator_builder=None, **kwargs):
 
     # Build (CoSimulator if not built already, and interfaces)
     tvb_app.build()
+
+    # Configure App for CoSimulation
+    tvb_app.configure_simulation()
 
     return tvb_app
