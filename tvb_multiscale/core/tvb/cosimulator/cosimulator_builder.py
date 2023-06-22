@@ -209,6 +209,12 @@ class CoSimulatorBuilder(HasTraits):
             array will be padded with random values based on the 'state_variables_range'
             attribute.""")
 
+    simulation_length = Float(
+        label="Simulation Length (ms, s, m, h)",
+        default=1100.0,  # ie 1.1 second
+        required=False,
+        doc="""The length of a simulation (default in milliseconds).""")
+
     def configure_connectivity(self):
         # Load, normalize and configure connectivity
         # Given that
@@ -296,7 +302,8 @@ class CoSimulatorBuilder(HasTraits):
         simulator = self._cosimulator_type(model=self.configure_model(**model_params),
                                            connectivity=self.configure_connectivity(),
                                            integrator=self.configure_integrator(),
-                                           monitors=self.configure_monitors())
+                                           monitors=self.configure_monitors(),
+                                           simulation_length=self.simulation_length)
 
         if self.initial_conditions is not None:
             simulator.initial_conditions = self.configure_initial_conditions(simulator)
