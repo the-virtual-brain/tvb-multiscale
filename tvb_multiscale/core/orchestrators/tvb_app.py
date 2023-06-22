@@ -52,7 +52,7 @@ class TVBApp(CoSimulatorApp):
         required=False
     )
 
-    results = None
+    _results = None
 
     _cosimulator_builder_type = CoSimulatorBuilder
     _default_interface_builder_type = TVBInterfaceBuilder
@@ -89,6 +89,10 @@ class TVBApp(CoSimulatorApp):
         except:
             self.build_tvb_simulator()
         return self.cosimulator
+
+    @property
+    def results(self):
+        return self._results
 
     @property
     def tvb_dt(self):
@@ -169,8 +173,8 @@ class TVBApp(CoSimulatorApp):
             self.cosimulator = self.interfaces_builder.build()
             self._interfaces_build = True
             if self.verbosity:
-                self._logprint(self.cosimulator.output_interfaces.summary_info_to_string(recursive=2))
-                self._logprint(self.cosimulator.input_interfaces.summary_info_to_string(recursive=2))
+                self._logprint(self.cosimulator.output_interfaces.summary_info_to_string(recursive=self.verbosity+1))
+                self._logprint(self.cosimulator.input_interfaces.summary_info_to_string(recursive=self.verbosity+1))
 
     def assert_simulation_length(self):
         if self._cosimulator.synchronization_time > 0:
@@ -178,7 +182,7 @@ class TVBApp(CoSimulatorApp):
                                         self.cosimulator.synchronization_time
         self.cosimulator.simulation_length = simulation_length
 
-    def configure_simulation(self):
+    def configure_simulation(self, ):
         super(TVBApp, self).configure_simulation()
         self.cosimulator.PRINT_PROGRESSION_MESSAGE = self.verbosity
         self.cosimulator.configure()
@@ -187,9 +191,33 @@ class TVBApp(CoSimulatorApp):
         if self.verbosity:
             self._logprint(str(self.cosimulator))
 
-    def simulate(self):
-        super(TVBApp, self).simulate()
-        self.results = self._cosimulator.run()
+    def simulate(self, simulation_length=None):
+        if simulation_length is not None:
+            self.cosimulator.simulation_length = simulation_length
+        simulation_length = self.cosimulator.simulation_length
+        super(TVBApp, self).simulate(simulation_length)
+        self._results = self._cosimulator.run()
+
+    def plot(self, tvb_results=None, transient=0.0, spiking_nodes_ids=None,
+             # populations=["E", "I"], populations_sizes=[],
+             tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
+             plotter=None, writer=None, **kwargs):
+        super(TVBApp, self).plot()
+        from examples.plot_write_results import plot_write_tvb_results
+        if tvb_results is None:
+            tvb_results = self.results[0]
+            if tvb_results is None:
+                return None
+        if transient is None:
+            transient = getattr(self.config, "TRANSIENT", 0.0)
+        if spiking_nodes_ids is None:
+            spiking_nodes_ids = getattr(self.config, "SPIKING_NODES_INDS", [])
+        return plot_write_tvb_results(tvb_results, self._cosimulator,
+                                      transient=transient, spiking_nodes_ids=spiking_nodes_ids,
+                                      # populations=["E", "I"], populations_sizes=[],
+                                      tvb_state_variable_type_label=tvb_state_variable_type_label,
+                                      tvb_state_variables_labels=tvb_state_variables_labels,
+                                      plotter=plotter, writer=writer, config=self.config, **kwargs)
 
     def reset(self):
         super(TVBApp, self).reset()
@@ -296,6 +324,21 @@ class TVBParallelApp(TVBApp):
                 self._xs[i] = np.array(self._xs[i])
             return list(zip(self._ts, self._xs))
         return None
+
+    def plot(self, tvb_result=None, transient=0.0, spiking_nodes_ids=None,
+             # populations=["E", "I"], populations_sizes=[],
+             tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=None,
+             plotter=None, writer=None, **kwargs):
+        if tvb_result is None:
+            tvb_result = self.return_tvb_results()[0]
+        if tvb_state_variables_labels is None:
+            tvb_state_variables_labels = self._cosimulator.monitors[0].variables_of_interest
+            if tvb_state_variables_labels is None:
+                tvb_state_variables_labels = self._cosimulator.model.variables_of_interest
+        super(TVBParallelApp, self).plot(tvb_result, transient, spiking_nodes_ids,
+                                         # populations=["E", "I"], populations_sizes=[],
+                                         tvb_state_variable_type_label, tvb_state_variables_labels,
+                                         plotter, writer, **kwargs)
 
     def reset(self):
         super(TVBParallelApp, self).reset()

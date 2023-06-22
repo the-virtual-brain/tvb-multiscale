@@ -29,15 +29,15 @@ class SerialOrchestrator(Orchestrator):
 
     @property
     def tvb_cosimulator(self):
-        return self.tvb_app.cosimulator
+        return self.tvb_app._cosimulator
 
     @property
     def dt(self):
-        return self.tvb_app.cosimulator.integrator.dt
+        return self.tvb_app._cosimulator.integrator.dt
 
     @property
     def spiking_network(self):
-        return self.spikeNet_app.spiking_network
+        return self.spikeNet_app._spiking_network
 
     def configure(self):
         super(SerialOrchestrator, self).configure()
@@ -52,7 +52,7 @@ class SerialOrchestrator(Orchestrator):
         self.spikeNet_app.start()
 
     def link_spikeNet_to_TVB_cosimulator(self):
-        self.tvb_app.cosimulator.simulate_spiking_simulator = self.spikeNet_app.simulate
+        self.tvb_app.cosimulator.simulate_spiking_simulator = self.spiking_network.Run
 
     def build_cosimulators(self):
         if self.verbosity:
@@ -74,19 +74,39 @@ class SerialOrchestrator(Orchestrator):
     def configure_simulation(self):
         super(SerialOrchestrator, self).configure_simulation()
         self.tvb_app.configure_simulation()
-        self.spikeNet_app.synchronization_time = self.cosimulator.synchronization_time
+        self.spikeNet_app.synchronization_time = self.tvb_cosimulator.synchronization_time
         self.spikeNet_app.configure_simulation()
 
-    def simulate(self):
-        super(SerialOrchestrator, self).simulate()
+    def simulate(self, simulation_length=None):
+        if simulation_length is not None:
+            self.tvb_app.cosimulator.simulation_length = simulation_length
+        simulation_length = self.tvb_app.cosimulator.simulation_length
+        super(SerialOrchestrator, self).simulate(simulation_length)
         self.configure_simulation()
         self.tvb_app.simulate()
 
-    def run(self):
-        super(SerialOrchestrator, self).run()
-        self.configure()
-        self.build()
-        self.simulate()
+    def plot(self, tvb_results=None, spiking_nodes_ids=None, transient=None,
+             # populations=["E", "I"], populations_sizes=[],
+             tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
+             plot_per_neuron=False, plotter=None):
+        super(SerialOrchestrator, self).plot()
+        from examples.plot_write_results import plot_write_results
+        if transient is None:
+            transient = getattr(self.config, "TRANSIENT", 0.0)
+        if tvb_results is None:
+            tvb_results = self.tvb_app.results
+            if tvb_results is None:
+                return self.spikeNet_app.plot(connectivity=self.tvb_cosimulator.connectivity,
+                                              transient=transient,
+                                              monitor_period=self.tvb_cosimulator.monitors[0].period,
+                                              plot_per_neuron=plot_per_neuron, plotter=plotter)
+        if spiking_nodes_ids is None:
+            spiking_nodes_ids = getattr(self.config, "SPIKING_NODES_INDS", [])
+        return plot_write_results(tvb_results, self.tvb_cosimulator,
+                                  self.spiking_network, spiking_nodes_ids,
+                                  transient,  # populations=["E", "I"], populations_sizes=[],
+                                  tvb_state_variable_type_label, tvb_state_variables_labels,
+                                  plot_per_neuron, plotter, config=self.config)
 
     def stop(self):
         super(SerialOrchestrator, self).stop()

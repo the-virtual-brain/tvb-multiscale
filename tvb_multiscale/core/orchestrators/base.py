@@ -11,6 +11,7 @@ from tvb.contrib.scripts.utils.log_error_utils import warning
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serial_tvb_simulator_to_connectivity
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 
 
@@ -93,13 +94,18 @@ class App(HasTraits):
         self.build()
         self.configure_simulation()
 
-    def simulate(self):
-        self._logprint("Simulating with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
+    def simulate(self, simulation_length=None):
+        if simulation_length is not None:
+            sim_len_str = "for %gms " % simulation_length
+        self._logprint("Simulating %swith %s %s..." %
+                       (sim_len_str, self._app_or_orchestrator, self.__class__.__name__))
+
+    def plot(self):
+        self._logprint("Plotting results with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
     def run(self):
         self._logprint("Running simulation with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
         self.init()
-        self.simulate()
 
     def clean_up(self):
         self._logprint("Cleaning up %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
@@ -187,7 +193,11 @@ class CoSimulatorApp(AppWithInterfaces):
 
     """CoSimulatorApp abstract base class"""
 
-    pass
+    def run(self, simulation_length=None):
+        super(CoSimulatorApp, self).run()
+        self.configure()
+        self.build()
+        self.simulate(simulation_length)
 
 
 class NonTVBApp(CoSimulatorApp):
@@ -221,43 +231,51 @@ class NonTVBApp(CoSimulatorApp):
 
     @property
     def tvb_dt(self):
-        return self.tvb_cosimulator_serialized["integrator.dt"]
+        return self._serialized_tvb_cosimulatorv["integrator.dt"]
 
     @property
     def tvb_model(self):
-        return self.tvb_cosimulator_serialized["model"]
+        return self._serialized_tvb_cosimulator["model"]
 
     @property
     def tvb_model_state_variables(self):
-        return self.tvb_cosimulator_serialized["model.state_variables"]
+        return self._serialized_tvb_cosimulator["model.state_variables"]
 
     @property
     def tvb_model_cvar(self):
-        return self.tvb_cosimulator_serialized["model.cvar"]
+        return self._serialized_tvb_cosimulator["model.cvar"]
+
+    @property
+    def tvb_connectivity(self):
+        return serial_tvb_simulator_to_connectivity(self._serialized_tvb_cosimulator)
 
     @property
     def number_of_regions(self):
-        return self.tvb_cosimulator_serialized["connectivity.number_of_regions"]
+        return self._serialized_tvb_cosimulator["connectivity.number_of_regions"]
 
     @property
     def region_labels(self):
-        return self.tvb_cosimulator_serialized["connectivity.region_labels"]
+        return self._serialized_tvb_cosimulator["connectivity.region_labels"]
 
     @property
     def tvb_coupling_a(self):
-        return self.tvb_cosimulator_serialized["coupling.a"]
+        return self._serialized_tvb_cosimulator["coupling.a"]
 
     @property
     def tvb_weights(self):
-        return self.tvb_cosimulator_serialized["connectivity.weights"]
+        return self._serialized_tvb_cosimulator["connectivity.weights"]
 
     @property
     def tvb_delays(self):
-        return self.tvb_cosimulator_serialized["connectivity.delays"]
+        return self._serialized_tvb_cosimulator["connectivity.delays"]
 
     @property
     def tvb_delays(self):
-        return self.tvb_cosimulator_serialized["connectivity.delays"]
+        return self._serialized_tvb_cosimulator["connectivity.delays"]
+
+    @property
+    def tvb_monitor_period(self):
+        return self._serialized_tvb_cosimulator["monitor.period"]
 
     def configure_interfaces_builder(self):
         self._interfaces_builder.tvb_simulator_serialized = self._serialized_tvb_cosimulator
@@ -274,9 +292,15 @@ class Orchestrator(App):
     _app_or_orchestrator = "App"
 
     def build_interfaces(self):
-        self._logprint("Building interfaces with Orchestrator %s...", self.__class__.__name__)
+        self._logprint("Building interfaces with Orchestrator %s..." % self.__class__.__name__)
 
     def build(self):
         super(Orchestrator, self).build()
         self.build_cosimulators()
         self.build_interfaces()
+
+    def run(self, simulation_length=None):
+        super(Orchestrator, self).run()
+        self.configure()
+        self.build()
+        self.simulate()
