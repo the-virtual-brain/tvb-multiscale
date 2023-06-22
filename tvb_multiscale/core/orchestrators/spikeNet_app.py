@@ -91,6 +91,8 @@ class SpikeNetApp(NonTVBApp):
             self._logprint("Building Spiking Network with builder script %s of App %s..."
                            % (self.spikeNet_builder_function.__name__, self.__class__.__name__))
             self.spiking_network = self.spikeNet_builder_function(self.config)
+        if self.verbosity:
+            self.spiking_network.print_summary_info_details(recursive=1+self.verbosity, connectivity=1-self.verbosity)
 
     def build(self):
         self._logprint("Building with %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
@@ -101,8 +103,22 @@ class SpikeNetApp(NonTVBApp):
         self.spiking_network.configure()
 
     def simulate(self, simulation_length):
-        super(SpikeNetApp, self).simulate()
+        super(SpikeNetApp, self).simulate(simulation_length)
         return self.spiking_network.Run(simulation_length)
+
+    def plot(self, connectivity=None, time=None, transient=None, monitor_period=None,
+             plot_per_neuron=False, plotter=None, writer=None):
+        super(SpikeNetApp, self).plot()
+        from examples.plot_write_results import plot_write_spiking_network_results
+        if connectivity is None:
+            connectivity = self.tvb_connectivity
+        if monitor_period is None:
+            monitor_period = self.tvb_monitor_period
+        if transient is None:
+            transient = getattr(self.config, "TRANSIENT", 0.0)
+        return plot_write_spiking_network_results(self._spiking_network, connectivity,
+                                                  time, transient, monitor_period,
+                                                  plot_per_neuron, plotter, writer, self.config)
 
     def reset(self):
         super(SpikeNetApp, self).reset()
@@ -146,8 +162,10 @@ class SpikeNetParallelApp(SpikeNetApp):
             self.spiking_network = self.interfaces_builder.build()
             self._interfaces_build = True
             if self.verbosity:
-                self._logprint(self.spiking_network.input_interfaces.summary_info_to_string(recursive=2))
-                self._logprint(self.spiking_network.output_interfaces.summary_info_to_string(recursive=2))
+                self._logprint(
+                    self.spiking_network.input_interfaces.summary_info_to_string(recursive=self.verbosity+1))
+                self._logprint(
+                    self.spiking_network.output_interfaces.summary_info_to_string(recursive=self.verbosity+1))
 
     def build(self):
         super(SpikeNetParallelApp, self).build()

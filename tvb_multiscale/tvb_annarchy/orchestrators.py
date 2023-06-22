@@ -3,7 +3,8 @@
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
+from tvb_multiscale.core.orchestrators.spikeNet_app import \
+    SpikeNetSerialApp, SpikeNetParallelApp, SpikeNetRemoteParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
@@ -11,7 +12,8 @@ from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import load_annarchy
-from tvb_multiscale.tvb_annarchy.interfaces.builders import ANNarchyInterfaceBuilder, TVBANNarchyInterfaceBuilder
+from tvb_multiscale.tvb_annarchy.interfaces.builders import \
+    ANNarchyInterfaceBuilder, ANNarchyRemoteInterfaceBuilder, TVBANNarchyInterfaceBuilder
 
 
 class ANNarchyApp(HasTraits):
@@ -244,7 +246,3 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         required=False,
         default=ANNarchySerialApp()
     )
-
-    def simulate(self):
-        self.configure_simulation()
-        self.tvb_app.simulate()

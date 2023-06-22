@@ -105,8 +105,7 @@ class TVBSerialApp(TVBSerialAppBase):
         label="TVBNESTInterfaces builder",
         field_type=TVBNetpyneInterfaceBuilder,
         doc="""Instance of TVBNESTInterfaces' builder class.""",
-        required=True,
-        default=DefaultTVBNetpyneInterfaceBuilder()
+        required=False
     )
 
     spiking_network = Attr(
@@ -154,13 +153,16 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
     )
 
     def build(self):
-        self.config.simulation_length = self.simulation_length
+        # TODO: Correct this redundancy
+        self.config.simulation_length = getattr(self.config, "SIMULATION_LENGTH",
+                                                self.tvb_app.cosimulator_builder.simulation_length)
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
-        self.tvb_app.interfaces_builder.synaptic_model_funcs = self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
+        self.tvb_app.interfaces_builder.synaptic_model_funcs = \
+            self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
 
         # NetPyNE model is built in two steps.
         # First need to create declarative-style specification for both spiking network itself
-        # and TVB-Netpyne proxy devides (interfaces):
+        # and TVB-Netpyne proxy divides (interfaces):
         SerialOrchestrator.build(self)
 
         # Once done, network can be instantiated based on the specification:
