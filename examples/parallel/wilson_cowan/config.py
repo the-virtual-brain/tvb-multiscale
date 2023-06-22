@@ -59,6 +59,7 @@ def configure(config_class=Config):
     config.W_TVB_TO_SPIKENET = W_TVB_TO_SPIKENET
 
     config.SIMULATION_LENGTH = 1100.0
+    config.TRANSIENT = 100.0
 
     if config.VERBOSITY:
         print(config)
