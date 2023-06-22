@@ -75,8 +75,3 @@ class CoSimulatorParallel(CoSimulator):
                 ts, xs, wall_time_start,
                 cosim_updates=self.get_cosim_updates(cosim_updates, cosimulation))
         return outputs
-
-
-class CoSimulatorParallelNRP(CoSimulatorParallel):
-
-    pass
