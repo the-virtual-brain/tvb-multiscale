@@ -237,12 +237,12 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
     def info(self, recursive=0):
-        info.update(SpikeNetInputInterface.info(self, recursive=recursive))
+        info = SpikeNetInputInterface.info(self, recursive=recursive)
         info.update(TVBOutputInterface.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info.update(SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs))
+        info = SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs)
         info.update(TVBOutputInterface.info_details(self, recursive=recursive))
         return info
 
@@ -283,12 +283,12 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
         return self.reshape_data()
 
     def info(self, recursive=0):
-        info.update(SpikeNetOutputInterface.info(self, recursive=recursive))
+        info = SpikeNetOutputInterface.info(self, recursive=recursive)
         info.update(TVBInputInterface.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info.update(SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs))
+        info = SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs)
         info.update(TVBInputInterface.info_details(self, recursive=recursive))
         return info
 
