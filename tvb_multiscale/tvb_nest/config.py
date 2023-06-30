@@ -2,6 +2,7 @@
 
 import sys
 import os
+import warnings
 
 from tvb_multiscale.core.config import Config as ConfigBase, log_path
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
@@ -66,8 +67,16 @@ class Config(ConfigBase):
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
-        self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
-        self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
+        try:
+            self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
+        except Exception as e:
+            warnings.warn("NEST_INSTALL_DIR nor set!\n%s" % str(e))
+            self.NEST_PATH = ""
+        try:
+            self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
+        except Exception as e:
+            warnings.warn("NEST_PYTHON_PREFIX nor set!\n%s" % str(e))
+            self.PYTHON = ""
         self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
         self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
         self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
