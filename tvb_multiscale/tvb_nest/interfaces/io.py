@@ -285,6 +285,7 @@ class NESTOutputDeviceGetters(Enum):
 
 class NESTInputDeviceSetters(Enum):
     INHOMOGENEOUS_POISSON_GENERATOR = NESTInhomogeneousPoissonGeneratorSet
+    NEST_PARROT_INHOMOGENEOUS_POISSON_GENERATOR = NESTParrotInhomogeneousPoissonGeneratorSet
     SPIKE_GENERATOR = NESTSpikeGeneratorSet
     STEP_CURRENT_GENERATOR = NESTStepCurrentGeneratorSet
 
