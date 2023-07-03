@@ -127,6 +127,8 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 class Config(HasTraits):
     calcul = CalculusConfig()
 
+    VERBOSITY = 1
+
     DEFAULT_DT = 0.1
     TVB_TO_SPIKING_DT_RATIO = 2
     MIN_DELAY_RATIO = 1
@@ -148,8 +150,9 @@ class Config(HasTraits):
                           "source_inds": None, "target_inds": None, "params": {},
                           "syn_spec": {}, "conn_spec": {}}
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()
+        self.VERBOSITY = verbosity
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
