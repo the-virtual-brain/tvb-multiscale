@@ -1,16 +1,18 @@
 from abc import ABCMeta, ABC
+
 import numpy as np
 
-from tvb_multiscale.core.interfaces.models.wilson_cowan import WilsonCowanTVBSpikeNetInterfaceBuilder, WilsonCowanSpikeNetProxyNodesBuilder
-
+from tvb_multiscale.core.interfaces.models.wilson_cowan import \
+    WilsonCowanTVBSpikeNetInterfaceBuilder, WilsonCowanSpikeNetProxyNodesBuilder
 from tvb_multiscale.tvb_netpyne.interfaces.builders import NetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder
-
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_templates import receptor_by_source_region
+
 
 class WilsonCowanNetpyneProxyNodesBuilder(NetpyneProxyNodesBuilder, WilsonCowanSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
     pass
+
 
 class WilsonCowanTVBNetpyneInterfaceBuilder(WilsonCowanNetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder,
                                             WilsonCowanTVBSpikeNetInterfaceBuilder):

@@ -16,7 +16,6 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyContinuousInputDevice
 
 
-
 LOG = initialize_logger(__name__)
 
 

@@ -37,6 +37,8 @@ It inherits the Simulator class.
 
 """
 
+import time
+
 import numpy as np
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
@@ -46,9 +48,11 @@ class CoSimulatorSerial(CoSimulator):
 
     simulate_spiking_simulator = None
 
-    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
+        self.send_cosim_coupling(cosimulation)
         steps_performed = \
-            super(CoSimulatorSerial, self)._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation, **kwds)
+            super(CoSimulatorSerial, self).run_for_synchronization_time(ts, xs, wall_time_start,
+                                                                        self.get_cosim_updates(cosimulation), **kwds)
         if self.simulate_spiking_simulator is not None:
             steps_to_run = np.where(self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
                                     self.n_tvb_steps_sent_to_cosimulator_at_last_synch,

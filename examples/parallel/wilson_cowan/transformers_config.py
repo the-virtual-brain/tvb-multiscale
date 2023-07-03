@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import numpy as np
 
 from tvb_multiscale.core.config import Config
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, \
-    TVBtoSpikeNetRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerBuilder
+    TVBtoSpikeNetTransformerInterfaceBuilder, SpikeNetToTVBTransformerInterfaceBuilder, \
+    TVBtoSpikeNetRemoteTransformerInterfaceBuilder, SpikeNetToTVBRemoteTransformerInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 
+from examples.parallel.utils import load_serial_tvb_cosimulator, initialize_interface_builder_from_config
 from examples.parallel.wilson_cowan.config import configure
 
 
@@ -16,18 +19,18 @@ from examples.parallel.wilson_cowan.config import configure
 
 
 def configure_TVBtoSpikeNet_transformer_interfaces(
-        tvb_interface_builder_class=TVBtoSpikeNetTransformerBuilder,
+        tvb_interface_builder_class=TVBtoSpikeNetTransformerInterfaceBuilder,
         config=None, config_class=Config, dump_configs=True):
 
     if config is None:
         config = configure(config_class)
 
     tvb_to_spikeNet_trans_interface_builder = tvb_interface_builder_class(config=config)
-
-    # This can be used to set default tranformer and proxy models:
-    tvb_to_spikeNet_trans_interface_builder.model = config.INTERFACE_MODEL  # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
+    tvb_to_spikeNet_trans_interface_builder.tvb_simulator_serialized = load_serial_tvb_cosimulator(config)
+    tvb_to_spikeNet_trans_interface_builder = \
+        initialize_interface_builder_from_config(tvb_to_spikeNet_trans_interface_builder, config)
     tvb_to_spikeNet_trans_interface_builder.N_E = config.N_NEURONS
-    tvb_to_spikeNet_trans_interface_builder.N_I = config.N_NEURONS
+    tvb_to_spikeNet_trans_interface_builder.N_E = config.N_NEURONS
 
     # This is a user defined TVB -> Spiking Network interface configuration:
     tvb_to_spikeNet_trans_interface_builder.output_interfaces = \
@@ -58,32 +61,34 @@ def configure_TVBtoSpikeNet_transformer_interfaces(
             interface["transformer_params"] = {
                 "scale_factor": config.W_TVB_TO_SPIKENET * np.array([tvb_to_spikeNet_trans_interface_builder.N_E])}
 
-    # This is how the user defined TVB -> Spiking Network interface looks after configuration
-    print("\noutput (->Transformer-> coupling) interfaces' configurations:\n")
-
     if dump_configs:
         tvb_to_spikeNet_trans_interface_builder.dump_all_interfaces()
+
+    if config.VERBOSITY:
+        # This is how the user defined TVB -> Spiking Network interface looks after configuration
+        print("\noutput (->Transformer-> coupling) interfaces' configurations:\n")
+        print(tvb_to_spikeNet_trans_interface_builder.output_interfaces)
 
     return tvb_to_spikeNet_trans_interface_builder
 
 
 def configure_TVBtoSpikeNet_remote_transformer_interfaces(
-        tvb_interface_builder_class=TVBtoSpikeNetTransformerBuilder,
+        tvb_interface_builder_class=TVBtoSpikeNetRemoteTransformerInterfaceBuilder,
         config=None, config_class=Config):
     return configure_TVBtoSpikeNet_transformer_interfaces(tvb_interface_builder_class, config, config_class, True)
 
 
 def configure_spikeNetToTVB_transformer_interfaces(
-        tvb_interface_builder_class=SpikeNetToTVBTransformerBuilder,
+        tvb_interface_builder_class=SpikeNetToTVBTransformerInterfaceBuilder,
         config=None, config_class=Config, dump_configs=True):
 
     if config is None:
         config = configure(config_class)
 
     spikeNet_to_TVB_transformer_interface_builder = tvb_interface_builder_class(config=config)
-
-    # This can be used to set default transformer and proxy models:
-    spikeNet_to_TVB_transformer_interface_builder.model = config.INTERFACE_MODEL # "RATE" (or "SPIKES", "CURRENT") TVB->spikeNet interface
+    spikeNet_to_TVB_transformer_interface_builder.tvb_simulator_serialized = load_serial_tvb_cosimulator(config)
+    spikeNet_to_TVB_transformer_interface_builder = \
+        initialize_interface_builder_from_config(spikeNet_to_TVB_transformer_interface_builder, config)
     spikeNet_to_TVB_transformer_interface_builder.N_E = config.N_NEURONS
     spikeNet_to_TVB_transformer_interface_builder.N_I = config.N_NEURONS
 
@@ -103,16 +108,18 @@ def configure_spikeNetToTVB_transformer_interfaces(
                 "transformer_params": {"scale_factor": np.array([1e-4]) / N}
             })
 
-    # This is how the user defined Spiking Network -> TVB interfaces look after configuration
-    print("\ninput (TVB<-...-Transformer<-...-spikeNet update) interfaces' configurations:\n")
-
     if dump_configs:
         spikeNet_to_TVB_transformer_interface_builder.dump_all_interfaces()
+
+    if config.VERBOSITY:
+        # This is how the user defined Spiking Network -> TVB interfaces look after configuration
+        print("\ninput (TVB<-...-Transformer<-...-spikeNet update) interfaces' configurations:\n")
+        print(spikeNet_to_TVB_transformer_interface_builder.input_interfaces)
 
     return spikeNet_to_TVB_transformer_interface_builder
 
 
 def configure_spikeNetToTVB_remote_transformer_interfaces(
-        tvb_interface_builder_class=SpikeNetToTVBRemoteTransformerBuilder,
+        tvb_interface_builder_class=SpikeNetToTVBRemoteTransformerInterfaceBuilder,
         config=None, config_class=Config):
     return configure_spikeNetToTVB_transformer_interfaces(tvb_interface_builder_class, config, config_class, True)

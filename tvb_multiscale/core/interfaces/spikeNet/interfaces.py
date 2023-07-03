@@ -10,12 +10,14 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import \
-    SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
+    BaseInterface, SenderInterface, ReceiverInterface, BaseInterfaces
+from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, \
+    TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
-class SpikeNetInterface(HasTraits):
+class SpikeNetInterface(BaseInterface):
 
     __metaclass__ = ABCMeta
 
@@ -146,6 +148,9 @@ class SpikeNetOutputInterface(SpikeNetInterface):
             return [self.times, data[-1]]
         return None
 
+    def __call__(self):
+        return self.get_proxy_data()
+
 
 class SpikeNetInputInterface(SpikeNetInterface):
 
@@ -177,6 +182,33 @@ class SpikeNetInputInterface(SpikeNetInterface):
             return self.proxy(data)
         else:
             return None
+
+    def __call__(self, data):
+        return self.set_proxy_data(data)
+
+
+class SpikeNetOutputTransformerInterface(SpikeNetOutputInterface, TransformerInterface):
+
+    """SpikeNetOutputTransformerInterface class."""
+
+    def configure(self):
+        SpikeNetOutputInterface.configure(self)
+        TransformerInterface.configure(self)
+
+    def __call__(self):
+        return self.transform(self.get_proxy_data())
+
+
+class SpikeNetInputTransformerInterface(SpikeNetInputInterface, TransformerInterface):
+
+    """SpikeNetInputTransformerInterface class."""
+
+    def configure(self):
+        SpikeNetInputInterface.configure(self)
+        TransformerInterface.configure(self)
+
+    def __call__(self, data):
+        return self.set_proxy_data(self.transform(data))
 
 
 class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
@@ -285,33 +317,78 @@ class SpikeNetOutputInterfaces(BaseInterfaces, SpikeNetInterfaces):
 
     """SpikeNetOutputInterfaces"""
 
-    pass
-
-
-class SpikeNetOutputRemoteInterfaces(SpikeNetOutputInterfaces):
-
-    """SpikeNetOutputRemoteInterfaces"""
+    interfaces = List(of=SpikeNetOutputInterface)
 
     def __call__(self):
         outputs = []
-        for interface in self.interfaces:
-            outputs.append(interface())
+        for ii, interface in enumerate(self.interfaces):
+            output = interface()
+            if output is not None:
+                output += [ii]
+            outputs.append(output)
         return outputs
 
 
-class SpikeNetInputInterfaces(BaseInterfaces, SpikeNetInterfaces):
+class SpikeNetOutputTransformerInterfaces(SpikeNetOutputInterfaces):
+
+    """SpikeNetOutputTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetOutputTransformerInterface)
+
+
+class SpikeNetSenderInterfaces(SpikeNetOutputInterfaces):
+
+    """SpikeNetSenderInterfaces"""
+
+    interfaces = List(of=SpikeNetSenderInterface)
+
+
+class SpikeNetTransformerSenderInterfaces(SpikeNetOutputInterfaces):
+
+    """SpikeNetTransformerSenderInterfaces"""
+
+    interfaces = List(of=SpikeNetTransformerSenderInterface)
+
+
+class SpikeNetReceiverInterfaces(BaseInterfaces, SpikeNetInterfaces):
+
+    """SpikeNetReceiverInterfaces"""
+
+    interfaces = List(of=SpikeNetReceiverInterface)
+
+    def __call__(self):
+        results = []
+        for interface in self.interfaces:
+            results.append(interface())
+        return results
+
+
+class SpikeNetReceiverTransformerInterfaces(SpikeNetReceiverInterfaces):
+
+    """SpikeNetReceiverTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetReceiverTransformerInterface)
+
+
+class SpikeNetInputInterfaces(SpikeNetReceiverInterfaces):
 
     """SpikeNetInputInterfaces"""
 
-    pass
+    interfaces = List(of=SpikeNetInputInterface)
 
-
-class SpikeNetInputRemoteInterfaces(SpikeNetInputInterfaces):
-
-    """SpikeNetInputRemoteInterfaces"""
-
-    def __call__(self, *args):
+    def __call__(self, input_datas):
         results = []
-        for interface in self.interfaces:
-            results.append(interface(*args))
+        if input_datas is not None:
+            for ii, (interface, input_data) in enumerate(zip(self.interfaces, input_datas)):
+                if len(input_data) > 2:
+                    assert input_data[2] == ii
+                    input_data = input_data[:2]
+                results.append(interface(input_data))
         return results
+
+
+class SpikeNetInputTransformerInterfaces(SpikeNetInputInterfaces):
+
+    """SpikeNetInputTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetInputTransformerInterface)

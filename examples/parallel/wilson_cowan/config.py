@@ -18,10 +18,10 @@ def configure(config_class=Config):
     SPIKENET_MODEL_BUILDERS = None  # only None will work!, "opinionated", "nonopinionated", None
 
     # For a minimal example, select:
-    N_REGIONS = 4  # total TVB brain regions
+    N_REGIONS = None # 4  # total TVB brain regions
     SPIKING_NODES_INDS = np.array(
         [0, 1])  # the brain region nodes to place spiking networks from [0, N_REGIONS-1] interval
-    N_NEURONS = 10  # number of neurons per spiking population
+    N_NEURONS = 100  # number of neurons per spiking population
 
     # Interface basic configurations:
     INTERFACE_MODEL = "RATE"  # "RATE" (or "SPIKES", "CURRENT") TVB->NEST interface
@@ -57,5 +57,11 @@ def configure(config_class=Config):
     config.INTERFACE_COUPLING_MODE = INTERFACE_COUPLING_MODE
     config.EXCLUSIVE_NODES = EXCLUSIVE_NODES
     config.W_TVB_TO_SPIKENET = W_TVB_TO_SPIKENET
+
+    config.SIMULATION_LENGTH = 1100.0
+    config.TRANSIENT = 100.0
+
+    if config.VERBOSITY:
+        print(config)
 
     return config

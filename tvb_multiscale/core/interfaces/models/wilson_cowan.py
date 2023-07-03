@@ -12,7 +12,6 @@ from tvb_multiscale.core.interfaces.models.default import \
     DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
     DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
     DefaultSpikeNetRemoteInterfaceBuilder, DefaultSpikeNetTransformerInterfaceBuilder, \
-    DefaultSpikeNetOutputTransformerInterfaceBuilder, DefaultSpikeNetInputTransformerInterfaceBuilder, \
     DefaultTVBInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, DefaultInterfaceBuilder
 
 
@@ -108,26 +107,6 @@ class WilsonCowanSpikeNetRemoteInterfaceBuilder(WilsonCowanSpikeNetInterfaceBuil
     __metaclass__ = ABCMeta
 
     pass
-
-
-class WilsonCowanSpikeNetOutputTransformerInterfaceBuilder(WilsonCowanSpikeNetInterfaceBuilder,
-                                                           WilsonCowanSpikeNetToTVBTransformerBuilder,
-                                                           DefaultSpikeNetOutputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        WilsonCowanSpikeNetInterfaceBuilder.default_input_config(self)
-        WilsonCowanSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class WilsonCowanSpikeNetInputTransformerInterfaceBuilder(WilsonCowanSpikeNetInterfaceBuilder,
-                                                          WilsonCowanTVBtoSpikeNetTransformerBuilder,
-                                                          DefaultSpikeNetInputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_input_config(self):
-        WilsonCowanSpikeNetInterfaceBuilder.default_input_config(self)
-        WilsonCowanTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
 class WilsonCowanSpikeNetTransformerInterfaceBuilder(WilsonCowanSpikeNetInterfaceBuilder,

@@ -2,6 +2,7 @@
 
 import sys
 import os
+import warnings
 
 from tvb_multiscale.core.config import Config as ConfigBase, log_path
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
@@ -14,10 +15,8 @@ MYMODULES_DIR = os.environ.get("MYMODULES_DIR",
 MYMODULES_BLD_DIR = os.environ.get("MYMODULES_BLD_DIR",
                                    os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds"))
 
-DEFAULT_NEST_INSTALL_DIR = "/opt/nest"
 
-
-class TVBNESTConfig(ConfigBase):
+class Config(ConfigBase):
     # WORKING DIRECTORY:
     TVB_NEST_DIR = TVB_NEST_DIR
     WORKING_DIR = WORKING_DIR
@@ -66,14 +65,28 @@ class TVBNESTConfig(ConfigBase):
                                      "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
                                      }
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
-        super(TVBNESTConfig, self).__init__(output_base, separate_by_run, initialize_logger)
-        self.NEST_PATH = os.environ.get("NEST_INSTALL_DIR", DEFAULT_NEST_INSTALL_DIR)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
+        try:
+            self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
+        except Exception as e:
+            warnings.warn("NEST_INSTALL_DIR nor set!\n%s" % str(e))
+            self.NEST_PATH = ""
+        try:
+            self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
+        except Exception as e:
+            warnings.warn("NEST_PYTHON_PREFIX nor set!\n%s" % str(e))
+            self.PYTHON = ""
+        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
+        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
+        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
+        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
         self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
         self.DEFAULT_NEST_KERNEL_CONFIG["data_path"] = self.RECORDINGS_DIR
-
+        self.MYMODULES_DIR = MYMODULES_DIR
+        self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
 
     @property
     def TOTAL_NUM_VIRTUAL_PROCS(self):
@@ -100,23 +113,10 @@ class TVBNESTConfig(ConfigBase):
                 "spike_recorder": {"record_to": self.DEFAULT_DEVICE_RECORD_TO},
                 "spike_multimeter": {'record_from': ["spike"], "record_to": self.DEFAULT_DEVICE_RECORD_TO}}
 
-
-class Config(TVBNESTConfig):
-
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
-        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
-        self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
-        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
-        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
-        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
-        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
-        self.MYMODULES_DIR = MYMODULES_DIR
-        self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
-
     def configure_nest_path(self, logger=None):
             if logger is None:
                 logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
-            logger.info("Loading a NEST instance...")
+            logger.info("Configuring NEST path...")
             nest_path = self.NEST_PATH
             os.environ['NEST_INSTALL_DIR'] = nest_path
             log_path('NEST_INSTALL_DIR', logger)
@@ -138,27 +138,14 @@ class Config(TVBNESTConfig):
             os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
             log_path('NEST_PYTHON_PREFIX', logger)
             sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-            syspath = "[\n"
-            for p in sys.path:
-                syspath += "%s\n" % p
-            syspath += "]\n"
-            logger.info("%s:\n%s" % ("system path", syspath))
-
-
-class ServerConfig(TVBNESTConfig):
-
-    pass
+            logger.info("%s: %s" % ("system path", sys.path))
 
 
 CONFIGURED = Config(initialize_logger=False)
+CONFIGURED.configure_nest_path()
 
 
-def initialize_logger(name="tvb_nest", target_folder=None, config=None, nest_server=False):
-    if config is None:
-        if nest_server:
-            config = ServerConfig(initialize_logger=False)
-        else:
-            config = Config(initialize_logger=False)
+def initialize_logger(name="tvb_nest", target_folder=None, config=CONFIGURED):
     if target_folder is None:
         target_folder = config.out.FOLDER_LOGS
     return initialize_logger_base(name, target_folder)

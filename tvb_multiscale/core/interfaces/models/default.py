@@ -9,11 +9,10 @@ from tvb.basic.neotraits._attr import Attr, Int
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBRemoteInterfaceBuilder, TVBSpikeNetInterfaceBuilder, \
-    TVBTransfomerInterfaceBuilder, TVBOutputTransformerInterfaceBuilder, TVBInputTransformerInterfaceBuilder, \
+    TVBTransformerInterfaceBuilder, TVBOutputTransformerInterfaceBuilder, TVBInputTransformerInterfaceBuilder, \
     TVBInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder,  \
-    SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder, \
-    SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder, SpikeNetInterfaceBuilder
+    SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder, SpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
 
 
@@ -138,7 +137,7 @@ class DefaultTVBInputTransformerInterfaceBuilder(TVBInputTransformerInterfaceBui
         DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.input_interfaces)
 
 
-class DefaultTVBTransfomerInterfaceBuilder(TVBTransfomerInterfaceBuilder,
+class DefaultTVBTransfomerInterfaceBuilder(TVBTransformerInterfaceBuilder,
                                            DefaultTVBtoSpikeNetTransformerBuilder,
                                            DefaultSpikeNetToTVBTransformerBuilder,
                                            DefaultTVBInterfaceBuilder):
@@ -207,26 +206,6 @@ class DefaultSpikeNetRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, Defa
     __metaclass__ = ABCMeta
 
     pass
-
-
-class DefaultSpikeNetOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBuilder,
-                                                       DefaultSpikeNetInterfaceBuilder,
-                                                       DefaultSpikeNetToTVBTransformerBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        DefaultSpikeNetInterfaceBuilder.default_input_config(self)
-        DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class DefaultSpikeNetInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuilder,
-                                                      DefaultSpikeNetInterfaceBuilder,
-                                                      DefaultTVBtoSpikeNetTransformerBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_input_config(self):
-        DefaultSpikeNetInterfaceBuilder.default_input_config(self)
-        DefaultTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
 class DefaultSpikeNetTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder,

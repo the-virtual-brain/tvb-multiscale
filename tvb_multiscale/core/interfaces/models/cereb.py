@@ -13,8 +13,7 @@ from tvb_multiscale.core.interfaces.models.default import DefaultTVBInterfaceBui
     DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
     DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
     DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder, \
-    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetOutputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInputTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
+    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 
 
@@ -176,26 +175,6 @@ class CerebSpikeNetInterfaceBuilder(CerebSpikeNetProxyNodesBuilder, DefaultSpike
 class CerebSpikeNetRemoteInterfaceBuilder(CerebSpikeNetInterfaceBuilder,
                                                            DefaultSpikeNetRemoteInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
-
-
-class CerebSpikeNetOutputTransformerInterfaceBuilder(
-    CerebSpikeNetInterfaceBuilder, CerebSpikeNetToTVBTransformerBuilder,
-    DefaultSpikeNetOutputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        CerebSpikeNetInterfaceBuilder.default_output_config(self)
-        CerebSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class CerebSpikeNetInputTransformerInterfaceBuilder(
-    CerebSpikeNetInterfaceBuilder, CerebTVBtoSpikeNetTransformerBuilder,
-    DefaultSpikeNetInputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_input_config(self):
-        CerebSpikeNetInterfaceBuilder.default_input_config(self)
-        CerebTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
 class CerebSpikeNetTransformerInterfaceBuilder(CerebSpikeNetInterfaceBuilder,

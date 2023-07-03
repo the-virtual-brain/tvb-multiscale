@@ -240,6 +240,7 @@ class NPZWriter(WriterToFile):
 
     def send(self, data):
         np.savez(self.target, time=data[0], values=data[1], allow_pickle=True)
+        return 1
 
 
 class NPZReader(ReaderFromFile):

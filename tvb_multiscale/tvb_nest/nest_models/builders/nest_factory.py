@@ -5,9 +5,7 @@ import shutil
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, ServerConfig, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.devices import \
-    NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
+from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -52,28 +50,7 @@ def configure_nest_kernel(nest_instance, config=CONFIGURED):
     nest_instance.SetKernelStatus(kernel_config)
     return nest_instance
 
-
-def stop_nest_server_client(config=None):
-    if config is None:
-        config = ServerConfig(initialize_logger=False)
-    try:
-        # Just in case NEST Server is hanging...
-        exec("%s/bin/nest-server stop" % config.NEST_PATH)
-    except:
-        pass
-
-
-def start_nest_server_client(config=None, nest_server_client_type=None, **kwargs):
-    if config is None:
-        config = ServerConfig(initialize_logger=False)
-    if nest_server_client_type is None:
-        from tvb_multiscale.tvb_nest.nest_models.server_client.nest_server_client import NESTServerClient
-        nest_server_client_type = NESTServerClient
-    stop_nest_server_client(config)
-    exec("/opt/nest/bin/-server start")
-    return nest_server_client_type(**kwargs)
-
-
+    
 def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     """Function to compile NEST modules.
        Arguments:
@@ -241,6 +218,9 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
        Returns:
         the NESTDevice class, and optionally, the NEST instance if it is loaded here.
     """
+    from tvb_multiscale.tvb_nest.nest_models.devices import \
+        NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
+
     if nest_instance is None:
         nest_instance = load_nest(config=config)
         return_nest = True
@@ -330,6 +310,8 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
        Returns:
         the connected NESTDevice
     """
+    from tvb_multiscale.tvb_nest.nest_models.devices import NESTParrotSpikeInputDeviceDict
+
     nest_instance = nest_device.nest_instance
     if receptor_type is None:
         receptor_type = 0
