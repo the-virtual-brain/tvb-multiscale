@@ -15,6 +15,7 @@ MYMODULES_DIR = os.environ.get("MYMODULES_DIR",
 MYMODULES_BLD_DIR = os.environ.get("MYMODULES_BLD_DIR",
                                    os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds"))
 
+DEFAULT_NEST_INSTALL_DIR = "/opt/nest"
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:
