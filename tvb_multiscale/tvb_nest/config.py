@@ -116,7 +116,7 @@ class Config(ConfigBase):
     def configure_nest_path(self, logger=None):
             if logger is None:
                 logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
-            logger.info("Loading a NEST instance...")
+            logger.info("Configuring NEST path...")
             nest_path = self.NEST_PATH
             os.environ['NEST_INSTALL_DIR'] = nest_path
             log_path('NEST_INSTALL_DIR', logger)
