@@ -6,8 +6,6 @@ import shutil
 import numpy as np
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.devices import \
-    NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
@@ -220,6 +218,9 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
        Returns:
         the NESTDevice class, and optionally, the NEST instance if it is loaded here.
     """
+    from tvb_multiscale.tvb_nest.nest_models.devices import \
+        NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
+
     if nest_instance is None:
         nest_instance = load_nest(config=config)
         return_nest = True
@@ -309,6 +310,8 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
        Returns:
         the connected NESTDevice
     """
+    from tvb_multiscale.tvb_nest.nest_models.devices import NESTParrotSpikeInputDeviceDict
+
     nest_instance = nest_device.nest_instance
     if receptor_type is None:
         receptor_type = 0
