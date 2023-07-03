@@ -21,6 +21,7 @@ except:
 
 from tvb_multiscale.core.plot.plotter import Plotter
 from tvb_multiscale.core.data_analysis.spiking_network_analyser import SpikingNetworkAnalyser
+from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 
 # from tvb.simulator.models.spiking_wong_wang_exc_io_inh_i import SpikingWongWangExcIOInhI
 from tvb.simulator.plot.base_plotter import pyplot
@@ -124,7 +125,9 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
     if writer is not None:
         write_RegionTimeSeriesXarray_to_h5(source_ts, writer,
                                            os.path.join(config.out.FOLDER_RES, source_ts.title) + ".h5")
-
+    else:
+        dump_pickled_dict(source_ts._data.to_dict(),
+                          os.path.join(config.out.FOLDER_RES, "source_ts.pkl"))
     # if isinstance(simulator.model, SpikingWongWangExcIOInhI):
     #     populations = kwargs.get("populations", ["E", "I"])
     #     populations_sizes = kwargs.get("populations_sizes", [])
@@ -262,6 +265,19 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                                                os.path.join(config.out.FOLDER_RES,
                                                             spikes_res["mean_rate_time_series"].title) + ".h5",
                                                recursive=False)
+        else:
+            dump_pickled_dict(spikes_res["spikes"].to_dict(),
+                                os.path.join(config.out.FOLDER_RES, "Spikes") + ".pkl")
+            dump_pickled_dict(spikes_res["mean_rate"].to_dict(),
+                              os.path.join(config.out.FOLDER_RES,
+                                           spikes_res["mean_rate"].name) + ".pkl")
+            dump_pickled_dict(spikes_res["spikes_correlation_coefficient"].to_dict(),
+                              os.path.join(config.out.FOLDER_RES,
+                                           spikes_res["spikes_correlation_coefficient"].name) + ".pkl")
+            dump_pickled_dict(spikes_res["mean_rate_time_series"]._data.to_dict(),
+                              os.path.join(config.out.FOLDER_RES,
+                                           spikes_res["mean_rate_time_series"].title) + ".pkl")
+
 
         spikes_sync = \
             spikeNet_analyzer.compute_spikeNet_synchronization(
@@ -289,6 +305,13 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
                     os.path.join(config.out.FOLDER_RES,
                                  spikes_sync["spikes_sync_time_series"].title) + ".h5",
                     recursive=False)
+            else:
+                dump_pickled_dict(spikes_sync["spikes_sync"].to_dict(),
+                                  os.path.join(config.out.FOLDER_RES,
+                                               spikes_sync["spikes_sync"].name) + ".pkl")
+                dump_pickled_dict(spikes_sync["spikes_sync_time_series"]._data.to_dict(),
+                                  os.path.join(config.out.FOLDER_RES,
+                                               spikes_sync["spikes_sync_time_series"].title) + ".pkl")
             del spikes_sync
 
         del spikes_res
@@ -372,6 +395,9 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
             write_RegionTimeSeriesXarray_to_h5(mean_field_ts, writer,
                                                os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".h5",
                                                recursive=False)
+        else:
+            dump_pickled_dict(mean_field_ts._data.to_dict(),
+                              os.path.join(config.out.FOLDER_RES, mean_field_ts.title) + ".pkl")
         del mean_field_ts
 
 
