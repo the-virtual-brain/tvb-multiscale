@@ -1,6 +1,6 @@
 NEURON {
     POINT_PROCESS Izhi2003c
-    RANGE a, b, c, d, C, Ie, n0, n1, n2, Vr, uInit, vInit, thresh, cellid
+    RANGE a, b, c, d, C, Ie, n0, n1, n2, Vr, uInit, vInit, thresh, cellid, mu, noise, Iinj
     NONSPECIFIC_CURRENT i
 }
 
@@ -20,6 +20,8 @@ PARAMETER {
     n1
     n2
     mu = 0
+    noise = 0
+    Iinj = 0
     Eampa = 0
     Egaba = -90
     Vr = 0
@@ -67,7 +69,7 @@ DERIVATIVE states {
         clamp = 1
     }
     u' = clamp * (a * (b * (V - Vr) - u))
-    V' = clamp * (n2 * V * V + n1 * V + n0 - u / C -gampa * (V - Eampa) - ggaba * (V - Egaba) + Ie + mu)
+    V' = clamp * (n2 * V * V + n1 * V + n0 - u / C -gampa * (V - Eampa) - ggaba * (V - Egaba) + Ie + Iinj + mu * noise)
 }
 
 NET_RECEIVE (w) {

@@ -60,12 +60,15 @@ class NetpyneModule(object):
     @property
     def time(self):
         return h.t
-    
-    def instantiateNetwork(self):
+
+    def instantiateNetwork(self, networkCreatedCallback=None):
 
         sim.initialize(self.netParams, None) # simConfig to be provided later
         sim.net.createPops()
         sim.net.createCells()
+
+        if networkCreatedCallback:
+            networkCreatedCallback(sim.net)
 
         if len(self.autoCreatedPops):
             # choose N random cells from each population to plot traces for
