@@ -313,6 +313,9 @@ class TVBParallelApp(TVBApp):
         if self.cosimulator.n_tvb_steps_ran_since_last_synch is None:
             self.cosimulator.n_tvb_steps_ran_since_last_synch = int(self.cosimulator.synchronization_n_step)
 
+    def send_cosim_coupling(self):
+        return self.cosimulator.send_cosim_coupling(True)
+
     def run_for_synchronization_time(self, cosim_updates=None, cosimulation=True):
         return self.cosimulator.run_for_synchronization_time(
             self._ts, self._xs, self._wall_time_start, cosim_updates, cosimulation=cosimulation)
