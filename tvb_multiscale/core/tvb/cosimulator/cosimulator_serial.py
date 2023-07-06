@@ -34,7 +34,7 @@ It inherits the Simulator class.
 
 .. moduleauthor:: Dionysios Perdikis <dionysios.perdikis@charite.de>
 
-
+    §   §
 """
 
 import time
@@ -49,15 +49,12 @@ class CoSimulatorSerial(CoSimulator):
     simulate_spiking_simulator = None
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
-        self.send_cosim_coupling(cosimulation)
-        steps_performed = \
-            super(CoSimulatorSerial, self).run_for_synchronization_time(ts, xs, wall_time_start,
-                                                                        self.get_cosim_updates(cosimulation), **kwds)
+        self.n_tvb_steps_ran_since_last_synch = super(CoSimulatorSerial, self).run_for_synchronization_time(
+            ts, xs, wall_time_start, self.get_cosim_updates(cosimulation), cosimulation=False, **kwds)[1]
         if self.simulate_spiking_simulator is not None:
-            steps_to_run = np.where(self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
-                                    self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
-                                    steps_performed).item()
-            self.log.info("Simulating the spiking network for %d time steps..." % steps_to_run)
-            self.simulate_spiking_simulator(np.around(steps_to_run * self.integrator.dt,
-                                                      decimals=self._number_of_dt_decimals).item())
-        return steps_performed
+            self.log.info("Simulating the spiking network for %d time steps..." %
+                          self.n_tvb_steps_ran_since_last_synch)
+            self.simulate_spiking_simulator(
+                np.around(self.n_tvb_steps_ran_since_last_synch * self.integrator.dt,
+                          decimals=self._number_of_dt_decimals).item())
+        return self.send_cosim_coupling(cosimulation), self.n_tvb_steps_ran_since_last_synch
