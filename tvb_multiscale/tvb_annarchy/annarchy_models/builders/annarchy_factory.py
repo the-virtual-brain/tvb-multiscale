@@ -251,13 +251,11 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
                 % (source_pop.label, target_pop.label))
         proj = proj.connect_current()
     elif rule == "fixed_probability":
-        proj = proj.connect_fixed_probability(conn_spec.pop("probability"), weights, **conn_spec)
+        proj = proj.connect_fixed_probability(conn_spec.pop("probability"), weights, delays=delays, **conn_spec)
     elif rule in ["fixed_number_pre", "fixed_number_post"]:
-        proj = getattr(proj, "connect_" + rule)(conn_spec.pop("number"),
-                                                weights, delays=delays, **conn_spec)
+        proj = getattr(proj, "connect_" + rule)(conn_spec.pop("number"), weights, delays=delays, **conn_spec)
     elif rule == "gaussian":
-        proj = proj.connect_gaussian(conn_spec.pop("amp"), conn_spec.pop("sigma"),
-                                     delays=delays, **conn_spec)
+        proj = proj.connect_gaussian(conn_spec.pop("amp"), conn_spec.pop("sigma"), delays=delays, **conn_spec)
     elif rule == "dog":
         proj = proj.connect_dog(conn_spec.pop("amp_pos"), conn_spec.pop("sigma_pos"),
                                 conn_spec.pop("amp_neg"), conn_spec.pop("sigma_neg"),
