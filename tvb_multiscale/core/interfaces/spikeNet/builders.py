@@ -398,6 +398,11 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         return self.tvb_simulator_serialized.get("connectivity.weights", np.zeros((1, 1)))
 
     def _get_tvb_delays(self):
+        # As we cannot schedule spikeNet devices with times in the past,
+        # we are adding synchronization time to the times of TVB cosimulation coupling input,
+        # and subtract it, here, from the connectome delays, in case coupling is "spikeNet".
+        # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
+        # i.e., for the next synhcronization_time period, to "spikeNet" devices
         # This is good for ANNarchy because one can set the devices' state at time 0.0
         # For NEST, one has to subtract 1 NEST time step.
         return np.maximum(1,
