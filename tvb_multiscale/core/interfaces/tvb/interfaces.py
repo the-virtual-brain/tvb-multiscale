@@ -372,7 +372,12 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         times = np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),  # start_time_step
                           np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
         if interface.coupling_mode.upper() != "TVB":
-            times += self.synchronization_n_step  # adding the synchronization time when not a coupling interface
+            # As we cannot schedule spikeNet devices with times in the past,
+            # we need to add here synchronization time,
+            # and subtract it from the connectome delays, in case coupling is "spikeNet".
+            # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
+            # i.e., for the next synhcronization_time period, to "spikeNet" devices
+            times += self.synchronization_n_step
         return times
 
     def __call__(self, data):

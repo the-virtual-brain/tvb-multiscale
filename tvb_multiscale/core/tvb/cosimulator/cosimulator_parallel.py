@@ -45,11 +45,10 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 class CoSimulatorRemoteParallel(CoSimulator):
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True):
-        outputs = self.send_cosim_coupling(cosimulation)
-        self.n_tvb_steps_ran_since_last_synch = \
+        tvb_cosim_coupling, self.n_tvb_steps_ran_since_last_synch = \
             super(CoSimulatorRemoteParallel, self).run_for_synchronization_time(
                 ts, xs, wall_time_start, cosim_updates=self.get_cosim_updates(cosimulation))
-        return outputs
+        return tvb_cosim_coupling
 
 
 class CoSimulatorParallel(CoSimulator):
@@ -69,9 +68,12 @@ class CoSimulatorParallel(CoSimulator):
         return cosim_updates
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True):
-        outputs = self.send_cosim_coupling(cosimulation)
-        self.n_tvb_steps_ran_since_last_synch = \
+        tvb_cosim_coupling, self.n_tvb_steps_ran_since_last_synch = \
             super(CoSimulatorParallel, self).run_for_synchronization_time(
-                ts, xs, wall_time_start,
-                cosim_updates=self.get_cosim_updates(cosim_updates, cosimulation))
-        return outputs
+                ts, xs, wall_time_start, cosim_updates=self.get_cosim_updates(cosim_updates, cosimulation))
+        return tvb_cosim_coupling
+
+
+class CoSimulatorParallelNRP(CoSimulatorParallel):
+
+    pass

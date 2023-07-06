@@ -118,8 +118,6 @@ def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_
         sample_period=simulator.integrator.dt)
     source_ts.configure()
 
-    if transient:
-        source_ts = source_ts[transient:]
     time = source_ts.time
 
     if writer is not None:
