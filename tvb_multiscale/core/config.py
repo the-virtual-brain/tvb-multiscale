@@ -157,8 +157,8 @@ class Config(HasTraits):
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()
         self.VERBOSITY = verbosity
+        self.BASEPATH = output_base
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
-        self.BASEPATH = os.path.abspath(os.path.join(self.output_base, os.pardir))
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
