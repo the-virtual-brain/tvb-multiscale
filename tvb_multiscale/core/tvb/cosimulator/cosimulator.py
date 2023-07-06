@@ -417,7 +417,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         if advance_simulation_for_delayed_monitors_output:
             simulation_length += synchronization_time
         synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-        if self.n_tvb_steps_ran_since_last_synch is None:
+        if not self.n_tvb_steps_ran_since_last_synch:
             self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
         simulated_steps = 0
         remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
