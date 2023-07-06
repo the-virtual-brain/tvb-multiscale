@@ -218,15 +218,15 @@ class InterfaceBuilder(HasTraits, ABC):
 
     @property
     def interface_filepath(self):
-        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_interface')
+        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__ + '_interface')
 
     @property
     def output_interfaces_filepath(self):
-        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_output_interface')
+        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__ + '_output_interface')
 
     @property
     def input_interfaces_filepath(self):
-        return os.path.join(self.config.out.FOLDER_RES, self.__class__.__name__ + '_input_interface')
+        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__ + '_input_interface')
 
     def dump_interface(self, interface, filepath):
         dump_pickled_dict(interface, filepath)
@@ -339,7 +339,7 @@ class RemoteInterfaceBuilder(InterfaceBuilder, ABC):
         return "%s_%d" % (label, ii)
 
     def _file_path(self, label):
-        return os.path.join(self.config.out.FOLDER_RES, "%s" % label)
+        return os.path.join(self.config.FOLDER_RUNTIME, "%s" % label)
 
     def _build_communicator(self, interface, communicator, ii):
         params = interface.pop(communicator + "_params", {})
