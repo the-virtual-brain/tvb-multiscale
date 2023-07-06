@@ -372,8 +372,7 @@ class RayTVBOutputInterfaces(TVBOutputInterfaces):
                     interface([self._compute_interface_times(interface, data),
                                data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]],
                               block=block))
-        if np.all([running_task_ref is None for running_task_ref in self.running_tasks_refs]):
-            self.running_tasks_refs = []
+        self.running_tasks_refs = [ref_obj for ref_obj in self.running_tasks_refs if ref_obj is not None]
         # Return pending task references or empty list:
         return self.running_tasks_refs
 
@@ -420,9 +419,9 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
                                                       data, good_cosim_update_values_shape)
                     self.all_time_steps += time_steps.tolist()
                     self.running_tasks_refs[ii] = None
-        if np.all([running_task_ref is None for running_task_ref in self.running_tasks_refs]):
+        self.running_tasks_refs = [ref_obj for ref_obj in self.running_tasks_refs if ref_obj is not None]
+        if len(self.running_tasks_refs) == 0:
             # print("\nAll interfaces finished. Returning data!")
-            self.running_tasks_refs = []
             # Return cosim_updates data:
             inputs = self.get_inputs(self.cosim_updates, self.all_time_steps, good_cosim_update_values_shape)
             self.cosim_updates = np.array([])
