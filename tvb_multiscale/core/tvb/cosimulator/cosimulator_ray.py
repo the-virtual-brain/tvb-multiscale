@@ -52,16 +52,15 @@ class CoSimulatorSerialRay(CoSimulatorSerial):
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         if self.spiking_simulator is not None:
             self.spiking_simulator.block_run
-        steps_performed = \
-            super(CoSimulatorSerial, self).run_for_synchronization_time(ts, xs, wall_time_start, cosimulation, **kwds)
-        if self.spiking_simulator is not None:
-            steps_to_run = np.where(self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
-                                    self.n_tvb_steps_sent_to_cosimulator_at_last_synch,
-                                    steps_performed).item()
-            self.log.info("Simulating the spiking network for %d time steps..." % steps_to_run)
-            self.spiking_simulator.Run(np.around(steps_to_run * self.integrator.dt,
-                                                 decimals=self._number_of_dt_decimals).item())
-        return steps_performed
+        self.n_tvb_steps_ran_since_last_synch = super(CoSimulatorSerial, self).run_for_synchronization_time(
+            ts, xs, wall_time_start, self.get_cosim_updates(cosimulation), cosimulation=False, **kwds)[1]
+        if self.simulate_spiking_simulator is not None:
+            self.log.info("Simulating the spiking network for %d time steps..." %
+                          self.n_tvb_steps_ran_since_last_synch)
+            self.simulate_spiking_simulator(
+                np.around(self.n_tvb_steps_ran_since_last_synch * self.integrator.dt,
+                          decimals=self._number_of_dt_decimals).item())
+        return self.send_cosim_coupling(cosimulation), self.n_tvb_steps_ran_since_last_synch
 
 
 class CoSimulatorParallelRay(CoSimulatorParallel):
@@ -108,13 +107,11 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
             # 2. Get data from spikeNet and start processing them
             # Receive and transform TVB <- spikeNet
             cosim_updates = self.get_cosim_updates(cosimulation, block=False)  # NON BLOCKING
-            # print("\nNONBLOCK cosim_updates %s" % str(type(cosim_updates)))
             # 3. Start simulating spikeNet as long as the TVB data have arrived.
             # Integrate spikeNet
-            self.log.info("Simulating the spiking network for %d time steps...",
-                          self.n_tvb_steps_sent_to_cosimulator_at_last_synch)
+            self.log.info("Simulating the spiking network for %d time steps...", self.n_tvb_steps_ran_since_last_synch)
             self.spiking_simulator.RunLock(
-                    self.n_tvb_steps_sent_to_cosimulator_at_last_synch * self.integrator.dt,
+                    self.n_tvb_steps_ran_since_last_synch * self.integrator.dt,
                     self.send_cosim_coupling(self._cosimulation_flag, tvb_to_spikeNet_locks, block=True)
                 )  # tvb_to_spikeNet_locks are used in order to block spikeNet simulator from starting to integrate
         else:
@@ -123,9 +120,8 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         # 4. Start simulating TVB as long as the spikeNet data have been processed.
         # Integrate TVB
         current_step = int(self.current_step)
-        cosim_updates = self.get_cosim_updates(cosimulation, block=True, cosim_updates=cosim_updates)
-        # print("\nBLOCK cosim_updates %s" % str(type(cosim_updates)))
-        for data in self(cosim_updates=cosim_updates,  # BLOCKING
+                                            # BLOCKING
+        for data in self(cosim_updates=self.get_cosim_updates(cosimulation, block=True, cosim_updates=cosim_updates),
                          **kwds):
             for tl, xl, t_x in zip(ts, xs, data):
                 if t_x is not None:
@@ -133,4 +129,5 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                     tl.append(t)
                     xl.append(x)
         steps_performed = self.current_step - current_step
-        return steps_performed
+
+        return tvb_to_spikeNet_locks, steps_performed
