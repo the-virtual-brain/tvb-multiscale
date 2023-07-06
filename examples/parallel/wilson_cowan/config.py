@@ -33,7 +33,7 @@ def configure(config_class=Config):
 
     # Base paths
     work_path = os.getcwd()
-    outputs_path = os.path.join(work_path, "outputs/WilsonCowan")
+    outputs_path = os.path.join(work_path, "examples_data/WilsonCowan")
     if SPIKENET_MODEL_BUILDERS is None:
         outputs_path += "NoSpikeNetBuilders"
     elif SPIKENET_MODEL_BUILDERS == "opinionated":
