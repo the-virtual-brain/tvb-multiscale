@@ -171,10 +171,10 @@ class Config(HasTraits):
 
     @property
     def separate_by_run(self):
-        return self.out.separate_by_run
+        return self.out._separate_by_run
 
     def _folder(self, ftype=""):
-        return _folder(self.BASEPATH, self._separate_by_run, ftype)
+        return _folder(self.BASEPATH, self.separate_by_run, ftype)
 
     @property
     def _folder_config(self):
