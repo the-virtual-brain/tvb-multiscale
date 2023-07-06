@@ -102,6 +102,7 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
     mon_raw = Raw(period=1.0)  # ms
     simulator.monitors = (mon_raw,)
 
+    simulator.simulation_length = config.SIMULATION_LENGTH
     simulator.configure()
 
     # # -----------------------------------Or use the CoSimulator builder--------------------------------
