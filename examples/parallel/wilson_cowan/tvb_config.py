@@ -123,7 +123,7 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
 
     # Dumping the serialized TVB cosimulator to a file will be necessary for parallel cosimulation.
     sim_serial = serialize_tvb_cosimulator(simulator)
-    sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
+    sim_serial_filepath = os.path.join(config.FOLDER_CONFIG, "tvb_serial_cosimulator.pkl")
     dump_pickled_dict(sim_serial, sim_serial_filepath)
 
     simulator.configure()
