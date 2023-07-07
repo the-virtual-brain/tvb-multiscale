@@ -9,7 +9,7 @@ from tvb_multiscale.core.utils.file_utils import load_pickled_dict
 
 def load_serial_tvb_cosimulator(config):
     sim_serial_path = getattr(config, "DEFAULT_TVB_SERIAL_COSIM_PATH",
-                              os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl"))
+                              os.path.join(config.FOLDER_CONFIG, "tvb_serial_cosimulator.pkl"))
     return load_pickled_dict(sim_serial_path)
 
 
