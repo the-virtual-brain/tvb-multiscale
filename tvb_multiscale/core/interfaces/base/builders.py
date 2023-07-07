@@ -217,16 +217,31 @@ class InterfaceBuilder(HasTraits, ABC):
         return self._output_interfaces, self._input_interfaces
 
     @property
+    def interface_basepath(self):
+        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__)
+
+    @property
     def interface_filepath(self):
-        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__ + '_interface')
+        return self.interface_basepath + '_interface.pkl'
 
     @property
-    def output_interfaces_filepath(self):
-        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__ + '_output_interface')
+    def output_interfaces_basepath(self):
+        return self.interface_basepath + '_output_interface'
 
     @property
+    def input_interfaces_basepath(self):
+        return self.interface_basepath + '_input_interface'
+
+    def interfaces_filepath(self, input_or_output, ii, n_leading_zeros=1):
+        return getattr(self, "%s_interfaces_basepath" % input_or_output) \
+                + "_%s" % str(ii).zfill(n_leading_zeros) \
+                + ".pkl"
+
+    def output_interfaces_filepath(self, ii, n_leading_zeros=1):
+        return self.interfaces_filepath("output", ii, n_leading_zeros)
+
     def input_interfaces_filepath(self):
-        return os.path.join(self.config.FOLDER_CONFIG, self.__class__.__name__ + '_input_interface')
+        return self.interfaces_filepath("input", ii, n_leading_zeros)
 
     def dump_interface(self, interface, filepath):
         dump_pickled_dict(interface, filepath)
@@ -234,16 +249,17 @@ class InterfaceBuilder(HasTraits, ABC):
     def load_interface(self, filepath):
         return load_pickled_dict(filepath)
 
-    def dump_interfaces(self, interfaces, interfaces_filepath):
+    def dump_interfaces(self, interfaces, input_or_output):
         number_of_leading_zeros = int(len(interfaces) / 10) + 1
         for ii, interface, in enumerate(interfaces):
-            self.dump_interface(interface, interfaces_filepath + "_" + str(ii).zfill(number_of_leading_zeros))
+            self.dump_interface(interface,
+                                self.interfaces_filepath(input_or_output, ii, number_of_leading_zeros))
 
     def dump_output_interfaces(self):
-        self.dump_interfaces(self.output_interfaces, self.output_interfaces_filepath)
+        self.dump_interfaces(self.output_interfaces, "output")
 
     def dump_input_interfaces(self):
-        self.dump_interfaces(self.input_interfaces, self.input_interfaces_filepath)
+        self.dump_interfaces(self.input_interfaces, "input")
 
     def dump_all_interfaces(self):
         dict_to_dump = {}
@@ -256,7 +272,7 @@ class InterfaceBuilder(HasTraits, ABC):
     def load_interfaces(self, input_or_output):
         input_or_output = input_or_output.lower()
         interfaces = []
-        for ii, filepath in enumerate(glob.glob(getattr(self, "%s_interfaces_filepath" % input_or_output) + "*")):
+        for ii, filepath in enumerate(glob.glob(getattr(self, "%s_interfaces_basepath" % input_or_output) + "*")):
             interfaces.append(self.load_interface(filepath))
         setattr(self, "%s_interfaces" % input_or_output, interfaces)
 
@@ -267,6 +283,7 @@ class InterfaceBuilder(HasTraits, ABC):
         self.load_interfaces("input")
 
     def load_all_interfaces(self):
+        print("loading all interfaces")
         dict_to_load = self.load_interface(self.interface_filepath)
         for attr, val in dict_to_load.items():
             setattr(self, attr, val)
