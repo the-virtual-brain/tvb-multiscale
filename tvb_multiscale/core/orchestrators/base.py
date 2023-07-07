@@ -228,7 +228,7 @@ class NonTVBApp(CoSimulatorApp):
 
     @property
     def tvb_dt(self):
-        return self._serialized_tvb_cosimulatorv["integrator.dt"]
+        return self._serialized_tvb_cosimulator["integrator.dt"]
 
     @property
     def tvb_model(self):
