@@ -3,10 +3,7 @@
 import os
 from logging import Logger
 
-import numpy as np
-
-from tvb.basic.neotraits.api import Attr, Float
-from tvb.contrib.scripts.utils.log_error_utils import warning
+from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
@@ -64,7 +61,7 @@ class App(HasTraits):
         if len(self.default_tvb_serial_cosim_path) == 0:
             self.default_tvb_serial_cosim_path = \
                 getattr(self.config, "DEFAULT_TVB_SERIAL_COSIM_PATH",
-                        os.path.join(self.config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl"))
+                        os.path.join(self.config.FOLDER_CONFIG, "tvb_serial_cosimulator.pkl"))
 
     def configure(self):
         try:
@@ -231,7 +228,7 @@ class NonTVBApp(CoSimulatorApp):
 
     @property
     def tvb_dt(self):
-        return self._serialized_tvb_cosimulatorv["integrator.dt"]
+        return self._serialized_tvb_cosimulator["integrator.dt"]
 
     @property
     def tvb_model(self):
