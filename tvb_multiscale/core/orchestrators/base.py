@@ -3,10 +3,7 @@
 import os
 from logging import Logger
 
-import numpy as np
-
-from tvb.basic.neotraits.api import Attr, Float
-from tvb.contrib.scripts.utils.log_error_utils import warning
+from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
