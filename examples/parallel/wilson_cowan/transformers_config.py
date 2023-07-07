@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
-
 import numpy as np
 
 from tvb_multiscale.core.config import Config

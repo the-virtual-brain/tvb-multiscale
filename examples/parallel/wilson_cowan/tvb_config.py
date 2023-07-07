@@ -62,7 +62,7 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
     simulator.model = WilsonCowan(**model_params)
 
     simulator.integrator = HeunStochastic()
-    simulator.integrator.dt = 0.1
+    simulator.integrator.dt = config.DEFAULT_DT
     simulator.integrator.noise.nsig = np.array([config.DEFAULT_NSIG, config.DEFAULT_NSIG])  # 0.001
 
     # Load connectivity
