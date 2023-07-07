@@ -64,7 +64,7 @@ class App(HasTraits):
         if len(self.default_tvb_serial_cosim_path) == 0:
             self.default_tvb_serial_cosim_path = \
                 getattr(self.config, "DEFAULT_TVB_SERIAL_COSIM_PATH",
-                        os.path.join(self.config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl"))
+                        os.path.join(self.config.FOLDER_CONFIG, "tvb_serial_cosimulator.pkl"))
 
     def configure(self):
         try:
