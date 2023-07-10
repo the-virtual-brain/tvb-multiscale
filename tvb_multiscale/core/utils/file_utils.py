@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import os
+import importlib.util
 
 import dill  # , pickle  TODO: decide whether to use one or the other, or make it a configuration choice
 from six import string_types
@@ -126,11 +128,21 @@ def read_nest_output_device_data_from_ascii_to_dict(filepath, n_lines_to_skip=0,
 
 
 def dump_pickled_dict(d, filepath):
+    filepath = filepath.split('.pkl')[0] + ".pkl"
     with open(filepath, "wb") as f:
         dill.dump(d, f)
 
 
 def load_pickled_dict(filepath):
+    filepath = filepath.split('.pkl')[0] + ".pkl"
     with open(filepath, "rb") as f:
         d = dill.load(f)
     return d
+
+
+def load_module_from_file(filepath, module_name="module.name"):
+    spec = importlib.util.spec_from_file_location(module_name, filepath)
+    foo = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = foo
+    spec.loader.exec_module(foo)
+    return foo

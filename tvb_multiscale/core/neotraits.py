@@ -28,14 +28,14 @@ class HasTraits(HasTraitsTVB):
                         this_dct = self._info_list_to_dict(attr)
                     else:
                         this_dct = dict(attr)
-                    info.update(self._info_dict(aname, this_dct, recursive - 1, details, **kwargs))
+                    info.update(self._info_dict(aname, this_dct, recursive=recursive-1, details=details, **kwargs))
                 else:
                     if isinstance(attr, HasTraits):
                         info[aname] = "-" * 20
                         if details:
-                            this_info = attr.info_details(recursive=recursive - 1, **kwargs)
+                            this_info = attr.info_details(recursive=recursive-1, **kwargs)
                         else:
-                            this_info = attr.info(recursive=recursive - 1)
+                            this_info = attr.info(recursive=recursive-1)
                     else:  # isinstance(attr, HasTraitsTVB):
                         this_info = attr.summary_info()
                     for key, val in this_info.items():
