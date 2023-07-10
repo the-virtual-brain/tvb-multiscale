@@ -31,13 +31,13 @@ def serialize_tvb_cosimulator(cosimulator):
             continue
         d["model.%s" % attr] = np.copy(getattr(cosimulator.model, attr))
 
-    excluded_attrs = ("undirected", "number_of_regions", "number_of_connections",
+    excluded_attrs = ("undirected", "number_of_regions", "number_of_connections", 
                        "parent_connectivity", "saved_selection", "gid")
     for attr in type(cosimulator.connectivity).declarative_attrs:
         if attr in excluded_attrs:
             continue
         d["connectivity.%s" % attr] = np.copy(getattr(cosimulator.connectivity, attr))
-
+        
     for attr in cosimulator.coupling._own_declarative_attrs:
         d["coupling.%s" % attr] = np.copy(getattr(cosimulator.coupling, attr))
 

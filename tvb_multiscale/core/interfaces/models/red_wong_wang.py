@@ -14,7 +14,6 @@ from tvb_multiscale.core.interfaces.models.default import \
     DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
     DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
     DefaultSpikeNetRemoteInterfaceBuilder, DefaultSpikeNetTransformerInterfaceBuilder, \
-    DefaultSpikeNetOutputTransformerInterfaceBuilder, DefaultSpikeNetInputTransformerInterfaceBuilder, \
     DefaultTVBInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, DefaultInterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import \
     ElephantSpikesRateRedWongWangExc, ElephantSpikesRateRedWongWangInh
@@ -206,44 +205,6 @@ class RedWongWangExcIOSpikeNetRemoteInterfaceBuilder(RedWongWangExcIOSpikeNetInt
     __metaclass__ = ABCMeta
 
     pass
-
-
-class RedWongWangExcIOSpikeNetOutputTransformerInterfaceBuilder(RedWongWangExcIOSpikeNetInterfaceBuilder,
-                                                                RedWongWangExcIOSpikeNetToTVBTransformerBuilder,
-                                                                DefaultSpikeNetOutputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def tau_s(self):
-        return self.tvb_simulator_serialized["model.tau_s"]
-
-    @property
-    def gamma(self):
-        return self.tvb_simulator_serialized["model.gamma"]
-
-    def default_output_config(self):
-        RedWongWangExcIOSpikeNetInterfaceBuilder.default_input_config(self)
-        RedWongWangExcIOSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class RedWongWangExcIOSpikeNetInputTransformerInterfaceBuilder(RedWongWangExcIOSpikeNetInterfaceBuilder,
-                                                               RedWongWangExcIOTVBtoSpikeNetTransformerBuilder,
-                                                               DefaultSpikeNetInputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def J_N(self):
-        return self.tvb_simulator_serialized["model.J_N"]
-
-    def default_input_config(self):
-        RedWongWangExcIOSpikeNetInterfaceBuilder.default_input_config(self)
-        RedWongWangExcIOTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
 class RedWongWangExcIOSpikeNetTransformerInterfaceBuilder(RedWongWangExcIOSpikeNetInterfaceBuilder,
@@ -609,66 +570,6 @@ class RedWongWangExcIOInhISpikeNetInterfaceBuilder(RedWongWangExcIOInhISpikeNetP
 class RedWongWangExcIOInhISpikeNetRemoteInterfaceBuilder(RedWongWangExcIOInhISpikeNetInterfaceBuilder,
                                                          DefaultSpikeNetRemoteInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
-
-
-class RedWongWangExcIOInhISpikeNetOutputTransformerInterfaceBuilder(RedWongWangExcIOInhISpikeNetInterfaceBuilder,
-                                                                    RedWongWangExcIOInhISpikeNetToTVBTransformerBuilder,
-                                                                    DefaultSpikeNetOutputTransformerInterfaceBuilder,
-                                                                    ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def nsig(self):
-        return self.tvb_nsig
-
-    @property
-    def lamda(self):
-        return self.tvb_simulator_serialized["model.lamda"]
-
-    @property
-    def tau_e(self):
-        return self.tvb_simulator_serialized["model.tau_e"]
-
-    @property
-    def tau_i(self):
-        return self.tvb_simulator_serialized["model.tau_i"]
-
-    @property
-    def gamma_e(self):
-        return self.tvb_simulator_serialized["model.gamma_e"]
-
-    @property
-    def gamma_i(self):
-        return self.tvb_simulator_serialized["model.gamma_i"]
-
-    def default_output_config(self):
-        RedWongWangExcIOInhISpikeNetInterfaceBuilder.default_input_config(self)
-        RedWongWangExcIOInhISpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class RedWongWangExcIOInhISpikeNetInputTransformerInterfaceBuilder(RedWongWangExcIOInhISpikeNetInterfaceBuilder,
-                                                                   RedWongWangExcIOInhITVBtoSpikeNetTransformerBuilder,
-                                                                   DefaultSpikeNetInputTransformerInterfaceBuilder,
-                                                                   ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def lamda(self):
-        return self.tvb_simulator_serialized["model.lamda"]
-
-    @property
-    def J_N(self):
-        return self.tvb_simulator_serialized["model.J_N"]
-
-    def default_input_config(self):
-        RedWongWangExcIOInhISpikeNetInterfaceBuilder.default_input_config(self)
-        RedWongWangExcIOInhITVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
 class RedWongWangExcIOInhISpikeNetTransformerInterfaceBuilder(RedWongWangExcIOInhISpikeNetInterfaceBuilder,

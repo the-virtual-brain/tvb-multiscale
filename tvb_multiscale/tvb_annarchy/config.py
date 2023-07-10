@@ -57,8 +57,8 @@ class Config(ConfigBase):
                                                                     "schedule": [0.0], "period": -1.0},
                                          }
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
-        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
         self.TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
         self.WORKING_DIR = WORKING_DIR
         self.MYMODELS_DIR = MYMODELS_DIR

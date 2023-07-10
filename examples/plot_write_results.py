@@ -101,16 +101,16 @@ def plot_tvb_results_with_spikes_and_rates(source_ts, simulator, simulation_leng
     return spikes, rates
 
 
-def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_ids=[],
+def plot_write_tvb_results(tvb_results, simulator, transient=0.0, spiking_nodes_ids=[],
                            # populations=["E", "I"], populations_sizes=[],
                            tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
                            plotter=None, writer=None, config=CONFIGURED, **kwargs):
 
     plotter, figsize, writer = _initialize(config, plotter, writer)
 
-    time_with_transient = tvb_result[0]
+    time_with_transient = tvb_results[0]
     source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
-        data=tvb_result[1], time=time_with_transient,
+        data=tvb_results[1], time=time_with_transient,
         connectivity=simulator.connectivity,
         labels_ordering=["Time", tvb_state_variable_type_label, "Region", "Neurons"],
         labels_dimensions={tvb_state_variable_type_label: list(tvb_state_variables_labels),
@@ -118,8 +118,6 @@ def plot_write_tvb_results(tvb_result, simulator, transient=0.0, spiking_nodes_i
         sample_period=simulator.integrator.dt)
     source_ts.configure()
 
-    if transient:
-        source_ts = source_ts[transient:]
     time = source_ts.time
 
     if writer is not None:

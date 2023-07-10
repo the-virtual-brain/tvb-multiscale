@@ -454,7 +454,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             ts[i] = numpy.array(ts[i])
             xs[i] = numpy.array(xs[i])
         return list(zip(ts, xs))
-
+    
     def info(self, recursive=0):
         info = HasTraits.info(self, recursive=recursive)
         return info
