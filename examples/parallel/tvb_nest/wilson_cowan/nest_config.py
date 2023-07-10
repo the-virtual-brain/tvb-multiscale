@@ -19,7 +19,7 @@ def build_nest_network(config=None, config_class=Config):
         config = configure(config_class)
 
     # Build a NEST network model with the corresponding builder
-    sim_serial_filepath = os.path.join(config.out.FOLDER_RES, "tvb_serial_cosimulator.pkl")
+    sim_serial_filepath = os.path.join(config.FOLDER_CONFIG, "tvb_serial_cosimulator.pkl")
     sim_serial = load_pickled_dict(sim_serial_filepath)
 
     # Load NEST and use defaults to configure its kernel:
