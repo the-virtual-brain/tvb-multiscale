@@ -37,26 +37,43 @@ It inherits the Simulator class.
 
 """
 
+import numpy
+
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
+
+
+class CoSimulatorRemoteParallel(CoSimulator):
+
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True):
+        tvb_cosim_coupling, self.n_tvb_steps_ran_since_last_synch = \
+            super(CoSimulatorRemoteParallel, self).run_for_synchronization_time(
+                ts, xs, wall_time_start, cosim_updates=self.get_cosim_updates(cosimulation))
+        return tvb_cosim_coupling
 
 
 class CoSimulatorParallel(CoSimulator):
 
+    def get_cosim_updates(self, cosim_updates=None, cosimulation=True):
+        if cosimulation and self.input_interfaces and cosim_updates is not None:
+            # Get the update data from the other cosimulator
+            cosim_updates = self.input_interfaces(cosim_updates, self.good_cosim_update_values_shape)
+            isnans = numpy.isnan(cosim_updates[-1])
+            if numpy.all(isnans):
+                cosim_updates = None
+                self.log.warning("No or all NaN valued cosimulator updates at time step %d!" % self.current_step)
+            elif numpy.any(isnans):
+                msg = "NaN values detected in cosimulator updates at time step %d!" % self.current_step
+                self.log.error(msg)
+                raise Exception(msg)
+        return cosim_updates
+
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True):
+        tvb_cosim_coupling, self.n_tvb_steps_ran_since_last_synch = \
+            super(CoSimulatorParallel, self).run_for_synchronization_time(
+                ts, xs, wall_time_start, cosim_updates=self.get_cosim_updates(cosim_updates, cosimulation))
+        return tvb_cosim_coupling
+
+
+class CoSimulatorParallelNRP(CoSimulatorParallel):
+
     pass
-
-
-class CoSimulatorMPI(CoSimulatorParallel):
-
-    pass
-    # def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
-    #     super(CoSimulatorMPI, self)._run_cosimulation(ts, xs, wall_time_start,
-    #                                                   advance_simulation_for_delayed_monitors_output, **kwds)
-    #     self.logger.info(" TVB finish")
-    #     if self.n_output_interfaces:
-    #         logger.info('end comm send')
-    #         self.output_interfaces[0].end_mpi()
-    #     if self.n_input_interfaces:
-    #         logger.info('end comm receive')
-    #         self.input_interfaces[0].end_mpi()
-    #     self.MPI.Finalize()  # ending with MPI
-    #     self.logger.info("TVB exit")

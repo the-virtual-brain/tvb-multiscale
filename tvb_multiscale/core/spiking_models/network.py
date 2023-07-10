@@ -93,6 +93,9 @@ class SpikingNetwork(HasTraits):
                organized by brain region and population.""")
     # e.g., input_proxies['Inhibitory']['rh-insula']
 
+    input_interfaces = None
+    output_interfaces = None
+
     _OutputSpikeDeviceDict = OutputSpikeDeviceDict
     _OutputContinuousTimeDeviceDict = OutputContinuousTimeDeviceDict
 

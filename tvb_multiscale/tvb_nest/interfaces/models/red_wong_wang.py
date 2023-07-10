@@ -5,19 +5,13 @@ from abc import ABCMeta, ABC
 from tvb_multiscale.core.interfaces.models.red_wong_wang import \
     RedWongWangExcIOTVBSpikeNetInterfaceBuilder, \
     RedWongWangExcIOSpikeNetRemoteInterfaceBuilder, RedWongWangExcIOSpikeNetTransformerInterfaceBuilder, \
-    RedWongWangExcIOSpikeNetOutputTransformerInterfaceBuilder, \
-    RedWongWangExcIOSpikeNetInputTransformerInterfaceBuilder, \
     RedWongWangExcIOSpikeNetInterfaceBuilder, RedWongWangExcIOSpikeNetProxyNodesBuilder, \
     RedWongWangExcIOInhITVBSpikeNetInterfaceBuilder, \
     RedWongWangExcIOInhISpikeNetRemoteInterfaceBuilder, RedWongWangExcIOInhISpikeNetTransformerInterfaceBuilder, \
-    RedWongWangExcIOInhISpikeNetOutputTransformerInterfaceBuilder, \
-    RedWongWangExcIOInhISpikeNetInputTransformerInterfaceBuilder, \
     RedWongWangExcIOInhISpikeNetInterfaceBuilder, RedWongWangExcIOInhISpikeNetProxyNodesBuilder
 
-
 from tvb_multiscale.tvb_nest.interfaces.builders import NESTProxyNodesBuilder, NESTInterfaceBuilder, \
-    NESTRemoteInterfaceBuilder, TVBNESTInterfaceBuilder, \
-    NESTTransformerInterfaceBuilder, NESTOutputTransformerInterfaceBuilder, NESTInputTransformerInterfaceBuilder
+    NESTRemoteInterfaceBuilder, NESTTransformerInterfaceBuilder, TVBNESTInterfaceBuilder
 
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
@@ -30,11 +24,20 @@ class RedWongWangExcIONESTProxyNodesBuilder(NESTProxyNodesBuilder, RedWongWangEx
 
 class RedWongWangExcIONESTInterfaceBuilder(RedWongWangExcIONESTProxyNodesBuilder, NESTInterfaceBuilder,
                                            RedWongWangExcIOSpikeNetInterfaceBuilder):
-    pass
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
 
 class RedWongWangExcIONESTRemoteInterfaceBuilder(RedWongWangExcIONESTInterfaceBuilder, NESTRemoteInterfaceBuilder,
                                                  RedWongWangExcIOSpikeNetRemoteInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         RedWongWangExcIOSpikeNetRemoteInterfaceBuilder.default_output_config(self)
@@ -43,31 +46,14 @@ class RedWongWangExcIONESTRemoteInterfaceBuilder(RedWongWangExcIONESTInterfaceBu
         RedWongWangExcIOSpikeNetRemoteInterfaceBuilder.default_input_config(self)
 
 
-class RedWongWangExcIONESTOutputTransformerInterfaceBuilder(
-    RedWongWangExcIONESTInterfaceBuilder, NESTOutputTransformerInterfaceBuilder,
-    RedWongWangExcIOSpikeNetOutputTransformerInterfaceBuilder):
-
-    def default_output_config(self):
-        RedWongWangExcIOSpikeNetOutputTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        RedWongWangExcIOSpikeNetOutputTransformerInterfaceBuilder.default_input_config(self)
-
-
-class RedWongWangExcIONESTInputTransformerInterfaceBuilder(RedWongWangExcIONESTInterfaceBuilder,
-                                                           NESTInputTransformerInterfaceBuilder,
-                                                           RedWongWangExcIOSpikeNetInputTransformerInterfaceBuilder):
-
-    def default_output_config(self):
-        RedWongWangExcIOSpikeNetInputTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        RedWongWangExcIOSpikeNetInputTransformerInterfaceBuilder.default_input_config(self)
-
-
 class RedWongWangExcIONESTTransformerInterfaceBuilder(RedWongWangExcIONESTInterfaceBuilder,
                                                       NESTTransformerInterfaceBuilder,
                                                       RedWongWangExcIOSpikeNetTransformerInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         RedWongWangExcIOSpikeNetTransformerInterfaceBuilder.default_output_config(self)
@@ -79,6 +65,11 @@ class RedWongWangExcIONESTTransformerInterfaceBuilder(RedWongWangExcIONESTInterf
 class RedWongWangExcIOTVBNESTInterfaceBuilder(RedWongWangExcIONESTProxyNodesBuilder, TVBNESTInterfaceBuilder,
                                               RedWongWangExcIOTVBSpikeNetInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         RedWongWangExcIOTVBSpikeNetInterfaceBuilder.default_output_config(self)
 
@@ -88,6 +79,11 @@ class RedWongWangExcIOTVBNESTInterfaceBuilder(RedWongWangExcIONESTProxyNodesBuil
 
 class RedWongWangExcIOInhINESTProxyNodesBuilder(NESTProxyNodesBuilder,
                                                 RedWongWangExcIOInhISpikeNetProxyNodesBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
         return receptor_by_source_region(source_node, target_node, start=1)
@@ -104,6 +100,11 @@ class RedWongWangExcIOInhINESTRemoteInterfaceBuilder(RedWongWangExcIOInhINESTInt
                                                      NESTRemoteInterfaceBuilder,
                                                      RedWongWangExcIOInhISpikeNetRemoteInterfaceBuilder):
 
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
+
     def default_output_config(self):
         RedWongWangExcIOInhISpikeNetRemoteInterfaceBuilder.default_output_config(self)
 
@@ -111,31 +112,14 @@ class RedWongWangExcIOInhINESTRemoteInterfaceBuilder(RedWongWangExcIOInhINESTInt
         RedWongWangExcIOInhISpikeNetRemoteInterfaceBuilder.default_input_config(self)
 
 
-class RedWongWangExcIOInhINESTOutputTransformerInterfaceBuilder(
-    RedWongWangExcIOInhINESTInterfaceBuilder, NESTOutputTransformerInterfaceBuilder,
-    RedWongWangExcIOInhISpikeNetOutputTransformerInterfaceBuilder):
-
-    def default_output_config(self):
-        RedWongWangExcIOInhISpikeNetOutputTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        RedWongWangExcIOInhISpikeNetOutputTransformerInterfaceBuilder.default_input_config(self)
-
-
-class RedWongWangExcIOInhINESTInputTransformerInterfaceBuilder(
-    RedWongWangExcIOInhINESTInterfaceBuilder, NESTInputTransformerInterfaceBuilder,
-    RedWongWangExcIOInhISpikeNetInputTransformerInterfaceBuilder):
-
-    def default_output_config(self):
-        RedWongWangExcIOInhISpikeNetInputTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        RedWongWangExcIOInhISpikeNetInputTransformerInterfaceBuilder.default_input_config(self)
-
-
 class RedWongWangExcIOInhINESTTransformerInterfaceBuilder(RedWongWangExcIOInhINESTInterfaceBuilder,
                                                           NESTTransformerInterfaceBuilder,
                                                           RedWongWangExcIOInhISpikeNetTransformerInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         RedWongWangExcIOInhISpikeNetTransformerInterfaceBuilder.default_output_config(self)
@@ -146,6 +130,11 @@ class RedWongWangExcIOInhINESTTransformerInterfaceBuilder(RedWongWangExcIOInhINE
 
 class RedWongWangExcIOInhITVBNESTInterfaceBuilder(RedWongWangExcIOInhINESTProxyNodesBuilder, TVBNESTInterfaceBuilder,
                                                   RedWongWangExcIOInhITVBSpikeNetInterfaceBuilder):
+
+    def __init__(self, spiking_network=None, **kwargs):
+        if spiking_network:
+            self.spiking_network = spiking_network
+        super().__init__(**kwargs)
 
     def default_output_config(self):
         RedWongWangExcIOInhITVBSpikeNetInterfaceBuilder.default_output_config(self)

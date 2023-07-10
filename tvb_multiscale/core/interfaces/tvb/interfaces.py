@@ -5,18 +5,20 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr, Float, Int, NArray
+from tvb.basic.neotraits.api import Attr, Float, Int, NArray, List
 from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_intervals
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, \
-    SenderInterface, ReceiverInterface, TransformerSenderInterface, ReceiverTransformerInterface, BaseInterfaces
+from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, SenderInterface, ReceiverInterface, \
+    BaseInterfaces
+from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
+    TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
 from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 
 
-class TVBInterface(HasTraits):
+class TVBInterface(BaseInterface):
     __metaclass__ = ABCMeta
 
     """TVBInterface base class for interfaces sending/receivng data from/for TVB to/from a transformer of cosimulator"""
@@ -143,6 +145,16 @@ class TVBInputInterface(TVBInterface):
         return data
 
 
+class TVBTransformerOutputInterface(TVBOutputInterface, TransformerInterface):
+
+    """TVBTransformerOutputInterface class to get data from TVB, transform them locally,
+       and, then, output them towards a cosimulator.
+    """
+
+    def __call__(self, data):
+        return TransformerInterface.__call__(self, TVBOutputInterface.__call__(self, data))
+
+
 class TVBSenderInterface(TVBOutputInterface, SenderInterface):
 
     """TVBSenderInterface class to send data to a remote transformer or cosimulator.
@@ -160,6 +172,16 @@ class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterfa
 
     def __call__(self, data):
         return TransformerSenderInterface.transform_send(self, TVBOutputInterface.__call__(self, data))
+
+
+class TVBInputTransformerInterface(TVBInputInterface, TransformerInterface):
+
+    """TVBInputTransformerInterface class to get data for TVB from a remote transformer or cosimulator
+       and transform them.
+    """
+
+    def __call__(self, data):
+        return TVBInputInterface.__call__(self, TransformerInterface.__call__(self, data))
 
 
 class TVBReceiverInterface(TVBInputInterface, ReceiverInterface):
@@ -181,7 +203,7 @@ class TVBReceiverTransformerInterface(TVBInputInterface, ReceiverTransformerInte
         return TVBInputInterface.__call__(self, ReceiverTransformerInterface.receive_transform(self))
 
 
-class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInterface):
+class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
 
     """TVBtoSpikeNetInterface class to get data from TVB, transform them,
        and finally set them to the Spiking Network cosimulator, all processes taking place in shared memmory.
@@ -215,19 +237,17 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface, BaseInt
         return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
 
     def info(self, recursive=0):
-        info = BaseInterface.info(self, recursive=recursive)
-        info.update(SpikeNetInputInterface.info(self, recursive=recursive))
+        info = SpikeNetInputInterface.info(self, recursive=recursive)
         info.update(TVBOutputInterface.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info = BaseInterface.info_details(self, recursive=recursive)
-        info.update(SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs))
+        info = SpikeNetInputInterface.info_details(self, recursive=recursive, **kwargs)
         info.update(TVBOutputInterface.info_details(self, recursive=recursive))
         return info
 
 
-class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInterface):
+class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
 
     """SpikeNetToTVBInterface class to get data the Spiking Network co-simulator, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
@@ -263,14 +283,12 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface, BaseInt
         return self.reshape_data()
 
     def info(self, recursive=0):
-        info = BaseInterface.info(self, recursive=recursive)
-        info.update(SpikeNetOutputInterface.info(self, recursive=recursive))
+        info = SpikeNetOutputInterface.info(self, recursive=recursive)
         info.update(TVBInputInterface.info(self, recursive=recursive))
         return info
 
     def info_details(self, recursive=0, **kwargs):
-        info = BaseInterface.info_details(self, recursive=recursive)
-        info.update(SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs))
+        info = SpikeNetOutputInterface.info_details(self, recursive=recursive, **kwargs)
         info.update(TVBInputInterface.info_details(self, recursive=recursive))
         return info
 
@@ -279,6 +297,8 @@ class TVBInterfaces(HasTraits):
     __metaclass__ = ABCMeta
 
     """SpikeNetInterfaces abstract base class"""
+
+    interfaces = List(of=TVBInterface)
 
     @property
     def voi(self):
@@ -333,7 +353,9 @@ class TVBInterfaces(HasTraits):
 class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
 
     """TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
-       and sends data to them"""
+       and outputs data to them"""
+
+    interfaces = List(of=TVBOutputInterface)
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
@@ -350,15 +372,22 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         times = np.array([np.round(data[interface.monitor_ind][0][0] / self.dt),  # start_time_step
                           np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
         if interface.coupling_mode.upper() != "TVB":
-            times += self.synchronization_n_step  # adding the synchronization time when not a coupling interface
+            # As we cannot schedule spikeNet devices with times in the past,
+            # we need to add here synchronization time,
+            # and subtract it from the connectome delays, in case coupling is "spikeNet".
+            # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
+            # i.e., for the next synhcronization_time period, to "spikeNet" devices
+            times += self.synchronization_n_step
         return times
 
     def __call__(self, data):
+        outputs = []
         for ii, interface in enumerate(self.interfaces):
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-            interface([self._compute_interface_times(interface, data),
-                       data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0],
-                       ii])
+            outputs.append(interface([self._compute_interface_times(interface, data),
+                           data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0],
+                           ii]))
+        return outputs
 
     def info(self, recursive=0):
         info = BaseInterfaces.info(self, recursive=recursive)
@@ -371,10 +400,40 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         return info
 
 
+class TVBTransformerOutputInterfaces(TVBOutputInterfaces):
+    """TVBTransformerSenderInterfaces class holds a list of TVB interfaces to cosimulator
+        and transforms and sends data to them"""
+
+    interfaces = List(of=TVBTransformerOutputInterface)
+
+    pass
+
+
+class TVBSenderInterfaces(TVBOutputInterfaces):
+
+    """TVBSenderInterfaces class holds a list of TVB interfaces to transformer/cosimulator
+        and sends data to them"""
+
+    interfaces = List(of=TVBSenderInterface)
+
+    pass
+
+
+class TVBTransformerSenderInterfaces(TVBSenderInterfaces):
+    """TVBTransformerSenderInterfaces class holds a list of TVB interfaces to cosimulator
+        and transforms and sends data to them"""
+
+    interfaces = List(of=TVBTransformerSenderInterface)
+
+    pass
+
+
 class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
 
     """TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
        and receives data from them"""
+
+    interfaces = List(of=TVBInputInterface)
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
         """Method to get the correct indices of voi and proxy_inds,
@@ -394,17 +453,16 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
             0] = np.copy(data[1])  # !!! assuming only 1 mode!!!
         return cosim_updates, time_steps
 
-    def _get_from_interface(self, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape):
-        data = interface()  # [start_and_time_steps, values]
-        if data is not None:
+    def _get_from_interface(self, input_data, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape):
+        if input_data is not None:
             cosim_updates, time_steps = \
-                self._set_data_from_interface(cosim_updates, interface, data, good_cosim_update_values_shape)
+                self._set_data_from_interface(cosim_updates, interface, input_data, good_cosim_update_values_shape)
             all_time_steps += time_steps.tolist()
             return cosim_updates, all_time_steps
         else:
             return cosim_updates, all_time_steps
 
-    def _prepare_cosim_upadate(self, good_cosim_update_values_shape):
+    def _prepare_cosim_update(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
         cosim_updates[:] = np.NAN
         all_time_steps = []
@@ -417,11 +475,15 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
         else:
             return [all_time_steps, cosim_updates]
 
-    def __call__(self, good_cosim_update_values_shape):
-        cosim_updates, all_time_steps = self._prepare_cosim_upadate(good_cosim_update_values_shape)
-        for interface in self.interfaces:
+    def __call__(self, input_datas, good_cosim_update_values_shape):
+        cosim_updates, all_time_steps = self._prepare_cosim_update(good_cosim_update_values_shape)
+        for ii, (interface, input_data) in enumerate(zip(self.interfaces, input_datas)):
+            if len(input_data) > 2:
+                assert input_data[2] == ii
+                input_data = input_data[:2]
             cosim_updates, all_time_steps = \
-                self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
+                self._get_from_interface(interface(input_data), interface, cosim_updates,
+                                         all_time_steps, good_cosim_update_values_shape)
         return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
 
     def info(self, recursive=0):
@@ -435,9 +497,51 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
         return info
 
 
+class TVBInputTransformerInterfaces(TVBInputInterfaces):
+
+    """TVBInputTransformerInterfaces class holds a list of TVB interfaces from cosimulator
+       and gets data from them and transforms them"""
+
+    interfaces = List(of=TVBInputTransformerInterface)
+
+    pass
+
+
+class TVBReceiverInterfaces(TVBInputInterfaces):
+
+    """TVBReceiverInterfaces class holds a list of TVB interfaces from transformer/cosimulator
+       and receives data from them"""
+
+    interfaces = List(of=TVBReceiverInterface)
+
+    def _get_from_interface(self, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape):
+        data = interface()  # [start_and_time_steps, values]
+        return super(TVBReceiverInterfaces, self)._get_from_interface(
+            data, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
+
+    def __call__(self, good_cosim_update_values_shape):
+        cosim_updates, all_time_steps = self._prepare_cosim_update(good_cosim_update_values_shape)
+        for interface in self.interfaces:
+            cosim_updates, all_time_steps = \
+                self._get_from_interface(interface, cosim_updates, all_time_steps, good_cosim_update_values_shape)
+        return self.get_inputs(cosim_updates, all_time_steps, good_cosim_update_values_shape)
+
+
+class TVBReceiverTransformerInterfaces(TVBReceiverInterfaces):
+
+    """TVBReceiverTransformerInterfaces class holds a list of TVB interfaces from cosimulator
+       and receives data from them and transforms them"""
+
+    interfaces = List(of=TVBReceiverTransformerInterface)
+
+    pass
+
+
 class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
 
     """TVBtoSpikeNetInterfaces"""
+
+    interfaces = List(of=TVBtoSpikeNetInterface)
 
     def info(self, recursive=0):
         info = SpikeNetInputInterfaces.info(self, recursive=recursive)
@@ -450,9 +554,11 @@ class TVBtoSpikeNetInterfaces(TVBOutputInterfaces, SpikeNetInputInterfaces):
         return info
 
 
-class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
+class SpikeNetToTVBInterfaces(TVBReceiverInterfaces, SpikeNetOutputInterfaces):
 
     """SpikeNetToTVBInterfaces"""
+
+    interfaces = List(of=SpikeNetToTVBInterface)
 
     def info(self, recursive=0):
         info = SpikeNetOutputInterfaces.info(self, recursive=recursive)
@@ -463,6 +569,40 @@ class SpikeNetToTVBInterfaces(TVBInputInterfaces, SpikeNetOutputInterfaces):
         info = SpikeNetOutputInterfaces.info_details(self, recursive=recursive, **kwargs)
         info.update(TVBInputInterfaces.info_details(self, recursive=recursive))
         return info
+
+
+class TVBtoSpikeNetTransformerInterface(TransformerInterface):
+    """TVBtoSpikeNetTransformerInterface  class for TVB -> spikeNet transformations
+       - setting data received for a Transformer from TVB,
+       - performing the Transformer computation,
+       - and outputing data to be sent to the (spiking) cosimulator.
+    """
+
+    pass
+
+
+class SpikeNetToTVBTransformerInterface(TransformerInterface):
+    """SpikeNetToTVBTransformerInterface  class for spikeNet -> TVB transformations
+       - setting data from a (spiking) cosimulator for a Transformer,
+       - performing the Transformer computation,
+       - and outputing data to be sent to TVB.
+    """
+
+    pass
+
+
+class TVBtoSpikeNetTransformerInterfaces(TransformerInterfaces):
+
+    """TVBtoSpikeNetTransformerInterfaces"""
+
+    interfaces = List(of=TVBtoSpikeNetTransformerInterface)
+
+
+class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
+
+    """SpikeNetToTVBTransformerInterfaces"""
+
+    interfaces = List(of=SpikeNetToTVBTransformerInterface)
 
 
 class TVBtoSpikeNetModels(Enum):

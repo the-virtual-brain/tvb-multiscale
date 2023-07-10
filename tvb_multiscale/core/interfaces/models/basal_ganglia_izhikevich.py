@@ -13,8 +13,7 @@ from tvb_multiscale.core.interfaces.models.default import DefaultTVBInterfaceBui
     DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
     DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
     DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder, \
-    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetOutputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInputTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
+    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 
 
@@ -310,44 +309,6 @@ class BasalGangliaIzhikevichSpikeNetInterfaceBuilder(BasalGangliaIzhikevichSpike
 class BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder(BasalGangliaIzhikevichSpikeNetInterfaceBuilder,
                                                            DefaultSpikeNetRemoteInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
-
-
-class BasalGangliaIzhikevichSpikeNetOutputTransformerInterfaceBuilder(
-    BasalGangliaIzhikevichSpikeNetInterfaceBuilder, BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-    DefaultSpikeNetOutputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def tau_s(self):
-        return self.tvb_simulator_serialized["model.tau_s"]
-
-    @property
-    def gamma(self):
-        return self.tvb_simulator_serialized["model.gamma"]
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self)
-
-
-class BasalGangliaIzhikevichSpikeNetInputTransformerInterfaceBuilder(
-    BasalGangliaIzhikevichSpikeNetInterfaceBuilder, BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-    DefaultSpikeNetInputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def J_N(self):
-        return self.tvb_simulator_serialized["model.J_N"]
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self)
 
 
 class BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder(BasalGangliaIzhikevichSpikeNetInterfaceBuilder,

@@ -94,8 +94,14 @@ def connect_device(netpyne_device, population, neurons_inds_fun, weight=1.0, del
     if netpyne_device.model in config.NETPYNE_INPUT_DEVICES_PARAMS_DEF:
         print(f"Netpyne:: will connect input device {netpyne_device.model}. "
               f"{netpyne_device.label} -> {spiking_population_label} (weight: {weight}, delay: {delay})")
+
+        # TODO: this was a quick fix, re-visit to make more consistent
+        prob = None
+        if conn_spec and conn_spec.get("rule"):
+            prob = conn_spec["rule"].get("prob")
+
         netpyne_instance.connectStimuli(sourcePop=netpyne_device.label, targetPop=spiking_population_label,
-                                        weight=weight, delay=delay, receptorType=receptor_type)
+                                        weight=weight, delay=delay, receptorType=receptor_type, prob=prob)
     elif netpyne_device.model in config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF:
         netpyne_device.population_label = spiking_population_label
         print(f"Netpyne:: will connect output device {netpyne_device.model} -- {netpyne_device.population_label}")

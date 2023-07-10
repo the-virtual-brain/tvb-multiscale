@@ -44,6 +44,13 @@ except:
     DEFAULT_SUBJECT = None
 
 
+def _folder(base, separate_by_run=False, ftype=""):
+    folder = os.path.join(base, ftype)
+    if separate_by_run and len(ftype) > 0:
+        folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
+    return folder
+
+
 class OutputConfig(HasTraits):
 
     title = "OutputConfig"
@@ -62,10 +69,7 @@ class OutputConfig(HasTraits):
             initialize_logger_base("logs", self.FOLDER_LOGS)
 
     def _folder(self, ftype=""):
-        folder = os.path.join(self._out_base, ftype)
-        if self._separate_by_run and len(ftype) > 0:
-            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        return folder
+        return _folder(self._out_base, self._separate_by_run, ftype)
 
     @property
     def _folder_logs(self):
@@ -127,6 +131,8 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 class Config(HasTraits):
     calcul = CalculusConfig()
 
+    VERBOSITY = 1
+
     DEFAULT_DT = 0.1
     TVB_TO_SPIKING_DT_RATIO = 2
     MIN_DELAY_RATIO = 1
@@ -148,8 +154,10 @@ class Config(HasTraits):
                           "source_inds": None, "target_inds": None, "params": {},
                           "syn_spec": {}, "conn_spec": {}}
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()
+        self.VERBOSITY = verbosity
+        self.BASEPATH = output_base
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
@@ -160,6 +168,33 @@ class Config(HasTraits):
     @property
     def output_base(self):
         return self.out._out_base
+
+    @property
+    def separate_by_run(self):
+        return self.out._separate_by_run
+
+    def _folder(self, ftype=""):
+        return _folder(self.BASEPATH, self.separate_by_run, ftype)
+
+    @property
+    def _folder_config(self):
+        return self._folder("config")
+
+    @property
+    def FOLDER_CONFIG(self):
+        folder = self._folder_config
+        safe_makedirs(folder)
+        return folder
+
+    @property
+    def _folder_runtime(self):
+        return self._folder("runtime")
+
+    @property
+    def FOLDER_RUNTIME(self):
+        folder = self._folder_runtime
+        safe_makedirs(folder)
+        return folder
 
     def info(self, recursive=0):
         info = super(Config, self).info(recursive=recursive)

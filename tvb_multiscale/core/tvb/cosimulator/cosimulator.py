@@ -249,8 +249,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         Simulator.configure(self, full_configure=full_configure)
         self._number_of_dt_decimals = numpy.abs(Decimal('%g' % self.integrator.dt).as_tuple().exponent)
         self._compute_requirements = True
-        self.n_tvb_steps_ran_since_last_synch = None
-        self.n_tvb_steps_sent_to_cosimulator_at_last_synch = None
+        self.n_tvb_steps_ran_since_last_synch = 0
         if self.output_interfaces:
             self.output_interfaces.dt = self.integrator.dt
             self.n_output_interfaces = self.output_interfaces.number_of_interfaces
@@ -342,7 +341,6 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                     raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
                 self.simulation_length = n_steps * self.integrator.dt
 
-
         # Initialization
         if self._compute_requirements or recompute_requirements:
             # Compute requirements for CoSimulation.simulation_length, not for synchronization time
@@ -370,8 +368,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         self.current_state = state
         self.current_step = self.current_step + n_steps
-        
-    def _get_cosim_updates(self, cosimulation=True):
+
+    def get_cosim_updates(self, cosimulation=True):
         cosim_updates = None
         if cosimulation and self.input_interfaces:
             # Get the update data from the other cosimulator
@@ -386,16 +384,25 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                 raise Exception(msg)
         return cosim_updates
 
-    def _send_cosim_coupling(self, cosimulation=True):
+    def send_cosim_coupling(self, cosimulation=True):
         outputs = []
         if cosimulation and self.output_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
             if self.output_interfaces.number_of_interfaces:
                 # Send the data to the other cosimulator
                 outputs = \
                     self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
-            self.n_tvb_steps_sent_to_cosimulator_at_last_synch = int(self.n_tvb_steps_ran_since_last_synch)
-            self.n_tvb_steps_ran_since_last_synch = 0
         return outputs
+
+    def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True, **kwds):
+        # Loop of integration for synchronization_time
+        current_step = int(self.current_step)
+        for data in self(cosim_updates=cosim_updates, **kwds):
+            for tl, xl, t_x in zip(ts, xs, data):
+                if t_x is not None:
+                    t, x = t_x
+                    tl.append(t)
+                    xl.append(x)
+        return self.send_cosim_coupling(cosimulation), self.current_step - current_step
 
     def _log_print_progress_message(self, simulated_steps, simulation_length):
         log_msg = "...%.3f%% completed in %g sec!" % \
@@ -404,50 +411,28 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         if self.PRINT_PROGRESSION_MESSAGE:
             print("\r" + log_msg, end="")
 
-    def _run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
-        # Loop of integration for synchronization_time
-        self._send_cosim_coupling(self._cosimulation_flag)
-        current_step = int(self.current_step)
-        for data in self(cosim_updates=self._get_cosim_updates(cosimulation), **kwds):
-            for tl, xl, t_x in zip(ts, xs, data):
-                if t_x is not None:
-                    t, x = t_x
-                    tl.append(t)
-                    xl.append(x)
-        steps_performed = self.current_step - current_step
-        return steps_performed
-
-    def _run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
-        simulated_steps = 0
+    def run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
         simulation_length = self.simulation_length
+        synchronization_time = self.synchronization_time
+        if advance_simulation_for_delayed_monitors_output:
+            simulation_length += synchronization_time
         synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-        if self.n_tvb_steps_ran_since_last_synch is None:
+        if not self.n_tvb_steps_ran_since_last_synch:
             self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
+        simulated_steps = 0
         remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
+        # Send TVB's initial condition to spikeNet!:
+        self.send_cosim_coupling(True)
         self._tic = time.time()
         while remaining_steps > 0:
             self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
-            steps_performed = \
-                self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
-            simulated_steps += steps_performed
-            remaining_steps -= steps_performed
-            self.n_tvb_steps_ran_since_last_synch += steps_performed
+            self.n_tvb_steps_ran_since_last_synch = \
+                self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)[1]
+            simulated_steps += self.n_tvb_steps_ran_since_last_synch
+            remaining_steps -= self.n_tvb_steps_ran_since_last_synch
             self._log_print_progress_message(simulated_steps, simulation_length)
-        self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
-        if self._cosimulation_flag and advance_simulation_for_delayed_monitors_output:
-            # Run once more for synchronization steps in order to get the full delayed monitors' outputs:
-            remaining_steps = \
-                int(numpy.round((simulation_length + self.synchronization_time - simulated_steps*self.integrator.dt)
-                             / self.integrator.dt))
-            if remaining_steps:
-                self.log.info("Simulating for synchronization excess time %0.3f...",
-                              remaining_steps * self.integrator.dt)
-                synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-                self.synchronization_n_step = numpy.minimum(synchronization_n_step, remaining_steps)
-                self._run_for_synchronization_time(ts, xs, wall_time_start,
-                                                   cosimulation=False, **kwds)  # Run only TVB
-                self.synchronization_n_step = int(synchronization_n_step)  # recover the configured value
-        self.simulation_length = simulation_length  # recover the configured value
+        self.synchronization_n_step = int(synchronization_n_step)  # restore the configured value
+        self.simulation_length = simulation_length                 # restore the actually implemented value
 
     def run(self, **kwds):
         """Convenience method to call the CoSimulator with **kwds and collect output data."""
@@ -459,16 +444,16 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self.simulation_length = kwds.pop("simulation_length", self.simulation_length)
         asfdmo = kwds.pop("advance_simulation_for_delayed_monitors_output", True)
         if self._cosimulation_flag:
-            self._run_cosimulation(ts, xs, wall_time_start,
-                                   advance_simulation_for_delayed_monitors_output=asfdmo,
-                                   **kwds)
+            self.run_cosimulation(ts, xs, wall_time_start,
+                                  advance_simulation_for_delayed_monitors_output=asfdmo,
+                                  **kwds)
         else:
-            self._run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
+            self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
             ts[i] = numpy.array(ts[i])
             xs[i] = numpy.array(xs[i])
         return list(zip(ts, xs))
-
+    
     def info(self, recursive=0):
         info = HasTraits.info(self, recursive=recursive)
         return info
