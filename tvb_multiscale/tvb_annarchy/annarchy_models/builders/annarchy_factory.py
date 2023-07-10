@@ -3,6 +3,7 @@
 import os
 import importlib
 from six import string_types
+from copy import deepcopy
 
 import numpy as np
 
@@ -83,7 +84,7 @@ def set_model_parameters(model_instance, **params):
     return model_instance
 
 
-def create_population(model, annarchy_instance, size=1, params={}, import_path="", config=CONFIGURED):
+def create_population(model, annarchy_instance, size=1, params=dict(), import_path="", config=CONFIGURED):
     """This function creates an ANNarchy.Population or ANNarchy Specific Population.
        Arguments:
         model: the model name (string)
@@ -95,6 +96,7 @@ def create_population(model, annarchy_instance, size=1, params={}, import_path="
         the ANNarchy.Population created and parametrized.
     """
     # Get either the Neuron class or the SpecificPopulation model name
+    params = deepcopy(params)
     model = assert_model(model, annarchy_instance, import_path)
     if isinstance(model, string_types):
         model = getattr(annarchy_instance, model)
@@ -226,10 +228,11 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
     else:
         target_neurons = get_populations_neurons(target_pop, target_view_fun)
     if isinstance(syn_spec, dict):
+        syn_spec = deepcopy(syn_spec)
         synapse = syn_spec.pop("synapse_model", syn_spec.pop("model", syn_spec.pop("synapse", None)))
     else:
         synapse = None
-        syn_spec = {}
+        syn_spec = dict()
     if name is None:
         name = "%s -> %s" % (source_pop.label, target_pop.label)
     if isinstance(synapse, string_types):
@@ -241,10 +244,11 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
                                                                  target=target, synapse=synapse, name=name), **syn_spec)
     # Build the connection:
     if isinstance(conn_spec, dict):
+        conn_spec = deepcopy(conn_spec)
         rule = conn_spec.pop("rule", "all_to_all").lower()
     else:
         rule = "all_to_all"
-        conn_spec = {}
+        conn_spec = dict()
     if rule == "current":
         warning("Ignoring weight and delay for connect_current rule, for the connection %s -> %s!"
                 % (source_pop.label, target_pop.label))
@@ -282,7 +286,7 @@ def params_dict_to_parameters_string(params):
     return parameters
 
 
-def create_input_device(annarchy_device, import_path, params={}, config=CONFIGURED):
+def create_input_device(annarchy_device, import_path, params=dict(), config=CONFIGURED):
     """This functions populates an ANNarchyInputDevice instance with its device ANNarchy Population instance.
        Arguments:
         annarchy_device: a ANNarchyInputDevice instance
@@ -297,6 +301,7 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     #     f = params.pop("frequency", params.pop("freq", params.pop("f", None)))
     #     if f:
     #         params["omega"] = 2 * np.pi * f
+    params = deepcopy(params)
     number_of_neurons = params.pop("number_of_neurons", None)
     if number_of_neurons is not None:
         params["geometry"] = number_of_neurons
@@ -306,8 +311,9 @@ def create_input_device(annarchy_device, import_path, params={}, config=CONFIGUR
     annarchy_device.device = annarchy_device._nodes
     annarchy_device._nodes.name = annarchy_device.label
     if record is not None:
-        rec_params = {}
+        rec_params = dict()
         if isinstance(record, dict):
+            record = deepcopy(record)
             rec_params = list(record.values())[0]
             record = list(record.keys())[0]
         annarchy_device._record = \
@@ -337,12 +343,12 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     label = kwargs.pop("label", "")
     # Get the default parameters for this device...
     if device_model in ANNarchyInputDeviceDict.keys():
-        devices_dict = ANNarchyInputDeviceDict
-        default_params = config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF.get(device_model, {}).copy()
+        devices_dict = deepcopy(ANNarchyInputDeviceDict)
+        default_params = config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF.get(device_model, dict()).copy()
         if len(label):
             default_params["name"] = label
     elif device_model in ANNarchyOutputDeviceDict.keys():
-        devices_dict = ANNarchyOutputDeviceDict
+        devices_dict = deepcopy(ANNarchyOutputDeviceDict)
         default_params = config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}).copy()
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
@@ -363,8 +369,8 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
         # If it is an input device, populate it:
         annarchy_device = create_input_device(annarchy_device,
                                               kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
-                                              default_params.copy(), config)
-    annarchy_device.params = default_params.copy()
+                                              deepcopy(default_params), config)
+    annarchy_device.params = deepcopy(default_params)
     if return_annarchy:
         return annarchy_device, annarchy_instance
     else:
@@ -391,11 +397,12 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
     else:
         connection_args = {}
     if isinstance(syn_spec, dict):
+        syn_spec = deepcopy(syn_spec)
         synapse = syn_spec.pop("synapse_model",
                                syn_spec.pop("model",
                                           syn_spec.pop("synapse", None)))
     else:
-        syn_spec = {}
+        syn_spec = dict()
         synapse = None
     if synapse is not None:
         syn_spec["synapse"] = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
@@ -420,7 +427,7 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
             the connected ANNarchyOutputDevice
         """
     neurons = get_populations_neurons(population, neurons_inds_fun)
-    params = annarchy_device.params.copy()
+    params = deepcopy(annarchy_device.params)
     # Create a connection by adding an ANNarchy Monitor targeting the specific neurons of this population:
     monitor = annarchy_device.annarchy_instance.Monitor(neurons, **params)
     monitor.name = "%s_%d" % (annarchy_device.label, len(annarchy_device.monitors) + 1)
