@@ -2,6 +2,7 @@
 
 import sys
 import os
+import warnings
 
 from tvb_multiscale.core.config import Config as ConfigBase, log_path
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
@@ -64,10 +65,18 @@ class Config(ConfigBase):
                                      "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
                                      }
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
-        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
-        self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
-        self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
+        try:
+            self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
+        except Exception as e:
+            warnings.warn("NEST_INSTALL_DIR nor set!\n%s" % str(e))
+            self.NEST_PATH = ""
+        try:
+            self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
+        except Exception as e:
+            warnings.warn("NEST_PYTHON_PREFIX nor set!\n%s" % str(e))
+            self.PYTHON = ""
         self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
         self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
         self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
@@ -107,7 +116,7 @@ class Config(ConfigBase):
     def configure_nest_path(self, logger=None):
             if logger is None:
                 logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
-            logger.info("Loading a NEST instance...")
+            logger.info("Configuring NEST path...")
             nest_path = self.NEST_PATH
             os.environ['NEST_INSTALL_DIR'] = nest_path
             log_path('NEST_INSTALL_DIR', logger)
