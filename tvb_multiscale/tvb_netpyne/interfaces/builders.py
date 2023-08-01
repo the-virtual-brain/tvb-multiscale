@@ -161,3 +161,13 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
                            np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
                                     - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
                            ) * self.spiking_dt).astype("float32")
+
+    def build(self):
+        # NetPyNE model is built in two steps. First need to create declarative-style specification for both spiking network itself and TVB-Netpyne proxy devides (interfaces):
+        result = super(TVBNetpyneInterfaceBuilder, self).build()
+        # once done, network can be instantiated based on the specification:
+        self.netpyne_instance.createNetwork()
+
+        self.netpyne_network.tvb_cosimulator = self.tvb_cosimulator
+
+        return result

@@ -4,6 +4,7 @@ import numpy as np
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
+from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.population import NetpynePopulation
 from tvb_multiscale.tvb_netpyne.netpyne_models.region_node import NetpyneRegionNode
@@ -37,6 +38,9 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
             self.config = CONFIGURED
         if self.logger is None:
             self.logger = initialize_logger(__name__, config=self.config)
+
+        if self.netpyne_instance is None:
+            self.spiking_simulator = load_netpyne(self.config)
 
         super(NetpyneNetworkBuilder, self).configure()
         self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
