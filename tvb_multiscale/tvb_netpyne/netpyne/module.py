@@ -3,6 +3,7 @@ import numpy as np
 from netpyne import specs, sim
 from netpyne.sim import *
 from netpyne import __version__ as __netpyne_version__
+from copy import deepcopy
 
 
 class NetpyneModule(object):
@@ -10,10 +11,13 @@ class NetpyneModule(object):
     spikeGenerators = []
 
     __netpyne_version__ = __netpyne_version__
+    _readyToRun = False
 
     def __init__(self):
-        self.spikeGeneratorPops = []
-        self.autoCreatedPops = []
+        self._autoCreatedPops = []
+        self._spikeGeneratorPops = []
+        self._spikeGeneratorsToRecord = []
+
         self._compileOrLoadMod()
 
     def _compileOrLoadMod(self):
@@ -41,16 +45,27 @@ class NetpyneModule(object):
     def importModel(self, netParams, simConfig, dt, config):
 
         simConfig.dt = dt
-        simConfig.duration = config.simulation_length
 
         simConfig.simLabel = 'spiking'
         simConfig.saveFolder = config.out._out_base # TODO: better use some public method
 
-        self.netParams = netParams
-        self.simConfig = simConfig
-
         # using DynamicVecStim model for artificial cells serving as stimuli
-        self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicVecStim'}
+        netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicVecStim'}
+
+        self._netParams = netParams
+        self._simConfig = simConfig
+
+    @property
+    def netParams(self):
+        if self._netParams:
+            return self._netParams
+        return sim.net.params
+
+    @property
+    def simConfig(self):
+        if self._simConfig:
+            return self._simConfig
+        return sim.cfg
 
     @property
     def dt(self):
@@ -63,39 +78,44 @@ class NetpyneModule(object):
     @property
     def time(self):
         return h.t
-    
-    def instantiateNetwork(self):
 
-        sim.initialize(self.netParams, None) # simConfig to be provided later
+    def createNetwork(self):
+        sim.initialize(self.netParams, self.simConfig)
+        self._netParams = None
+        self._simConfig = None
+
         sim.net.createPops()
         sim.net.createCells()
+        sim.net.connectCells()
+        sim.net.addStims()
+        sim.net.addRxD()
 
-        if len(self.autoCreatedPops):
-            # choose N random cells from each population to plot traces for
+    def prepareSimulation(self, duration):
+
+        simConfig = self.simConfig
+        simConfig.duration = duration
+
+        # choose N random cells from each population to plot traces for
+        if len(self._autoCreatedPops):
             n = 1
             rnd = np.random.RandomState(0)
             def includeFor(pop):
                 popSize = len(sim.net.pops[pop].cellGids)
                 chosen = (pop, rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
                 return chosen
-            include = list(map(includeFor, self.autoCreatedPops))
-            self.simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
-            self.simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': self.autoCreatedPops, 'popRates': 'minimal'}
+            include = list(map(includeFor, self._autoCreatedPops))
+            simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
 
-            if self.simConfig.recordCellsSpikes == -1:
-                allPopsButSpikeGenerators = [pop for pop in self.netParams.popParams.keys() if pop not in self.spikeGeneratorPops]
-                self.simConfig.recordCellsSpikes = allPopsButSpikeGenerators
+        # exclude spike generators from spike recording.. (unless explicitly configured in device's params) 
+        exclude = [pop for pop in self._spikeGeneratorPops if pop not in self._spikeGeneratorsToRecord]
+        record = [pop for pop in self.netParams.popParams.keys() if pop not in exclude]
+        if simConfig.recordCellsSpikes == -1: # only if no specific configuration
+            simConfig.recordCellsSpikes = record
+        # .. and from plotting
+        simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': record, 'popRates': 'minimal'}
 
-        sim.setSimCfg(self.simConfig)
-        sim.setNetParams(self.netParams)
-        sim.net.params.synMechParams.preprocessStringFunctions()
-        sim.net.params.cellParams.preprocessStringFunctions()
-
-        sim.net.connectCells()
-        sim.net.addStims()
-        sim.net.addRxD()
+        sim.setSimCfg(simConfig)
         sim.setupRecording()
-
         sim.run.prepareSimWithIntervalFunc()
 
         # interval run is used internally to support communication with TVB. However, users may also need to have feedbacks
@@ -106,6 +126,8 @@ class NetpyneModule(object):
             self.nextIntervalFuncCall = self.interval
         else:
             self.nextIntervalFuncCall = None
+
+        self._readyToRun = True
 
 
     def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, prob=None):
@@ -148,18 +170,24 @@ class NetpyneModule(object):
             'synMech': synapticMechanism }
 
     def registerPopulation(self, label, cellModel, size):
-        self.autoCreatedPops.append(label)
+        self._autoCreatedPops.append(label)
         self.netParams.popParams[label] = {'cellType': cellModel, 'numCells': size}
 
-    def createArtificialCells(self, label, number, params=None):
+    def createArtificialCells(self, label, number, record=False):
         print(f"Netpyne:: Creating artif cells for node '{label}' of {number} neurons")
-        self.spikeGeneratorPops.append(label)
         self.netParams.popParams[label] = {
             'cellType': 'art_NetStim',
             'numCells': number,
         }
+        self._spikeGeneratorPops.append(label)
+        if record:
+            self._spikeGeneratorsToRecord.append(label)
 
     def getSpikes(self, generatedBy=None, startingFrom=None):
+
+        if not 'spkid' in sim.simData:
+            return [], []
+
         spktimes = np.array(sim.simData['spkt'])
         spkgids = np.array(sim.simData['spkid'])
 
@@ -189,6 +217,8 @@ class NetpyneModule(object):
         return gids
 
     def run(self, length):
+
+        assert self._readyToRun, "The `NetpyneModule.prepareSimulation()` method has to be called prior to start of simulation."
 
         self.stimulate(length)
 

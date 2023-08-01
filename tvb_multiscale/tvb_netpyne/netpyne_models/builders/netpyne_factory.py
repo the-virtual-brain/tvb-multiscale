@@ -52,11 +52,12 @@ def create_device(device_model, params=dict(), config=CONFIGURED, netpyne_instan
                           "nor of the output ones: %s!" %
                           (device_model, str(config.NETPYNE_INPUT_DEVICES_PARAMS_DEF),
                            str(config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF)))
-    params.update(default_params)
+    default_params.update(params)
+    params = default_params
 
     netpyne_device = None # TODO: netpyne doesn't have suitable entity for this case, but at some point we might want to create some wrapper
     DeviceClass = devices_dict[device_model] # e.g. NetpynePoissonGenerator or NetpyneSpikeRecorder 
-    device = DeviceClass(netpyne_device, netpyne_instance=netpyne_instance, label=label)
+    device = DeviceClass(netpyne_device, netpyne_instance=netpyne_instance, label=label, params=deepcopy(params))
         
     device.model = device_model # TODO: nest passes this through initializers chain and assigns deeply in `_NESTNodeCollection` or so
     device.label = label
@@ -64,10 +65,11 @@ def create_device(device_model, params=dict(), config=CONFIGURED, netpyne_instan
     if isInputDevice:
 
         numberOfNeurons = params["number_of_neurons"]
+        recordSpikes = params.get("record_generated_spikes", False)
         lamda = params.get("lamda", None)
         if lamda is not None:
             numberOfNeurons = int(numberOfNeurons * lamda[0])
-        netpyne_instance.createArtificialCells(label, numberOfNeurons)
+        netpyne_instance.createArtificialCells(label, numberOfNeurons, record=recordSpikes)
 
         netpyne_instance.spikeGenerators.append(device)
 

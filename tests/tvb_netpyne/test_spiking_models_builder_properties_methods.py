@@ -2,7 +2,6 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, Config
-from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.wilson_cowan import WilsonCowanBuilder
 
@@ -25,8 +24,7 @@ def test( dt = 0.1, duration = 100, config=CONFIGURED ):
     mon_raw = Raw(period = simulator.integrator.dt )
     simulator.monitors = (mon_raw,)
 
-    config.simulation_length = duration
-    netpyne_model_builder = DefaultExcIOInhIBuilder(simulator, nodes, spiking_simulator(load_netpyne()), config=config)
+    netpyne_model_builder = DefaultExcIOInhIBuilder(simulator, nodes, config=config)
     netpyne_model_builder.configure()
     print(netpyne_model_builder.info())
 
