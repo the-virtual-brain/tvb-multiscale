@@ -2,12 +2,15 @@ import numpy as np
 
 from netpyne import specs, sim
 from netpyne.sim import *
+from netpyne import __version__ as __netpyne_version__
 
 
 class NetpyneModule(object):
 
     spikeGenerators = []
-    
+
+    __netpyne_version__ = __netpyne_version__
+
     def __init__(self):
         self.spikeGeneratorPops = []
         self.autoCreatedPops = []

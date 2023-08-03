@@ -68,19 +68,19 @@ class Config(ConfigBase):
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
         try:
-            self.NEST_PATH = os.environ["NEST_INSTALL_DIR"]
+            self._NEST_PATH = os.environ["NEST_INSTALL_DIR"]
         except Exception as e:
             warnings.warn("NEST_INSTALL_DIR nor set!\n%s" % str(e))
-            self.NEST_PATH = ""
+            self._NEST_PATH = ""
         try:
             self.PYTHON = os.environ["NEST_PYTHON_PREFIX"]
         except Exception as e:
             warnings.warn("NEST_PYTHON_PREFIX nor set!\n%s" % str(e))
             self.PYTHON = ""
-        self.DATA_DIR = os.path.join(self.NEST_PATH, "share/nest")
+        self.DATA_DIR = os.path.join(self._NEST_PATH, "share/nest")
         self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
-        self.DOC_DIR = os.path.join(self.NEST_PATH, "share/doc/nest")
-        self.MODULE_PATH = os.path.join(self.NEST_PATH, "lib/nest")
+        self.DOC_DIR = os.path.join(self._NEST_PATH, "share/doc/nest")
+        self.MODULE_PATH = os.path.join(self._NEST_PATH, "lib/nest")
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
         self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
@@ -114,32 +114,41 @@ class Config(ConfigBase):
                 "spike_recorder": {"record_to": self.DEFAULT_DEVICE_RECORD_TO},
                 "spike_multimeter": {'record_from': ["spike"], "record_to": self.DEFAULT_DEVICE_RECORD_TO}}
 
+    @property
+    def NEST_PATH(self):
+        if os.path.isdir(self._NEST_PATH):
+            return self._NEST_PATH
+        return ""
+
     def configure_nest_path(self, logger=None):
             if logger is None:
                 logger = initialize_logger_base(__name__, self.out.FOLDER_LOGS)
-            logger.info("Configuring NEST path...")
-            nest_path = self.NEST_PATH
-            os.environ['NEST_INSTALL_DIR'] = nest_path
-            log_path('NEST_INSTALL_DIR', logger)
-            os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
-            log_path('NEST_DATA_DIR', logger)
-            os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
-            log_path('NEST_DOC_DIR', logger)
-            os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
-            log_path('NEST_MODULE_PATH', logger)
-            os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
-            log_path('PATH', logger)
-            LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
-            if len(LD_LIBRARY_PATH) > 0:
-                LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
-            os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
-            log_path('LD_LIBRARY_PATH', logger)
-            os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
-            log_path('SLI_PATH', logger)
-            os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
-            log_path('NEST_PYTHON_PREFIX', logger)
-            sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
-            logger.info("%s: %s" % ("system path", sys.path))
+            if os.path.isdir(self._NEST_PATH):
+                logger.info("Configuring NEST path...")
+                nest_path = self._NEST_PATH
+                os.environ['NEST_INSTALL_DIR'] = nest_path
+                log_path('NEST_INSTALL_DIR', logger)
+                os.environ['NEST_DATA_DIR'] = os.path.join(nest_path, "share/nest")
+                log_path('NEST_DATA_DIR', logger)
+                os.environ['NEST_DOC_DIR'] = os.path.join(nest_path, "share/doc/nest")
+                log_path('NEST_DOC_DIR', logger)
+                os.environ['NEST_MODULE_PATH'] = os.path.join(nest_path, "lib/nest")
+                log_path('NEST_MODULE_PATH', logger)
+                os.environ['PATH'] = os.path.join(nest_path, "bin") + ":" + os.environ['PATH']
+                log_path('PATH', logger)
+                LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
+                if len(LD_LIBRARY_PATH) > 0:
+                    LD_LIBRARY_PATH = ":" + LD_LIBRARY_PATH
+                os.environ['LD_LIBRARY_PATH'] = os.environ['NEST_MODULE_PATH'] + LD_LIBRARY_PATH
+                log_path('LD_LIBRARY_PATH', logger)
+                os.environ['SLI_PATH'] = os.path.join(os.environ['NEST_DATA_DIR'], "sli")
+                log_path('SLI_PATH', logger)
+                os.environ['NEST_PYTHON_PREFIX'] = self.PYTHON
+                log_path('NEST_PYTHON_PREFIX', logger)
+                sys.path.insert(0, os.environ['NEST_PYTHON_PREFIX'])
+                logger.info("%s: %s" % ("system path", sys.path))
+            else:
+                warnings.warn("NEST_PATH is not set! Configuring NEST_PATH is not possible!\n%s")
 
 
 CONFIGURED = Config(initialize_logger=False)

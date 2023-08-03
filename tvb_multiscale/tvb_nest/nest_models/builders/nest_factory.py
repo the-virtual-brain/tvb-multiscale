@@ -63,8 +63,8 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     # ...unless we need to first compile it:
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
-    lib_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "lib", "nest")
-    include_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "include")
+    lib_path = os.path.join(config._NEST_PATH, "lib", "nest")
+    include_path = os.path.join(config._NEST_PATH, "include")
     for module in ensure_list(modules):
         modulemodule = module + "module"
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
@@ -75,9 +75,10 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
         module_include_path = os.path.join(include_path, modulemodule)
         installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
-        if not os.path.isfile(solib_file) \
-                or not os.path.isfile(dylib_file) \
-                    or not os.path.isfile(include_file) \
+        if self.NEST_PATH and \
+            (not os.path.isfile(solib_file)
+                or not os.path.isfile(dylib_file)
+                    or not os.path.isfile(include_file)) \
                         or recompile:
             # If any of the .so, .dylib or .h files don't exist,
             # or if the user requires recompilation,
@@ -95,7 +96,7 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
             success_message = "DONE compiling and installing %s!" % module
             try:
                 from pynestml.frontend.pynestml_frontend import generate_nest_target
-                generate_nest_target(module_bld_dir, config.NEST_PATH)
+                generate_nest_target(module_bld_dir, config._NEST_PATH)
             except Exception as e:
                 raise e
             logger.info("Compiling finished without errors...")
