@@ -14,6 +14,8 @@ class NetpyneModule(object):
         self._autoCreatedPops = []
         self._spikeGeneratorPops = []
         self._spikeGeneratorsToRecord = []
+        self._tracesToRecord = {}
+        self._popsToRecordTraces = []
 
         self._compileOrLoadMod()
 
@@ -91,6 +93,9 @@ class NetpyneModule(object):
 
         simConfig = self.simConfig
         simConfig.duration = duration
+
+        simConfig.recordTraces.update(self._tracesToRecord)
+        simConfig.recordCells.extend(self._popsToRecordTraces)
 
         # choose N random cells from each population to plot traces for
         if len(self._autoCreatedPops):
@@ -180,6 +185,21 @@ class NetpyneModule(object):
         if record:
             self._spikeGeneratorsToRecord.append(label)
 
+    def recordTracesFromPop(self, traces, pop):
+        if pop not in self._popsToRecordTraces:
+            self._popsToRecordTraces.append(pop)
+
+        for traceId, traceVal in traces.items():
+            if traceId not in self._tracesToRecord:
+                self._tracesToRecord[traceId] = deepcopy(traceVal)
+            trace = self._tracesToRecord[traceId]
+            existingPops = trace.get('conds', {}).get('pop')
+            if existingPops and (pop not in existingPops):
+                existingPops.append(pop)
+            else:
+                existingPops = [pop]
+                trace['conds'] = {'pop': existingPops}
+
     def getSpikes(self, generatedBy=None, startingFrom=None):
 
         if not 'spkid' in sim.simData:
@@ -200,7 +220,19 @@ class NetpyneModule(object):
             spktimes = spktimes[inds]
             spkgids = spkgids[inds]
         return spktimes, spkgids
-    
+
+    def getRecordedTime(self):
+        return np.array(sim.simData['t'])
+
+    def getTraces(self, key, neuronIds, timeSlice=slice(None)):
+        time = self.getRecordedTime()[timeSlice]
+        tracesPerNeuron = sim.allSimData.get(key)
+        data = np.zeros((len(neuronIds), len(time)))
+        for neurInd, neurId in enumerate(neuronIds):
+            trace = tracesPerNeuron[f'cell_{neurId}']
+            data[neurInd] = trace[timeSlice]
+        return data
+
     def cellGidsForPop(self, popLabel):
         return sim.net.pops[popLabel].cellGids
 

@@ -1,7 +1,7 @@
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_netpyne.netpyne_models.devices import NetpyneOutputSpikeDeviceDict
+from tvb_multiscale.tvb_netpyne.netpyne_models.devices import NetpyneOutputSpikeDeviceDict, NetpyneOutputContinuousTimeDeviceDict
 
 class NetpyneNetwork(SpikingNetwork):
 
@@ -24,6 +24,7 @@ class NetpyneNetwork(SpikingNetwork):
     netpyne_instance = None
 
     _OutputSpikeDeviceDict = NetpyneOutputSpikeDeviceDict
+    _OutputContinuousTimeDeviceDict = NetpyneOutputContinuousTimeDeviceDict
 
     def __init__(self, netpyne_instance, **kwargs):
         self.netpyne_instance = netpyne_instance
