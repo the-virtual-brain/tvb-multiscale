@@ -22,6 +22,7 @@ class Config(ConfigBase):
     }
     NETPYNE_OUTPUT_DEVICES_PARAMS_DEF = {
         "spike_recorder": {},
+        "multimeter": {},
     }
 
 

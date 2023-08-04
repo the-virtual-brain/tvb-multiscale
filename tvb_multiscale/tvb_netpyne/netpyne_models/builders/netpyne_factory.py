@@ -107,6 +107,8 @@ def connect_device(netpyne_device, population, neurons_inds_fun, weight=1.0, del
     elif netpyne_device.model in config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF:
         netpyne_device.population_label = spiking_population_label
         print(f"Netpyne:: will connect output device {netpyne_device.model} -- {netpyne_device.population_label}")
+        if netpyne_device.model == "multimeter":
+            netpyne_instance.recordTracesFromPop(netpyne_device.params['variables'], netpyne_device.population_label)
     else:
         print(f"Netpyne:: couldn't connect device. Unknown model {netpyne_device.model}")
     return netpyne_device
