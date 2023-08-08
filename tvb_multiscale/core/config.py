@@ -137,7 +137,6 @@ class Config(HasTraits):
     TVB_TO_SPIKING_DT_RATIO = 2
     MIN_DELAY_RATIO = 1
     MIN_SPIKING_DT = 0.001
-    MIN_DELAY = 0.001
 
     DEFAULT_TVB_MODEL = WilsonCowan
     DEFAULT_TVB_COUPLING_MODEL = Linear
