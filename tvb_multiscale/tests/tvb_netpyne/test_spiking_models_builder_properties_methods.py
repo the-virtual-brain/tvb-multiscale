@@ -10,6 +10,7 @@ from tvb.simulator.simulator import Simulator
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 from tvb.simulator.monitors import Raw
 
+
 def test( dt = 0.1, duration = 100, config=CONFIGURED ):
     connectivity = Connectivity.from_file(CONFIGURED.DEFAULT_CONNECTIVITY_ZIP)
     connectivity.configure()
@@ -27,6 +28,7 @@ def test( dt = 0.1, duration = 100, config=CONFIGURED ):
     netpyne_model_builder = DefaultExcIOInhIBuilder(simulator, nodes, config=config)
     netpyne_model_builder.configure()
     print(netpyne_model_builder.info())
+
 
 if __name__ == "__main__":
     test()
