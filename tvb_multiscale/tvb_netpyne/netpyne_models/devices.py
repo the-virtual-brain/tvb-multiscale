@@ -1,13 +1,20 @@
 import numpy as np
-from tvb_multiscale.core.spiking_models.devices import Device, InputDevice, OutputDevice, SpikeRecorder
+from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
 from tvb_multiscale.tvb_netpyne.netpyne.utils import generateSpikesForPopulation
+from xarray import DataArray
+from copy import copy, deepcopy
 
 class NetpyneDevice(HasTraits):
 
     def __init__(self, device, netpyne_instance, *args, **kwargs):
         self.netpyne_instance = netpyne_instance
         HasTraits.__init__(self)
+        self.params = kwargs.get('params')
+
+    @property
+    def spiking_simulator_module(self):
+        return self.netpyne_instance
 
     def _assert_device(self):
         """Method to assert that the node of the network is a device"""
@@ -200,8 +207,103 @@ class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
     def spiking_simulator_module(self):
         return self.device.netpyne_instance
 
+
+class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
+
+    _output_events_index = 0
+
+    def _variables(self):
+        return self.params.get('variables', {})
+
+    def _events(self, onlyNew):
+        """Method to convert and place continuous time data measured from Monitors, to an events dictionary."""
+        result = {}
+        if onlyNew:
+            timeSlice = slice(self._output_events_index, None)
+        else:
+            timeSlice = slice(None)
+
+        time = self.netpyne_instance.getRecordedTime()[timeSlice]
+
+        for var in self._variables():
+            varData = self.netpyne_instance.getTraces(var, self.neurons, timeSlice)
+            # turning data of shape (n_neurons, time) to flat array [time_0_neur_0, ..., time_0_neur_n, ..., time_n_neur_0, ..., time_n_neur_n]
+            result[var] = varData.T.flatten()
+        # repeat time and neurons to match the format as in comment above
+        result['times'] = time.repeat(self.number_of_neurons)
+        result['senders'] = np.tile(self.neurons, len(time))
+
+        if not onlyNew:
+            self._output_events_index = len(time)
+
+        return result
+
+
+    def get_data(self, variables=None, events_inds=None,
+                 name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True, new=False):
+        """This method returns time series' data recorded by the multimeter.
+           Arguments:
+            variables: a sequence of variables' names (strings) to be selected.
+                       Default = None, corresponds to all variables the multimeter records from.
+            name: label of output. Default = None, which defaults to the label of the Device
+            dims_names: sequence of dimensions' labels (strings) for the output array.
+                        Default = ["Time", "Variable", "Neuron"]
+           Returns:
+            a xarray DataArray with the output data
+        """
+        if not variables:
+            variables = self.record_from # variable names
+
+        time = self.netpyne_instance.getRecordedTime()
+
+        # shape (vars, neurs, time)
+        data = np.zeros((len(variables), len(self.neurons), len(time)))
+
+        for varInd, var in enumerate(variables):
+            data[varInd] = self.netpyne_instance.getTraces(var, self.neurons)
+
+        # reshape to (time, vars, neurs)
+        data = data.transpose(2, 0, 1)
+
+        m_data = DataArray(
+            data,
+            dims=["Time", "Variable", "Neuron"],
+            coords={"Time": time,
+                    "Variable": variables,
+                    "Neuron": copy(self.neurons)},
+            name=self.label)
+
+        return m_data
+
+    @property
+    def events(self):
+        return self._events(newOnly=False)
+    
+    def get_new_events(self, variables=None, name=None,
+                      dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+        """Method to convert and place continuous time data measured from Monitors, to an events dictionary."""
+        return self._events(newOnly=True)
+
+    @property
+    def number_of_events(self):
+        # time * neurons
+        return len(self.netpyne_instance.getRecordedTime()) * len(self.neurons)
+
+    @property
+    def number_of_new_events(self):
+        # (time - oldEventsNum) * neurons
+        return (len(self.netpyne_instance.getRecordedTime()) - self._output_events_index) * len(self.neurons)
+
+    @property
+    def record_from(self):
+        return list(self._variables().keys())
+
+    def reset(self):
+        self._output_events_index = 0
+
+
 NetpyneOutputSpikeDeviceDict = {"spike_recorder": NetpyneSpikeRecorder}
-NetpyneOutputContinuousTimeDeviceDict = {} # TODO: to be populated
+NetpyneOutputContinuousTimeDeviceDict = {"multimeter": NetpyneMultimeter}
 
 
 NetpyneOutputDeviceDict = {}
