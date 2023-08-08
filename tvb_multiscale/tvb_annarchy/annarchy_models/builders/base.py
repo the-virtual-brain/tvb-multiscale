@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from pandas import concat
 
+from tvb_multiscale.core.utils.data_structures_utils import safe_dict_copy
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
@@ -88,7 +89,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             a dictionary of the whole synapse configuration
         """
         return {'synapse_model': syn_model, 'weights': weights,
-                'delays': delays, 'target': target, 'params': deepcopy(params)}
+                'delays': delays, 'target': target, 'params': safe_dict_copy(params)}
 
     def _assert_model(self, model):
         return assert_model(model, self.annarchy_instance, self._models_import_path)
@@ -125,15 +126,15 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
                       including weight, delay and synaptic target ones
         """
         # Prepare the synaptic model:
-        syn_spec = deepcopy(syn_spec)
+        syn_spec = safe_dict_copy(syn_spec)
         syn_spec["synapse_model"] = \
             self._assert_model(
                 syn_spec.pop("synapse_model",
                              syn_spec.pop("model",
                                           syn_spec.pop("synapse", None))))
         # Get connection arguments by copying conn_spec. Make sure to pop out the "method" entry:
-        this_syn_spec = deepcopy(syn_spec)
-        this_conn_spec = deepcopy(conn_spec)
+        this_syn_spec = safe_dict_copy(syn_spec)
+        this_conn_spec = safe_dict_copy(conn_spec)
         proj = connect_two_populations(pop_src, pop_trg, this_syn_spec.pop("weights"),
                                        this_syn_spec.pop("delays"), this_syn_spec.pop("target"),
                                        syn_spec=this_syn_spec, conn_spec=this_conn_spec,

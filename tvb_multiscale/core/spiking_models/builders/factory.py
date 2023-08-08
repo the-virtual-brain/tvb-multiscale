@@ -4,11 +4,12 @@ import numpy as np
 from six import string_types
 from copy import deepcopy
 
-from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.spiking_models.devices import DeviceSet, DeviceSets
-
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+
+from tvb_multiscale.core.config import CONFIGURED, initialize_logger
+from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
+from tvb_multiscale.core.spiking_models.devices import DeviceSet, DeviceSets
 
 
 LOG = initialize_logger(__name__)
@@ -16,18 +17,18 @@ LOG = initialize_logger(__name__)
 
 def _safe_indexing(arg, ind1=None, ind2=None):
     if ind1 is None:
-        return deepcopy(arg)
+        return safe_deepcopy(arg)
     else:
         if ind2 is None:
             try:
-                return deepcopy(arg[ind1])
+                return safe_deepcopy(arg[ind1])
             except:
-                return deepcopy(arg)
+                return safe_deepcopy(arg)
         else:
             try:
-                return deepcopy(arg[ind1, ind2])
+                return safe_deepcopy(arg[ind1, ind2])
             except:
-                return deepcopy(arg)
+                return safe_deepcopy(arg)
 
 
 def _unload_device_dict(device):
@@ -74,7 +75,8 @@ def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
         else:
             try:
                 device_model = device.get("model", None)
-                return create_device_fun(device_model, params=deepcopy(device.get("params", dict())),
+                return create_device_fun(device_model,
+                                         params=safe_deepcopy(device.get("params", dict())),
                                          config=config, **kwargs)
             except Exception as e:
                 raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))

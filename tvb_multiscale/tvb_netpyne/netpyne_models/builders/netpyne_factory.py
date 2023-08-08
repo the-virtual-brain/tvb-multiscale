@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
 
+from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import NetpyneInputDeviceDict, NetpyneOutputDeviceDict
 from tvb_multiscale.tvb_netpyne.netpyne.module import NetpyneModule
@@ -41,12 +41,12 @@ def create_device(device_model, params=dict(), config=CONFIGURED, netpyne_instan
     isInputDevice = False
     if device_model in NetpyneInputDeviceDict.keys():
         isInputDevice = True
-        devices_dict = deepcopy(NetpyneInputDeviceDict)
-        default_params = deepcopy(config.NETPYNE_INPUT_DEVICES_PARAMS_DEF.get(device_model, dict()))
+        devices_dict = safe_deepcopy(NetpyneInputDeviceDict)
+        default_params = safe_deepcopy(config.NETPYNE_INPUT_DEVICES_PARAMS_DEF.get(device_model, dict()))
 
     elif device_model in NetpyneOutputDeviceDict.keys():
-        devices_dict = deepcopy(NetpyneOutputDeviceDict)
-        default_params = deepcopy(config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, dict()))
+        devices_dict = safe_deepcopy(NetpyneOutputDeviceDict)
+        default_params = safe_deepcopy(config.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, dict()))
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
@@ -57,7 +57,7 @@ def create_device(device_model, params=dict(), config=CONFIGURED, netpyne_instan
 
     netpyne_device = None # TODO: netpyne doesn't have suitable entity for this case, but at some point we might want to create some wrapper
     DeviceClass = devices_dict[device_model] # e.g. NetpynePoissonGenerator or NetpyneSpikeRecorder 
-    device = DeviceClass(netpyne_device, netpyne_instance=netpyne_instance, label=label, params=deepcopy(params))
+    device = DeviceClass(netpyne_device, netpyne_instance=netpyne_instance, label=label, params=safe_deepcopy(params))
         
     device.model = device_model # TODO: nest passes this through initializers chain and assigns deeply in `_NESTNodeCollection` or so
     device.label = label

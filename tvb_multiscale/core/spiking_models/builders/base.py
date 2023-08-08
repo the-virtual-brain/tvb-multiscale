@@ -14,7 +14,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
-from tvb_multiscale.core.utils.data_structures_utils import property_to_fun
+from tvb_multiscale.core.utils.data_structures_utils import property_to_fun, safe_dict_copy
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     serialize_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
@@ -109,13 +109,13 @@ class SpikingNetworkBuilder(object):
             self.model = self.config.DEFAULT_SPIKING_MODEL
         self.default_population = {"model": self.model, "scale": 1, "params": {}, "nodes": None}
 
-        self.default_populations_connection = deepcopy(self.config.DEFAULT_CONNECTION)
+        self.default_populations_connection = safe_dict_copy(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["nodes"] = None
 
-        self.default_nodes_connection = deepcopy(self.config.DEFAULT_CONNECTION)
+        self.default_nodes_connection = safe_dict_copy(self.config.DEFAULT_CONNECTION)
         self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
 
-        self.default_devices_connection = deepcopy(self.config.DEFAULT_CONNECTION)
+        self.default_devices_connection = safe_dict_copy(self.config.DEFAULT_CONNECTION)
         self.default_devices_connection["delay"] = self.default_min_delay
         self.default_devices_connection["nodes"] = None
 
@@ -485,7 +485,7 @@ class SpikingNetworkBuilder(object):
         _connections = []
         for i_con, connection in enumerate(connections):
             self._assert_connection_populations(connection)
-            temp_conn = deepcopy(default_connection)
+            temp_conn = safe_dict_copy(default_connection)
             temp_conn.update(connection)
             _connections.append(temp_conn)
             for prop in ["weight", "delay", "receptor_type", "params"]:
@@ -540,7 +540,7 @@ class SpikingNetworkBuilder(object):
         # "weight", "delay" and "receptor_type" are set as functions, following user input
         _devices = list()
         for device in devices:
-            _devices.append(deepcopy(device))
+            _devices.append(safe_dict_copy(device))
             spiking_nodes = device.get("nodes", None)
             if spiking_nodes is None:
                 spiking_nodes = self.spiking_nodes_inds
