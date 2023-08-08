@@ -36,8 +36,8 @@ from examples.tvb_nest.models.red_wong_wang import \
     red_wong_wang_excio_example, red_wong_wang_excio_inhi_example_2013, red_wong_wang_excio_inhi_example_2014
 from examples.tvb_nest.models.basal_ganglia_izhiikevich import basal_ganglia_izhikevich_example
 
-from tests.core.test_models import test_models
-from tests.core.test_spikeNet_models import TestSpikeNetModel
+from tvb_multiscale.tests.core.test_models import test_models
+from tvb_multiscale.tests.core.test_spikeNet_models import TestSpikeNetModel
 
 
 class TestDefault(TestSpikeNetModel):

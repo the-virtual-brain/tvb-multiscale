@@ -4,8 +4,8 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 import numpy as np
 
-from tests.core.test_models import test_models
-from tests.core.test_spikeNet_models import TestSpikeNetModel
+from tvb_multiscale.tests.core.test_models import test_models
+from tvb_multiscale.tests.core.test_spikeNet_models import TestSpikeNetModel
 
 from examples.tvb_netpyne.example import default_example
 from examples.tvb_netpyne.models.wilson_cowan import wilson_cowan_example
