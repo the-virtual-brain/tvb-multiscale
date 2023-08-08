@@ -11,7 +11,9 @@ from examples.tvb_netpyne.example import default_example
 from examples.tvb_netpyne.models.wilson_cowan import wilson_cowan_example
 from examples.tvb_netpyne.models.red_wong_wang import excio_inhi_example
 
+
 class TestDefault(TestSpikeNetModel):
+
     def run_fun(self):
         default_example(model=self.tvb_to_spikeNet_mode,
                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
@@ -19,17 +21,21 @@ class TestDefault(TestSpikeNetModel):
                         simulation_length=self.simulation_length, transient=self.transient,
                         plot_write=self.plot_write)
 
+
 # class TestDefaultRATE(TestDefault):
 #     def test(self):
 #         self.tvb_to_spikeNet_mode = "RATE"
 #         self.run()
+
 
 # class TestDefaultSPIKES(TestDefault):
 #     def test(self):
 #         self.tvb_to_spikeNet_mode = "SPIKES"
 #         self.run()
 
+
 class TestWilsonCowan(TestSpikeNetModel):
+
     def run_fun(self):
         wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
                              spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
@@ -47,19 +53,21 @@ class TestWilsonCowanRATE(TestWilsonCowan):
 #         self.tvb_to_spikeNet_mode = "SPIKES"
 #         self.run()
 
+
 class TestRedWongWang(TestSpikeNetModel):
     def run_fun(self):
         excio_inhi_example(model=self.tvb_to_spikeNet_mode,
-                           spiking_proxy_inds=self.spiking_proxy_inds,
-                           population_order=self.population_order,
+                           spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                            exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                            simulation_length=self.simulation_length, transient=self.transient,
                            plot_write=self.plot_write)
+
 
 class TestRedWongWangRATE(TestRedWongWang):
     def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
+
 
 models_to_test_netpyne = [
     # TestDefaultSPIKES, # Not implemented yet
