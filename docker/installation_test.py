@@ -24,7 +24,7 @@ except:
 
 # To test the spiking model builder for TVB-NEST:
 try:
-    from tvb_multiscale.tests.tvb_nest.test_spiking_models_builder_propertes_methods import test as test_spiking_model_builder_nest
+    from tvb_multiscale.tests.tvb_nest.test_spiking_models_builder_properties_methods import test as test_spiking_model_builder_nest
     test_spiking_model_builder_nest()
 except:
     print("Failed to run tvb_nest test_spiking_model_builder_nest!")
@@ -45,7 +45,7 @@ except:
 
 # To test the spiking model builder for TVB-ANNarchy:
 try:
-    from tvb_multiscale.tests.tvb_annarchy.test_spiking_models_builder_propertes_methods import test as test_spiking_model_builder_nest
+    from tvb_multiscale.tests.tvb_annarchy.test_spiking_models_builder_properties_methods import test as test_spiking_model_builder_nest
     test_spiking_model_builder_nest()
 except:
     print("Failed to run tvb_annarchy test_spiking_model_builder_nest!")
