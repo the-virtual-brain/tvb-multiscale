@@ -74,8 +74,8 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
         # include_file = os.path.join(module_bld_dir, modulemodule + ".h")
         # installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
         # installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
-        module_include_path = os.path.join(include_path, modulemodule)
-        installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
+        # module_include_path = os.path.join(include_path, modulemodule)
+        # installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
         # if self.NEST_PATH and \
         #     (not os.path.isfile(solib_file)
         #         or not os.path.isfile(dylib_file)
