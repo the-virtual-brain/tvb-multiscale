@@ -2,15 +2,15 @@
 
 import os
 import shutil
-from copy import deepcopy
 
 import numpy as np
-
-from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
+
+from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
+from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 
 
 LOG = initialize_logger(__name__)
@@ -45,7 +45,7 @@ def configure_nest_kernel(nest_instance, config=CONFIGURED):
     nest_instance.set_verbosity(config.NEST_VERBOCITY)  # don't print all messages from NEST
     # Printing the time progress should only be used when the simulation is run on a local machine:
     #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
-    kernel_config = deepcopy(config.DEFAULT_NEST_KERNEL_CONFIG)
+    kernel_config = safe_deepcopy(config.DEFAULT_NEST_KERNEL_CONFIG)
     kernel_config["data_path"] = os.path.join(config.out.FOLDER_RES, os.path.basename(kernel_config["data_path"]))
     safe_makedirs(kernel_config["data_path"])  # Make sure this folder exists
     nest_instance.SetKernelStatus(kernel_config)
@@ -225,7 +225,7 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
     from tvb_multiscale.tvb_nest.nest_models.devices import \
         NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
 
-    params = deepcopy(params)
+    params = safe_deepcopy(params)
 
     if nest_instance is None:
         nest_instance = load_nest(config=config)
@@ -247,14 +247,14 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
                 record_parrot = params.pop("record", None)
                 parrot = nest_instance.Create("parrot_neuron", number_of_devices)
                 parrot_connect_method = "one_to_one" if device_model == "parrot_spike_generator" else "all_to_all"
-        default_params = config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
+        default_params = safe_deepcopy(config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
                                                                   config.NEST_INPUT_DEVICES_PARAMS_DEF.get(
-                                                                      deepcopy(nest_device_model, dict())))
+                                                                      nest_device_model, dict())))
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params = deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
+        default_params = safe_deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
                                                                    config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(
-                                                                       deepcopy(nest_device_model, dict()))))
+                                                                       nest_device_model, dict())))
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
@@ -286,7 +286,7 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
         if record_parrot is not None:
             rec_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get("spike_recorder", {})
             if isinstance(record_parrot, dict):
-                record_parrot = deepcopy(record_parrot)
+                record_parrot = safe_deepcopy(record_parrot)
                 rec_params.update(record_parrot)
             nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
             nest_instance.Connect(nest_device._nodes, nest_device._record)
@@ -334,7 +334,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         pass
     basic_syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
     if isinstance(syn_spec, dict):
-        syn_spec = deepcopy(syn_spec)
+        syn_spec = safe_deepcopy(syn_spec)
         syn_spec.update(basic_syn_spec)
     else:
         syn_spec = basic_syn_spec
@@ -355,7 +355,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
             if conn_spec is None:
                 conn_spec = {"rule": "all_to_all"}
             else:
-                conn_spec = deepcopy(conn_spec)
+                conn_spec = safe_deepcopy(conn_spec)
             conn_spec = create_conn_spec(n_src=nest_device.number_of_neurons, n_trg=len(neurons),
                                          src_is_trg=False, config=config, **conn_spec)[0]
             conn_spec.pop("allow_autapses", None)

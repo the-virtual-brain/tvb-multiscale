@@ -192,5 +192,5 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     return main_example(orchestrator_app,
                         Linear(), model_params,
-                        spikeNet_model_builder, kwargs.pop("proxy_inds", [0, 1]),
+                        spikeNet_model_builder, kwargs.pop("spiking_proxy_inds", [0, 1]),
                         tvb_spikeNet_model_builder, tvb_to_spikeNet_interfaces, spikeNet_to_tvb_interfaces, **kwargs)

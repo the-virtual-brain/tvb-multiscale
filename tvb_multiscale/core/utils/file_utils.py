@@ -3,17 +3,14 @@
 import sys
 import os
 import importlib.util
-
 import dill  # , pickle  TODO: decide whether to use one or the other, or make it a configuration choice
 from six import string_types
+import codecs
 
 import numpy as np
 from numpy.lib.recfunctions import rename_fields
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-
-
-import codecs
 
 
 def remove_bom_inplace(path):
@@ -146,3 +143,31 @@ def load_module_from_file(filepath, module_name="module.name"):
     sys.modules[module_name] = foo
     spec.loader.exec_module(foo)
     return foo
+
+
+def get_package_path_from_abs_filepath(filepath, package=""):
+    pattern = os.path.join("tvb-multiscale", package)
+    return os.path.join(filepath.split(pattern)[0], pattern)
+
+
+def get_root_path_from_abs_filepath(filepath):
+    return get_package_path_from_abs_filepath(filepath)
+
+
+def get_tvb_multiscale_path_from_abs_filepath(filepath):
+    return get_package_path_from_abs_filepath(filepath, "tvb_multiscale")
+
+
+def get_tvb_nest_path_from_abs_filepath(filepath):
+    package = os.path.join("tvb_multiscale/tvb_nest")
+    return get_package_path_from_abs_filepath(filepath, package)
+
+
+def get_tvb_annarchy_path_from_abs_filepath(filepath):
+    package = os.path.join("tvb_multiscale/tvb_annarchy")
+    return get_package_path_from_abs_filepath(filepath, package)
+
+
+def get_tvb_netpyne_path_from_abs_filepath(filepath):
+    package = os.path.join("tvb_multiscale/tvb_netpyne")
+    return get_package_path_from_abs_filepath(filepath, package)

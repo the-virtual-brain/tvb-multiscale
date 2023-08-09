@@ -66,8 +66,9 @@ class NetpyneApp(HasTraits):
         self.spiking_cosimulator = load_netpyne(self.config)
 
     def configure(self):
+        super(NetpyneApp, self).configure()
         self.spikeNet_builder.netpyne_synaptic_weight_scale = self.synaptic_weight_scale(is_coupling_mode_tvb=False)
-
+        # TODO: check self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
     def clean_up(self):
         self.spiking_cosimulator.finalize()
 
@@ -153,17 +154,8 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
     )
 
     def build(self):
-        # TODO: Correct this redundancy
-        self.config.simulation_length = getattr(self.config, "SIMULATION_LENGTH",
-                                                self.tvb_app.cosimulator_builder.simulation_length)
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
         self.tvb_app.interfaces_builder.synaptic_model_funcs = \
             self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
 
-        # NetPyNE model is built in two steps.
-        # First need to create declarative-style specification for both spiking network itself
-        # and TVB-Netpyne proxy divides (interfaces):
-        SerialOrchestrator.build(self)
-
-        # Once done, network can be instantiated based on the specification:
-        self.spikeNet_app.spiking_cosimulator.instantiateNetwork()
+        super(TVBNetpyneSerialOrchestrator, self).build()
