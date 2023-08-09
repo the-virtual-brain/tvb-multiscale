@@ -7,12 +7,12 @@ from enum import Enum
 import numpy as np
 
 from tvb.basic.neotraits._attr import NArray, Attr, Float
-from tvb.contrib.scripts.utils.data_structures_utils import property_to_fun, ensure_list
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
-from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
+from tvb_multiscale.core.utils.data_structures_utils import get_enum_values, property_to_fun
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
 from tvb_multiscale.core.interfaces.base.transformers.builders import \
