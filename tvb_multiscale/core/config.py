@@ -18,9 +18,10 @@ from tvb.simulator.monitors import Raw
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
-from tvb.contrib.scripts.utils.file_utils import safe_makedirs
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs, get_tvb_multiscale_path_from_abs_filepath
 
-TVB_MULTISCALE_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
+
+TVB_MULTISCALE_DIR = get_tvb_multiscale_path_from_abs_filepath(os.path.abspath(__file__))
 WORKING_DIR = os.path.join(TVB_MULTISCALE_DIR, "examples/outputs")
 
 # DATA:

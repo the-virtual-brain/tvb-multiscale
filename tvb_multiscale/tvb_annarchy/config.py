@@ -6,11 +6,13 @@ import numpy as np
 
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
+from tvb.contrib.scripts.utils.file_utils import get_tvb_annarchy_path_from_abs_filepath
 
-TVB_ANNARCHY_DIR = os.path.abspath(__file__).split("tvb_annarchy")[0]
+
+TVB_ANNARCHY_DIR = get_tvb_annarchy_path_from_abs_filepath(os.path.abspath(__file__))
 WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
 MYMODELS_DIR = os.environ.get("MYMODELS_DIR",
-                              os.path.join(TVB_ANNARCHY_DIR, "tvb_annarchy/annarchy/models"))
+                              os.path.join(TVB_ANNARCHY_DIR, "annarchy", "models"))
 
 
 class Config(ConfigBase):
@@ -18,8 +20,6 @@ class Config(ConfigBase):
     TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
     WORKING_DIR = WORKING_DIR
     MYMODELS_DIR = MYMODELS_DIR
-
-    # TVB_ANNARCHY_DIR_VERBOCITY = ??
 
     ANNARCHY_SEED = 0
 
