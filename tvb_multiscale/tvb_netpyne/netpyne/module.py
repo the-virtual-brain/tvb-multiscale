@@ -5,6 +5,8 @@ from netpyne.sim import *
 from netpyne import __version__ as __netpyne_version__
 from copy import deepcopy
 
+from tvb.contrib.scripts.utils.file_utils import safe_makedirs, get_tvb_netpyne_path_from_abs_filepath
+
 
 class NetpyneModule(object):
 
@@ -29,11 +31,10 @@ class NetpyneModule(object):
         except:
             import sys, os
             currDir = os.getcwd()
-
             python_path = sys.executable.split("python")[0]
-            tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
+            tvb_netpyne_path = get_tvb_netpyne_path_from_abs_filepath(os.path.abspath(__file__))
             # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
-            os.chdir(f'{tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            os.chdir(os.path.join(tvb_netpyne_path, "netpyne", "mod"))
             if not os.path.exists('x86_64'):
                 print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
                 os.system(f'{python_path}nrnivmodl .')
@@ -41,7 +42,6 @@ class NetpyneModule(object):
                 print(f"NetPyNE will load mod-files from {os.getcwd()}.")
             import neuron
             neuron.load_mechanisms('.')
-
             os.chdir(currDir)
 
     def importModel(self, netParams, simConfig, dt, config):
