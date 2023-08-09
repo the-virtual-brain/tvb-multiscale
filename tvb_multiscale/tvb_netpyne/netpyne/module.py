@@ -5,7 +5,7 @@ from netpyne.sim import *
 from netpyne import __version__ as __netpyne_version__
 from copy import deepcopy
 
-from tvb.contrib.scripts.utils.file_utils import safe_makedirs, get_tvb_netpyne_path_from_abs_filepath
+from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath
 
 
 class NetpyneModule(object):
