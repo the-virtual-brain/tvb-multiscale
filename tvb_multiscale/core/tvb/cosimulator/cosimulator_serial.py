@@ -49,8 +49,9 @@ class CoSimulatorSerial(CoSimulator):
     simulate_spiking_simulator = None
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
-        self.n_tvb_steps_ran_since_last_synch = super(CoSimulatorSerial, self).run_for_synchronization_time(
-            ts, xs, wall_time_start, self.get_cosim_updates(cosimulation), cosimulation=False, **kwds)
+        self.n_tvb_steps_ran_since_last_synch = \
+            super(CoSimulatorSerial, self).run_for_synchronization_time(
+                ts, xs, wall_time_start, self.get_cosim_updates(cosimulation), cosimulation=False, **kwds)
         if self.simulate_spiking_simulator is not None:
             self.log.info("Simulating the spiking network for %d time steps..." %
                           self.n_tvb_steps_ran_since_last_synch)
