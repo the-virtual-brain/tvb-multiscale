@@ -16,7 +16,7 @@ from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 LOG = initialize_logger(__name__)
 
 
-#TODO: Find a better way to abstract between nest_factory and factory!
+# TODO: Find a better way to abstract between nest_factory and factory!
 
 
 # Helper functions with NEST
