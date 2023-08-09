@@ -20,7 +20,7 @@ from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
-from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath
+from tvb_multiscale.core.utils.file_utils import get_tvb_multiscale_path_from_abs_filepath
 
 
 TVB_MULTISCALE_DIR = get_tvb_multiscale_path_from_abs_filepath(os.path.abspath(__file__))
