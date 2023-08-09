@@ -6,7 +6,7 @@ import warnings
 
 from tvb_multiscale.core.config import Config as ConfigBase, log_path
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
-from tvb_multiscale.core.scripts.utils.file_utils import get_tvb_nest_path_from_abs_filepath
+from tvb_multiscale.core.utils.file_utils import get_tvb_nest_path_from_abs_filepath
 
 
 TVB_NEST_DIR = get_tvb_nest_path_from_abs_filepath(os.path.abspath(__file__))
