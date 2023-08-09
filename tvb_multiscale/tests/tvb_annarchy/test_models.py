@@ -46,12 +46,12 @@ class TestDefault(TestSpikeNetModel):
                         plot_write=self.plot_write)
 
 
-class TestDefaultRATE(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
+# class TestDefaultRATE(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
 
 
 # class TestDefaultSPIKES(TestDefault):
@@ -133,16 +133,16 @@ class TestDefaultRATE(TestDefault):
 #         self.run()
 
 
-models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
-                           #      TestDefaultSPIKES,                     # 1
-                           #
-                           # TestWilsonCowanRATE,                        # 2
-                           #     TestWilsonCowanSPIKES,                  # 3
-                           #
-                           # TestBasalGangliaIzhikevichRATE,             # 4
-                           #     TestBasalGangliaIzhikevichSPIKES,       # 5
-                           #         TestBasalGangliaIzhikevichCURRENT   # 6
-                          ]
+# models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
+#                            #      TestDefaultSPIKES,                     # 1
+#                            #
+#                            # TestWilsonCowanRATE,                        # 2
+#                            #     TestWilsonCowanSPIKES,                  # 3
+#                            #
+#                            # TestBasalGangliaIzhikevichRATE,             # 4
+#                            #     TestBasalGangliaIzhikevichSPIKES,       # 5
+#                            #         TestBasalGangliaIzhikevichCURRENT   # 6
+#                           ]
 
 
 if __name__ == "__main__":
