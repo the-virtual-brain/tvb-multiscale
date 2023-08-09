@@ -145,11 +145,13 @@ def load_module_from_file(filepath, module_name="module.name"):
     return foo
 
 
-def get_package_path_from_abs_filepath(filepath, package):
-    return os.path.join(filepath.split(
-        os.path.join("tvb-multiscale", package)
-    )[0],
-                     "tvb-multiscale")
+def get_package_path_from_abs_filepath(filepath, package=""):
+    pattern = os.path.join("tvb-multiscale", package)
+    return os.path.join(filepath.split(pattern)[0], pattern)
+
+
+def get_root_path_from_abs_filepath(filepath):
+    return get_package_path_from_abs_filepath(filepath)
 
 
 def get_tvb_multiscale_path_from_abs_filepath(filepath):

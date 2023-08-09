@@ -20,14 +20,14 @@ from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
-from tvb_multiscale.core.utils.file_utils import get_tvb_multiscale_path_from_abs_filepath
+from tvb_multiscale.core.utils.file_utils import get_root_path_from_abs_filepath
 
 
-TVB_MULTISCALE_DIR = get_tvb_multiscale_path_from_abs_filepath(os.path.abspath(__file__))
-WORKING_DIR = os.path.join(TVB_MULTISCALE_DIR, "examples/outputs")
+TVB_ROOT_DIR = get_root_path_from_abs_filepath(os.path.abspath(__file__))
+WORKING_DIR = os.path.join(TVB_ROOT_DIR, "examples/outputs")
 
 # DATA:
-TVB_DATA_PATH = os.path.join(TVB_MULTISCALE_DIR, "examples/data/tvb_data")
+TVB_DATA_PATH = os.path.join(TVB_ROOT_DIR, "examples/data/tvb_data")
 DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
 DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
 DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
