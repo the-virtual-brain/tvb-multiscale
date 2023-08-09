@@ -20,7 +20,6 @@ from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
-from tvb_multiscale.core.utils.file_utils import get_root_path_from_abs_filepath
 
 
 TVB_MULTISCALE_ROOT_DIR = os.path.abspath(__file__).split("tvb_multiscale/core")[0]
