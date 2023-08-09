@@ -6,14 +6,15 @@ import warnings
 
 from tvb_multiscale.core.config import Config as ConfigBase, log_path
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
+from tvb_multiscale.core.utils.file_utils import get_tvb_nest_path_from_abs_filepath
 
 
-TVB_NEST_DIR = os.path.abspath(__file__).split("tvb_nest")[0]
+TVB_NEST_DIR = get_tvb_nest_path_from_abs_filepath(os.path.abspath(__file__))
 WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
 MYMODULES_DIR = os.environ.get("MYMODULES_DIR",
-                               os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules"))
+                               os.path.join(TVB_NEST_DIR, "nest", "modules"))
 MYMODULES_BLD_DIR = os.environ.get("MYMODULES_BLD_DIR",
-                                   os.path.join(TVB_NEST_DIR, "tvb_nest/nest/modules_builds"))
+                                   os.path.join(TVB_NEST_DIR, "nest", "modules_builds"))
 
 
 class Config(ConfigBase):
