@@ -159,12 +159,15 @@ def get_tvb_multiscale_path_from_abs_filepath(filepath):
 
 
 def get_tvb_nest_path_from_abs_filepath(filepath):
-    return get_package_path_from_abs_filepath(filepath, "tvb_nest")
+    package = os.path.join("tvb_multiscale/tvb_nest")
+    return get_package_path_from_abs_filepath(filepath, package)
 
 
 def get_tvb_annarchy_path_from_abs_filepath(filepath):
-    return get_package_path_from_abs_filepath(filepath, "tvb_annarchy")
+    package = os.path.join("tvb_multiscale/tvb_annarchy")
+    return get_package_path_from_abs_filepath(filepath, package)
 
 
 def get_tvb_netpyne_path_from_abs_filepath(filepath):
-    return get_package_path_from_abs_filepath(filepath, "tvb_netpyne")
+    package = os.path.join("tvb_multiscale/tvb_netpyne")
+    return get_package_path_from_abs_filepath(filepath, package)
