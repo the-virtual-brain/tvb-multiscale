@@ -70,12 +70,12 @@ class CoSimulatorSerial(CoSimulator):
         if not self.n_tvb_steps_ran_since_last_synch:
             self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
         simulated_steps = 0
-        remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
+        remaining_steps = int(np.round(simulation_length / self.integrator.dt))
         # Send TVB's initial condition to spikeNet!:
         self.send_cosim_coupling(True)
         self._tic = time.time()
         while remaining_steps > 0:
-            self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
+            self.synchronization_n_step = np.minimum(remaining_steps, synchronization_n_step)
             self.n_tvb_steps_ran_since_last_synch = \
                 self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)[-1]
             simulated_steps += self.n_tvb_steps_ran_since_last_synch
@@ -100,6 +100,6 @@ class CoSimulatorSerial(CoSimulator):
         else:
             self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
-            ts[i] = numpy.array(ts[i])
-            xs[i] = numpy.array(xs[i])
+            ts[i] = np.array(ts[i])
+            xs[i] = np.array(xs[i])
         return list(zip(ts, xs))
