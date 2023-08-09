@@ -402,7 +402,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                     t, x = t_x
                     tl.append(t)
                     xl.append(x)
-        return self.send_cosim_coupling(cosimulation), self.current_step - current_step
+        return self.current_step - current_step
 
     def _log_print_progress_message(self, simulated_steps, simulation_length):
         log_msg = "...%.3f%% completed in %g sec!" % \
@@ -412,6 +412,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             print("\r" + log_msg, end="")
 
     def run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
+        """Helper function to run simulation without sending or receiving data to/from cosimulator.
+           It is meant to show exemplify the loop to be used for serial and parallel cosimulation."""
         simulation_length = self.simulation_length
         synchronization_time = self.synchronization_time
         if advance_simulation_for_delayed_monitors_output:
@@ -421,13 +423,13 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
         simulated_steps = 0
         remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
-        # Send TVB's initial condition to spikeNet!:
-        self.send_cosim_coupling(True)
+        # # Send TVB's initial condition to spikeNet!:
+        # self.send_cosim_coupling(True)
         self._tic = time.time()
         while remaining_steps > 0:
             self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
             self.n_tvb_steps_ran_since_last_synch = \
-                self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)[1]
+                self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)
             simulated_steps += self.n_tvb_steps_ran_since_last_synch
             remaining_steps -= self.n_tvb_steps_ran_since_last_synch
             self._log_print_progress_message(simulated_steps, simulation_length)
