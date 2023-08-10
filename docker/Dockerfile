@@ -1,27 +1,33 @@
 #
-# TVB-multiscale (NEST, NETPYNE (NEURON), ANNarchy) simulations environment
+# TVB & NEST, ANNarchy and NetPyNE (NEURON) simulations environment
 #
-# Install NEST from Docker registry, then the rest of tvb-multiscale dependencies.
-# Finally link tvb-multiscale from Github sources.
+# Install Python 3.9, NEST, ANNarchy, NEURON, NetPyNE, Elephant, PySpike, ray, and then tvb-root.
+# Finally link tvb-multiscale from Github sources
 #
 
-# Install NEST, latest stable version (December 2022)
-ARG NEST_VER=3.3
-ARG NEST_DESKTOP_HOST=0.0.0.0
-ARG NEST_DESKTOP_PORT=8000
-ARG NEST_SERVER_HOST=0.0.0.0
-ARG NEST_SERVER_MODULES=nest,numpy
-ARG NEST_SERVER_PORT=5000
-ARG NEST_SERVER_RESTRICTION_OFF=1
-ARG NEST_SERVER_STDOUT=1
-FROM docker-registry.ebrains.eu/nest/nest-simulator:$NEST_VER
-
+FROM neurodebian:bullseye
 MAINTAINER lia.domide@codemart.ro
 
-# ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
-RUN apt-get update; apt-get install -y python3-venv python3-virtualenv git;
+RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
+                       wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
+                       python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
+                       ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       python3-pkgconfig subversion cmake zip unzip make; \
+    apt-get clean
+
+RUN wget -q http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz \
+    && tar xf mpich-3.1.4.tar.gz \
+    && cd mpich-3.1.4 \
+    && ./configure --disable-fortran --enable-fast=all,O3 --prefix=/usr \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
+    && cd .. \
+    && rm -rf mpich-3.1.4 \
+    && rm mpich-3.1.4.tar.gz
 
 # Create user different than root
 RUN useradd -ms /bin/bash docker
@@ -32,21 +38,59 @@ RUN mkdir $HOME/env; mkdir $HOME/packages
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
-    $VENV/bin/pip3 install --upgrade pip;
-RUN $VENV/bin/pip3 install --upgrade nose;
+    $VENV/bin/pip3 install --upgrade pip; \
+    $VENV/bin/pip3 install --upgrade nose ipython numpy scipy matplotlib; \
+    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba;
+
+# django<1.9 is needed for pynest - september 2019 - NEST 2.18
+
+# Install from sources libneurosim (NEST boost dependency)
+WORKDIR $HOME/packages
+RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
+    cd libneurosim; ./autogen.sh; \
+    mkdir $VENV/build
+WORKDIR $VENV/build
+RUN mkdir libneurosim; \
+    cd libneurosim; \
+    PYTHON=$VENV/bin/python $HOME/packages/libneurosim/configure --prefix=$VENV; \
+    make; make install; ls $VENV/lib $VENV/include; \
+    ln -s /usr/lib/python3.9/config-x86_64-linux-gnu/libpython3.9.so $VENV/lib/
+
+# Install NEST, latest stable version (July 2019)
+ARG NEST_VER=dev
+ARG NEST=nest-simulator
+ARG NEST_SRC=$HOME/packages/$NEST
+ARG NEST_INSTALL_DIR=$VENV/nest_build
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.9/site-packages
+ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
+
+# Install NEST 3.1
+WORKDIR $HOME/packages
+# ARG LAST_SHA_NEST=LATEST
+RUN git clone https://github.com/nest/nest-simulator.git
+RUN cd $NEST; \
+    git fetch origin && git checkout c545255f7252308d6e73a851ddeece4f2dffc812; \
+    cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
+          -Dwith-mpi=ON  \
+          -Dwith-libneurosim=$VENV \
+          -DPYTHON_LIBRARY=/usr/lib \
+          -DPYTHON_INCLUDE_DIR=/usr/include/python3.9m \
+          ${NEST_SRC}; \
+    make; make install
 
 # Install NESTServerClient
 WORKDIR $HOME/packages
-RUN git clone --filter=tree:0 --sparse https://github.com/nest/nest-simulator.git
-RUN cd nest-simulator; \
-    git sparse-checkout set examples/NESTServerClient/;
-RUN cd nest-simulator/examples/NESTServerClient; \
-    $VENV/bin/python3 setup.py install;
+RUN git clone https://github.com/nest/nest-client.git
+RUN cd nest-client; \
+     $VENV/bin/python3 setup.py install --user;
 
-# Install NEURON and NetPyNE
-RUN $VENV/bin/pip3 install neuron
-#RUN $VENV/bin/pip3 install optuna
-RUN $VENV/bin/pip3 install netpyne
+# Install nestml
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install setuptools; \
+    git clone https://github.com/nest/nestml.git; \
+    cd nestml; \
+    # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
+    $VENV/bin/python setup.py install
 
 # Install pyNN
 # RUN pip install pyNN
@@ -57,40 +101,35 @@ RUN $VENV/bin/pip3 install netpyne
 #    cd PyNN-${PYNN_VER}; \
 #    $VENV/bin/python setup.py install
 
+# Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+#RUN $VENV/bin/pip3 install torch
+#RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
+
 # Install TVB specific packages
 WORKDIR $HOME/packages
-# pandas, jupyterlab
-RUN $VENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints;
+RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints; \
+    $VENV/bin/pip3 install werkzeug==2.0.1;
 
 # Install TVB-multiscale specific packages
-
 WORKDIR $HOME/packages
-# RUN $VENV/bin/pip3 install ANNarchy;
-RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
-RUN $VENV/bin/pip3 install cython;
-RUN git clone https://github.com/ANNarchy/ANNarchy.git
-RUN cd ANNarchy; \
-    $VENV/bin/python3 setup.py install;
-
+# Install NEURON and NetPyNE
+RUN $VENV/bin/pip3 install neuron
+RUN $VENV/bin/pip3 install netpyne
+# Install ANNarchy
+RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
+WORKDIR $HOME/packages
+RUN $VENV/bin/pip3 install ANNarchy;
+# Install PySpike
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $VENV/bin/python3 setup.py build_ext install;
-
-# Install ray:
+# Install Elephant
 WORKDIR $HOME/packages
-# TODO: Remove when ray==1.5.0 fixed
-# aioredis==1.3.0 has to be installed first on a separate pip3 command!
-RUN $VENV/bin/pip3 install aioredis==1.3.0;
-RUN $VENV/bin/pip3 install starlette uvicorn 'ray[default]' 'ray[serve]';
-RUN $VENV/bin/pip3 install --ignore-installed entrypoints;
-
-## Other (large) packages added for scientific work:
-#RUN $VENV/bin/pip3 install plotly
-#RUN $VENV/bin/pip3 install torch
-#RUN $VENV/bin/pip3 install sbi
-# RUN $VENV/bin/pip3 install sbibm
+RUN $VENV/bin/pip3 install elephant;
 
 # Clone and install tvb-root
 WORKDIR $HOME/packages
@@ -117,8 +156,8 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install ipympl;  # ipywidgets
-RUN $VENV/bin/jupyter nbextension enable --py widgetsnbextension;  # --sys-prefix
+RUN $VENV/bin/pip3 install ipywidgets ipympl;
+RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension;
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
@@ -131,39 +170,27 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-RUN $VENV/bin/pip3 install numpy==1.23.4
-RUN $VENV/bin/pip3 install pandas==1.5.2
+# Install ray:
+WORKDIR $HOME/packages
+# TODO: Remove when ray==1.5.0 fixed
+# aioredis==1.3.0 has to be installed first on a separate pip3 command!
+# RUN $VENV/bin/pip3 install aioredis==1.3.0 starlette uvicorn;
+RUN $VENV/bin/pip3 install -U "ray[serve]"
 
 WORKDIR $HOME
 # Activate the right python env.
-ENV NEST_INSTALL_DIR=/opt/nest
-RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
-ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
+ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
+ENV NEST_PYTHON_PREFIX=${NEST_PYTHON_PREFIX}
 ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_PYTHON_PREFIX}
-## Note that the following are automatically reset if NEST is imported
-## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
+# Note that the following are automatically reset if NEST is imported
+# via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
 ENV NEST_DATA_DIR=${NEST_INSTALL_DIR}/share/nest
 ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
 ENV NEST_MODULE_PATH=${NEST_MODULE_PATH}
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
 ENV NEST_DOC_DIR=${NEST_INSTALL_DIR}/share/doc/nest
+RUN echo "source ${VENV}/bin/activate" >> .bashrc
 
-ENV NEST_DESKTOP_HOST=${NEST_DESKTOP_HOST:-0.0.0.0}
-ENV NEST_DESKTOP_PORT=${NEST_DESKTOP_PORT:-8000}
-ENV NEST_SERVER_HOST=${NEST_SERVER_HOST:-0.0.0.0}
-ENV NEST_SERVER_MODULES=${NEST_SERVER_MODULES:-nest,numpy}
-ENV NEST_SERVER_PORT=${NEST_SERVER_PORT:-5000}
-ENV NEST_SERVER_RESTRICTION_OFF=${NEST_SERVER_RESTRICTION_OFF:-1}
-ENV NEST_SERVER_STDOUT=${NEST_SERVER_STDOUT:-1}
-
-ENV MUSIC_ROOT_DIR=/opt/music-install
-ENV MUSIC_ROOT=${MUSIC_ROOT_DIR}
-ENV MUSIC_PATH=${MUSIC_ROOT_DIR}
-ENV LD_LIBRARY_PATH=${MUSIC_PATH}/lib:$LD_LIBRARY_PATH
-ENV PATH=${MUSIC_PATH}/bin:$PATH
-ENV CPATH=${MUSIC_PATH}/include:$CPATH
-ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.8/site-packages:$PYTHONPATH
-ENV PATH=$PATH:/usr/local/bin
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Run the following lines in case you want to install your own NEST module with NEST builders
@@ -190,16 +217,14 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 # Final configurations
 # tvb42
 RUN $VENV/bin/jupyter notebook --generate-config; \
-    echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py; \
-    echo "c.MultiKernelManager.default_kernel_name='neurosci'">>/home/docker/.jupyter/jupyter_notebook_config.py
-RUN $VENV/bin/ipython kernel install --user --name="neurosci"
+    echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
 
-# Activate the right python env
+# Activate the rights python env
 ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
-RUN echo ". $VENV/bin/activate" >> .profile
+RUN echo "source $VENV/bin/activate" >> .bashrc
 
 # For running examples
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
