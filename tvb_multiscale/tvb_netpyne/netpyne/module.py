@@ -37,7 +37,14 @@ class NetpyneModule(object):
             os.chdir(os.path.join(tvb_netpyne_path, "netpyne", "mod"))
             if not os.path.exists('x86_64'):
                 print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
-                os.system(f'{python_path}nrnivmodl .')
+                if os.system('which nrnivmodl') == 0:
+                    # mod compiler found
+                    os.system(f'nrnivmodl .')
+                else:
+                    # mod compiler not found, trying to infer..
+                    python_path = 'python'.join(sys.executable.split('python')[:-1]) # keep what's before the last occurance of "python"
+                    assert os.path.exists(python_path), 'Fatal: nrnivmodl not found, unable to compile required mod-files.'
+                    os.system(f'{python_path}nrnivmodl .')
             else:
                 print(f"NetPyNE will load mod-files from {os.getcwd()}.")
             import neuron
