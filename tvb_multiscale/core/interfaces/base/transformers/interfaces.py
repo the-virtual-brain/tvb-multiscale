@@ -75,14 +75,14 @@ class TransformerSenderInterface(TransformerInterface):
         super(TransformerSenderInterface, self).configure()
         self.sender.configure()
 
-    def transform_send(self, data):
+    def transform_and_send(self, data):
         if data is not None:
             return self.sender(self.transform(data))
         else:
             return None
 
     def __call__(self, data):
-        return self.transform_send(data)
+        return self.transform_and_send(data)
 
 
 class ReceiverTransformerInterface(TransformerInterface):
