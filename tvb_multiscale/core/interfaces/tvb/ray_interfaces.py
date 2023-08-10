@@ -76,7 +76,7 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
         self.sending_ref_obj = None
         super(RayTVBSenderInterface, self).configure()
 
-    def transform_and_send_data(self, data):
+    def send_data(self, data):
         return super(RayTVBSenderInterface, self).__call__(data)
 
     def __call__(self, data=None, block=False):
@@ -84,7 +84,7 @@ class RayTVBSenderInterface(TVBSenderInterface, RaySenderInterface):
         # None, if nothing to be done, i.e., sending has been finalized
         # sending_ref_obj if sending is running
         if data is not None:
-            self.sending_ref_obj = self.transform_and_send_data(data)
+            self.sending_ref_obj = self.send_data(data)
         return self._send_data(block=block)
 
 
@@ -123,7 +123,7 @@ class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderI
         self.sending_ref_obj = None
         super(RayTVBTransformerSenderInterface, self).configure()
 
-    def send_data(self, data):
+    def transform_and_send(self, data):
         return super(RayTVBTransformerSenderInterface, self).__call__(data)
 
     def __call__(self, data=None, block=False):
@@ -131,7 +131,7 @@ class RayTVBTransformerSenderInterface(TVBTransformerSenderInterface, RaySenderI
         # None, if nothing to be done, i.e., transforming and sending has been finalized
         # send_ref_obj if sending is running
         if data is not None:
-            self.sending_ref_obj = self.send_data(data)
+            self.sending_ref_obj = self.transform_and_send(data)
         return self._send_data(block=block)
 
 

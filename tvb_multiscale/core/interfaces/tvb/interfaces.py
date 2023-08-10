@@ -171,7 +171,7 @@ class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterfa
     """
 
     def __call__(self, data):
-        return TransformerSenderInterface.transform_send(self, TVBOutputInterface.__call__(self, data))
+        return TransformerSenderInterface.transform_and_send(self, TVBOutputInterface.__call__(self, data))
 
 
 class TVBInputTransformerInterface(TVBInputInterface, TransformerInterface):
