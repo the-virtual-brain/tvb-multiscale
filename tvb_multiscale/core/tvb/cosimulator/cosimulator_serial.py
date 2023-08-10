@@ -50,8 +50,9 @@ class CoSimulatorSerial(CoSimulator):
     simulate_spiking_simulator = None
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
-        self.n_tvb_steps_ran_since_last_synch = super(CoSimulatorSerial, self).run_for_synchronization_time(
-            ts, xs, wall_time_start, self.get_cosim_updates(cosimulation), cosimulation=False, **kwds)[1]
+        self.n_tvb_steps_ran_since_last_synch = \
+            super(CoSimulatorSerial, self).run_for_synchronization_time(
+                ts, xs, wall_time_start, self.get_cosim_updates(cosimulation), cosimulation=False, **kwds)
         if self.simulate_spiking_simulator is not None:
             self.log.info("Simulating the spiking network for %d time steps..." %
                           self.n_tvb_steps_ran_since_last_synch)
@@ -59,6 +60,51 @@ class CoSimulatorSerial(CoSimulator):
                 np.around(self.n_tvb_steps_ran_since_last_synch * self.integrator.dt,
                           decimals=self._number_of_dt_decimals).item())
         return self.send_cosim_coupling(cosimulation), self.n_tvb_steps_ran_since_last_synch
+
+
+    def run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
+        """Convenience method to run cosimulation for serial cosimulation."""
+        simulation_length = self.simulation_length
+        synchronization_time = self.synchronization_time
+        if advance_simulation_for_delayed_monitors_output:
+            simulation_length += synchronization_time
+        synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
+        if not self.n_tvb_steps_ran_since_last_synch:
+            self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
+        simulated_steps = 0
+        remaining_steps = int(np.round(simulation_length / self.integrator.dt))
+        # Send TVB's initial condition to spikeNet!:
+        self.send_cosim_coupling(True)
+        self._tic = time.time()
+        while remaining_steps > 0:
+            self.synchronization_n_step = np.minimum(remaining_steps, synchronization_n_step)
+            self.n_tvb_steps_ran_since_last_synch = \
+                self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)[-1]
+            simulated_steps += self.n_tvb_steps_ran_since_last_synch
+            remaining_steps -= self.n_tvb_steps_ran_since_last_synch
+            self._log_print_progress_message(simulated_steps, simulation_length)
+        self.synchronization_n_step = int(synchronization_n_step)  # restore the configured value
+        self.simulation_length = simulation_length                 # restore the actually implemented value
+
+    def run(self, **kwds):
+        """Convenience method to call the CoSimulator with **kwds and collect output data."""
+        ts, xs = [], []
+        for _ in self.monitors:
+            ts.append([])
+            xs.append([])
+        wall_time_start = time.time()
+        self.simulation_length = kwds.pop("simulation_length", self.simulation_length)
+        asfdmo = kwds.pop("advance_simulation_for_delayed_monitors_output", True)
+        if self._cosimulation_flag:
+            self.run_cosimulation(ts, xs, wall_time_start,
+                                  advance_simulation_for_delayed_monitors_output=asfdmo,
+                                  **kwds)
+        else:
+            self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
+        for i in range(len(ts)):
+            ts[i] = np.array(ts[i])
+            xs[i] = np.array(xs[i])
+        return list(zip(ts, xs))
 
 
 class CoSimulatorNetpyne(CoSimulatorSerial):
