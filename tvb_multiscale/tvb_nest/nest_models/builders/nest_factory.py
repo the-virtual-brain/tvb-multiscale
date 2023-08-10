@@ -5,13 +5,12 @@ import shutil
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_nest.nest_models.devices import \
-    NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
-
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
+
+from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
+from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 
 
 LOG = initialize_logger(__name__)
@@ -46,7 +45,7 @@ def configure_nest_kernel(nest_instance, config=CONFIGURED):
     nest_instance.set_verbosity(config.NEST_VERBOCITY)  # don't print all messages from NEST
     # Printing the time progress should only be used when the simulation is run on a local machine:
     #  kernel_config["print_time"] = self.nest_instance.Rank() == 0
-    kernel_config = config.DEFAULT_NEST_KERNEL_CONFIG.copy()
+    kernel_config = safe_deepcopy(config.DEFAULT_NEST_KERNEL_CONFIG)
     kernel_config["data_path"] = os.path.join(config.out.FOLDER_RES, os.path.basename(kernel_config["data_path"]))
     safe_makedirs(kernel_config["data_path"])  # Make sure this folder exists
     nest_instance.SetKernelStatus(kernel_config)
@@ -64,59 +63,61 @@ def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
     # ...unless we need to first compile it:
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
-    lib_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "lib", "nest")
-    include_path = os.path.join(os.environ["NEST_INSTALL_DIR"], "include")
+    # TODO: find out these locations for the newest versions of NESTML and NEST!!!
+    # lib_path = os.path.join(config._NEST_PATH, "lib", "nest")
+    # include_path = os.path.join(config._NEST_PATH, "include")
     for module in ensure_list(modules):
         modulemodule = module + "module"
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
-        solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
-        dylib_file = os.path.join(module_bld_dir, "lib" + modulemodule + ".dylib")
-        include_file = os.path.join(module_bld_dir, modulemodule + ".h")
-        installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
-        installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
+        # solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
+        # dylib_file = os.path.join(module_bld_dir, "lib" + modulemodule + ".dylib")
+        # include_file = os.path.join(module_bld_dir, modulemodule + ".h")
+        # installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
+        # installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
         module_include_path = os.path.join(include_path, modulemodule)
         installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
-        if not os.path.isfile(solib_file) \
-                or not os.path.isfile(dylib_file) \
-                    or not os.path.isfile(include_file) \
-                        or recompile:
-            # If any of the .so, .dylib or .h files don't exist,
-            # or if the user requires recompilation,
-            # proceed with recompilation:
-            if os.path.exists(module_bld_dir):
-                # Delete any pre-compiled built files:
-                shutil.rmtree(module_bld_dir)
-            # Create a  module build directory and copy there the source files:
-            source_path = os.path.join(config.MYMODULES_DIR, module)
-            logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
-            shutil.copytree(source_path, module_bld_dir)
-            # Now compile:
-            logger.info("Compiling %s..." % module)
-            logger.info("in build directory %s..." % module_bld_dir)
-            success_message = "DONE compiling and installing %s!" % module
-            try:
-                from pynestml.frontend.pynestml_frontend import generate_nest_target
-                generate_nest_target(module_bld_dir, config.NEST_PATH)
-            except Exception as e:
-                raise e
-            logger.info("Compiling finished without errors...")
-        else:
-            logger.info("Installing precompiled module %s..." % module)
-            success_message = "DONE installing precompiled module %s!" % module
-            # Just copy the .h, .so, and .dylib files to the appropriate NEST build paths:
-            shutil.copyfile(solib_file, installed_solib_file)
-            shutil.copyfile(solib_file, installed_dylib_file)
-            safe_makedirs(include_path)
-            shutil.copyfile(os.path.join(module_bld_dir, modulemodule + ".h"), installed_h_file)
-        installed_files = {}
-        for file in [installed_solib_file, installed_dylib_file, installed_h_file]:
-            installed_files[file] = os.path.isfile(file)
-        if all(installed_files.values()):
-            logger.info(success_message)
-        else:
-            logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
-                        "\n Installed files (not) found (True (False) respectively)!:\n%s"
-                        % (module, str(installed_files)))
+        # if self.NEST_PATH and \
+        #     (not os.path.isfile(solib_file)
+        #         or not os.path.isfile(dylib_file)
+        #             or not os.path.isfile(include_file)) \
+        #                 or recompile:
+        #     # If any of the .so, .dylib or .h files don't exist,
+        #     # or if the user requires recompilation,
+        #     # proceed with recompilation:
+        if os.path.exists(module_bld_dir):
+            # Delete any pre-compiled built files:
+            shutil.rmtree(module_bld_dir)
+        # Create a  module build directory and copy there the source files:
+        source_path = os.path.join(config.MYMODULES_DIR, module)
+        logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
+        shutil.copytree(source_path, module_bld_dir)
+        # Now compile:
+        logger.info("Compiling %s..." % module)
+        logger.info("in build directory %s..." % module_bld_dir)
+        success_message = "DONE compiling and installing %s!" % module
+        try:
+            from pynestml.frontend.pynestml_frontend import generate_nest_target
+            generate_nest_target(module_bld_dir, config._NEST_PATH)
+        except Exception as e:
+            raise e
+        logger.info("Compiling finished without errors...")
+        # else:
+            # logger.info("Installing precompiled module %s..." % module)
+            # success_message = "DONE installing precompiled module %s!" % module
+            # # Just copy the .h, .so, and .dylib files to the appropriate NEST build paths:
+            # shutil.copyfile(solib_file, installed_solib_file)
+            # shutil.copyfile(solib_file, installed_dylib_file)
+            # safe_makedirs(include_path)
+            # shutil.copyfile(os.path.join(module_bld_dir, modulemodule + ".h"), installed_h_file)
+        # installed_files = {}
+        # for file in [installed_solib_file, installed_dylib_file, installed_h_file]:
+        #     installed_files[file] = os.path.isfile(file)
+        # if all(installed_files.values()):
+        logger.info(success_message)
+        # else:
+        #     logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
+        #                 "\n Installed files (not) found (True (False) respectively)!:\n%s"
+        #                 % (module, str(installed_files)))
 
 
 def get_populations_neurons(population, inds_fun=None):
@@ -209,7 +210,7 @@ def device_to_dev_model(device):
         return device
 
 
-def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None, **kwargs):
+def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=None, **kwargs):
     """Method to create a NESTDevice.
        Arguments:
         device_model: name (string) of the device model
@@ -220,6 +221,12 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
        Returns:
         the NESTDevice class, and optionally, the NEST instance if it is loaded here.
     """
+
+    from tvb_multiscale.tvb_nest.nest_models.devices import \
+        NESTInputDeviceDict, NESTParrotSpikeInputDeviceDict, NESTOutputDeviceDict
+
+    params = safe_deepcopy(params)
+
     if nest_instance is None:
         nest_instance = load_nest(config=config)
         return_nest = True
@@ -240,14 +247,14 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
                 record_parrot = params.pop("record", None)
                 parrot = nest_instance.Create("parrot_neuron", number_of_devices)
                 parrot_connect_method = "one_to_one" if device_model == "parrot_spike_generator" else "all_to_all"
-        default_params = config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
+        default_params = safe_deepcopy(config.NEST_INPUT_DEVICES_PARAMS_DEF.get(device_model,
                                                                   config.NEST_INPUT_DEVICES_PARAMS_DEF.get(
-                                                                      nest_device_model, {})).copy()
+                                                                      nest_device_model, dict())))
     elif device_model in NESTOutputDeviceDict.keys():
         devices_dict = NESTOutputDeviceDict
-        default_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
+        default_params = safe_deepcopy(config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(device_model,
                                                                    config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get(
-                                                                       nest_device_model, {})).copy()
+                                                                       nest_device_model, dict())))
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
@@ -279,6 +286,7 @@ def create_device(device_model, params={}, config=CONFIGURED, nest_instance=None
         if record_parrot is not None:
             rec_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get("spike_recorder", {})
             if isinstance(record_parrot, dict):
+                record_parrot = safe_deepcopy(record_parrot)
                 rec_params.update(record_parrot)
             nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
             nest_instance.Connect(nest_device._nodes, nest_device._record)
@@ -309,6 +317,8 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
        Returns:
         the connected NESTDevice
     """
+    from tvb_multiscale.tvb_nest.nest_models.devices import NESTParrotSpikeInputDeviceDict
+
     nest_instance = nest_device.nest_instance
     if receptor_type is None:
         receptor_type = 0
@@ -324,6 +334,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         pass
     basic_syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
     if isinstance(syn_spec, dict):
+        syn_spec = safe_deepcopy(syn_spec)
         syn_spec.update(basic_syn_spec)
     else:
         syn_spec = basic_syn_spec
@@ -343,6 +354,8 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
                 pass
             if conn_spec is None:
                 conn_spec = {"rule": "all_to_all"}
+            else:
+                conn_spec = safe_deepcopy(conn_spec)
             conn_spec = create_conn_spec(n_src=nest_device.number_of_neurons, n_trg=len(neurons),
                                          src_is_trg=False, config=config, **conn_spec)[0]
             conn_spec.pop("allow_autapses", None)

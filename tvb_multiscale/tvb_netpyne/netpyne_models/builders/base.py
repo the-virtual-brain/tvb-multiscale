@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
+
 from abc import abstractmethod
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
+from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.population import NetpynePopulation
 from tvb_multiscale.tvb_netpyne.netpyne_models.region_node import NetpyneRegionNode
@@ -38,6 +41,9 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
         if self.logger is None:
             self.logger = initialize_logger(__name__, config=self.config)
 
+        if self.netpyne_instance is None:
+            self.spiking_simulator = load_netpyne(self.config)
+
         super(NetpyneNetworkBuilder, self).configure()
         self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
         self.netpyne_instance.importModel(netParams, simConfig, self.spiking_dt, self.config)
@@ -46,7 +52,7 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     def proxy_node_synaptic_model_funcs(self):
         pass
 
-    def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
+    def set_synapse(self, syn_model, weight, delay, receptor_type, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic receptor type, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -107,7 +113,9 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
             prob = 1.0
         else:
             prob = rule["prob"]
-        self.netpyne_instance.interconnectSpikingPopulations(src, trg, syn_spec["receptor_type"], syn_spec["weight"], syn_spec["delay"], prob)
+        self.netpyne_instance.interconnectSpikingPopulations(src, trg,
+                                                             syn_spec["receptor_type"], syn_spec["weight"],
+                                                             syn_spec["delay"], prob)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a NetpyneRegionNode instance,
@@ -135,4 +143,5 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     def build_spiking_network(self):
         """A method to build the final NetpyneNetwork class based on the already created constituents."""
         return NetpyneNetwork(self.netpyne_instance, brain_regions=self._spiking_brain,
-                              output_devices=self._output_devices, input_devices=self._input_devices, config=self.config)
+                              output_devices=self._output_devices, input_devices=self._input_devices,
+                              config=self.config)

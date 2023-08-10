@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
+
 import numpy as np
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.utils.data_structures_utils import safe_dict_copy
+from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
+
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.population import NESTPopulation
@@ -9,13 +20,6 @@ from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import \
     compile_modules, get_populations_neurons, create_conn_spec, create_device, connect_device
-from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
-from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
-
-from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-
-from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
 
 class NESTNetworkBuilder(SpikingNetworkBuilder):
@@ -81,6 +85,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                                  of the modules to be installed and, possibly, compiled
         """
         if len(modules_to_install) > 0:
+            modules_to_install = safe_dict_copy(modules_to_install)
             self.logger.info("Starting to compile modules %s!" % str(modules_to_install))
             while len(modules_to_install) > 0:
                 self._compile_install_nest_module(modules_to_install.pop())
@@ -200,7 +205,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                                               config=self.config, **conn_spec)
         return conn_spec, n_conns, n_src, n_trg
 
-    def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
+    def set_synapse(self, syn_model, weight, delay, receptor_type, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic receptor type, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -218,6 +223,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         return syn_spec
 
     def _prepare_syn_spec(self, syn_spec, n_source_neurons=1, rule="all_to_all"):
+        syn_spec = safe_dict_copy(syn_spec)
         # Prepare the parameters of synapses:
         syn_spec["synapse_model"] = self._assert_synapse_model(syn_spec.get("synapse_model",
                                                                             syn_spec.get("model", "static_synapse")),

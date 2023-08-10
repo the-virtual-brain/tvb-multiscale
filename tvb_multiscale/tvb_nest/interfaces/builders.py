@@ -11,16 +11,22 @@ from tvb_multiscale.core.interfaces.base.builders import RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
-    SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,  \
-    SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder
+    SpikeNetTransformerInterfaceBuilder,  SpikeNetRemoteInterfaceBuilder, \
+    SpikeNetRemoteTransformerInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTOutputInterface, NESTInputInterface, \
+    NESTOutputTransformerInterface, NESTInputTransformerInterface, \
     NESTSenderInterface, NESTReceiverInterface, \
     NESTTransformerSenderInterface, NESTReceiverTransformerInterface, \
-    TVBtoNESTInterface, NESTtoTVBInterface
+    TVBtoNESTInterface, NESTtoTVBInterface, \
+    NESTOutputInterfaces, NESTInputInterfaces, \
+    NESTOutputTransformerInterfaces, NESTInputTransformerInterfaces, \
+    NESTSenderInterfaces, NESTReceiverInterfaces, \
+    NESTTransformerSenderInterfaces, NESTReceiverTransformerInterfaces, \
+    TVBtoNESTInterfaces, NESTtoTVBInterfaces
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTSpikeRecorderSet, NESTSpikeRecorderTotalSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
@@ -123,6 +129,9 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
     _output_interface_type = NESTOutputInterface
     _input_interface_type = NESTInputInterface
 
+    _output_interfaces_type = NESTOutputInterfaces
+    _input_interfaces_type = NESTInputInterfaces
+
     config = Attr(
         label="Configuration",
         field_type=Config,
@@ -150,6 +159,9 @@ class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBu
 
     _output_interface_type = NESTSenderInterface
     _input_interface_type = NESTReceiverInterface
+
+    _output_interfaces_type = NESTSenderInterfaces
+    _input_interfaces_type = NESTReceiverInterfaces
 
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
@@ -200,10 +212,8 @@ class NESTMPIInterfaceBuilder(NESTRemoteInterfaceBuilder):
             in_gids.append(interface.proxy_gids)
         with open(self._file_path(self.output_label) + "_gids.pkl", 'wb') as file:
             pickle.dump(out_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
-        # print(out_gids)
         with open(self._file_path(self.input_label) + "_gids.pkl", 'wb') as file:
             pickle.dump(in_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
-        # print(in_gids)
 
     def build(self):
         output_interfaces, input_interfaces = super(NESTMPIInterfaceBuilder, self).build()
@@ -215,39 +225,28 @@ class NESTTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetTransformerI
 
     """NESTTransformerInterfaceBuilder class"""
 
-    _output_interface_type = NESTTransformerSenderInterface
-    _input_interface_type = NESTReceiverTransformerInterface
+    _output_interface_type = NESTOutputTransformerInterface
+    _input_interface_type = NESTInputTransformerInterface
+
+    _output_interfaces_type = NESTOutputTransformerInterfaces
+    _input_interfaces_type = NESTInputTransformerInterfaces
 
     def configure(self):
         SpikeNetTransformerInterfaceBuilder.configure(self)
 
 
-class NESTOutputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetOutputTransformerInterfaceBuilder):
+class NESTRemoteTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteTransformerInterfaceBuilder):
 
-    """NESTOutputTransformerInterfaceBuilder class"""
-
-    _input_proxy_models = NESTInputProxyModels
-    _output_proxy_models = NESTOutputProxyModels
+    """NESTTransformerInterfaceBuilder class"""
 
     _output_interface_type = NESTTransformerSenderInterface
-    _input_interface_type = NESTReceiverInterface
-
-    def configure(self):
-        SpikeNetOutputTransformerInterfaceBuilder.configure(self)
-
-
-class NESTInputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder):
-
-    """NESTInputTransformerInterfaceBuilder class"""
-
-    _input_proxy_models = NESTInputProxyModels
-    _output_proxy_models = NESTOutputProxyModels
-
-    _output_interface_type = NESTSenderInterface
     _input_interface_type = NESTReceiverTransformerInterface
 
+    _output_interfaces_type = NESTTransformerSenderInterfaces
+    _input_interfaces_type = NESTReceiverTransformerInterfaces
+
     def configure(self):
-        SpikeNetInputTransformerInterfaceBuilder.configure(self)
+        SpikeNetRemoteTransformerInterfaceBuilder.configure(self)
 
 
 class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder):
@@ -265,6 +264,9 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
 
     _output_interface_type = TVBtoNESTInterface
     _input_interface_type = NESTtoTVBInterface
+
+    _output_interfaces_type = TVBtoNESTInterfaces
+    _input_interfaces_type = NESTtoTVBInterfaces
 
     def configure(self):
         TVBSpikeNetInterfaceBuilder.configure(self)

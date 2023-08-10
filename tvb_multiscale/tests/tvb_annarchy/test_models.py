@@ -24,8 +24,8 @@ from examples.tvb_annarchy.example import default_example
 from examples.tvb_annarchy.models.wilson_cowan import wilson_cowan_example
 from examples.tvb_annarchy.models.basal_ganglia_izhikevich import basal_ganglia_izhikevich_example
 
-from tests.core.test_models import test_models
-from tests.core.test_spikeNet_models import TestSpikeNetModel
+from tvb_multiscale.tests.core.test_models import test_models
+from tvb_multiscale.tests.core.test_spikeNet_models import TestSpikeNetModel
 
 
 class TestDefault(TestSpikeNetModel):
@@ -99,6 +99,7 @@ class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
     def run_fun(self):
         basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
+                                         spiking_proxy_inds=self.spiking_proxy_inds,
                                          population_order=self.population_order,
                                          exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                                          simulation_length=self.simulation_length, transient=self.transient,

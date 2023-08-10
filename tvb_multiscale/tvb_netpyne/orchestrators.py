@@ -1,25 +1,22 @@
 from logging import Logger
-from tvb.basic.neotraits._attr import Attr
+from tvb.basic.neotraits.api import Attr
 
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp  # , SpikeNetParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorNetpyne
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorNetpyneBuilder
 
 from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
-from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
-from tvb_multiscale.tvb_netpyne.interfaces.builders import NetpyneProxyNodesBuilder, TVBNetpyneInterfaceBuilder
-from tvb_multiscale.tvb_netpyne.interfaces.models.default import DefaultTVBNetpyneInterfaceBuilder
-    
+from tvb_multiscale.tvb_netpyne.interfaces.builders import TVBNetpyneInterfaceBuilder
 
-class NetpyneSerialApp(SpikeNetSerialApp):
 
-    """NetpyneSerialApp class"""
+class NetpyneApp(HasTraits):
+
+    """NetpyneApp class"""
 
     config = Attr(
         label="Configuration",
@@ -29,20 +26,11 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         default=CONFIGURED
     )
 
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
-    )
-
     spikeNet_builder = Attr(
         label="Netpyne Network Builder",
         field_type=NetpyneNetworkBuilder,
         doc="""Instance of Netpyne Network Builder.""",
-        required=True,
-        default=DefaultExcIOInhIBuilder()
+        required=False
     )
 
     spiking_network = Attr(
@@ -52,43 +40,36 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         required=False
     )
 
+    _spikeNet_builder_type = NetpyneNetworkBuilder
+    _spikeNet_type = NetpyneNetwork
+
     @property
     def netpyne_instance(self):
         return self.spiking_cosimulator
 
     def synaptic_weight_scale(self, is_coupling_mode_tvb):
-        # TODO: this is not specific to serial app. Once Parallel app is ready, move to some common ancestor, to use in both cases (see also: TVBNetpyneSerialOrchestrator.build_interfaces())
+        # TODO: this is not specific to serial app. Once Parallel app is ready, move to some common ancestor,
+        #  to use in both cases (see also: TVBNetpyneSerialOrchestrator.build_interfaces())
         if is_coupling_mode_tvb:
             return 1e-2
-        else: # "spikeNet"
+        else:  # "spikeNet"
             return 1
 
-    # @property
-    # def netpyne_network(self):
-    #     return self.spiking_network
+    @property
+    def netpyne_network(self):
+        return self.spiking_network
 
-    # @property
-    # def netpyne_model_builder(self):
-    #     return self.spikeNet_builder
+    @property
+    def netpyne_model_builder(self):
+        return self.spikeNet_builder
 
     def start(self):
         self.spiking_cosimulator = load_netpyne(self.config)
 
     def configure(self):
-        super(NetpyneSerialApp, self).configure()
-        # self.spiking_cosimulator = configure_nest_kernel(self._spiking_cosimulator, self.config)
+        super(NetpyneApp, self).configure()
         self.spikeNet_builder.netpyne_synaptic_weight_scale = self.synaptic_weight_scale(is_coupling_mode_tvb=False)
-        self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
-
-    def simulate(self, simulation_length=None):
-        if simulation_length is None:
-            simulation_length = self.simulation_length
-        self.spiking_cosimulator.run(simulation_length)
-
-    def run(self, *args, **kwargs):
-        self.configure()
-        self.build()
-
+        # TODO: check self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
     def clean_up(self):
         self.spiking_cosimulator.finalize()
 
@@ -96,24 +77,24 @@ class NetpyneSerialApp(SpikeNetSerialApp):
         pass
 
 
+class NetpyneSerialApp(NetpyneApp, SpikeNetSerialApp):
+
+    """NetpyneSerialApp class"""
+
+    def configure(self):
+        SpikeNetSerialApp.configure(self)
+        NetpyneApp.configure(self)
+
+    def run(self, *args, **kwargs):
+        SpikeNetSerialApp.run(self)
+        self.configure()
+        self.build()
+
+
 class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
 
-    cosimulator_builder = Attr(
-        label="TVB CoSimulatorSerialBuilder",
-        field_type=CoSimulatorNetpyneBuilder,
-        doc="""Instance of TVB Serial CoSimulator Builder class.""",
-        required=False,
-        default=CoSimulatorNetpyneBuilder()
-    )
-
-    cosimulator = Attr(
-        label="TVB CoSimulatorSerial",
-        field_type=CoSimulatorNetpyne,
-        doc="""Instance of TVB CoSimulator for serial cosimulation.""",
-        required=False
-    )
 
     config = Attr(
         label="Configuration",
@@ -123,20 +104,11 @@ class TVBSerialApp(TVBSerialAppBase):
         default=CONFIGURED
     )
 
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
-    )
-
     interfaces_builder = Attr(
         label="TVBNESTInterfaces builder",
         field_type=TVBNetpyneInterfaceBuilder,
         doc="""Instance of TVBNESTInterfaces' builder class.""",
-        required=True,
-        default=DefaultTVBNetpyneInterfaceBuilder()
+        required=False
     )
 
     spiking_network = Attr(
@@ -146,8 +118,7 @@ class TVBSerialApp(TVBSerialAppBase):
         required=False
     )
 
-    _cosimulator_builder_type = CoSimulatorNetpyneBuilder
-    _default_interface_builder = TVBNetpyneInterfaceBuilder
+    _default_interface_builder_type = TVBNetpyneInterfaceBuilder
 
 
 class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
@@ -191,12 +162,8 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         self.tvb_app.cosimulator.synchronize_spiking_simulator = self.spikeNet_app.spiking_cosimulator.gatherFromNodes
 
     def build(self):
-        self.config.simulation_length = self.simulation_length
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
-        self.tvb_app.interfaces_builder.synaptic_model_funcs = self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
+        self.tvb_app.interfaces_builder.synaptic_model_funcs = \
+            self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
 
-        # NetPyNE model is built in two steps. First need to create declarative-style specification for both spiking network itself and TVB-Netpyne proxy devides (interfaces):
-        SerialOrchestrator.build(self)
-
-        # once done, network can be instantiated based on the specification:
-        self.spikeNet_app.spiking_cosimulator.instantiateNetwork()
+        super(TVBNetpyneSerialOrchestrator, self).build()

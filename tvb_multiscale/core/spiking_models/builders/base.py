@@ -4,15 +4,17 @@ import os
 from abc import ABCMeta, abstractmethod
 from six import string_types
 from collections import OrderedDict
+from copy import deepcopy
 
 import numpy as np
 from pandas import concat
 
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, property_to_fun
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import CONFIGURED, initialize_logger
 from tvb_multiscale.core.utils.file_utils import load_pickled_dict
+from tvb_multiscale.core.utils.data_structures_utils import property_to_fun, safe_dict_copy
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     serialize_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
@@ -107,13 +109,13 @@ class SpikingNetworkBuilder(object):
             self.model = self.config.DEFAULT_SPIKING_MODEL
         self.default_population = {"model": self.model, "scale": 1, "params": {}, "nodes": None}
 
-        self.default_populations_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_populations_connection = safe_dict_copy(self.config.DEFAULT_CONNECTION)
         self.default_populations_connection["nodes"] = None
 
-        self.default_nodes_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_nodes_connection = safe_dict_copy(self.config.DEFAULT_CONNECTION)
         self.default_nodes_connection.update({"source_nodes": None, "target_nodes": None})
 
-        self.default_devices_connection = dict(self.config.DEFAULT_CONNECTION)
+        self.default_devices_connection = safe_dict_copy(self.config.DEFAULT_CONNECTION)
         self.default_devices_connection["delay"] = self.default_min_delay
         self.default_devices_connection["nodes"] = None
 
@@ -165,7 +167,7 @@ class SpikingNetworkBuilder(object):
         return self.default_min_delay
 
     @abstractmethod
-    def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
+    def set_synapse(self, syn_model, weight, delay, receptor_type, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic receptor type, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -445,10 +447,10 @@ class SpikingNetworkBuilder(object):
         # "scale" and "parameters" can be given as functions.
         # This configuration will confirm user inputs
         # and set the two properties above as functions of node index.
-        self.populations_labels = []
-        _populations = []
+        self.populations_labels = list()
+        _populations = list()
         for i_pop, population in enumerate(self.populations):
-            _populations.append(dict(self.default_population))
+            _populations.append(deepcopy(self.default_population))
             _populations[-1].update(population)
             if len(_populations[-1].get("label", "")) == 0:
                 _populations[-1]["label"] = "Pop%d" % i_pop
@@ -483,7 +485,7 @@ class SpikingNetworkBuilder(object):
         _connections = []
         for i_con, connection in enumerate(connections):
             self._assert_connection_populations(connection)
-            temp_conn = dict(default_connection)
+            temp_conn = safe_dict_copy(default_connection)
             temp_conn.update(connection)
             _connections.append(temp_conn)
             for prop in ["weight", "delay", "receptor_type", "params"]:
@@ -538,7 +540,7 @@ class SpikingNetworkBuilder(object):
         # "weight", "delay" and "receptor_type" are set as functions, following user input
         _devices = list()
         for device in devices:
-            _devices.append(dict(device))
+            _devices.append(safe_dict_copy(device))
             spiking_nodes = device.get("nodes", None)
             if spiking_nodes is None:
                 spiking_nodes = self.spiking_nodes_inds

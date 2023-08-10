@@ -10,7 +10,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 
 from examples.example import results_path_fun
-from tests.core.test_models import TestModel
+from tvb_multiscale.tests.core.test_models import TestModel
 
 from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 

@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
+
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
+
 
 class Config(ConfigBase):
     
@@ -12,10 +15,19 @@ class Config(ConfigBase):
                           "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
                                         "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
-    NETPYNE_INPUT_DEVICES_PARAMS_DEF = {"poisson_generator": {}}
-    NETPYNE_OUTPUT_DEVICES_PARAMS_DEF = {"spike_recorder": {}}
+    NETPYNE_INPUT_DEVICES_PARAMS_DEF = {
+        "poisson_generator": {
+            "record_generated_spikes": False,
+        },
+    }
+    NETPYNE_OUTPUT_DEVICES_PARAMS_DEF = {
+        "spike_recorder": {},
+        "multimeter": {},
+    }
+
 
 CONFIGURED = Config(initialize_logger=False)
+
 
 def initialize_logger(name="tvb_netpyne", target_folder=None, config=CONFIGURED):
     if target_folder is None:

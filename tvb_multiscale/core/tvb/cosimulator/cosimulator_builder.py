@@ -16,8 +16,8 @@ from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel, CoSimulatorNetpyne
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial, CoSimulatorNetpyne
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel, CoSimulatorRemoteParallel
 
 
 class CoSimulatorBuilder(HasTraits):
@@ -209,6 +209,12 @@ class CoSimulatorBuilder(HasTraits):
             array will be padded with random values based on the 'state_variables_range'
             attribute.""")
 
+    simulation_length = Float(
+        label="Simulation Length (ms, s, m, h)",
+        default=1100.0,  # ie 1.1 second
+        required=False,
+        doc="""The length of a simulation (default in milliseconds).""")
+
     def configure_connectivity(self):
         # Load, normalize and configure connectivity
         # Given that
@@ -296,7 +302,8 @@ class CoSimulatorBuilder(HasTraits):
         simulator = self._cosimulator_type(model=self.configure_model(**model_params),
                                            connectivity=self.configure_connectivity(),
                                            integrator=self.configure_integrator(),
-                                           monitors=self.configure_monitors())
+                                           monitors=self.configure_monitors(),
+                                           simulation_length=self.simulation_length)
 
         if self.initial_conditions is not None:
             simulator.initial_conditions = self.configure_initial_conditions(simulator)
@@ -323,13 +330,19 @@ class CoSimulatorParallelBuilder(CoSimulatorBuilder):
     _cosimulator_type = CoSimulatorParallel
 
 
-class CoSimulatorNetpyneBuilder(CoSimulatorBuilder):
+class CoSimulatorRemoteParallelBuilder(CoSimulatorBuilder):
 
-    """CoSimulatorNetpyneBuilder is an opinionated builder for a TVB CoSimulatorNetpyne,
+    """CoSimulatorParallelBuilder is an opinionated builder for a TVB CoSimulatorParallel,
        adjusted for parallel cosimulation.
+       Depending on its properties set, the builder may
+       - scale/normalize the connectivity weights,
+       - remove time delays or not,
+       - remove the self-connections or brain region nodes (diagonal of connectivity matrix)
+       - set integrator (including noise and integration step),
+       - set monitor (including model's variables of interest and period)
     """
 
-    _cosimulator_type = CoSimulatorNetpyne
+    _cosimulator_type = CoSimulatorRemoteParallel
 
 
 class CoSimulatorSerialBuilder(CoSimulatorBuilder):
@@ -344,3 +357,12 @@ class CoSimulatorSerialBuilder(CoSimulatorBuilder):
     """
 
     _cosimulator_type = CoSimulatorSerial
+
+
+class CoSimulatorNetpyneBuilder(CoSimulatorSerialBuilder):
+
+    """CoSimulatorNetpyneBuilder is an opinionated builder for a TVB CoSimulatorNetpyne,
+       adjusted for parallel cosimulation.
+    """
+
+    _cosimulator_type = CoSimulatorNetpyne

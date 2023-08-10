@@ -24,7 +24,7 @@ class ANNarchyNetwork(SpikingNetwork):
         all of which are implemented as indexed mappings by inheriting from pandas.Series class.
         The class also includes methods to return measurements (mean, sum/total data, spikes, spikes rates etc)
         from output devices, as xarray.DataArrays.
-        e.g. ANnarchyPopulations can be indexed as:
+        e.g. ANNarchyPopulations can be indexed as:
         annarchy_network.brain_regions['rh-insula']['E'] for population "E" residing in region node "rh-insula",
         and similarly for an output device:
         annarchy_network.output_devices['Excitatory']['rh-insula'],

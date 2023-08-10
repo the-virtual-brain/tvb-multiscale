@@ -2,40 +2,72 @@ import numpy as np
 
 from netpyne import specs, sim
 from netpyne.sim import *
+from netpyne import __version__ as __netpyne_version__
+from copy import deepcopy
 
 
 class NetpyneModule(object):
 
     spikeGenerators = []
-    
-    def __init__(self):
-        self.spikeGeneratorPops = []
-        self.autoCreatedPops = []
 
+    __netpyne_version__ = __netpyne_version__
+    _readyToRun = False
+
+    def __init__(self):
+        self._autoCreatedPops = []
+        self._spikeGeneratorPops = []
+        self._spikeGeneratorsToRecord = []
+        self._tracesToRecord = {}
+        self._popsToRecordTraces = []
+
+        self._compileOrLoadMod()
+
+    def _compileOrLoadMod(self):
         # Make sure that all required mod-files are compiled (is there a better way to check?)
         try:
             h.DynamicVecStim()
         except:
-            print("NetPyNE couldn't find necessary MOD-files. Trying to compile..")
             import sys, os
+            currDir = os.getcwd()
+
             python_path = sys.executable.split("python")[0]
             tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
-            os.system(f'{python_path}nrnivmodl {tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
-            h.nrn_load_dll('./x86_64/libnrnmech.so')
+            # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
+            os.chdir(f'{tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
+            if not os.path.exists('x86_64'):
+                print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
+                os.system(f'{python_path}nrnivmodl .')
+            else:
+                print(f"NetPyNE will load mod-files from {os.getcwd()}.")
+            import neuron
+            neuron.load_mechanisms('.')
+
+            os.chdir(currDir)
 
     def importModel(self, netParams, simConfig, dt, config):
 
         simConfig.dt = dt
-        simConfig.duration = config.simulation_length
 
         simConfig.simLabel = 'spiking'
         simConfig.saveFolder = config.out._out_base # TODO: better use some public method
 
-        self.netParams = netParams
-        self.simConfig = simConfig
-
         # using DynamicVecStim model for artificial cells serving as stimuli
-        self.netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicVecStim'}
+        netParams.cellParams['art_NetStim'] = {'cellModel': 'DynamicVecStim'}
+
+        self._netParams = netParams
+        self._simConfig = simConfig
+
+    @property
+    def netParams(self):
+        if self._netParams:
+            return self._netParams
+        return sim.net.params
+
+    @property
+    def simConfig(self):
+        if self._simConfig:
+            return self._simConfig
+        return sim.cfg
 
     @property
     def dt(self):
@@ -49,49 +81,17 @@ class NetpyneModule(object):
     @property
     def time(self):
         return h.t
-    
-    def instantiateNetwork(self):
 
-        sim.initialize(self.netParams, None) # simConfig to be provided later
+    def createNetwork(self):
+        sim.initialize(self.netParams, self.simConfig)
+        self._netParams = None
+        self._simConfig = None
+
         sim.net.createPops()
         sim.net.createCells()
-
-        if len(self.autoCreatedPops):
-            # choose N random cells from each population to plot traces for
-            n = 1
-            rnd = np.random.RandomState(0)
-            def includeFor(pop):
-                popSize = len(sim.net.pops[pop].cellGids)
-                chosen = (pop, [0]) # rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
-                return chosen
-            include = list(map(includeFor, self.autoCreatedPops))
-            self.simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
-            self.simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': self.autoCreatedPops, 'popRates': 'minimal'}
-
-            if self.simConfig.recordCellsSpikes == -1:
-                allPopsButSpikeGenerators = [pop for pop in self.netParams.popParams.keys() if pop not in self.spikeGeneratorPops]
-                self.simConfig.recordCellsSpikes = allPopsButSpikeGenerators
-
-        sim.setSimCfg(self.simConfig)
-        sim.setNetParams(self.netParams)
-        sim.net.params.synMechParams.preprocessStringFunctions()
-        sim.net.params.cellParams.preprocessStringFunctions()
-
         sim.net.connectCells()
         sim.net.addStims()
         sim.net.addRxD()
-        sim.setupRecording()
-
-        sim.run.prepareSimWithIntervalFunc()
-
-        # interval run is used internally to support communication with TVB. However, users may also need to have feedbacks
-        # at some interval, distinct from those used internally. User-defined interval and intervalFunc are read here, and the logic is handled in `run()`
-        if hasattr(self.simConfig, 'interval'):
-            self.interval = self.simConfig.interval
-            self.intervalFunc = self.simConfig.intervalFunc
-            self.nextIntervalFuncCall = self.interval
-        else:
-            self.nextIntervalFuncCall = None
 
         # cache some data
         self.__popCellGids = {}
@@ -103,23 +103,72 @@ class NetpyneModule(object):
             allGids = list(range(firstCellGid, lastCellGid+1))
             self.__popCellGids[popLabel] = allGids
 
-    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType):
+    def prepareSimulation(self, duration):
+
+        simConfig = self.simConfig
+        simConfig.duration = duration
+
+        simConfig.recordTraces.update(self._tracesToRecord)
+        simConfig.recordCells.extend(self._popsToRecordTraces)
+
+        # choose N random cells from each population to plot traces for
+        if len(self._autoCreatedPops):
+            n = 1
+            rnd = np.random.RandomState(0)
+            def includeFor(pop):
+                popSize = len(sim.net.pops[pop].cellGids)
+                chosen = (pop, [0]) # rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
+                return chosen
+            include = list(map(includeFor, self._autoCreatedPops))
+            simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
+
+        # exclude spike generators from spike recording.. (unless explicitly configured in device's params) 
+        exclude = [pop for pop in self._spikeGeneratorPops if pop not in self._spikeGeneratorsToRecord]
+        record = [pop for pop in self.netParams.popParams.keys() if pop not in exclude]
+        if simConfig.recordCellsSpikes == -1: # only if no specific configuration
+            simConfig.recordCellsSpikes = record
+        # .. and from plotting
+        simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': record, 'popRates': 'minimal'}
+
+        sim.setSimCfg(simConfig)
+        sim.setupRecording()
+        sim.run.prepareSimWithIntervalFunc()
+
+        # interval run is used internally to support communication with TVB. However, users may also need to have feedbacks
+        # at some interval, distinct from those used internally. User-defined interval and intervalFunc are read here, and the logic is handled in `run()`
+        if hasattr(self.simConfig, 'interval'):
+            self.interval = self.simConfig.interval
+            self.intervalFunc = self.simConfig.intervalFunc
+            self.nextIntervalFuncCall = self.interval
+        else:
+            self.nextIntervalFuncCall = None
+
+        self._readyToRun = True
+
+
+    def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, prob=None):
         # TODO: randomize weight and delay, if values do not already contain sting func
         # (e.g. use random_normal_weight() and random_uniform_delay() from netpyne_templates)
         sourceCells = self.netParams.popParams[sourcePop]['numCells']
         targetCells = self.netParams.popParams[targetPop]['numCells']
 
+        if prob:
+            rule = 'probability'
+            val = prob
+
         # connect cells roughly one-to-one ('lamda' for E -> I connections is already taken into account, as it baked into source population size)
-        if sourceCells <= targetCells:
+        elif sourceCells <= targetCells:
             rule = 'divergence'
+            val = 1.0
         else:
             rule = 'convergence'
+            val = 1.0
 
         connLabel = sourcePop + '->' + targetPop
         self.netParams.connParams[connLabel] = {
             'preConds': {'pop': sourcePop},
             'postConds': {'pop': targetPop},
-            rule: 1.0,
+            rule: val,
             'weight': weight,
             'delay': delay,
             'synMech': receptorType
@@ -137,26 +186,48 @@ class NetpyneModule(object):
             'synMech': synapticMechanism }
 
     def registerPopulation(self, label, cellModel, size):
-        self.autoCreatedPops.append(label)
+        self._autoCreatedPops.append(label)
         self.netParams.popParams[label] = {'cellType': cellModel, 'numCells': size}
 
-    def createArtificialCells(self, label, number, params=None):
+    def createArtificialCells(self, label, number, record=False):
         print(f"Netpyne:: Creating artif cells for node '{label}' of {number} neurons")
-        self.spikeGeneratorPops.append(label)
         self.netParams.popParams[label] = {
             'cellType': 'art_NetStim',
             'numCells': number,
         }
+        self._spikeGeneratorPops.append(label)
+        if record:
+            self._spikeGeneratorsToRecord.append(label)
+
+    def recordTracesFromPop(self, traces, pop):
+        if pop not in self._popsToRecordTraces:
+            self._popsToRecordTraces.append(pop)
+
+        for traceId, traceVal in traces.items():
+            if traceId not in self._tracesToRecord:
+                self._tracesToRecord[traceId] = deepcopy(traceVal)
+            trace = self._tracesToRecord[traceId]
+            existingPops = trace.get('conds', {}).get('pop')
+            if existingPops and (pop not in existingPops):
+                existingPops.append(pop)
+            else:
+                existingPops = [pop]
+                trace['conds'] = {'pop': existingPops}
 
     def getSpikes(self, generatedBy=None, startingFrom=None):
+
         if hasattr(sim, 'allSimData'):
             # gathered from nodes
-            spktimes = np.array(sim.allSimData['spkt'])
-            spkgids = np.array(sim.allSimData['spkid'])
+            simData = sim.allSimData
         else:
             # applies in case of single-node simulation
-            spktimes = np.array(sim.simData['spkt'])
-            spkgids = np.array(sim.simData['spkid'])
+            simData = sim.simData
+
+        if not 'spkid' in simData:
+            return [], []
+
+        spktimes = np.array(simData['spkt'])
+        spkgids = np.array(simData['spkid'])
 
         if startingFrom is not None:
             inds = np.nonzero(spktimes > startingFrom) # filtered by time # (self.time - timeWind)
@@ -170,7 +241,19 @@ class NetpyneModule(object):
             spktimes = spktimes[inds]
             spkgids = spkgids[inds]
         return spktimes, spkgids
-    
+
+    def getRecordedTime(self):
+        return np.array(sim.allSimData['t'])
+
+    def getTraces(self, key, neuronIds, timeSlice=slice(None)):
+        time = self.getRecordedTime()[timeSlice]
+        tracesPerNeuron = sim.allSimData.get(key)
+        data = np.zeros((len(neuronIds), len(time)))
+        for neurInd, neurId in enumerate(neuronIds):
+            trace = tracesPerNeuron[f'cell_{neurId}']
+            data[neurInd] = trace[timeSlice]
+        return data
+
     def cellGidsForPop(self, popLabel):
         return self.__popCellGids[popLabel]
 
@@ -185,19 +268,18 @@ class NetpyneModule(object):
 
     def run(self, length):
 
+        assert self._readyToRun, "The `NetpyneModule.prepareSimulation()` method has to be called prior to start of simulation."
+
         self.stimulate(length)
 
         # handling (potentially) two distinct intervals (see comment in `createAndPrepareNetwork()`)
         tvbIterationEnd = self.time + length
         def _(simTime): pass
         if self.nextIntervalFuncCall:
-            while (self.nextIntervalFuncCall < tvbIterationEnd):
-                if self.time < sim.cfg.duration:
-                    sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
-                    self.intervalFunc(self.time)
-                    self.nextIntervalFuncCall = self.time + self.interval
-                else:
-                    break
+            while (self.nextIntervalFuncCall < min(tvbIterationEnd, sim.cfg.duration)):
+                sim.run.runForInterval(self.nextIntervalFuncCall - self.time, _)
+                self.intervalFunc(self.time)
+                self.nextIntervalFuncCall = self.time + self.interval
         if tvbIterationEnd > self.time:
             if self.time < sim.cfg.duration:
                 sim.run.runForInterval(tvbIterationEnd - self.time, _)

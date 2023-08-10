@@ -36,7 +36,7 @@ def test(dt=0.1, noise_strength=0.001, config=CONFIGURED):
     # Build a NEST network model with the corresponding builder
     # Using all default parameters for this example
     nest_model_builder = DefaultExcIOBuilder(simulator, nest_nodes_ids,
-                                             nest_instance=load_nest(config), config=config)
+                                             spiking_simulator=load_nest(config), config=config)
     nest_model_builder.configure()
     print(nest_model_builder.info())
 
