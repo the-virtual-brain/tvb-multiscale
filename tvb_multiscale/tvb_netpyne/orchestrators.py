@@ -158,8 +158,8 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
     def link_spikeNet_to_TVB_cosimulator(self):
         super(TVBNetpyneSerialOrchestrator, self).link_spikeNet_to_TVB_cosimulator()
         # for parallel spiking simulation
-        self.tvb_app.cosimulator.isRootNode = self.spikeNet_app.spiking_cosimulator.isRootNode
-        self.tvb_app.cosimulator.synchronize_spiking_simulator = self.spikeNet_app.spiking_cosimulator.gatherFromNodes
+        self.tvb_app.cosimulator.is_root_host = self.spikeNet_app.spiking_cosimulator.isRootNode
+        self.tvb_app.cosimulator.synchronize_spiking_hosts = self.spikeNet_app.spiking_cosimulator.gatherFromNodes
 
     def build(self):
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale

@@ -41,8 +41,6 @@ import numpy
 
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
-import numpy as np
-import time
 
 class CoSimulatorRemoteParallel(CoSimulator):
 

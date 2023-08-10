@@ -75,7 +75,7 @@ class NetpyneModule(object):
 
     @property
     def minDelay(self):
-        return self.dt * 1.001 # must be strictly greater than dt to be used with parallel context
+        return self.dt
         # TODO: the factor above is not needed if implement stimulation without NetCon
 
     @property

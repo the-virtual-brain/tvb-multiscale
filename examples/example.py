@@ -111,9 +111,9 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
 
     print_summary = True
 
+    # only applicable for NetPyNE parallel simulation with MPI: skip printing and plotting the results unless being on root MPI node:
     if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
         not orchestrator.spikeNet_app.spiking_cosimulator.isRootNode():
-        # specific to Netpyne parallel simulation
         print_summary = False
         plot_write = False
 
