@@ -8,9 +8,21 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits
 from tvb.basic.neotraits._attr import NArray
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import SpikesToRates
+from tvb_multiscale.core.interfaces.base.transformers.models.base import SpikesToRates, LinearRate
 from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
     ElephantSpikesHistogram, ElephantSpikesHistogramRate, ElephantSpikesRate
+
+
+class ThalamocorticalWCLinearRate(LinearRate):
+
+    def _compute(self, input_buffer):
+        # First make sure to sum all coupling variables,
+        # in particular from:
+        # 0. Isocortex
+        # 1. Subcortex
+        # (2. Specific Thalami, but this is one is not used)
+        # input_buffer shape is assumed to be (proxy, time, vois)
+        return super(ThalamocorticalWCLinearRate, input_buffer.sum(axis=-1))
 
 
 class ThalamoCorticalWCInverseSigmoidal(HasTraits):
@@ -98,6 +110,15 @@ class ElephantSpikesRateThalamoCorticalWCInverseSigmoidal(ElephantSpikesRate,
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
         return SpikesToRatesThalamoCorticalWCInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
+
+
+class DefaultTVBtoSpikeNetTransformersThalamoCorticalWC(Enum):
+    RATE = ThalamocorticalWCLinearRate
+    # TODO: Need to potentially adjust all other transformers as well for summing up rates from all regions first!:
+    # SPIKES = RatesToSpikesElephantPoisson
+    # SPIKES_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
+    # SPIKES_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
+    # CURRENT = LinearCurrent
 
 
 class DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal(Enum):
