@@ -748,7 +748,7 @@ class WilsonCowanThalamoCortical(Model):
     state_variables = 'E I A'.split()
     non_integrated_variables = ['A']
     _nvar = 3
-    cvar = np.array([0], dtype=np.int32)
+    cvar = np.array([0, 1, 2], dtype=np.int32)
     stvar = np.array([0], dtype=np.int32)
 
     test_mode = False  # 1 or 2 for error in coupling!
@@ -1445,7 +1445,7 @@ class SigmoidalPreThalamoCortical(SigmoidalPre):
 
     def pre(self, x_i, x_j):
         # Modification to double the coupling variables,
-        # in order to separate thalamic from non-thalamic regins' inputs x_j:
+        # in order to separate thalamic from non-thalamic regions' inputs x_j:
         if self._pre is None:
             # It runs only for the first time
             pre_shape = list(x_j.shape)
@@ -1458,18 +1458,18 @@ class SigmoidalPreThalamoCortical(SigmoidalPre):
                 self._th_cvars = np.arange(self._th_cvar * self._n_cvars, (self._th_cvar + 1) * self._n_cvars)
             self._pre = np.zeros(tuple(pre_shape)).astype(x_j.dtype)
             self._shape_parameters()
-        # The first coupling variables uses the non-thalamic regions inputs
+        # The first coupling variables use the non-thalamic regions inputs
         self._pre[:, self._cx_cvars[:, None], self._cx_inds[None, :], :] = \
             self._cmin_cx + (self._c_max_min_cx /
                              (1.0 + np.exp(-self._a_cx * ((x_j[:, :, self._cx_inds, :]
                                                           - self._midpoint_cx) / self._sigma_cx))))
-        # The second coupling variables uses the subcortical, but non-specific thalamic regions, inputs
+        # The second coupling variables use the subcortical, but non-specific thalamic regions, inputs
         if self._sb_cvar:
             self._pre[:, self._sb_cvars[:, None], self._sb_inds[None, :], :] = \
                 self._cmin_sb + (self._c_max_min_sb /
                                  (1.0 + np.exp(-self._a_sb * ((x_j[:, :, self._sb_inds, :]
                                                               - self._midpoint_sb) / self._sigma_sb))))
-        # The third coupling variables uses the specific thalamic regions inputs
+        # The third coupling variables use the specific thalamic regions inputs
         if self._th_cvar:
             self._pre[:, self._th_cvars[:, None], self._th_inds[None, :], :] = \
                 self._cmin_th + (self._c_max_min_th /
