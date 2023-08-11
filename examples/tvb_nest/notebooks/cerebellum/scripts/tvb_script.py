@@ -865,13 +865,14 @@ def plot_tvb(transient, inds,
     # dt = source_ts.time[1] - source_ts.time[0]
     # NPERSEG = NPERSEG[np.argmin(np.abs(NPERSEG - (source_ts.shape[0] - transient / dt)/10))]
 
-    NPERSEG = 2048
+    NPERSEG = 512
 
     # Power Spectra and Coherence for M1 - S1 barrel field
     CxyR, fR, fL, CxyL = \
         compute_plot_selected_spectra_coherence(source_ts, inds["m1s1brl"],
                                                 transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
-                                                figures_path=config.figures.FOLDER_FIGURES, figname="M1_S1brl", figformat="png",
+                                                figures_path=config.figures.FOLDER_FIGURES,
+                                                figname="M1_S1brl", figformat="png",
                                                 show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
     if write_files:
         import pickle
@@ -882,7 +883,8 @@ def plot_tvb(transient, inds,
     # for Medulla SPV, Sensory PONS
     compute_plot_selected_spectra_coherence(source_ts, inds["sens"],
                                             transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
-                                            figures_path=config.figures.FOLDER_FIGURES, figname="SPV_PonsSens", figformat="png",
+                                            figures_path=config.figures.FOLDER_FIGURES,
+                                            figname="SPV_PonsSens", figformat="png",
                                             show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
 
     # Better summary figure:
