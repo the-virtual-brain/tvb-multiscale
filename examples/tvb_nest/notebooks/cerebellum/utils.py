@@ -144,7 +144,7 @@ def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fm
                                                   figsize=(15, 5), figures_path="", figformat="png",
                                                   show_flag=True, save_flag=True):
     import numpy as np
-    yranges = [[0,0.35],[-0.2, 0.2]]    # Ranges for coherence and diff plot respectively
+    yranges = [[0,0.35], [-0.2, 0.2]]    # Ranges for coherence and diff plot respectively
     ylabel = ['Spectral coherence','Diff in spectral coherence']
     # avg_coherence is a dictionary with average coherence between L and R M1-S1 for each simulation test
     fig, axes = plt.subplots(1, 2, figsize=(figsize[0], figsize[1]*2))
