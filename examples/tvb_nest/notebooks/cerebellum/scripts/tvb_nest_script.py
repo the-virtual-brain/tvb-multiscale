@@ -115,7 +115,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
             {'voi': np.array(["E"]),  # TVB state variable to get data from
              'populations': np.array([pop]),  # NEST populations to couple to
               # --------------- Arguments that can default if not given by the user:------------------------------
-              'model': 'RATE',  # This can be used to set default tranformer and proxy models
+              'model': 'RATE',  # This can be used to set default transformer and proxy models
               # 'coupling_mode': 'TVB',         # or "spikeNet", "NEST", etc
               'proxy_inds': pop_regions_inds,  # TVB proxy region nodes' indices
               # Set the enum entry or the corresponding label name for the "proxy_model",
