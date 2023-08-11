@@ -244,7 +244,7 @@ class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSen
         TransformerSenderInterface.configure(self)
 
     def __call__(self):
-        return self.transform_send(self.get_proxy_data())
+        return self.transform_and_send(self.get_proxy_data())
 
 
 class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTransformerInterface):
