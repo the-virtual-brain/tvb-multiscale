@@ -43,7 +43,7 @@ def print_available_interfaces():
     print("\n\nAll basic transformer models:")
     print_enum(Transformers)
 
-    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc_inverse_sigmoidal import \
+    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import \
         DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
     print_enum(DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal)
 
@@ -59,13 +59,19 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
     # ---------------------------- Non opinionated TVB<->NEST interface builder----------------------------
     from tvb_multiscale.tvb_nest.interfaces.builders import TVBNESTInterfaceBuilder
+    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import ThalamocorticalWCLinearRate
 
     tvb_spikeNet_model_builder = TVBNESTInterfaceBuilder()  # non opinionated builder
 
+
     if config.INVERSE_SIGMOIDAL_NEST_TO_TVB:
         # !!! THIS WILL TURN ON THE INVERSE SIGMOIMDAL TRANSFORMER FOR NEST -> TVB INTERFACE !!!
-        from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc_inverse_sigmoidal import \
+        from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import \
+            DefaultTVBtoSpikeNetTransformersThalamoCorticalWC, \
             DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
+
+        tvb_spikeNet_model_builder._tvb_to_spikeNet_transformer_models = \
+            DefaultTVBtoSpikeNetTransformersThalamoCorticalWC
         tvb_spikeNet_model_builder._spikeNet_to_tvb_transformer_models = \
             DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
 
@@ -112,7 +118,9 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         pop_regions_inds = np.array(pop_regions_inds)
         tvb_spikeNet_model_builder.output_interfaces.append(
-            {'voi': np.array(["E"]),  # TVB state variable to get data from
+            # # TVB thalamocortical model's coupling variables to get data from:
+            # 0 for Isocortical and 1 for Subcortical (excluding specific thalami)
+            {'voi': np.array([0, 1]),
              'populations': np.array([pop]),  # NEST populations to couple to
               # --------------- Arguments that can default if not given by the user:------------------------------
               'model': 'RATE',  # This can be used to set default transformer and proxy models
@@ -130,7 +138,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
               # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
               # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers for options and related Transformer classes,
               # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels for default choices
-              'transformer_model': "RATE",
+              'transformer_model': "RATE",  # i.e., ThalamocorticalWCLinearRate,
              # Here the rate is a total rate, assuming a number of sending neurons:
              # Effective rate  = scale * (total_weighted_coupling_E_from_tvb - offset)
              # If E is in [0, 1.0], then, with a translation = 0.0, and a scale of 1e4
