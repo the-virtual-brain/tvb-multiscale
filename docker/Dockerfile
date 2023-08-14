@@ -157,9 +157,10 @@ RUN cd tvb-multiscale; \
 # Install Jupyter notebook specific packages
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install ipywidgets ipympl;
-RUN $VENV/bin/pip3 install jupyter_contrib_nbextensions jupyter_nbextensions_configurator;
-RUN $VENV/bin/jupyter nbextensions_configurator enable --py --sys-prefix widgetsnbextension;
-RUN $VENV/bin/jupyter contrib nbextension install;
+#RUN $VENV/bin/pip3 install --upgrade --user jupyterlab;
+##RUN $VENV/bin/pip3 install jupyter jupyter_contrib_nbextensions jupyter_nbextensions_configurator --user;
+##RUN $VENV/bin/jupyter contrib nbextension install;
+##RUN $VENV/bin/jupyter nbextensions_configurator enable --py --sys-prefix widgetsnbextension;
 # RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension;
 
 # Checkout specific branch of tvb-multiscale
