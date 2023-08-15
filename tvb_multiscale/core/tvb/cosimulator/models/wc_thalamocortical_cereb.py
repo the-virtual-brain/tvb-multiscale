@@ -748,7 +748,7 @@ class WilsonCowanThalamoCortical(Model):
     state_variables = 'E I A'.split()
     non_integrated_variables = ['A']
     _nvar = 3
-    cvar = np.array([0, 1, 2], dtype=np.int32)
+    cvar = np.array([0], dtype=np.int32)
     stvar = np.array([0], dtype=np.int32)
 
     test_mode = False  # 1 or 2 for error in coupling!
