@@ -62,9 +62,9 @@ class TVBInterface(BaseInterface):
         simulator_inds_list = list(simulator_inds)
         return np.array([simulator_inds_list.index(ind) for ind in inds])
 
-    def set_local_voi_indices(self, monitor_voi):
+    def set_local_voi_indices(self, voi, monitor_voi):
         """Method to set the correct voi indices with reference to the linked TVB CosimMonitor or CosimHistory"""
-        self.voi_loc = self._set_local_indices(self.voi, monitor_voi)
+        self.voi_loc = self._set_local_indices(voi, monitor_voi)
 
     @abstractmethod
     def set_local_indices(self, *args):
@@ -86,6 +86,12 @@ class TVBOutputInterface(TVBInterface):
                       required=True,
                       default=0)
 
+    cvoi = NArray(
+        dtype=int,
+        label="Cosimulation model coupling variables' indices",
+        doc="""Indices of model's variables of interest (VOI) for TVB coupling interfaces""",
+        required=False)
+
     coupling_mode = Attr(
         label="Coupling mode",
         field_type=str,
@@ -101,6 +107,13 @@ class TVBOutputInterface(TVBInterface):
     def label(self):
         return "%s: %s (%s) ->" % (self.__class__.__name__, str(self.voi_labels),
                                    extract_integer_intervals(self.proxy_inds))
+
+    def set_local_voi_indices(self, monitor_voi):
+        """Method to set the correct voi indices with reference to the linked TVB CosimMonitor or CosimHistory"""
+        if self.coupling_mode.upper() == "TVB":
+            self.voi_loc = self._set_local_indices(self.cvoi, monitor_voi)
+        else:
+            self.voi_loc = self._set_local_indices(self.voi, monitor_voi)
 
     def set_local_indices(self, monitor_voi):
         self.set_local_voi_indices(monitor_voi)
@@ -128,7 +141,7 @@ class TVBInputInterface(TVBInterface):
                                    extract_integer_intervals(self.proxy_inds))
 
     def set_local_indices(self, simulator_voi, simulator_proxy_inds):
-        self.set_local_voi_indices(simulator_voi)
+        self.set_local_voi_indices(self.voi, simulator_voi)
         self.proxy_inds_loc = self._set_local_indices(self.proxy_inds, simulator_proxy_inds)
 
     def __call__(self, data):
@@ -376,7 +389,7 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
             # we need to add here synchronization time,
             # and subtract it from the connectome delays, in case coupling is "spikeNet".
             # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
-            # i.e., for the next synhcronization_time period, to "spikeNet" devices
+            # i.e., for the next synchronization_time period, to "spikeNet" devices
             times += self.synchronization_n_step
         return times
 
