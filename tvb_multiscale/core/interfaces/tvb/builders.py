@@ -274,13 +274,20 @@ class TVBInterfaceBuilder(InterfaceBuilder):
                 # NOTE!!!: interface voi indices correspond to state variables indices,
                 # whereas CosimCoupling monitors point to cvar indices!
                 cvar = self.tvb_cosimulator.model.cvar.tolist()
-                cvoi = [cvar.index(voi) for voi in interface["voi"]]
+                # !!! NOTE !!!
+                # TVB cvoi is not the same with TVB-multiscale cvoi!!!
+                # TVB simulator.model.cvoi denotes the state variables indices to be used
+                # for the computation of large scale node coupling.
+                # Instead, cosimulator.cosim_monitor.cvoi denotes the variable indices of the computed coupling,
+                # to be used for sending data to some co-simulator, in our case, NEST.
+                cvoi = np.array(interface.pop("cvoi", [cvar.index(voi) for voi in interface["voi"]]))
+                interface["cvoi"] = cvoi
                 if tuple(cvoi) not in list(coupl_vois_to_monitor.keys()):
                     # Assuming a CosimCoupling monitor ...create it:
                     coupl_vois_to_monitor = \
                         self._create_cosim_monitor(interface,
-                                                   CosimCoupling(coupling=self.tvb_coupling,
-                                                                 variables_of_interest=np.array(cvoi),
+                                                   CosimCoupling(coupling=interface.pop("coupling", self.tvb_coupling),
+                                                                 variables_of_interest=cvoi,
                                                                  period=self.tvb_dt),
                                                    coupl_vois_to_monitor)
                 else:
