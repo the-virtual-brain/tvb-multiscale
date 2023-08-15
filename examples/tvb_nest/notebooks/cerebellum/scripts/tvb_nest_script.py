@@ -118,32 +118,44 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         pop_regions_inds = np.array(pop_regions_inds)
         tvb_spikeNet_model_builder.output_interfaces.append(
-            # # TVB thalamocortical model's coupling variables to get data from:
-            # 0 for Isocortical and 1 for Subcortical (excluding specific thalami)
-            {'voi': np.array([0, 1]),
+            # !!! NOTE !!!
+            # TVB cvoi is not the same with TVB-multiscale cvoi!!!
+            # TVB simulator.model.cvoi denotes the state variables indices to be used
+            # for the computation of large scale node coupling.
+            # Instead, cosimulator.cosim_monitor.cvoi denotes the variable indices of the computed coupling,
+            # to be used for sending data to some co-simulator, in our case, NEST.
+            {'voi': np.array(["E"]),
+             # # TVB thalamocortical model's coupling variables to get data from:
+             # 0 for Isocortical and 1 for Subcortical (excluding specific thalami)
+             "cvoi": np.array([0, 1]),
              'populations': np.array([pop]),  # NEST populations to couple to
               # --------------- Arguments that can default if not given by the user:------------------------------
               'model': 'RATE',  # This can be used to set default transformer and proxy models
               # 'coupling_mode': 'TVB',         # or "spikeNet", "NEST", etc
               'proxy_inds': pop_regions_inds,  # TVB proxy region nodes' indices
               # Set the enum entry or the corresponding label name for the "proxy_model",
-              # or import and set the appropriate NEST proxy device class, e.g., NESTInhomogeneousPoissonGeneratorSet, directly
+              # or import and set the appropriate NEST proxy device class,
+              # e.g., NESTInhomogeneousPoissonGeneratorSet, directly
               # options: "RATE", "RATE_TO_SPIKES", SPIKES", "PARROT_SPIKES" or CURRENT"
-              # see tvb_multiscale.tvb_nest.interfaces.io.NESTInputProxyModels for options and related NESTDevice classes,
+              # see tvb_multiscale.tvb_nest.interfaces.io.NESTInputProxyModels
+             #  for options and related NESTDevice classes,
               # and tvb_multiscale.tvb_nest.interfaces.io.DefaultTVBtoNESTModels for the default choices
               'proxy_model': "RATE",
               'receptor_type': receptor,
               # Set the enum entry or the corresponding label name for the "transformer_model",
               # or import and set the appropriate tranformer class, e.g., ScaleRate, directly
               # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
-              # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers for options and related Transformer classes,
-              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels for default choices
+              # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers
+              # for options and related Transformer classes,
+              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels
+              # for default choices
               'transformer_model': "RATE",  # i.e., ThalamocorticalWCLinearRate,
              # Here the rate is a total rate, assuming a number of sending neurons:
              # Effective rate  = scale * (total_weighted_coupling_E_from_tvb - offset)
              # If E is in [0, 1.0], then, with a translation = 0.0, and a scale of 1e4
              # it is as if 100 neurons can fire each with a maximum spike rate of max_rate=100 Hz
-              'transformer_params': {"scale_factor": np.array([0.75*simulator.model.G[0].item() * max_rate])},   # "translation_factor": np.array([0.0])
+              'transformer_params': {"scale_factor": np.array([0.75*simulator.model.G[0].item() * max_rate])
+                                     },   # "translation_factor": np.array([0.0])
               'spiking_proxy_inds': pop_regions_inds  # Same as "proxy_inds" for this kind of interface
               }
              )
