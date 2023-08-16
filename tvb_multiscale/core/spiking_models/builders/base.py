@@ -44,7 +44,7 @@ class SpikingNetworkBuilder(object):
     tvb_to_spiking_dt_ratio = config.TVB_TO_SPIKING_DT_RATIO
     default_min_spiking_dt = config.MIN_SPIKING_DT
     default_min_delay_ratio = config.MIN_DELAY_RATIO
-    default_min_delay = config.MIN_SPIKING_DT
+    default_min_delay = config.DEF_SPIKING_MIN_DELAY
     default_population = {}
     default_populations_connection = {}
     default_nodes_connection = {}
@@ -101,7 +101,7 @@ class SpikingNetworkBuilder(object):
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
-        self.default_min_delay = self.config.MIN_SPIKING_DT
+        self.default_min_delay = self.config.DEF_SPIKING_MIN_DELAY
 
         # Setting SpikingNetwork defaults from config
         # to be further specified in each Spiking simulator's specific builder class.
