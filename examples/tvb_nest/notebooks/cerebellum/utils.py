@@ -71,7 +71,6 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
         conn = source_ts.connectivity
     fs = 1000/source_ts.sample_period
     f, Pxx_den = signal.welch(data, fs, nperseg=nperseg)
-
     fig, axes = plt.subplots(n_regions, 2, figsize=(figsize[0], figsize[1]*n_regions))
     if axes.ndim == 1:
         axes = np.array([axes])
@@ -100,44 +99,49 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
     else:
         plt.close(fig)
 
+    CxyR = []
+    fR = []
+    fL = []
+    CxyL = []
     n_regions2 = int(n_regions * (n_regions - 1)/2)
-    fig, axes = plt.subplots(n_regions2, 2, figsize=(figsize[0], figsize[1]*n_regions))
-    if len(axes.shape) < 2:
-        axes = axes[np.newaxis, :]
-    ii = 0
-    for i1 in range(0, n_regions-1):
-        iR1 = 2*i1
-        iL1 = 2*i1 + 1
-        for i2 in range(i1+1, n_regions):
-            iR2 = 2*i2
-            iL2 = 2*i2 + 1
-            fR, CxyR = signal.coherence(data[iR1], data[iR2], fs, nperseg=nperseg)
-            fL, CxyL = signal.coherence(data[iL1], data[iL2], fs, nperseg=nperseg)
-            axes[ii, 0].plot(fR, CxyR.T,
-                             label="%s - %s" % (conn.region_labels[inds[iR1]], conn.region_labels[inds[iR2]]))
-            axes[ii, 0].plot(fL, CxyL.T,
-                             label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
-            axes[ii, 0].set_xlim([fmin, fmax])
-            axes[ii, 0].set_ylim([fmin, 0.45])
-            axes[ii, 0].set_xlabel('frequency [Hz]')
-            axes[ii, 0].set_ylabel('Coherence')
-            axes[ii, 0].legend()
-            axes[ii, 1].semilogy(fR, CxyR.T,
+    if nregions2:
+        fig, axes = plt.subplots(n_regions2, 2, figsize=(figsize[0], figsize[1]*n_regions))
+        if len(axes.shape) < 2:
+            axes = axes[np.newaxis, :]
+        ii = 0
+        for i1 in range(0, n_regions-1):
+            iR1 = 2*i1
+            iL1 = 2*i1 + 1
+            for i2 in range(i1+1, n_regions):
+                iR2 = 2*i2
+                iL2 = 2*i2 + 1
+                fR, CxyR = signal.coherence(data[iR1], data[iR2], fs, nperseg=nperseg)
+                fL, CxyL = signal.coherence(data[iL1], data[iL2], fs, nperseg=nperseg)
+                axes[ii, 0].plot(fR, CxyR.T,
                                  label="%s - %s" % (conn.region_labels[inds[iR1]], conn.region_labels[inds[iR2]]))
-            axes[ii, 1].semilogy(fL, CxyL.T,
+                axes[ii, 0].plot(fL, CxyL.T,
                                  label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
-            axes[ii, 1].set_xlim([fmin, fmax])
-            axes[ii, 1].set_xlabel('frequency [Hz]')
-            axes[ii, 1].set_ylabel('log10(Coherence)')
-            axes[ii, 1].legend()
-            ii += 1
-    if save_flag and len(figures_path) + len(figname):
-        plt.savefig(os.path.join(figures_path, figname + "_COH.%s" % figformat))
-    if show_flag:
-        plt.show()
-    else:
-        plt.close(fig)
-    return CxyR, fR, fL, CxyL
+                axes[ii, 0].set_xlim([fmin, fmax])
+                axes[ii, 0].set_ylim([fmin, 0.45])
+                axes[ii, 0].set_xlabel('frequency [Hz]')
+                axes[ii, 0].set_ylabel('Coherence')
+                axes[ii, 0].legend()
+                axes[ii, 1].semilogy(fR, CxyR.T,
+                                     label="%s - %s" % (conn.region_labels[inds[iR1]], conn.region_labels[inds[iR2]]))
+                axes[ii, 1].semilogy(fL, CxyL.T,
+                                     label="%s - %s" % (conn.region_labels[inds[iL1]], conn.region_labels[inds[iL2]]))
+                axes[ii, 1].set_xlim([fmin, fmax])
+                axes[ii, 1].set_xlabel('frequency [Hz]')
+                axes[ii, 1].set_ylabel('log10(Coherence)')
+                axes[ii, 1].legend()
+                ii += 1
+        if save_flag and len(figures_path) + len(figname):
+            plt.savefig(os.path.join(figures_path, figname + "_COH.%s" % figformat))
+        if show_flag:
+            plt.show()
+        else:
+            plt.close(fig)
+    return Pxx_den, f, CxyR, fR, CxyL, fL
 
 
 def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fmin=0.0, fmax=50.0, 

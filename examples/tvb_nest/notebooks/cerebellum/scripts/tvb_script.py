@@ -868,7 +868,7 @@ def plot_tvb(transient, inds,
     NPERSEG = 512
 
     # Power Spectra and Coherence for M1 - S1 barrel field
-    CxyR, fR, fL, CxyL = \
+    Pxx_den, f, CxyR, fR, CxyL, fL = \
         compute_plot_selected_spectra_coherence(source_ts, inds["m1s1brl"],
                                                 transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
                                                 figures_path=config.figures.FOLDER_FIGURES,
