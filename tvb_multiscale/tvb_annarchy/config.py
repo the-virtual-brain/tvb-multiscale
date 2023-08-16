@@ -53,7 +53,7 @@ class Config(ConfigBase):
     @property
     def DEFAULT_CONNECTION(self):
         return {"synapse_model": self.DEFAULT_SYNAPSE, "params": {},
-                "weight": 1.0, "delay": self.DEF_SPIKING_MIN_DELAY, 'receptor_type': "exc",
+                "weight": 1.0, "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': "exc",
                 "source_inds": None, "target_inds": None,
                 "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
                 "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??

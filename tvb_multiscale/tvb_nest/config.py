@@ -101,7 +101,7 @@ class Config(ConfigBase):
     @property
     def DEFAULT_CONNECTION(self):
         return {"synapse_model": self.DEFAULT_SYNAPSE, "weight": 1.0,
-                "delay": self.DEF_SPIKING_MIN_DELAY, 'receptor_type': 0,
+                "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': 0,
                 "source_inds": None, "target_inds": None, "params": {},
                 "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
                 "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",

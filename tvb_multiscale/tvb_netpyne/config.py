@@ -22,7 +22,7 @@ class Config(ConfigBase):
     # TODO: synapse_model_placeholder? and what weight should go here?
     def DEFAULT_CONNECTION(self):
         return {"synapse_model": "synapse_model_placeholder",
-                "weight": 1.0, "delay": self.DEF_SPIKING_MIN_DELAY, 'receptor_type': 0,
+                "weight": 1.0, "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': 0,
                 "source_inds": None, "target_inds": None, "params": {},
                 "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
                               "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
