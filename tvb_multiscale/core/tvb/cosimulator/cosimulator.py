@@ -114,7 +114,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         existing_connections = self.connectivity.weights != 0
         if numpy.any(existing_connections):
             self._default_synchronization_n_step = \
-                int(np.floor(self.connectivity.idelays[existing_connections].min()
+                int(numpy.floor(self.connectivity.idelays[existing_connections].min()
                              / self._default_min_delay_synchronization_time_ratio))
             self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
                                                               decimals=self._number_of_dt_decimals)
