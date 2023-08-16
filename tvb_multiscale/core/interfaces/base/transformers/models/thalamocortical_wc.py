@@ -22,7 +22,7 @@ class ThalamocorticalWCLinearRate(LinearRate):
         # 1. Subcortex
         # (2. Specific Thalami, but this is one is not used)
         # input_buffer shape is assumed to be (proxy, time, vois)
-        return super(ThalamocorticalWCLinearRate, self)._compute(input_buffer)
+        return super(ThalamocorticalWCLinearRate, self)._compute(input_buffer.sum(axis=-1))
 
 
 class ThalamoCorticalWCInverseSigmoidal(HasTraits):
