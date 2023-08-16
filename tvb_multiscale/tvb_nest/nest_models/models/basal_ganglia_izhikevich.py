@@ -194,23 +194,23 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
             #  "params": {"rate": self.Estn_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineEstn": ["E"]},  # "Estn"
             #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-            #  "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Estn_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             # {"model": "poisson_generator",
             #  "params": {"rate": self.Igpe_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
             #  "nodes": self.Igpe_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Igpe_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             # {"model": "poisson_generator",
             #  "params": {"rate": self.Igpi_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
             #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Igpi_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             {"model": "dc_generator",
              "params": {"amplitude": -5.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
                         "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
              "connections": {"DBS_GPi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": 1.0, "delays": self.spiking_dt}
+             "weights": 1.0, "delays": self.default_min_delay}
         ]  #
 
     def set_defaults(self):
