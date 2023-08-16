@@ -98,6 +98,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     n_input_interfaces = 0
 
     _number_of_dt_decimals = None
+    _default_min_delay_synchronization_time_ratio = 1.0
+    _default_synchronization_time = 0.0
+    _default_synchronization_n_step = 0
 
     @property
     def in_proxy_inds(self):
@@ -107,9 +110,31 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     def all_proxy_inds(self):
         return numpy.unique(self.proxy_inds.tolist() + self.out_proxy_inds.tolist())
 
+    def compute_default_synchronization_time_and_n_step(self):
+        existing_connections = self.connectivity.weights != 0
+        if numpy.any(existing_connections):
+            self._default_synchronization_n_step = \
+                int(np.floor(self.connectivity.idelays[existing_connections].min()
+                             / self._default_min_delay_synchronization_time_ratio))
+            self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
+                                                              decimals=self._number_of_dt_decimals)
+        else:
+            self._default_synchronization_n_step = 1
+            self._default_synchronization_time = self.integrator.dt
+
+    def default_synchronization_time(self):
+        if self._default_synchronization_time == 0.0:
+            self.compute_default_synchronization_time_and_n_step()
+        return self._default_synchronization_time
+
+    def default_synchronization_n_step(self):
+        if self._default_synchronization_n_step == 0:
+            self.compute_default_synchronization_time_and_n_step()
+        return self._default_synchronization_n_step
+
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
-           and certainly longer or equal to the integration time step.
+           longer or equal to the integration time step.
            Moreover, the synchronization time must be equal or shorter
            than the minimum delay of all existing connections.
            Existing connections are considered those with nonzero weights.
@@ -148,14 +173,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         """This method will default synchronization time
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
-        existing_connections = self.connectivity.weights != 0
-        if numpy.any(existing_connections):
-            self._default_synchronization_n_step = self.connectivity.idelays[existing_connections].min()
-            self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
-                                                              decimals=self._number_of_dt_decimals)
-        else:
-            self._default_synchronization_n_step = 1
-            self._default_synchronization_time = self.integrator.dt
+        self.compute_default_synchronization_time_and_n_step()
         if self.synchronization_time == 0.0:
             self.synchronization_time = self._default_synchronization_time
         try:
