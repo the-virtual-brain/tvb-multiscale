@@ -280,6 +280,7 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
         # Connect the input spike device to the parrot neurons' population:
         nest_instance.Connect(nest_device.device, nest_device._nodes,
                               syn_spec={"weight": 1.0,
+                                        # TODO: change "resolution" for "min_delay" here???
                                         "delay": nest_instance.GetKernelStatus("resolution"),
                                         "receptor_type": 0},
                               conn_spec={"rule": parrot_connect_method})
@@ -311,7 +312,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         neurons_inds_fun: a function to return a NESTPopulation or a subset thereof of the target population.
                           Default = None.
         weight: the weights of the connection. Default = 1.0.
-        delay: the delays of the connection. Default = 0.0.
+        delay: the delays of the connection. Default = 0.0, will default to the min_delay of NEST.
         receptor_type: type of the synaptic receptor. Default = 0.
         config: configuration class instance. Default: imported default CONFIGURED object.
        Returns:
@@ -324,6 +325,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         receptor_type = 0
     if nest_instance is None:
         raise_value_error("There is no NEST instance!")
+    # TODO: change "resolution" for "min_delay" here???
     resolution = nest_instance.GetKernelStatus("resolution")
     try:
         if delay < resolution:
@@ -348,6 +350,7 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
             # the parrot_neuron population that is attached to the input spike device
             try:
                 # TODO: Find a way to deal with this when delays are given as distributions
+                # TODO: change "resolution" for "min_delay" here???
                 # Try to reduce delay by resolution time
                 syn_spec["delay"] = np.maximum(resolution, syn_spec["delay"] - resolution)
             except:
