@@ -25,17 +25,10 @@ class Config(ConfigBase):
 
     VERBOSE = False
 
-    MIN_SPIKING_DT = 0.001
-
     DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
 
     # Delays should be at least equal to ANNarchy time resolution
     DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
-    DEFAULT_CONNECTION = {"synapse_model": DEFAULT_SYNAPSE, "params": {},
-                          "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
-                          "source_inds": None, "target_inds": None,
-                          "syn_spec": {"synapse_model": DEFAULT_SYNAPSE, "params": {}},
-                          "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
     DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
@@ -56,6 +49,14 @@ class Config(ConfigBase):
                                          "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
                                                                     "schedule": [0.0], "period": -1.0},
                                          }
+
+    @property
+    def DEFAULT_CONNECTION(self):
+        return {"synapse_model": self.DEFAULT_SYNAPSE, "params": {},
+                "weight": 1.0, "delay": self.DEF_SPIKING_MIN_DELAY, 'receptor_type': "exc",
+                "source_inds": None, "target_inds": None,
+                "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
+                "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
