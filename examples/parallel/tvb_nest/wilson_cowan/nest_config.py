@@ -55,6 +55,7 @@ def build_nest_network(config=None, config_class=Config):
             nest_model_builder.output_devices_record_to = "memory"  # "ascii"
             nest_model_builder.population_order = config.N_NEURONS
             nest_model_builder.tvb_to_spiking_dt_ratio = 2  # 2 NEST integration steps for 1 TVB integration step
+            nest_model_builder.def_min_delay = config.DEFAULT_SPIKING_MIN_DELAY
             nest_model_builder.monitor_period = 1.0
 
         else:
@@ -71,6 +72,7 @@ def build_nest_network(config=None, config_class=Config):
             nest_model_builder.output_devices_record_to = "memory"  # "ascii"
             nest_model_builder.population_order = config.N_NEURONS
             nest_model_builder.tvb_to_spiking_dt_ratio = 2  # 2 NEST integration steps for 1 TVB integration step
+            nest_model_builder.def_min_delay = config.DEFAULT_SPIKING_MIN_DELAY
             nest_model_builder.monitor_period = 1.0
 
             # Set populations:
@@ -97,7 +99,7 @@ def build_nest_network(config=None, config_class=Config):
                  "synapse_model": synapse_model,
                  "conn_spec": conn_spec,
                  "weight": w_n_neurons_factor * sim_serial['model.c_ee'][0],  # simulator.model.c_ee[0], # default = 1.0
-                 "delay": 0.1,  # by default = 1 TVB time step
+                 "delay": nest_model_builder.def_min_delay,
                  "receptor_type": 0,  # default = 0
                  # ---------------- Possibly functions of spiking_nodes_inds --------------------------
                  "nodes": None},  # None means "all" -> performing this connection to all spiking_nodes_inds
@@ -105,21 +107,21 @@ def build_nest_network(config=None, config_class=Config):
                  "synapse_model": synapse_model,
                  "conn_spec": conn_spec,
                  "weight": w_n_neurons_factor * sim_serial['model.c_ei'][0],  # simulator.model.c_ei[0],
-                 "delay": 0.1,
+                 "delay": nest_model_builder.def_min_delay,
                  "receptor_type": 0,
                  "nodes": None},
                 {"source": "I", "target": "E",  # I -> E
                  "synapse_model": synapse_model,
                  "conn_spec": conn_spec,
                  "weight": -w_n_neurons_factor * sim_serial['model.c_ie'][0],  # -simulator.model.c_ie[0],
-                 "delay": 0.1,
+                 "delay": nest_model_builder.def_min_delay,
                  "receptor_type": 0,
                  "nodes": None},
                 {"source": "I", "target": "I",  # I -> I, This is a self-connection for population "I"
                  "synapse_model": synapse_model,
                  "conn_spec": conn_spec,
                  "weight": -w_n_neurons_factor * sim_serial['model.c_ii'][0],  # -simulator.model.c_ii[0],
-                 "delay": 0.1,
+                 "delay": nest_model_builder.def_min_delay,
                  "receptor_type": 0,
                  "nodes": None}
             ]
@@ -137,7 +139,7 @@ def build_nest_network(config=None, config_class=Config):
                  # ...using TVB connectome delays
                  "delay":
                      lambda source_node_ind, target_node_ind:
-                     np.maximum(sim_serial['integrator.dt'],
+                     np.maximum(np.maximum(sim_serial['integrator.dt'], nest_model_builder.def_min_delay),
                                 sim_serial['connectivity.delays'][target_node_ind, source_node_ind]),
                  "receptor_type": 0,
                  # --------- Possibly functions of (source_node_ind, target_node_ind, *args, **kwargs) -------------
@@ -176,7 +178,7 @@ def build_nest_network(config=None, config_class=Config):
                  # ---------------- Possibly functions of spiking_nodes_inds --------------------------
                  "params": {"rate": 7000.0, "origin": 0.0, "start": nest_model_builder.spiking_dt},
                  "weights": 1.0,
-                 "delays": nest_model_builder.spiking_dt,
+                 "delays": nest_model_builder.def_min_delay,
                  "receptor_type": 0,
                  # ---------------- Possibly functions of spiking_nodes_inds --------------------------
                  "nodes": None  # None means all here -> stimulating all spiking_nodes_inds
@@ -253,7 +255,8 @@ def build_nest_network(config=None, config_class=Config):
                         nest.Connect(nest_network.brain_regions[src_node_lbl][src_pop].nodes,
                                      nest_network.brain_regions[src_node_lbl][trg_pop].nodes,
                                      syn_spec={"synapse_model": synapse_model,
-                                               "weight": w, "delay": 0.1, "receptor_type": 0},
+                                               "weight": w, "delay": config.DEFAULT_SPIKING_MIN_DELAY,
+                                               "receptor_type": 0},
                                      conn_spec=conn_spec)
                         if config.VERBOSITY:
                             print("\n...connected populations %s -> %s in brain region %s..."
@@ -269,7 +272,8 @@ def build_nest_network(config=None, config_class=Config):
                                                sim_serial['coupling.a'][0].item() *
                                                sim_serial['connectivity.weights'][trg_node_ind, src_node_ind].item(),
                                            "delay":
-                                               np.maximum(0.1,
+                                               np.maximum(np.maximum(config.DEFAULT_SPIKING_MIN_DELAY,
+                                                                     sim_serial["integrator.dt"]),
                                                           sim_serial['connectivity.delays'][
                                                               trg_node_ind, src_node_ind].item()),
                                            "receptor_type": 0},
@@ -326,7 +330,7 @@ def build_nest_network(config=None, config_class=Config):
                                      nest, model="poisson_generator", label="Stimulus", brain_region=region_name)
             nest.Connect(nest_network.input_devices["Stimulus"][region_name].device,
                          nest_network.brain_regions[region_name]["E"].nodes,
-                         syn_spec={"weight": 1.0, "delay": nest_dt})
+                         syn_spec={"weight": 1.0, "delay": config.DEFAULT_SPIKING_MIN_DELAY})
             nest_network.input_devices["Stimulus"].update()  # update DeviceSet after the new NESTDevice entry
             if config.VERBOSITY:
                 print("\n...created poisson_generator device for population E in brain region %s..." % region_name)

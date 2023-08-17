@@ -74,9 +74,9 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 
     def delay_fun(self, low=None, high=None):
         if low is None:
-            low = self.spiking_dt
+            low = self.default_min_delay
         if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.spiking_dt)
+            high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
         return random_uniform_delay(low, low, high, sigma=None)
 
     def within_node_delay(self):
@@ -149,9 +149,9 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         if low is None:
-            low = self.tvb_dt
+            low = self.default_min_delay
         if high is None:
-            high = 2 * self.tvb_dt
+            high = np.maximum(self.tvb_dt, 2*self.default_min_delay)
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
 
@@ -207,8 +207,8 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
              "params": {"rate": 7000.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": 1.0,  # self.weight_fun(1.0),
-             # random_uniform_delay(self.spiking_dt, self.spiking_dt, 2*self.spiking_dt, sigma=None),
-             "delays": self.spiking_dt,
+             # random_uniform_delay(self.default_min_delay, self.default_min_delay, 2*self.default_min_delay, sigma=None),
+             "delays": self.default_min_delay,
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device

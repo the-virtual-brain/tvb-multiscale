@@ -137,8 +137,9 @@ class Config(HasTraits):
 
     DEFAULT_DT = 0.1
     TVB_TO_SPIKING_DT_RATIO = 2
-    MIN_DELAY_RATIO = 1
     MIN_SPIKING_DT = 0.001
+    MIN_DELAY_RATIO = 1
+    DEFAULT_SPIKING_MIN_DELAY = 1.0
 
     DEFAULT_TVB_MODEL = WilsonCowan
     DEFAULT_TVB_COUPLING_MODEL = Linear
@@ -149,11 +150,6 @@ class Config(HasTraits):
     DEFAULT_NOISE = Additive
     DEFAULT_NSIG = 1e-3
     DEFAULT_MONITOR = Raw
-
-    # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
-                          "source_inds": None, "target_inds": None, "params": {},
-                          "syn_spec": {}, "conn_spec": {}}
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()

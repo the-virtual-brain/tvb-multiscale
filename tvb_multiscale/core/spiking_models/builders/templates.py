@@ -44,7 +44,7 @@ def set_within_node_connection_weight(node):
 
 
 def set_within_node_connection_delay(node):
-    return 0.0
+    return 1.0
     # return float or dict
 
 
@@ -79,7 +79,7 @@ def scale_tvb_weight(source_node, target_node, tvb_weights, scale=1.0):
 
 
 def set_between_nodes_connection_delay(source_node, target_node, tvb_delays):
-    return 0.0
+    return 1.0
     # return float or dict
 
 
@@ -126,7 +126,7 @@ def set_input_device_weight(node):
 
 
 def set_input_device_connection_delay(node):
-    return 0.0
+    return 1.0
     # return float or dict
 
 

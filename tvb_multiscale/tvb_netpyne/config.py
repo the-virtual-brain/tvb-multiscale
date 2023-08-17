@@ -6,14 +6,7 @@ from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_
 
 class Config(ConfigBase):
     
-    DEFAULT_SPIKING_MODEL = "default_model_placeholder" # TODO: what's the default model?
-
-    # Delays should be at least equal to NetPyNE time resolution
-    # TODO: synapse_model_placeholder? and what weight should go here?
-    DEFAULT_CONNECTION = {"synapse_model": "synapse_model_placeholder", "weight": 1.0, "delay": 1.0, 'receptor_type': 0,
-                          "source_inds": None, "target_inds": None, "params": {},
-                          "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
-                                        "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
+    DEFAULT_SPIKING_MODEL = "default_model_placeholder"  # TODO: what's the default model?
 
     NETPYNE_INPUT_DEVICES_PARAMS_DEF = {
         "poisson_generator": {
@@ -24,6 +17,15 @@ class Config(ConfigBase):
         "spike_recorder": {},
         "multimeter": {},
     }
+
+    # Delays should be at least equal to NetPyNE time resolution
+    # TODO: synapse_model_placeholder? and what weight should go here?
+    def DEFAULT_CONNECTION(self):
+        return {"synapse_model": "synapse_model_placeholder",
+                "weight": 1.0, "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': 0,
+                "source_inds": None, "target_inds": None, "params": {},
+                "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
+                              "indegree": None, "outdegree": None, "N": None, "p": 0.1}}
 
 
 CONFIGURED = Config(initialize_logger=False)

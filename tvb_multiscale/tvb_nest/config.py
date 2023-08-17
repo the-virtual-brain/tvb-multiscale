@@ -47,6 +47,8 @@ class Config(ConfigBase):
     # Delays should be at least equal to NEST time resolution
     DEFAULT_SYNAPSE = "static_synapse"
 
+    LOCK_MIN_DELAY = False
+
     DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
 
@@ -101,7 +103,8 @@ class Config(ConfigBase):
 
     @property
     def DEFAULT_CONNECTION(self):
-        return {"synapse_model": self.DEFAULT_SYNAPSE, "weight": 1.0, "delay": 1.0, 'receptor_type': 0,
+        return {"synapse_model": self.DEFAULT_SYNAPSE, "weight": 1.0,
+                "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': 0,
                 "source_inds": None, "target_inds": None, "params": {},
                 "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
                 "conn_spec": {"allow_autapses": True, 'allow_multapses': True, 'rule': "all_to_all",
