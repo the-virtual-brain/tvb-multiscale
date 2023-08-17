@@ -278,11 +278,15 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
     if parrot:
         nest_device = devices_dict[device_model](nest_device_node_collection, parrot, nest_instance, label=label)
         # Connect the input spike device to the parrot neurons' population:
+        if config.LOCK_MIN_DELAY:
+            parrot_delay = nest_instance.GetKernelStatus("min_delay")
+            warning("Delay for parrot device %s is set equal to current NEST min_delay=%f, "
+                    "because config.LOCK_MIN_DELAY = %r!" %
+                    (device_model, parrot_delay, config.LOCK_MIN_DELAY))
+        else:
+            parrot_delay = nest_instance.GetKernelStatus("resolution")
         nest_instance.Connect(nest_device.device, nest_device._nodes,
-                              syn_spec={"weight": 1.0,
-                                        # TODO: change "resolution" for "min_delay" here???
-                                        "delay": nest_instance.GetKernelStatus("resolution"),
-                                        "receptor_type": 0},
+                              syn_spec={"weight": 1.0, "delay": parrot_delay, "receptor_type": 0},
                               conn_spec={"rule": parrot_connect_method})
         if record_parrot is not None:
             rec_params = config.NEST_OUTPUT_DEVICES_PARAMS_DEF.get("spike_recorder", {})
@@ -303,7 +307,7 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
         return nest_device
 
 
-def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=0.0, receptor_type=0,
+def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=None, receptor_type=0,
                    syn_spec=None, conn_spec=None, config=CONFIGURED, **kwargs):
     """This method connects a NESTDevice to a NESTPopulation instance.
        Arguments:
@@ -312,7 +316,11 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         neurons_inds_fun: a function to return a NESTPopulation or a subset thereof of the target population.
                           Default = None.
         weight: the weights of the connection. Default = 1.0.
-        delay: the delays of the connection. Default = 0.0, will default to the min_delay of NEST.
+        delay: the delays of the connection.
+               Default = None, will default to the current min_delay of NEST, which also the default NEST behavior.
+               If config.LOCK_MIN_DELAY = True, min_delay will be enforced as a lower bound,
+               no matter the input argument, and a warning will be issued.
+               Otherwise, only the NEST resolution is enforced as a lower bound, again with issuing a warning.
         receptor_type: type of the synaptic receptor. Default = 0.
         config: configuration class instance. Default: imported default CONFIGURED object.
        Returns:
@@ -325,16 +333,28 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
         receptor_type = 0
     if nest_instance is None:
         raise_value_error("There is no NEST instance!")
-    # TODO: change "resolution" for "min_delay" here???
-    resolution = nest_instance.GetKernelStatus("resolution")
-    try:
-        if delay < resolution:
-            warning("Delay %f is smaller than the NEST simulation resolution %f!\n"
-                    "Setting minimum delay equal to resolution!" % (delay, resolution))
-            delay = resolution
-    except:
-        pass
-    basic_syn_spec = {"weight": weight, "delay": delay, "receptor_type": receptor_type}
+
+    min_delay = nest_instance.GetKernelStatus("min_delay")
+    basic_syn_spec = {"weight": weight, "delay": min_delay, "receptor_type": receptor_type}
+    if config.LOCK_MIN_DELAY:
+        delay_mode = "min_delay"
+    else:
+        min_delay = nest_instance.GetKernelStatus("resolution")
+        delay_mode = "resolution"
+    if delay is not None:
+        try:
+            if np.any(delay < min_delay):
+                warning("There are delays\n%s\n smaller than the NEST simulation %s=%f!\n"
+                        "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                        "Setting those delays equal to %s=%f!" %
+                        (str(delay), delay_mode, min_delay, config.LOCK_MIN_DELAY, delay_mode, min_delay))
+                delay = np.array(ensure_list(delay))
+                delay[delay < min_delay] = min_delay
+                if delay.shape == 1:
+                    delay = delay[0].item()
+        except:
+            pass
+        basic_syn_spec["delay"] = delay
     if isinstance(syn_spec, dict):
         syn_spec = safe_deepcopy(syn_spec)
         syn_spec.update(basic_syn_spec)
@@ -349,10 +369,21 @@ def connect_device(nest_device, population, neurons_inds_fun, weight=1.0, delay=
             # This is the case where we connect to the target neurons
             # the parrot_neuron population that is attached to the input spike device
             try:
+                if delay_mode == "min_delay":
+                    warning("Connection delay offset for parrot device %s is set equal to current NEST min_delay=%f, "
+                            "because config.LOCK_MIN_DELAY = %r!" %
+                            (str(nest_device), min_delay, config.LOCK_MIN_DELAY))
                 # TODO: Find a way to deal with this when delays are given as distributions
-                # TODO: change "resolution" for "min_delay" here???
-                # Try to reduce delay by resolution time
-                syn_spec["delay"] = np.maximum(resolution, syn_spec["delay"] - resolution)
+                parrot_delay = syn_spec["delay"] - min_delay
+                if parrot_delay < min_delay:
+                    warning("Connection delay for parrot device %f is smaller than the min_delay allowed = %f!\n"
+                            "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                            "Setting the parrot device connection delay equal to min_delay=%f, "
+                            "which will lead to an extra delay!"
+                            % (parrot_delay, min_delay, config.LOCK_MIN_DELAY, min_delay))
+                    syn_spec["delay"] = min_delay
+                else:
+                    syn_spec["delay"] = parrot_delay
             except:
                 pass
             if conn_spec is None:
