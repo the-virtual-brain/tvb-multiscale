@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -195,6 +195,18 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         elif np.any(self._get_min_delay(delay) < self.spiking_dt):
             raise_value_error("Coupling spiking neurons with delay = %s < NEST integration step = %f is not possible!:"
                               "\n" % (str(delay), self.spiking_dt))
+        elif np.any(self._get_min_delay(delay) < self.min_delay):
+            if self.config.LOCK_MIN_DELAY:
+                warning.warng("There are delays\n%s\n smaller than the min_delay "
+                              "(either current or set by default)=%f!\n"
+                              "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                              "Setting those delays equal to %f, "
+                              "unless delay is a NEST parameter, in which case there will be an Exception raised!" %
+                              (str(delay), self.min_delay, self.config.LOCK_MIN_DELAY, self.min_delay))
+                delay = np.array(ensure_list(delay))
+                delay[delay < self.min_delay] = self.min_delay
+                if delay.shape == 1:
+                    delay = delay[0].item()
         return delay
 
     def _prepare_conn_spec(self,  pop_src, pop_trg, conn_spec):
