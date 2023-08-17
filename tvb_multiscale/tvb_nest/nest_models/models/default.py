@@ -142,7 +142,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
              "connections": connections, "nodes": None,
              "weights": self.weight_fun(1.0),
              "delays": random_uniform_delay(self.default_min_delay,
-                                            self.default_min_delay, 2*self.ddefault_min_delay, sigma=None),
+                                            self.default_min_delay, 2*self.default_min_delay, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device
