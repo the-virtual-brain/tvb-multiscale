@@ -47,6 +47,8 @@ class Config(ConfigBase):
     # Delays should be at least equal to NEST time resolution
     DEFAULT_SYNAPSE = "static_synapse"
 
+    LOCK_MIN_DELAY = False
+
     DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
     DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
 
