@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from logging import Logger
+import warnings
 from enum import Enum
 import pickle
 
@@ -110,7 +111,22 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
 
     @property
     def _default_min_delay(self):
-        return self.nest_min_delay
+        return np.minimum(self.nest_min_delay, self.config.DEFAULT_SPIKING_MIN_DELAY)
+
+    def _bound_tvb_delays(self, delays):
+        if self.config.LOCK_MIN_DELAY:
+            min_delay = self._default_min_delay
+            delay_mode = "min_delay"
+        else:
+            min_delay = self.spiking_dt
+            delay_mode = "resolution"
+        if np.any(delays < min_delay):
+            warnings.warn("There are delays\n%s\n smaller than the NEST %s=%f!\n"
+                    "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                    "Setting those delays equal to %s=%f!" %
+                    (str(delays), delay_mode, min_delay, self.config.LOCK_MIN_DELAY, delay_mode, min_delay))
+            delays[delays < min_delay] = min_delay
+        return np.maximum(min_delay, delays - min_delay).astype("float32")
 
 
 class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
@@ -149,8 +165,7 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
     )
 
     def _get_tvb_delays(self):
-        return np.maximum(self.spiking_dt,
-                          SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
+        return self._bound_tvb_delays(SpikeNetInterfaceBuilder._get_tvb_delays(self))
 
 
 class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
@@ -272,7 +287,10 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
         TVBSpikeNetInterfaceBuilder.configure(self)
 
     def _get_tvb_delays(self):
-        return (np.maximum(1,
-                           np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
+        return self._bound_tvb_delays(
+            (np.maximum(1,
+                       np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
                                     - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
-                           ) * self.spiking_dt).astype("float32")
+                        ) * self.spiking_dt
+             ).astype("float32")
+                                      )
