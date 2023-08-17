@@ -28,7 +28,7 @@ def configure(config_class=Config):
     TVB_TO_SPIKENET_PROXY_MODEL = "RATE"
     INTERFACE_COUPLING_MODE = "TVB"  # "spikeNet" # "TVB"
     EXCLUSIVE_NODES = True
-    W_TVB_TO_SPIKENET = 5000.0  # TVB->NEST interface scaling weight
+    W_TVB_TO_SPIKENET = 2500.0  # TVB->NEST interface scaling weight
     # -----------------------------------------------
 
     # Base paths

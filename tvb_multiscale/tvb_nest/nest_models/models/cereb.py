@@ -378,7 +378,7 @@ class CerebBuilder(NESTNetworkBuilder):
                         "origin": 0.0, "start": self.STIM_MF_START, "stop": self.STIM_MF_END},
              "connections": connections, "nodes": self.pops_to_nodes_inds["mossy_fibers"],
              "weights": 1.0,
-             "delays": self.spiking_dt,
+             "delays": self.default_min_delay,
              "receptor_type": 0}
         return device
 
@@ -402,7 +402,7 @@ class CerebBuilder(NESTNetworkBuilder):
              # "neurons_fun": lambda node, population: self.select_microzone_negative(population),
              "connections": connections, "nodes": self.pops_to_nodes_inds["io_cell"],
              "weights": 25.0,
-             "delays": self.spiking_dt,
+             "delays": self.default_min_delay,
              "receptor_type": 1}
         return device
 
@@ -415,7 +415,7 @@ class CerebBuilder(NESTNetworkBuilder):
              "params": {"rate": self.BACKGROUND_FREQ, "origin": 0.0, "start": 0.0},
              "connections": connections, "nodes": self.pops_to_nodes_inds["mossy_fibers"],
              "weights": 1.0,
-             "delays": self.spiking_dt,
+             "delays": self.default_min_delay,
              "receptor_type": 0}
         return device
 

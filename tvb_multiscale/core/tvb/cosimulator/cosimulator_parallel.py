@@ -44,6 +44,8 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 class CoSimulatorRemoteParallel(CoSimulator):
 
+    _default_min_delay_synchronization_time_ratio = 2
+
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True):
         self.n_tvb_steps_ran_since_last_synch = \
             super(CoSimulatorRemoteParallel, self).run_for_synchronization_time(
@@ -52,6 +54,8 @@ class CoSimulatorRemoteParallel(CoSimulator):
 
 
 class CoSimulatorParallel(CoSimulator):
+
+    _default_min_delay_synchronization_time_ratio = 2
 
     def get_cosim_updates(self, cosim_updates=None, cosimulation=True):
         if cosimulation and self.input_interfaces and cosim_updates is not None:
