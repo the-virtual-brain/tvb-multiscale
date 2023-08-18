@@ -61,7 +61,6 @@ class CoSimulatorSerial(CoSimulator):
                           decimals=self._number_of_dt_decimals).item())
         return self.send_cosim_coupling(cosimulation), self.n_tvb_steps_ran_since_last_synch
 
-
     def run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
         """Convenience method to run cosimulation for serial cosimulation."""
         simulation_length = self.simulation_length
