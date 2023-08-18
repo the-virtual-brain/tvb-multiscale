@@ -109,7 +109,16 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
-    print(orchestrator.print_summary_info_details(recursive=2, connectivity=False))
+    print_summary = True
+
+    # only applicable for NetPyNE parallel simulation with MPI: skip printing and plotting the results unless being on root MPI node:
+    if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
+        not orchestrator.spikeNet_app.spiking_cosimulator.isRootNode():
+        print_summary = False
+        plot_write = False
+
+    if print_summary:
+        print(orchestrator.print_summary_info_details(recursive=2, connectivity=False))
 
     # -------------------------------------4. Configure, Simulate and gather results------------------------------------
     print("\n\nSimulating...")
