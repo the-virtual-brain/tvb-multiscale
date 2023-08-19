@@ -1,0 +1,2 @@
+# Include the data files
+recursive-include tvb_multiscale **/*.mod
