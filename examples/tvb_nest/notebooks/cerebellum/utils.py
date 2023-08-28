@@ -104,7 +104,7 @@ def compute_plot_selected_spectra_coherence(source_ts, inds,
     fL = []
     CxyL = []
     n_regions2 = int(n_regions * (n_regions - 1)/2)
-    if nregions2:
+    if n_regions2:
         fig, axes = plt.subplots(n_regions2, 2, figsize=(figsize[0], figsize[1]*n_regions))
         if len(axes.shape) < 2:
             axes = axes[np.newaxis, :]
@@ -156,9 +156,9 @@ def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fm
         # Plot coherence
         axes[0].plot(freq, avg_coherence[test], color=color[test])
     # Plot coherence diff cosim vs MF cereb-OFF
-    axes[1].plot(freq,np.subtract(avg_coherence['MF_cerebOFF'],avg_coherence['cosim']), color=color['cosim'])
+    #axes[1].plot(freq,np.subtract(avg_coherence['MF_cerebOFF'], avg_coherence['cosim']), color=color['cosim'])
     # Plot coherence diff MF cereb-ON vs MF cereb-OFF
-    axes[1].plot(freq,np.subtract(avg_coherence['MF_cerebOFF'],avg_coherence['MF_cerebON']), color=color['MF_cerebON'])
+    axes[1].plot(freq,np.subtract(avg_coherence['MF_cerebOFF'], avg_coherence['MF_cerebON']), color=color['MF_cerebON'])
 
     for ii in range(len(axes)):
         axes[ii].set_xlim([fmin, fmax])
@@ -170,10 +170,10 @@ def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fm
         
     axes[0].set_ylim(yranges[0])
     axes[0].set_title('M1-S1 coherence spectra during virtual whisking')
-    axes[0].legend(avg_coherence.keys())
+    axes[0].legend(['mean-field cerebellum ON','cerebellar inactivation (OFF)','spiking cerebellum ON (cosim)'])
     axes[1].set_ylim(yranges[1])
     axes[1].set_title('change in M1-S1 coherence after virtual cerebellar inactivation')
-    axes[1].legend(['OFF-ON cosim','OFF-ON MF'])
+    axes[1].legend(['OFF-ON spiking','OFF-ON mean-field'])
 
     if show_flag:
         plt.show()
@@ -182,6 +182,8 @@ def only_plot_selected_spectra_coherence_and_diff(freq, avg_coherence, color, fm
     
     if save_flag and len(figures_path):
         plt.savefig(os.path.join(figures_path, "COHselectDiff.%s" % figformat))
+
+    return fig
 
 
 def compute_plot_ica(data, time, variable="BOLD", n_components=10, plotter=None):
