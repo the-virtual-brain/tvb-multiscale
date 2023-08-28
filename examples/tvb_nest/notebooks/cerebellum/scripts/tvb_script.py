@@ -78,8 +78,8 @@ def plot_norm_w_hist(w, wp, inds, plotter_config, title_string=""):
     x = bins[:-1] + np.diff(bins) / 2
     fig = plt.figure(figsize=(10, 5))
     plt.plot(x, h, 'b', label='All connections')
-    plt.plot(x, h_crtx, 'g', label='Non Subcortical connections')
-    plt.plot(x, h_sub, 'r', label='Subcortical connections')
+    plt.plot(x, h_crtx, 'g', label='Isocortical connections')
+    plt.plot(x, h_sub, 'r', label='Non-isocortical connections')
     # plt.plot(x, h-h_sub, 'r--', label='All - Subcortical connections')
     # plt.plot(x, h-h_crtx, 'g--', label='All - Non Subcortical connections')
     # plt.plot(x, h2, 'k--', label='Total connections')
@@ -357,7 +357,7 @@ def apply_fic(simulator, inds, FIC, G=None, param='w_ie', plotter=None):
 def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
     from tvb_multiscale.core.tvb.cosimulator.models.wc_thalamocortical_cereb import SigmoidalPreThalamoCortical
-    from tvb.simulator.monitors import Raw, Bold, TemporalAverage
+    from tvb.simulator.monitors import Raw, Bold, TemporalAverage, AfferentCoupling, AfferentCouplingTemporalAverage
 
     simulator = CoSimulatorSerial()
 
@@ -463,14 +463,17 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     # Set monitors:
     if config.RAW_PERIOD > config.DEFAULT_DT:
         mon_raw = TemporalAverage(period=config.RAW_PERIOD)  # ms
+        afferent = AfferentCouplingTemporalAverage(period=config.RAW_PERIOD, variables_of_interest=np.array([0, 1]))
     else:
         mon_raw = Raw()
+        afferent = AfferentCoupling(variables_of_interest=np.array([0, 1]))
     if config.BOLD_PERIOD:
         bold = Bold(period=config.BOLD_PERIOD,
                     variables_of_interest=np.array([2]))
-        simulator.monitors = (mon_raw, bold)
+        simulator.monitors = (mon_raw, bold, afferent)
     else:
-        simulator.monitors = (mon_raw,)
+        simulator.monitors = (mon_raw, afferent)
+
 
     simulator.configure()
 
@@ -589,24 +592,21 @@ def compute_target_PSDs_m1s1brl(config, write_files=True, plotter=None):
     return PSD_target
 
 
-def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, average_region_ps=False):
+def compute_data_PSDs(data, dt, ftarg, transient=None, average_region_ps=False):
     # Time and frequency
-    dt = np.mean(np.diff(raw_results[0]))
     fs = 1000.0 / dt  # sampling frequency in sec
     if transient is None:
         transient = 0
     else:
         transient = int(np.ceil(transient / dt))  # in data points
-
-    # data
-    data = raw_results[1][transient:, 0, inds, 0].squeeze().T
+    # Remove possible transient and transpose time and signals:
+    data = data[transient:].T
 
     # Window:
     # NPERSEG = np.array([256, 512, 1024, 2048, 4096])
-    ftarg = PSD_target["f"]
     # fmin = ftarg[0]  # The minimum frequency of the PSD_target...
     # win_len = int(np.ceil(1000.0 / fmin / dt))  # ...will determine the length of the sliding window....
-    nperseg = int(np.ceil(2048 / dt))  # NPERSEG[np.argmin(np.abs(NPERSEG - win_len))]
+    nperseg = 512  # int(np.ceil(2048 / dt))  # NPERSEG[np.argmin(np.abs(NPERSEG - win_len))]
 
     # Compute Power Spectrum
     f, Pxx_den = welch(data, fs, nperseg=nperseg)
@@ -615,26 +615,32 @@ def compute_data_PSDs(raw_results, PSD_target, inds, transient=None, average_reg
         # Average power spectra across regions for the case of 1D computations
         Pxx_den = Pxx_den.mean(axis=0, keepdims=True)
 
-    # print(Pxx_den.shape)
-
     # Compute spectrum interpolation...
     interp = interp1d(f, Pxx_den, kind='linear', axis=1,
                       copy=True, bounds_error=None, fill_value=0.0, assume_sorted=True)
     # ...to the target frequencies:
-    Pxx_den = interp(PSD_target["f"])
+    Pxx_den = interp(ftarg)
 
     # Normalize to get a density summing to 1.0:
     for ii in range(Pxx_den.shape[0]):
         Pxx_den[ii] = Pxx_den[ii] / np.sum(Pxx_den[ii])
 
-    return Pxx_den, ftarg
+    return Pxx_den
+
+
+def compute_data_PSDs_from_raw(raw_results, ftarg, inds, transient=None, average_region_ps=False):
+    return compute_data_PSDs(raw_results[1][:, 0, inds, 0].squeeze(),
+                             np.mean(np.diff(raw_results[0])),
+                             ftarg,
+                             transient=transient, average_region_ps=average_region_ps)
 
 
 def compute_data_PSDs_1D(raw_results, PSD_target, inds, transient=None, write_files=True, plotter=None):
 
     # Select regions' data, compute PSDs, average them across region,
     # interpolate them to the target frequencies, and normalize them to sum up to 1.0:
-    Pxx_den, ftarg = compute_data_PSDs(raw_results, PSD_target, inds['crtx'], transient=transient, average_region_ps=True)
+    Pxx_den, ftarg = compute_data_PSDs_from_raw(raw_results, PSD_target['f'], inds['crtx'],
+                                                transient=transient, average_region_ps=True)
     Pxx_den = Pxx_den.flatten()
 
     if plotter:
@@ -664,7 +670,8 @@ def compute_data_PSDs_m1s1brl(raw_results, PSD_target, inds, transient=None, wri
 
     # Select regions' data, compute PSDs, interpolate them to the target frequencies, 
     # and normalize them to sum up to 1.0:
-    Pxx_den, ftarg = compute_data_PSDs(raw_results, PSD_target, inds['m1s1brl'], transient=transient, average_region_ps=False)
+    Pxx_den, ftarg = compute_data_PSDs_from_raw(raw_results, PSD_target['f'], inds['m1s1brl'],
+                                                transient=transient, average_region_ps=False)
 
     if plotter:
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
@@ -727,6 +734,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
     source_ts = None
     bold_ts = None
+    afferent_ts = None
 
     outputs = []
     if results is not None:
@@ -740,10 +748,26 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
         source_ts.configure()
 
+        afferent_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
+            data=results[-1][1], time=results[-1][0],
+            connectivity=simulator.connectivity,
+            labels_ordering=["Time", "State Variable", "Region", "Neurons"],
+            labels_dimensions={"State Variable": ["cortical coupling","subcortical coupling"],
+                               "Region": simulator.connectivity.region_labels.tolist()},
+            sample_period=simulator.integrator.dt)
+
+        afferent_ts.configure()
+
         if write_files:
             if config.VERBOSE:
                 print("Pickle-dumping source_ts to %s!" % config.SOURCE_TS_PATH)
             dump_picked_time_series(source_ts, config.SOURCE_TS_PATH)
+            dump_picked_time_series(afferent_ts, config.AFFERENT_TS_PATH)
+            # import pickle
+            # with open(config.SOURCE_TS_PATH, 'wb') as handle:
+            #     pickle.dump(source_ts, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # with open(config.AFFERENT_TS_PATH, 'wb') as handle:
+            #     pickle.dump(afferent_ts, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         # Write to file
         if writer:
@@ -760,14 +784,15 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
         # t = source_ts.time
 
-        if len(results) > 1:
+        if len(results) > 2:
+            print("results [1] inside tvb_script ", results[1])
             bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
                 data=results[1][1], time=results[1][0],
-                sample_period=simulator.monitors[1].period,
                 connectivity=simulator.connectivity,
                 labels_ordering=["Time", "State Variable", "Region", "Neurons"],
                 labels_dimensions={"State Variable": ["BOLD"],
-                                   "Region": simulator.connectivity.region_labels.tolist()})
+                                   "Region": simulator.connectivity.region_labels.tolist()},
+                sample_period=simulator.monitors[1].period)
             bold_ts.configure()
 
             outputs.append(bold_ts)
@@ -790,11 +815,12 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
             if config.VERBOSE > 1:
                 print("BOLD ts:\n%s" % str(bold_ts))
 
+        outputs.append(afferent_ts)
     return tuple(outputs)
 
 
 def plot_tvb(transient, inds,
-             results=None, source_ts=None, bold_ts=None,
+             results=None, source_ts=None, bold_ts=None, afferent_ts=None,
              simulator=None, plotter=None, config=None, write_files=True):
     if plotter is None:
         config, plotter = assert_config(config, return_plotter=True)
@@ -812,6 +838,7 @@ def plot_tvb(transient, inds,
         source_ts = results[0]
         if len(results) > 1:
             bold_ts = results[1]
+            afferent_ts = results[-1]
 
     # Plot TVB time series
     if source_ts is not None:
@@ -846,9 +873,25 @@ def plot_tvb(transient, inds,
     if source_ts is not None:
         source_ts_cereb = source_ts[-10000:, :, inds["cereb"]]
         source_ts_cereb.plot_timeseries(plotter_config=plotter.config,
-                                       hue="Region" if source_ts_cereb.shape[2] > MAX_REGIONS_IN_ROWS else None,
-                                       per_variable=source_ts_cereb.shape[1] > MAX_VARS_IN_COLS,
-                                       figsize=FIGSIZE, figname="Cerebellum TVB Time Series")
+                                        hue="Region" if source_ts_cereb.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                        per_variable=source_ts_cereb.shape[1] > MAX_VARS_IN_COLS,
+                                        figsize=FIGSIZE, figname="Cerebellum TVB Time Series")
+
+    # Focus on the s1 barrel field nodes:
+    if afferent_ts is not None:
+        afferent_ts_m1s1brl = afferent_ts[-10000:, :, inds["s1brlthal"]]
+        afferent_ts_m1s1brl.plot_timeseries(plotter_config=plotter.config,
+                                           hue="Region" if afferent_ts_m1s1brl.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                           per_variable=afferent_ts_m1s1brl.shape[1] > MAX_VARS_IN_COLS,
+                                           figsize=FIGSIZE, figname="S1 barrel field nodes TVB Time Series")
+   # Focus on regions potentially modelled in NEST (ansiform lobule, interposed nucleus, inferior olive):
+    if afferent_ts is not None:
+        afferent_ts_cereb = afferent_ts[-10000:, :, inds["ansilob"]]
+        afferent_ts_cereb.plot_timeseries(plotter_config=plotter.config,
+                                          hue="Region" if afferent_ts_cereb.shape[2] > MAX_REGIONS_IN_ROWS else None,
+                                          per_variable=afferent_ts_cereb.shape[1] > MAX_VARS_IN_COLS,
+                                          figsize=FIGSIZE, figname="Ansiform Lobule TVB Afferent Time Series")
+
 
     # bold_ts TVB time series
     if bold_ts is not None:
@@ -886,6 +929,26 @@ def plot_tvb(transient, inds,
                                             figures_path=config.figures.FOLDER_FIGURES,
                                             figname="SPV_PonsSens", figformat="png",
                                             show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+    print("psd input cereb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # Power Spectra and Coherence at cerebellar input - ansiform lobule:
+    print("inds ansilob",inds["ansilob"])
+    print("Ansiform lobule source_ts PSD, with compute_plot_selected_spectra_coherence")
+    compute_plot_selected_spectra_coherence(source_ts, inds["ansilob"],
+                                            transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
+                                            figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob", figformat="png",
+                                            show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+
+    # Power Spectra and Coherence of cerebellar input - afferent to ansiform lobule:
+    print("Ansiform lobule afferent PSD, with compute_plot_selected_spectra_coherence")
+    Pxx_den_ansilob = []
+    for iC in range(0, 2):
+        CxyR, fR, fL, CxyL, Pxx_den_ansilob_temp = \
+            compute_plot_selected_spectra_coherence(
+                afferent_ts[:, iC], inds["ansilob"],
+                transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
+                figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob_afferent", figformat="png",
+                show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+        Pxx_den_ansilob.append(Pxx_den_ansilob_temp)
 
     # Better summary figure:
     import matplotlib.pyplot as plt
@@ -926,10 +989,32 @@ def plot_tvb(transient, inds,
     else:
         plt.close(fig)
 
-    return outputs
+    return outputs, CxyR, fR, fL, CxyL
 
 
-def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True, **config_args):
+def fit_ansilob_input_psd(ref_mossy_firing, afferent_ts, ftarg=None, transient=None):
+    if ftarg is None:
+        # TODO: confirm that we like this ftarg!
+        ftarg = np.arange(2.0, 51.0, 1.0)
+    # Adding the time vector to ref_mossy_firing - for a sim duration of 10s and 2.5-ms time bins
+    # TODO: Confirm that dt = 5.0 ms!
+    Pxx_den_ref = compute_data_PSDs(ref_mossy_firing, 5.0, ftarg,
+                                    transient=None, average_region_ps=False)
+    # First sum up the (non)isocortical afferent couplings!
+    #                                       iscortical                        non-isocortical
+    total_afferent_ts_ansilob = afferent_ts[1][:, 0, inds["ansilob"]] + afferent_ts[1][:, 1, inds["ansilob"]]
+    Pxx_den_ansilob = compute_data_PSDs(total_afferent_ts_ansilob.squeeze(),
+                                        np.mean(np.diff(afferent_ts[0])), ftarg,
+                                       transient=transient, average_region_ps=False)
+    MSE = np.square(np.subtract(Pxx_den_ansilob, Pxx_den_ref)).mean()
+    RMSE = math.sqrt(MSE)
+    print("RMSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE with pathway gain = ", pathway_gain,
+          " is ", RMSE)
+    return RMSE
+
+
+def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True,
+                 switch_off_cereb=False, **config_args):
     tic = time.time()
     # Get configuration
     plot_flag = config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag'))
@@ -942,6 +1027,31 @@ def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True
     # Load and prepare connectome and connectivity with all possible normalizations:
     connectome, major_structs_labels, voxel_count, inds, maps = prepare_connectome(config, plotter=plotter)
     connectivity = build_connectivity(connectome, inds, config)
+
+    if switch_off_cereb:
+        ## switch cereb OFF
+        reg1='Left Cerebellar Cortex'
+        reg2='Left Cerebellar Nuclei'
+        reg3='Left Ansiform lobule'
+        reg4='Left Interposed nucleus'
+        reg5='Right Cerebellar Cortex'
+        reg6='Right Cerebellar Nuclei'
+        reg7='Right Ansiform lobule'
+        reg8='Right Interposed nucleus'
+        # find the indices in region labels of these strings
+        iR1 = np.where([reg1 in reg for reg in connectivity.region_labels])[0]
+        iR2 = np.where([reg2 in reg for reg in connectivity.region_labels])[0]
+        iR3 = np.where([reg3 in reg for reg in connectivity.region_labels])[0]
+        iR4 = np.where([reg4 in reg for reg in connectivity.region_labels])[0]
+        iR5 = np.where([reg5 in reg for reg in connectivity.region_labels])[0]
+        iR6 = np.where([reg6 in reg for reg in connectivity.region_labels])[0]
+        iR7 = np.where([reg7 in reg for reg in connectivity.region_labels])[0]
+        iR8 = np.where([reg8 in reg for reg in connectivity.region_labels])[0]
+        for i in [iR1, iR2, iR3, iR4, iR5, iR6, iR7, iR8]:
+           connectivity.weights[i, :]=0
+           connectivity.weights[:, i]=0
+        ######## end of cereb switch off
+
     # Prepare model
     model = build_model(connectivity.number_of_regions, inds, maps, config)
     # Prepare simulator
@@ -965,7 +1075,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True
         PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
     outputs = (PSD, results, transient, simulator, config)
     if plotter is not None:
-        outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
+        outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None, afferent_ts=None,
                                      simulator=simulator, plotter=plotter, config=config, write_files=write_files)
     else:
         if write_files:
