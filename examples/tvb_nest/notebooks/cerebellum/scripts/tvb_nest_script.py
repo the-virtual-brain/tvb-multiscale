@@ -60,7 +60,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
     # ---------------------------- Non opinionated TVB<->NEST interface builder----------------------------
     from tvb_multiscale.tvb_nest.interfaces.builders import TVBNESTInterfaceBuilder
     # from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import ThalamocorticalWCLinearRate
-    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import DefaultTVBtoSpikeNetTransformersThalamoCorticalWC
+    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import \
+        DefaultTVBtoSpikeNetTransformersThalamoCorticalWC
     
     tvb_spikeNet_model_builder = TVBNESTInterfaceBuilder()  # non opinionated builder
 
