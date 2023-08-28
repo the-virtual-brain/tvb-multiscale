@@ -156,7 +156,11 @@ def configure(**ARGS):
     config.RAW_PERIOD = 1.0
     config.BOLD_PERIOD = 1024.0  # 1024.0 or None, If None, BOLD will not be computed
 
-    # ...and fitting
+    # TVB - NEST interface parameters:
+    config.MOSSY_MAX_RATE = 100.0  #Hz
+    config.w_TVB_to_NEST = 0.65 
+  
+    # Fitting
     config.FIC = args['FIC']
     config.FIC_PARAMS = FIC_PARAMS
     config.FIC_SPLIT = 0.31 # 0.25
