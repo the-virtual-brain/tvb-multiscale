@@ -992,7 +992,7 @@ def plot_tvb(transient, inds,
     return outputs, CxyR, fR, fL, CxyL
 
 
-def fit_ansilob_input_psd(ref_mossy_firing, afferent_ts, ftarg=None, transient=None):
+def ansilob_affrerent_coupling_psd_rmse(ref_mossy_firing, afferent_ts, ftarg=None, transient=None):
     if ftarg is None:
         # TODO: confirm that we like this ftarg!
         ftarg = np.arange(2.0, 51.0, 1.0)
