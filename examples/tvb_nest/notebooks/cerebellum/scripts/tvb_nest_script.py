@@ -99,7 +99,6 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
     # from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
 
-    max_rate = 100.0  #Hz
     # if tvb_spikeNet_model_builder.default_coupling_mode == "TVB":
     #     proxy_inds = nest_nodes_inds
     # else:
@@ -154,12 +153,12 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              # Effective rate  = scale * (total_weighted_coupling_E_from_tvb - offset)
              # If E is in [0, 1.0], then, with a translation = 0.0, and a scale of 1e4
              # it is as if 100 neurons can fire each with a maximum spike rate of max_rate=100 Hz
-              'transformer_params': {"scale_factor": np.array([0.75*simulator.model.G[0].item() * max_rate])
+              'transformer_params': {"scale_factor": np.array([config.w_TVB_to_NEST * simulator.model.G[0].item() * config.MOSSY_MAX_RATE])
                                      },   # "translation_factor": np.array([0.0])
               'spiking_proxy_inds': pop_regions_inds  # Same as "proxy_inds" for this kind of interface
               }
              )
-
+    
     # These are user defined Spiking Network -> TVB interfaces configurations:
     pops = ["granule_cell", "dcn_cell_glut_large", "io_cell"]
     regs = [['Right Ansiform lobule', 'Left Ansiform lobule'],
