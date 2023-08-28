@@ -20,10 +20,11 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb.simulator.integrators import EulerStochastic
 
 
-DEFAULT_ARGS = {'G': 1.0, 'STIMULUS': 0.1,
-                'I_e': -0.35, 'I_s': 0.08,
+DEFAULT_ARGS = {'G': 6.0, 'STIMULUS': 0.1,
+                'I_e': -0.35, 'I_s': 0.085,
                 'w_ie': -3.0, 'w_rs': -2.0,
-                'CONN_LOG': True, 'FIC': 'fit', 'PRIORS_DIST': 'uniform',
+                'CONN_LOG': True, 'FIC': 1.11, #'fit', 
+                'PRIORS_DIST': 'uniform',
                 'output_folder': "", 'verbose': 1, 'plot_flag': True}
 
 
@@ -158,7 +159,7 @@ def configure(**ARGS):
     # ...and fitting
     config.FIC = args['FIC']
     config.FIC_PARAMS = FIC_PARAMS
-    config.FIC_SPLIT = 0.25
+    config.FIC_SPLIT = 0.31 # 0.25
     config.SBI_NUM_WORKERS = 1
     config.SBI_METHOD = 'SNPE'
     config.TARGET_PSD_POPA_PATH = popa_freqs_path
