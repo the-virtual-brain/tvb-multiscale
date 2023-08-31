@@ -44,7 +44,13 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 class CoSimulatorRemoteParallel(CoSimulator):
 
-    _default_min_delay_synchronization_time_ratio = 2
+    min_idelay_synch_n_step_ratio = Int(
+        label="min_idelay_synch_n_step_ratio",
+        default=2,
+        required=True,
+        doc="""min_idelay to synchronization_n_step ratio, 
+                           i.e., an integer value defining how many times smaller should the synchronization time be 
+                           compared to the minimum delay time in integration time steps.""")
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True):
         self.n_tvb_steps_ran_since_last_synch = \
@@ -53,9 +59,7 @@ class CoSimulatorRemoteParallel(CoSimulator):
         return self.send_cosim_coupling(cosimulation)
 
 
-class CoSimulatorParallel(CoSimulator):
-
-    _default_min_delay_synchronization_time_ratio = 2
+class CoSimulatorParallel(CoSimulatorRemoteParallel):
 
     def get_cosim_updates(self, cosim_updates=None, cosimulation=True):
         if cosimulation and self.input_interfaces and cosim_updates is not None:
@@ -73,7 +77,7 @@ class CoSimulatorParallel(CoSimulator):
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True):
         self.n_tvb_steps_ran_since_last_synch = \
-            super(CoSimulatorParallel, self).run_for_synchronization_time(
+            super(CoSimulatorRemoteParallel, self).run_for_synchronization_time(
                 ts, xs, wall_time_start, cosim_updates=self.get_cosim_updates(cosim_updates, cosimulation))
         return self.send_cosim_coupling(cosimulation)
 
