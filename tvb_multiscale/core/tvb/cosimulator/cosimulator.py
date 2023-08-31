@@ -98,9 +98,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     n_input_interfaces = 0
 
     _number_of_dt_decimals = None
-    _default_min_delay_synchronization_time_ratio = 1.0
-    _default_synchronization_time = 0.0
-    _default_synchronization_n_step = 0
+
+    min_delay_synchronization_time_ratio = 1.0
 
     @property
     def in_proxy_inds(self):
@@ -111,26 +110,19 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         return numpy.unique(self.proxy_inds.tolist() + self.out_proxy_inds.tolist())
 
     def compute_default_synchronization_time_and_n_step(self):
-        existing_connections = self.connectivity.weights != 0
-        if numpy.any(existing_connections):
-            self._default_synchronization_n_step = \
-                int(numpy.floor(self.connectivity.idelays[existing_connections].min()
-                             / self._default_min_delay_synchronization_time_ratio))
-            self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
-                                                              decimals=self._number_of_dt_decimals)
-        else:
-            self._default_synchronization_n_step = 1
-            self._default_synchronization_time = self.integrator.dt
+        default_synchronization_n_step = \
+                int(numpy.floor(self.min_idelay / self.min_delay_synchronization_time_ratio))
+        default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
+                                                    decimals=self._number_of_dt_decimals)
+        return default_synchronization_time, default_synchronization_n_step
 
+    @property
     def default_synchronization_time(self):
-        if self._default_synchronization_time == 0.0:
-            self.compute_default_synchronization_time_and_n_step()
-        return self._default_synchronization_time
+        return self.compute_default_synchronization_time_and_n_step()[0]
 
+    @property
     def default_synchronization_n_step(self):
-        if self._default_synchronization_n_step == 0:
-            self.compute_default_synchronization_time_and_n_step()
-        return self._default_synchronization_n_step
+        return self.compute_default_synchronization_time_and_n_step()[1]
 
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
@@ -157,11 +149,12 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                              (self.synchronization_time, synchronization_time, self.integrator.dt))
         self.synchronization_time = synchronization_time
         # Check if the synchronization time is smaller than the minimum delay of the connectivity:
-        if self.synchronization_n_step > self._default_synchronization_n_step:
+        min_delay = self.min_idelay
+        if self.synchronization_time > min_delay:
             raise ValueError('The synchronization time %g is longer than '
                              'the minimum delay time %g '
                              'of all existing connections (i.e., of nonzero weight)!'
-                             % (self.synchronization_time, self._default_synchronization_time))
+                             % (self.synchronization_time, min_delay))
         if self.n_output_interfaces:
             self.output_interfaces.synchronization_time = self.synchronization_time
             self.output_interfaces.synchronization_n_step = self.synchronization_n_step
@@ -174,15 +167,16 @@ class CoSimulator(CoSimulatorBase, HasTraits):
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
         self.compute_default_synchronization_time_and_n_step()
+        default_synchronization_time = self.default_synchronization_time
         if self.synchronization_time == 0.0:
-            self.synchronization_time = self._default_synchronization_time
+            self.synchronization_time = default_synchronization_time
         try:
             self._configure_synchronization_time()
         except Exception as e:
-            if self.synchronization_time > self._default_synchronization_time:
+            if self.synchronization_time > default_synchronization_time:
                 self.log.warning(e)
                 self.log.warning('Resetting it equal to minimum delay time!')
-                self.synchronization_time = self._default_synchronization_time
+                self.synchronization_time = default_synchronization_time
             else:
                 raise e
 
