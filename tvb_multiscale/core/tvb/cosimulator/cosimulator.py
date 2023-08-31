@@ -94,11 +94,14 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     min_idelay_synch_n_step_ratio = Int(
         label="min_idelay_synch_n_step_ratio",
+        choices=(1, 2),
         default=1,
         required=True,
         doc="""min_idelay to synchronization_n_step ratio, 
                i.e., an integer value defining how many times smaller should the synchronization time be 
-               compared to the minimum delay time in integration time steps.""")
+               compared to the minimum delay time in integration time steps.
+               For the moment we limit it to 1 (synchronization_time = min_delay) 
+               or 2 (synchronization_time = min_delay/2)""")
 
     relative_output_interfaces_time_steps = Int(
         label="relative_output_interfaces_time_steps",
