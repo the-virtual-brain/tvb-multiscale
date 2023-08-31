@@ -43,7 +43,7 @@ from decimal import Decimal
 
 import numpy
 
-from tvb.basic.neotraits.api import Attr, NArray
+from tvb.basic.neotraits.api import Attr, NArray, Int
 from tvb.simulator.models.base import Model
 from tvb.simulator.simulator import Simulator, math
 
@@ -92,14 +92,28 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         default=numpy.asarray([], dtype=numpy.int),
         required=True)
 
+    min_idelay_synch_n_step_ratio = Int(
+        label="min_idelay_synch_n_step_ratio",
+        default=1,
+        required=True,
+        doc="""min_idelay to synchronization_n_step ratio, 
+               i.e., an integer value defining how many times smaller should the synchronization time be 
+               compared to the minimum delay time in integration time steps.""")
+
+    relative_output_interfaces_time_steps = Int(
+        label="relative_output_interfaces_time_steps",
+        default=0,
+        required=True,
+        doc="""Relative time steps for cosimulation monitors to sample 
+               in the future (for coupling monitors) or in the past (for non-coupling monitors), 
+               for the output interfaces.""")
+
     PRINT_PROGRESSION_MESSAGE = True
 
     n_output_interfaces = 0
     n_input_interfaces = 0
 
     _number_of_dt_decimals = None
-
-    min_delay_synchronization_time_ratio = 1.0
 
     @property
     def in_proxy_inds(self):
@@ -111,7 +125,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     def compute_default_synchronization_time_and_n_step(self):
         default_synchronization_n_step = \
-                int(numpy.floor(self.min_idelay / self.min_delay_synchronization_time_ratio))
+                int(numpy.floor(self.min_idelay / self.min_idelay_synch_n_step_ratio))
         default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
                                                     decimals=self._number_of_dt_decimals)
         return default_synchronization_time, default_synchronization_n_step
@@ -409,7 +423,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if self.output_interfaces.number_of_interfaces:
                 # Send the data to the other cosimulator
                 outputs = \
-                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
+                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch,
+                                                                          self.relative_output_interfaces_time_steps))
         return outputs
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True, **kwds):
