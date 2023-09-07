@@ -92,7 +92,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         default=numpy.asarray([], dtype=numpy.int),
         required=True)
 
-    min_idelay_synch_n_step_ratio = Int(
+    min_idelay_sync_n_step_ratio = Int(
         label="min_idelay_synch_n_step_ratio",
         choices=(1, 2),
         default=1,
@@ -128,7 +128,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     def compute_default_synchronization_time_and_n_step(self):
         default_synchronization_n_step = \
-                int(numpy.floor(self.min_idelay / self.min_idelay_synch_n_step_ratio))
+                int(numpy.floor(self.min_idelay / self.min_idelay_sync_n_step_ratio))
         default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
                                                     decimals=self._number_of_dt_decimals)
         return default_synchronization_time, default_synchronization_n_step

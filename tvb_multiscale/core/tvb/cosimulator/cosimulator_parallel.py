@@ -45,7 +45,7 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 class CoSimulatorRemoteParallel(CoSimulator):
 
-    min_idelay_synch_n_step_ratio = Int(
+    min_idelay_sync_n_step_ratio = Int(
         label="min_idelay_synch_n_step_ratio",
         choices=(1, 2),
         default=1,
@@ -88,7 +88,7 @@ class CoSimulatorParallel(CoSimulatorRemoteParallel):
 
 class CoSimulatorParallelNRP(CoSimulatorParallel):
 
-    min_idelay_synch_n_step_ratio = Int(
+    min_idelay_sync_n_step_ratio = Int(
         label="min_idelay_synch_n_step_ratio",
         choices=(1, 2),
         default=2,
