@@ -6,6 +6,7 @@ from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp  # 
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
+
 from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import load_netpyne
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
@@ -94,6 +95,7 @@ class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
 
+
     config = Attr(
         label="Configuration",
         field_type=Config,
@@ -152,6 +154,12 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         required=False,
         default=NetpyneSerialApp()
     )
+
+    def link_spikeNet_to_TVB_cosimulator(self):
+        super(TVBNetpyneSerialOrchestrator, self).link_spikeNet_to_TVB_cosimulator()
+        # for parallel spiking simulation
+        self.tvb_app.cosimulator.is_root_host = self.spikeNet_app.spiking_cosimulator.isRootNode
+        self.tvb_app.cosimulator.synchronize_spiking_hosts = self.spikeNet_app.spiking_cosimulator.gatherFromNodes
 
     def build(self):
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale

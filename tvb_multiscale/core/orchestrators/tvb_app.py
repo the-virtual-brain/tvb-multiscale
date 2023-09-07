@@ -302,6 +302,13 @@ class TVBParallelApp(TVBApp):
     _xs = None
     tvb_init_cosim_coupling = None
 
+    def get_tvb_init_cosim_coupling(self, relative_output_interfaces_time_steps=None):
+        if relative_output_interfaces_time_steps is not None:
+            # TODO: optional updating of this value!!!
+            self.cosimulator.relative_output_interfaces_time_steps = relative_output_interfaces_time_steps
+        self.tvb_init_cosim_coupling = self.cosimulator.send_cosim_coupling(True)
+        return self.tvb_init_cosim_coupling
+
     def configure_simulation(self):
         super(TVBParallelApp, self).configure_simulation()
         ts, xs = [], []
@@ -314,8 +321,7 @@ class TVBParallelApp(TVBApp):
         if not self.cosimulator.n_tvb_steps_ran_since_last_synch:
             self.cosimulator.n_tvb_steps_ran_since_last_synch = int(self.cosimulator.synchronization_n_step)
         # Send TVB's initial condition to spikeNet!:
-        self.tvb_init_cosim_coupling = self.cosimulator.send_cosim_coupling(True)
-        return self.tvb_init_cosim_coupling
+        return self.get_tvb_init_cosim_coupling()
 
     def run_for_synchronization_time(self, cosim_updates=None, cosimulation=True):
         return self.cosimulator.run_for_synchronization_time(

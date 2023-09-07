@@ -29,6 +29,7 @@ def configure(config_class=Config):
     INTERFACE_COUPLING_MODE = "TVB"  # "spikeNet" # "TVB"
     EXCLUSIVE_NODES = True
     W_TVB_TO_SPIKENET = 2500.0  # TVB->NEST interface scaling weight
+    TVB_MIN_IDELAY_TO_SYNC_N_STEP_RATIO = 2
     # -----------------------------------------------
 
     # Base paths
@@ -57,6 +58,7 @@ def configure(config_class=Config):
     config.INTERFACE_COUPLING_MODE = INTERFACE_COUPLING_MODE
     config.EXCLUSIVE_NODES = EXCLUSIVE_NODES
     config.W_TVB_TO_SPIKENET = W_TVB_TO_SPIKENET
+    config.TVB_MIN_IDELAY_TO_SYNC_N_STEP_RATIO = TVB_MIN_IDELAY_TO_SYNC_N_STEP_RATIO
 
     config.SIMULATION_LENGTH = 1100.0
     config.TRANSIENT = 100.0

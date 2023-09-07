@@ -83,6 +83,7 @@ class NetpyneModule(object):
     @property
     def minDelay(self):
         return self.dt
+        # TODO: the factor above is not needed if implement stimulation without NetCon
 
     @property
     def time(self):
@@ -99,6 +100,16 @@ class NetpyneModule(object):
         sim.net.addStims()
         sim.net.addRxD()
 
+        # cache some data
+        self.__popCellGids = {}
+        for popLabel in sim.net.pops:
+            gidsOnThisNode = sim.net.pops[popLabel].cellGids
+            firstCellGid = int(sim.pc.allreduce(gidsOnThisNode[0], 3)) # 3 means: find min value across all nodes
+            lastCellGid = int(sim.pc.allreduce(gidsOnThisNode[-1], 2)) # 2 means: find max value across all nodes
+
+            allGids = list(range(firstCellGid, lastCellGid+1))
+            self.__popCellGids[popLabel] = allGids
+
     def prepareSimulation(self, duration):
 
         simConfig = self.simConfig
@@ -113,7 +124,7 @@ class NetpyneModule(object):
             rnd = np.random.RandomState(0)
             def includeFor(pop):
                 popSize = len(sim.net.pops[pop].cellGids)
-                chosen = (pop, rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
+                chosen = (pop, [0]) # rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
                 return chosen
             include = list(map(includeFor, self._autoCreatedPops))
             simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
@@ -212,11 +223,18 @@ class NetpyneModule(object):
 
     def getSpikes(self, generatedBy=None, startingFrom=None):
 
-        if not 'spkid' in sim.simData:
+        if hasattr(sim, 'allSimData'):
+            # gathered from nodes
+            simData = sim.allSimData
+        else:
+            # applies in case of single-node simulation
+            simData = sim.simData
+
+        if not 'spkid' in simData:
             return [], []
 
-        spktimes = np.array(sim.simData['spkt'])
-        spkgids = np.array(sim.simData['spkid'])
+        spktimes = np.array(simData['spkt'])
+        spkgids = np.array(simData['spkid'])
 
         if startingFrom is not None:
             inds = np.nonzero(spktimes > startingFrom) # filtered by time # (self.time - timeWind)
@@ -232,7 +250,7 @@ class NetpyneModule(object):
         return spktimes, spkgids
 
     def getRecordedTime(self):
-        return np.array(sim.simData['t'])
+        return np.array(sim.allSimData['t'])
 
     def getTraces(self, key, neuronIds, timeSlice=slice(None)):
         time = self.getRecordedTime()[timeSlice]
@@ -244,7 +262,7 @@ class NetpyneModule(object):
         return data
 
     def cellGidsForPop(self, popLabel):
-        return sim.net.pops[popLabel].cellGids
+        return self.__popCellGids[popLabel]
 
     def neuronsConnectedWith(self, targetPop):
         gids = []
@@ -288,10 +306,19 @@ class NetpyneModule(object):
             device.spikesPerNeuron = {} # clear to prepare for next interval run
 
         intervalEnd = h.t + length
+
+        if sim.pc.nhost() > 1:
+            # broadcast spike times from 0 (root) to all nodes
+            allNeuronsSpikes = sim.pc.py_broadcast(allNeuronsSpikes, 0)
+
+            # keep only spikes of neurons from this host
+            allNeurons = [gid for gid in allNeurons if gid in sim.net.gid2lid]
+
         for gid in allNeurons:
             spikes = allNeuronsSpikes.get(gid, [])
+            lid = sim.net.gid2lid[gid]
             spikes = h.Vector(spikes)
-            sim.net.cells[gid].hPointp.play(spikes, intervalEnd)
+            sim.net.cells[lid].hPointp.play(spikes, intervalEnd)
 
     def finalize(self):
         if self.time < sim.cfg.duration:
@@ -301,3 +328,29 @@ class NetpyneModule(object):
         sim.run.postRun(stopTime)
         sim.gatherData()
         sim.analyze()
+
+
+    # parallel simulation
+
+    def isRootNode(self):
+        return sim.rank == 0
+
+    def gatherFromNodes(self, gatherSimData=True, additionalData=None):
+        if sim.nhosts == 1:
+            return additionalData
+
+        if gatherSimData:
+            orig = sim.cfg.gatherOnlySimData
+            sim.cfg.gatherOnlySimData = True
+            sim.gatherData(gatherLFP=False, gatherDipole=False)
+            sim.cfg.gatherOnlySimData = orig
+
+            # TODO: use more optimal gathering once method gets refactored in netpyne:
+            # sim.gatherData(gatherLFP=False, gatherDipole=False, gatherOnlySimData=True, simDataKeysToGather=['spkt', 'spkid'], analyze=False)
+
+        if additionalData:
+            dataVec = h.Vector(additionalData)
+            sim.pc.broadcast(dataVec, 0) # broadcast from node 0 which is root
+            additionalData = dataVec.to_python()
+
+        return additionalData
