@@ -19,8 +19,10 @@ def serialize_tvb_cosimulator(cosimulator):
          "model.cvar": np.copy(cosimulator.model.cvar),
          "monitor.period": float(cosimulator.monitors[0].period),
     }
+    d["min_delay"] = float(getattr(cosimulator, "min_delay", d["integrator.dt"]))
+    d["min_idelay"] = int(getattr(cosimulator, "min_idelay", 1))
     d["synchronization_time"] = float(getattr(cosimulator, "synchronization_time", d["integrator.dt"]))
-    d["synchronization_n_step"] = float(getattr(cosimulator, "synchronization_n_step", 1))
+    d["synchronization_n_step"] = int(getattr(cosimulator, "synchronization_n_step", 1))
     if hasattr(cosimulator.integrator, "noise"):
         d["integrator.noise.nsig"] = cosimulator.integrator.noise.nsig
 

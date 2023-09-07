@@ -20,6 +20,7 @@ class Config(ConfigBase):
 
     # Delays should be at least equal to NetPyNE time resolution
     # TODO: synapse_model_placeholder? and what weight should go here?
+    @property
     def DEFAULT_CONNECTION(self):
         return {"synapse_model": "synapse_model_placeholder",
                 "weight": 1.0, "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': 0,

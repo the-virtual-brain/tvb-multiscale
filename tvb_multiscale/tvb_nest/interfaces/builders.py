@@ -290,7 +290,7 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
         return self._bound_tvb_delays(
             (np.maximum(1,
                        np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
-                                    - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
-                        ) * self.spiking_dt
-             ).astype("float32")
-                                      )
+                                - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
+                       ) * self.spiking_dt
+            ).astype("float32")
+                                     )
