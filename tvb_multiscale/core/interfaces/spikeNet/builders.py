@@ -402,7 +402,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         # we are adding synchronization time to the times of TVB cosimulation coupling input,
         # and subtract it, here, from the connectome delays, in case coupling is "spikeNet".
         # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
-        # i.e., for the next synhcronization_time period, to "spikeNet" devices
+        # i.e., for the next synchronization_time period, to "spikeNet" devices
         # This is good for ANNarchy because one can set the devices' state at time 0.0
         # For NEST, one has to subtract 1 NEST time step.
         return np.maximum(1,

@@ -43,7 +43,7 @@ from decimal import Decimal
 
 import numpy
 
-from tvb.basic.neotraits.api import Attr, NArray
+from tvb.basic.neotraits.api import Attr, NArray, Int
 from tvb.simulator.models.base import Model
 from tvb.simulator.simulator import Simulator, math
 
@@ -92,15 +92,31 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         default=numpy.asarray([], dtype=numpy.int),
         required=True)
 
+    min_idelay_sync_n_step_ratio = Int(
+        label="min_idelay_synch_n_step_ratio",
+        choices=(1, 2),
+        default=1,
+        required=True,
+        doc="""min_idelay to synchronization_n_step ratio, 
+               i.e., an integer value defining how many times smaller should the synchronization time be 
+               compared to the minimum delay time in integration time steps.
+               For the moment we limit it to 1 (synchronization_time = min_delay) 
+               or 2 (synchronization_time = min_delay/2)""")
+
+    relative_output_interfaces_time_steps = Int(
+        label="relative_output_interfaces_time_steps",
+        default=0,
+        required=True,
+        doc="""Relative time steps for cosimulation monitors to sample 
+               in the future (for coupling monitors) or in the past (for non-coupling monitors), 
+               for the output interfaces.""")
+
     PRINT_PROGRESSION_MESSAGE = True
 
     n_output_interfaces = 0
     n_input_interfaces = 0
 
     _number_of_dt_decimals = None
-    _default_min_delay_synchronization_time_ratio = 1.0
-    _default_synchronization_time = 0.0
-    _default_synchronization_n_step = 0
 
     @property
     def in_proxy_inds(self):
@@ -111,26 +127,19 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         return numpy.unique(self.proxy_inds.tolist() + self.out_proxy_inds.tolist())
 
     def compute_default_synchronization_time_and_n_step(self):
-        existing_connections = self.connectivity.weights != 0
-        if numpy.any(existing_connections):
-            self._default_synchronization_n_step = \
-                int(numpy.floor(self.connectivity.idelays[existing_connections].min()
-                             / self._default_min_delay_synchronization_time_ratio))
-            self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
-                                                              decimals=self._number_of_dt_decimals)
-        else:
-            self._default_synchronization_n_step = 1
-            self._default_synchronization_time = self.integrator.dt
+        default_synchronization_n_step = \
+                int(numpy.floor(self.min_idelay / self.min_idelay_sync_n_step_ratio))
+        default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
+                                                    decimals=self._number_of_dt_decimals)
+        return default_synchronization_time, default_synchronization_n_step
 
+    @property
     def default_synchronization_time(self):
-        if self._default_synchronization_time == 0.0:
-            self.compute_default_synchronization_time_and_n_step()
-        return self._default_synchronization_time
+        return self.compute_default_synchronization_time_and_n_step()[0]
 
+    @property
     def default_synchronization_n_step(self):
-        if self._default_synchronization_n_step == 0:
-            self.compute_default_synchronization_time_and_n_step()
-        return self._default_synchronization_n_step
+        return self.compute_default_synchronization_time_and_n_step()[1]
 
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
@@ -157,11 +166,12 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                              (self.synchronization_time, synchronization_time, self.integrator.dt))
         self.synchronization_time = synchronization_time
         # Check if the synchronization time is smaller than the minimum delay of the connectivity:
-        if self.synchronization_n_step > self._default_synchronization_n_step:
+        min_delay = self.min_idelay
+        if self.synchronization_time > min_delay:
             raise ValueError('The synchronization time %g is longer than '
                              'the minimum delay time %g '
                              'of all existing connections (i.e., of nonzero weight)!'
-                             % (self.synchronization_time, self._default_synchronization_time))
+                             % (self.synchronization_time, min_delay))
         if self.n_output_interfaces:
             self.output_interfaces.synchronization_time = self.synchronization_time
             self.output_interfaces.synchronization_n_step = self.synchronization_n_step
@@ -174,15 +184,16 @@ class CoSimulator(CoSimulatorBase, HasTraits):
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
         self.compute_default_synchronization_time_and_n_step()
+        default_synchronization_time = self.default_synchronization_time
         if self.synchronization_time == 0.0:
-            self.synchronization_time = self._default_synchronization_time
+            self.synchronization_time = default_synchronization_time
         try:
             self._configure_synchronization_time()
         except Exception as e:
-            if self.synchronization_time > self._default_synchronization_time:
+            if self.synchronization_time > default_synchronization_time:
                 self.log.warning(e)
                 self.log.warning('Resetting it equal to minimum delay time!')
-                self.synchronization_time = self._default_synchronization_time
+                self.synchronization_time = default_synchronization_time
             else:
                 raise e
 
@@ -305,7 +316,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         return stimulus
 
     def __call__(self, simulation_length=None, random_state=None, n_steps=None,
-                 cosim_updates=None, recompute_requirements=False):
+                 cosim_updates=None, recompute_requirements=False, skip_prepare_cosim=False):
         """
         Return an iterator which steps through simulation time, generating monitor outputs.
 
@@ -316,15 +327,50 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         :param n_steps: Length of the simulation to perform in integration steps. Overrides simulation_length.
         :param cosim_updates: data from the other co-simulator to update TVB state and history
         :param recompute_requirements: check if the requirement of the simulation
+        :params check_inputs: check if the cosimulation update inputs (if any) are correct and update cosimulation history
         :return: Iterator over monitor outputs.
         """
 
         self.calls += 1
 
+        if not skip_prepare_cosim:
+            n_steps = self._prepare_cosimulation_call(simulation_length, n_steps, cosim_updates)
+
+        # Initialization
+        if self._compute_requirements or recompute_requirements:
+            # Compute requirements for CoSimulation.simulation_length, not for synchronization time
+            self._guesstimate_runtime()
+            self._calculate_storage_requirement()
+            self._compute_requirements = False
+        self.integrator.set_random_state(random_state)
+
+        local_coupling = self._prepare_local_coupling()
+        stimulus = self._prepare_stimulus()
+        state = self.current_state
+        start_step = self.current_step + 1
+        node_coupling = self._loop_compute_node_coupling(start_step)
+
+        # integration loop
+        for step in range(start_step, start_step + n_steps):
+            self._loop_update_stimulus(step, stimulus)
+            state = self.integrate_next_step(state, self.model, node_coupling, local_coupling,
+                                             numpy.where(stimulus is None, 0.0, stimulus),
+                                             (step-1)*self.integrator.dt)
+            state_output = self._loop_update_cosim_history(step, state)
+            node_coupling = self._loop_compute_node_coupling(step + 1)
+            output = self._loop_monitor_output(step-self.synchronization_n_step, state_output, node_coupling)
+            if output is not None:
+                yield output
+
+        self.current_state = state
+        self.current_step = self.current_step + n_steps
+
+    def _prepare_cosimulation_call(self, simulation_length=None, n_steps=None, cosim_updates=None):
+        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
+
         if simulation_length is not None:
             self.simulation_length = float(simulation_length)
 
-        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
         if self._cosimulation_flag:
             if n_steps is not None:
                 raise ValueError("n_steps is not used in cosimulation!")
@@ -358,35 +404,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                 if not numpy.issubdtype(type(n_steps), numpy.integer):
                     raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
                 self.simulation_length = n_steps * self.integrator.dt
-
-        # Initialization
-        if self._compute_requirements or recompute_requirements:
-            # Compute requirements for CoSimulation.simulation_length, not for synchronization time
-            self._guesstimate_runtime()
-            self._calculate_storage_requirement()
-            self._compute_requirements = False
-        self.integrator.set_random_state(random_state)
-
-        local_coupling = self._prepare_local_coupling()
-        stimulus = self._prepare_stimulus()
-        state = self.current_state
-        start_step = self.current_step + 1
-        node_coupling = self._loop_compute_node_coupling(start_step)
-
-        # integration loop
-        for step in range(start_step, start_step + n_steps):
-            self._loop_update_stimulus(step, stimulus)
-            state = self.integrate_next_step(state, self.model, node_coupling, local_coupling,
-                                             numpy.where(stimulus is None, 0.0, stimulus),
-                                             (step-1)*self.integrator.dt)
-            state_output = self._loop_update_cosim_history(step, state)
-            node_coupling = self._loop_compute_node_coupling(step + 1)
-            output = self._loop_monitor_output(step-self.synchronization_n_step, state_output, node_coupling)
-            if output is not None:
-                yield output
-
-        self.current_state = state
-        self.current_step = self.current_step + n_steps
+        return n_steps
 
     def get_cosim_updates(self, cosimulation=True):
         cosim_updates = None
@@ -409,7 +427,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if self.output_interfaces.number_of_interfaces:
                 # Send the data to the other cosimulator
                 outputs = \
-                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
+                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch,
+                                                                          self.relative_output_interfaces_time_steps))
         return outputs
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True, **kwds):
