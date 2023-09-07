@@ -57,7 +57,7 @@ def build_tvb_simulator(config=None, config_class=Config, cosimulator_class=CoSi
 
     # -----------------------------------Build cosimunlator manually--------------------------------
 
-    simulator = cosimulator_class()
+    simulator = cosimulator_class(min_idelay_synch_n_step_ratio=config.TVB_MIN_IDELAY_TO_SYNC_N_STEP_RATIO)
 
     simulator.model = WilsonCowan(**model_params)
 
