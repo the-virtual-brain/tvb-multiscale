@@ -136,7 +136,7 @@ def configure(**ARGS):
     config.CONN_CEIL = False
 
     # Model parameters
-    config.STIMULUS_RATE = 8.0  # Hz
+    config.STIMULUS_RATE = 6.0  # or 8.0?? Hz
 
     config.model_params = OrderedDict()
     config.model_params['G'] = args['G']
