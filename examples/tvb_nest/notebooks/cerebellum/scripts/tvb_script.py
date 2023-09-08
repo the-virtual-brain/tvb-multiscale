@@ -639,8 +639,9 @@ def compute_data_PSDs_1D(raw_results, PSD_target, inds, transient=None, write_fi
 
     # Select regions' data, compute PSDs, average them across region,
     # interpolate them to the target frequencies, and normalize them to sum up to 1.0:
-    Pxx_den, ftarg = compute_data_PSDs_from_raw(raw_results, PSD_target['f'], inds['crtx'],
-                                                transient=transient, average_region_ps=True)
+    ftarg = PSD_target['f']
+    Pxx_den = compute_data_PSDs_from_raw(raw_results, ftarg, inds['crtx'],
+                                         transient=transient, average_region_ps=True)
     Pxx_den = Pxx_den.flatten()
 
     if plotter:
@@ -670,8 +671,9 @@ def compute_data_PSDs_m1s1brl(raw_results, PSD_target, inds, transient=None, wri
 
     # Select regions' data, compute PSDs, interpolate them to the target frequencies, 
     # and normalize them to sum up to 1.0:
-    Pxx_den, ftarg = compute_data_PSDs_from_raw(raw_results, PSD_target['f'], inds['m1s1brl'],
-                                                transient=transient, average_region_ps=False)
+    ftarg = PSD_target['f']
+    Pxx_den = compute_data_PSDs_from_raw(raw_results, ftarg, inds['m1s1brl'],
+                                         transient=transient, average_region_ps=False)
 
     if plotter:
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
