@@ -8,6 +8,9 @@ from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
 from examples.tvb_nest.notebooks.cerebellum.utils import get_regions_indices
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 
+# Put the results in a Timeseries instance
+from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
+
 
 def load_connectome(config):
     import h5py
@@ -739,9 +742,6 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         except:
             warnings.warn("H5Writer cannot be imported! Probably you haven't installed tvb_framework.")
 
-    # Put the results in a Timeseries instance
-    from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
-
     source_ts = None
     bold_ts = None
     afferent_ts = None
@@ -808,9 +808,9 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
                 outputs["bold_ts"] = bold_ts
 
-            except:
+            except Exception as e:
                 outputs["bold_ts"] = results[2]
-                warnings.warn("Failed to construct BOLD time series!")
+                warnings.warn("Failed to construct BOLD time series with error!:\n%s" % str(e))
                 if write_files:
                     if config.VERBOSE:
                         print("Pickle-dumping BOLD TVB monitor output to %s!" % config.BOLD_TS_PATH)
@@ -818,8 +818,8 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
                     dump_pickled_dict({"bold_ts": results[2][1],
                                        "bold_t": results[2][0]},
                                       config.BOLD_TS_PATH)
-                except:
-                    warnings.warn("Failed to pickle dump BOLD TVB monitor output!")
+                except Exception as e:
+                    warnings.warn("Failed to pickle dump BOLD TVB monitor output with error!:\n%s" % str(e))
 
             if bold_ts is not None:
                 if write_files:
@@ -840,6 +840,9 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
 
 def plot_tvb(transient, inds, results, simulator=None, plotter=None, config=None, write_files=True):
+    from examples.tvb_nest.notebooks.cerebellum.utils import \
+        compute_plot_selected_spectra_coherence  # , compute_plot_ica
+
     if plotter is None:
         config, plotter = assert_config(config, return_plotter=True)
     else:
@@ -849,6 +852,12 @@ def plot_tvb(transient, inds, results, simulator=None, plotter=None, config=None
     MIN_REGIONS_FOR_RASTER_PLOT = 9
     FIGSIZE = config.figures.DEFAULT_SIZE
 
+    # NPERSEG = np.array([256, 512, 1024, 2048, 4096])
+    # dt = source_ts.time[1] - source_ts.time[0]
+    # NPERSEG = NPERSEG[np.argmin(np.abs(NPERSEG - (source_ts.shape[0] - transient / dt)/10))]
+
+    NPERSEG = 512
+
     if isinstance(results, (list, tuple)):
         results = tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
 
@@ -857,166 +866,150 @@ def plot_tvb(transient, inds, results, simulator=None, plotter=None, config=None
     afferent_ts = results.get("afferent_ts", None)
 
     # Plot TVB time series
-    if source_ts is not None:
+    if isinstance(source_ts, TimeSeriesXarray):
         source_ts[:, :, :, :].plot_timeseries(plotter_config=plotter.config,
                                               hue="Region" if source_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                               per_variable=source_ts.shape[1] > MAX_VARS_IN_COLS,
                                               figsize=FIGSIZE)
-    # Focus on the m1 and s1 barrel field nodes:
-    if source_ts is not None:
+        # Focus on the m1 and s1 barrel field nodes:
         source_ts_m1s1brl = source_ts[-10000:, :, inds["m1s1brl"]]
         source_ts_m1s1brl.plot_timeseries(plotter_config=plotter.config,
                                           hue="Region" if source_ts_m1s1brl.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                           per_variable=source_ts_m1s1brl.shape[1] > MAX_VARS_IN_COLS,
                                           figsize=FIGSIZE, figname="M1 and S1 barrel field nodes TVB Time Series")
-    # Focus on the motor pathway:
-    if source_ts is not None:
+        # Focus on the motor pathway:
         source_ts_motor = source_ts[-10000:, :, inds["motor"]]
         source_ts_motor.plot_timeseries(plotter_config=plotter.config,
                                         hue="Region" if source_ts_motor.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                         per_variable=source_ts_motor.shape[1] > MAX_VARS_IN_COLS,
                                         figsize=FIGSIZE, figname="Motor pathway TVB Time Series")
-
-    # Focus on the sensory pathway:
-    if source_ts is not None:
+        # Focus on the sensory pathway:
         source_ts_sens = source_ts[-10000:, :, inds["sens"]]
         source_ts_sens.plot_timeseries(plotter_config=plotter.config,
                                        hue="Region" if source_ts_sens.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                        per_variable=source_ts_sens.shape[1] > MAX_VARS_IN_COLS,
                                        figsize=FIGSIZE, figname="Sensory pathway TVB Time Series")
-
-    # Focus on regions potentially modelled in NEST (ansiform lobule, Cerebellar Nuclei, inferior olive):
-    if source_ts is not None:
+        # Focus on regions potentially modelled in NEST (ansiform lobule, Cerebellar Nuclei, inferior olive):
         source_ts_cereb = source_ts[-10000:, :, inds["cereb"]]
         source_ts_cereb.plot_timeseries(plotter_config=plotter.config,
                                         hue="Region" if source_ts_cereb.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                         per_variable=source_ts_cereb.shape[1] > MAX_VARS_IN_COLS,
                                         figsize=FIGSIZE, figname="Cerebellum TVB Time Series")
 
+        # Power Spectra and Coherence for M1 - S1 barrel field
+        Pxx_den, f, CxyR, fR, CxyL, fL = \
+            compute_plot_selected_spectra_coherence(source_ts, inds["m1s1brl"],
+                                                    transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
+                                                    figures_path=config.figures.FOLDER_FIGURES,
+                                                    figname="M1_S1brl", figformat="png",
+                                                    show_flag=plotter.config.SHOW_FLAG,
+                                                    save_flag=plotter.config.SAVE_FLAG)
+        results["PSD_M1_S1"] = Pxx_den
+        results["PSD_f"] = f
+        results["CxyR_M1_S1"] = CxyR
+        results["fR"] = fR
+        results["Cxyl_M1_S1"] = CxyL
+        results["fL"] = fL
+
+        if write_files:
+            import pickle
+            with open('coherence_MF_cerebON_2sec.pickle', 'wb') as handle:
+                pickle.dump([CxyR, fR, fL, CxyL], handle)
+
+        # Power Spectra and Coherence along the sensory pathway:
+        # for Medulla SPV, Sensory PONS
+        compute_plot_selected_spectra_coherence(source_ts, inds["sens"],
+                                                transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
+                                                figures_path=config.figures.FOLDER_FIGURES,
+                                                figname="SPV_PonsSens", figformat="png",
+                                                show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+        print("psd input cereb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        # Power Spectra and Coherence at cerebellar input - ansiform lobule:
+        print("inds ansilob", inds["ansilob"])
+        print("Ansiform lobule source_ts PSD, with compute_plot_selected_spectra_coherence")
+        compute_plot_selected_spectra_coherence(source_ts, inds["ansilob"],
+                                                transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
+                                                figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob",
+                                                figformat="png",
+                                                show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+
+        # Better summary figure:
+        import matplotlib.pyplot as plt
+
+        data = source_ts.data
+        time = source_ts.time
+
+        fig, axes = plt.subplots(3, 1, figsize=(12, 10))
+        for iT, regs in enumerate(["crtx", "subcrtx_not_thalspec", "thalspec"]):
+            transient_in_points = int((transient + 0.5) / simulator.monitors[0].period)
+            dat = data[transient_in_points:, 0, inds[regs]].squeeze()
+            axes[iT].plot(time[transient_in_points:], dat, alpha=0.25)
+            if iT == 0:
+                axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["m1"]].squeeze(),
+                              'b--', linewidth=3, label='M1')
+                axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["s1brl"]].squeeze(),
+                              'g--', linewidth=3, label='S1 barrel field')
+            elif iT == 1:
+                axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["facial"]].squeeze(),
+                              'b--', linewidth=3, label='Facial motor nucleus')
+                axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["trigeminal"]].squeeze(),
+                              'g--', linewidth=3, label='Spinal trigeminal nuclei')
+            else:
+                axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, [44, 166]].squeeze(),
+                              'b--', linewidth=3, label='M1 specific thalami')
+                axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, [47, 169]].squeeze(),
+                              'g--', linewidth=3, label='S1 barrel field specific thalami')
+                axes[iT].set_xlabel('Time (ms)')
+            axes[iT].plot(time[transient_in_points:], dat.mean(axis=1), 'k--', linewidth=3, label='Total mean')
+            axes[iT].legend()
+            axes[iT].set_title("%s range=[%g, %g, %g, %g, %g] " %
+                               (regs, dat.min(), np.percentile(dat, 5), dat.mean(), np.percentile(dat, 95), dat.max()))
+        fig.tight_layout()
+        if config.figures.SAVE_FLAG:
+            plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
+        if config.figures.SHOW_FLAG:
+            plt.show()
+        else:
+            plt.close(fig)
+
     # Focus on the s1 barrel field nodes:
-    if afferent_ts is not None:
+    if isinstance(afferent_ts, TimeSeriesXarray):
         afferent_ts_m1s1brl = afferent_ts[-10000:, :, inds["s1brlthal"]]
         afferent_ts_m1s1brl.plot_timeseries(plotter_config=plotter.config,
                                            hue="Region" if afferent_ts_m1s1brl.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                            per_variable=afferent_ts_m1s1brl.shape[1] > MAX_VARS_IN_COLS,
                                            figsize=FIGSIZE, figname="S1 barrel field nodes TVB Time Series")
-   # Focus on regions potentially modelled in NEST (ansiform lobule, interposed nucleus, inferior olive):
-    if afferent_ts is not None:
+       # Focus on regions potentially modelled in NEST (ansiform lobule, interposed nucleus, inferior olive):
         afferent_ts_cereb = afferent_ts[-10000:, :, inds["ansilob"]]
         afferent_ts_cereb.plot_timeseries(plotter_config=plotter.config,
                                           hue="Region" if afferent_ts_cereb.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                           per_variable=afferent_ts_cereb.shape[1] > MAX_VARS_IN_COLS,
                                           figsize=FIGSIZE, figname="Ansiform Lobule TVB Afferent Time Series")
 
+        # Power Spectra and Coherence of cerebellar input - afferent to ansiform lobule:
+        print("Ansiform lobule afferent PSD, with compute_plot_selected_spectra_coherence")
+        Pxx_den_ansilob = []
+        for iC in range(0, 2):
+            Pxx_den_ansilob_temp, f_ansilob, CxyR_ansilob, fR_ansilob, CxyL_ansilob, fL_ansilob = \
+                compute_plot_selected_spectra_coherence(
+                    afferent_ts[:, iC], inds["ansilob"],
+                    transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
+                    figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob_afferent", figformat="png",
+                    show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+            Pxx_den_ansilob.append(Pxx_den_ansilob_temp)
+        results["PSD_ansilob"] = Pxx_den_ansilob
+        results["PSD_ansilob_f"] = f_ansilob
+        # results["CxyR_M1_S1"] = CxyR_ansilob
+        # results["fR"] = fR_ansilob
+        # results["Cxyl_M1_S1"] = CxyL_ansilob
+        # results["fL"] = fL_ansilob
 
     # bold_ts TVB time series
-    if bold_ts is not None:
+    if isinstance(bold_ts, TimeSeriesXarray):
         bold_ts.plot_timeseries(plotter_config=plotter.config,
                                 hue="Region" if bold_ts.shape[2] > MAX_REGIONS_IN_ROWS else None,
                                 per_variable=bold_ts.shape[1] > MAX_VARS_IN_COLS,
                                 figsize=FIGSIZE);
-
-    from examples.tvb_nest.notebooks.cerebellum.utils import compute_plot_selected_spectra_coherence #, compute_plot_ica
-
-    # Further spectra and coherence plots:
-
-    # NPERSEG = np.array([256, 512, 1024, 2048, 4096])
-    # dt = source_ts.time[1] - source_ts.time[0]
-    # NPERSEG = NPERSEG[np.argmin(np.abs(NPERSEG - (source_ts.shape[0] - transient / dt)/10))]
-
-    NPERSEG = 512
-
-    # Power Spectra and Coherence for M1 - S1 barrel field
-    Pxx_den, f, CxyR, fR, CxyL, fL = \
-        compute_plot_selected_spectra_coherence(source_ts, inds["m1s1brl"],
-                                                transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
-                                                figures_path=config.figures.FOLDER_FIGURES,
-                                                figname="M1_S1brl", figformat="png",
-                                                show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
-    results["PSD_M1_S1"] = Pxx_den
-    results["PSD_f"] = f
-    results["CxyR_M1_S1"] = CxyR
-    results["fR"] = fR
-    results["Cxyl_M1_S1"] = CxyL
-    results["fL"] = fL
-
-    if write_files:
-        import pickle
-        with open('coherence_MF_cerebON_2sec.pickle', 'wb') as handle:
-            pickle.dump([CxyR, fR, fL, CxyL], handle)
-
-    # Power Spectra and Coherence along the sensory pathway:
-    # for Medulla SPV, Sensory PONS
-    compute_plot_selected_spectra_coherence(source_ts, inds["sens"],
-                                            transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0, 
-                                            figures_path=config.figures.FOLDER_FIGURES,
-                                            figname="SPV_PonsSens", figformat="png",
-                                            show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
-    print("psd input cereb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    # Power Spectra and Coherence at cerebellar input - ansiform lobule:
-    print("inds ansilob",inds["ansilob"])
-    print("Ansiform lobule source_ts PSD, with compute_plot_selected_spectra_coherence")
-    compute_plot_selected_spectra_coherence(source_ts, inds["ansilob"],
-                                            transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
-                                            figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob", figformat="png",
-                                            show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
-
-    # Power Spectra and Coherence of cerebellar input - afferent to ansiform lobule:
-    print("Ansiform lobule afferent PSD, with compute_plot_selected_spectra_coherence")
-    Pxx_den_ansilob = []
-    for iC in range(0, 2):
-        Pxx_den_ansilob_temp, f_ansilob, CxyR_ansilob, fR_ansilob, CxyL_ansilob, fL_ansilob = \
-            compute_plot_selected_spectra_coherence(
-                afferent_ts[:, iC], inds["ansilob"],
-                transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
-                figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob_afferent", figformat="png",
-                show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
-        Pxx_den_ansilob.append(Pxx_den_ansilob_temp)
-    results["PSD_ansilob"] = Pxx_den_ansilob
-    results["PSD_ansilob_f"] = f_ansilob
-    # results["CxyR_M1_S1"] = CxyR_ansilob
-    # results["fR"] = fR_ansilob
-    # results["Cxyl_M1_S1"] = CxyL_ansilob
-    # results["fL"] = fL_ansilob
-
-    # Better summary figure:
-    import matplotlib.pyplot as plt
-
-    data = source_ts.data
-    time = source_ts.time
-
-    fig, axes = plt.subplots(3, 1, figsize=(12, 10))
-    for iT, regs in enumerate(["crtx", "subcrtx_not_thalspec", "thalspec"]):
-        transient_in_points = int((transient + 0.5) / simulator.monitors[0].period)
-        dat = data[transient_in_points:, 0, inds[regs]].squeeze()
-        axes[iT].plot(time[transient_in_points:], dat, alpha=0.25)
-        if iT == 0:
-            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["m1"]].squeeze(),
-                          'b--', linewidth=3, label='M1')
-            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["s1brl"]].squeeze(),
-                          'g--', linewidth=3, label='S1 barrel field')
-        elif iT == 1:
-            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["facial"]].squeeze(),
-                          'b--', linewidth=3, label='Facial motor nucleus')
-            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, inds["trigeminal"]].squeeze(),
-                          'g--', linewidth=3, label='Spinal trigeminal nuclei')
-        else:
-            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, [44, 166]].squeeze(),
-                          'b--', linewidth=3, label='M1 specific thalami')
-            axes[iT].plot(time[transient_in_points:], data[transient_in_points:, 0, [47, 169]].squeeze(),
-                          'g--', linewidth=3, label='S1 barrel field specific thalami')
-            axes[iT].set_xlabel('Time (ms)')
-        axes[iT].plot(time[transient_in_points:], dat.mean(axis=1), 'k--', linewidth=3, label='Total mean')
-        axes[iT].legend()
-        axes[iT].set_title("%s range=[%g, %g, %g, %g, %g] " %
-                           (regs, dat.min(), np.percentile(dat, 5), dat.mean(), np.percentile(dat, 95), dat.max()))
-    fig.tight_layout()
-    if config.figures.SAVE_FLAG:
-        plt.savefig(os.path.join(config.figures.FOLDER_FIGURES, "SummaryTimeSeries." + config.figures.FIG_FORMAT))
-    if config.figures.SHOW_FLAG:
-        plt.show()
-    else:
-        plt.close(fig)
 
     return results
 
