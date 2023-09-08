@@ -23,7 +23,7 @@ from tvb.simulator.integrators import EulerStochastic
 DEFAULT_ARGS = {'G': 6.0, 'STIMULUS': 0.1,
                 'I_e': -0.35, 'I_s': 0.085,
                 'w_ie': -3.0, 'w_rs': -2.0,
-                'CONN_LOG': True, 'FIC': 1.11, #'fit', 
+                'CONN_LOG': True, 'FIC': 1.11,  'FIC_SPLIT': 0.31,  #'fit',
                 'PRIORS_DIST': 'uniform',
                 'output_folder': "", 'verbose': 1, 'plot_flag': True}
 
@@ -157,13 +157,13 @@ def configure(**ARGS):
     config.BOLD_PERIOD = 1024.0  # 1024.0 or None, If None, BOLD will not be computed
 
     # TVB - NEST interface parameters:
-    config.MOSSY_MAX_RATE = 100.0  #Hz
+    config.MOSSY_MAX_RATE = 100.0  # Hz
     config.w_TVB_to_NEST = 0.65 
   
     # Fitting
     config.FIC = args['FIC']
     config.FIC_PARAMS = FIC_PARAMS
-    config.FIC_SPLIT = 0.31 # 0.25
+    config.FIC_SPLIT = args['FIC_SPLIT']
     config.SBI_NUM_WORKERS = 1
     config.SBI_METHOD = 'SNPE'
     config.TARGET_PSD_POPA_PATH = popa_freqs_path
