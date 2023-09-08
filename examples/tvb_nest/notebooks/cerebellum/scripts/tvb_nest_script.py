@@ -293,6 +293,7 @@ def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_f
     simulator, nest_network = build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config)
     # Simulate TVB-NEST model
     results, transient, simulator, nest_network = simulate_tvb_nest(simulator, nest_network, config)
+    results = tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
     if PSD_target is None:
         # This is the PSD target we are trying to fit...
         if config.model_params['G']:
@@ -304,26 +305,24 @@ def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_f
     # This is the PSD computed from our simulation results...
     if config.model_params['G']:
         # ...for a connected brain, i.e., PS of bilateral M1 and S1:
-        PSD = compute_data_PSDs_m1s1brl(results[0], PSD_target, inds, transient, plotter=plotter)
+        PSD = compute_data_PSDs_m1s1brl(results["source_ts"], PSD_target, inds, transient, plotter=plotter)
     else:
         # ...for a disconnected brain, average PS of all regions:
-        PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
-    outputs = (PSD, results, transient, simulator, nest_network, config)
+        PSD = compute_data_PSDs_1D(results["source_ts"], PSD_target, inds, transient, plotter=plotter)
+    results.update({"PSD": PSD, "transient": transient,
+                    "simulator": simulator, "nest_network": nest_network, "config": config})
     if plotter is not None:
         from examples.plot_write_results import plot_write_spiking_network_results
-        outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None,
-                                     simulator=simulator, plotter=plotter, config=config, write_files=write_files)
+        results.update(plot_tvb(transient, inds, results,
+                                simulator=simulator, plotter=plotter, config=config, write_files=write_files))
         plot_write_spiking_network_results(nest_network, connectivity=connectivity,
-                                           time=results[0][0], transient=transient,
+                                           time=results["source_ts"][0], transient=transient,
                                            monitor_period=simulator.monitors[0].period,
                                            plot_per_neuron=False, plotter=plotter, writer=None, config=config)
         plot_nest_results_raster(nest_network, neuron_models, neuron_number, config)
-    else:
-        if write_files:
-            outputs = outputs + tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
     if config.VERBOSE:
         print("\nFinished TVB-NEST workflow in %g sec!\n" % (time.time() - tic))
-    return outputs
+    return results
 
 
 if __name__ == "__main__":

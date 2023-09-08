@@ -665,7 +665,8 @@ def run_nest_workflow(PSD_target=None, model_params={}, config=None, **config_ar
         plot_nest_results_raster(nest_network, neuron_models, neuron_number, config)
     if config.VERBOSE:
         print("\nFinished NEST workflow in %g sec!\n" % (time.time() - tic))
-    return nest_network, simulator, config
+    results = {"nest_network": nest_network, "simulator": simulator, "config": config}
+    return results
 
 
 if __name__ == "__main__":

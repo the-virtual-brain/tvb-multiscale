@@ -467,13 +467,11 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     else:
         mon_raw = Raw()
         afferent = AfferentCoupling(variables_of_interest=np.array([0, 1]))
+    simulator.monitors = (mon_raw, afferent)
     if config.BOLD_PERIOD:
         bold = Bold(period=config.BOLD_PERIOD,
                     variables_of_interest=np.array([2]))
-        simulator.monitors = (mon_raw, bold, afferent)
-    else:
-        simulator.monitors = (mon_raw, afferent)
-
+        simulator.monitors = (mon_raw, afferent, bold)
 
     simulator.configure()
 
@@ -628,9 +626,19 @@ def compute_data_PSDs(data, dt, ftarg, transient=None, average_region_ps=False):
     return Pxx_den
 
 
+def raw_data_or_time_series(data):
+    if isinstance(data, (tuple, list)):
+        # For raw TVB monitor results
+        return data[1], data[0]
+    else:
+        # For TVB TimeSeries instances
+        return data.data, data.time
+
+
 def compute_data_PSDs_from_raw(raw_results, ftarg, inds, transient=None, average_region_ps=False):
-    return compute_data_PSDs(raw_results[1][:, 0, inds, 0].squeeze(),
-                             np.mean(np.diff(raw_results[0])),
+    data, time = raw_data_or_time_series(raw_results)
+    return compute_data_PSDs(data[:, 0, inds, 0].squeeze(),
+                             np.mean(np.diff(time)),
                              ftarg,
                              transient=transient, average_region_ps=average_region_ps)
 
@@ -705,11 +713,11 @@ def compute_data_PSDs_m1s1brl(raw_results, PSD_target, inds, transient=None, wri
     return Pxx_den.flatten()
 
 
-def dump_picked_time_series(time_series, filepath):
+def dump_pickled_time_series(time_series, filepath):
     dump_pickled_dict({"time_series": time_series.data[:, :, :, 0],
                        "dimensions_labels": np.array(time_series.labels_ordering)[:-1],
                        "time": time_series.time, "time_unit": time_series.time_unit,
-                       "sampling_period": time_series.sample_period,
+                       "sample_period": time_series.sample_period,
                        "state_variables": np.array(time_series.variables_labels),
                        "region_labels": np.array(time_series.space_labels)},
                       filepath)
@@ -738,7 +746,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
     bold_ts = None
     afferent_ts = None
 
-    outputs = []
+    outputs = {}
     if results is not None:
         source_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion for TVB like functionality
             data=results[0][1], time=results[0][0],
@@ -746,25 +754,27 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
             labels_ordering=["Time", "State Variable", "Region", "Neurons"],
             labels_dimensions={"State Variable": list(simulator.model.variables_of_interest),
                                "Region": simulator.connectivity.region_labels.tolist()},
-            sample_period=simulator.integrator.dt)
+            sample_period=simulator.monitors[0].period)
 
         source_ts.configure()
+        outputs["source_ts"] = source_ts
 
         afferent_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
-            data=results[-1][1], time=results[-1][0],
+            data=results[1][1], time=results[1][0],
             connectivity=simulator.connectivity,
             labels_ordering=["Time", "State Variable", "Region", "Neurons"],
             labels_dimensions={"State Variable": ["cortical coupling","subcortical coupling"],
                                "Region": simulator.connectivity.region_labels.tolist()},
-            sample_period=simulator.integrator.dt)
+            sample_period=simulator.monitors[1].period)
 
         afferent_ts.configure()
+        outputs["afferent_ts"] = afferent_ts
 
         if write_files:
             if config.VERBOSE:
                 print("Pickle-dumping source_ts to %s!" % config.SOURCE_TS_PATH)
-            dump_picked_time_series(source_ts, config.SOURCE_TS_PATH)
-            dump_picked_time_series(afferent_ts, config.AFFERENT_TS_PATH)
+            dump_pickled_time_series(source_ts, config.SOURCE_TS_PATH)
+            dump_pickled_time_series(afferent_ts, config.AFFERENT_TS_PATH)
             # import pickle
             # with open(config.SOURCE_TS_PATH, 'wb') as handle:
             #     pickle.dump(source_ts, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -782,48 +792,54 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
         if config.VERBOSE > 1:
             print("Raw ts:\n%s" % str(source_ts))
 
-        outputs.append(source_ts)
-
-        # t = source_ts.time
-
         if len(results) > 2:
-            print("results [1] inside tvb_script ", results[1])
-            bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
-                data=results[1][1], time=results[1][0],
-                connectivity=simulator.connectivity,
-                labels_ordering=["Time", "State Variable", "Region", "Neurons"],
-                labels_dimensions={"State Variable": ["BOLD"],
-                                   "Region": simulator.connectivity.region_labels.tolist()},
-                sample_period=simulator.monitors[1].period)
-            bold_ts.configure()
+            try:
+                bold_ts = TimeSeriesXarray(  # substitute with TimeSeriesRegion fot TVB like functionality
+                    data=results[2][1], time=results[2][0],
+                    connectivity=simulator.connectivity,
+                    labels_ordering=["Time", "State Variable", "Region", "Neurons"],
+                    labels_dimensions={"State Variable": ["BOLD"],
+                                       "Region": simulator.connectivity.region_labels.tolist()},
+                    sample_period=simulator.monitors[2].period)
+                bold_ts.configure()
 
-            outputs.append(bold_ts)
+                if config.VERBOSE > 1:
+                    print("BOLD ts:\n%s" % str(bold_ts))
 
-            if write_files:
-                if config.VERBOSE:
-                    print("Pickle-dumping bold_ts to %s!" % config.BOLD_TS_PATH)
-                dump_picked_time_series(bold_ts, config.BOLD_TS_PATH)
+                outputs["bold_ts"] = bold_ts
 
-            # bold_t = source_ts.time
-
-            # Write to file
-            if writer:
+            except:
+                outputs["bold_ts"] = results[2]
+                warnings.warn("Failed to construct BOLD time series!")
+                if write_files:
+                    if config.VERBOSE:
+                        print("Pickle-dumping BOLD TVB monitor output to %s!" % config.BOLD_TS_PATH)
                 try:
-                    write_RegionTimeSeriesXarray_to_h5(bold_ts._data, writer,
-                                                       os.path.join(config.out.FOLDER_RES, bold_ts.title) + ".h5")
-                except Exception as e:
-                    warnings.warn("Failed to to write BOLD time series to file with error!:\n%s" % str(e))
-            
-            if config.VERBOSE > 1:
-                print("BOLD ts:\n%s" % str(bold_ts))
+                    dump_pickled_dict({"bold_ts": results[2][1],
+                                       "bold_t": results[2][0]},
+                                      config.BOLD_TS_PATH)
+                except:
+                    warnings.warn("Failed to pickle dump BOLD TVB monitor output!")
 
-        outputs.append(afferent_ts)
-    return tuple(outputs)
+            if bold_ts is not None:
+                if write_files:
+                    if config.VERBOSE:
+                        print("Pickle-dumping bold_ts to %s!" % config.BOLD_TS_PATH)
+                    dump_pickled_time_series(bold_ts, config.BOLD_TS_PATH)
+
+                # Write to file
+                if writer:
+                    try:
+                        write_RegionTimeSeriesXarray_to_h5(bold_ts._data, writer,
+                                                           os.path.join(config.out.FOLDER_RES,
+                                                                        bold_ts.title) + ".h5")
+                    except Exception as e:
+                        warnings.warn("Failed to to write BOLD time series to file with error!:\n%s" % str(e))
+
+    return outputs
 
 
-def plot_tvb(transient, inds,
-             results=None, source_ts=None, bold_ts=None, afferent_ts=None,
-             simulator=None, plotter=None, config=None, write_files=True):
+def plot_tvb(transient, inds, results, simulator=None, plotter=None, config=None, write_files=True):
     if plotter is None:
         config, plotter = assert_config(config, return_plotter=True)
     else:
@@ -833,14 +849,12 @@ def plot_tvb(transient, inds,
     MIN_REGIONS_FOR_RASTER_PLOT = 9
     FIGSIZE = config.figures.DEFAULT_SIZE
 
-    outputs = ()
-    if source_ts is None:
+    if isinstance(results, (list, tuple)):
         results = tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
-        outputs = results
-        source_ts = results[0]
-        if len(results) > 1:
-            bold_ts = results[1]
-            afferent_ts = results[-1]
+
+    source_ts = results.get("source_ts", None)
+    bold_ts = results.get("bold_ts", None)
+    afferent_ts = results.get("afferent_ts", None)
 
     # Plot TVB time series
     if source_ts is not None:
@@ -919,6 +933,13 @@ def plot_tvb(transient, inds,
                                                 figures_path=config.figures.FOLDER_FIGURES,
                                                 figname="M1_S1brl", figformat="png",
                                                 show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
+    results["PSD_M1_S1"] = Pxx_den
+    results["PSD_f"] = f
+    results["CxyR_M1_S1"] = CxyR
+    results["fR"] = fR
+    results["Cxyl_M1_S1"] = CxyL
+    results["fL"] = fL
+
     if write_files:
         import pickle
         with open('coherence_MF_cerebON_2sec.pickle', 'wb') as handle:
@@ -944,13 +965,19 @@ def plot_tvb(transient, inds,
     print("Ansiform lobule afferent PSD, with compute_plot_selected_spectra_coherence")
     Pxx_den_ansilob = []
     for iC in range(0, 2):
-        CxyR, fR, fL, CxyL, Pxx_den_ansilob_temp = \
+        Pxx_den_ansilob_temp, f_ansilob, CxyR_ansilob, fR_ansilob, CxyL_ansilob, fL_ansilob = \
             compute_plot_selected_spectra_coherence(
                 afferent_ts[:, iC], inds["ansilob"],
                 transient=transient, nperseg=NPERSEG, fmin=0.0, fmax=100.0,
                 figures_path=config.figures.FOLDER_FIGURES, figname="AnsiLob_afferent", figformat="png",
                 show_flag=plotter.config.SHOW_FLAG, save_flag=plotter.config.SAVE_FLAG)
         Pxx_den_ansilob.append(Pxx_den_ansilob_temp)
+    results["PSD_ansilob"] = Pxx_den_ansilob
+    results["PSD_ansilob_f"] = f_ansilob
+    # results["CxyR_M1_S1"] = CxyR_ansilob
+    # results["fR"] = fR_ansilob
+    # results["Cxyl_M1_S1"] = CxyL_ansilob
+    # results["fL"] = fL_ansilob
 
     # Better summary figure:
     import matplotlib.pyplot as plt
@@ -991,7 +1018,7 @@ def plot_tvb(transient, inds,
     else:
         plt.close(fig)
 
-    return outputs, CxyR, fR, fL, CxyL
+    return results
 
 
 def ansilob_affrerent_coupling_psd_rmse(ref_mossy_firing, afferent_ts, ftarg=None, transient=None):
@@ -1060,6 +1087,7 @@ def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True
     simulator = build_simulator(connectivity, model, inds, maps, config, plotter=plotter)
     # Run simulation and get results
     results, transient = simulate(simulator, config)
+    results = tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
     if PSD_target is None:
         # This is the PSD target we are trying to fit...
         if config.model_params['G']:
@@ -1071,20 +1099,17 @@ def run_workflow(PSD_target=None, model_params={}, config=None, write_files=True
     # This is the PSD computed from our simulation results...
     if config.model_params['G']:
         # ...for a connected brain, i.e., PS of bilateral M1 and S1:
-        PSD = compute_data_PSDs_m1s1brl(results[0], PSD_target, inds, transient, plotter=plotter)
+        PSD = compute_data_PSDs_m1s1brl(results["source_ts"], PSD_target, inds, transient, plotter=plotter)
     else:
         # ...for a disconnected brain, average PS of all regions:
-        PSD = compute_data_PSDs_1D(results[0], PSD_target, inds, transient, plotter=plotter)
-    outputs = (PSD, results, transient, simulator, config)
+        PSD = compute_data_PSDs_1D(results["source_ts"], PSD_target, inds, transient, plotter=plotter)
+    results.update({"PSD": PSD, "transient": transient, "simulator": simulator, "config": config})
     if plotter is not None:
-        outputs = outputs + plot_tvb(transient, inds, results=results, source_ts=None, bold_ts=None, afferent_ts=None,
-                                     simulator=simulator, plotter=plotter, config=config, write_files=write_files)
-    else:
-        if write_files:
-            outputs = outputs + tvb_res_to_time_series(results, simulator, config=config, write_files=write_files)
+        results.update(plot_tvb(transient, inds, results, simulator=simulator, plotter=plotter,
+                                config=config, write_files=write_files))
     if config.VERBOSE:
         print("\nFinished TVB workflow in %g sec!\n" % (time.time() - tic))
-    return outputs
+    return results
 
 
 if __name__ == "__main__":

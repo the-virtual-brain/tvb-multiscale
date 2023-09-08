@@ -143,7 +143,8 @@ def simulate_batch(iB, iG, batch_samples, run_workflow, write_to_file=None, conf
         if config.VERBOSE:
             print("\n\nSimulation %d/%d for iG=%d, iB=%d" % (iS + 1, batch_samples.shape[0], iG, iB))
             print("Simulating for parameters:\n%s" % str(priors_params))
-        sim_res.append(run_workflow(model_params=priors_params, config=config, plot_flag=False, write_files=False)[0])
+        sim_res.append(
+            run_workflow(model_params=priors_params, config=config, plot_flag=False, write_files=False)["PSD"])
         if write_to_file:
             write_to_file(sim_res, iB, iG, config)
     return sim_res
@@ -776,7 +777,7 @@ def simulate_after_fitting(iG, iR=None, label="", config=None,
                                          (config.output_base, params['G'], params["STIMULUS"],
                                           params['I_s'], config.FIC, config.FIC_SPLIT, label),
                            plot_flag=plot_flag, **config_args)
-    outputs = outputs + (samples_fit, )
+    outputs["samples_fit"] = samples_fit
     return outputs
 
 
