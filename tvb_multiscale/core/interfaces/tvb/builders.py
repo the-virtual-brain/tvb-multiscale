@@ -89,6 +89,18 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         return self.tvb_cosimulator.synchronization_n_step
 
     @property
+    def tvb_min_idelay(self):
+        if self.tvb_cosimulator is None:
+            return 0
+        return self.tvb_cosimulator.min_idelay
+
+    @property
+    def tvb_min_delay(self):
+        if self.tvb_cosimulator is None:
+            return 0.0
+        return self.tvb_cosimulator.min_delay
+
+    @property
     def tvb_nsig(self):
         try:
             return self.tvb_cosimulator.integrator.noise.nsig
@@ -328,7 +340,9 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         self.tvb_cosimulator.output_interfaces = \
             self._output_interfaces_type(interfaces=self._output_interfaces,
                                          synchronization_time=self.synchronization_time,
-                                         synchronization_n_step=self.synchronization_n_step)
+                                         synchronization_n_step=self.synchronization_n_step,
+                                         min_idelay=self.tvb_min_idelay,
+                                         dt=self.tvb_dt)
         self.tvb_cosimulator.input_interfaces = \
             self._input_interfaces_type(interfaces=self._input_interfaces,
                                         synchronization_time=self.synchronization_time,
