@@ -323,8 +323,8 @@ class TVBParallelApp(TVBApp):
         self._xs = xs
         if not self.cosimulator.n_tvb_steps_ran_since_last_synch:
             self.cosimulator.n_tvb_steps_ran_since_last_synch = int(self.cosimulator.synchronization_n_step)
-        # Send TVB's initial condition to spikeNet!:
-        return self.get_tvb_init_cosim_coupling()
+        # # Send TVB's initial condition to spikeNet!:
+        # return self.get_tvb_init_cosim_coupling()
 
     def run_for_synchronization_time(self, cosim_updates=None, cosimulation=True):
         return self.cosimulator.run_for_synchronization_time(
