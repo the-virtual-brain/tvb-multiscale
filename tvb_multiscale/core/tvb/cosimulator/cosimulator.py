@@ -128,7 +128,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     def compute_default_synchronization_time_and_n_step(self):
         default_synchronization_n_step = \
-                int(numpy.floor(self.min_idelay / self.min_idelay_sync_n_step_ratio))
+                int(numpy.floor(self._min_idelay / self.min_idelay_sync_n_step_ratio))
         default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
                                                     decimals=self._number_of_dt_decimals)
         return default_synchronization_time, default_synchronization_n_step
@@ -166,12 +166,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                              (self.synchronization_time, synchronization_time, self.integrator.dt))
         self.synchronization_time = synchronization_time
         # Check if the synchronization time is smaller than the minimum delay of the connectivity:
-        min_delay = self.min_idelay
-        if self.synchronization_time > min_delay:
+        if self.synchronization_time > self._min_delay:
             raise ValueError('The synchronization time %g is longer than '
                              'the minimum delay time %g '
                              'of all existing connections (i.e., of nonzero weight)!'
-                             % (self.synchronization_time, min_delay))
+                             % (self.synchronization_time, self._min_delay))
         if self.n_output_interfaces:
             self.output_interfaces.synchronization_time = self.synchronization_time
             self.output_interfaces.synchronization_n_step = self.synchronization_n_step
@@ -276,6 +275,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         """
         Simulator.configure(self, full_configure=full_configure)
+        self.compute_min_delay()
         self._number_of_dt_decimals = numpy.abs(Decimal('%g' % self.integrator.dt).as_tuple().exponent)
         self._compute_requirements = True
         self.n_tvb_steps_ran_since_last_synch = 0
@@ -304,6 +304,47 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.log.warning(msg)
             print(msg)
             self.current_step = 0
+
+    def _prepare_cosimulation_call(self, simulation_length=None, n_steps=None, cosim_updates=None):
+        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
+
+        if simulation_length is not None:
+            self.simulation_length = float(simulation_length)
+
+        if self._cosimulation_flag:
+            if n_steps is not None:
+                raise ValueError("n_steps is not used in cosimulation!")
+            if cosim_updates is None:
+                n_steps = self.synchronization_n_step
+            elif len(cosim_updates) != 2:
+                raise ValueError("Incorrect cosimulation updates input length %i, expected 2 (i.e., time steps, values)"
+                                 % len(cosim_updates))
+            elif len(cosim_updates[1].shape) != 4 \
+                     or self.good_cosim_update_values_shape[0] < cosim_updates[1].shape[0] \
+                     or numpy.any(self.good_cosim_update_values_shape[1:] != cosim_updates[1].shape[1:]):
+                raise ValueError("Incorrect cosimulation updates values shape %s, \nexpected %s "
+                                 "(i.e., (<=synchronization_n_step, n_voi, n_proxy_nodes, number_of_modes))" %
+                                 (str(cosim_updates[1].shape), str(self.good_cosim_update_values_shape)))
+            else:
+                n_steps = cosim_updates[0].shape[0]
+                # Now update cosimulation history with the cosimulation inputs:
+                # TODO: Resolve difference in time update with master
+                self._update_cosim_history(cosim_updates[0], cosim_updates[1])
+
+            self.simulation_length = n_steps * self.integrator.dt
+
+        else:
+            # Normal TVB simulation - no cosimulation:
+            if cosim_updates is not None:
+                raise ValueError("cosim_update is not used in normal simulation")
+
+            if n_steps is None:
+                n_steps = int(math.ceil(self.simulation_length / self.integrator.dt))
+            else:
+                if not numpy.issubdtype(type(n_steps), numpy.integer):
+                    raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
+                self.simulation_length = n_steps * self.integrator.dt
+        return n_steps
 
     def _prepare_stimulus(self):
         if self.simulation_length != self.synchronization_time:
@@ -364,47 +405,6 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         self.current_state = state
         self.current_step = self.current_step + n_steps
-
-    def _prepare_cosimulation_call(self, simulation_length=None, n_steps=None, cosim_updates=None):
-        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
-
-        if simulation_length is not None:
-            self.simulation_length = float(simulation_length)
-
-        if self._cosimulation_flag:
-            if n_steps is not None:
-                raise ValueError("n_steps is not used in cosimulation!")
-            if cosim_updates is None:
-                n_steps = self.synchronization_n_step
-            elif len(cosim_updates) != 2:
-                raise ValueError("Incorrect cosimulation updates input length %i, expected 2 (i.e., time steps, values)"
-                                 % len(cosim_updates))
-            elif len(cosim_updates[1].shape) != 4 \
-                     or self.good_cosim_update_values_shape[0] < cosim_updates[1].shape[0] \
-                     or numpy.any(self.good_cosim_update_values_shape[1:] != cosim_updates[1].shape[1:]):
-                raise ValueError("Incorrect cosimulation updates values shape %s, \nexpected %s "
-                                 "(i.e., (<=synchronization_n_step, n_voi, n_proxy_nodes, number_of_modes))" %
-                                 (str(cosim_updates[1].shape), str(self.good_cosim_update_values_shape)))
-            else:
-                n_steps = cosim_updates[0].shape[0]
-                # Now update cosimulation history with the cosimulation inputs:
-                # TODO: Resolve difference in time update with master
-                self._update_cosim_history(cosim_updates[0], cosim_updates[1])
-
-            self.simulation_length = n_steps * self.integrator.dt
-
-        else:
-            # Normal TVB simulation - no cosimulation:
-            if cosim_updates is not None:
-                raise ValueError("cosim_update is not used in normal simulation")
-
-            if n_steps is None:
-                n_steps = int(math.ceil(self.simulation_length / self.integrator.dt))
-            else:
-                if not numpy.issubdtype(type(n_steps), numpy.integer):
-                    raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
-                self.simulation_length = n_steps * self.integrator.dt
-        return n_steps
 
     def get_cosim_updates(self, cosimulation=True):
         cosim_updates = None
