@@ -304,9 +304,12 @@ class TVBParallelApp(TVBApp):
 
     def get_tvb_init_cosim_coupling(self, relative_output_interfaces_time_steps=None):
         if relative_output_interfaces_time_steps is not None:
-            # TODO: optional updating of this value!!!
+            relative_output_interfaces_time_steps1 = self.cosimulator.relative_output_interfaces_time_steps
             self.cosimulator.relative_output_interfaces_time_steps = relative_output_interfaces_time_steps
+            relative_output_interfaces_time_steps = relative_output_interfaces_time_steps1
         self.tvb_init_cosim_coupling = self.cosimulator.send_cosim_coupling(True)
+        if relative_output_interfaces_time_steps is not None:
+            self.cosimulator.relative_output_interfaces_time_steps = relative_output_interfaces_time_steps
         return self.tvb_init_cosim_coupling
 
     def configure_simulation(self):
