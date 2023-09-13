@@ -128,7 +128,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
     def compute_default_synchronization_time_and_n_step(self):
         default_synchronization_n_step = \
-                int(numpy.floor(self.min_idelay / self.min_idelay_sync_n_step_ratio))
+                int(numpy.floor(self._min_idelay / self.min_idelay_sync_n_step_ratio))
         default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
                                                     decimals=self._number_of_dt_decimals)
         return default_synchronization_time, default_synchronization_n_step
@@ -166,12 +166,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                              (self.synchronization_time, synchronization_time, self.integrator.dt))
         self.synchronization_time = synchronization_time
         # Check if the synchronization time is smaller than the minimum delay of the connectivity:
-        min_delay = self.min_idelay
-        if self.synchronization_time > min_delay:
+        if self.synchronization_time > self._min_delay:
             raise ValueError('The synchronization time %g is longer than '
                              'the minimum delay time %g '
                              'of all existing connections (i.e., of nonzero weight)!'
-                             % (self.synchronization_time, min_delay))
+                             % (self.synchronization_time, self._min_delay))
         if self.n_output_interfaces:
             self.output_interfaces.synchronization_time = self.synchronization_time
             self.output_interfaces.synchronization_n_step = self.synchronization_n_step
@@ -276,6 +275,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         """
         Simulator.configure(self, full_configure=full_configure)
+        self.compute_min_delay()
         self._number_of_dt_decimals = numpy.abs(Decimal('%g' % self.integrator.dt).as_tuple().exponent)
         self._compute_requirements = True
         self.n_tvb_steps_ran_since_last_synch = 0

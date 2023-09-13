@@ -92,13 +92,13 @@ class TVBInterfaceBuilder(InterfaceBuilder):
     def tvb_min_idelay(self):
         if self.tvb_cosimulator is None:
             return 0
-        return self.tvb_cosimulator.min_idelay
+        return self.tvb_cosimulator._min_idelay
 
     @property
     def tvb_min_delay(self):
         if self.tvb_cosimulator is None:
             return 0.0
-        return self.tvb_cosimulator.min_delay
+        return self.tvb_cosimulator._min_delay
 
     @property
     def tvb_nsig(self):
