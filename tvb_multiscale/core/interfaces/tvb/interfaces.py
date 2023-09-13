@@ -372,8 +372,11 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
-               required=True,
-               default=0.1)
+               required=True)
+
+    min_idelay = Int(label="Minimum idelay",
+                     doc="TVB minimum delay time steps",
+                     required=True)
 
     def set_local_indices(self, cosim_monitors):
         """Method to set the correct voi indices with reference to the linked TVB CosimMonitor,
@@ -386,11 +389,11 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
                           np.round(data[interface.monitor_ind][0][-1] / self.dt)]).astype("i")  # end_time_step
         if interface.coupling_mode.upper() != "TVB":
             # As we cannot schedule spikeNet devices with times in the past,
-            # we need to add here synchronization time,
+            # we need to add here TVB min_delay time,
             # and subtract it from the connectome delays, in case coupling is "spikeNet".
             # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
             # i.e., for the next synchronization_time period, to "spikeNet" devices
-            times += self.synchronization_n_step
+            times += self.min_idelay
         return times
 
     def __call__(self, data):
@@ -461,9 +464,9 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
         time_steps = np.arange(data[0][0], data[0][1] + 1).astype("i")
         cosim_updates[
             (time_steps % good_cosim_update_values_shape[0])[:, None, None],
-            interface.voi_loc[None, :, None],  # indices specific to cosim_updates needed here
-            interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
-            0] = np.copy(data[1])  # !!! assuming only 1 mode!!!
+             interface.voi_loc[None, :, None],  # indices specific to cosim_updates needed here
+             interface.proxy_inds_loc[None, None, :],  # indices specific to cosim_updates needed here
+             0] = np.copy(data[1])  # !!! assuming only 1 mode!!!
         return cosim_updates, time_steps
 
     def _get_from_interface(self, input_data, interface, cosim_updates, all_time_steps, good_cosim_update_values_shape):

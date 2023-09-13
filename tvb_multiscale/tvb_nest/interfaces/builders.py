@@ -122,9 +122,9 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
             delay_mode = "resolution"
         if np.any(delays < min_delay):
             warnings.warn("There are delays\n%s\n smaller than the NEST %s=%f!\n"
-                    "Mind that config.LOCK_MIN_DELAY = %r!\n"
-                    "Setting those delays equal to %s=%f!" %
-                    (str(delays), delay_mode, min_delay, self.config.LOCK_MIN_DELAY, delay_mode, min_delay))
+                          "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                          "Setting those delays equal to %s=%f!" %
+                          (str(delays), delay_mode, min_delay, self.config.LOCK_MIN_DELAY, delay_mode, min_delay))
             delays[delays < min_delay] = min_delay
         return np.maximum(min_delay, delays - min_delay).astype("float32")
 
@@ -290,7 +290,7 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
         return self._bound_tvb_delays(
             (np.maximum(1,
                        np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
-                                - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
+                                - self.tvb_min_delay + self.spiking_dt)/self.spiking_dt).astype("i")
                        ) * self.spiking_dt
             ).astype("float32")
                                      )

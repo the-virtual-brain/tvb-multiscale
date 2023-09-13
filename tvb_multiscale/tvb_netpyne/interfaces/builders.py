@@ -204,11 +204,13 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
     def _get_tvb_delays(self):
         return (np.maximum(1,
                            np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
-                                    - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
+                                    - self.tvb_min_delay + self.spiking_dt)/self.spiking_dt).astype("i")
                            ) * self.spiking_dt).astype("float32")
 
     def build(self):
-        # NetPyNE model is built in two steps. First need to create declarative-style specification for both spiking network itself and TVB-Netpyne proxy devides (interfaces):
+        # NetPyNE model is built in two steps.
+        # First need to create declarative-style specification for both spiking network itself
+        # and TVB-Netpyne proxy devides (interfaces):
         result = super(TVBNetpyneInterfaceBuilder, self).build()
         # once done, network can be instantiated based on the specification:
         self.netpyne_instance.createNetwork()
