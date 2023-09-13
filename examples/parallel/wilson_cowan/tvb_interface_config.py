@@ -35,7 +35,7 @@ def configure_TVB_interfaces(simulator=None, tvb_interface_builder_class=TVBInte
     tvb_interface_builder.output_interfaces = \
         [{'voi': np.array(["E"]),  # TVB state variable to get data from
           # --------------- Arguments that can default if not given by the user:------------------------------
-          'coupling_mode': 'TVB',  # or "spikeNet", "spikeNet", etc
+          'coupling_mode': config.INTERFACE_COUPLING_MODE,  # or "spikeNet", "spikeNet", etc
           'proxy_inds': tvb_proxy_inds  # TVB proxy region nodes' indices
           }
          ]
