@@ -366,6 +366,14 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         return int(self.tvb_simulator_serialized.get("synchronization_n_step", 0))
 
     @property
+    def tvb_min_delay(self):
+        return self.tvb_simulator_serialized.get("min_delay", 0.0)
+
+    @property
+    def tvb_min_idelay(self):
+        return self.tvb_simulator_serialized.get("min_idelay", 0)
+
+    @property
     def tvb_nsig(self):
         return self.tvb_simulator_serialized.get("integrator.noise.nsig", np.array([0.0]))
 
@@ -399,7 +407,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
 
     def _get_tvb_delays(self):
         # As we cannot schedule spikeNet devices with times in the past,
-        # we are adding synchronization time to the times of TVB cosimulation coupling input,
+        # we are adding min_delay time to the times of TVB cosimulation coupling input,
         # and subtract it, here, from the connectome delays, in case coupling is "spikeNet".
         # Nothing needs to be done for coupling "TVB", which is scheduled "just in time",
         # i.e., for the next synchronization_time period, to "spikeNet" devices
@@ -407,7 +415,7 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         # For NEST, one has to subtract 1 NEST time step.
         return np.maximum(1,
                           self.tvb_simulator_serialized.get("connectivity.idelays", np.ones((1, 1)))
-                          - self.synchronization_n_step + 1) * self.tvb_dt
+                          - self.tvb_min_idelay + 1) * self.tvb_dt
 
     def _proxy_inds(self, interfaces):
         return np.unique(self._only_inds_for_interfaces(interfaces, "proxy_inds", self.region_labels,
