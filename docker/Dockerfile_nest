@@ -49,9 +49,8 @@ RUN cd nest-client; \
 # Install NEURON, NetPyNE and ANNarchy (and optionally pyNN)
 # Install NEURON and NetPyNE
 RUN $VENV/bin/pip3 install neuron
-#RUN $VENV/bin/pip3 install optuna
 RUN $VENV/bin/pip3 install netpyne
-# RUN $VENV/bin/pip3 install ANNarchy
+RUN $VENV/bin/pip3 install ANNarchy
 # RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
 # RUN $VENV/bin/pip3 install cython;
 # RUN git clone https://github.com/ANNarchy/ANNarchy.git
