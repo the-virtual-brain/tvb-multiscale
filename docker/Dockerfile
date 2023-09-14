@@ -42,7 +42,6 @@ RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade nose ipython numpy scipy matplotlib; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba;
 
-# django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
