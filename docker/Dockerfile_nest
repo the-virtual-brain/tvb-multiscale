@@ -41,57 +41,53 @@ RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
      $VENV/bin/python3 setup.py install --user;
 
+
+# Install TVB-multiscale specific packages
+
+# WORKDIR $HOME/packages
+
+# Install NEURON, NetPyNE and ANNarchy (and optionally pyNN)
 # Install NEURON and NetPyNE
 RUN $VENV/bin/pip3 install neuron
 #RUN $VENV/bin/pip3 install optuna
 RUN $VENV/bin/pip3 install netpyne
+RUN $VENV/bin/pip3 install ANNarchy
+# RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
+# RUN $VENV/bin/pip3 install cython;
+# RUN git clone https://github.com/ANNarchy/ANNarchy.git
+# RUN cd ANNarchy; \
+#     $VENV/bin/python3 setup.py install;
+# RUN $VENV/bin/pip3 install pyNN
 
-# Install pyNN
-# RUN pip install pyNN
-#ARG PYNN_VER=0.9.4
-#RUN wget https://github.com/NeuralEnsemble/PyNN/archive/${PYNN_VER}.tar.gz -O $HOME/packages/PyNN-${PYNN_VER}.tar.gz; \
-#    cd $HOME/packages; \
-#    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
-#    cd PyNN-${PYNN_VER}; \
-#    $VENV/bin/python setup.py install
+# Install Pyspike:
+RUN $VENV/bin/pip3  install pyspike
+# RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
+#     cd PySpike; \
+#     $VENV/bin/python3 setup.py build_ext install;
+
+# Install ray:
+# WORKDIR $HOME/packages
+# TODO: Remove when ray==1.5.0 fixed
+# aioredis==1.3.0 has to be installed first on a separate pip3 command!
+# RUN $VENV/bin/pip3 install aioredis==1.3.0;
+# RUN $VENV/bin/pip3 install starlette uvicorn '
+RUN $VENV/bin/pip3 install ray[default]' 'ray[serve]';
+RUN $VENV/bin/pip3 install --ignore-installed entrypoints;
+
+## Other (large) packages added for scientific work:
+RUN $VENV/bin/pip3 install plotly
+# RUN $VENV/bin/pip3 install torch
+# RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
 
 # Install TVB specific packages
-WORKDIR $HOME/packages
+# WORKDIR $HOME/packages
 # pandas, jupyterlab
 RUN $VENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints;
 
-# Install TVB-multiscale specific packages
-
-WORKDIR $HOME/packages
-# RUN $VENV/bin/pip3 install ANNarchy;
-RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
-RUN $VENV/bin/pip3 install cython;
-RUN git clone https://github.com/ANNarchy/ANNarchy.git
-RUN cd ANNarchy; \
-    $VENV/bin/python3 setup.py install;
-
-WORKDIR $HOME/packages
-RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
-    cd PySpike; \
-    $VENV/bin/python3 setup.py build_ext install;
-
-# Install ray:
-WORKDIR $HOME/packages
-# TODO: Remove when ray==1.5.0 fixed
-# aioredis==1.3.0 has to be installed first on a separate pip3 command!
-RUN $VENV/bin/pip3 install aioredis==1.3.0;
-RUN $VENV/bin/pip3 install starlette uvicorn 'ray[default]' 'ray[serve]';
-RUN $VENV/bin/pip3 install --ignore-installed entrypoints;
-
-## Other (large) packages added for scientific work:
-#RUN $VENV/bin/pip3 install plotly
-#RUN $VENV/bin/pip3 install torch
-#RUN $VENV/bin/pip3 install sbi
-# RUN $VENV/bin/pip3 install sbibm
-
 # Clone and install tvb-root
-WORKDIR $HOME/packages
+# WORKDIR $HOME/packages
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
@@ -119,7 +115,7 @@ RUN $VENV/bin/pip3 install ipympl;  # ipywidgets
 RUN $VENV/bin/jupyter nbextension enable --py widgetsnbextension;  # --sys-prefix
 
 # Checkout specific branch of tvb-multiscale
-WORKDIR $HOME/packages
+# WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     git checkout ray; \
     git pull --allow-unrelated-histories;
@@ -129,8 +125,8 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-RUN $VENV/bin/pip3 install numpy==1.23.4
-RUN $VENV/bin/pip3 install pandas==1.5.2
+# RUN $VENV/bin/pip3 install numpy==1.23.4
+# RUN $VENV/bin/pip3 install pandas==1.5.2
 
 WORKDIR $HOME
 # Activate the right python env.
