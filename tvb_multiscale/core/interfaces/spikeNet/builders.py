@@ -50,7 +50,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                            required=True)
 
     global_coupling_scaling = NArray(
-        dtype=np.float,
+        dtype=np.float64,
         label="Global coupling scaling",
         doc="""Array of global coupling scaling parameters per receiving brain region node.""",
         required=True,

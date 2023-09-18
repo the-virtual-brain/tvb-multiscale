@@ -110,7 +110,7 @@ class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
                doc="""Number of cortical neurons projecting to inferior olivary neurons""")
 
     CC_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="CC_proxy_inds",
         doc="""Indices of Spiking Network Cerebellar Cortices proxy nodes""",
         required=True,
@@ -118,7 +118,7 @@ class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     )
 
     CN_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="CN_proxy_inds",
         doc="""Indices of Spiking Network Cerebellar Nuclei proxy nodes""",
         required=True,
@@ -126,7 +126,7 @@ class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     )
 
     IO_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="IO_proxy_inds",
         doc="""Indices of Spiking Network Inferior Olivary Cortices proxy nodes""",
         required=True,

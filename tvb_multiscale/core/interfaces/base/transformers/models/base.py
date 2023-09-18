@@ -31,7 +31,7 @@ class Transformer(HasTraits):
                default=0.1)
 
     input_time = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Input time vector",
         doc="""Buffer of time (float) or time steps (integer) corresponding to the input buffer.""",
         required=True,
@@ -39,7 +39,7 @@ class Transformer(HasTraits):
     )
 
     output_time = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Output time vector",
         doc="""Buffer of time (float) or time steps (integer) corresponding to the output bufer.""",
         required=True,
