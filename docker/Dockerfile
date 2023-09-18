@@ -81,7 +81,7 @@ RUN cd $NEST; \
 WORKDIR $HOME/packages
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $VENV/bin/python3 setup.py install --user;
+     $VENV/bin/python3 setup.py install;
 
 # Install nestml
 WORKDIR $HOME/packages
@@ -108,7 +108,7 @@ RUN $VENV/bin/pip3 install plotly
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
+RUN $VENV/bin/pip3 install pandas xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints; \
     $VENV/bin/pip3 install werkzeug==2.0.1;
 
@@ -155,12 +155,25 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install ipywidgets ipympl;
-#RUN $VENV/bin/pip3 install --upgrade --user jupyterlab;
-##RUN $VENV/bin/pip3 install jupyter jupyter_contrib_nbextensions jupyter_nbextensions_configurator --user;
-##RUN $VENV/bin/jupyter contrib nbextension install;
-##RUN $VENV/bin/jupyter nbextensions_configurator enable --py --sys-prefix widgetsnbextension;
-# RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension;
+RUN $VENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
+RUN $VENV/bin/jupyter-contrib nbextension install --user;
+RUN $VENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
+# Due to this:
+# https://github.com/microsoft/azuredatastudio/issues/24436
+# we need to downgrade traitlets:
+RUN $VENV/bin/pip3 install traitlets==5.9.0
+
+# TODO: UNDO THIS!
+# Downgrade matplotlib as a temporary fix for error:
+#File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
+#     23 import matplotlib.collections as mcoll
+#     24 import matplotlib.colors as mcolors
+#---> 25 import matplotlib.docstring as docstring
+#     26 import matplotlib.scale as mscale
+#     27 import matplotlib.transforms as mtransforms
+#
+#ModuleNotFoundError: No module named 'matplotlib.docstring'
+RUN $VENV/bin/pip3 install matplotlib==3.7.3
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
@@ -219,7 +232,7 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 # Final configurations
 # tvb42
-RUN $VENV/bin/jupyter notebook --generate-config; \
+RUN $VENV/bin/jupyter-notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
@@ -251,6 +264,6 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 #CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 #Run jupyter notebooks
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
 # CMD /bin/bash
