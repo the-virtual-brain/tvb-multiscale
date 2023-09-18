@@ -28,6 +28,7 @@ RUN useradd -ms /bin/bash docker
 USER docker
 ARG HOME=/home/docker
 RUN mkdir $HOME/env; mkdir $HOME/packages
+ENV PATH="${HOME}/.local/bin":${PATH};
 
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
@@ -50,21 +51,18 @@ RUN cd nest-client; \
 # Install NEURON and NetPyNE
 RUN $VENV/bin/pip3 install neuron
 RUN $VENV/bin/pip3 install netpyne
-RUN $VENV/bin/pip3 install ANNarchy
-# RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
-# RUN $VENV/bin/pip3 install cython;
-# RUN git clone https://github.com/ANNarchy/ANNarchy.git
-# RUN cd ANNarchy; \
-#     $VENV/bin/python3 setup.py install;
+# Install ANNarchy
+# TODO: Find out why pip install doesn't work!
+# RUN $VENV/bin/pip3 install ANNarchy
+RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
+RUN $VENV/bin/pip3 install cython==0.29.36 --user;
+RUN git clone https://github.com/ANNarchy/ANNarchy.git
+RUN cd ANNarchy; \
+    $VENV/bin/python3 setup.py install --user;
 # RUN $VENV/bin/pip3 install pyNN
 
-# WORKDIR $HOME/packages
-
 # Install Pyspike:
-RUN $VENV/bin/pip3  install pyspike
-# RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
-#     cd PySpike; \
-#     $VENV/bin/python3 setup.py build_ext install;
+RUN $VENV/bin/pip3 install pyspike
 
 # Install ray:
 # WORKDIR $HOME/packages
@@ -83,12 +81,11 @@ RUN $VENV/bin/pip3 install plotly
 
 # Install TVB specific packages
 # WORKDIR $HOME/packages
-# pandas, jupyterlab
 RUN $VENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints;
 
 # Clone and install tvb-root
-# WORKDIR $HOME/packages
+WORKDIR $HOME/packages
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
@@ -112,8 +109,9 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install ipympl;  # ipywidgets
-RUN $VENV/bin/jupyter nbextension enable --py widgetsnbextension;  # --sys-prefix
+RUN $VENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
+RUN $VENV/bin/jupyter-contrib nbextension install --user;
+RUN $VENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
 
 # Checkout specific branch of tvb-multiscale
 # WORKDIR $HOME/packages
@@ -126,8 +124,6 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-# RUN $VENV/bin/pip3 install numpy==1.23.4
-# RUN $VENV/bin/pip3 install pandas==1.5.2
 
 WORKDIR $HOME
 # Activate the right python env.
@@ -184,7 +180,7 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 # Final configurations
 # tvb42
-RUN $VENV/bin/jupyter notebook --generate-config; \
+RUN $VENV/bin/jupyter-notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py; \
     echo "c.MultiKernelManager.default_kernel_name='neurosci'">>/home/docker/.jupyter/jupyter_notebook_config.py
 RUN $VENV/bin/ipython kernel install --user --name="neurosci"
@@ -218,6 +214,6 @@ RUN echo ". $VENV/bin/activate" >> .profile
 #CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 #Run jupyter notebooks
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
 # CMD /bin/bash
