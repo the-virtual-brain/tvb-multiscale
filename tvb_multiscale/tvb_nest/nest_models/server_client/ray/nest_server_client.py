@@ -15,7 +15,7 @@ def ray_nest_server_request(url, headers, call, *args, **kwargs):
 
 class RayNESTServerClient(NESTServerClient, NESTClientAsyncBase):
 
-    def __ini__(self, host='localhost', port=5000):
+    def __ini__(self, host='localhost', port=52425):
         NESTServerClient.__init__(self, host=host, port=port)
         NESTClientAsyncBase.__init__(self)
 

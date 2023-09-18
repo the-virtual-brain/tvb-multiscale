@@ -5,7 +5,7 @@ from werkzeug.exceptions import BadRequest
 
 import numpy as np
 
-from NESTServerClient import NESTServerClient as NESTServerClientBase
+from nest_client import NESTClient as NESTServerClientBase
 
 from tvb_multiscale.tvb_nest.nest_models.server_client.nest_client_base import NESTClientBase  # , decode_args_kwargs
 
@@ -44,9 +44,9 @@ def nest_server_request(url, headers, call, *args, **kwargs):
 class NESTServerClient(NESTServerClientBase, NESTClientBase):
 
     host = 'localhost'
-    port = 5000
+    port = 52425
 
-    def __init__(self, host='localhost', port=5000):
+    def __init__(self, host='localhost', port=52425):
         NESTServerClientBase.__init__(self, host=host, port=port)
         NESTClientBase.__init__(self)
 
