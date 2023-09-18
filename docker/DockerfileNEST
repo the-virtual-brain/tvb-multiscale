@@ -71,8 +71,8 @@ RUN $VENV/bin/pip3 install pyspike
 # aioredis==1.3.0 has to be installed first on a separate pip3 command!
 # RUN $VENV/bin/pip3 install aioredis==1.3.0;
 # RUN $VENV/bin/pip3 install starlette uvicorn '
-RUN $VENV/bin/pip3 install 'ray[serve]';  #  'ray[default]'
-RUN $VENV/bin/pip3 install --ignore-installed entrypoints;
+# RUN $VENV/bin/pip3 install 'ray[serve]';
+# RUN $VENV/bin/pip3 install --ignore-installed entrypoints;
 
 ## Other (large) packages added for scientific work:
 RUN $VENV/bin/pip3 install plotly
@@ -117,7 +117,7 @@ RUN $VENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefi
 # Checkout specific branch of tvb-multiscale
 # WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
-    git checkout ray; \
+    git checkout dev; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files

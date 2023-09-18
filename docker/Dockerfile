@@ -178,7 +178,7 @@ RUN $VENV/bin/pip3 install matplotlib==3.7.3
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
-    git checkout ray; \
+    git checkout dev; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files
@@ -186,12 +186,12 @@ WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-# Install ray:
-WORKDIR $HOME/packages
-# TODO: Remove when ray==1.5.0 fixed
-# aioredis==1.3.0 has to be installed first on a separate pip3 command!
-# RUN $VENV/bin/pip3 install aioredis==1.3.0 starlette uvicorn;
-RUN $VENV/bin/pip3 install -U "ray[serve]"
+## Install ray:
+#WORKDIR $HOME/packages
+## TODO: Remove when ray==1.5.0 fixed
+## aioredis==1.3.0 has to be installed first on a separate pip3 command!
+## RUN $VENV/bin/pip3 install aioredis==1.3.0 starlette uvicorn;
+#RUN $VENV/bin/pip3 install -U "ray[serve]"
 
 WORKDIR $HOME
 # Activate the right python env.
