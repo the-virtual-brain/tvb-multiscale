@@ -29,7 +29,7 @@ class SpikeNetInterface(BaseInterface):
                            required=True)
 
     spiking_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Indices of Spiking Network proxy nodes",
         doc="""Indices of Spiking Network proxy nodes""",
         required=True,
@@ -96,7 +96,7 @@ class SpikeNetOutputInterface(SpikeNetInterface):
                default=0.1)
 
     times = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Time step indices.",
         doc="""Time step indices of last Spiking Network output values.""",
         required=True,
@@ -139,7 +139,7 @@ class SpikeNetOutputInterface(SpikeNetInterface):
                                        np.round(data[0][1] / self.dt)]).astype("i")  # end_time_step
             else:
                 # This will work for spike recorders:
-                time = np.int(np.round(self.time / self.dt))
+                time = int(np.round(self.time / self.dt))
                 times = self.times.copy()
                 if time > times[1]:
                     times[0] = times[1] + 1
