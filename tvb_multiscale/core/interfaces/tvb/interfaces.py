@@ -24,7 +24,7 @@ class TVBInterface(BaseInterface):
     """TVBInterface base class for interfaces sending/receivng data from/for TVB to/from a transformer of cosimulator"""
 
     proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Indices of TVB proxy nodes",
         doc="""Indices of TVB proxy nodes""",
         required=True,

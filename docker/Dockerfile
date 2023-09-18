@@ -1,7 +1,7 @@
 #
-# TVB & NEST simulations environment
+# TVB & NEST, ANNarchy and NetPyNE (NEURON) simulations environment
 #
-# Install Python 3.9, NEST, then tvb-library from Pypi
+# Install Python 3.9, NEST, ANNarchy, NEURON, NetPyNE, Elephant, PySpike, ray, and then tvb-root.
 # Finally link tvb-multiscale from Github sources
 #
 
@@ -42,7 +42,6 @@ RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade nose ipython numpy scipy matplotlib; \
     $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba;
 
-# django<1.9 is needed for pynest - september 2019 - NEST 2.18
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
@@ -67,7 +66,7 @@ ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 # Install NEST 3.1
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
-RUN git clone --branch v3.1 https://github.com/nest/nest-simulator.git
+RUN git clone https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
     git fetch origin && git checkout c545255f7252308d6e73a851ddeece4f2dffc812; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
@@ -78,6 +77,12 @@ RUN cd $NEST; \
           ${NEST_SRC}; \
     make; make install
 
+# Install NESTServerClient
+WORKDIR $HOME/packages
+RUN git clone https://github.com/nest/nest-client.git
+RUN cd nest-client; \
+     $VENV/bin/python3 setup.py install;
+
 # Install nestml
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install setuptools; \
@@ -85,10 +90,6 @@ RUN $VENV/bin/pip3 install setuptools; \
     cd nestml; \
     # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
-
-# Install NEURON and NetPyNE
-RUN $VENV/bin/pip3 install neuron
-RUN $VENV/bin/pip3 install netpyne
 
 # Install pyNN
 # RUN pip install pyNN
@@ -101,30 +102,33 @@ RUN $VENV/bin/pip3 install netpyne
 
 # Other (large) packages added for scientific work:
 RUN $VENV/bin/pip3 install plotly
-RUN $VENV/bin/pip3 install torch
-RUN $VENV/bin/pip3 install sbi
+#RUN $VENV/bin/pip3 install torch
+#RUN $VENV/bin/pip3 install sbi
 # RUN $VENV/bin/pip3 install sbibm
 
 # Install TVB specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install pandas xarray jupyterlab pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba ; \
+RUN $VENV/bin/pip3 install pandas xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $VENV/bin/pip3 install --ignore-installed entrypoints; \
     $VENV/bin/pip3 install werkzeug==2.0.1;
 
 # Install TVB-multiscale specific packages
 WORKDIR $HOME/packages
+# Install NEURON and NetPyNE
+RUN $VENV/bin/pip3 install neuron
+RUN $VENV/bin/pip3 install netpyne
+# Install ANNarchy
 RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install ANNarchy;
-
+# Install PySpike
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $VENV/bin/python3 setup.py build_ext install;
-
+# Install Elephant
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install elephant dill; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints;
+RUN $VENV/bin/pip3 install elephant;
 
 # Clone and install tvb-root
 WORKDIR $HOME/packages
@@ -151,19 +155,43 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install ipywidgets ipympl;
-RUN $VENV/bin/jupyter nbextension enable --py --sys-prefix widgetsnbextension;
+RUN $VENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
+RUN $VENV/bin/jupyter-contrib nbextension install --user;
+RUN $VENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
+# Due to this:
+# https://github.com/microsoft/azuredatastudio/issues/24436
+# we need to downgrade traitlets:
+RUN $VENV/bin/pip3 install traitlets==5.9.0
+
+# TODO: UNDO THIS!
+# Downgrade matplotlib as a temporary fix for error:
+#File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
+#     23 import matplotlib.collections as mcoll
+#     24 import matplotlib.colors as mcolors
+#---> 25 import matplotlib.docstring as docstring
+#     26 import matplotlib.scale as mscale
+#     27 import matplotlib.transforms as mtransforms
+#
+#ModuleNotFoundError: No module named 'matplotlib.docstring'
+RUN $VENV/bin/pip3 install matplotlib==3.7.3
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
-    git checkout parallelNEST31; \
+    git checkout dev; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files
 WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
     $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
+
+## Install ray:
+#WORKDIR $HOME/packages
+## TODO: Remove when ray==1.5.0 fixed
+## aioredis==1.3.0 has to be installed first on a separate pip3 command!
+## RUN $VENV/bin/pip3 install aioredis==1.3.0 starlette uvicorn;
+#RUN $VENV/bin/pip3 install -U "ray[serve]"
 
 WORKDIR $HOME
 # Activate the right python env.
@@ -204,7 +232,7 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 # Final configurations
 # tvb42
-RUN $VENV/bin/jupyter notebook --generate-config; \
+RUN $VENV/bin/jupyter-notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
@@ -236,6 +264,6 @@ RUN echo "source $VENV/bin/activate" >> .bashrc
 #CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 #Run jupyter notebooks
-CMD $VENV/bin/jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
 # CMD /bin/bash

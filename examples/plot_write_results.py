@@ -29,6 +29,11 @@ from tvb.simulator.plot.base_plotter import pyplot
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
+try:
+    import pyspike
+    PYSPIKE = True
+except:
+    PYSPIKE = False
 
 MAX_VARS_IN_COLS = 3
 MAX_REGIONS_IN_ROWS = 10
@@ -208,7 +213,7 @@ def plot_write_spiking_network_results(spiking_network, connectivity=None,
         start_time = None
         end_time = None
 
-    spikeNet_analyzer = SpikingNetworkAnalyser(elephant=True, pyspike=True, spikeNet=spiking_network,
+    spikeNet_analyzer = SpikingNetworkAnalyser(elephant=True, pyspike=PYSPIKE, spikeNet=spiking_network,
                                                start_time=start_time, end_time=end_time,
                                                period=monitor_period, transient=transient,
                                                time_series_output_type="TVB", return_data=True,
