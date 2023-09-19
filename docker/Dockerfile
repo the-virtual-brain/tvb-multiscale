@@ -143,16 +143,26 @@ RUN $VENV/bin/pip3 install elephant;
 ## First install tvb-framework from Pypi:
 #RUN $VENV/bin/pip3 install tvb-framework
 ## Then, overwrite the tvb-library installation, and add the rest of the necessary tvb packages:
+# For the moment though, let's try to install some dependencies of tvb-framework:
+RUN $VENV/bin/pip3 install alembic;
+RUN $VENV/bin/pip3 install bctpy;
+RUN $VENV/bin/pip3 install cherrypy;
+RUN $VENV/bin/pip3 install flask;
+RUN $VENV/bin/pip3 install flask-restx;
+RUN $VENV/bin/pip3 install formencode;
+RUN $VENV/bin/pip3 install gevent;
+RUN $VENV/bin/pip3 install python-keycloak;
+RUN $VENV/bin/pip3 install google.auth;
+RUN $VENV/bin/pip3 install oauthlib;
+RUN $VENV/bin/pip3 install requests-oauthlib;
 WORKDIR $HOME/packages
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
-    cd tvb_library; \
+    cd tvb_framework; \
     $VENV/bin/python setup.py develop; \
-    cd ../tvb_framework; \
-    $VENV/bin/python setup.py develop; \
-    cd ../tvb_storage; \
+    cd ../tvb_library; \
     $VENV/bin/python setup.py develop; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
