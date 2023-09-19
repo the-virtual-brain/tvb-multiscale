@@ -151,7 +151,6 @@ class NetpyneModule(object):
 
         self._readyToRun = True
 
-
     def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, prob=None):
         # TODO: randomize weight and delay, if values do not already contain sting func
         # (e.g. use random_normal_weight() and random_uniform_delay() from netpyne_templates)
@@ -327,7 +326,6 @@ class NetpyneModule(object):
         sim.run.postRun(stopTime)
         sim.gatherData()
         sim.analyze()
-
 
     # parallel simulation
 
