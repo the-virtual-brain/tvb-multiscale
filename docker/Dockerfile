@@ -1,20 +1,28 @@
 #
 # TVB & NEST, ANNarchy and NetPyNE (NEURON) simulations environment
 #
-# Install Python 3.9, NEST, ANNarchy, NEURON, NetPyNE, Elephant, PySpike, ray, and then tvb-root.
+# Install Python 3.10, NEST, ANNarchy, NEURON, NetPyNE, Elephant, PySpike, ray, and then tvb-root.
 # Finally link tvb-multiscale from Github sources
 #
 
-FROM neurodebian:bullseye
+# Ubuntu 22.04 from NeuroDebian 02/09/2023:
+# https://hub.docker.com/layers/library/neurodebian/nd22.04/images/sha256-be7132784be260e212cf3adfa3dbcfad197e3b374d64199b6ad7f9437824f973?context=explore
+FROM neurodebian:nd22.04
 MAINTAINER lia.domide@codemart.ro
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=C.UTF-8
 
+# TODO: Confirm this change:
+#Package python-dev is not available, but is referred to by another package.
+#This may mean that the package is missing, has been obsoleted, or
+#is only available from another source
+#However the following packages replace it:
+#  python2-dev python2 python-dev-is-python3
 RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
-                       wget python3 libpython3.9 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
+                       wget python3 libpython3.10 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
-                       ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev libgsl-dev libncurses-dev \
+                       ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev-is-python3 libgsl-dev libncurses-dev \
                        python3-pkgconfig subversion cmake zip unzip make; \
     apt-get clean
 
@@ -53,27 +61,28 @@ RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$VENV/bin/python $HOME/packages/libneurosim/configure --prefix=$VENV; \
     make; make install; ls $VENV/lib $VENV/include; \
-    ln -s /usr/lib/python3.9/config-x86_64-linux-gnu/libpython3.9.so $VENV/lib/
+    ln -s /usr/lib/python3.10/config-x86_64-linux-gnu/libpython3.10.so $VENV/lib/
 
-# Install NEST, latest stable version (July 2019)
-ARG NEST_VER=dev
+# Install NEST, latest stable version 3.5
+ARG NEST_VER=3.5
 ARG NEST=nest-simulator
 ARG NEST_SRC=$HOME/packages/$NEST
 ARG NEST_INSTALL_DIR=$VENV/nest_build
-ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.9/site-packages
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
-# Install NEST 3.1
+# Install NEST 3.5:
+# https://github.com/nest/nest-simulator/commit/4e7a7559fd737a4d54a79d0006fc9ebec88ddefd
 WORKDIR $HOME/packages
 # ARG LAST_SHA_NEST=LATEST
 RUN git clone https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
-    git fetch origin && git checkout c545255f7252308d6e73a851ddeece4f2dffc812; \
+    git fetch origin && git checkout 4e7a7559fd737a4d54a79d0006fc9ebec88ddefd; \
     cmake -DCMAKE_INSTALL_PREFIX=${NEST_INSTALL_DIR} \
           -Dwith-mpi=ON  \
           -Dwith-libneurosim=$VENV \
           -DPYTHON_LIBRARY=/usr/lib \
-          -DPYTHON_INCLUDE_DIR=/usr/include/python3.9m \
+          -DPYTHON_INCLUDE_DIR=/usr/include/python3.10m \
           ${NEST_SRC}; \
     make; make install
 
@@ -88,7 +97,6 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install setuptools; \
     git clone https://github.com/nest/nestml.git; \
     cd nestml; \
-    # git fetch origin && git checkout 1b1df6d63eb6ebfc76f3f0f398bd83943020b0e4; \
     $VENV/bin/python setup.py install
 
 # Install pyNN
@@ -131,16 +139,30 @@ WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install elephant;
 
 # Clone and install tvb-root
+## TODO: Use Pypi for tvb-framework!!!
+## First install tvb-framework from Pypi:
+#RUN $VENV/bin/pip3 install tvb-framework
+## Then, overwrite the tvb-library installation, and add the rest of the necessary tvb packages:
+# For the moment though, let's try to install some dependencies of tvb-framework:
+RUN $VENV/bin/pip3 install alembic;
+RUN $VENV/bin/pip3 install bctpy;
+RUN $VENV/bin/pip3 install cherrypy;
+RUN $VENV/bin/pip3 install flask;
+RUN $VENV/bin/pip3 install flask-restx;
+RUN $VENV/bin/pip3 install formencode;
+RUN $VENV/bin/pip3 install gevent;
+RUN $VENV/bin/pip3 install python-keycloak;
+RUN $VENV/bin/pip3 install google.auth;
+RUN $VENV/bin/pip3 install oauthlib;
+RUN $VENV/bin/pip3 install requests-oauthlib;
 WORKDIR $HOME/packages
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
-    cd tvb_library; \
+    cd tvb_framework; \
     $VENV/bin/python setup.py develop; \
-    cd ../tvb_framework; \
-    $VENV/bin/python setup.py develop; \
-    cd ../tvb_storage; \
+    cd ../tvb_library; \
     $VENV/bin/python setup.py develop; \
     cd ../tvb_contrib; \
     $VENV/bin/python setup.py develop
@@ -155,6 +177,7 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $HOME/packages
+# TODO: Resolve the need for notebook version 6.4.12
 RUN $VENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
 RUN $VENV/bin/jupyter-contrib nbextension install --user;
 RUN $VENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
@@ -173,7 +196,7 @@ RUN $VENV/bin/pip3 install traitlets==5.9.0
 #     27 import matplotlib.transforms as mtransforms
 #
 #ModuleNotFoundError: No module named 'matplotlib.docstring'
-RUN $VENV/bin/pip3 install matplotlib==3.7.3
+RUN $VENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
