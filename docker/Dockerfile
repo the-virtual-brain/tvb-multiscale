@@ -48,8 +48,7 @@ ENV VENV=$HOME/env/neurosci
 RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
     $VENV/bin/pip3 install --upgrade pip; \
     $VENV/bin/pip3 install --upgrade nose ipython numpy scipy matplotlib; \
-    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba;
-
+    $VENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba gunicorn;
 
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $HOME/packages
@@ -99,15 +98,6 @@ RUN $VENV/bin/pip3 install setuptools; \
     cd nestml; \
     $VENV/bin/python setup.py install
 
-# Install pyNN
-# RUN pip install pyNN
-#ARG PYNN_VER=0.9.4
-#RUN wget https://github.com/NeuralEnsemble/PyNN/archive/${PYNN_VER}.tar.gz -O $HOME/packages/PyNN-${PYNN_VER}.tar.gz; \
-#    cd $HOME/packages; \
-#    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
-#    cd PyNN-${PYNN_VER}; \
-#    $VENV/bin/python setup.py install
-
 # Other (large) packages added for scientific work:
 RUN $VENV/bin/pip3 install plotly
 #RUN $VENV/bin/pip3 install torch
@@ -129,6 +119,14 @@ RUN $VENV/bin/pip3 install netpyne
 RUN $VENV/bin/pip3 install sympy pyqtgraph lxml pandoc tensorboardX;
 WORKDIR $HOME/packages
 RUN $VENV/bin/pip3 install ANNarchy;
+# Install pyNN
+# RUN pip install pyNN
+#ARG PYNN_VER=0.9.4
+#RUN wget https://github.com/NeuralEnsemble/PyNN/archive/${PYNN_VER}.tar.gz -O $HOME/packages/PyNN-${PYNN_VER}.tar.gz; \
+#    cd $HOME/packages; \
+#    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
+#    cd PyNN-${PYNN_VER}; \
+#    $VENV/bin/python setup.py install
 # Install PySpike
 WORKDIR $HOME/packages
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
@@ -216,6 +214,7 @@ WORKDIR $HOME/packages
 # RUN $VENV/bin/pip3 install aioredis==1.3.0 starlette uvicorn;
 RUN $VENV/bin/pip3 install -U "ray[serve]"
 
+
 WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
@@ -264,6 +263,7 @@ WORKDIR /home/docker/
 ENV PYTHONPATH $VENV
 ENV SLI_PATH $VENV
 RUN echo "source $VENV/bin/activate" >> .bashrc
+ENV PATH="${VENV}/bin":${PATH};
 
 # For running examples
 #CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
