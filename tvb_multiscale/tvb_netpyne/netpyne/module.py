@@ -29,13 +29,12 @@ class NetpyneModule(object):
         try:
             h.DynamicVecStim()
         except:
-            import sys, os
+            import sys, os, platform
             currDir = os.getcwd()
-            python_path = sys.executable.split("python")[0]
             tvb_netpyne_path = get_tvb_netpyne_path_from_abs_filepath(os.path.abspath(__file__))
             # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
             os.chdir(os.path.join(tvb_netpyne_path, "netpyne", "mod"))
-            if not os.path.exists('x86_64'):
+            if not os.path.exists(platform.machine()):
                 print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
                 if os.system('which nrnivmodl') == 0:
                     # mod compiler found
