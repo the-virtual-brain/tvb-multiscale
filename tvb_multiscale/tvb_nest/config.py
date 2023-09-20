@@ -8,15 +8,16 @@ from tvb_multiscale.core.config import Config as ConfigBase, log_path
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 from tvb_multiscale.core.utils.file_utils import get_tvb_nest_path_from_abs_filepath
 
-
+HOME_DIR = os.environ.get("HOME")
 TVB_NEST_DIR = get_tvb_nest_path_from_abs_filepath(os.path.abspath(__file__))
 WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
 MYMODULES_DIR = os.environ.get("MYMODULES_DIR",
                                os.path.join(TVB_NEST_DIR, "nest", "modules"))
 MYMODULES_BLD_DIR = os.environ.get("MYMODULES_BLD_DIR",
-                                   os.path.join(TVB_NEST_DIR, "nest", "modules_builds"))
+                                   os.path.join(HOME_DIR, "build", "nest_modules_builds"))
 
-DEFAULT_NEST_INSTALL_DIR = "/opt/nest"
+DEFAULT_NEST_INSTALL_DIR = os.path.join(HOME_DIR, "build/nest")
+
 
 class Config(ConfigBase):
     # WORKING DIRECTORY:
