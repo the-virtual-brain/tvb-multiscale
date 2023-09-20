@@ -200,8 +200,8 @@ models_to_test_TVB = [TestLinear,                       # 0
                       TestReducedWongWangExcIOInhI]     # 4
 
 
-def test_models(models_to_test=models_to_test_TVB, iM=None):
-    if iM is not None:
+def test_models(models_to_test=models_to_test_TVB, iM=0):
+    if iM >= 0:
         print(run_test(models_to_test[iM]))
     else:
         loop_all(models_to_test)
@@ -215,4 +215,4 @@ if __name__ == "__main__":
         print("\n\nTesting model %d" % iM)
         test_models(iM=iM)
     else:
-        test_models()
+        test_models(iM=-1)
