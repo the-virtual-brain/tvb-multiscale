@@ -4,10 +4,13 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
-    random_uniform_delay, tvb_delay, random_uniform_tvb_delay, receptor_by_source_region
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region  # \
+    # random_normal_weight, tvb_weight, random_normal_tvb_weight, \
+    # random_uniform_delay, tvb_delay, random_uniform_tvb_delay,
+
+# TODO: Fix errors for random parameters with NEST 3.5!!!
 
 
 class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
@@ -70,14 +73,16 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
     # By default we choose random jitter on weights and delays
 
     def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return random_normal_weight(w, scale, sigma)
+        # return random_normal_weight(w, scale, sigma)
+        return w
 
     def delay_fun(self, low=None, high=None):
-        if low is None:
-            low = self.default_min_delay
-        if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
-        return random_uniform_delay(low, low, high, sigma=None)
+        # if low is None:
+        #     low = self.default_min_delay
+        # if high is None:
+        #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
+        # return random_uniform_delay(low, low, high, sigma=None)
+        return self.default_min_delay
 
     def within_node_delay(self):
         return self.delay_fun()

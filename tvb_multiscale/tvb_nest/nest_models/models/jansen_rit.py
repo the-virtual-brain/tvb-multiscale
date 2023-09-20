@@ -4,10 +4,13 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
-    random_uniform_delay, tvb_delay, random_uniform_tvb_delay
+# from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
+#     random_normal_weight, random_normal_tvb_weight, \
+#     random_uniform_delay, random_uniform_tvb_delay
+
+# TODO: Fix errors for random parameters with NEST 3.5!!!
 
 
 class JansenRitBuilder(NESTNetworkBuilder):

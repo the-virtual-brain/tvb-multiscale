@@ -4,10 +4,13 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, random_normal_tvb_weight, \
-    random_uniform_delay, random_uniform_tvb_delay, receptor_by_source_region
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region  # \
+#    random_normal_weight, random_normal_tvb_weight, \
+#    random_uniform_delay, random_uniform_tvb_delay,
+
+# TODO: Fix errors for random parameters with NEST 3.5!!!
 
 
 class DefaultExcIOBuilder(NESTNetworkBuilder):
@@ -48,14 +51,17 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
     # By default we choose random jitter on weights and delays
 
     def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return random_normal_weight(w, scale, sigma)
+        return w
+        # return random_normal_weight(w, scale, sigma)
+
 
     def delay_fun(self, low=None, high=None):
-        if low is None:
-            low = self.default_min_delay
-        if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
-        return random_uniform_delay(low, low, high, sigma=None)
+        # if low is None:
+        #     low = self.default_min_delay
+        # if high is None:
+        #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
+        # return random_uniform_delay(low, low, high, sigma=None)
+        return self.default_min_delay
 
     def within_node_delay(self):
         return self.delay_fun()
@@ -78,16 +84,18 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
     # By default we choose random jitter around TVB weights and delays
 
     def tvb_weight_fun(self, source_node, target_node, scale=None, sigma=0.1):
-        if scale is None:
-            scale = self.global_coupling_scaling
-        return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
+        # if scale is None:
+        #     scale = self.global_coupling_scaling
+        # return random_normal_tvb_weight(source_node, target_node, self.tvb_weights, scale, sigma)
+        return tvb_weight(source_node, target_node, self.tvb_weights)
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
-        if low is None:
-            low = self.default_min_delay
-        if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
-        return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
+        # if low is None:
+        #     low = self.default_min_delay
+        # if high is None:
+        #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
+        # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
+        return tvb_delay(source_node, target_node, self.tvb_delays)
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -141,8 +149,8 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
              "params": {"rate": 10000.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": self.weight_fun(1.0),
-             "delays": random_uniform_delay(self.default_min_delay,
-                                            self.default_min_delay, 2*self.default_min_delay, sigma=None),
+             "delays": self.default_min_delay,  # random_uniform_delay(self.default_min_delay,
+                                            # self.default_min_delay, 2*self.default_min_delay, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device
