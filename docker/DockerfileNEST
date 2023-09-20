@@ -150,7 +150,7 @@ WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
     $LOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-## TODO: Solver problems with ray in this Docker image!
+## TODO: Solve problems with ray in this Docker image!
 ## Install ray:
 #RUN $BASEENV/bin/pip3 install -U "ray"
 
