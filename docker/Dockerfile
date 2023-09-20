@@ -42,6 +42,7 @@ USER docker
 ARG HOME=/home/docker
 RUN mkdir $HOME/packages
 RUN mkdir $HOME/build
+ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
 ENV BASEENV=/usr
 RUN mkdir $HOME/.local
@@ -55,27 +56,27 @@ RUN $BASEENV/bin/pip3 install --upgrade pip; \
     $BASEENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba gunicorn;
 
 # Install from sources libneurosim (NEST boost dependency)
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
     cd libneurosim; ./autogen.sh;
 WORKDIR $BUILD
 RUN mkdir libneurosim; \
     cd libneurosim; \
-    PYTHON=$BASEENV/bin/python $HOME/packages/libneurosim/configure --prefix=$BASEENV; \
+    PYTHON=$BASEENV/bin/python $PACKAGES/libneurosim/configure --prefix=$BASEENV; \
     make; make install; ls $BASEENV/lib $BASEENV/include;
 RUN ln -s /usr/lib/python3.10/config-x86_64-linux-gnu/libpython3.10.so $LOCALENV/lib/;
 
 # Install NEST, latest stable version 3.5
 ARG NEST_VER=3.5
 ARG NEST=nest-simulator
-ARG NEST_SRC=$HOME/packages/$NEST
+ARG NEST_SRC=$PACKAGES/$NEST
 ARG NEST_INSTALL_DIR=$BUILD/nest
 ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
 # Install NEST 3.5:
 # https://github.com/nest/nest-simulator/commit/4e7a7559fd737a4d54a79d0006fc9ebec88ddefd
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 # ARG LAST_SHA_NEST=LATEST
 RUN git clone https://github.com/nest/nest-simulator.git
 RUN cd $NEST; \
@@ -90,13 +91,13 @@ RUN cd $NEST; \
 
 # Install NESTServerClient
 RUN $BASEENV/bin/pip3 install flask_cors RestrictedPython;
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
      $BASEENV/bin/python3 setup.py install --user;
 
 # Install nestml
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install setuptools; \
     git clone https://github.com/nest/nestml.git; \
     cd nestml; \
@@ -109,13 +110,13 @@ RUN $BASEENV/bin/pip3 install plotly
 # RUN $BASEENV/bin/pip3 install sbibm
 
 # Install TVB specific packages
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install pandas xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $BASEENV/bin/pip3 install --ignore-installed entrypoints; \
     $BASEENV/bin/pip3 install werkzeug==2.0.1;
 
 # Install TVB-multiscale specific packages
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 # Install NEURON and NetPyNE
 RUN $BASEENV/bin/pip3 install neuron
 RUN $BASEENV/bin/pip3 install netpyne
@@ -123,19 +124,14 @@ RUN $BASEENV/bin/pip3 install netpyne
 RUN $BASEENV/bin/pip3 install ANNarchy;
 # Install pyNN
 # RUN pip install pyNN
-#ARG PYNN_VER=0.9.4
-#RUN wget https://github.com/NeuralEnsemble/PyNN/archive/${PYNN_VER}.tar.gz -O $HOME/packages/PyNN-${PYNN_VER}.tar.gz; \
-#    cd $HOME/packages; \
-#    tar xzf PyNN-${PYNN_VER}.tar.gz; rm PyNN-${PYNN_VER}.tar.gz; \
-#    cd PyNN-${PYNN_VER}; \
-#    $BASEENV/bin/python setup.py install
+
 # Install PySpike
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
     $BASEENV/bin/python3 setup.py build_ext install --user;
 # Install Elephant
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install elephant;
 
 # Clone and install tvb-root
@@ -155,7 +151,7 @@ RUN $BASEENV/bin/pip3 install python-keycloak;
 RUN $BASEENV/bin/pip3 install google.auth;
 RUN $BASEENV/bin/pip3 install oauthlib;
 RUN $BASEENV/bin/pip3 install requests-oauthlib;
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
@@ -168,7 +164,7 @@ RUN cd tvb-root; \
     $BASEENV/bin/python setup.py develop --user;
 
 # Clone and install tvb-multiscale
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git;
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
@@ -198,17 +194,17 @@ RUN $BASEENV/bin/pip3 install traitlets==5.9.0
 RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
 
 # Checkout specific branch of tvb-multiscale
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
     git checkout ray; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
     $LOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 
 # Install ray:
 RUN $BASEENV/bin/pip3 install -U "ray"
@@ -235,15 +231,15 @@ ENV NEST_SERVER_STDOUT=1
 # Run the following lines in case you want to install your own NEST module with NEST builders
 # The commented lines will install modules in the MODULES_LIST upon building this image
 ## Install local tvb-multiscale:
-#WORKDIR $HOME/packages
+#WORKDIR $PACKAGES
 #RUN mkdir tvb-multiscale
 #COPY ./tvb-multiscale/ tvb-multiscale/
 #RUN cd tvb-multiscale; $BASEENV/bin/python3 setup.py develop --no-deps
-ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
+ENV MYMODULES_DIR=$PACKAGES/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$BUILD/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #ARG MYMODULES_LIST="izhikevich_hamker iaf_cond_ww_deco"
-#ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
+#ARG MYMODULES_DIR=$PACKAGES/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
 #RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
 #        export MYMODULE_BLD=${MYMODULES_BLD_DIR}/${MYMODULE_NAME}module_bld; \
