@@ -142,7 +142,7 @@ RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-f
 # Checkout specific branch of tvb-multiscale
 # WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
-    git checkout ray; \
+    git checkout dev; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files
@@ -150,8 +150,9 @@ WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
     $LOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
-# Install ray:
-RUN $BASEENV/bin/pip3 install -U "ray"
+## TODO: Solver problems with ray in this Docker image!
+## Install ray:
+#RUN $BASEENV/bin/pip3 install -U "ray"
 
 WORKDIR $HOME
 # Activate the right python env.
