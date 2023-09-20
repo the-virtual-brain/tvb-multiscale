@@ -193,7 +193,7 @@ RUN $VENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-fram
 # Checkout specific branch of tvb-multiscale
 WORKDIR $HOME/packages
 RUN cd tvb-multiscale; \
-    git checkout ray; \
+    git checkout dev; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files
