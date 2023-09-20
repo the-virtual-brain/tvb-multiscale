@@ -28,110 +28,137 @@ RUN apt-get update; apt-get install -y python3-venv python3-virtualenv git;
 RUN useradd -ms /bin/bash docker
 USER docker
 ARG HOME=/home/docker
-RUN mkdir $HOME/env; mkdir $HOME/packages
-ENV PATH="${HOME}/.local/bin":${PATH};
+RUN mkdir $HOME/build; mkdir $HOME/packages
+ENV PACKAGES=$HOME/packages
+ENV BUILD=$HOME/build
+ENV BASEENV=/usr
+ENV LOCALENV=$HOME/.local
+ENV PYTHONPATH=$PYTHONPATH:$BASEENV:$LOCALENV
+ENV PATH="${BASEENV}/bin":"${LOCALENV}/bin":${PATH};
 
 # Create a dedicated Python env for working in it
 ENV VENV=$HOME/env/neurosci
-RUN python3 -m venv $VENV && python3 -m venv --system-site-packages $VENV; \
-    $VENV/bin/pip3 install --upgrade pip;
-RUN $VENV/bin/pip3 install --upgrade nose;
+RUN $BASEENV/bin/pip3 install --upgrade pip;
+RUN $BASEENV/bin/pip3 install --upgrade nose;
 
 # Install NESTServerClient
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $VENV/bin/python3 setup.py install --user;
+     $BASEENV/bin/python3 setup.py install --user;
 
 
 # Install TVB-multiscale specific packages
 
-# WORKDIR $HOME/packages
+# WORKDIR $PACKAGES
 
 # Install NEURON, NetPyNE and ANNarchy (and optionally pyNN)
 # Install NEURON and NetPyNE
-RUN $VENV/bin/pip3 install neuron
-RUN $VENV/bin/pip3 install netpyne
+RUN $BASEENV/bin/pip3 install neuron
+RUN $BASEENV/bin/pip3 install netpyne
 # Install ANNarchy
 # TODO: Find out why pip install doesn't work!
-# RUN $VENV/bin/pip3 install ANNarchy
-RUN $VENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
-RUN $VENV/bin/pip3 install cython==0.29.36 --user;
+# RUN $BASEENV/bin/pip3 install ANNarchy
+RUN $BASEENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
+RUN $BASEENV/bin/pip3 install cython==0.29.36 --user;
 RUN git clone https://github.com/ANNarchy/ANNarchy.git
 RUN cd ANNarchy; \
-    $VENV/bin/python3 setup.py install --user;
-# RUN $VENV/bin/pip3 install pyNN
-
+    $BASEENV/bin/python3 setup.py install --user;
+# RUN $BASEENV/bin/pip3 install pyNN
 # Install Pyspike:
-RUN $VENV/bin/pip3 install pyspike
-
-# Install ray:
-# WORKDIR $HOME/packages
-# TODO: Remove when ray==1.5.0 fixed
-# aioredis==1.3.0 has to be installed first on a separate pip3 command!
-# RUN $VENV/bin/pip3 install aioredis==1.3.0;
-# RUN $VENV/bin/pip3 install starlette uvicorn '
-RUN $VENV/bin/pip3 install 'ray[serve]';  #  'ray[default]'
-RUN $VENV/bin/pip3 install --ignore-installed entrypoints;
+RUN $BASEENV/bin/pip3 install pyspike --user
 
 ## Other (large) packages added for scientific work:
-RUN $VENV/bin/pip3 install plotly
-# RUN $VENV/bin/pip3 install torch
-# RUN $VENV/bin/pip3 install sbi
-# RUN $VENV/bin/pip3 install sbibm
+RUN $BASEENV/bin/pip3 install plotly
+# RUN $BASEENV/bin/pip3 install torch
+# RUN $BASEENV/bin/pip3 install sbi
+# RUN $BASEENV/bin/pip3 install sbibm
 
 # Install TVB specific packages
-# WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
-    $VENV/bin/pip3 install --ignore-installed entrypoints;
+# WORKDIR $PACKAGES
+RUN $BASEENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
+    $BASEENV/bin/pip3 install --ignore-installed entrypoints;
 
 # Clone and install tvb-root
-WORKDIR $HOME/packages
+## TODO: Use Pypi for tvb-framework!!!
+## First install tvb-framework from Pypi:
+#RUN $BASEENV/bin/pip3 install tvb-framework
+## Then, overwrite the tvb-library installation, and add the rest of the necessary tvb packages:
+# For the moment though, let's try to install some dependencies of tvb-framework:
+RUN $BASEENV/bin/pip3 install alembic;
+RUN $BASEENV/bin/pip3 install bctpy;
+RUN $BASEENV/bin/pip3 install cherrypy;
+RUN $BASEENV/bin/pip3 install flask;
+RUN $BASEENV/bin/pip3 install flask-restx;
+RUN $BASEENV/bin/pip3 install formencode;
+RUN $BASEENV/bin/pip3 install gevent;
+RUN $BASEENV/bin/pip3 install python-keycloak;
+RUN $BASEENV/bin/pip3 install google.auth;
+RUN $BASEENV/bin/pip3 install oauthlib;
+RUN $BASEENV/bin/pip3 install requests-oauthlib;
+WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
-    cd tvb_library; \
-    $VENV/bin/python setup.py develop; \
-    cd ../tvb_framework; \
-    $VENV/bin/python setup.py develop; \
-    cd ../tvb_storage; \
-    $VENV/bin/python setup.py develop; \
+    cd tvb_framework; \
+    $BASEENV/bin/python setup.py develop --user; \
+    cd ../tvb_library; \
+    $BASEENV/bin/python setup.py develop --user; \
     cd ../tvb_contrib; \
-    $VENV/bin/python setup.py develop
+    $BASEENV/bin/python setup.py develop --user;
 
 # Clone and install tvb-multiscale
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git;
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
-    $VENV/bin/python setup.py develop --no-deps;
+    $BASEENV/bin/python setup.py develop --no-deps --user;
+
 
 # Install Jupyter notebook specific packages
-WORKDIR $HOME/packages
-RUN $VENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
-RUN $VENV/bin/jupyter-contrib nbextension install --user;
-RUN $VENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
+WORKDIR $PACKAGES
+RUN $BASEENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
+RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
+RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
+# Due to this:
+# https://github.com/microsoft/azuredatastudio/issues/24436
+# we need to downgrade traitlets:
+RUN $BASEENV/bin/pip3 install traitlets==5.9.0
+
+# TODO: UNDO THIS!
+# Downgrade matplotlib as a temporary fix for error:
+#File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
+#     23 import matplotlib.collections as mcoll
+#     24 import matplotlib.colors as mcolors
+#---> 25 import matplotlib.docstring as docstring
+#     26 import matplotlib.scale as mscale
+#     27 import matplotlib.transforms as mtransforms
+#
+#ModuleNotFoundError: No module named 'matplotlib.docstring'
+RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
 
 # Checkout specific branch of tvb-multiscale
-# WORKDIR $HOME/packages
+# WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
     git checkout ray; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files
-WORKDIR $HOME/packages
+WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
-    $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
+    $LOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
+# Install ray:
+RUN $BASEENV/bin/pip3 install -U "ray"
 
 WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=/opt/nest
 RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
 ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
-ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_PYTHON_PREFIX}
+ENV PYTHONPATH=$PYTHONPATH:$BASEENV:${NEST_PYTHON_PREFIX}
 ## Note that the following are automatically reset if NEST is imported
 ## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
 ENV NEST_DATA_DIR=${NEST_INSTALL_DIR}/share/nest
@@ -144,7 +171,7 @@ ENV NEST_DESKTOP_HOST=${NEST_DESKTOP_HOST:-0.0.0.0}
 ENV NEST_DESKTOP_PORT=${NEST_DESKTOP_PORT:-8000}
 ENV NEST_SERVER_HOST=${NEST_SERVER_HOST:-0.0.0.0}
 ENV NEST_SERVER_MODULES=${NEST_SERVER_MODULES:-nest,numpy}
-ENV NEST_SERVER_PORT=${NEST_SERVER_PORT:-5000}
+ENV NEST_SERVER_PORT=${NEST_SERVER_PORT:-52425}
 ENV NEST_SERVER_RESTRICTION_OFF=${NEST_SERVER_RESTRICTION_OFF:-1}
 ENV NEST_SERVER_STDOUT=${NEST_SERVER_STDOUT:-1}
 
@@ -161,15 +188,15 @@ ENV PATH=$PATH:/usr/local/bin
 # Run the following lines in case you want to install your own NEST module with NEST builders
 # The commented lines will install modules in the MODULES_LIST upon building this image
 ## Install local tvb-multiscale:
-#WORKDIR $HOME/packages
+#WORKDIR $PACKAGES
 #RUN mkdir tvb-multiscale
 #COPY ./tvb-multiscale/ tvb-multiscale/
-#RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
-ENV MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
-ENV MYMODULES_BLD_DIR=$HOME/packages/nest_modules_builds
+#RUN cd tvb-multiscale; $BASEENV/bin/python setup.py develop --no-deps
+ENV MYMODULES_DIR=$PACKAGES/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
+ENV MYMODULES_BLD_DIR=$BUILD/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #ARG MYMODULES_LIST="izhikevich_hamker iaf_cond_ww_deco"
-#ARG MYMODULES_DIR=$HOME/packages/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
+#ARG MYMODULES_DIR=$PACKAGES/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 #ARG NEST_CONFIG=${NEST_INSTALL_DIR}/bin/nest-config
 #RUN for MYMODULE_NAME in $MYMODULES_LIST; do export MYMODULE_DIR=${MYMODULES_DIR}/${MYMODULE_NAME}; \
 #        export MYMODULE_BLD=${MYMODULES_BLD_DIR}/${MYMODULE_NAME}module_bld; \
@@ -181,40 +208,41 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 # Final configurations
 # tvb42
-RUN $VENV/bin/jupyter-notebook --generate-config; \
+RUN $LOCALENV/bin/jupyter-notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py; \
     echo "c.MultiKernelManager.default_kernel_name='neurosci'">>/home/docker/.jupyter/jupyter_notebook_config.py
-RUN $VENV/bin/ipython kernel install --user --name="neurosci"
+
+RUN ln -s /opt/bin/nest-server $LOCALENV/nest-server
 
 WORKDIR /home/docker/
 
 # Activate the right python env
-ENV PYTHONPATH $VENV
-ENV SLI_PATH $VENV
-RUN echo ". $VENV/bin/activate" >> .profile
+ENV PYTHONPATH $BASEENV
+ENV SLI_PATH $BASEENV
+RUN echo ". $BASEENV/bin/activate" >> .profile
 
 # For running examples
-#CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/example.py
+#CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
+# CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
+# CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/example.py
 
 # Test NEST installation
 # RUN cd $NEST; make installcheck
-# CMD $VENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
+# CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 
 # pynestml installation test:
-# CMD cd /home/docker/packages/nestml; $VENV/bin/pytest setup.py test
+# CMD cd /home/docker/packages/nestml; $BASEENV/bin/pytest setup.py test
 
 # pyNN-NEST installation test:
-# CMD $VENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
+# CMD $BASEENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 #For running tests
-#CMD $VENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
+#CMD $BASEENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
 
 #For running tests with coverage
-#CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
+#CMD $BASEENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 #Run jupyter notebooks
-CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $LOCALENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
 # CMD /bin/bash
