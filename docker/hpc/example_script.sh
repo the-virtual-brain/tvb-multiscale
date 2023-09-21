@@ -10,7 +10,7 @@ export DOCKER_HOME=/home/docker
 export DOCKER_TVB_ROOT=$DOCKER_HOME/packages/tvb-root
 export DOCKER_TVB_MULTISCALE=$DOCKER_HOME/packages/tvb-multiscale
 export DOCKER_WORKDIR=$DOCKER_TVB_MULTISCALE/tvb_multiscale/examples/tvb_nest
-export DOCKER_PYTHON=/usr/bin/python
+export DOCKER_PYTHON=$DOCKER_HOME/.local/bin/python
 export DOCKER_RUN_FILE=/home/docker/packages/tvb-multiscale/tvb_multiscale/examples/tvb_nest/example.py
 export CMD=$DOCKER_PYTHON' '$DOCKER_RUN_FILE
 
