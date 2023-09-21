@@ -16,15 +16,17 @@ from tvb.simulator.integrators import HeunDeterministic, HeunStochastic, EulerDe
 from tvb.simulator.noise import Additive
 from tvb.simulator.monitors import Raw
 
-from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 
-TVB_MULTISCALE_DIR = os.path.abspath(__file__).split("tvb_multiscale")[0]
-WORKING_DIR = os.path.join(TVB_MULTISCALE_DIR, "examples/outputs")
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
+
+
+TVB_MULTISCALE_ROOT_DIR = os.path.abspath(__file__).split("tvb_multiscale/core")[0]
+WORKING_DIR = os.path.join(TVB_MULTISCALE_ROOT_DIR, "examples/outputs")
 
 # DATA:
-TVB_DATA_PATH = os.path.join(TVB_MULTISCALE_DIR, "examples/data/tvb_data")
+TVB_DATA_PATH = os.path.join(TVB_MULTISCALE_ROOT_DIR, "examples/data/tvb_data")
 DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
 DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
 DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
@@ -42,6 +44,13 @@ try:
                        }
 except:
     DEFAULT_SUBJECT = None
+
+
+def _folder(base, separate_by_run=False, ftype=""):
+    folder = os.path.join(base, ftype)
+    if separate_by_run and len(ftype) > 0:
+        folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
+    return folder
 
 
 class OutputConfig(HasTraits):
@@ -62,10 +71,7 @@ class OutputConfig(HasTraits):
             initialize_logger_base("logs", self.FOLDER_LOGS)
 
     def _folder(self, ftype=""):
-        folder = os.path.join(self._out_base, ftype)
-        if self._separate_by_run and len(ftype) > 0:
-            folder = folder + datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
-        return folder
+        return _folder(self._out_base, self._separate_by_run, ftype)
 
     @property
     def _folder_logs(self):
@@ -127,11 +133,13 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 class Config(HasTraits):
     calcul = CalculusConfig()
 
+    VERBOSITY = 1
+
     DEFAULT_DT = 0.1
     TVB_TO_SPIKING_DT_RATIO = 2
-    MIN_DELAY_RATIO = 1
     MIN_SPIKING_DT = 0.001
-    MIN_DELAY = 0.001
+    MIN_DELAY_RATIO = 1
+    DEFAULT_SPIKING_MIN_DELAY = 1.0
 
     DEFAULT_TVB_MODEL = WilsonCowan
     DEFAULT_TVB_COUPLING_MODEL = Linear
@@ -143,13 +151,10 @@ class Config(HasTraits):
     DEFAULT_NSIG = 1e-3
     DEFAULT_MONITOR = Raw
 
-    # Delays should be at least equal to NEST time resolution
-    DEFAULT_CONNECTION = {"weight": 1.0, "delay": 1.0, 'receptor_type': 0,
-                          "source_inds": None, "target_inds": None, "params": {},
-                          "syn_spec": {}, "conn_spec": {}}
-
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()
+        self.VERBOSITY = verbosity
+        self.BASEPATH = output_base
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
@@ -160,6 +165,33 @@ class Config(HasTraits):
     @property
     def output_base(self):
         return self.out._out_base
+
+    @property
+    def separate_by_run(self):
+        return self.out._separate_by_run
+
+    def _folder(self, ftype=""):
+        return _folder(self.BASEPATH, self.separate_by_run, ftype)
+
+    @property
+    def _folder_config(self):
+        return self._folder("config")
+
+    @property
+    def FOLDER_CONFIG(self):
+        folder = self._folder_config
+        safe_makedirs(folder)
+        return folder
+
+    @property
+    def _folder_runtime(self):
+        return self._folder("runtime")
+
+    @property
+    def FOLDER_RUNTIME(self):
+        folder = self._folder_runtime
+        safe_makedirs(folder)
+        return folder
 
     def info(self, recursive=0):
         info = super(Config, self).info(recursive=recursive)

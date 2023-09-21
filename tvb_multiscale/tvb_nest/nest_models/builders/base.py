@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
+import warnings
+from copy import deepcopy
 
 import numpy as np
+
+from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.core.utils.data_structures_utils import safe_dict_copy
+from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
+from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
+from tvb_multiscale.core.spiking_models.devices import DeviceSets
+
 
 from tvb_multiscale.tvb_nest.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.nest_models.population import NESTPopulation
@@ -9,31 +20,27 @@ from tvb_multiscale.tvb_nest.nest_models.brain import NESTBrain
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import \
     compile_modules, get_populations_neurons, create_conn_spec, create_device, connect_device
-from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
-from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
-
-from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-
-from tvb_multiscale.core.spiking_models.devices import DeviceSets
 
 
 class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a NESTNetworkBuilder,
        which builds a NESTNetwork from user configuration inputs.
-       The builder is half way opionionated.
+       The builder is half way opinionated.
     """
 
     config = CONFIGURED
-    nest_instance = None
+    _spiking_simulator_name = "nest_instance"
     modules_to_install = []
     _spiking_brain = NESTBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
-        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
-        self.nest_instance = nest_instance
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
         self._spiking_brain = NESTBrain()
+
+    @property
+    def nest_instance(self):
+        return self.spiking_simulator
 
     def __str__(self):
         return super(NESTNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.nest_instance)
@@ -78,6 +85,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                                  of the modules to be installed and, possibly, compiled
         """
         if len(modules_to_install) > 0:
+            modules_to_install = safe_dict_copy(modules_to_install)
             self.logger.info("Starting to compile modules %s!" % str(modules_to_install))
             while len(modules_to_install) > 0:
                 self._compile_install_nest_module(modules_to_install.pop())
@@ -187,6 +195,17 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         elif np.any(self._get_min_delay(delay) < self.spiking_dt):
             raise_value_error("Coupling spiking neurons with delay = %s < NEST integration step = %f is not possible!:"
                               "\n" % (str(delay), self.spiking_dt))
+        elif np.any(self._get_min_delay(delay) < self.default_min_delay):
+            if self.config.LOCK_MIN_DELAY:
+                warning.warng("There are delays\n%s\n smaller than the default_min_delay=%f!\n"
+                              "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                              "Setting those delays equal to default_min_delay=%f, "
+                              "unless delay is a NEST parameter, in which case there will be an Exception raised!" %
+                              (str(delay), self.default_min_delay, self.config.LOCK_MIN_DELAY, self.default_min_delay))
+                delay = np.array(ensure_list(delay))
+                delay[delay < self.default_min_delay] = self.default_min_delay
+                if delay.shape == 1:
+                    delay = delay[0].item()
         return delay
 
     def _prepare_conn_spec(self,  pop_src, pop_trg, conn_spec):
@@ -197,7 +216,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
                                               config=self.config, **conn_spec)
         return conn_spec, n_conns, n_src, n_trg
 
-    def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
+    def set_synapse(self, syn_model, weight, delay, receptor_type, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic receptor type, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -215,6 +234,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         return syn_spec
 
     def _prepare_syn_spec(self, syn_spec, n_source_neurons=1, rule="all_to_all"):
+        syn_spec = safe_dict_copy(syn_spec)
         # Prepare the parameters of synapses:
         syn_spec["synapse_model"] = self._assert_synapse_model(syn_spec.get("synapse_model",
                                                                             syn_spec.get("model", "static_synapse")),

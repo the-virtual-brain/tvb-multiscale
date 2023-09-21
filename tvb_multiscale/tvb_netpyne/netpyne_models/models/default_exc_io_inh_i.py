@@ -4,10 +4,12 @@ from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_templates import
 from collections import OrderedDict
 import numpy as np
 
+
 class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], netpyne_instance=None, config=None, logger=None):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, netpyne_instance=netpyne_instance, config=config, logger=logger)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                      spiking_simulator=spiking_simulator, config=config, logger=logger)
 
         self.scale_e = 1.2
         self.scale_i = 0.4

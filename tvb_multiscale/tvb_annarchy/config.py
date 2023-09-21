@@ -6,11 +6,13 @@ import numpy as np
 
 from tvb_multiscale.core.config import Config as ConfigBase
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
+from tvb_multiscale.core.utils.file_utils import get_tvb_annarchy_path_from_abs_filepath
 
-TVB_ANNARCHY_DIR = os.path.abspath(__file__).split("tvb_annarchy")[0]
+
+TVB_ANNARCHY_DIR = get_tvb_annarchy_path_from_abs_filepath(os.path.abspath(__file__))
 WORKING_DIR = os.environ.get("WORKING_DIR", os.getcwd())
 MYMODELS_DIR = os.environ.get("MYMODELS_DIR",
-                              os.path.join(TVB_ANNARCHY_DIR, "tvb_annarchy/annarchy/models"))
+                              os.path.join(TVB_ANNARCHY_DIR, "annarchy", "models"))
 
 
 class Config(ConfigBase):
@@ -19,23 +21,14 @@ class Config(ConfigBase):
     WORKING_DIR = WORKING_DIR
     MYMODELS_DIR = MYMODELS_DIR
 
-    # TVB_ANNARCHY_DIR_VERBOCITY = ??
-
     ANNARCHY_SEED = 0
 
     VERBOSE = False
-
-    MIN_SPIKING_DT = 0.001
 
     DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
 
     # Delays should be at least equal to ANNarchy time resolution
     DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
-    DEFAULT_CONNECTION = {"synapse_model": DEFAULT_SYNAPSE, "params": {},
-                          "weight": 1.0, "delay": 0.01, 'receptor_type': "exc",
-                          "source_inds": None, "target_inds": None,
-                          "syn_spec": {"synapse_model": DEFAULT_SYNAPSE, "params": {}},
-                          "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
 
     DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
     DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
@@ -57,8 +50,16 @@ class Config(ConfigBase):
                                                                     "schedule": [0.0], "period": -1.0},
                                          }
 
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True):
-        super(Config, self).__init__(output_base, separate_by_run, initialize_logger)
+    @property
+    def DEFAULT_CONNECTION(self):
+        return {"synapse_model": self.DEFAULT_SYNAPSE, "params": {},
+                "weight": 1.0, "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': "exc",
+                "source_inds": None, "target_inds": None,
+                "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
+                "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
+
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
         self.TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
         self.WORKING_DIR = WORKING_DIR
         self.MYMODELS_DIR = MYMODELS_DIR

@@ -12,9 +12,9 @@ from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weig
 
 class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], annarchy_instance=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
                  config=None, logger=None):
-        super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, annarchy_instance, config, logger)
+        super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100

@@ -207,12 +207,12 @@ class CerebBuilder(NESTNetworkBuilder):
                                   'dcn_cell_GABA', 'dcn_cell_Gly-I', 'dcn_cell_glut_large']
     start_id_scaffold = []
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None,
                  pops_to_nodes_inds={}, path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
         self.spiking_nodes_inds = np.unique(spiking_nodes_inds)
         super(CerebBuilder, self).__init__(tvb_simulator, self.spiking_nodes_inds,
-                                           nest_instance, config, logger)
+                                           spiking_simulator, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
 
     def _initialize(self):
@@ -378,7 +378,7 @@ class CerebBuilder(NESTNetworkBuilder):
                         "origin": 0.0, "start": self.STIM_MF_START, "stop": self.STIM_MF_END},
              "connections": connections, "nodes": self.pops_to_nodes_inds["mossy_fibers"],
              "weights": 1.0,
-             "delays": self.spiking_dt,
+             "delays": self.default_min_delay,
              "receptor_type": 0}
         return device
 
@@ -402,7 +402,7 @@ class CerebBuilder(NESTNetworkBuilder):
              # "neurons_fun": lambda node, population: self.select_microzone_negative(population),
              "connections": connections, "nodes": self.pops_to_nodes_inds["io_cell"],
              "weights": 25.0,
-             "delays": self.spiking_dt,
+             "delays": self.default_min_delay,
              "receptor_type": 1}
         return device
 
@@ -415,7 +415,7 @@ class CerebBuilder(NESTNetworkBuilder):
              "params": {"rate": self.BACKGROUND_FREQ, "origin": 0.0, "start": 0.0},
              "connections": connections, "nodes": self.pops_to_nodes_inds["mossy_fibers"],
              "weights": 1.0,
-             "delays": self.spiking_dt,
+             "delays": self.default_min_delay,
              "receptor_type": 0}
         return device
 

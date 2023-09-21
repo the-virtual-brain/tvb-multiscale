@@ -6,6 +6,8 @@ from collections import OrderedDict
 from six import string_types
 from enum import Enum
 import typing
+from copy import deepcopy
+import warnings
 
 import numpy as np
 from scipy.stats import describe
@@ -409,3 +411,40 @@ def summary_info(info, to_string=False):
             print(Warning(e))
     return ret
 
+
+def safe_dict_copy(din):
+    # Used to avoid errors of some NEST related classes such as pynestkernel.SLIDatum
+    dout = dict()
+    for key, val in din.items():
+        try:
+            dout[key] = deepcopy(din[key])
+        except Exception as e:
+            dout[key] = din[key]
+            warnings.warn("Dictionary element\n%s\nof type\n%s\ncould not be deepcopied!\n"
+                          "See error below: \n%s\n"
+                          "Setting the same object to the copied dictionary!" %
+                          (str(din[key]), str(type(din[key])), str(e)))
+
+    return dout
+
+
+def safe_deepcopy(obj):
+    if isinstance(obj, dict):
+        return safe_dict_copy(obj)
+    else:
+        try:
+            out = deepcopy(obj)
+        except Exception as e:
+            out = obj
+            warnings.warn("Object\n%s\nof type\n%s\ncould not be deepcopied!\n"
+                          "See error below:\n%s\n"
+                          "Setting the same object to the output!" %
+                          (str(obj), str(type(obj)), str(e)))
+        return out
+
+
+def property_to_fun(property):
+    if hasattr(property, "__call__"):
+        return property
+    else:
+        return lambda *args, **kwargs: safe_deepcopy(property)

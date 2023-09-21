@@ -15,10 +15,10 @@ class WWDeco2013Builder(DefaultExcIOInhIBuilder):
 
     model = "iaf_cond_ww_deco"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nesspiking_simulatort_instance=None,
                  config=None, logger=None, **kwargs):
 
-        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
+        super(WWDeco2013Builder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         self.scale_e = 1.0
         self.scale_i = 1.0
@@ -128,7 +128,7 @@ class WWDeco2013Builder(DefaultExcIOInhIBuilder):
         self.multimeter["params"] = params
         self.spike_stimulus = {"params": {"rate": self.stimulus_spike_rate, "origin": 0.0, "start": self.spiking_dt},
                                "connections": {"Stimulus": ["E", "I"]},
-                               "weights": 1.0, "delays": self.spiking_dt,
+                               "weights": 1.0, "delays": self.default_min_delay,
                                "receptor_type": lambda target_node: target_node + 1}
         super(WWDeco2013Builder, self).set_defaults()
 
@@ -184,10 +184,10 @@ class WWDeco2014Builder(WWDeco2013Builder):
     w_EE = np.array([1.4])
     w_IE = np.array([1.0])
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None,
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
                  config=None, logger=None, **kwargs):
 
-        super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
+        super(WWDeco2014Builder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         self.scale_e = 1.6
         self.scale_i = 0.4

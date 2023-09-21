@@ -4,18 +4,21 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
-    random_uniform_delay, tvb_delay, random_uniform_tvb_delay
+# from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
+#     random_normal_weight, random_normal_tvb_weight, \
+#     random_uniform_delay, random_uniform_tvb_delay
+
+# TODO: Fix errors for random parameters with NEST 3.5!!!
 
 
 class JansenRitBuilder(NESTNetworkBuilder):
 
     output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], nest_instance=None, config=None, logger=None):
-        super(JansenRitBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, nest_instance, config, logger)
+    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+        super(JansenRitBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -155,9 +158,9 @@ class JansenRitBuilder(NESTNetworkBuilder):
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         # if low is None:
-        #     low = self.tvb_dt
+        #     low = self.default_min_delay
         # if high is None:
-        #     high = 2 * self.tvb_dt
+        #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
         return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
 
@@ -222,7 +225,9 @@ class JansenRitBuilder(NESTNetworkBuilder):
              "params": {"rate": 7500.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": 1.0,  # self.weight_fun(1.0),
-             "delays": self.spiking_dt,  # random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
+             "delays": self.default_min_delay,
+             # random_uniform_delay(self.default_min_delay,
+             #                      self.default_min_delay, 2*self.default_min_delay, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device

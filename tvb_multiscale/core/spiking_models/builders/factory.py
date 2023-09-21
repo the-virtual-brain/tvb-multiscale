@@ -2,38 +2,42 @@
 
 import numpy as np
 from six import string_types
-
-from tvb_multiscale.core.config import CONFIGURED, initialize_logger
-from tvb_multiscale.core.spiking_models.devices import DeviceSet, DeviceSets
+from copy import deepcopy
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.log_error_utils import raise_value_error
+
+from tvb_multiscale.core.config import CONFIGURED, initialize_logger
+from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
+from tvb_multiscale.core.spiking_models.devices import DeviceSet, DeviceSets
 
 
 LOG = initialize_logger(__name__)
 
 
-def _get_device_props_with_correct_shape(device, shape):
-    # This function sets device connectivity properties to the desired shape.
-    def _assert_conn_params_shape(p, p_name, shape):
-        if isinstance(p, dict):
-            return np.tile(p, shape)
-        elif not isinstance(p, np.ndarray):
-            p = np.array(p)
-        if np.any(p.shape != shape):
-            if p.size == 1:
-                return np.tile(p, shape)
-            else:
-                raise_value_error("Device %s are neither of shape (n_devices, n_nodes) = %s"
-                                  "nor of size 1:\n%s" % (p_name, str(shape), str(p)))
-        return p
+def _safe_indexing(arg, ind1=None, ind2=None):
+    if ind1 is None:
+        return safe_deepcopy(arg)
+    else:
+        if ind2 is None:
+            try:
+                return safe_deepcopy(arg[ind1])
+            except:
+                return safe_deepcopy(arg)
+        else:
+            try:
+                return safe_deepcopy(arg[ind1, ind2])
+            except:
+                return safe_deepcopy(arg)
 
-    return _assert_conn_params_shape(device.pop("weights", 1.0), "weights", shape), \
-           _assert_conn_params_shape(device.pop("delays", 0.0), "delays", shape), \
-           _assert_conn_params_shape(device.pop("receptor_type", None), "receptor_type", shape), \
-           _assert_conn_params_shape(device.pop("syn_spec", None), "syn_spec", shape), \
-           _assert_conn_params_shape(device.pop("conn_spec", None), "conn_spec", shape), \
-           _assert_conn_params_shape(device.pop("neurons_fun", None), "neurons_fun", shape)
+
+def _unload_device_dict(device):
+    return device.pop("weights", 1.0), \
+           device.pop("delays", 0.0), \
+           device.pop("receptor_type", None), \
+           device.pop("syn_spec", None), \
+           device.pop("conn_spec", None), \
+           device.pop("neurons_fun", None)
 
 
 def _get_connections(device, spiking_nodes):
@@ -71,7 +75,8 @@ def build_device(device, create_device_fun, config=CONFIGURED, **kwargs):
         else:
             try:
                 device_model = device.get("model", None)
-                return create_device_fun(device_model, params=device.get("params", {}).copy(),
+                return create_device_fun(device_model,
+                                         params=safe_deepcopy(device.get("params", dict())),
                                          config=config, **kwargs)
             except Exception as e:
                 raise ValueError("Failed to set device %s!\n%s" % (str(device), str(e)))
@@ -118,8 +123,7 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types, syn_specs, conn_specs, neurons_funs = \
-        _get_device_props_with_correct_shape(device_dict, (len(device_target_nodes),))
+    weights, delays, receptor_types, syn_specs, conn_specs, neurons_funs = _unload_device_dict(device_dict)
     # For every Spiking population variable to be stimulated or measured...
     for dev_var, populations in connections.items():
         populations = ensure_list(populations)
@@ -139,9 +143,13 @@ def build_and_connect_devices_one_to_one(device_dict, create_device_fun, connect
                 else:
                     population = pop
                 devices[dev_var][node.label] = \
-                    connect_device_fun(devices[dev_var][node.label], node[population], neurons_funs[i_node],
-                                       weights[i_node], delays[i_node], receptor_types[i_node],
-                                       syn_specs[i_node], conn_specs[i_node],
+                    connect_device_fun(devices[dev_var][node.label], node[population],
+                                       _safe_indexing(neurons_funs, i_node),
+                                       _safe_indexing(weights, i_node),
+                                       _safe_indexing(delays, i_node),
+                                       _safe_indexing(receptor_types, i_node),
+                                       _safe_indexing(syn_specs, i_node),
+                                       _safe_indexing(conn_specs, i_node),
                                        config=config, **kwargs)
         devices[dev_var].update()
     return devices
@@ -157,8 +165,7 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
     # Determine the connections from variables to measure/stimulate to Spiking node populations
     connections, device_target_nodes = _get_connections(device_dict, spiking_nodes)
     # Determine the device's parameters and connections' properties
-    weights, delays, receptor_types, syn_specs, conn_specs, neurons_funs = \
-        _get_device_props_with_correct_shape(device_dict, (len(names), len(device_target_nodes)))
+    weights, delays, receptor_types, syn_specs, conn_specs, neurons_funs = _unload_device_dict(device_dict)
     # For every Spiking population variable to be stimulated or measured...
     for pop_var, populations in connections.items():
         populations = ensure_list(populations)
@@ -182,9 +189,13 @@ def build_and_connect_devices_one_to_many(device_dict, create_device_fun, connec
                     else:
                         population = pop
                     devices[pop_var][dev_name] = \
-                        connect_device_fun(devices[pop_var][dev_name], node[population], neurons_funs[i_dev, i_node],
-                                           weights[i_dev, i_node], delays[i_dev, i_node], receptor_types[i_dev, i_node],
-                                           syn_specs[i_dev, i_node], conn_specs[i_dev, i_node],
+                        connect_device_fun(devices[pop_var][dev_name], node[population],
+                                           _safe_indexing(neurons_funs, i_dev, i_node),
+                                           _safe_indexing(weights, i_dev, i_node),
+                                           _safe_indexing(delays, i_dev, i_node),
+                                           _safe_indexing(receptor_types, i_dev, i_node),
+                                           _safe_indexing(syn_specs, i_dev, i_node),
+                                           _safe_indexing(conn_specs, i_dev, i_node),
                                            config=config, **kwargs)
         devices[pop_var].update()
     return devices

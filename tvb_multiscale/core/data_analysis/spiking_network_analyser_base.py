@@ -15,7 +15,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.utils.data_structures_utils import get_caller_fun_name
 
 
@@ -43,11 +42,12 @@ class SpikingNetworkAnalyserBase(HasTraits):
          (numpy.array, xarray.DataArray, TVB TimeSeries, pandas.Series of xarray.DataArray)
        """
 
-    spikeNet = Attr(field_type=SpikingNetwork,
-                    label="Spiking Network",
-                    default=None,
-                    required=False,
-                    doc="""An instance of a SpikingNetwork class""")
+    spikeNet = None
+    # spikeNet = Attr(field_type=SpikingNetwork,
+    #                 label="Spiking Network",
+    #                 default=None,
+    #                 required=False,
+    #                 doc="""An instance of a SpikingNetwork class""")
 
     start_time = Float(
         label="Start time",
@@ -116,6 +116,11 @@ class SpikingNetworkAnalyserBase(HasTraits):
 
     _fmax = np.finfo(dtype="f").max
     _fmin_resolution = np.finfo(dtype="f").resolution
+
+    def __init__(self, spikeNet=None, **kwargs):
+        if spikeNet:
+            self.spikeNet = spikeNet
+        super(SpikingNetworkAnalyserBase, self).__init__(**kwargs)
 
     def from_instance(self, instance, **kwargs):
         for attr in instance._own_declarative_attrs:

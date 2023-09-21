@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 
+import time
+from types import FunctionType
+
 import numpy as np
 
-from tvb.basic.neotraits._attr import Attr
+from tvb.basic.neotraits.api import Attr
 
-from tvb_multiscale.core.orchestrators.base import App
+from tvb_multiscale.core.orchestrators.base import CoSimulatorApp
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serial import CoSimulatorSerial
-from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulatorParallel, CoSimulatorRemoteParallel
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import \
-    CoSimulatorBuilder, CoSimulatorParallelBuilder, CoSimulatorSerialBuilder
+    CoSimulatorBuilder, CoSimulatorSerialBuilder, CoSimulatorParallelBuilder, CoSimulatorRemoteParallelBuilder
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import serialize_tvb_cosimulator
 from tvb_multiscale.core.interfaces.tvb.builders import \
     TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder, TVBRemoteInterfaceBuilder
-from tvb_multiscale.core.interfaces.models.default import \
-    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 
-class TVBApp(App):
+class TVBApp(CoSimulatorApp):
 
     """TVBApp base class"""
 
@@ -27,8 +28,14 @@ class TVBApp(App):
         label="TVB CoSimulator Builder",
         field_type=CoSimulatorBuilder,
         doc="""Instance of TVB CoSimulator Builder class.""",
+        required=False
+    )
+
+    cosimulator_builder_function = Attr(
+        label="TVB CoSimulator Builder function",
+        field_type=FunctionType,
+        doc="""Instance of TVB CoSimulator Builder function.""",
         required=False,
-        default=CoSimulatorBuilder()
     )
 
     cosimulator = Attr(
@@ -45,52 +52,47 @@ class TVBApp(App):
         required=False
     )
 
-    results = None
+    _results = None
 
     _cosimulator_builder_type = CoSimulatorBuilder
-    _default_interface_builder = TVBInterfaceBuilder
-
-    def setup_from_orchestrator(self, orchestrator):
-        super(TVBApp, self).setup_from_another_app(orchestrator)
+    _default_interface_builder_type = TVBInterfaceBuilder
 
     def start(self):
+        super(TVBApp, self).start()
+        self._logprint("Setting TVB LIBRARY_PROFILE...")
         from tvb.basic.profile import TvbProfile
         TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
     @property
     def _cosimulator_builder(self):
-        if not isinstance(self.cosimulator_builder, self._cosimulator_builder_type):
-            self.cosimulator_builder = self._cosimulator_builder_type(config=self.config, logger=self.logger)
-            self.cosimulator_builder.configure()
-        return self.cosimulator_builder
+        if isinstance(self.cosimulator_builder, self._cosimulator_builder_type):
+            return self.cosimulator_builder
+        elif hasattr(self.cosimulator_builder_function, "__call__"):
+            return self.cosimulator_builder_function
+        else:
+            raise Exception("Neither a TVB CoSimulator of type %s, "
+                            "nor a TVB CoSimulator builder or function has been provided as input to TVBApp!"
+                            % self._cosimulator_builder_type)
 
     def configure(self):
         super(TVBApp, self).configure()
-        self.cosimulator_builder.config = self.config
-        self.cosimulator_builder.logger = self.logger
-        self.cosimulator_builder.configure()
+        if self.cosimulator is None:
+            if isinstance(self.cosimulator_builder, self._cosimulator_builder_type):
+                self.cosimulator_builder.config = self.config
+                self.cosimulator_builder.logger = self.logger
+                self.cosimulator_builder.configure()
 
     @property
     def _cosimulator(self):
-        if not isinstance(self.cosimulator, CoSimulator):
+        try:
+            assert isinstance(self.cosimulator, CoSimulator)
+        except:
             self.build_tvb_simulator()
         return self.cosimulator
 
-    def configure_interfaces_builder(self):
-        self._interfaces_builder.tvb_cosimulator = self._cosimulator
-        self.interfaces_builder.config = self.config
-        self.interfaces_builder.logger = self.logger
-        self.interfaces_builder.exclusive_nodes = self.exclusive_nodes
-        self.interfaces_builder.proxy_inds = self.spiking_proxy_inds
-        if hasattr(self.interfaces_builder, "default_config"):
-            self.interfaces_builder.default_config()
-        self.interfaces_builder.configure()
-
     @property
-    def _interfaces_builder(self):
-        if not isinstance(self.interfaces_builder, self._default_interface_builder):
-            self.interfaces_builder = self._default_interface_builder(config=self.config, logger=self.logger)
-        return self.interfaces_builder
+    def results(self):
+        return self._results
 
     @property
     def tvb_dt(self):
@@ -136,9 +138,6 @@ class TVBApp(App):
     def tvb_input_interfaces(self):
         return self._cosimulator.input_interfaces
 
-    def build_tvb_simulator(self):
-        self.cosimulator = self._cosimulator_builder.build()
-
     def serialize_tvb_cosimulator(self):
         return serialize_tvb_cosimulator(self._cosimulator)
 
@@ -149,74 +148,80 @@ class TVBApp(App):
             filepath = self.default_tvb_serial_cosim_path
         dump_pickled_dict(tvb_cosimulator_serialized, filepath)
 
-    def build_interfaces(self):
-        if self.cosimulator.output_interfaces is None and self.cosimulator.input_interfaces is None:
-            self.configure_interfaces_builder()
-            self.cosimulator = self.interfaces_builder.build()
+    def build_tvb_simulator(self):
+        if isinstance(self._cosimulator_builder, self._cosimulator_builder_type):
+            self._logprint("Building TVB CoSimulator with builder %s of App %s..."
+                           % (self.cosimulator_builder.__class__.__name__, self.__class__.__name__))
+            self.cosimulator = self.cosimulator_builder.build()
+        else:
+            self._logprint("Building TVB CoSimulator with builder script %s of App %s..."
+                           % (self.cosimulator_builder_function.__name__, self.__class__.__name__))
+            self.cosimulator = self.cosimulator_builder_function(self.config)
+        if self.verbosity:
+            self._logprint(str(self.cosimulator))
+        self.cosimulator.configure()
+        self.dumb_tvb_simulator_serialized()
 
-    def build(self):
-        self.build_tvb_simulator()
-        self.build_interfaces()
+    def configure_interfaces_builder(self):
+        # Get default options from the App and the TVB CoSimulator:
+        self._interfaces_builder.tvb_cosimulator = self._cosimulator
+        super(TVBApp, self).configure_interfaces_builder()
+
+    def build_interfaces(self):
+        if self._interfaces_built is False:
+            super(TVBApp, self).build_interfaces()
+            self.cosimulator = self.interfaces_builder.build()
+            self._interfaces_build = True
+            if self.verbosity:
+                self._logprint(self.cosimulator.output_interfaces.summary_info_to_string(recursive=self.verbosity+1))
+                self._logprint(self.cosimulator.input_interfaces.summary_info_to_string(recursive=self.verbosity+1))
 
     def assert_simulation_length(self):
         if self._cosimulator.synchronization_time > 0:
-            self.simulation_length = np.ceil(self.simulation_length / self.cosimulator.synchronization_time) * \
-                                     self._cosimulator.synchronization_time
-        self.cosimulator.simulation_length = self.simulation_length
+            simulation_length = np.ceil(self.cosimulator.simulation_length / self.cosimulator.synchronization_time) * \
+                                        self.cosimulator.synchronization_time
+        self.cosimulator.simulation_length = simulation_length
 
-    def configure_simulation(self):
-        self.cosimulator.simulation_length = self.simulation_length
-        self._cosimulator.configure()
+    def configure_simulation(self, ):
+        super(TVBApp, self).configure_simulation()
+        self.cosimulator.PRINT_PROGRESSION_MESSAGE = self.verbosity
+        self.cosimulator.configure()
         self.assert_simulation_length()
-        self.synchronization_time = self.cosimulator.synchronization_time
+        self.dumb_tvb_simulator_serialized()
+        if self.verbosity:
+            self._logprint(str(self.cosimulator))
 
-    def simulate(self):
-        self.results = self._cosimulator.run()
+    def simulate(self, simulation_length=None):
+        if simulation_length is not None:
+            self.cosimulator.simulation_length = simulation_length
+        simulation_length = self.cosimulator.simulation_length
+        super(TVBApp, self).simulate(simulation_length)
+        self._results = self._cosimulator.run()
 
-    def run(self):
-        self.configure()
-        self.build()
-        self.configure_simulation()
-        self.simulate()
+    def plot(self, tvb_results=None, transient=0.0, spiking_nodes_ids=None,
+             # populations=["E", "I"], populations_sizes=[],
+             tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=[],
+             plotter=None, writer=None, **kwargs):
+        super(TVBApp, self).plot()
+        from examples.plot_write_results import plot_write_tvb_results
+        if tvb_results is None:
+            tvb_results = self.results[0]
+            if tvb_results is None:
+                return None
+        if transient is None:
+            transient = getattr(self.config, "TRANSIENT", 0.0)
+        if spiking_nodes_ids is None:
+            spiking_nodes_ids = getattr(self.config, "SPIKING_NODES_INDS", [])
+        return plot_write_tvb_results(tvb_results, self._cosimulator,
+                                      transient=transient, spiking_nodes_ids=spiking_nodes_ids,
+                                      # populations=["E", "I"], populations_sizes=[],
+                                      tvb_state_variable_type_label=tvb_state_variable_type_label,
+                                      tvb_state_variables_labels=tvb_state_variables_labels,
+                                      plotter=plotter, writer=writer, config=self.config, **kwargs)
 
     def reset(self):
+        super(TVBApp, self).reset()
         self.cosimulator = None
-        self._interfaces_built = False
-
-    def clean_up(self):
-        pass
-
-    def stop(self):
-        pass
-
-
-class TVBParallelApp(TVBApp):
-
-    cosimulator_builder = Attr(
-        label="TVB CoSimulatorParallelBuilder",
-        field_type=CoSimulatorParallelBuilder,
-        doc="""Instance of TVB Parallel CoSimulator Builder class.""",
-        required=False,
-        default=CoSimulatorParallelBuilder()
-    )
-
-    cosimulator = Attr(
-        label="TVB CoSimulator",
-        field_type=CoSimulatorParallel,
-        doc="""Instance of TVB CoSimulator.""",
-        required=False
-    )
-
-    interfaces_builder = Attr(
-        label="TVBRemoteInterfaceBuilder builder",
-        field_type=TVBRemoteInterfaceBuilder,
-        doc="""Instance of TVBRemoteInterfaceBuilder' builder class.""",
-        required=False,
-        default=DefaultTVBRemoteInterfaceBuilder()
-    )
-
-    _cosimulator_builder_type = CoSimulatorParallelBuilder
-    _default_interface_builder = DefaultTVBRemoteInterfaceBuilder
 
 
 class TVBSerialApp(TVBApp):
@@ -228,7 +233,6 @@ class TVBSerialApp(TVBApp):
         field_type=CoSimulatorSerialBuilder,
         doc="""Instance of TVB Serial CoSimulator Builder class.""",
         required=False,
-        default=CoSimulatorSerialBuilder()
     )
 
     cosimulator = Attr(
@@ -253,12 +257,138 @@ class TVBSerialApp(TVBApp):
     )
 
     _cosimulator_builder_type = CoSimulatorSerialBuilder
-    _default_interface_builder = DefaultTVBSpikeNetInterfaceBuilder
+    _default_interface_builder_type = TVBSpikeNetInterfaceBuilder
 
     def configure_interfaces_builder(self):
-        self.interfaces_builder.spiking_network = self.spiking_network
+        self._interfaces_builder.spiking_network = self.spiking_network
         super(TVBSerialApp, self).configure_interfaces_builder()
 
     def reset(self):
         super(TVBSerialApp, self).reset()
         self.spiking_network = None
+
+
+class TVBParallelApp(TVBApp):
+
+    """TVBParallelApp class"""
+
+    cosimulator_builder = Attr(
+        label="TVB CoSimulatorParallelBuilder",
+        field_type=CoSimulatorParallelBuilder,
+        doc="""Instance of TVB Parallel CoSimulator Builder class.""",
+        required=False
+    )
+
+    cosimulator = Attr(
+        label="TVB CoSimulator",
+        field_type=CoSimulatorParallel,
+        doc="""Instance of TVB CoSimulator.""",
+        required=False
+    )
+
+    interfaces_builder = Attr(
+        label="TVBRemoteInterfaceBuilder builder",
+        field_type=TVBInterfaceBuilder,
+        doc="""Instance of TVBRemoteInterfaceBuilder' builder class.""",
+        required=False,
+        default=TVBInterfaceBuilder()
+    )
+
+    _cosimulator_builder_type = CoSimulatorParallelBuilder
+    _default_interface_builder_type = TVBInterfaceBuilder
+
+    _wall_time_start = None
+    _ts = None
+    _xs = None
+    tvb_init_cosim_coupling = None
+
+    def get_tvb_init_cosim_coupling(self, relative_output_interfaces_time_steps=None):
+        if relative_output_interfaces_time_steps is not None:
+            relative_output_interfaces_time_steps1 = self.cosimulator.relative_output_interfaces_time_steps
+            self.cosimulator.relative_output_interfaces_time_steps = relative_output_interfaces_time_steps
+            relative_output_interfaces_time_steps = relative_output_interfaces_time_steps1
+        self.tvb_init_cosim_coupling = self.cosimulator.send_cosim_coupling(True)
+        if relative_output_interfaces_time_steps is not None:
+            self.cosimulator.relative_output_interfaces_time_steps = relative_output_interfaces_time_steps
+        return self.tvb_init_cosim_coupling
+
+    def configure_simulation(self):
+        super(TVBParallelApp, self).configure_simulation()
+        ts, xs = [], []
+        for _ in self.cosimulator.monitors:
+            ts.append([])
+            xs.append([])
+        self._wall_time_start = time.time()
+        self._ts = ts
+        self._xs = xs
+        if not self.cosimulator.n_tvb_steps_ran_since_last_synch:
+            self.cosimulator.n_tvb_steps_ran_since_last_synch = int(self.cosimulator.synchronization_n_step)
+        # # Send TVB's initial condition to spikeNet!:
+        # return self.get_tvb_init_cosim_coupling()
+
+    def run_for_synchronization_time(self, cosim_updates=None, cosimulation=True):
+        return self.cosimulator.run_for_synchronization_time(
+            self._ts, self._xs, self._wall_time_start, cosim_updates, cosimulation=cosimulation)
+
+    def return_tvb_results(self):
+        if self._ts is not None and self._xs is not None:
+            for i in range(len(self._ts)):
+                self._ts[i] = np.array(self._ts[i])
+                self._xs[i] = np.array(self._xs[i])
+            return list(zip(self._ts, self._xs))
+        return None
+
+    def plot(self, tvb_result=None, transient=0.0, spiking_nodes_ids=None,
+             # populations=["E", "I"], populations_sizes=[],
+             tvb_state_variable_type_label="State Variable", tvb_state_variables_labels=None,
+             plotter=None, writer=None, **kwargs):
+        if tvb_result is None:
+            tvb_result = self.return_tvb_results()[0]
+        if tvb_state_variables_labels is None:
+            tvb_state_variables_labels = self._cosimulator.monitors[0].variables_of_interest
+            if tvb_state_variables_labels is None:
+                tvb_state_variables_labels = self._cosimulator.model.variables_of_interest
+        super(TVBParallelApp, self).plot(tvb_result, transient, spiking_nodes_ids,
+                                         # populations=["E", "I"], populations_sizes=[],
+                                         tvb_state_variable_type_label, tvb_state_variables_labels,
+                                         plotter, writer, **kwargs)
+
+    def reset(self):
+        super(TVBParallelApp, self).reset()
+        self._ts = None
+        self._xs = None
+        self._wall_time_start = None
+        self.tvb_init_cosim_coupling = None
+
+
+class TVBRemoteParallelApp(TVBParallelApp):
+
+    """TVBRemoteParallelApp class"""
+
+    cosimulator_builder = Attr(
+        label="TVB CoSimulatorParallelBuilder",
+        field_type=CoSimulatorRemoteParallelBuilder,
+        doc="""Instance of TVB Parallel CoSimulator Builder class.""",
+        required=False
+    )
+
+    cosimulator = Attr(
+        label="TVB CoSimulator",
+        field_type=CoSimulatorRemoteParallel,
+        doc="""Instance of TVB CoSimulator.""",
+        required=False
+    )
+
+    interfaces_builder = Attr(
+        label="TVBRemoteInterfaceBuilder builder",
+        field_type=TVBRemoteInterfaceBuilder,
+        doc="""Instance of TVBRemoteInterfaceBuilder' builder class.""",
+        required=False,
+        default=TVBRemoteInterfaceBuilder()
+    )
+
+    _cosimulator_builder_type = CoSimulatorRemoteParallelBuilder
+    _default_interface_builder_type = TVBRemoteInterfaceBuilder
+
+    def run_for_synchronization_time(self, cosimulation=True):
+        return self.cosimulator.run_for_synchronization_time(self._ts, self._xs, self._wall_time_start, cosimulation)

@@ -207,12 +207,12 @@ class CerebBuilder(NESTNetworkBuilder):
 
     modules_to_install = ["cereb"]
 
-    def __init__(self, tvb_simulator={}, nest_instance=None, config=None, logger=None,
+    def __init__(self, tvb_simulator={}, spiking_simulator=None, config=None, logger=None,
                  pops_to_nodes_inds={}, regions_inds_to_regions_labels={}, path_to_network_source_file=""):
         self.pops_to_nodes_inds = pops_to_nodes_inds
         self.regions_inds_to_regions_labels = regions_inds_to_regions_labels
         super(CerebBuilder, self).__init__(tvb_simulator, np.unique(list(self.pops_to_nodes_inds.values())),
-                                           nest_instance, config, logger)
+                                           spiking_simulator, config, logger)
         self.path_to_network_source_file = path_to_network_source_file
 
     def _initialize(self):
@@ -432,7 +432,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                        self.nest_network.brain_regions[reg_name]["mossy_fibers"]._nodes,
                                        conn_spec={"rule": "all_to_all"},
                                        syn_spec={"synapse_model": "static_synapse", "weight": 1.0,
-                                                 "delay": self.spiking_dt, "receptor_type": 0}
+                                                 "delay": self.default_min_delay, "receptor_type": 0}
                                        )
         self.nest_network.input_devices["STIM_MF"].update()
 
@@ -462,7 +462,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                        self.nest_network.brain_regions[reg_name]["io_cell"]._nodes,
                                        conn_spec={"rule": "all_to_all"},
                                        syn_spec={"synapse_model": "static_synapse", "weight": 25.0,
-                                                 "delay": self.spiking_dt, "receptor_type": 1})
+                                                 "delay": self.default_min_delay, "receptor_type": 1})
         self.nest_network.input_devices["STIM_IO"].update()
 
     def build_spike_stimulus_background(self):
@@ -481,7 +481,7 @@ class CerebBuilder(NESTNetworkBuilder):
                                        self.nest_network.brain_regions[reg_name]["mossy_fibers"]._nodes,
                                        conn_spec={"rule": "all_to_all"},
                                        syn_spec={"synapse_model": "static_synapse", "weight": 1.0,
-                                                 "delay": self.spiking_dt, "receptor_type": 0}
+                                                 "delay": self.default_min_delay, "receptor_type": 0}
                                        )
         self.nest_network.input_devices["BACKGROUND"].update()
 

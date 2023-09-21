@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
+
 from pandas import concat
 
+from tvb_multiscale.core.utils.data_structures_utils import safe_dict_copy
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
@@ -22,11 +25,11 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a ANNarchyNetworkBuilder,
        which builds a ANNarchyNetwork from user configuration inputs.
-       The builder is half way opionionated.
+       The builder is half way opinionated.
     """
 
     config = CONFIGURED
-    annarchy_instance = None
+    _spiking_simulator_name = "annarchy_instance"
     modules_to_install = []
     _spiking_brain = ANNarchyBrain()
     _models_import_path = CONFIGURED.MYMODELS_IMPORT_PATH
@@ -34,17 +37,21 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, annarchy_instance=None, config=None, logger=None):
-        self.annarchy_instance = annarchy_instance
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, config, logger)
+    def __init__(self, tvb_simulator, spiking_nodes_inds, spiking_simulator=None, config=None, logger=None):
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
+                                                     config, logger)
         self._spiking_brain = ANNarchyBrain()
 
+    @property
+    def annarchy_instance(self):
+        return self.spiking_simulator
+
     def __str__(self):
-        return super(ANNarchyNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.annarchy_instance)
+        return super(ANNarchyNetworkBuilder, self).__str__() + "\nannarchy simulator: %s" % str(self.annarchy_instance)
 
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
-            self.annarchy_instance = load_annarchy(self.config, self.logger)
+            self.spiking_simulator = load_annarchy(self.config, self.logger)
             self.annarchy_instance.clear()  # This will restart ANNarchy!
             self.update_spiking_dt()
             self.update_default_min_delay()
@@ -68,7 +75,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         else:
             return self.config.MIN_SPIKING_DT
 
-    def set_synapse(self, syn_model, weights, delays, target, params={}):
+    def set_synapse(self, syn_model, weights, delays, target, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic target, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -82,7 +89,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             a dictionary of the whole synapse configuration
         """
         return {'synapse_model': syn_model, 'weights': weights,
-                'delays': delays, 'target': target, 'params': params}
+                'delays': delays, 'target': target, 'params': safe_dict_copy(params)}
 
     def _assert_model(self, model):
         return assert_model(model, self.annarchy_instance, self._models_import_path)
@@ -119,16 +126,18 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
                       including weight, delay and synaptic target ones
         """
         # Prepare the synaptic model:
+        syn_spec = safe_dict_copy(syn_spec)
         syn_spec["synapse_model"] = \
             self._assert_model(
                 syn_spec.pop("synapse_model",
                              syn_spec.pop("model",
                                           syn_spec.pop("synapse", None))))
         # Get connection arguments by copying conn_spec. Make sure to pop out the "method" entry:
-        this_syn_spec = syn_spec.copy()
+        this_syn_spec = safe_dict_copy(syn_spec)
+        this_conn_spec = safe_dict_copy(conn_spec)
         proj = connect_two_populations(pop_src, pop_trg, this_syn_spec.pop("weights"),
                                        this_syn_spec.pop("delays"), this_syn_spec.pop("target"),
-                                       syn_spec=this_syn_spec, conn_spec=conn_spec.copy(),
+                                       syn_spec=this_syn_spec, conn_spec=this_conn_spec,
                                        source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
                                        name="%s -> %s" % (pop_src.label, pop_trg.label),
                                        annarchy_instance=self.annarchy_instance)
