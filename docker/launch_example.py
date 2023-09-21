@@ -45,6 +45,14 @@ def launch_example_annarchy(write_files=True, **kwargs):
     return launch_example(ANNarchyConfig, annarchy_default_example, write_files, **kwargs)
 
 
+def launch_example_netpyne(write_files=True, **kwargs):
+
+    from tvb_multiscale.tvb_netpyne.config import Config as NetPyNEConfig
+    from examples.tvb_netpyne.example import default_example as netpyne_default_example
+
+    return launch_example(NetPyNEConfig, netpyne_default_example, write_files, **kwargs)
+
+
 if __name__ == "__main__":
     launch_example_nest()
     launch_example_annarchy()

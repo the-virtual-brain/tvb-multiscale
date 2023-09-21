@@ -30,8 +30,9 @@ class NESTDevice(_NESTNodeCollection):
 
     """NESTDevice class to wrap around a NEST output (recording) or input (stimulating) device"""
 
-    device = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
-                  label="NEST device ", doc="""Device NodeCollection instance""")
+
+    # device = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
+    #               label="NEST device ", doc="""Device NodeCollection instance""")
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         self.device = device
@@ -194,7 +195,7 @@ class NESTSpikeGenerator(NESTInputDevice):
             if nodes is None:
                 nodes = self.device
             n_neurons = len(nodes)
-            current_time = self.nest_instance.GetKernelStatus("time")
+            current_time = self.nest_instance.GetKernelStatus("biological_time")
             if time_shift:
                 # Apply time_shift, if any
                 new_spikes = []
@@ -605,8 +606,6 @@ class NESTOutputDevice(NESTDevice):
                 filepath,
                 n_lines_to_skip=np.where(self.reset_upon_record, 0, self._output_events_counter[iF]).item(),
                 empty_file=self.reset_upon_record)
-            this_file_new_events = read_nest_output_device_data_from_ascii_to_dict(filepath,
-                                                                                   self._output_events_counter[iF])
             number_of_new_events = len(this_file_new_events.get("senders", []))
             if number_of_new_events:
                 # Advance the _output_events_counter
@@ -744,7 +743,7 @@ class NESTSpikeRecorder(NESTOutputDevice, SpikeRecorder):
 
     def reset(self):
         NESTOutputDevice.reset(self)
-        self._last_spike_time = self.nest_instance.GetKernelStatus("time")
+        self._last_spike_time = self.nest_instance.GetKernelStatus("biological_time")
 
 
 class NESTMultimeter(NESTOutputDevice, Multimeter):

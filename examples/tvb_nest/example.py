@@ -30,10 +30,28 @@ def default_example(**kwargs):
     return main_example(default_example_base, nest_model_builder, tvb_nest_model_builder, **kwargs)
 
 
+def ray_default_example(**kwargs):
+    from tvb_multiscale.tvb_nest.interfaces.ray_builder import create_ray_TVB_NEST_interface_builder_type
+    from tvb_multiscale.tvb_nest.ray_orchestrators import TVBNESTRayOrchestrator
+
+    if kwargs.pop("multisynapse", False):
+        nest_model_builder = DefaultExcIOMultisynapseBuilder()
+        tvb_nest_model_builder = \
+            create_ray_TVB_NEST_interface_builder_type(DefaultMultisynapseTVBNESTInterfaceBuilder)()
+    else:
+        nest_model_builder = create_ray_nest_network_builder_type(DefaultExcIOBuilder)()
+        tvb_nest_model_builder = create_ray_TVB_NEST_interface_builder_type(DefaultTVBNESTInterfaceBuilder)()
+
+    return default_example_base(nest_model_builder, tvb_nest_model_builder, TVBNESTRayOrchestrator,
+                                config_type=Config, logger_initializer=initialize_logger, **kwargs)
+
+
 if __name__ == "__main__":
     import sys
 
     if sys.argv[-1] == "1":
         default_example(model="RATE", multisynapse=True)
+    elif sys.argv[-1] == "2":
+        ray_default_example(model="RATE")
     else:
-        default_example(model="RATE")
+        default_example(model="RATE", multisynapse=False)

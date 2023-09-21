@@ -756,7 +756,7 @@ class SpikeMultimeter(Multimeter, SpikeRecorder):
                 events_inds = np.arange(len(events[spike_var])).astype("i")[events_inds]
             else:  # events_inds is a scalar to start indexing from:
                 events_inds = np.arange(len(events[spike_var])).astype("i")[events_inds:]
-            events_inds = np.intersect1d(self.get_spikes_inds(), events_inds)
+            events_inds = intersect1d(self.get_spikes_inds(), events_inds)
         else:
             events_inds = self.get_spikes_inds()
         return self.get_events(events, events_inds=events_inds, **filter_kwargs)

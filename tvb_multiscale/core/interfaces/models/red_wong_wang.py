@@ -60,7 +60,7 @@ class RedWongWangExcIOSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilder, A
         doc="""[ms]. Excitatory population  input rate decay time constant.""")
 
     proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="proxy_inds",
         doc="""Indices of Spiking Network proxy nodes""",
         required=True,
@@ -350,7 +350,7 @@ class RedWongWangExcIOInhISpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilde
         doc="""[ms]. Inhibitory population input rate decay time constant.""")
 
     proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Indices of Spiking Network proxy nodes",
         doc="""Indices of Spiking Network proxy nodes""",
         required=True,

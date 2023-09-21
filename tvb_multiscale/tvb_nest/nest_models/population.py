@@ -16,8 +16,8 @@ class NESTPopulation(_NESTNodeCollection, SpikingPopulation):
 
     from nest import NodeCollection
 
-    _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
-                  label="Population", doc="""NEST population NodeCollection instance""")
+    # _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
+    #               label="Population", doc="""NEST population NodeCollection instance""")
 
     def __init__(self, nodes=NodeCollection(), nest_instance=None, **kwargs):
         self.nest_instance = nest_instance

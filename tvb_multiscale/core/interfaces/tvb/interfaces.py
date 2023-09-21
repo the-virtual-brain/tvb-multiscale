@@ -24,7 +24,7 @@ class TVBInterface(BaseInterface):
     """TVBInterface base class for interfaces sending/receivng data from/for TVB to/from a transformer of cosimulator"""
 
     proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Indices of TVB proxy nodes",
         doc="""Indices of TVB proxy nodes""",
         required=True,
@@ -242,12 +242,21 @@ class TVBtoSpikeNetInterface(TVBOutputInterface, SpikeNetInputInterface):
     def reshape_data(self, data):
         return TVBOutputInterface.__call__(self, data)
 
-    def __call__(self, data):
-        data = self.reshape_data(data)
+    def transform_data(self, data):
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
-        return self.set_proxy_data([self.transformer.output_time, self.transformer.output_buffer])
+        return [self.transformer.output_time, self.transformer.output_buffer]
+
+    def send_data(self, data=None):
+        if data is None:
+            data = [self.transformer.output_time, self.transformer.output_buffer]
+        return self.set_proxy_data(data)
+
+    def __call__(self, data):
+        return self.send_data(
+                    self.transform_data(
+                        self.reshape_data(data)))
 
     def info(self, recursive=0):
         info = SpikeNetInputInterface.info(self, recursive=recursive)
@@ -283,17 +292,26 @@ class SpikeNetToTVBInterface(TVBInputInterface, SpikeNetOutputInterface):
                                            extract_integer_intervals(self.proxy_inds),
                                            str(self.populations), extract_integer_intervals(self.spiking_proxy_inds))
 
-    def reshape_data(self):
-        return TVBInputInterface.__call__(self, [self.transformer.output_time, self.transformer.output_buffer])
+    def receive_data(self):
+        return self.get_proxy_data()
 
-    def __call__(self):
-        data = self.get_proxy_data()
-        if data is None or data[0][1] < data[0][0]:
-            return None
+    def reshape_data(self, data=None):
+        if data is None:
+            data = [self.transformer.output_time, self.transformer.output_buffer]
+        return TVBInputInterface.__call__(self, data)
+
+    def transform_data(self, data):
         self.transformer.input_time = data[0]
         self.transformer.input_buffer = data[1]
         self.transformer()
-        return self.reshape_data()
+        return [self.transformer.output_time, self.transformer.output_buffer]
+
+    def __call__(self):
+        data = self.receive_data()
+        if data is None or data[0][1] < data[0][0]:
+            return None
+        return self.reshape_data(
+            self.transform_data(data))
 
     def info(self, recursive=0):
         info = SpikeNetOutputInterface.info(self, recursive=recursive)

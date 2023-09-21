@@ -42,7 +42,7 @@ class InterfaceBuilder(HasTraits, ABC):
     )
 
     proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Indices of proxy nodes",
         doc="""Indices of proxy nodes""",
         required=True,

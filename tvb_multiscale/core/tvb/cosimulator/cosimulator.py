@@ -87,9 +87,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                (i.e., translator level or another (co-)simulator to TVB.""")
 
     out_proxy_inds = NArray(
-        dtype=numpy.int,
+        dtype=int,
         label="Indices of TVB output proxy nodes",
-        default=numpy.asarray([], dtype=numpy.int),
+        default=numpy.asarray([], dtype=int),
         required=True)
 
     min_idelay_sync_n_step_ratio = Int(
@@ -216,9 +216,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if self.n_input_interfaces:
                 voi += self.input_interfaces.voi_unique.tolist()
                 proxy_inds = self.input_interfaces.proxy_inds_unique.tolist()
-        self.voi = numpy.unique(voi).astype(numpy.int)
-        self.proxy_inds = numpy.unique(proxy_inds).astype(numpy.int)
-        self.out_proxy_inds = numpy.unique(out_proxy_inds).astype(numpy.int)
+        self.voi = numpy.unique(voi).astype(numpy.int32)
+        self.proxy_inds = numpy.unique(proxy_inds).astype(numpy.int32)
+        self.out_proxy_inds = numpy.unique(out_proxy_inds).astype(numpy.int32)
 
     def _assert_cosim_monitors_vois_period(self):
         """This method will assert that

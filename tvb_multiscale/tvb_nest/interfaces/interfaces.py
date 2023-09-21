@@ -60,6 +60,10 @@ class NESTOutputInterface(NESTInterface, SpikeNetOutputInterface):
         return self.nest_instance.GetKernelStatus("biological_time")
 
     @property
+    def _time(self):
+        return self.nest_instance.GetKernelStatus("biological_time")
+
+    @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
 
@@ -107,12 +111,14 @@ class NESTInputTransformerInterface(NESTInputInterface, SpikeNetInputTransformer
 
 
 class NESTReceiverInterface(NESTInputInterface, SpikeNetReceiverInterface):
+
     """NESTReceiverInterface"""
 
     pass
 
 
 class NESTReceiverTransformerInterface(NESTInputInterface, SpikeNetReceiverTransformerInterface):
+
     """NESTReceiverTransformerInterface"""
 
     pass
@@ -132,8 +138,6 @@ class NESTtoTVBInterface(NESTOutputInterface, SpikeNetToTVBInterface):
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
     """
-
-    pass
 
     pass
 

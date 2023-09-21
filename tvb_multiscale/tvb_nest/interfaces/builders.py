@@ -75,7 +75,7 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
     spiking_network = Attr(label="NEST Network",
                            doc="""The instance of NESTNetwork class""",
                            field_type=NESTNetwork,
-                           required=False)
+                           required=True)
 
     @property
     def nest_network(self):
