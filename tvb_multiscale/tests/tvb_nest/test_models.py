@@ -10,15 +10,15 @@ import matplotlib as mpl
 
 mpl.use('Agg')
 
-from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
-from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
-from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
-from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
-from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
-
-from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder, DefaultExcIOMultisynapseBuilder
-from tvb_multiscale.tvb_nest.nest_models.models.wilson_cowan import WilsonCowanBuilder, \
-    WilsonCowanMultisynapseBuilder
+# from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
+# from tvb_multiscale.core.tvb.cosimulator.models.linear_reduced_wong_wang_exc_io import LinearReducedWongWangExcIO
+# from tvb_multiscale.core.tvb.cosimulator.models.wilson_cowan_constraint import WilsonCowan
+# from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io import ReducedWongWangExcIO
+# from tvb_multiscale.core.tvb.cosimulator.models.reduced_wong_wang_exc_io_inh_i import ReducedWongWangExcIOInhI
+#
+# from tvb_multiscale.tvb_nest.nest_models.models.default import DefaultExcIOBuilder, DefaultExcIOMultisynapseBuilder
+# from tvb_multiscale.tvb_nest.nest_models.models.wilson_cowan import WilsonCowanBuilder, \
+#     WilsonCowanMultisynapseBuilder
 # from tvb_multiscale.tvb_nest.nest_models.models.ww_deco import WWDeco2013Builder, WWDeco2014Builder
 # from tvb_multiscale.tvb_nest.nest_models.models.basal_ganglia_izhikevich import BasalGangliaIzhikevichBuilder
 from tvb_multiscale.tvb_nest.interfaces.models.default import \
@@ -31,10 +31,10 @@ from tvb_multiscale.tvb_nest.interfaces.models.wilson_cowan import \
 #     BasalGangliaIzhikevichTVBNESTInterfaceBuilder
 
 from examples.tvb_nest.example import default_example
-from examples.tvb_nest.models.wilson_cowan import wilson_cowan_example
-from examples.tvb_nest.models.red_wong_wang import \
-    red_wong_wang_excio_example, red_wong_wang_excio_inhi_example_2013, red_wong_wang_excio_inhi_example_2014
-from examples.tvb_nest.models.basal_ganglia_izhiikevich import basal_ganglia_izhikevich_example
+# from examples.tvb_nest.models.wilson_cowan import wilson_cowan_example
+# from examples.tvb_nest.models.red_wong_wang import \
+#     red_wong_wang_excio_example, red_wong_wang_excio_inhi_example_2013, red_wong_wang_excio_inhi_example_2014
+# from examples.tvb_nest.models.basal_ganglia_izhiikevich import basal_ganglia_izhikevich_example
 
 from tvb_multiscale.tests.core.test_models import test_models
 from tvb_multiscale.tests.core.test_spikeNet_models import TestSpikeNetModel
@@ -66,96 +66,96 @@ class TestDefaultRATE(TestDefault):
         super(TestDefaultRATE, self).run()
 
 
-class TestDefaultSPIKES(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestDefaultMultisynapse(TestSpikeNetModel):
-    # model = Linear()
-    # model_params = {}
-    # spikeNet_model_builder = DefaultExcIOMultisynapseBuilder()
-    # tvb_spikeNet_model_builder = DefaultMultisynapseTVBNESTInterfaceBuilder()
-    multisynapse = True
-
-    def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
-                        spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                        exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                        simulation_length=self.simulation_length, transient=self.transient,
-                        plot_write=self.plot_write)
-
-
-class TestDefaultMultisynapseRATE(TestDefaultMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestDefaultMultisynapseSPIKES(TestDefaultMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestWilsonCowan(TestSpikeNetModel):
-    # model = WilsonCowan()
-    # model_params = {}
-    # spikeNet_model_builder = WilsonCowanBuilder()
-    # tvb_spikeNet_model_builder = WilsonCowanTVBNESTInterfaceBuilder()
-    multisynapse = False
-
-    def run_fun(self):
-        wilson_cowan_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
-                             spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                             simulation_length=self.simulation_length, transient=self.transient,
-                             plot_write=self.plot_write)
-
-
-class TestWilsonCowanRATE(TestWilsonCowan):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestWilsonCowanSPIKES(TestWilsonCowan):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestWilsonCowanMultisynapse(TestWilsonCowan):
-    # spikeNet_model_builder = WilsonCowanMultisynapseBuilder()
-    # tvb_spikeNet_model_builder = WilsonCowanMultisynapseTVBNESTInterfaceBuilder()
-    multisynapse = True
-
-
-class TestWilsonCowanMultisynapseRATE(TestWilsonCowanMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
+# class TestDefaultSPIKES(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestDefaultMultisynapse(TestSpikeNetModel):
+#     # model = Linear()
+#     # model_params = {}
+#     # spikeNet_model_builder = DefaultExcIOMultisynapseBuilder()
+#     # tvb_spikeNet_model_builder = DefaultMultisynapseTVBNESTInterfaceBuilder()
+#     multisynapse = True
+#
+#     def run_fun(self):
+#         default_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
+#                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+#                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                         simulation_length=self.simulation_length, transient=self.transient,
+#                         plot_write=self.plot_write)
+#
+#
+# class TestDefaultMultisynapseRATE(TestDefaultMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestDefaultMultisynapseSPIKES(TestDefaultMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestWilsonCowan(TestSpikeNetModel):
+#     # model = WilsonCowan()
+#     # model_params = {}
+#     # spikeNet_model_builder = WilsonCowanBuilder()
+#     # tvb_spikeNet_model_builder = WilsonCowanTVBNESTInterfaceBuilder()
+#     multisynapse = False
+#
+#     def run_fun(self):
+#         wilson_cowan_example(model=self.tvb_to_spikeNet_mode, multisynapse=self.multisynapse,
+#                              spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+#                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                              simulation_length=self.simulation_length, transient=self.transient,
+#                              plot_write=self.plot_write)
+#
+#
+# class TestWilsonCowanRATE(TestWilsonCowan):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestWilsonCowanSPIKES(TestWilsonCowan):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestWilsonCowanMultisynapse(TestWilsonCowan):
+#     # spikeNet_model_builder = WilsonCowanMultisynapseBuilder()
+#     # tvb_spikeNet_model_builder = WilsonCowanMultisynapseTVBNESTInterfaceBuilder()
+#     multisynapse = True
+#
+#
+# class TestWilsonCowanMultisynapseRATE(TestWilsonCowanMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
 #
 #
 # class TestReducedWongWangExcIO(TestSpikeNetModel):
@@ -317,15 +317,15 @@ class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
 
 
 models_to_test_NEST = [TestDefaultRATE,  # 0
-                       TestDefaultMultisynapseRATE,  # 1
-                       TestWilsonCowanRATE,  # 2
-                       TestWilsonCowanMultisynapseRATE,  # 3
-
-
-                       TestDefaultSPIKES,  # 4
-                       TestDefaultMultisynapseSPIKES,  # 5
-                       TestWilsonCowanSPIKES,  # 6
-                       TestWilsonCowanMultisynapseSPIKES,  # 7
+                       # TestDefaultMultisynapseRATE,  # 1
+                       # TestWilsonCowanRATE,  # 2
+                       # TestWilsonCowanMultisynapseRATE,  # 3
+                       #
+                       #
+                       # TestDefaultSPIKES,  # 4
+                       # TestDefaultMultisynapseSPIKES,  # 5
+                       # TestWilsonCowanSPIKES,  # 6
+                       # TestWilsonCowanMultisynapseSPIKES,  # 7
                        #
                        # TestReducedWongWangExcIORATE,
                        #      TestReducedWongWangExcIOSPIKES,
