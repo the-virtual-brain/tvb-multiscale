@@ -173,7 +173,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
         pop_regions_inds = []
         numbers_of_neurons = nest_network.brain_regions[regions[0]][pop].number_of_neurons
         # Basic w to convert total rates to mean rates in Hz, and then into the interval [0.0, 1.0]:
-        w_NEST_to_TVB = np.array([1.0]) / numbers_of_neurons / max_rate
+        w_NEST_to_TVB = np.array([1.0]) / numbers_of_neurons / config.MOSSY_MAX_RATE
         for region in regions:
             pop_regions_inds.append(np.where(simulator.connectivity.region_labels == region)[0][0])
         pop_regions_inds = np.array(pop_regions_inds)
