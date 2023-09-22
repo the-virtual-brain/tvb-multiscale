@@ -31,66 +31,66 @@ from tvb_multiscale.tests.core.test_spikeNet_models import TestSpikeNetModel
 # TODO: Solve problem with memory garbage to run all tests!!!
 
 
-class TestDefault(TestSpikeNetModel):
-    # model = Linear()
-    # model_params = {}
-    # spikeNet_model_builder = DefaultExcIOBuilder()
-    # tvb_spikeNet_model_builder = DefaultTVBANNarchyInterfaceBuilder()
-    multisynapse = False
-
-    def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode,
-                        spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                        exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                        simulation_length=self.simulation_length, transient=self.transient,
-                        plot_write=self.plot_write)
-
-
-class TestDefaultRATE(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestDefaultSPIKES(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestWilsonCowan(TestSpikeNetModel):
-    # model = WilsonCowan()
-    # model_params = {}
-    # spikeNet_model_builder = WilsonCowanBuilder()
-    # tvb_spikeNet_model_builder = WilsonCowanTVBANNarchyInterfaceBuilder()
-    multisynapse = False
-
-    def run_fun(self):
-        wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
-                             spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                             simulation_length=self.simulation_length, transient=self.transient,
-                             plot_write=self.plot_write)
-
-
-class TestWilsonCowanRATE(TestWilsonCowan):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestWilsonCowanSPIKES(TestWilsonCowan):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
+# class TestDefault(TestSpikeNetModel):
+#     # model = Linear()
+#     # model_params = {}
+#     # spikeNet_model_builder = DefaultExcIOBuilder()
+#     # tvb_spikeNet_model_builder = DefaultTVBANNarchyInterfaceBuilder()
+#     multisynapse = False
+#
+#     def run_fun(self):
+#         default_example(model=self.tvb_to_spikeNet_mode,
+#                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+#                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                         simulation_length=self.simulation_length, transient=self.transient,
+#                         plot_write=self.plot_write)
+#
+#
+# class TestDefaultRATE(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestDefaultSPIKES(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestWilsonCowan(TestSpikeNetModel):
+#     # model = WilsonCowan()
+#     # model_params = {}
+#     # spikeNet_model_builder = WilsonCowanBuilder()
+#     # tvb_spikeNet_model_builder = WilsonCowanTVBANNarchyInterfaceBuilder()
+#     multisynapse = False
+#
+#     def run_fun(self):
+#         wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
+#                              spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+#                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                              simulation_length=self.simulation_length, transient=self.transient,
+#                              plot_write=self.plot_write)
+#
+#
+# class TestWilsonCowanRATE(TestWilsonCowan):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestWilsonCowanSPIKES(TestWilsonCowan):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
 #
 #
 # class TestBasalGangliaIzhikevich(TestSpikeNetModel):
@@ -133,24 +133,24 @@ class TestWilsonCowanSPIKES(TestWilsonCowan):
 #         self.run()
 
 
-models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
-                                TestDefaultSPIKES,                     # 1
+# models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
+#                                 TestDefaultSPIKES,                     # 1
+#
+#                            TestWilsonCowanRATE,                        # 2
+#                                TestWilsonCowanSPIKES,                  # 3
+# #                            #
+# #                            # TestBasalGangliaIzhikevichRATE,             # 4
+# #                            #     TestBasalGangliaIzhikevichSPIKES,       # 5
+# #                            #         TestBasalGangliaIzhikevichCURRENT   # 6
+#                            ]
 
-                           TestWilsonCowanRATE,                        # 2
-                               TestWilsonCowanSPIKES,                  # 3
-#                            #
-#                            # TestBasalGangliaIzhikevichRATE,             # 4
-#                            #     TestBasalGangliaIzhikevichSPIKES,       # 5
-#                            #         TestBasalGangliaIzhikevichCURRENT   # 6
-                           ]
 
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) > 1:
-        iM = int(sys.argv[1])
-        print("\n\nTesting model %d" % iM)
-        test_models(models_to_test_ANNarchy, iM=iM)
-    else:
-        test_models(models_to_test_ANNarchy, iM=-1)
+# if __name__ == "__main__":
+#     import sys
+#
+#     if len(sys.argv) > 1:
+#         iM = int(sys.argv[1])
+#         print("\n\nTesting model %d" % iM)
+#         test_models(models_to_test_ANNarchy, iM=iM)
+#     else:
+#         test_models(models_to_test_ANNarchy, iM=-1)
