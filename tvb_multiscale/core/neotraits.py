@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 from tvb.basic.neotraits._attr import Attr as AttrTVB
 from tvb.basic.neotraits.api import HasTraits as HasTraitsTVB
-from tvb.basic.neotraits.ex import TraitError
+from tvb.basic.neotraits.ex import TraitError, TraitTypeError, TraitValueError
 from tvb_multiscale.core.utils.data_structures_utils import trait_object_str, trait_object_repr_html, summary_info
 
 
@@ -207,3 +207,20 @@ class HasTraits(HasTraitsTVB):
 
     def print_summary_info_details(self, recursive=0, **kwargs):
         print(self.summary_info_details_to_string(recursive=recursive, **kwargs))
+
+    def __getattribute__(self, attr):
+        return super(HasTraits, self).__getattribute__(attr)
+
+    def __setattr__(self, attr, val):
+        return super(HasTraits, self).__setattr__(attr, val)
+
+    def __getstate__(self):
+        d = {}
+        cls = type(self)
+        for attr in list(cls.declarative_attrs):
+            d[attr] = getattr(self, d)
+        return d
+
+    def __setstate__(self, d):
+        for key, val in d.items():
+            setattr(self, key, val)
