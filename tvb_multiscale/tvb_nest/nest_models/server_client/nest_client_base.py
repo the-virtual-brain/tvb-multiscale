@@ -116,9 +116,8 @@ class NESTClientBase(object):
 
     def GetLocalNodeCollection(self, node_collection):
         if len(node_collection):
-            if block:
-                return self.NodeCollection(
-                    self.request("GetLocalNodeCollection", self._node_collection_to_gids(node_collection)))
+            return self.NodeCollection(
+                        self.request("GetLocalNodeCollection", self._node_collection_to_gids(node_collection)))
         else:
             return self.NodeCollection(())
 
@@ -145,7 +144,7 @@ class NESTClientBase(object):
                 self.request("GetNodes", properties=properties, local_only=local_only))
 
     # def GetStatus(self, nodes, keys=None, output=''):
-    #     return self.request("GetStatus", self._nodes(nodes), keys=keys, outpu=output)
+    #     return self.request("GetStatus", self._nodes(nodes), keys=keys, output=output)
     #
     # def SetStatus(self, nodes, params, val=None):
     #     return self.request("SetStatus", self._nodes(nodes), params, val=val)
