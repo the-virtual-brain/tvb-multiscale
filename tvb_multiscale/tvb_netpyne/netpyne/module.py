@@ -80,8 +80,7 @@ class NetpyneModule(object):
 
     @property
     def minDelay(self):
-        return self.dt
-        # TODO: the factor above is not needed if implement stimulation without NetCon
+        return self.dt + 1e-9 # must be strictly greater than dt to be used with parallel context
 
     @property
     def time(self):
@@ -341,13 +340,7 @@ class NetpyneModule(object):
             return additionalData
 
         if gatherSimData:
-            orig = sim.cfg.gatherOnlySimData
-            sim.cfg.gatherOnlySimData = True
-            sim.gatherData(gatherLFP=False, gatherDipole=False)
-            sim.cfg.gatherOnlySimData = orig
-
-            # TODO: use more optimal gathering once method gets refactored in netpyne:
-            # sim.gatherData(gatherLFP=False, gatherDipole=False, gatherOnlySimData=True, simDataKeysToGather=['spkt', 'spkid'], analyze=False)
+            sim.gatherData(gatherLFP=False, gatherDipole=False, gatherOnlySimData=True, includeSimDataEntries=['spkt', 'spkid'], analyze=False)
 
         if additionalData:
             dataVec = h.Vector(additionalData)
