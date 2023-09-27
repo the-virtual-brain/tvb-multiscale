@@ -10,12 +10,11 @@ from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_f
 
 class NetpyneModule(object):
 
-    spikeGenerators = []
-
     __netpyne_version__ = __netpyne_version__
-    _readyToRun = False
 
     def __init__(self):
+        self._readyToRun = False
+        self.spikeGenerators = []
         self._autoCreatedPops = []
         self._spikeGeneratorPops = []
         self._spikeGeneratorsToRecord = []
@@ -89,6 +88,11 @@ class NetpyneModule(object):
         return h.t
 
     def createNetwork(self):
+
+        # clean up any data that might remain from previous simulations
+        if hasattr(sim, 'net'):
+            sim.clearAll()
+
         sim.initialize(self.netParams, self.simConfig)
         self._netParams = None
         self._simConfig = None
