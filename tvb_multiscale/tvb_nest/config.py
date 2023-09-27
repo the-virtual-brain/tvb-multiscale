@@ -20,55 +20,6 @@ DEFAULT_NEST_INSTALL_DIR = os.path.join(HOME_DIR, "build/nest")
 
 
 class Config(ConfigBase):
-    # WORKING DIRECTORY:
-    TVB_NEST_DIR = TVB_NEST_DIR
-    WORKING_DIR = WORKING_DIR
-    RECORDINGS_DIR = os.path.join(WORKING_DIR, "nest_recordings")
-    MYMODULES_DIR = MYMODULES_DIR
-    MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
-
-    MASTER_SEED = 1
-
-    # NEST properties:
-    # M_ALL=0,  display all messages
-    # M_DEBUG=5,  display debugging messages and above
-    # M_STATUS=7,  display status messages and above
-    # M_INFO=10, display information messages and above
-    # M_DEPRECATED=18, display deprecation warnings and above
-    # M_WARNING=20, display warning messages and above
-    # M_ERROR=30, display error messages and above
-    # M_FATAL=40, display failure messages and above
-    # M_QUIET=100, suppress all messages
-    NEST_VERBOCITY = 40
-
-    DEFAULT_NUM_PROCS = 1
-    DEFAULT_LOCAL_NUM_THREADS = 4
-
-    DEFAULT_SPIKING_MODEL = "iaf_cond_alpha"
-
-    # Delays should be at least equal to NEST time resolution
-    DEFAULT_SYNAPSE = "static_synapse"
-
-    LOCK_MIN_DELAY = False
-
-    DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
-    DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
-
-    DEFAULT_DEVICE_RECORD_TO = "memory"  # "ascii"  # "memory"
-
-    NEST_INPUT_DEVICES_PARAMS_DEF = {"spike_generator": {"allow_offgrid_times": True,
-                                                         # "shift_now_spikes": True
-                                                         },
-                                     "poisson_generator": {},
-                                     "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
-                                     "inhomogeneous_poisson_generator": {"allow_offgrid_times": True},
-                                     "parrot_spike_generator": {"allow_offgrid_times": True,
-                                                                # "shift_now_spikes": True
-                                                                },
-                                     "parrot_poisson_generator": {},
-                                     "parrot_mip_generator": {"p_copy": 0.5, "mother_seed": 0},
-                                     "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
-                                     }
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
@@ -82,16 +33,58 @@ class Config(ConfigBase):
         except Exception as e:
             warnings.warn("NEST_PYTHON_PREFIX nor set!\n%s" % str(e))
             self.PYTHON = ""
+
         self.DATA_DIR = os.path.join(self._NEST_PATH, "share/nest")
         self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
         self.DOC_DIR = os.path.join(self._NEST_PATH, "share/doc/nest")
         self.MODULE_PATH = os.path.join(self._NEST_PATH, "lib/nest")
+        # WORKING DIRECTORY:
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
-        self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
-        self.DEFAULT_NEST_KERNEL_CONFIG["data_path"] = self.RECORDINGS_DIR
         self.MYMODULES_DIR = MYMODULES_DIR
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
+        self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
+        self.DEFAULT_NEST_KERNEL_CONFIG["data_path"] = self.RECORDINGS_DIR
+
+        self.MASTER_SEED = 1
+
+        # NEST properties:
+        # M_ALL=0,  display all messages
+        # M_DEBUG=5,  display debugging messages and above
+        # M_STATUS=7,  display status messages and above
+        # M_INFO=10, display information messages and above
+        # M_DEPRECATED=18, display deprecation warnings and above
+        # M_WARNING=20, display warning messages and above
+        # M_ERROR=30, display error messages and above
+        # M_FATAL=40, display failure messages and above
+        # M_QUIET=100, suppress all messages
+        self.NEST_VERBOCITY = 40
+
+        self.DEFAULT_NUM_PROCS = 1
+        self.DEFAULT_LOCAL_NUM_THREADS = 4
+
+        self.DEFAULT_SPIKING_MODEL = "iaf_cond_alpha"
+
+        # Delays should be at least equal to NEST time resolution
+        self.DEFAULT_SYNAPSE = "static_synapse"
+
+        self.LOCK_MIN_DELAY = False
+
+        self.DEFAULT_TVB_TO_NEST_INTERFACE = "inhomogeneous_poisson_generator"
+        self.DEFAULT_NEST_TO_TVB_INTERFACE = "spike_recorder"
+
+        self.DEFAULT_DEVICE_RECORD_TO = "memory"  # "ascii"  # "memory"
+
+        self.NEST_INPUT_DEVICES_PARAMS_DEF = {
+            "spike_generator": {"allow_offgrid_times": True}, # "shift_now_spikes": True
+            "poisson_generator": {},
+            "mip_generator": {"p_copy": 0.5, "mother_seed": 0},
+            "inhomogeneous_poisson_generator": {"allow_offgrid_times": True},
+            "parrot_spike_generator": {"allow_offgrid_times": True},  # "shift_now_spikes": True
+            "parrot_poisson_generator": {},
+            "parrot_mip_generator": {"p_copy": 0.5, "mother_seed": 0},
+            "parrot_inhomogeneous_poisson_generator": {"allow_offgrid_times": True}
+                                             }
 
     @property
     def TOTAL_NUM_VIRTUAL_PROCS(self):

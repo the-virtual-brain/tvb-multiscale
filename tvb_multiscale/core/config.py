@@ -55,10 +55,6 @@ def _folder(base, separate_by_run=False, ftype=""):
 
 class OutputConfig(HasTraits):
 
-    title = "OutputConfig"
-
-    subfolder = None
-
     def __init__(self, out_base=None, separate_by_run=False, initialize_logger=True):
         """
         :param work_folder: Base folder where logs/figures/results should be kept
@@ -67,6 +63,8 @@ class OutputConfig(HasTraits):
         super(OutputConfig, self).__init__()
         self._out_base = out_base or os.path.join(os.getcwd(), "outputs")
         self._separate_by_run = separate_by_run
+        self.title = "OutputConfig"
+
         if initialize_logger:
             initialize_logger_base("logs", self.FOLDER_LOGS)
 
@@ -101,18 +99,20 @@ class OutputConfig(HasTraits):
 
 class CalculusConfig(HasTraits):
 
-    title = "CalculusConfig"
+    def __init__(self):
+        super(CalculusConfig, self).__init__()
+        self.title = "CalculusConfig"
 
-    # Normalization configuration
-    WEIGHTS_NORM_PERCENT = 99
+        # Normalization configuration
+        self.WEIGHTS_NORM_PERCENT = 99
 
-    # If True a plot will be generated to choose the number of eigenvalues to keep
-    INTERACTIVE_ELBOW_POINT = False
+        # If True a plot will be generated to choose the number of eigenvalues to keep
+        self.INTERACTIVE_ELBOW_POINT = False
 
-    MIN_SINGLE_VALUE = numpy.finfo("single").min
-    MAX_SINGLE_VALUE = numpy.finfo("single").max
-    MAX_INT_VALUE = numpy.iinfo(numpy.int64).max
-    MIN_INT_VALUE = numpy.iinfo(numpy.int64).max
+        self.MIN_SINGLE_VALUE = numpy.finfo("single").min
+        self.MAX_SINGLE_VALUE = numpy.finfo("single").max
+        self.MAX_INT_VALUE = numpy.iinfo(numpy.int64).max
+        self.MIN_INT_VALUE = numpy.iinfo(numpy.int64).max
 
     def info(self, recursive=0):
         info = super(CalculusConfig, self).info(recursive=recursive)
@@ -124,6 +124,10 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 
     title = "FiguresConfig"
 
+    def __init__(self):
+        super(FiguresConfig, self).__init__()
+        self.title = "FiguresConfig"
+
     def info(self, recursive=0):
         info = super(FiguresConfig, self).info(recursive=recursive)
         info.update(self._info_dict('FiguresConfig as dict', self.__dict__))
@@ -131,36 +135,37 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 
 
 class Config(HasTraits):
-    calcul = CalculusConfig()
-
-    VERBOSITY = 1
-
-    DEFAULT_DT = 0.1
-    TVB_TO_SPIKING_DT_RATIO = 2
-    MIN_SPIKING_DT = 0.001
-    MIN_DELAY_RATIO = 1
-    DEFAULT_SPIKING_MIN_DELAY = 1.0
-
-    DEFAULT_TVB_MODEL = WilsonCowan
-    DEFAULT_TVB_COUPLING_MODEL = Linear
-    DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
-    DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
-    DEFAULT_INTEGRATOR = DEFAULT_STOCHASTIC_INTEGRATOR
-    DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
-    DEFAULT_NOISE = Additive
-    DEFAULT_NSIG = 1e-3
-    DEFAULT_MONITOR = Raw
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()
-        self.VERBOSITY = verbosity
+
         self.BASEPATH = output_base
+        self.VERBOSITY = verbosity
+
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
+        self.calcul = CalculusConfig()
+
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
         self.TVB_DATA_PATH = TVB_DATA_PATH
         self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
+
+        self.DEFAULT_DT = 0.1
+        self.TVB_TO_SPIKING_DT_RATIO = 2
+        self.MIN_SPIKING_DT = 0.001
+        self.MIN_DELAY_RATIO = 1
+        self.DEFAULT_SPIKING_MIN_DELAY = 1.0
+
+        self.DEFAULT_TVB_MODEL = WilsonCowan
+        self.DEFAULT_TVB_COUPLING_MODEL = Linear
+        self.DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
+        self.DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
+        self.DEFAULT_INTEGRATOR = DEFAULT_STOCHASTIC_INTEGRATOR
+        self.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
+        self.DEFAULT_NOISE = Additive
+        self.DEFAULT_NSIG = 1e-3
+        self.DEFAULT_MONITOR = Raw
 
     @property
     def output_base(self):
