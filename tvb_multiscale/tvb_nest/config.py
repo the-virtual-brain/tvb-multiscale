@@ -44,7 +44,6 @@ class Config(ConfigBase):
         self.MYMODULES_DIR = MYMODULES_DIR
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
         self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
-        self.DEFAULT_NEST_KERNEL_CONFIG["data_path"] = self.RECORDINGS_DIR
 
         self.MASTER_SEED = 1
 

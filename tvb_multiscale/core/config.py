@@ -124,8 +124,9 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 
     title = "FiguresConfig"
 
-    def __init__(self):
-        super(FiguresConfig, self).__init__()
+    def __init__(self, out_base=None, separate_by_run=False, **kwargs):
+        FiguresConfigTVB.__init__(self, out_base=out_base, separate_by_run=separate_by_run)
+        HasTraits.__init__(self, **kwargs)
         self.title = "FiguresConfig"
 
     def info(self, recursive=0):
@@ -161,7 +162,7 @@ class Config(HasTraits):
         self.DEFAULT_TVB_COUPLING_MODEL = Linear
         self.DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
         self.DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
-        self.DEFAULT_INTEGRATOR = DEFAULT_STOCHASTIC_INTEGRATOR
+        self.DEFAULT_INTEGRATOR = self.DEFAULT_STOCHASTIC_INTEGRATOR
         self.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
         self.DEFAULT_NOISE = Additive
         self.DEFAULT_NSIG = 1e-3
