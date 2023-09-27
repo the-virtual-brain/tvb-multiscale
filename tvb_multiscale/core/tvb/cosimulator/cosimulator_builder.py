@@ -63,7 +63,7 @@ class CoSimulatorBuilder(HasTraits):
     model_params = Attr(
         field_type=dict,
         label="Model parameters",
-        default={},
+        default=dict(),
         required=True,
         doc="""A dictionary of model parameters""")
 
@@ -214,6 +214,34 @@ class CoSimulatorBuilder(HasTraits):
         default=1100.0,  # ie 1.1 second
         required=False,
         doc="""The length of a simulation (default in milliseconds).""")
+
+    def __init__(self, **kwargs):
+        self.config = CONFIGURED
+        init_logger = False
+        if kwargs.get("config", None) is not None and kwargs.get("logger", None) is not None:
+            init_logger = True
+        self.model = self.config.DEFAULT_TVB_MODEL()
+        self.model_params = dict()
+        self.connectivity = Connectivity.from_file(self.config.DEFAULT_CONNECTIVITY_ZIP)
+        self.scale_connectivity_weights = "region"
+        self.scale_connectivity_weights_by_percentile = 99.0
+        self.ceil_connectivity = 0.0
+        self.symmetric_connectome = False
+        self.remove_self_connections = False
+        self.delays_flag = True
+        self.min_tract_length = 0.0
+        self.coupling = self.config.DEFAULT_TVB_COUPLING_MODEL()
+        self.dt = 0.1
+        self.noise_strength = np.array([self.config.DEFAULT_NSIG])
+        self.integrator = CONFIGURED.DEFAULT_INTEGRATOR()
+        self.monitor_period = 1.0
+        self.monitors = (CONFIGURED.DEFAULT_MONITOR(period=self.monitor_period), )
+        self.initial_conditions = None
+        self.simulation_length = 1100.0
+
+        super(CoSimulatorBuilder, self).__init__(**kwargs)
+        if init_logger:
+            self.logger = initialize_logger(config=self.config)
 
     def configure_connectivity(self):
         # Load, normalize and configure connectivity
