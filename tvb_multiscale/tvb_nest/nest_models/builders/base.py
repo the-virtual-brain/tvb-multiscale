@@ -31,11 +31,19 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
 
     config = CONFIGURED
     _spiking_simulator_name = "nest_instance"
-    modules_to_install = []
+    modules_to_install = list()
     _spiking_brain = NESTBrain()
+    output_devices_record_to = "ascii"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
-        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self.modules_to_install = list()
+        self.output_devices_record_to = "ascii"
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
+        super(NESTNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                 spiking_simulator, self.config, logger)
         self._spiking_brain = NESTBrain()
 
     @property
@@ -46,10 +54,6 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         return super(NESTNetworkBuilder, self).__str__() + "\nnest simulator: %s" % str(self.nest_instance)
 
     def configure(self):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
         super(NESTNetworkBuilder, self).configure()
         self.nest_instance.SetKernelStatus({"resolution": self.spiking_dt})
 

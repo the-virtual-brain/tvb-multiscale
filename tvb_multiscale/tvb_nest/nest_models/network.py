@@ -51,6 +51,8 @@ class NESTNetwork(SpikingNetwork):
 
     def __init__(self, nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
+        self.config = CONFIGURED
+        self.brain_regions = NESTBrain()
         super(NESTNetwork, self).__init__(**kwargs)
 
     @property

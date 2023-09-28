@@ -5,6 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
+from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 # from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
 #     random_normal_weight, random_normal_tvb_weight, \
@@ -15,9 +16,9 @@ from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 
 class JansenRitBuilder(NESTNetworkBuilder):
 
-    output_devices_record_to = "ascii"
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
         super(JansenRitBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
@@ -36,20 +37,20 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.d_ep = self.within_node_delay()
         self.d_ip = self.within_node_delay()
 
-        self.params_E = {}
-        self.params_EI = {}
-        self.params_II = {}
-        self.pop_conns_PE = {}
-        self.pop_conns_PI = {}
-        self.pop_conns_EP = {}
-        self.pop_conns_IP = {}
+        self.params_E = dict()
+        self.params_EI = dict()
+        self.params_II = dict()
+        self.pop_conns_PE = dict()
+        self.pop_conns_PI = dict()
+        self.pop_conns_EP = dict()
+        self.pop_conns_IP = dict()
 
-        self.nodes_conns = {}
+        self.nodes_conns = dict()
 
-        self.spike_recorder = {}
-        self.multimeter = {}
+        self.spike_recorder = dict()
+        self.multimeter = dict()
 
-        self.spike_stimulus = {}
+        self.spike_stimulus = dict()
 
     def _params_E(self, node_index):
         return self.params_E
