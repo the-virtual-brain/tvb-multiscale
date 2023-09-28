@@ -65,10 +65,16 @@ class TVBInterfaceBuilder(InterfaceBuilder):
                            default=True,
                            required=True)
 
-    _default_out_proxy_inds = np.array([])
+    _default_out_proxy_inds = np.array(list())
     _tvb_delays = None
 
     _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds"]
+
+    def __init__(self, **kwargs):
+        self._default_out_proxy_inds = np.array(list())
+        self._tvb_delays = None
+        kwargs["config"] = kwargs.get("config", CONFIGURED)
+        super(TVBInterfaceBuilder, self).__init__(**kwargs)
 
     @property
     def tvb_dt(self):

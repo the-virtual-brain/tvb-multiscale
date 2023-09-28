@@ -24,6 +24,10 @@ class RayTVBSpikeNetInterfaceBuilder(TVBSpikeNetInterfaceBuilder):
 
     default_to_ray_transformer_flag = False
 
+    def __init__(self, **kwargs):
+        self.default_to_ray_transformer_flag = False
+        super(RayTVBSpikeNetInterfaceBuilder, self).__init__(**kwargs)
+
     def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
         model = interface.get("transformer", interface.pop("transformer_model", None))
         if isinstance(model, RayClient):

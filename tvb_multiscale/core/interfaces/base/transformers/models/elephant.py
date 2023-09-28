@@ -304,6 +304,10 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
 
     kernel = None
 
+    def __init__(self, **kwargs):
+        self.kernel = None
+        super(ElephantSpikesRate, self).__init__(**kwargs)
+
     @staticmethod
     def _rate_fun(*args, **kwargs):
         return ElephantFunctions.INSTANTANEOUS_RATE(*args, **kwargs)
