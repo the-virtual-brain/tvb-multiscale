@@ -348,8 +348,11 @@ models_to_test_NEST = [TestDefaultRATE,  # 0
 if __name__ == "__main__":
     import sys
 
+    iM = -1
     if len(sys.argv) > 1:
         iM = int(sys.argv[1])
+
+    if iM >= 0:
         print("\n\nTesting model %d" % iM)
         test_models(models_to_test_NEST, iM=iM)
     else:
