@@ -139,6 +139,10 @@ class AppWithInterfaces(App):
     _default_interface_builder_type = InterfaceBuilder
     _interfaces_built = False
 
+    def __init__(self, **kwargs):
+        self._interfaces_built = False
+        super(AppWithInterfaces, self).__init__(**kwargs)
+
     def configure_interfaces_builder(self):
         self._logprint("Configuring interfaces' builder %s of App %s..."
                        % (self._interfaces_builder.__class__.__name__, self.__class__.__name__))

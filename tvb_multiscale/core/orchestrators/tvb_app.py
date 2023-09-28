@@ -57,6 +57,10 @@ class TVBApp(CoSimulatorApp):
     _cosimulator_builder_type = CoSimulatorBuilder
     _default_interface_builder_type = TVBInterfaceBuilder
 
+    def __init__(self, **kwargs):
+        self._results = None
+        super(TVBApp, self).__init__(**kwargs)
+
     def start(self):
         super(TVBApp, self).start()
         self._logprint("Setting TVB LIBRARY_PROFILE...")
@@ -301,6 +305,13 @@ class TVBParallelApp(TVBApp):
     _ts = None
     _xs = None
     tvb_init_cosim_coupling = None
+
+    def __init__(self, **kwargs):
+        self._wall_time_start = None
+        self._ts = None
+        self._xs = None
+        self.tvb_init_cosim_coupling = None
+        super(TVBParallelApp, self).__init__(**kwargs)
 
     def get_tvb_init_cosim_coupling(self, relative_output_interfaces_time_steps=None):
         if relative_output_interfaces_time_steps is not None:
