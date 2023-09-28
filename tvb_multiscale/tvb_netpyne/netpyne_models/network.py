@@ -32,6 +32,8 @@ class NetpyneNetwork(SpikingNetwork):
 
     def __init__(self, netpyne_instance, **kwargs):
         self.netpyne_instance = netpyne_instance
+        self.config = kwargs.get("config", CONFIGURED)
+        kwargs["config"] = self.config
         super(NetpyneNetwork, self).__init__(**kwargs)
 
     @property

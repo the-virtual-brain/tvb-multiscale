@@ -65,7 +65,7 @@ class SpikingNetwork(HasTraits):
         field_type=DeviceSets,
         label="Output devices.",
         default=DeviceSets(name="output_devices"),
-        required=True,
+        required=False,
         doc="""A DeviceSets of output (recording) devices of the SpikingNetwork, 
                organized by recorded population and brain region.""")
     # e.g., output_devices['Excitatory']['rh-insula']
@@ -74,7 +74,7 @@ class SpikingNetwork(HasTraits):
         field_type=DeviceSets,
         label="Input devices.",
         default=DeviceSets(name="input_devices"),
-        required=True,
+        required=False,
         doc="""A DeviceSets of input (stimulating) devices of the SpikingNetwork, 
                organized by target population and brain region.""")
     # e.g., input_devices['Stimulus']['rh-insula']
@@ -84,7 +84,7 @@ class SpikingNetwork(HasTraits):
         field_type=DeviceSets,
         label="Output proxies.",
         default=DeviceSets(name="output_proxies"),
-        required=True,
+        required=False,
         doc="""A DeviceSets of output (recording) devices of the SpikingNetwork, 
                which record data to send to a co-simulator, organized by 
                co-simulator recorded variable (e.g., TVB state variable) and brain region.""")
@@ -108,7 +108,8 @@ class SpikingNetwork(HasTraits):
 
     def __init__(self, **kwargs):
         init_logger = False
-        if kwargs.get("config", None) is not None and kwargs.get("logger", None) is not None:
+        self.config = kwargs.get("config", CONFIGURED)
+        if not isinstance(kwargs.get("logger", None), Logger):
             init_logger = True
         # self.brain_regions = SpikingBrain()
         self.output_devices = DeviceSets(name="output_devices")

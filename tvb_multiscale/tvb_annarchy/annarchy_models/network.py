@@ -68,6 +68,8 @@ class ANNarchyNetwork(SpikingNetwork):
         self._network = None
         self.network_path = ""
         self.brain_regions = ANNarchyBrain()
+        self.config = kwargs.get("config", CONFIGURED)
+        kwargs["config"] = self.config
         super(ANNarchyNetwork, self).__init__(**kwargs)
 
     @property

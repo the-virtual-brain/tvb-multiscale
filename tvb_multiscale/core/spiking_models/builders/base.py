@@ -74,8 +74,10 @@ class SpikingNetworkBuilder(object):
 
     def __init__(self, tvb_serial_sim=dict(), spiking_nodes_inds=list(),
                  spiking_simulator=None, config=CONFIGURED, logger=None):
-        self.logger = logger
         self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
+        self.logger = logger
         if not isinstance(self.logger, Logger):
             self.logger = initialize_logger(config=self.config)
         self.tvb_serial_sim = tvb_serial_sim
