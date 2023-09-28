@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
+
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_netpyne.netpyne_models.devices import NetpyneOutputSpikeDeviceDict, NetpyneOutputContinuousTimeDeviceDict
+from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
+    NetpyneOutputSpikeDeviceDict, NetpyneOutputContinuousTimeDeviceDict
+
 
 class NetpyneNetwork(SpikingNetwork):
 
