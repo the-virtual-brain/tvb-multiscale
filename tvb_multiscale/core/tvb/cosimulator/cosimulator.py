@@ -127,7 +127,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self.model = WilsonCowan()
         self.output_interfaces = None
         self.input_interfaces = None
-        self.out_proxy_inds = numpy.asarray([], dtype=int)
+        self.out_proxy_inds = numpy.asarray(list(), dtype=int)
         self.min_idelay_sync_n_step_ratio = 1
         self.relative_output_interfaces_time_steps = 0
         self.PRINT_PROGRESSION_MESSAGE = True
@@ -137,9 +137,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         # Attributes of tvb_contrib.cosimulation CoSimulator:
         self.exclusive = False
-        self.voi = numpy.asarray([], dtype=numpy.int_)
-        self.proxy_inds = numpy.asarray([], dtype=numpy.int_)
-        self.cosim_monitors = []
+        self.voi = numpy.asarray(list(), dtype=numpy.int_)
+        self.proxy_inds = numpy.asarray(list(), dtype=numpy.int_)
+        self.cosim_monitors = list()
         self.synchronization_time = 0.0
         self.synchronization_n_step = 0
         self.good_cosim_update_values_shape = (0, 0, 0, 0)
@@ -147,9 +147,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self._cosimulation_flag = False
         self._compute_requirements = True
         self.number_of_cosim_monitors = 0
-        self._cosim_monitors_noncoupling_indices = []
-        self._cosim_monitors_coupling_indices = []
-        self._existing_connections = []
+        self._cosim_monitors_noncoupling_indices = list()
+        self._cosim_monitors_coupling_indices = list()
+        self._existing_connections = list()
         self._min_delay = 0.0
         self._min_idelay = 1
         self.relative_output_time_steps = 0
