@@ -2,6 +2,8 @@
 
 from abc import ABCMeta, abstractmethod
 
+from logging import Logger
+
 import pandas as pd
 import numpy as np
 
@@ -13,9 +15,6 @@ from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb_multiscale.core.spiking_models.devices import \
     DeviceSet, DeviceSets, OutputSpikeDeviceDict, OutputContinuousTimeDeviceDict
-
-
-LOG = initialize_logger(__name__)
 
 
 class SpikingNetwork(HasTraits):
@@ -43,6 +42,14 @@ class SpikingNetwork(HasTraits):
         doc="""Configuration class instance.""",
         required=True,
         default=CONFIGURED
+    )
+
+    logger = Attr(
+        label="Logger",
+        field_type=Logger,
+        doc="""logging.Logger instance.""",
+        required=True,
+        default=initialize_logger(config=CONFIGURED)
     )
 
     brain_regions = Attr(
@@ -89,7 +96,7 @@ class SpikingNetwork(HasTraits):
         default=DeviceSets(name="input_proxies"),
         required=False,
         doc="""A pandas.Series of input (stimulating) devices of the SpikingNetwork, 
-               that mimick a co-simulator's activity (e.g., TVB mean field state variables) 
+               that mimic a co-simulator's activity (e.g., TVB mean field state variables) 
                organized by brain region and population.""")
     # e.g., input_proxies['Inhibitory']['rh-insula']
 
@@ -100,8 +107,21 @@ class SpikingNetwork(HasTraits):
     _OutputContinuousTimeDeviceDict = OutputContinuousTimeDeviceDict
 
     def __init__(self, **kwargs):
+        init_logger = False
+        if kwargs.get("config", None) is not None and kwargs.get("logger", None) is not None:
+            init_logger = True
+        # self.brain_regions = SpikingBrain()
+        self.output_devices = DeviceSets(name="output_devices")
+        self.input_devices = DeviceSets(name="input_devices")
+        self.output_proxies = DeviceSets(name="output_proxies")
+        self.input_proxies = DeviceSets(name="input_proxies")
+        self.input_interfaces = None
+        self.output_interfaces = None
+
         super(SpikingNetwork, self).__init__(**kwargs)
-        LOG.info("%s created!" % self.__class__)
+        if init_logger:
+            self.logger = initialize_logger(config=self.config)
+        self.logger.info("%s created!" % self.__class__)
 
     def __getattribute__(self, item):
         return super(SpikingNetwork, self).__getattribute__(item)
@@ -179,13 +199,13 @@ class SpikingNetwork(HasTraits):
             for device_name in output_device_dict.keys():
                 devices = pd.concat([devices, self.get_devices_by_model(device_name, regions=regions)])
         if len(devices) == 0:
-            LOG.warning("No %s recording device in this Spiking Network network!" % devices_type)
+            self.logger.warning("No %s recording device in this Spiking Network network!" % devices_type)
             return devices
         if populations_devices is not None:
             populations_devices = np.intersect1d(list(devices.index),
                                                  ensure_list(populations_devices)).tolist()
             if len(populations_devices) == 0:
-                LOG.warning("No s recording device left after user selection!" % devices_type)
+                self.logger.warning("No s recording device left after user selection!" % devices_type)
                 return devices
             devices = devices[populations_devices]
         return devices

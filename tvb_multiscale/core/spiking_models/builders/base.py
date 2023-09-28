@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 from six import string_types
 from collections import OrderedDict
 from copy import deepcopy
+from logging import Logger
 
 import numpy as np
 from pandas import concat
@@ -19,9 +20,6 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator_serialization import \
     serialize_tvb_cosimulator
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
-
-
-LOG = initialize_logger(__name__, config=CONFIGURED)
 
 
 class SpikingNetworkBuilder(object):
@@ -74,12 +72,48 @@ class SpikingNetworkBuilder(object):
     _spiking_brain = SpikingBrain(name="brain regions")
     _models = []
 
-    def __init__(self, tvb_serial_sim={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+    def __init__(self, tvb_serial_sim=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
         self.logger = logger
         self.config = config
+        if not isinstance(self.logger, Logger):
+            self.logger = initialize_logger(config=self.config)
         self.tvb_serial_sim = tvb_serial_sim
         self.spiking_nodes_inds = spiking_nodes_inds
         self.spiking_simulator = spiking_simulator
+
+        self.default_tvb_dt = 0.1
+        self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
+        self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
+        self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
+        self.default_min_delay = self.config.DEFAULT_SPIKING_MIN_DELAY
+        self.default_population = dict()
+        self.default_populations_connection = dict()
+        self.default_nodes_connection = dict()
+        self.default_devices_connection = dict()
+
+        self.population_order = 100
+
+        # User inputs:
+        self.model = None
+        self.spiking_nodes_inds = list()
+        self.populations = list()
+        self.populations_connections = list()
+        self.nodes_connections = list()
+        self.output_devices = list()  # Use these to observe Spiking Simulator behavior
+        self.input_devices = list()  # use these for possible external stimulation devices
+
+        # Internal configurations and outputs:
+        self.monitor_period = 1.0
+        self.spiking_dt = self.default_tvb_dt / self.tvb_to_spiking_dt_ratio
+        self._spiking_nodes_labels = list()
+        self._populations = list()
+        self._populations_connections = list()
+        self._nodes_connections = list()
+        self._output_devices = list()
+        self._input_devices = list()
+        self._spiking_brain = SpikingBrain(name="brain regions")
+        self._models = list()
 
     def __setattr__(self, attr, val):
         if attr == self._spiking_simulator_name:
@@ -94,10 +128,6 @@ class SpikingNetworkBuilder(object):
             self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
 
     def configure(self):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
@@ -599,28 +629,28 @@ class SpikingNetworkBuilder(object):
 
     def _configure(self):
         """Method to configure the builder taking into consideration the input configurations by the user."""
-        LOG.info("Configuring populations...")
+        self.logger.info("Configuring populations...")
         self._configure_populations()
-        LOG.info("Configuring populations' connections within spiking region nodes...")
+        self.logger.info("Configuring populations' connections within spiking region nodes...")
         self._configure_populations_connections()
-        LOG.info("Configuring populations' connections among spiking region nodes...")
+        self.logger.info("Configuring populations' connections among spiking region nodes...")
         self._configure_nodes_connections()
-        LOG.info("Configuring output devices, if any...")
+        self.logger.info("Configuring output devices, if any...")
         self._configure_output_devices()
-        LOG.info("Configuring input devices, if any...")
+        self.logger.info("Configuring input devices, if any...")
         self._configure_input_devices()
 
     def build_spiking_region_nodes(self, *args, **kwargs):
         """Method to build all spiking populations with each brain region node."""
         # For every Spiking node
         for node_id, node_label in zip(self.spiking_nodes_inds, self.spiking_nodes_labels):
-            LOG.info("Generating spiking region node: %s..." % node_label)
+            self.logger.info("Generating spiking region node: %s..." % node_label)
             self._spiking_brain[node_label] = self.build_spiking_region_node(node_label)
             # ...and every population in it...
             for iP, population in enumerate(self._populations):
                 # ...if this population exists in this node...
                 if node_id in population["nodes"]:
-                    LOG.info("Generating population: %s..." % population["label"])
+                    self.logger.info("Generating population: %s..." % population["label"])
                     # ...generate this population in this node...
                     size = int(np.round(population["scale"](node_id) * self.population_order))
                     self._spiking_brain[node_label][population["label"]] = \
@@ -632,7 +662,7 @@ class SpikingNetworkBuilder(object):
         """Method to connect all populations withing each Spiking brain region node."""
         # For every different type of connections between distinct Spiking nodes' populations
         for i_conn, conn in enumerate(ensure_list(self._populations_connections)):
-            LOG.info("Connecting %s -> %s populations \nfor spiking region nodes\n%s..." %
+            self.logger.info("Connecting %s -> %s populations \nfor spiking region nodes\n%s..." %
                              (str(conn["source"]), str(conn["target"]), str(conn["nodes"])))
             # ...and for every brain region node where this connection will be created:
             for node_index in conn["nodes"]:
@@ -673,7 +703,7 @@ class SpikingNetworkBuilder(object):
                                                 conn["receptor_type"](source_index, target_index)
                                                 )
                     if source_index != target_index:
-                        LOG.info("Connecting for %s -> %s spiking region nodes ..." %
+                        self.logger.info("Connecting for %s -> %s spiking region nodes ..." %
                                          (str(source_index), str(target_index)))
                         # ...and as long as this is not a within node connection...
                         for conn_src in ensure_list(conn["source"]):
@@ -682,7 +712,7 @@ class SpikingNetworkBuilder(object):
                             for conn_trg in ensure_list(conn["target"]):
                                 # ...and target population...
                                 trg_pop = self._spiking_brain[i_target_node][conn_trg]
-                                LOG.info("%s -> %s populations ..." %
+                                self.logger.info("%s -> %s populations ..." %
                                                  (src_pop.label, trg_pop.label))
                                 self.connect_two_populations(src_pop, conn["source_neurons"],
                                                              trg_pop, conn["target_neurons"],
@@ -692,12 +722,12 @@ class SpikingNetworkBuilder(object):
         """Method to build and connect all Spiking brain region nodes,
            first withing, and then, among them.
         """
-        LOG.info("Generating spiking brain regions...")
+        self.logger.info("Generating spiking brain regions...")
         self.build_spiking_region_nodes()
-        LOG.info("Connecting populations within spiking brain regions...")
+        self.logger.info("Connecting populations within spiking brain regions...")
         self.connect_within_node_spiking_populations()
         # Connect Spiking nodes among each other
-        LOG.info("Connecting populations among spiking brain regions...")
+        self.logger.info("Connecting populations among spiking brain regions...")
         self.connect_spiking_region_nodes()
 
     def _build_and_connect_devices(self, devices, label):
@@ -707,7 +737,7 @@ class SpikingNetworkBuilder(object):
            - brain region nodes they target."""
         _devices = []
         for device in devices:
-            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
+            self.logger.info("Generating and connecting %s -> %s device set of model %s\n"
                      "for nodes %s..." % (str(list(device["connections"].keys())),
                                           str(list(device["connections"].values())),
                                           device["model"], str(device["nodes"])))
@@ -734,20 +764,20 @@ class SpikingNetworkBuilder(object):
     def build(self):
         """This method will run the whole workflow of building the spiking network, which will be returned."""
         # Configure all inputs/configurations for building
-        LOG.info("Configuring spiking network builder...")
+        self.logger.info("Configuring spiking network builder...")
         self._configure()
         # Build and connect the brain network
-        LOG.info("Generating spiking brain...")
+        self.logger.info("Generating spiking brain...")
         self.build_spiking_brain()
         # Build and connect possible Spiking output devices
         # !!Use it only for extra Spiking quantities
         # that do not correspond to TVB state variables or parameters
         # you wish to transmit from the Spiking simulator to TVB!!
-        LOG.info("Generating and connecting output devices, if any...")
+        self.logger.info("Generating and connecting output devices, if any...")
         self._output_devices = self.build_and_connect_output_devices()
         # Build and connect possible Spiking input devices
         # !!Use it only for stimuli, if any, not for transmitting data from TVB to the Spiking simulator!!
-        LOG.info("Generating and connecting input devices, if any...")
+        self.logger.info("Generating and connecting input devices, if any...")
         self._input_devices = self.build_and_connect_input_devices()
         return self.build_spiking_network()
 
