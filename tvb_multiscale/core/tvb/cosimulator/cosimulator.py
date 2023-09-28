@@ -124,7 +124,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     def __init__(self, **kwargs):
 
         # Attributes of TVB-multiscale CoSimulator:
-        self.model = WilsonCowan()
+        # self.model = WilsonCowan()
         self.output_interfaces = None
         self.input_interfaces = None
         self.out_proxy_inds = numpy.asarray(list(), dtype=int)
@@ -154,19 +154,19 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self._min_idelay = 1
         self.relative_output_time_steps = 0
 
-        # Attributes of tvb_library.tvb.simulator Simulator:
-        # Required attributes cannot be set to None!
-        # self.connectivity = None
-        # self.coupling = None
-        self.integrator = HeunDeterministic()
-        self.monitors = (TemporalAverage(),)
-        self.surface = None
-        self.stimulus = None
-        self.conduction_speed = 3.0
-        self.initial_conditions = None
-        self.simulation_length = 1000.0
-        self.backend = ReferenceBackend()
-        self.history = None  # type: SparseHistory
+        # # Attributes of tvb_library.tvb.simulator Simulator:
+        # # Required attributes cannot be set to None!
+        # # self.connectivity = None
+        # # self.coupling = None
+        # self.integrator = HeunDeterministic()
+        # self.monitors = (TemporalAverage(),)
+        # self.surface = None
+        # self.stimulus = None
+        # self.conduction_speed = 3.0
+        # self.initial_conditions = None
+        # self.simulation_length = 1000.0
+        # self.backend = ReferenceBackend()
+        # self.history = None  # type: SparseHistory
 
         super(CoSimulator, self).__init__(**kwargs)
 
