@@ -10,12 +10,11 @@ from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_f
 
 class NetpyneModule(object):
 
-    spikeGenerators = []
-
     __netpyne_version__ = __netpyne_version__
-    _readyToRun = False
 
     def __init__(self):
+        self._readyToRun = False
+        self.spikeGenerators = []
         self._autoCreatedPops = []
         self._spikeGeneratorPops = []
         self._spikeGeneratorsToRecord = []
@@ -81,14 +80,18 @@ class NetpyneModule(object):
 
     @property
     def minDelay(self):
-        return self.dt
-        # TODO: the factor above is not needed if implement stimulation without NetCon
+        return self.dt + 1e-9 # must be strictly greater than dt to be used with parallel context
 
     @property
     def time(self):
         return h.t
 
     def createNetwork(self):
+
+        # clean up any data that might remain from previous simulations
+        if hasattr(sim, 'net'):
+            sim.clearAll()
+
         sim.initialize(self.netParams, self.simConfig)
         self._netParams = None
         self._simConfig = None
@@ -337,13 +340,7 @@ class NetpyneModule(object):
             return additionalData
 
         if gatherSimData:
-            orig = sim.cfg.gatherOnlySimData
-            sim.cfg.gatherOnlySimData = True
-            sim.gatherData(gatherLFP=False, gatherDipole=False)
-            sim.cfg.gatherOnlySimData = orig
-
-            # TODO: use more optimal gathering once method gets refactored in netpyne:
-            # sim.gatherData(gatherLFP=False, gatherDipole=False, gatherOnlySimData=True, simDataKeysToGather=['spkt', 'spkid'], analyze=False)
+            sim.gatherData(gatherLFP=False, gatherDipole=False, gatherOnlySimData=True, includeSimDataEntries=['spkt', 'spkid'], analyze=False)
 
         if additionalData:
             dataVec = h.Vector(additionalData)
