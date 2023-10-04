@@ -17,6 +17,10 @@ class RaySenderInterface(HasTraits):
 
     sending_ref_obj = None
 
+    def __init__(self, **kwargs):
+        self.sending_ref_obj = None
+        super(RaySenderInterface, self).__init__(**kwargs)
+
     def _send_data_block(self):
         ray.get(self.sending_ref_obj)
         self.sending_ref_obj = None
@@ -36,6 +40,10 @@ class RaySenderInterface(HasTraits):
 class RayReceiverInterface(HasTraits):
 
     receiving_ref_obj = None
+
+    def __init__(self, **kwargs):
+        self.receiving_ref_obj = None
+        super(RayReceiverInterface, self).__init__(**kwargs)
 
     def _receive_data_block(self):
         data = ray.get(self.receiving_ref_obj)
@@ -198,6 +206,12 @@ class RayTVBtoSpikeNetInterface(TVBtoSpikeNetInterface, RaySenderInterface):
         required=True
     )
 
+    def __init__(self, **kwargs):
+        self.transformer_ref_obj = None
+        self.ray_transformer_flag = False
+        self._data = None
+        super(RayTVBtoSpikeNetInterface, self).__init__(**kwargs)
+
     def configure(self):
         self.transformer_ref_obj = None
         self.sending_ref_obj = None
@@ -274,6 +288,11 @@ class RaySpikeNetToTVBInterface(SpikeNetToTVBInterface, RayReceiverInterface):
         required=True
     )
 
+    def __init__(self, **kwargs):
+        self.transformer_ref_obj = None
+        self.ray_transformer_flag = False
+        super(RaySpikeNetToTVBInterface, self).__init__(**kwargs)
+
     def configure(self):
         self.transformer_ref_obj = None
         self.receive_ref_obj = None
@@ -345,7 +364,11 @@ class RayTVBOutputInterfaces(TVBOutputInterfaces):
     """TVBOutputInterfaces class holds a list of TVB interfaces to transformer/cosimulator
        and sends data to them."""
 
-    running_tasks_refs = []
+    running_tasks_refs = list()
+
+    def __init__(self, **kwargs):
+        self.running_tasks_refs = list()
+        super(RayTVBOutputInterfaces, self).__init__(**kwargs)
 
     @property
     def is_running(self):
@@ -382,9 +405,15 @@ class RayTVBInputInterfaces(TVBInputInterfaces):
     """TVBInputInterfaces class holds a list of TVB interfaces from transformer/cosimulator
        and receives data from them."""
 
-    running_tasks_refs = []
-    cosim_updates = np.array([])
-    all_time_steps = []
+    running_tasks_refs = list()
+    cosim_updates = np.array(list())
+    all_time_steps = list()
+
+    def __init__(self, **kwargs):
+        self.running_tasks_refs = list()
+        self.cosim_updates = np.array(list())
+        self.all_time_steps = list()
+        super(RayTVBInputInterfaces, self).__init__(**kwargs)
 
     @property
     def is_running(self):

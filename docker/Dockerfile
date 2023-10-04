@@ -196,7 +196,7 @@ RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-f
 # Checkout specific branch of tvb-multiscale
 WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
-    git checkout ray; \
+    git checkout dev; \
     git pull --allow-unrelated-histories;
 
 # Compile tvb-netpyne .mod files

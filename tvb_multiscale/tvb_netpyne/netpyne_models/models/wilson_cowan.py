@@ -1,12 +1,16 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 
+from tvb_multiscale.tvb_netpyne.config import CONFIGURED
 from tvb_multiscale.tvb_netpyne.netpyne_models.models.default_exc_io_inh_i import DefaultExcIOInhIBuilder
 
 
 class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
         super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
     def set_defaults(self, **kwargs):
@@ -24,4 +28,3 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
         else:
             weight = default
         return weight
-

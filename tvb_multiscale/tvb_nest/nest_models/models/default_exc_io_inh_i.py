@@ -4,18 +4,23 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
+from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
-    random_uniform_delay, tvb_delay, random_uniform_tvb_delay, receptor_by_source_region
+from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region  # \
+    # random_normal_weight, tvb_weight, random_normal_tvb_weight, \
+    # random_uniform_delay, tvb_delay, random_uniform_tvb_delay,
+
+# TODO: Fix errors for random parameters with NEST 3.5!!!
 
 
 class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
 
-    output_devices_record_to = "ascii"
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                      spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -32,19 +37,19 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
         self.d_ie = self.within_node_delay()
         self.d_ii = self.within_node_delay()
 
-        self.params_E = {}
-        self.params_I = {}
-        self.pop_conns_EE = {}
-        self.pop_conns_EI = {}
-        self.pop_conns_IE = {}
-        self.pop_conns_II = {}
+        self.params_E = dict()
+        self.params_I = dict()
+        self.pop_conns_EE = dict()
+        self.pop_conns_EI = dict()
+        self.pop_conns_IE = dict()
+        self.pop_conns_II = dict()
 
-        self.nodes_conns = {}
+        self.nodes_conns = dict()
 
-        self.spike_recorder = {}
-        self.multimeter = {}
+        self.spike_recorder = dict()
+        self.multimeter = dict()
 
-        self.spike_stimulus = {}
+        self.spike_stimulus = dict()
 
     def _params_E(self, node_index):
         return self.params_E
@@ -70,14 +75,16 @@ class DefaultExcIOInhIBuilder(NESTNetworkBuilder):
     # By default we choose random jitter on weights and delays
 
     def weight_fun(self, w, scale=1.0, sigma=0.1):
-        return random_normal_weight(w, scale, sigma)
+        # return random_normal_weight(w, scale, sigma)
+        return w
 
     def delay_fun(self, low=None, high=None):
-        if low is None:
-            low = self.default_min_delay
-        if high is None:
-            high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
-        return random_uniform_delay(low, low, high, sigma=None)
+        # if low is None:
+        #     low = self.default_min_delay
+        # if high is None:
+        #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
+        # return random_uniform_delay(low, low, high, sigma=None)
+        return self.default_min_delay
 
     def within_node_delay(self):
         return self.delay_fun()
@@ -233,11 +240,13 @@ class DefaultExcIOInhIMultisynapseBuilder(DefaultExcIOInhIBuilder):
 
     model = "aeif_cond_alpha_multisynapse"
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(), spiking_simulator=None,
+                 config=CONFIGURED, logger=None):
 
-        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                                  config, logger)
+        super(DefaultExcIOInhIMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                                  spiking_simulator, config, logger)
+
+        self.model = "aeif_cond_alpha_multisynapse"
 
         self.w_ie = 1.0
         self.w_ii = 1.0

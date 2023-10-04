@@ -8,6 +8,7 @@ import numpy as np
 from tvb.basic.neotraits.api import Float, NArray, Attr
 
 from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.config import Config, CONFIGURED
 
 
 class Transformer(HasTraits):
@@ -21,9 +22,26 @@ class Transformer(HasTraits):
               upon the input buffer data for the output buffer data to result.
     """
 
-    input_buffer = []
+    config = Attr(
+        label="Configuration",
+        field_type=Config,
+        doc="""Configuration class instance.""",
+        required=True,
+        default=CONFIGURED
+    )
 
-    output_buffer = []
+    input_buffer = Attr(
+        field_type=np.ndarray,
+        doc="""Array storing temporarily data to be transformed.""",
+        default=np.array(list())
+    )
+
+    output_buffer = NArray(
+        label="Output buffer",
+        doc="""Array to store temporarily the output transformed data.""",
+        required=True,
+        default=np.array(list())
+    )
 
     dt = Float(label="Time step",
                doc="Time step of simulation",
@@ -35,7 +53,7 @@ class Transformer(HasTraits):
         label="Input time vector",
         doc="""Buffer of time (float) or time steps (integer) corresponding to the input buffer.""",
         required=True,
-        default=np.array([]).astype("i")
+        default=np.array(list()).astype("i")
     )
 
     output_time = NArray(
@@ -43,7 +61,7 @@ class Transformer(HasTraits):
         label="Output time vector",
         doc="""Buffer of time (float) or time steps (integer) corresponding to the output bufer.""",
         required=True,
-        default=np.array([]).astype("i")
+        default=np.array(list()).astype("i")
     )
 
     time_shift = Float(
@@ -194,19 +212,6 @@ class RatesToSpikes(LinearRate):
         RatesToSpikes Transformer abstract base class
     """
 
-    input_buffer = NArray(
-        label="Input buffer",
-        doc="""Array to store temporarily the data to be transformed.""",
-        required=True,
-        default=np.array([])
-    )
-
-    output_buffer = Attr(
-        field_type=np.ndarray,
-        doc="""Array of spiketrains storing temporarily the generated spikes.""",
-        default=np.array([])
-    )
-
     number_of_neurons = NArray(
         dtype="i",
         label="Number of neurons",
@@ -248,19 +253,6 @@ class SpikesToRates(LinearRate):
     """
         RateToSpikes Transformer abstract base class
     """
-
-    input_buffer = Attr(
-        field_type=np.ndarray,
-        doc="""Array of spiketrains (lists) storing temporarily the spikes to be transformed into rates.""",
-        default=np.array([])
-    )
-
-    output_buffer = NArray(
-        label="Output buffer",
-        doc="""Array to store temporarily the output rate data.""",
-        required=True,
-        default=np.array([])
-    )
 
     @property
     def _t_start(self):

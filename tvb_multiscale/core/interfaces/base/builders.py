@@ -69,6 +69,18 @@ class InterfaceBuilder(HasTraits, ABC):
     _output_interfaces = None
     _input_interfaces = None
 
+    def __init__(self, **kwargs):
+        self.config = kwargs.get("config", CONFIGURED)
+        if not isinstance(kwargs.get("logger", None), Logger):
+            self.logger = initialize_logger(config=self.config)
+        self.proxy_inds = np.array(list(), dtype=int)
+        self.output_interfaces = list()
+        self.input_interfaces = list()
+        self.default_coupling_mode = "spikeNet"
+        self._output_interfaces = None
+        self._input_interfaces = None
+        super(InterfaceBuilder, self).__init__(**kwargs)
+
     def _loop_to_get_from_interface_configs(self, interfaces, attr, default=None):
         output = []
         for interface in interfaces:

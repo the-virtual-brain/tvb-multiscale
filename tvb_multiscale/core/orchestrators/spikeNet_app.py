@@ -43,6 +43,13 @@ class SpikeNetApp(NonTVBApp):
 
     _attrs_to_info = ["spiking_cosimulator"]
 
+    def __init__(self, **kwargs):
+        self.spiking_cosimulator = None
+        self.spiking_network = None
+        self.spikeNet_builder = None
+        self.spikeNet_builder_function = None
+        super(SpikeNetApp, self).__init__(**kwargs)
+
     def start(self):
         super(SpikeNetApp, self).start()
 
@@ -50,7 +57,9 @@ class SpikeNetApp(NonTVBApp):
     def _spiking_cosimulator(self):
         try:
             assert self.spiking_cosimulator is not None
-        except:
+        except Exception as e:
+            self.logger.warn(e)
+            self._logprint("Starting spiking simulator module!")
             self.start()
         return self.spiking_cosimulator
 
@@ -120,9 +129,12 @@ class SpikeNetApp(NonTVBApp):
                                                   time, transient, monitor_period,
                                                   plot_per_neuron, plotter, writer, self.config)
 
-    def reset(self):
-        super(SpikeNetApp, self).reset()
+    def _destroy(self):
+        self.spikeNet_builder = None
         self.spiking_network = None
+        del self.spiking_cosimulator
+        self.spiking_cosimulator = None
+        super(SpikeNetApp, self)._destroy()
 
 
 class SpikeNetSerialApp(SpikeNetApp):
@@ -150,6 +162,10 @@ class SpikeNetParallelApp(SpikeNetApp):
     )
 
     _default_interface_builder_type = SpikeNetInterfaceBuilder
+
+    def __init__(self, **kwargs):
+        self.synchronization_time = 0.0
+        super(SpikeNetParallelApp, self).__init__(**kwargs)
 
     def configure_interfaces_builder(self):
         # Get default options from the App and the TVB CoSimulator:

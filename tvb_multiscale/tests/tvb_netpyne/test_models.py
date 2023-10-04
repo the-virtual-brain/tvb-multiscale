@@ -22,10 +22,10 @@ class TestDefault(TestSpikeNetModel):
                         plot_write=self.plot_write)
 
 
-# class TestDefaultRATE(TestDefault):
-#     def test(self):
-#         self.tvb_to_spikeNet_mode = "RATE"
-#         self.run()
+class TestDefaultRATE(TestDefault):
+    def test(self):
+        self.tvb_to_spikeNet_mode = "RATE"
+        self.run()
 
 
 # class TestDefaultSPIKES(TestDefault):
@@ -43,10 +43,12 @@ class TestWilsonCowan(TestSpikeNetModel):
                              simulation_length=self.simulation_length, transient=self.transient,
                              plot_write=self.plot_write)
 
+
 class TestWilsonCowanRATE(TestWilsonCowan):
     def test(self):
         self.tvb_to_spikeNet_mode = "RATE"
         self.run()
+
 
 # class TestWilsonCowanSPIKES(TestWilsonCowan):
 #     def test(self):
@@ -70,6 +72,7 @@ class TestRedWongWangRATE(TestRedWongWang):
 
 
 models_to_test_netpyne = [
+    TestDefaultRATE,
     # TestDefaultSPIKES, # Not implemented yet
     TestWilsonCowanRATE,
     # TestWilsonCowanSPIKES, # Not implemented yet
@@ -77,6 +80,15 @@ models_to_test_netpyne = [
 ]
 
 
-if __name__ == '__main__':
-    print("running tests")
-    test_models(models_to_test_netpyne)
+if __name__ == "__main__":
+    import sys
+
+    iM = -1
+    if len(sys.argv) > 1:
+        iM = int(sys.argv[1])
+
+    if iM >= 0:
+        print("\n\nTesting model %d" % iM)
+        test_models(models_to_test_netpyne, iM=iM)
+    else:
+        test_models(models_to_test_netpyne, iM=-1)
