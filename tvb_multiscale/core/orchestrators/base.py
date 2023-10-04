@@ -20,7 +20,7 @@ class App(HasTraits):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -28,9 +28,14 @@ class App(HasTraits):
         label="Logger",
         field_type=Logger,
         doc="""logging.Logger instance.""",
-        required=True,
+        required=False,
         default=None
     )
+
+    def __init__(self, **kwargs):
+        self.config = None
+        self.logger = None
+        super(App, self).__init__(**kwargs)
 
     default_tvb_serial_cosim_path = Attr(
         label="TVB serialized CoSimulator path",
@@ -64,6 +69,7 @@ class App(HasTraits):
                         os.path.join(self.config.FOLDER_CONFIG, "tvb_serial_cosimulator.pkl"))
 
     def configure(self):
+        assert isinstance(self.config, Config)
         try:
             self.logger
         except:
@@ -108,7 +114,8 @@ class App(HasTraits):
         self._logprint("Cleaning up %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
     def _destroy(self):
-        pass
+        self.logger = None
+        self.config = None
 
     def reset(self):
         self._logprint("Resetting %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
@@ -146,6 +153,7 @@ class AppWithInterfaces(App):
 
     def __init__(self, **kwargs):
         self._interfaces_built = False
+        self.interfaces_builder = None
         super(AppWithInterfaces, self).__init__(**kwargs)
 
     def configure_interfaces_builder(self):
@@ -219,6 +227,10 @@ class NonTVBApp(CoSimulatorApp):
         doc="""Dictionary of TVB (Co)Simulator serialization.""",
         required=False
     )
+
+    def __init__(self, **kwargs):
+        self.tvb_cosimulator_serialized = None
+        super(NonTVBApp, self).__init__(**kwargs)
 
     def load_serialized_tvb_cosimulator(self, filepath=None):
         if not filepath:
@@ -317,9 +329,3 @@ class Orchestrator(App):
         self.configure()
         self.build()
         self.simulate()
-
-    def reset(self):
-        self._logprint("Resetting %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
-
-    def stop(self):
-        self._logprint("Stopping %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))

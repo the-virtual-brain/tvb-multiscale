@@ -27,6 +27,13 @@ class SerialOrchestrator(Orchestrator):
         default=None
     )
 
+    def __init__(self, **kwargs):
+        super(SerialOrchestrator, self).__init__(**kwargs)
+        assert isinstance(self.tvb_app, TVBSerialApp)
+        assert isinstance(self.spikeNet_app, SpikeNetSerialApp)
+        self.tvb_app.setup_from_another_app(self)
+        self.spikeNet_app.setup_from_another_app(self)
+
     @property
     def tvb_cosimulator(self):
         return self.tvb_app._cosimulator
@@ -41,8 +48,6 @@ class SerialOrchestrator(Orchestrator):
 
     def configure(self):
         super(SerialOrchestrator, self).configure()
-        assert isinstance(self.tvb_app, TVBSerialApp)
-        assert isinstance(self.spikeNet_app, SpikeNetSerialApp)
         self.tvb_app.setup_from_another_app(self)
         self.tvb_app.configure()
         self.spikeNet_app.setup_from_another_app(self)
@@ -113,12 +118,12 @@ class SerialOrchestrator(Orchestrator):
     def _destroy(self):
         self.spikeNet_app = None
         self.tvb_app = None
+        super(SerialOrchestrator, self)._destroy()
 
     def stop(self):
-        super(SerialOrchestrator, self).stop()
         self.tvb_app.stop()
         self.spikeNet_app.stop()
-        self._destroy()
+        super(SerialOrchestrator, self).stop()
 
     def clean_up(self):
         super(SerialOrchestrator, self).clean_up()
@@ -126,7 +131,6 @@ class SerialOrchestrator(Orchestrator):
         self.spikeNet_app.clean_up()
 
     def reset(self):
-        super(SerialOrchestrator, self).reset()
         self.tvb_app.reset()
         self.spikeNet_app.reset()
-        self._destroy()
+        super(SerialOrchestrator, self).reset()

@@ -23,7 +23,7 @@ class NESTApp(HasTraits):
         label="Configuration",
         field_type=Config,
         doc="""Config class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -193,7 +193,7 @@ class TVBSerialApp(TVBSerialAppBase):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -239,3 +239,8 @@ class TVBNESTSerialOrchestrator(SerialOrchestrator):
         required=False,
         default=NESTSerialApp()
     )
+
+    def __init__(self, **kwargs):
+        self.tvb_app = TVBSerialApp()
+        self. spikeNet_app = NESTSerialApp()
+        super(TVBNESTSerialOrchestrator, self).__init__(**kwargs)

@@ -59,6 +59,9 @@ class TVBApp(CoSimulatorApp):
 
     def __init__(self, **kwargs):
         self._results = None
+        self.cosimulator = None
+        self.cosimulator_builder = None
+        self.cosimulator_builder_function = None
         super(TVBApp, self).__init__(**kwargs)
 
     def start(self):
@@ -228,6 +231,7 @@ class TVBApp(CoSimulatorApp):
         self._results = None
         self.cosimulator = None
         self.cosimulator_builder = None
+        self.cosimulator_builder_function = None
         super(TVBApp, self)._destroy()
 
 
@@ -265,6 +269,10 @@ class TVBSerialApp(TVBApp):
 
     _cosimulator_builder_type = CoSimulatorSerialBuilder
     _default_interface_builder_type = TVBSpikeNetInterfaceBuilder
+
+    def __init__(self, **kwargs):
+        self.spiking_network = None
+        super(TVBSerialApp, self).__init__(**kwargs)
 
     def configure_interfaces_builder(self):
         self._interfaces_builder.spiking_network = self.spiking_network
