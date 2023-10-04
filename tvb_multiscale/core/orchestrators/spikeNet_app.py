@@ -50,7 +50,9 @@ class SpikeNetApp(NonTVBApp):
     def _spiking_cosimulator(self):
         try:
             assert self.spiking_cosimulator is not None
-        except:
+        except Exception as e:
+            self.logger.warn(e)
+            self._logprint("Starting spiking simulator module!")
             self.start()
         return self.spiking_cosimulator
 
