@@ -5,18 +5,16 @@ from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_
 
 
 class Config(ConfigBase):
-    
-    DEFAULT_SPIKING_MODEL = "default_model_placeholder"  # TODO: what's the default model?
 
-    NETPYNE_INPUT_DEVICES_PARAMS_DEF = {
-        "poisson_generator": {
-            "record_generated_spikes": False,
-        },
-    }
-    NETPYNE_OUTPUT_DEVICES_PARAMS_DEF = {
-        "spike_recorder": {},
-        "multimeter": {},
-    }
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base=output_base, separate_by_run=separate_by_run,
+                                     initialize_logger=initialize_logger, verbosity=verbosity)
+
+        self.DEFAULT_SPIKING_MODEL = "default_model_placeholder"  # TODO: what's the default model?
+
+        self.NETPYNE_INPUT_DEVICES_PARAMS_DEF = {"poisson_generator": {"record_generated_spikes": False}}
+
+        self.NETPYNE_OUTPUT_DEVICES_PARAMS_DEF = {"spike_recorder": {}, "multimeter": {} }
 
     # Delays should be at least equal to NetPyNE time resolution
     # TODO: synapse_model_placeholder? and what weight should go here?

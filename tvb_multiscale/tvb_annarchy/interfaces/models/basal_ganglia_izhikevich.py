@@ -16,8 +16,6 @@ class BasalGangliaIzhikevichANNarchyProxyNodesBuilder(ANNarchyProxyNodesBuilder,
                                                       BasalGangliaIzhikevichSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
-    __default_receptor_type = "ampa"
-
     def _default_receptor_type(self, source_node, target_node):
         if self.model == TVBtoANNarchyModels.CURRENT.name:
             return "exc"

@@ -18,6 +18,9 @@ from tvb.datatypes.connectivity import Connectivity
 from examples.plot_write_results import plot_write_results
 
 
+PRINT_SUMMARY = True
+
+
 def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_tvb, config=None):
     if config is None:
         if tvb_to_spikeNet_mode is not None:
@@ -109,7 +112,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
-    print_summary = True
+    print_summary = PRINT_SUMMARY
 
     # only applicable for NetPyNE parallel simulation with MPI: skip printing and plotting the results unless being on root MPI node:
     if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
@@ -150,6 +153,8 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
 
     orchestrator.clean_up()
     orchestrator.stop()
+
+    del orchestrator
 
     return results, simulator
 

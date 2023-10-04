@@ -68,9 +68,8 @@ class NESTRayApp(NESTApp, SpikeNetRayApp):
         self.spiking_cosimulator.Cleanup()
 
     def reset(self):
-        SpikeNetRayApp.reset(self)
         NESTApp.reset(self)
-        self.spiking_cosimulator = None
+        SpikeNetRayApp.reset(self)
 
     def stop(self):
         NESTApp.stop(self)

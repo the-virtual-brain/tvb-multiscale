@@ -22,7 +22,7 @@ class NetpyneApp(HasTraits):
         label="Configuration",
         field_type=Config,
         doc="""Config class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -95,12 +95,11 @@ class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
 
-
     config = Attr(
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -127,7 +126,7 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -135,7 +134,7 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         label="Logger",
         field_type=Logger,
         doc="""logging.Logger instance.""",
-        required=True,
+        required=False,
         default=initialize_logger(__name__, config=CONFIGURED)
     )
 
@@ -143,7 +142,7 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         label="TVBSerial app",
         field_type=TVBSerialApp,
         doc="""Application for running TVB serially.""",
-        required=True,
+        required=False,
         default=TVBSerialApp()
     )
 
@@ -155,6 +154,11 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         default=NetpyneSerialApp()
     )
 
+    def __init__(self, **kwargs):
+        self.tvb_app = TVBSerialApp()
+        self. spikeNet_app = NetpyneSerialApp()
+        super(TVBNetpyneSerialOrchestrator, self).__init__(**kwargs)
+
     def link_spikeNet_to_TVB_cosimulator(self):
         super(TVBNetpyneSerialOrchestrator, self).link_spikeNet_to_TVB_cosimulator()
         # for parallel spiking simulation
@@ -165,5 +169,4 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
         self.tvb_app.interfaces_builder.synaptic_model_funcs = \
             self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
-
         super(TVBNetpyneSerialOrchestrator, self).build()

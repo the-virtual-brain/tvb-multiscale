@@ -16,39 +16,47 @@ MYMODELS_DIR = os.environ.get("MYMODELS_DIR",
 
 
 class Config(ConfigBase):
-    # WORKING DIRECTORY:
-    TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
-    WORKING_DIR = WORKING_DIR
-    MYMODELS_DIR = MYMODELS_DIR
 
-    ANNARCHY_SEED = 0
+    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
+        super(Config, self).__init__(output_base=output_base, separate_by_run=separate_by_run,
+                                     initialize_logger=initialize_logger, verbosity=verbosity)
 
-    VERBOSE = False
+        # WORKING DIRECTORY:
+        self.TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
+        self.WORKING_DIR = WORKING_DIR
+        self.MYMODELS_DIR = MYMODELS_DIR
+        self.MYMODELS_IMPORT_PATH = self.MYMODELS_DIR.split("tvb-multiscale")[-1].replace("/", ".")
 
-    DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
+        self.ANNARCHY_SEED = 0
 
-    # Delays should be at least equal to ANNarchy time resolution
-    DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
+        self.VERBOSE = False
 
-    DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
-    DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
+        self.DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
 
-    # Available ANNARCHY output devices for the interface and their default properties
-    ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"variables": "spike"},
-                                          "spike_multimeter": {"variables": "spike", "period": 1.0},
-                                          "Monitor": {"variables": ["v", 'g_exc', 'g_inh'], "period": 1.0}}
+        # Delays should be at least equal to ANNarchy time resolution
+        self.DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
 
-    ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": [[0.1]]},
-                                         "PoissonPopulation": {"rates": 0.0},
-                                         "Poisson_neuron": {"rates": 0.0},
-                                         "HomogeneousCorrelatedSpikeTrains": {"rates": [0.001], "corr": 0.0, "tau": 1.0,
-                                                                              "schedule": [0.0], "period": -1.0,
-                                                                              "refractory": None},
-                                         "TimedArray": {"rates": np.array([[0.0]]), "schedule": [0.0], "period": -1.0,
-                                                        "proxy": True, "proxy_target": "exc"},
-                                         "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
-                                                                    "schedule": [0.0], "period": -1.0},
-                                         }
+        self.DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
+        self.DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
+
+        # Available ANNARCHY output devices for the interface and their default properties
+        self.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF = {"SpikeMonitor": {"variables": "spike"},
+                                                   "spike_multimeter": {"variables": "spike", "period": 1.0},
+                                                   "Monitor": {"variables": ["v", 'g_exc', 'g_inh'], "period": 1.0}}
+
+        self.ANNARCHY_INPUT_DEVICES_PARAMS_DEF = {"SpikeSourceArray": {"spike_times": [[0.1]]},
+                                                  "PoissonPopulation": {"rates": 0.0},
+                                                  "Poisson_neuron": {"rates": 0.0},
+                                                  "HomogeneousCorrelatedSpikeTrains":
+                                                      {"rates": [0.001], "corr": 0.0, "tau": 1.0,
+                                                       "schedule": [0.0], "period": -1.0,
+                                                       "refractory": None},
+                                                  "TimedArray": {"rates": np.array([[0.0]]),
+                                                                 "schedule": [0.0], "period": -1.0,
+                                                                 "proxy": True, "proxy_target": "exc"},
+                                                  "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
+                                                                             "schedule": [0.0], "period": -1.0},
+                                                 }
 
     @property
     def DEFAULT_CONNECTION(self):
@@ -57,13 +65,6 @@ class Config(ConfigBase):
                 "source_inds": None, "target_inds": None,
                 "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
                 "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
-
-    def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
-        super(Config, self).__init__(output_base, separate_by_run, initialize_logger, verbosity)
-        self.TVB_ANNARCHY_DIR = TVB_ANNARCHY_DIR
-        self.WORKING_DIR = WORKING_DIR
-        self.MYMODELS_DIR = MYMODELS_DIR
-        self.MYMODELS_IMPORT_PATH = self.MYMODELS_DIR.split("tvb-multiscale")[-1].replace("/", ".")
 
 
 CONFIGURED = Config(initialize_logger=False)
