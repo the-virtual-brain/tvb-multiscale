@@ -317,3 +317,9 @@ class Orchestrator(App):
         self.configure()
         self.build()
         self.simulate()
+
+    def reset(self):
+        self._logprint("Resetting %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
+
+    def stop(self):
+        self._logprint("Stopping %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
