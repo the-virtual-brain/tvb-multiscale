@@ -56,7 +56,7 @@ class SerialOrchestrator(Orchestrator):
 
     def build_cosimulators(self):
         if self.verbosity:
-            self.logger.info("Building cosimulators with %s..." % self.__class__.__name__)
+            self._logprint("Building cosimulators with %s..." % self.__class__.__name__)
         self.tvb_app.build_tvb_simulator()
         self.spikeNet_app.tvb_cosimulator_serialized = self.tvb_app.serialize_tvb_cosimulator()
         self.spikeNet_app.build_spiking_network()
