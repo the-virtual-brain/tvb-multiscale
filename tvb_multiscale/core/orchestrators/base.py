@@ -46,7 +46,7 @@ class App(HasTraits):
     def _logprint(self, msg):
         msg = "\n" + msg
         try:
-            self.logger(msg)
+            self.logger.info(msg)
         except:
             pass
         if self.verbosity:
