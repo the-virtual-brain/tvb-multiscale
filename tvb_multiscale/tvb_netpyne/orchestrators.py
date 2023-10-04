@@ -95,12 +95,11 @@ class TVBSerialApp(TVBSerialAppBase):
 
     """TVBSerialApp class"""
 
-
     config = Attr(
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
