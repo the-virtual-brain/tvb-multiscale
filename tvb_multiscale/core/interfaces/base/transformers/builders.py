@@ -109,6 +109,7 @@ class TransformerBuilder(HasTraits):
         interface["transformer"] = model
 
     def build_transformer(self, model, **kwargs):
+        kwargs["config"] = self.config
         return model(**kwargs)
 
     def set_transformer_parameters(self, transformer, params):

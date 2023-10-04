@@ -47,7 +47,9 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator_parallel import CoSimulator
 
 class CoSimulatorSerialRay(CoSimulatorSerial):
 
-    spiking_simulator = None
+    def __init__(self, **kwargs):
+        self.spiking_simulator = None
+        super(CoSimulatorSerialRay, self).__init__(**kwargs)
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         if self.spiking_simulator is not None:
@@ -65,7 +67,9 @@ class CoSimulatorSerialRay(CoSimulatorSerial):
 
 class CoSimulatorParallelRay(CoSimulatorParallel):
 
-    spiking_simulator = None
+    def __init__(self, **kwargs):
+        self.spiking_simulator = None
+        super(CoSimulatorParallelRay, self).__init__(**kwargs)
 
     def send_cosim_coupling(self, cosimulation=True, outputs=[], block=False):
         if len(outputs) == 0:

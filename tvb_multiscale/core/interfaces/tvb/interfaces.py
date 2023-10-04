@@ -36,7 +36,7 @@ class TVBInterface(BaseInterface):
         doc="""Indices of model's variables of interest (VOI)""",
         required=True)
 
-    voi_loc = np.array([])
+    voi_loc = np.array(list())
 
     voi_labels = NArray(
         dtype='U128',
@@ -133,7 +133,7 @@ class TVBInputInterface(TVBInterface):
 
     """TVBInputInterface base class for interfaces receiving data for TVB from a transformer or cosimulator"""
 
-    proxy_inds_loc = np.array([])
+    proxy_inds_loc = np.array(list())
 
     @property
     def label(self):

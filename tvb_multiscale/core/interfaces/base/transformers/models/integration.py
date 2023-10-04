@@ -44,6 +44,13 @@ class Integration(Transformer):
                 methods. It is used to compute the time courses of the model state
                 variables.""")
 
+    def __init__(self, **kwargs):
+        from tvb.simulator.integrators import Integrator, IntegratorStochastic
+        self.config = kwargs.get("config", CONFIGURED)
+        self.dt = self.config.DEFAULT_DT
+        self.integrator = self.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self.dt)
+        super(Integration, self).__init__(**kwargs)
+
     @property
     def _state(self):
         return self._assert_size("state", dim=1)

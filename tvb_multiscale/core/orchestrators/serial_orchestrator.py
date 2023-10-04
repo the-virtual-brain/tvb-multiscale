@@ -27,6 +27,13 @@ class SerialOrchestrator(Orchestrator):
         default=None
     )
 
+    def __init__(self, **kwargs):
+        super(SerialOrchestrator, self).__init__(**kwargs)
+        assert isinstance(self.tvb_app, TVBSerialApp)
+        assert isinstance(self.spikeNet_app, SpikeNetSerialApp)
+        self.tvb_app.setup_from_another_app(self)
+        self.spikeNet_app.setup_from_another_app(self)
+
     @property
     def tvb_cosimulator(self):
         return self.tvb_app._cosimulator
@@ -56,7 +63,7 @@ class SerialOrchestrator(Orchestrator):
 
     def build_cosimulators(self):
         if self.verbosity:
-            self.logger.info("Building cosimulators with %s..." % self.__class__.__name__)
+            self._logprint("Building cosimulators with %s..." % self.__class__.__name__)
         self.tvb_app.build_tvb_simulator()
         self.spikeNet_app.tvb_cosimulator_serialized = self.tvb_app.serialize_tvb_cosimulator()
         self.spikeNet_app.build_spiking_network()
@@ -108,10 +115,15 @@ class SerialOrchestrator(Orchestrator):
                                   tvb_state_variable_type_label, tvb_state_variables_labels,
                                   plot_per_neuron, plotter, config=self.config)
 
+    def _destroy(self):
+        self.spikeNet_app = None
+        self.tvb_app = None
+        super(SerialOrchestrator, self)._destroy()
+
     def stop(self):
-        super(SerialOrchestrator, self).stop()
         self.tvb_app.stop()
         self.spikeNet_app.stop()
+        super(SerialOrchestrator, self).stop()
 
     def clean_up(self):
         super(SerialOrchestrator, self).clean_up()
@@ -119,6 +131,6 @@ class SerialOrchestrator(Orchestrator):
         self.spikeNet_app.clean_up()
 
     def reset(self):
-        super(SerialOrchestrator, self).reset()
         self.tvb_app.reset()
         self.spikeNet_app.reset()
+        super(SerialOrchestrator, self).reset()

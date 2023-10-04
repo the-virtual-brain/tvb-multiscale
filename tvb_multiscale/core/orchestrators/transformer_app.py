@@ -39,6 +39,11 @@ class TransformerApp(NonTVBApp):
 
     _default_interface_builder_type = TransformerInterfaceBuilder
 
+    def __init__(self, **kwargs):
+        self.tvb_to_spikeNet_interfaces = None
+        self. spikeNet_to_tvb_interfaces = None
+        super(TransformerApp, self).__init__(**kwargs)
+
     def build_interfaces(self):
         if not self._interfaces_built:
             super(TransformerApp, self).build_interfaces()
@@ -56,6 +61,11 @@ class TransformerApp(NonTVBApp):
     def run_for_synchronization_time(self, tvb_to_spikeNet_cosim_updates, spikeNet_to_tvb_cosim_updates):
         return self.tvb_to_spikeNet_interfaces(tvb_to_spikeNet_cosim_updates), \
                self.spikeNet_to_tvb_interfaces(spikeNet_to_tvb_cosim_updates)
+
+    def _destroy(self):
+        self.tvb_to_spikeNet_interfaces = None
+        self.spikeNet_to_tvb_interfaces = None
+        super(TransformerApp, self)._destroy()
 
 
 class TVBtoSpikeNetTransformerApp(NonTVBApp):

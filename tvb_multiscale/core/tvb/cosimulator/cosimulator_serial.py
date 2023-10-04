@@ -47,7 +47,9 @@ from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 class CoSimulatorSerial(CoSimulator):
 
-    simulate_spiking_simulator = None
+    def __init__(self, **kwargs):
+        self.simulate_spiking_simulator = None
+        super(CoSimulatorSerial, self).__init__(**kwargs)
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosimulation=True, **kwds):
         self.n_tvb_steps_ran_since_last_synch = \

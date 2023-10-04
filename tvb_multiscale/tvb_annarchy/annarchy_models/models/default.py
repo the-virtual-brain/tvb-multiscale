@@ -5,15 +5,17 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
-
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
+
+from tvb_multiscale.tvb_annarchy.config import CONFIGURED
+from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 
 
 class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
         super(DefaultExcIOBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
@@ -29,13 +31,13 @@ class DefaultExcIOBuilder(ANNarchyNetworkBuilder):
                        "cm": 0.25, # nF
                        "tau_refrac": 2.0, "tau_syn_E": 0.2, "tau_syn_I": 2.0, "tau_m": 16.6667}
 
-        self.pop_conns_EE = {}
-        self.nodes_conns = {}
+        self.pop_conns_EE = dict()
+        self.nodes_conns = dict()
 
-        self.spike_monitor = {}
-        self.monitor = {}
+        self.spike_monitor = dict()
+        self.monitor = dict()
 
-        self.spike_stimulus = {}
+        self.spike_stimulus = dict()
 
     def set_population(self):
         pop = {"label": "E", "model": self.default_population["model"],

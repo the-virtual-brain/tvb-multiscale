@@ -18,9 +18,6 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory impor
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
 
 
-LOG = initialize_logger(__name__, config=CONFIGURED)
-
-
 class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a ANNarchyNetworkBuilder,
@@ -37,9 +34,16 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, spiking_simulator=None, config=None, logger=None):
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                     config, logger)
+    def __init__(self, tvb_simulator, spiking_nodes_inds,
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self._input_proxies = DeviceSets()
+        self.modules_to_install = list()
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                     spiking_simulator, self.config, logger)
+        self._models_import_path = self.config.MYMODELS_IMPORT_PATH
         self._spiking_brain = ANNarchyBrain()
 
     @property
@@ -61,10 +65,6 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
         self._configure_annarchy()
         super(ANNarchyNetworkBuilder, self).configure()
 
@@ -165,10 +165,10 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         _devices = []
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
-            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
-                     "for nodes %s..." % (str(list(device["connections"].keys())),
-                                          str(list(device["connections"].values())),
-                                          device["model"], str(device["nodes"])))
+            self.logger.info("Generating and connecting %s -> %s device set of model %s\n"
+                             "for nodes %s..." % (str(list(device["connections"].keys())),
+                                                  str(list(device["connections"].values())),
+                                                  device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
         if len(_devices):
             return DeviceSets(concat(_devices), name="input_devices")

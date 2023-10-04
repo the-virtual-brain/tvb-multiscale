@@ -30,8 +30,9 @@ class SpikingNodesSet(pd.Series, HasTraits):
     _number_of_nodes = None
 
     _collection_name = "Population"
-    
+
     def __init__(self, nodes=pd.Series(dtype='object'), **kwargs):
+        self._number_of_nodes = None
         kwargs["name"] = kwargs.pop("label", kwargs.get("name", ""))
         pd.Series.__init__(self, nodes, dtype=np.dtype('O'), **kwargs)
         HasTraits.__init__(self)

@@ -1,9 +1,14 @@
-import numpy as np
-from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter
-from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
-from tvb_multiscale.tvb_netpyne.netpyne.utils import generateSpikesForPopulation
-from xarray import DataArray
+# -*- coding: utf-8 -*-
+
 from copy import copy, deepcopy
+import numpy as np
+from xarray import DataArray
+
+from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+
+from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter
+from tvb_multiscale.tvb_netpyne.netpyne.utils import generateSpikesForPopulation
+
 
 class NetpyneDevice(HasTraits):
 
@@ -95,12 +100,13 @@ class NetpyneDevice(HasTraits):
         """Method to get the indices of all the neurons the device is connected to/from."""
         return self.neurons
 
+
 class NetpyneInputDevice(NetpyneDevice, InputDevice):
 
     """NetpyneInputDevice class to wrap around a NetPyNE input (stimulating) device"""
 
     def __init__(self, device, netpyne_instance, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "netpyne_input_device") #TODO: wrong model
+        kwargs["model"] = kwargs.pop("model", "netpyne_input_device")  # TODO: wrong model
         NetpyneDevice.__init__(self, device, netpyne_instance, *args, **kwargs)
         super(NetpyneInputDevice, self).__init__(device, netpyne_instance, *args, **kwargs)
 
@@ -120,6 +126,7 @@ class NetpyneInputDevice(NetpyneDevice, InputDevice):
         if self._own_neurons is None:
             self._own_neurons = self.netpyne_instance.cellGidsForPop(self.label)
         return self._own_neurons
+
 
 class NetpynePoissonGenerator(NetpyneInputDevice):
 
@@ -142,10 +149,13 @@ class NetpynePoissonGenerator(NetpyneInputDevice):
                 self.spikesPerNeuron[gid] = []
             self.spikesPerNeuron[gid].extend(spikes)
 
+
 NetpyneSpikeInputDeviceDict = {"poisson_generator": NetpynePoissonGenerator}
+
 
 NetpyneInputDeviceDict = {}
 NetpyneInputDeviceDict.update(NetpyneSpikeInputDeviceDict)
+
 
 # Output devices
 
@@ -158,6 +168,7 @@ class NetpyneOutputDevice(NetpyneDevice):
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected from."""
         return self.netpyne_instance.cellGidsForPop(self.population_label)
+
 
 class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
 
@@ -179,7 +190,6 @@ class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
 
     def reset(self):
         pass
-
 
     def get_new_events(self, variables=None, **filter_kwargs):
         spktimes, spkgids = self.netpyne_instance.getSpikes(generatedBy=self.neurons, startingFrom=self.latestRecordTime)
@@ -237,7 +247,6 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
             self._output_events_index = len(time)
 
         return result
-
 
     def get_data(self, variables=None, events_inds=None,
                  name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True, new=False):

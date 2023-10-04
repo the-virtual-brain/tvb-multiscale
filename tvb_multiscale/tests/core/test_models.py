@@ -163,10 +163,10 @@ def run_test(test_model_class, success={}):
         print("\nSuccess in %g sec!" % (time() - tic))
         success[test_model_class.__name__] = True
     except Exception as e:
-        raise e
-        # success[test_model_class.__name__] = str(e)
-        # print("\nError in %g sec!" % (time() - tic))
-        # warnings.warn(e)
+        # raise e
+        success[test_model_class.__name__] = str(e)
+        print("\nError in %g sec!" % (time() - tic))
+        warnings.warn(e)
     print("******************************************************\n")
     del test_model
     gc.collect()
@@ -210,8 +210,11 @@ def test_models(models_to_test=models_to_test_TVB, iM=0):
 if __name__ == "__main__":
     import sys
 
+    iM = -1
     if len(sys.argv) > 1:
         iM = int(sys.argv[1])
+
+    if iM >= 0:
         print("\n\nTesting model %d" % iM)
         test_models(iM=iM)
     else:

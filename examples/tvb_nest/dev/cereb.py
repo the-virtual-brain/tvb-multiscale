@@ -10,8 +10,6 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.tvb_nest.config import CONFIGURED, Config
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import load_nest, configure_nest_kernel
 from tvb_multiscale.tvb_nest.nest_models.models.cereb import CerebBuilder
-from tvb_multiscale.tvb_nest.nest_models.models.cereb_no_tvb_nest_builders \
-    import CerebBuilder as CerebBuilderNoNESTbuilder
 
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorBuilder

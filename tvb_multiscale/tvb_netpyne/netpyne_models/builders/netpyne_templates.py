@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
