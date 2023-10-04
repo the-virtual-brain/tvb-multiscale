@@ -57,6 +57,11 @@ class TransformerApp(NonTVBApp):
         return self.tvb_to_spikeNet_interfaces(tvb_to_spikeNet_cosim_updates), \
                self.spikeNet_to_tvb_interfaces(spikeNet_to_tvb_cosim_updates)
 
+    def _destroy(self):
+        self.tvb_to_spikeNet_interfaces = None
+        self.spikeNet_to_tvb_interfaces = None
+        super(TransformerApp, self)._destroy()
+
 
 class TVBtoSpikeNetTransformerApp(NonTVBApp):
 

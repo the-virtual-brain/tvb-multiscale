@@ -143,7 +143,7 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         label="TVBSerial app",
         field_type=TVBSerialApp,
         doc="""Application for running TVB serially.""",
-        required=True,
+        required=False,
         default=TVBSerialApp()
     )
 
@@ -165,5 +165,4 @@ class TVBNetpyneSerialOrchestrator(SerialOrchestrator):
         self.tvb_app.interfaces_builder.synaptic_weight_scale_func = self.spikeNet_app.synaptic_weight_scale
         self.tvb_app.interfaces_builder.synaptic_model_funcs = \
             self.spikeNet_app.spikeNet_builder.proxy_node_synaptic_model_funcs
-
         super(TVBNetpyneSerialOrchestrator, self).build()

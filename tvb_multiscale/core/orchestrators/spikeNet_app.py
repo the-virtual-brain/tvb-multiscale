@@ -122,9 +122,12 @@ class SpikeNetApp(NonTVBApp):
                                                   time, transient, monitor_period,
                                                   plot_per_neuron, plotter, writer, self.config)
 
-    def reset(self):
-        super(SpikeNetApp, self).reset()
+    def _destroy(self):
+        self.spikeNet_builder = None
         self.spiking_network = None
+        del self.spiking_cosimulator
+        self.spiking_cosimulator = None
+        super(SpikeNetApp, self)._destroy()
 
 
 class SpikeNetSerialApp(SpikeNetApp):

@@ -220,7 +220,7 @@ class TVBNESTSerialOrchestrator(SerialOrchestrator):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -228,7 +228,7 @@ class TVBNESTSerialOrchestrator(SerialOrchestrator):
         label="TVBSerial app",
         field_type=TVBSerialApp,
         doc="""Application for running TVB serially.""",
-        required=True,
+        required=False,
         default=TVBSerialApp()
     )
 

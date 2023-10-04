@@ -107,11 +107,16 @@ class App(HasTraits):
     def clean_up(self):
         self._logprint("Cleaning up %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
 
+    def _destroy(self):
+        pass
+
     def reset(self):
         self._logprint("Resetting %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
+        self._destroy()
 
     def stop(self):
         self._logprint("Stopping %s %s..." % (self._app_or_orchestrator, self.__class__.__name__))
+        self._destroy()
 
     def _add_attrs_to_info(self, info):
         for attr in self._attrs_to_info:
@@ -181,13 +186,16 @@ class AppWithInterfaces(App):
         super(AppWithInterfaces, self).build()
         self.build_interfaces()
 
+    def _destroy(self):
+        self._interfaces_built = False
+        self.interfaces_builder = None
+        super(AppWithInterfaces, self)._destroy()
+
     def reset(self):
         super(AppWithInterfaces, self).reset()
-        self._interfaces_built = False
 
     def stop(self):
         super(AppWithInterfaces, self).stop()
-        self._interfaces_built = False
 
 
 class CoSimulatorApp(AppWithInterfaces):
@@ -284,6 +292,10 @@ class NonTVBApp(CoSimulatorApp):
 
     def configure_simulation(self):
         super(NonTVBApp, self).configure_simulation()
+
+    def _destroy(self):
+        self.tvb_cosimulator_serialized = None
+        super(NonTVBApp, self)._destroy()
 
 
 class Orchestrator(App):

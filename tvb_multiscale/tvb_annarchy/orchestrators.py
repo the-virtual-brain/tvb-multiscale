@@ -89,8 +89,12 @@ class ANNarchyApp(HasTraits):
     def stop(self):
         pass
 
+    def _destroy(self):
+        self.network_path = ""
+
     def reset(self):
         self.annarchy_instance.clear()
+        self._destroy()
 
 
 class ANNarchySerialApp(ANNarchyApp, SpikeNetSerialApp):
@@ -242,7 +246,7 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         label="TVBSerial app",
         field_type=TVBSerialApp,
         doc="""Application for running TVB serially.""",
-        required=True,
+        required=False,
         default=TVBSerialApp()
     )
 

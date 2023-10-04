@@ -41,6 +41,8 @@ class SerialOrchestrator(Orchestrator):
 
     def configure(self):
         super(SerialOrchestrator, self).configure()
+        assert isinstance(self.tvb_app, TVBSerialApp)
+        assert isinstance(self.spikeNet_app, SpikeNetSerialApp)
         self.tvb_app.setup_from_another_app(self)
         self.tvb_app.configure()
         self.spikeNet_app.setup_from_another_app(self)
@@ -108,10 +110,15 @@ class SerialOrchestrator(Orchestrator):
                                   tvb_state_variable_type_label, tvb_state_variables_labels,
                                   plot_per_neuron, plotter, config=self.config)
 
+    def _destroy(self):
+        self.spikeNet_app = None
+        self.tvb_app = None
+
     def stop(self):
         super(SerialOrchestrator, self).stop()
         self.tvb_app.stop()
         self.spikeNet_app.stop()
+        self._destroy()
 
     def clean_up(self):
         super(SerialOrchestrator, self).clean_up()
@@ -122,3 +129,4 @@ class SerialOrchestrator(Orchestrator):
         super(SerialOrchestrator, self).reset()
         self.tvb_app.reset()
         self.spikeNet_app.reset()
+        self._destroy()

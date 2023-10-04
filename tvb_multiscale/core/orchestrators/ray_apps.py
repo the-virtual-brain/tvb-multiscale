@@ -34,6 +34,11 @@ class SpikeNetRayApp(SpikeNetApp):
 
     spiking_cosimulator_server = None
 
+    def _destroy(self):
+        del self.spiking_cosimulator_server
+        self.spiking_cosimulator_server = None
+        super(SpikeNetRayApp, self)._destroy()
+
     def start(self):
         ray.init(ignore_reinit_error=True)
         super(SpikeNetRayApp, self).start()
