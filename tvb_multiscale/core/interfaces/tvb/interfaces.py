@@ -11,11 +11,11 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, SenderInterface, ReceiverInterface, \
     BaseInterfaces
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
 from tvb_multiscale.core.interfaces.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
     TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
-from tvb_multiscale.core.interfaces.transformers.models import Transformer
 
 
 class TVBInterface(BaseInterface):

@@ -9,7 +9,7 @@ from tvb.basic.neotraits.api import Attr, Int
 from tvb.contrib.scripts.utils.log_error_utils import warning
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.interfaces.transformers.models import Transformer
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 

@@ -7,7 +7,7 @@ import numpy as np
 from tvb_multiscale.core.neotraits import HasTraits, Attr
 from tvb_multiscale.core.ray.client import RayClient
 from tvb_multiscale.core.interfaces.base.io import Sender, Receiver
-from tvb_multiscale.core.interfaces.transformers.models import Transformer
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetInterface, SpikeNetToTVBInterface, \
     TVBSenderInterface, TVBReceiverInterface, TVBTransformerSenderInterface, TVBReceiverTransformerInterface, \
     TVBOutputInterfaces, TVBInputInterfaces, SpikeNetInputInterfaces, SpikeNetOutputInterfaces

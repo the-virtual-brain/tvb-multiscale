@@ -14,7 +14,7 @@ from tvb_multiscale.core.interfaces.models.default import DefaultTVBInterfaceBui
     DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
     DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder, \
     DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
-from tvb_multiscale.core.interfaces.transformers.models import ElephantSpikesRateRedWongWangExc
+from tvb_multiscale.core.interfaces.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 
 
 class BasalGangliaIzhikevichTVBInterfaceBuilder(DefaultTVBInterfaceBuilder):
