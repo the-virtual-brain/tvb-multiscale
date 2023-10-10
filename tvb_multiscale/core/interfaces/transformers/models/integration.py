@@ -7,9 +7,9 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr, Float, NArray
 
 from tvb_multiscale.core.config import CONFIGURED
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+from tvb_multiscale.core.interfaces.transformers.models.base import \
     Transformer, LinearRate, LinearCurrent, LinearPotential, SpikesToRates
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesHistogram, ElephantSpikesRate, ElephantSpikesHistogramRate
 
 

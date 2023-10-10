@@ -11,15 +11,15 @@ from tvb.basic.neotraits._attr import Attr, Float
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+from tvb_multiscale.core.interfaces.transformers.models.base import \
      LinearRate, LinearCurrent, LinearPotential
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
     RatesToSpikesElephantPoissonSingleInteraction
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
+from tvb_multiscale.core.interfaces.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
     RemoteTransformerInterface, RemoteTransformerInterfaces, \
     TVBtoSpikeNetTransformerInterface, TVBtoSpikeNetTransformerInterfaces, \
     SpikeNetToTVBTransformerInterface, SpikeNetToTVBTransformerInterfaces, \

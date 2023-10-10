@@ -2,7 +2,7 @@ from tvb.basic.neotraits._attr import Attr, List
 
 from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, BaseInterfaces
 from tvb_multiscale.core.interfaces.base.io import Sender, Receiver
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
 
 
 class TransformerInterface(BaseInterface):
