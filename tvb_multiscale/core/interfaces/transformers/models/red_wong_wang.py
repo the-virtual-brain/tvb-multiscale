@@ -4,8 +4,8 @@ import numpy as np
 
 from tvb.basic.neotraits._attr import NArray
 
-from tvb_multiscale.core.interfaces.base.transformers.models.integration import Integration
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.integration import Integration
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesHistogramRate, ElephantSpikesRate
 
 
