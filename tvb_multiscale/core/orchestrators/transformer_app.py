@@ -3,11 +3,11 @@
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
+from tvb_multiscale.core.interfaces.transformers.builders import \
     TransformerInterfaceBuilder, RemoteTransformerInterfaceBuilder, \
     TVBtoSpikeNetTransformerInterfaceBuilder, SpikeNetToTVBTransformerInterfaceBuilder, \
     TVBtoSpikeNetRemoteTransformerInterfaceBuilder, SpikeNetToTVBRemoteTransformerInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import \
+from tvb_multiscale.core.interfaces.transformers.interfaces import \
     TVBtoSpikeNetTransformerInterfaces, SpikeNetToTVBTransformerInterfaces, \
     TVBtoSpikeNetRemoteTransformerInterfaces, SpikeNetToTVBRemoteTransformerInterfaces
 

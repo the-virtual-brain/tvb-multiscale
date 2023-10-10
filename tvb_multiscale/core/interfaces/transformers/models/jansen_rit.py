@@ -8,10 +8,10 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits
 from tvb.basic.neotraits._attr import Int, NArray, Range
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+from tvb_multiscale.core.interfaces.transformers.models.base import \
     LinearRate, RatesToSpikes, SpikesToRates, LinearPotential
-from tvb_multiscale.core.interfaces.base.transformers.models.integration import LinearIntegration
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.integration import LinearIntegration
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonSingleInteraction, \
     RatesToSpikesElephantPoissonMultipleInteraction, \
     ElephantSpikesHistogram, ElephantSpikesHistogramRate, ElephantSpikesRate

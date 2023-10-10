@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb.basic.neotraits._attr import Attr, Float, NArray
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import RatesToSpikes, SpikesToRates
+from tvb_multiscale.core.interfaces.transformers.models.base import RatesToSpikes, SpikesToRates
 
 
 class ElephantFunctions(Enum):

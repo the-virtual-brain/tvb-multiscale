@@ -3,7 +3,7 @@
 import numpy as np
 
 from tvb_multiscale.core.config import Config
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
+from tvb_multiscale.core.interfaces.transformers.builders import \
     TVBtoSpikeNetTransformerInterfaceBuilder, SpikeNetToTVBTransformerInterfaceBuilder, \
     TVBtoSpikeNetRemoteTransformerInterfaceBuilder, SpikeNetToTVBRemoteTransformerInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels

@@ -11,7 +11,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import \
     BaseInterface, SenderInterface, ReceiverInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, \
+from tvb_multiscale.core.interfaces.transformers.interfaces import TransformerInterface, \
     TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork

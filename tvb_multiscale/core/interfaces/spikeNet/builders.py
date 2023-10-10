@@ -14,8 +14,8 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, S
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values, property_to_fun
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
+from tvb_multiscale.core.interfaces.transformers.models.models import Transformers
+from tvb_multiscale.core.interfaces.transformers.builders import \
     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputInterface, SpikeNetInputInterface, \
