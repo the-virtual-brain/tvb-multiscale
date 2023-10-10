@@ -35,9 +35,9 @@ def configure_TVBtoSpikeNet_transformer_interfaces(
         [{  # Set the enum entry or the corresponding label name for the "transformer_model", 
             # or import and set the appropriate transformer class, e.g., ScaleRate, directly
             # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
-            # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers
+            # see tvb_multiscale.core.interfaces.transformers.models.DefaultTVBtoSpikeNetTransformers
             # for options and related Transformer classes,
-            # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels for default choices
+            # and tvb_multiscale.core.interfaces.transformers.models.DefaultTVBtoSpikeNetModels for default choices
             'transformer_model': config.INTERFACE_MODEL
         }
         ]
@@ -97,8 +97,8 @@ def configure_spikeNetToTVB_transformer_interfaces(
             {  # Set the enum entry or the corresponding label name for the "transformer_model", 
                 # or import and set the appropriate tranformer class, e.g., ElephantSpikesHistogramRate, directly
                 # options: "SPIKES", "SPIKES_TO_RATE", "SPIKES_TO_HIST", "SPIKES_TO_HIST_RATE"
-                # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBTransformers for options and related Transformer classes,
-                # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBModels for default choices
+                # see tvb_multiscale.core.interfaces.transformers.models.DefaultSpikeNetToTVBTransformers for options and related Transformer classes,
+                # and tvb_multiscale.core.interfaces.transformers.models.DefaultSpikeNetToTVBModels for default choices
                 "transformer_model": "SPIKES_TO_HIST_RATE",
                 # The "scale_factor" scales the instantaneous rate coming from spikeNet, before setting it to TVB,
                 # in our case converting the rate to a mean reate 
