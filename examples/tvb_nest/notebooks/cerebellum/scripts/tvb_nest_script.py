@@ -7,8 +7,8 @@ from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
 
 def print_available_interfaces():
     # options for a nonopinionated builder:
-    from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
-    from tvb_multiscale.core.interfaces.base.transformers.builders import \
+    from tvb_multiscale.core.interfaces.transformers.models.models import Transformers
+    from tvb_multiscale.core.interfaces.transformers.builders import \
         DefaultTVBtoSpikeNetTransformers, DefaultSpikeNetToTVBTransformers, \
         DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
     from tvb_multiscale.tvb_nest.interfaces.builders import \
@@ -43,7 +43,7 @@ def print_available_interfaces():
     print("\n\nAll basic transformer models:")
     print_enum(Transformers)
 
-    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import \
+    from tvb_multiscale.core.interfaces.transformers.models.thalamocortical_wc import \
         DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
     print_enum(DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal)
 
@@ -59,8 +59,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
     # ---------------------------- Non opinionated TVB<->NEST interface builder----------------------------
     from tvb_multiscale.tvb_nest.interfaces.builders import TVBNESTInterfaceBuilder
-    # from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import ThalamocorticalWCLinearRate
-    from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import \
+    # from tvb_multiscale.core.interfaces.transformers.models.thalamocortical_wc import ThalamocorticalWCLinearRate
+    from tvb_multiscale.core.interfaces.transformers.models.thalamocortical_wc import \
         DefaultTVBtoSpikeNetTransformersThalamoCorticalWC
     
     tvb_spikeNet_model_builder = TVBNESTInterfaceBuilder()  # non opinionated builder
@@ -69,7 +69,7 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
 
     if config.INVERSE_SIGMOIDAL_NEST_TO_TVB:
         # !!! THIS WILL TURN ON THE INVERSE SIGMOIMDAL TRANSFORMER FOR NEST -> TVB INTERFACE !!!
-        from tvb_multiscale.core.interfaces.base.transformers.models.thalamocortical_wc import \
+        from tvb_multiscale.core.interfaces.transformers.models.thalamocortical_wc import \
             DefaultSpikeNetToTVBTransformersThalamoCorticalWCInverseSigmoidal
 
         tvb_spikeNet_model_builder._spikeNet_to_tvb_transformer_models = \
@@ -144,9 +144,9 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
               # Set the enum entry or the corresponding label name for the "transformer_model",
               # or import and set the appropriate tranformer class, e.g., ScaleRate, directly
               # options: "RATE", "SPIKES", "SPIKES_SINGE_INTERACTION", "SPIKES_MULTIPLE_INTERACTION", "CURRENT"
-              # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetTransformers
+              # see tvb_multiscale.core.interfaces.transformers.models.DefaultTVBtoSpikeNetTransformers
               # for options and related Transformer classes,
-              # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultTVBtoSpikeNetModels
+              # and tvb_multiscale.core.interfaces.transformers.models.DefaultTVBtoSpikeNetModels
               # for default choices
               'transformer_model': "RATE",  # i.e., ThalamocorticalWCLinearRate,
              # Here the rate is a total rate, assuming a number of sending neurons:
@@ -205,8 +205,8 @@ def build_tvb_nest_interfaces(simulator, nest_network, nest_nodes_inds, config):
              # Set the enum entry or the corresponding label name for the "transformer_model",
              # or import and set the appropriate tranformer class, e.g., ElephantSpikesHistogramRate, directly
              # options: "SPIKES", "SPIKES_TO_RATE", "SPIKES_TO_HIST", "SPIKES_TO_HIST_RATE"
-             # see tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBTransformers for options and related Transformer classes,
-             # and tvb_multiscale.core.interfaces.base.transformers.models.DefaultSpikeNetToTVBModels for default choices
+             # see tvb_multiscale.core.interfaces.transformers.models.DefaultSpikeNetToTVBTransformers for options and related Transformer classes,
+             # and tvb_multiscale.core.interfaces.transformers.models.DefaultSpikeNetToTVBModels for default choices
              'transformer_model': "SPIKES_TO_HIST_RATE",
              'transformer_params': transformer_params
              })
