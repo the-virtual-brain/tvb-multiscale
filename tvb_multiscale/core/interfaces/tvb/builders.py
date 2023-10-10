@@ -14,7 +14,7 @@ from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
+from tvb_multiscale.core.interfaces.transformers.builders import \
     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBOutputInterface, TVBInputInterface, TVBOutputInterfaces, TVBInputInterfaces, \
