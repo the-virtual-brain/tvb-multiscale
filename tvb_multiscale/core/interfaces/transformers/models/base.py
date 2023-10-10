@@ -32,11 +32,14 @@ class Transformer(HasTraits):
 
     input_buffer = Attr(
         field_type=np.ndarray,
+        label="Input buffer",
         doc="""Array storing temporarily data to be transformed.""",
+        required=True,
         default=np.array(list())
     )
 
-    output_buffer = NArray(
+    output_buffer = Attr(
+        field_type=np.ndarray,
         label="Output buffer",
         doc="""Array to store temporarily the output transformed data.""",
         required=True,
@@ -212,6 +215,14 @@ class RatesToSpikes(LinearRate):
         RatesToSpikes Transformer abstract base class
     """
 
+    output_buffer = Attr(
+        field_type=np.ndarray,
+        label="Output buffer",
+        doc="""Array to store temporarily the output transformed data.""",
+        required=True,
+        default=np.array(list()).astype("O")
+    )
+
     number_of_neurons = NArray(
         dtype="i",
         label="Number of neurons",
@@ -246,6 +257,11 @@ class RatesToSpikes(LinearRate):
             output_buffer.append(self._compute_spiketrains(proxy_rate, iP, *args, **kwargs))
         return output_buffer
 
+    def compute(self, *args, **kwargs):
+        """Abstract method for the computation on the input buffer data for the output buffer data to result.
+           It sets the output buffer property"""
+        self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs), dtype=object)
+
 
 class SpikesToRates(LinearRate):
     __metaclass__ = ABCMeta
@@ -253,6 +269,14 @@ class SpikesToRates(LinearRate):
     """
         RateToSpikes Transformer abstract base class
     """
+
+    input_buffer = Attr(
+        field_type=np.ndarray,
+        label="Input buffer",
+        doc="""Array storing temporarily data to be transformed.""",
+        required=True,
+        default=np.array(list()).astype("O")
+    )
 
     @property
     def _t_start(self):
