@@ -11,12 +11,12 @@ from tvb_multiscale.core.interfaces.transformers.models.base import RatesToSpike
 
 
 class ElephantFunctions(Enum):
-    from elephant.spike_train_generation import homogeneous_poisson_process, inhomogeneous_poisson_process
+    from elephant.spike_train_generation import StationaryPoissonProcess, NonStationaryPoissonProcess
     from elephant.statistics import time_histogram
     from elephant.statistics import instantaneous_rate
 
-    HOMOGENEOUS_POISSON_PROCESS = homogeneous_poisson_process
-    INHOMOGENEOUS_POISSON_PROCESS = inhomogeneous_poisson_process
+    STATIONARY_POISSON_PROCESS = StationaryPoissonProcess
+    NONSTATIONARY_POISSON_PROCESS = NonStationaryPoissonProcess
     TIME_HISTOGRAM = time_histogram
     INSTANTANEOUS_RATE = instantaneous_rate
 
@@ -57,7 +57,7 @@ class RatesToSpikesElephant(RatesToSpikes, ABC):
 class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
     """
         RatesToSpikesElephantPoisson Transformer class,
-        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        using elephant functions NonStationaryPoissonProcess and StationaryPoissonProcess,
         depending on whether rate varies with time or not.
         This class can be used to produce independent spike trains per proxy node.
     """
@@ -68,34 +68,49 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
                               required=False,
                               default=None)
 
-    @staticmethod
-    def _spike_gen_fun_h(*args, **kwargs):
-        return ElephantFunctions.HOMOGENEOUS_POISSON_PROCESS(*args, **kwargs)
+    as_array = Attr(label="as_array",
+                    doc="""Boolean flag to return output spike trains as numpy arrays.""",
+                    field_type=bool,
+                    required=False,
+                    default=True)
 
-    @staticmethod
-    def _spike_gen_fun_inh(*args, **kwargs):
-        return ElephantFunctions.INHOMOGENEOUS_POISSON_PROCESS(*args, **kwargs)
+    def __init__(self, **kwargs):
+        self._stationary_poisson_process = None
+        self._non_stationary_poisson_process = None
+        super(RatesToSpikesElephantPoisson, self).__init__(**kwargs)
 
     def _compute_for_n_spiketrains(self, rates, number_of_spiketrains):
-        spiketrains = []
+        spiketrains = list()
+        for _ in range(number_of_spiketrains):
+            spiketrains.append(np.array(list()))
         if len(rates) > 1:
             this_rates = self._rates_analog_signal(rates)
-            for iS in range(number_of_spiketrains):
-                spiketrains.append(
-                    self._spike_gen_fun_inh(
-                        this_rates, as_array=True, refractory_period=self.refractory_period))
+            if self._non_stationary_poisson_process is None:
+                self._non_stationary_poisson_process = \
+                    ElephantFunctions.NONSTATIONARY_POISSON_PROCESS.value(this_rates,
+                                                                          refractory_period=self.refractory_period)
+            else:
+                self._non_stationary_poisson_process.rate_signal = this_rates
+            spiketrains = self._non_stationary_poisson_process.generate_n_spiketrains(number_of_spiketrains,
+                                                                                      as_array=self.as_array)
         else:
             this_rates = rates * self.rate_unit
-            for iS in range(number_of_spiketrains):
-                spiketrains.append(
-                    self._spike_gen_fun_inh(this_rates,
-                                            t_start=self._t_start, t_stop=self._t_stop,
-                                            as_array=True, refractory_period=self.refractory_period))
+            if self._stationary_poisson_process is None:
+                self._stationary_poisson_process = \
+                    ElephantFunctions.STATIONARY_POISSON_PROCESS.value(this_rates,
+                                                                       t_start=self._t_start, t_stop=self._t_stop,
+                                                                       refractory_period=self.refractory_period)
+            else:
+                self._stationary_poisson_process.rate = this_rates
+                self._stationary_poisson_process.t_start = self.t_start
+                self._stationary_poisson_process.t_stop = self.t_stop
+            spiketrains = self._stationary_poisson_process.generate_n_spiketrains(number_of_spiketrains,
+                                                                                  as_array=self.as_array)
         return spiketrains
 
     def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to independent spike trains,
-           using elephant (in)homogeneous_poisson_process functions."""
+           using elephant (Non)StationaryPoissonProcess functions."""
         return self._compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count])
 
 
@@ -104,7 +119,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
 
     """
         RatesToSpikesElephantPoissonInteraction Transformer abstract class, 
-        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        using elephant functions NonStationaryPoissonProcess and StationaryPoissonProcess,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node.
         The algorithm implemented is based on
@@ -144,7 +159,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
 
     def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to interacting spike trains,
-           using (in)homogeneous_poisson_process functions.
+           using (Non)StationaryPoissonProcess functions.
         """
         n_spiketrains = self._number_of_neurons[proxy_count]
         correlation_factor = self._correlation_factor[proxy_count]
@@ -158,7 +173,7 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
 class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonInteraction):
     """
         RatesToSpikesElephantPoissonSingleInteraction Transformer class,
-        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        using elephant functions NonStationaryPoissonProcess and StationaryPoissonProcess,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node with single interaction
         The single interaction algorithm implemented is based on
@@ -186,7 +201,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
 class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonInteraction):
     """
         RatesToSpikesElephantPoissonSingleInteraction Transformer class,
-        using elephant functions inhomogeneous_poisson_process and homogeneous_poisson_process,
+        using elephant functions NonStationaryPoissonProcess and StationaryPoissonProcess,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node with multiple interaction.
         The multiple interaction algorithm implemented is based on
