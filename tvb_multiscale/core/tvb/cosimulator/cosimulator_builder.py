@@ -5,7 +5,7 @@ from six import string_types
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr, Float, NArray, List
+from tvb.basic.neotraits.api import Attr, Int, Float, NArray, List
 from tvb.datatypes.connectivity import Connectivity
 from tvb.simulator.coupling import Coupling
 from tvb.simulator.models.base import Model
@@ -168,6 +168,11 @@ class CoSimulatorBuilder(HasTraits):
                 state variables."""
     )
 
+    noise_seed = Int(
+        default=42,
+        doc="A random seed used to initialise the random_stream if it is missing."
+    )
+
     integrator = Attr(
         field_type=Integrator,
         label="Integration scheme",
@@ -215,33 +220,34 @@ class CoSimulatorBuilder(HasTraits):
         required=False,
         doc="""The length of a simulation (default in milliseconds).""")
 
-    # def __init__(self, **kwargs):
-    #     self.config = kwargs.get("config", CONFIGURED)
-    #     init_logger = False
-    #     if not isinstance(kwargs.get("logger", None), Logger):
-    #         init_logger = True
-    #     self.model = self.config.DEFAULT_TVB_MODEL()
-    #     self.model_params = dict()
-    #     self.connectivity = Connectivity.from_file(self.config.DEFAULT_CONNECTIVITY_ZIP)
-    #     self.scale_connectivity_weights = "region"
-    #     self.scale_connectivity_weights_by_percentile = 99.0
-    #     self.ceil_connectivity = 0.0
-    #     self.symmetric_connectome = False
-    #     self.remove_self_connections = False
-    #     self.delays_flag = True
-    #     self.min_tract_length = 0.0
-    #     self.coupling = self.config.DEFAULT_TVB_COUPLING_MODEL()
-    #     self.dt = 0.1
-    #     self.noise_strength = np.array([self.config.DEFAULT_NSIG])
-    #     self.integrator = CONFIGURED.DEFAULT_INTEGRATOR()
-    #     self.monitor_period = 1.0
-    #     self.monitors = (CONFIGURED.DEFAULT_MONITOR(period=self.monitor_period), )
-    #     self.initial_conditions = None
-    #     self.simulation_length = 1100.0
-    #
-    #     super(CoSimulatorBuilder, self).__init__(**kwargs)
-    #     if init_logger:
-    #         self.logger = initialize_logger(config=self.config)
+    def __init__(self, **kwargs):
+        self.config = kwargs.get("config", CONFIGURED)
+        init_logger = False
+        if not isinstance(kwargs.get("logger", None), Logger):
+            init_logger = True
+        self.model = self.config.DEFAULT_TVB_MODEL()
+        self.model_params = dict()
+        self.connectivity = Connectivity.from_file(self.config.DEFAULT_CONNECTIVITY_ZIP)
+        self.scale_connectivity_weights = "region"
+        self.scale_connectivity_weights_by_percentile = 99.0
+        self.ceil_connectivity = 0.0
+        self.symmetric_connectome = False
+        self.remove_self_connections = False
+        self.delays_flag = True
+        self.min_tract_length = 0.0
+        self.coupling = self.config.DEFAULT_TVB_COUPLING_MODEL()
+        self.dt = 0.1
+        self.noise_strength = np.array([self.config.DEFAULT_NSIG])
+        self.noise_seed = self.config.DEFAULT_NOISE_SEED
+        self.integrator = CONFIGURED.DEFAULT_INTEGRATOR()
+        self.monitor_period = 1.0
+        self.monitors = (CONFIGURED.DEFAULT_MONITOR(period=self.monitor_period), )
+        self.initial_conditions = None
+        self.simulation_length = 1100.0
+
+        super(CoSimulatorBuilder, self).__init__(**kwargs)
+        if init_logger:
+            self.logger = initialize_logger(config=self.config)
 
     def configure_connectivity(self):
         # Load, normalize and configure connectivity
@@ -292,6 +298,7 @@ class CoSimulatorBuilder(HasTraits):
     def configure_integrator(self):
         # Build integrator
         if np.any(self.noise_strength > 0.0):
+            self.integrator.noise.noise_seed = self.noise_seed
             self.integrator.noise.nsig = np.array(ensure_list(self.noise_strength))
             if self.integrator.noise.nsig.size == 1 and self.model.nvar > 1:
                 self.integrator.noise.nsig = np.repeat(self.integrator.noise.nsig.size, self.model.nvar)
