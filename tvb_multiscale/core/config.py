@@ -166,6 +166,7 @@ class Config(HasTraits):
         self.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
         self.DEFAULT_NOISE = Additive
         self.DEFAULT_NSIG = 1e-3
+        self.DEFAULT_NOISE_SEED = 42
         self.DEFAULT_MONITOR = Raw
 
     @property
