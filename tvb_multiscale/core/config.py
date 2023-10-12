@@ -147,6 +147,8 @@ class Config(HasTraits):
         self.figures = FiguresConfig(output_base, separate_by_run)
         self.calcul = CalculusConfig()
 
+        self.RAY_PARALLEL = False
+
         self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
         self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
         self.TVB_DATA_PATH = TVB_DATA_PATH
