@@ -79,7 +79,18 @@ class TransformerBuilder(HasTraits):
                doc="Time step of simulation",
                required=True, default=0.0)
 
-    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds", "dt"]
+    ray_parallel = Attr(label="ray_parallel",
+                        doc="""Boolean flag to use Ray parallelization if possible. Default is True.""",
+                        field_type=bool,
+                        required=False,
+                        default=True)
+
+    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds", "dt", "ray_parallel"]
+
+    def __init__(self, **kwargs):
+        super(TransformerBuilder, self).__init__(**kwargs)
+        if "ray_parallel" not in kwargs:
+            self.ray_parallel = self.config.RAY_PARALLEL
 
     def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
         # Return a model or an Enum
@@ -134,7 +145,8 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
             self._configure_transformer_model(interface, self._tvb_to_spikeNet_models,
                                               self._default_tvb_to_spikeNet_models,
                                               self._tvb_to_spikeNet_transformer_models)
-            params = interface.pop("transformer_params", {})
+            params = dict(interface.pop("transformer_params", {}))
+            params["ray_parallel"] = params.get("ray_parallel", self.ray_parallel)
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
@@ -180,7 +192,8 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
             self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
                                               self._default_spikeNet_to_tvb_transformer_models,
                                               self._spikeNet_to_tvb_transformer_models)
-            params = interface.pop("transformer_params", {})
+            params = dict(interface.pop("transformer_params", {}))
+            params["ray_parallel"] = params.get("ray_parallel", self.ray_parallel)
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
