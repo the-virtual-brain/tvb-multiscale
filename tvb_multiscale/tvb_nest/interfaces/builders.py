@@ -57,13 +57,13 @@ class NESTOutputProxyModels(Enum):
     POTENTIAL_TOTAL = NESTVoltmeterTotalSet
 
 
-class DefaultTVBtoNESTModels(Enum):
+class DefaultTVBtoNESTModels(object):
     RATE = NESTInputProxyModels.RATE.name
     SPIKES = NESTInputProxyModels.SPIKES.name
     CURRENT = NESTInputProxyModels.CURRENT.name
 
 
-class DefaultNESTtoTVBModels(Enum):
+class DefaultNESTtoTVBModels(object):
     SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
 

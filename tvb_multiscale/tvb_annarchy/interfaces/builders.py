@@ -55,13 +55,13 @@ class ANNarchyOutputProxyModels(Enum):
     POTENTIAL_TOTAL = ANNarchyMonitorTotalSet
 
 
-class DefaultTVBtoANNarchyProxyModels(Enum):
+class DefaultTVBtoANNarchyProxyModels(object):
     RATE = ANNarchyInputProxyModels.RATE.name
     SPIKES = ANNarchyInputProxyModels.SPIKES.name
     CURRENT =ANNarchyInputProxyModels.CURRENT.name
 
 
-class DefaultANNarchytoTVBProxyModels(Enum):
+class DefaultANNarchytoTVBProxyModels(object):
     SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN.name
 

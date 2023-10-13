@@ -45,12 +45,12 @@ class NetpyneOutputProxyModels(Enum):
     SPIKES_MEAN = NetpyneSpikeRecorderTotalSet
 
 
-class DefaultTVBtoNetpyneProxyModels(Enum):
+class DefaultTVBtoNetpyneProxyModels(object):
     RATE = NetpyneInputProxyModels.RATE.name
     SPIKES = None
 
 
-class DefaultNetpyneToTVBProxyModels(Enum):
+class DefaultNetpyneToTVBProxyModels(object):
     SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
 
 

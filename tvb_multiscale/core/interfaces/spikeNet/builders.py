@@ -28,13 +28,13 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetTransformerSenderInterfaces, SpikeNetReceiverTransformerInterfaces
 
 
-class DefaultTVBtoSpikeNetProxyModels(Enum):
+class DefaultTVBtoSpikeNetProxyModels(object):
     RATE = "RATE"
     SPIKES = "SPIKES"
     CURRENT = "CURRENT"
 
 
-class DefaultSpikeNetToTVBProxyModels(Enum):
+class DefaultSpikeNetToTVBProxyModels(object):
     SPIKES = "SPIKES_MEAN"
     POTENTIAL = "POTENTIAL_MEAN"
 
@@ -157,7 +157,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 else:
                     model = model.upper()
                 assert model in list(interface_models.__members__)  # Enum names (strings)
-                model = getattr(default_proxy_models, model).value  # a string name of a proxy type
+                model = getattr(default_proxy_models, model)  # a string name of a proxy type
             if isinstance(model, string_types):
                 # string input -> return type
                 model = model.upper()
