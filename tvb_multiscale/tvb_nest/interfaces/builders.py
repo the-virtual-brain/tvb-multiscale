@@ -136,8 +136,8 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
     _tvb_to_spikeNet_models = TVBtoNESTModels
     _spikeNet_to_tvb_models = NESTtoTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNESTModels
-    _default_spikeNet_to_tvb_models = DefaultNESTtoTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNESTModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNESTtoTVBModels
 
     _input_proxy_models = NESTInputProxyModels
     _output_proxy_models = NESTOutputProxyModels
@@ -271,8 +271,8 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
     _tvb_to_spikeNet_models = TVBtoNESTModels
     _spikeNet_to_TVB_models = NESTtoTVBModels
 
-    _default_spikeNet_to_tvb_models = DefaultNESTtoTVBModels
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNESTModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNESTtoTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNESTModels
 
     _input_proxy_models = NESTOutputProxyModels  # Input to SpikeNet is output of TVB
     _output_proxy_models = NESTInputProxyModels  # Output of SpikeNet is input to TVB

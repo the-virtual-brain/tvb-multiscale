@@ -45,12 +45,12 @@ class NetpyneOutputProxyModels(Enum):
     SPIKES_MEAN = NetpyneSpikeRecorderTotalSet
 
 
-class DefaultTVBtoNetpyneModels(Enum):
+class DefaultTVBtoNetpyneProxyModels(Enum):
     RATE = NetpyneInputProxyModels.RATE.name
     SPIKES = None
 
 
-class DefaultNetpyneToTVBModels(Enum):
+class DefaultNetpyneToTVBProxyModels(Enum):
     SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
 
 
@@ -108,8 +108,8 @@ class NetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, SpikeNetInterfaceBuilder
     _tvb_to_spikeNet_models = TVBtoNetpyneModels
     _spikeNet_to_tvb_models = NetpyneToTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNetpyneModels
-    _default_spikeNet_to_tvb_models = DefaultNetpyneToTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNetpyneProxyModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNetpyneToTVBProxyModels
 
     _input_proxy_models = NetpyneInputProxyModels
     _output_proxy_models = NetpyneOutputProxyModels
@@ -189,8 +189,8 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
     _tvb_to_spikeNet_models = TVBtoNetpyneModels
     _spikeNet_to_TVB_models = NetpyneToTVBModels
 
-    _default_spikeNet_to_tvb_models = DefaultNetpyneToTVBModels
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNetpyneModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNetpyneToTVBProxyModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNetpyneProxyModels
 
     _input_proxy_models = NetpyneOutputProxyModels  # Input to SpikeNet is output of TVB
     _output_proxy_models = NetpyneInputProxyModels  # Output of SpikeNet is input to TVB

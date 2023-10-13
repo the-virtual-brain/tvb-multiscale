@@ -13,7 +13,7 @@ from tvb.contrib.cosimulation.cosim_monitors import RawCosim, CosimCoupling, Cos
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import \
-    SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetModels, DefaultSpikeNetToTVBModels
+    SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetProxyModels, DefaultSpikeNetToTVBProxyModels
 from tvb_multiscale.core.interfaces.transformers.builders import \
     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
@@ -509,8 +509,8 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
     _tvb_to_spikeNet_models = TVBtoSpikeNetModels
     _spikeNet_to_tvb_models = SpikeNetToTVBModels
 
-    _default_spikeNet_to_tvb_models = DefaultSpikeNetToTVBModels
-    _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoSpikeNetProxyModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultSpikeNetToTVBProxyModels
 
     _input_proxy_models = None   # Input to SpikeNet is output of TVB
     _output_proxy_models = None  # Output of SpikeNet is input to TVB
@@ -533,9 +533,9 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
         TVBInterfaceBuilder.configure(self)
         SpikeNetProxyNodesBuilder.configure(self)
         self._configure_proxy_models(self.output_interfaces, self._tvb_to_spikeNet_models,
-                                     self._default_tvb_to_spikeNet_models, self._output_proxy_models)
+                                     self._default_tvb_to_spikeNet_proxy_models, self._output_proxy_models)
         self._configure_proxy_models(self.input_interfaces, self._spikeNet_to_tvb_models,
-                                     self._default_spikeNet_to_tvb_models, self._input_proxy_models)
+                                     self._default_spikeNet_to_tvb_proxy_models, self._input_proxy_models)
         TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
         SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
 
