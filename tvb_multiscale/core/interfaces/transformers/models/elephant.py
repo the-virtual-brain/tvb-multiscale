@@ -21,6 +21,15 @@ class ElephantFunctions(Enum):
     INSTANTANEOUS_RATE = instantaneous_rate
 
 
+def rate_analog_signal(rates, sampling_period, t_start, t_stop, rate_unit, analog_signal_class=None):
+    if analog_signal_class:
+        from neo import AnalogSignal
+        analog_signal_class = AnalogSignal
+    if isinstance(rates, analog_signal_class):
+        return rates
+    return analog_signal_class(rates*rate_unit, sampling_period=sampling_period, t_start=t_start, t_stop=t_stop)
+
+
 class RatesToSpikesElephant(RatesToSpikes, ABC):
     __metaclass__ = ABCMeta
 
@@ -49,9 +58,43 @@ class RatesToSpikesElephant(RatesToSpikes, ABC):
                      default=Hz,
                      choices=(Hz, MHz))
 
+    def configure(self):
+        super(RatesToSpikesElephant, self).configure()
+        self.sampling_period = self.dt * self.time_unit
+
     def _rates_analog_signal(self, rates):
-        return self._analog_signal_class(rates*self.rate_unit, sampling_period=self.dt*self.time_unit,
-                                         t_start=self._t_start, t_stop=self._t_stop)
+        return rate_analog_signal(rates, self.sampling_period, self._t_start, self._t_stop, self.rate_unit,
+                                  analog_signal_class=self._analog_signal_class)
+
+
+def compute_for_n_spiketrains(rates, number_of_spiketrains, refractory_period,
+                              sampling_period, rate_unit, t_start, t_stop, as_array=True, analog_signal_class=None,
+                              stationary_poisson_process=None, non_stationary_poisson_process=None):
+    rates = np.maximum(rates, 1e-6)  # avoid rates equal to zeros
+    spiketrains = list()
+    for _ in range(number_of_spiketrains):
+        spiketrains.append(np.array(list()))
+    if len(rates) > 1:
+        this_rates = rate_analog_signal(rates, sampling_period, t_start, t_stop, rate_unit, analog_signal_class)
+        if non_stationary_poisson_process is None:
+            non_stationary_poisson_process = \
+                ElephantFunctions.NONSTATIONARY_POISSON_PROCESS.value(this_rates, refractory_period=refractory_period)
+        else:
+            non_stationary_poisson_process.rate_signal = this_rates
+        spiketrains = non_stationary_poisson_process.generate_n_spiketrains(number_of_spiketrains, as_array=as_array)
+    else:
+        this_rates = rates * rate_unit
+        if stationary_poisson_process is None:
+            stationary_poisson_process = \
+                ElephantFunctions.STATIONARY_POISSON_PROCESS.value(this_rates, t_start=t_start, t_stop=t_stop,
+                                                                   refractory_period=refractory_period)
+        else:
+            stationary_poisson_process.this_rates = this_rates
+            stationary_poisson_process.t_start = t_start
+            stationary_poisson_process.t_stop = t_stop
+            stationary_poisson_process.refractory_period = refractory_period
+        spiketrains = stationary_poisson_process.generate_n_spiketrains(number_of_spiketrains, as_array=as_array)
+    return spiketrains
 
 
 class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
@@ -62,56 +105,40 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         This class can be used to produce independent spike trains per proxy node.
     """
 
-    refractory_period = Float(label="Refractory period",
-                              doc="The time period after one spike no other spike is emitted. "
-                                  "pq.Quantity scalar with dimension time. Default: None.",
-                              required=False,
-                              default=None)
-
-    as_array = Attr(label="as_array",
-                    doc="""Boolean flag to return output spike trains as numpy arrays.""",
-                    field_type=bool,
-                    required=False,
-                    default=True)
-
     def __init__(self, **kwargs):
+        super(RatesToSpikesElephantPoisson, self).__init__(**kwargs)
         self._stationary_poisson_process = None
         self._non_stationary_poisson_process = None
-        super(RatesToSpikesElephantPoisson, self).__init__(**kwargs)
+
+    def configure(self):
+        super(RatesToSpikesElephantPoisson, self).configure()
+        if self.ray_parallel:
+            import ray
+
+            def compute_spiketrains(rates, number_of_spiketrains):
+                return compute_for_n_spiketrains(rates, number_of_spiketrains, self.refractory_period,
+                                                 self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+                                                 as_array=self.as_array, analog_signal_class=self._analog_signal_class)
+
+            self._ray_compute_sequentially = ray.remote(compute_spiketrains)
 
     def _compute_for_n_spiketrains(self, rates, number_of_spiketrains):
-        spiketrains = list()
-        for _ in range(number_of_spiketrains):
-            spiketrains.append(np.array(list()))
-        if len(rates) > 1:
-            this_rates = self._rates_analog_signal(rates)
-            if self._non_stationary_poisson_process is None:
-                self._non_stationary_poisson_process = \
-                    ElephantFunctions.NONSTATIONARY_POISSON_PROCESS.value(this_rates,
-                                                                          refractory_period=self.refractory_period)
-            else:
-                self._non_stationary_poisson_process.rate_signal = this_rates
-            spiketrains = self._non_stationary_poisson_process.generate_n_spiketrains(number_of_spiketrains,
-                                                                                      as_array=self.as_array)
-        else:
-            this_rates = rates * self.rate_unit
-            if self._stationary_poisson_process is None:
-                self._stationary_poisson_process = \
-                    ElephantFunctions.STATIONARY_POISSON_PROCESS.value(this_rates,
-                                                                       t_start=self._t_start, t_stop=self._t_stop,
-                                                                       refractory_period=self.refractory_period)
-            else:
-                self._stationary_poisson_process.rate = this_rates
-                self._stationary_poisson_process.t_start = self.t_start
-                self._stationary_poisson_process.t_stop = self.t_stop
-            spiketrains = self._stationary_poisson_process.generate_n_spiketrains(number_of_spiketrains,
-                                                                                  as_array=self.as_array)
-        return spiketrains
+        return compute_for_n_spiketrains(rates, number_of_spiketrains, self.refractory_period,
+                                         self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+                                         as_array=self.as_array, analog_signal_class=self._analog_signal_class,
+                                         stationary_poisson_process=self._stationary_poisson_process,
+                                         non_stationary_poisson_process=self._non_stationary_poisson_process)
 
     def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (Non)StationaryPoissonProcess functions."""
         return self._compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count])
+
+    def _compute_ray(self, rates):
+        object_refs = []
+        for iP, proxy_rate in enumerate(rates):
+            object_refs.append(self._ray_compute_spiketrains.remote(proxy_rate, self._number_of_neurons[proxy_count]))
+        return list(ray.get(object_refs))
 
 
 class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
@@ -150,11 +177,11 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         self.correlation_factor = correlation_factor.copy()
 
     @abstractmethod
-    def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
+    def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
         pass
 
     @abstractmethod
-    def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, *args):
+    def _compute_interaction_spiketrains(self, shared_spiketrain, number_of_spiketrains, correlation_factor, *args):
         pass
 
     def _compute_spiketrains(self, rates, proxy_count):
@@ -163,11 +190,57 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         """
         n_spiketrains = self._number_of_neurons[proxy_count]
         correlation_factor = self._correlation_factor[proxy_count]
-        shared_spiketrain, rates = self._compute_shared_spiketrain(rates, n_spiketrains, correlation_factor)
+        shared_spiketrain = self._compute_shared_spiketrain(rates, n_spiketrains, correlation_factor)
         if correlation_factor == 1.0:
             return shared_spiketrain * n_spiketrains
         else:
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
+
+    def _compute_ray(self, rates):
+        object_refs = []
+        for iP, proxy_rate in enumerate(rates):
+            object_refs.append(self._ray_compute_spiketrains.remote(proxy_rate,
+                                                                    self._number_of_neurons[proxy_count],
+                                                                    self._correlation_factor[proxy_count]))
+        return list(ray.get(object_refs))
+
+
+def compute_shared_spiketrain_single_interaction(rates, number_of_spiketrains, correlation_factor,
+                                                 refractory_period, sampling_period, rate_unit, t_start, t_stop,
+                                                 as_array=True, analog_signal_class=None,
+                                                 stationary_poisson_process=None, non_stationary_poisson_process=None):
+    return list(compute_for_n_spiketrains(rates * correlation_factor, 1, refractory_period,
+                                          sampling_period, rate_unit, t_start, t_stop, as_array, analog_signal_class,
+                                          stationary_poisson_process, non_stationary_poisson_process)[0])
+
+
+def compute_single_interaction_spiketrains(rates, shared_spiketrain, number_of_spiketrains, correlation_factor,
+                                           refractory_period, sampling_period, rate_unit, t_start, t_stop,
+                                           as_array=True, analog_signal_class=None,
+                                           stationary_poisson_process=None, non_stationary_poisson_process=None):
+    spiketrains = compute_for_n_spiketrains(rates * (1-correlation_factor), number_of_spiketrains, refractory_period,
+                                            sampling_period, rate_unit, t_start, t_stop, as_array, analog_signal_class,
+                                            stationary_poisson_process, non_stationary_poisson_process)
+    for iSP, spiketrain in enumerate(spiketrains):
+        spiketrains[iSP] = np.sort(list(spiketrain) + shared_spiketrain)
+    return spiketrains
+
+
+def compute_for_n_spiketrains_single_interaction(rates, number_of_spiketrains, correlation_factor,
+                                                 refractory_period, sampling_period, rate_unit, t_start, t_stop,
+                                                 as_array=True, analog_signal_class=None,
+                                                 stationary_poisson_process=None, non_stationary_poisson_process=None):
+    shared_spiketrain = compute_shared_spiketrain_single_interaction(
+        rates, number_of_spiketrains, correlation_factor,
+        refractory_period, sampling_period, rate_unit, t_start, t_stop, as_array, analog_signal_class,
+        stationary_poisson_process, non_stationary_poisson_process)
+    if correlation_factor == 1.0:
+        return shared_spiketrain * n_spiketrains
+    else:
+        return compute_single_interaction_spiketrains(
+            rates, shared_spiketrain, number_of_spiketrains, correlation_factor,
+            refractory_period, sampling_period, rate_unit, t_start, t_stop, as_array, analog_signal_class,
+            stationary_poisson_process, non_stationary_poisson_process)
 
 
 class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonInteraction):
@@ -184,18 +257,66 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
         We took it from https://github.com/multiscale-cosim/TVB-NEST-0
     """
 
-    def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
-        return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
-                                                                            rates * correlation_factor, 1)[0], \
-               rates
+    def configure(self):
+        super(RatesToSpikesElephantPoissonSingleInteraction, self).configure()
+        if self.ray_parallel:
+            import ray
 
-    def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, rates):
-        spiketrains = \
-            super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
-                                                                        rates * (1 - correlation_factor), n_spiketrains)
-        for iSP, spiketrain in enumerate(spiketrains):
-            spiketrains[iSP] = np.sort(spiketrain + shared_spiketrain)
-        return spiketrains
+            def compute_spiketrains(rates, number_of_spiketrains, correlation_factor):
+                return compute_for_n_spiketrains_interaction(
+                    rates, number_of_spiketrains, correlation_factor,
+                    self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+                    as_array=self.as_array, analog_signal_class=self._analog_signal_class)
+
+            self._ray_compute_sequentially = ray.remote(compute_spiketrains)
+
+    def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
+        return compute_shared_spiketrain_single_interaction(
+            rates, number_of_spiketrains, correlation_factor,
+            self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+            as_array=self.as_array, analog_signal_class=self._analog_signal_class,
+            stationary_poisson_process=self._stationary_poisson_process,
+            non_stationary_poisson_process=self._non_stationary_poisson_process)
+
+    def _compute_interaction_spiketrains(self, shared_spiketrain, number_of_spiketrains, correlation_factor, rates):
+        return compute_single_interaction_spiketrains(
+            rates, shared_spiketrain, number_of_spiketrains, correlation_factor,
+            self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+            as_array=self.as_array, analog_signal_class=self._analog_signal_class,
+            stationary_poisson_process=self._stationary_poisson_process,
+            non_stationary_poisson_process=self._non_stationary_poisson_process)
+
+
+def compute_shared_spiketrain_multiple_interaction(rates, number_of_spiketrains, correlation_factor,
+                                                   refractory_period, sampling_period, rate_unit, t_start, t_stop,
+                                                   as_array=True, analog_signal_class=None,
+                                                   stationary_poisson_process=None,
+                                                   non_stationary_poisson_process=None):
+    return list(compute_for_n_spiketrains(rates * correlation_factor * number_of_spiketrains, 1, refractory_period,
+                                          sampling_period, rate_unit, t_start, t_stop, as_array, analog_signal_class,
+                                          stationary_poisson_process, non_stationary_poisson_process)[0])
+
+
+def compute_multiple_interaction_spiketrains(shared_spiketrain, number_of_spiketrains, correlation_factor):
+    select = np.random.binomial(n=1, p=correlation_factor, size=(number_of_spiketrains, len(shared_spiketrain)))
+    spiketrains = []
+    for spiketrain_mask in np.repeat([shared_spiketrain], number_of_spiketrains, axis=0) * select:
+        spiketrains.append(np.sort(spiketrain_mask[np.where(spiketrain_mask != 0)]))
+    return spiketrains
+
+
+def compute_for_n_spiketrains_multiple_interaction(rates, number_of_spiketrains, correlation_factor,
+                                                 refractory_period, sampling_period, rate_unit, t_start, t_stop,
+                                                 as_array=True, analog_signal_class=None,
+                                                 stationary_poisson_process=None, non_stationary_poisson_process=None):
+    shared_spiketrain = compute_shared_spiketrain_multiple_interaction(
+        rates, number_of_spiketrains, correlation_factor,
+        refractory_period, sampling_period, rate_unit, t_start, t_stop, as_array, analog_signal_class,
+        stationary_poisson_process, non_stationary_poisson_process)
+    if correlation_factor == 1.0:
+        return shared_spiketrain * n_spiketrains
+    else:
+        return compute_multiple_interaction_spiketrains(shared_spiketrain, number_of_spiketrains, correlation_factor)
 
 
 class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonInteraction):
@@ -212,18 +333,36 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         We took it from https://github.com/multiscale-cosim/TVB-NEST
     """
 
-    def _compute_shared_spiketrain(self, rates, n_spiketrains, correlation_factor):
-        rates = np.maximum(rates * n_spiketrains, 1e-12)  # avoid rates equal to zeros
-        return super(RatesToSpikesElephantPoissonInteraction, self)._compute_for_n_spiketrains(
-                                                                            rates * correlation_factor, 1)[0], \
-               rates
+    def configure(self):
+        super(RatesToSpikesElephantPoissonMultipleInteraction, self).configure()
+        if self.ray_parallel:
+            import ray
 
-    def _compute_interaction_spiketrains(self, shared_spiketrain, n_spiketrains, correlation_factor, *args):
-        select = np.random.binomial(n=1, p=correlation_factor, size=(n_spiketrains, len(shared_spiketrain)))
-        spiketrains = []
-        for spiketrain_mask in np.repeat([shared_spiketrain], n_spiketrains, axis=0)*select:
-            spiketrains.append(np.sort(spiketrain_mask[np.where(spiketrain_mask != 0)]))
-        return spiketrains
+            def compute_spiketrains(rates, number_of_spiketrains, correlation_factor):
+                return compute_for_n_spiketrains_multiple_interaction(
+                    rates, number_of_spiketrains, correlation_factor,
+                    self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+                    as_array=self.as_array, analog_signal_class=self._analog_signal_class)
+
+            self._ray_compute_sequentially = ray.remote(compute_spiketrains)
+
+    def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
+        return compute_shared_spiketrain_multiple_interaction(
+            rates, number_of_spiketrains, correlation_factor,
+            self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+            as_array=self.as_array, analog_signal_class=self._analog_signal_class,
+            stationary_poisson_process=self._stationary_poisson_process,
+            non_stationary_poisson_process=self._non_stationary_poisson_process)
+
+    def _compute_interaction_spiketrains(self, shared_spiketrain, number_of_spiketrains, correlation_factor, *args):
+        return compute_multiple_interaction_spiketrains(shared_spiketrain, number_of_spiketrains, correlation_factor)
+
+
+def spiketrain(spikes, time_unit, t_start, t_stop, spike_train_class=None):
+    if spike_train_class is None:
+        from neo import SpikeTrain
+        spike_train_class = SpikeTrain
+    return spike_train_class(spikes.astype(np.float64) * time_unit, t_start=t_start, t_stop=t_stop)
 
 
 class SpikesToRatesElephant(SpikesToRates, ABC):
@@ -254,6 +393,10 @@ class SpikesToRatesElephant(SpikesToRates, ABC):
                      default=Hz,
                      choices=(Hz, MHz))
 
+    def configure(self):
+        super(SpikesToRatesElephant, self).configure()
+        self.bin_size = self.dt * self.time_unit
+
     @property
     def _t_start(self):
         return (self.dt * (self.input_time[0] - 1) + self.time_shift - np.finfo(np.float32).resolution) * self.ms
@@ -262,8 +405,14 @@ class SpikesToRatesElephant(SpikesToRates, ABC):
     def _t_stop(self):
         return (self.dt * self.input_time[-1] + self.time_shift + np.finfo(np.float32).resolution) * self.ms
 
-    def _spiketrain(self, spikes):
-        return self._spike_train_class(spikes * self.time_unit, t_start=self._t_start, t_stop=self._t_stop)
+    def spiketrain(self, spikes):
+        return spiketrain(spikes, self.time_unit, self._t_start, self._t_stop, self._spike_train_class)
+
+
+def compute_rates_ElephantSpikesHistogram(spikes, bin_size, time_unit, t_start, t_stop, spike_train_class=None):
+    return ElephantFunctions.TIME_HISTOGRAM([spiketrain(spikes, time_unit, t_start, t_stop,
+                                                           spike_train_class=spike_train_class)],
+                                            bin_size, output="counts")
 
 
 class ElephantSpikesHistogram(SpikesToRatesElephant):
@@ -273,17 +422,37 @@ class ElephantSpikesHistogram(SpikesToRatesElephant):
         The algorithm is based just on computing a time histogram of the spike trains.
     """
 
-    @staticmethod
-    def _time_hist_fun(*args, **kwargs):
-        return ElephantFunctions.TIME_HISTOGRAM(*args, **kwargs)
+    def configure(self):
+        super(ElephantSpikesHistogram, self).configure()
+        if self.ray_parallel:
+            import ray
 
-    def _compute_fun(self, spiketrains):
-        return self._time_hist_fun(spiketrains, self.dt * self.time_unit, output="counts").flatten()
+            def _compute_rates(spikes, scale_factor, translation_factor):
+                """Method for the computation of spike trains data transformation
+                   to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+                return scale_factor \
+                        * np.array(
+                            compute_rates_ElephantSpikesHistogram(
+                                spikes, self.bin_size, self.time_unit, self._t_start, self._t_stop,
+                                spike_train_class=self._spike_train_class).flatten()) \
+                        + translation_factor
 
-    def _compute_rates(self, spikes, *args, **kwargs):
+            self._ray_compute_rates = ray.remote(_compute_rates)
+
+    def _compute_rates(self, spikes):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
-        return np.array(self._compute_fun(self._spiketrain(spikes)))
+        return np.array(
+                compute_rates_ElephantSpikesHistogram(spikes,  self.bin_size,
+                                                      self.time_unit, self._t_start, self._t_stop,
+                                                      spike_train_class=self._spike_train_class).flatten())
+
+
+def compute_rates_ElephantSpikesHistogramRate(spikes, bin_size,
+                                              rate_unit, time_unit, t_start, t_stop, spike_train_class=None):
+    return (compute_rates_ElephantSpikesHistogram(spikes, bin_size, time_unit, t_start, t_stop,
+                                                  spike_train_class=spike_train_class)
+            / bin_size).rescale(rate_unit)
 
 
 class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
@@ -294,9 +463,43 @@ class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
         and then dividing with the bin width.
     """
 
-    def _compute_fun(self, spiketrains):
-        return (ElephantSpikesHistogram._compute_fun(self, spiketrains) /
-                (self.dt * self.time_unit)).rescale(self.rate_unit).flatten()
+    def configure(self):
+        super(ElephantSpikesHistogramRate, self).configure()
+        if self.ray_parallel:
+            import ray
+
+            def _compute_rates(spikes, scale_factor, translation_factor):
+                """Method for the computation of spike trains data transformation
+                   to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+                return scale_factor \
+                        * np.array(
+                                compute_rates_ElephantSpikesHistogramRate(
+                                    spikes, self.bin_size, self.rate_unit, self.time_unit, self._t_start, self._t_stop,
+                                    spike_train_class=self._spike_train_class).flatten()) \
+                        + translation_factor
+
+            self._ray_compute_rates = ray.remote(_compute_rates)
+
+    def _compute_rates(self, spikes):
+        """Method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+        return np.array(
+            compute_rates_ElephantSpikesHistogramRate(spikes, self.bin_size, self.rate_unit,
+                                                      self.time_unit, self._t_start, self._t_stop,
+                                                      spike_train_class=self._spike_train_class).flatten())
+
+
+def compute_ElephantSpikesRate(spikes,  kernel, bin_size,
+                               rate_unit, time_unit, t_start, t_stop, spike_train_class=None):
+    spikestrain = spiketrain(spikes, time_unit, t_start, t_stop, spike_train_class=spike_train_class)
+    if kernel != "auto" or spiketrain.size > 2:
+        return np.array(
+            ElephantFunctions.INSTANTANEOUS_RATE(
+                spikestrain, bin_size, kernel).rescale(rate_unit))
+    else:
+        # If we have less than 3 spikes or kernel="auto", we revert to time_histogram computation
+        return np.array((ElephantFunctions.TIME_HISTOGRAM([spikestrain], bin_size , output="counts"))
+                        / bin_size).rescale(rate_unit)
 
 
 class ElephantSpikesRate(ElephantSpikesHistogramRate):
@@ -320,34 +523,38 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
     kernel = None
 
     def __init__(self, **kwargs):
-        self.kernel = None
         super(ElephantSpikesRate, self).__init__(**kwargs)
-
-    @staticmethod
-    def _rate_fun(*args, **kwargs):
-        return ElephantFunctions.INSTANTANEOUS_RATE(*args, **kwargs)
+        self.kernel = None
 
     def configure(self):
+        super(ElephantSpikesRate, self).configure()
         # This is a temporary hack to go around the above problem with TVB traits' system:
         if self.kernel is None:
-            self.kernel = self._default_kernel_class(self.dt*self.time_unit)
+            self.kernel = self._default_kernel_class(self.dt * self.time_unit)
         assert self.kernel == "auto" or isinstance(self.kernel, self._kernel_class)
         self.output_type = "rate"
-        super(ElephantSpikesRate, self).configure()
+        if self.ray_parallel:
+            import ray
 
-    def _compute_rates(self, spikes, *args, **kwargs):
+            def _compute_rates(spikes, scale_factor, translation_factor):
+                """Method for the computation of spike trains data transformation
+                   to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+                return scale_factor \
+                        * np.array(
+                            compute_ElephantSpikesRate(
+                                spikes, self.kernel, self.bin_size,  self.rate_unit,
+                                self.time_unit, self._t_start, self._t_stop,
+                                spike_train_class=self._spike_train_class).flatten()) \
+                       + translation_factor
+            self._ray_compute_rates = ray.remote(_compute_rates)
+
+    def _compute_rates(self, spikes):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.instantaneous_rate function."""
-        spikes = spikes.astype(np.float64)
-        spiketrain = self._spiketrain(spikes)
-        if self.kernel != "auto" or spiketrain.size > 2:
-            data = np.array(
-                self._rate_fun(spiketrain,
-                               self.dt*self.time_unit, self.kernel, *args, **kwargs).rescale(self.rate_unit)).flatten()
-            return data
-        else:
-            # If we have less than 3 spikes amd kernel="auto", we revert to time_histogram computation
-            return np.array(ElephantSpikesHistogramRate._compute_fun(spiketrain).flatten())
+        return np.array(
+            compute_ElephantSpikesRate(spikes, self.kernel, self.bin_size, self.rate_unit,
+                                       self.time_unit, self._t_start, self._t_stop,
+                                       spike_train_class=self._spike_train_class).flatten())
 
     def info(self, recursive=0):
         info = super(ElephantSpikesRate, self).info(recursive=recursive)
