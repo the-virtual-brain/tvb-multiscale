@@ -45,7 +45,7 @@ class DefaultSpikeNetToTVBTransformers(Enum):
 
 class DefaultTVBtoSpikeNetModels(Enum):
     RATE = DefaultTVBtoSpikeNetTransformers.RATE.name
-    SPIKES = DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.name
+    SPIKES = DefaultTVBtoSpikeNetTransformers.SPIKES.name
     CURRENT = DefaultTVBtoSpikeNetTransformers.CURRENT.name
 
 
