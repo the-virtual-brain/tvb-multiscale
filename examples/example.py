@@ -194,6 +194,12 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
+    if kwargs.get("tvb_to_spikeNet_transformer_model", None) is not None:
+        transformer_model = kwargs.pop("tvb_to_spikeNet_transformer_model")
+        setattr(tvb_spikeNet_model_builder._default_tvb_to_spikeNet_transformer_models, model, transformer_model)
+    if kwargs.get("spikeNet_to_tvb_transformer_model", None) is not None:
+        transformer_model = kwargs.pop("spikeNet_to_tvb_transformer_model")
+        tvb_spikeNet_model_builder._default_spikeNet_to_tvb_transformer_models.SPIKES = transformer_model
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
     tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order

@@ -27,7 +27,7 @@ from tvb_multiscale.core.interfaces.transformers.interfaces import TransformerIn
     SpikeNetToTVBRemoteTransformerInterface, SpikeNetToTVBRemoteTransformerInterfaces
 
 
-class DefaultTVBtoSpikeNetTransformers(Enum):
+class TVBtoSpikeNetTransformers(Enum):
     RATE = LinearRate
     SPIKES = RatesToSpikesElephantPoisson
     SPIKES_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
@@ -35,7 +35,7 @@ class DefaultTVBtoSpikeNetTransformers(Enum):
     CURRENT = LinearCurrent
 
 
-class DefaultSpikeNetToTVBTransformers(Enum):
+class SpikeNetToTVBTransformers(Enum):
     SPIKES = ElephantSpikesHistogramRate
     SPIKES_TO_RATE = ElephantSpikesRate
     SPIKES_TO_HIST = ElephantSpikesHistogram
@@ -43,15 +43,15 @@ class DefaultSpikeNetToTVBTransformers(Enum):
     POTENTIAL = LinearPotential
 
 
-class DefaultTVBtoSpikeNetModels(Enum):
-    RATE = DefaultTVBtoSpikeNetTransformers.RATE.name
-    SPIKES = DefaultTVBtoSpikeNetTransformers.SPIKES_SINGLE_INTERACTION.name
-    CURRENT = DefaultTVBtoSpikeNetTransformers.CURRENT.name
+class DefaultTVBtoSpikeNetTransformers(object):
+    RATE = TVBtoSpikeNetTransformers.RATE.name
+    SPIKES = TVBtoSpikeNetTransformers.SPIKES.name
+    CURRENT = TVBtoSpikeNetTransformers.CURRENT.name
 
 
-class DefaultSpikeNetToTVBModels(Enum):
-    SPIKES = DefaultSpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
-    POTENTIAL = DefaultSpikeNetToTVBTransformers.POTENTIAL.name
+class DefaultSpikeNetToTVBTransformers(object):
+    SPIKES = SpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
+    POTENTIAL = SpikeNetToTVBTransformers.POTENTIAL.name
 
 
 class TransformerBuilder(HasTraits):
@@ -79,7 +79,18 @@ class TransformerBuilder(HasTraits):
                doc="Time step of simulation",
                required=True, default=0.0)
 
-    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds", "dt"]
+    ray_parallel = Attr(label="ray_parallel",
+                        doc="""Boolean flag to use Ray parallelization if possible. Default is True.""",
+                        field_type=bool,
+                        required=False,
+                        default=True)
+
+    _config_attrs = ["default_coupling_mode", "exclusive_nodes", "proxy_inds", "dt", "ray_parallel"]
+
+    def __init__(self, **kwargs):
+        super(TransformerBuilder, self).__init__(**kwargs)
+        if "ray_parallel" not in kwargs:
+            self.ray_parallel = self.config.RAY_PARALLEL
 
     def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
         # Return a model or an Enum
@@ -91,7 +102,7 @@ class TransformerBuilder(HasTraits):
             else:
                 model = model.upper()
             assert model in list(interface_models.__members__)  # Enum names (strings)
-            model = getattr(default_transformer_models, model).value  # string name of transformer type
+            model = getattr(default_transformer_models, model)  # string name of transformer type
         if isinstance(model, Enum):
             # Enum input:
             assert model in transformer_models
@@ -126,19 +137,20 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
     """TVBtoSpikeNetTransformerBuilder abstract class"""
 
     _tvb_to_spikeNet_models = list(TVBtoSpikeNetModels.__members__)
-    _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
-    _tvb_to_spikeNet_transformer_models = DefaultTVBtoSpikeNetTransformers
+    _default_tvb_to_spikeNet_transformer_models = DefaultTVBtoSpikeNetTransformers
+    _tvb_to_spikeNet_transformer_models = TVBtoSpikeNetTransformers
 
     def configure_and_build_transformers(self, interfaces):
         for interface in interfaces:
             self._configure_transformer_model(interface, self._tvb_to_spikeNet_models,
-                                              self._default_tvb_to_spikeNet_models,
+                                              self._default_tvb_to_spikeNet_transformer_models,
                                               self._tvb_to_spikeNet_transformer_models)
-            params = interface.pop("transformer_params", {})
+            params = dict(interface.pop("transformer_params", {}))
+            params["ray_parallel"] = params.get("ray_parallel", self.ray_parallel)
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
-                if interface["transformer"] == self._default_tvb_to_spikeNet_models.SPIKES:
+                if interface["transformer"] == self._default_tvb_to_spikeNet_transformer_models.SPIKES:
                     # If the transformer is "SPIKES", but there are parameters that concern correlations...
                     correlation_factor = params.pop("correlation_factor", None)
                     if correlation_factor:
@@ -146,12 +158,12 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
                         if interaction == "single":
                             interface["transformer"] = \
                                 self.build_transformer(
-                                    self._default_tvb_to_spikeNet_models.SPIKES_SINGLE_INTERACTION.value,
+                                    self._default_tvb_to_spikeNet_transformer_models.SPIKES_SINGLE_INTERACTION.value,
                                     correlation_factor=correlation_factor, **params)
                         else:
                             interface["transformer"] = \
                                 self.build_transformer(
-                                    self._default_tvb_to_spikeNet_models.SPIKES_MULTIPLE_INTERACTION.value,
+                                    self._default_tvb_to_spikeNet_transformer_models.SPIKES_MULTIPLE_INTERACTION.value,
                                     correlation_factor=correlation_factor, **params)
                     else:
                         # SPIKES without correlations:
@@ -172,15 +184,16 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
     """SpikeNetToTVBTransformerBuilder abstract class"""
 
     _spikeNet_to_tvb_models = list(SpikeNetToTVBModels.__members__)
-    _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBModels
-    _spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBTransformers
+    _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBTransformers
+    _spikeNet_to_tvb_transformer_models = SpikeNetToTVBTransformers
 
     def configure_and_build_transformers(self, interfaces):
         for interface in interfaces:
             self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
                                               self._default_spikeNet_to_tvb_transformer_models,
                                               self._spikeNet_to_tvb_transformer_models)
-            params = interface.pop("transformer_params", {})
+            params = dict(interface.pop("transformer_params", {}))
+            params["ray_parallel"] = params.get("ray_parallel", self.ray_parallel)
             params["dt"] = params.pop("dt", self.dt)
             if isinstance(interface["transformer"], Enum):
                 # It will be either an Enum...
