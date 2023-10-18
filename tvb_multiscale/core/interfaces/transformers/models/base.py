@@ -2,7 +2,6 @@
 
 import warnings
 from copy import deepcopy
-from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
@@ -13,14 +12,12 @@ from tvb_multiscale.core.config import Config, CONFIGURED
 
 
 class Transformer(HasTraits):
-    __metaclass__ = ABCMeta
 
     """
-        Abstract Transformer base class comprising:
+        Base Transformer base class comprising:
             - an input buffer data,
             - an output buffer data,
-            - an abstract method for the computations applied 
-              upon the input buffer data for the output buffer data to result.
+            - a method for the computations applied upon the input buffer data for the output buffer data to result.
     """
 
     config = Attr(
@@ -87,30 +84,16 @@ class Transformer(HasTraits):
         super(Transformer, self).__init__(**kwargs)
         self.__compute = None
 
-    def configure(self):
-        if self.ray_parallel:
-            self.ray_parallel = _assert_ray(self.__class__.__name__)
-        if self.ray_parallel:
-            try:
-                assert hasattr(self, "_compute_ray") and callable("_compute_ray")
-            except:
-                warning.warn("Transformer %s has no _compute_ray method!" % self.__class__.__name__ +
-                             "\nParallelization with Ray is not possible!" +
-                             "\nSwitching to sequential computation!")
-                self.ray_parallel = False
-            self.__compute = self._compute_ray
-
     def compute_time(self):
         self.output_time = np.copy(self.input_time) + np.round(self.time_shift / self.dt).astype("i")
 
-    @abstractmethod
     def _compute(self, input_buffer, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result.
+        """A method to be implemented for the computation on the input buffer data for the output buffer data to result.
            It returns the output of its computation"""
-        pass
+        raise NotImplementedError
 
     def compute(self, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result.
+        """A method to be implemented for the computation on the input buffer data for the output buffer data to result.
            It sets the output buffer property"""
         self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs))
 
@@ -244,15 +227,30 @@ def _assert_ray(transformer):
         return False
 
 
+def configure_transformer_with_ray(transformer):
+    transformer.__compute = transformer._compute_sequentially
+    if transformer.ray_parallel:
+        transformer.ray_parallel = _assert_ray(transformer.__class__.__name__)
+    if transformer.ray_parallel:
+        try:
+            assert hasattr(transformer, "_compute_ray") and callable(transformer._compute_ray)
+            transformer.__compute = transformer._compute_ray
+        except:
+            warnings.warn("Transformer %s has no _compute_ray method!" % transformer.__class__.__name__ +
+                          "\nParallelization with Ray is not possible!" +
+                          "\nSwitching to sequential computation!")
+            transformer.ray_parallel = False
+    return transformer.ray_parallel, transformer.__compute
+
+
 def ray_compute_spiketrains_non_implemented_error(classname, *args, **kwargs):
     raise NonImplementedError("_ray_compute_sequentially not implemented for %s transformer!" % classname)
 
 
 class RatesToSpikes(LinearRate):
-    __metaclass__ = ABCMeta
 
     """
-        RatesToSpikes Transformer abstract base class
+        RatesToSpikes Transformer base class
     """
 
     output_buffer = Attr(
@@ -288,7 +286,13 @@ class RatesToSpikes(LinearRate):
         self._ray_compute_sequentially = \
             lambda *args, **kwargs: ray_compute_spiketrains_non_implemented_error(self.__class__.__name__,
                                                                                   *args, **kwargs)
-        self.__compute = self._compute_sequentially
+        self.__compute = None
+
+    def configure(self):
+        super(RatesToSpikes, self).configure()
+        ray_parallel, __compute = configure_transformer_with_ray(self)
+        self.ray_parallel = ray_parallel
+        self.__compute = __compute
 
     @property
     def _number_of_neurons(self):
@@ -302,10 +306,9 @@ class RatesToSpikes(LinearRate):
     def _t_stop(self):
         return (self.dt * self.input_time[-1] + self.time_shift) * self.ms
 
-    @abstractmethod
     def _compute_spiketrains(self, rates, proxy_count, *args, **kwargs):
-        """Abstract method for the computation of rates data transformation to spike trains."""
-        pass
+        """A method to be implemented for the computation of rates data transformation to spike trains."""
+        raise NotImplementedError
 
     def _compute_sequentially(self, rates, *args, **kwargs):
         output_buffer = []
@@ -313,13 +316,16 @@ class RatesToSpikes(LinearRate):
             output_buffer.append(self._compute_spiketrains(proxy_rate, iP, *args, **kwargs))
         return output_buffer
 
+    def _compute_ray(self, input_buffer):
+        pass
+
     def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
         return self.__compute(self.scale_factor * input_buffer + self.translation_factor, *args, **kwargs)
 
     def compute(self, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result.
+        """Method for the computation on the input buffer data for the output buffer data to result.
            It sets the output buffer property."""
         self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs), dtype=object)
         return self.output_buffer
@@ -330,10 +336,9 @@ def ray_compute_rates_non_implemented_error(classname, *args, **kwargs):
 
 
 class SpikesToRates(LinearRate):
-    __metaclass__ = ABCMeta
 
     """
-        SpikesToRates Transformer abstract base class
+        SpikesToRates Transformer base class
     """
 
     input_buffer = Attr(
@@ -348,7 +353,13 @@ class SpikesToRates(LinearRate):
         super(SpikesToRates, self).__init__(**kwargs)
         self._ray_compute_rates = \
             lambda *args, **kwargs: ray_compute_rates_non_implemented_error(self.__class__.__name__, *args, **kwargs)
-        self.__compute = self._compute_sequentially
+        self.__compute = None
+
+    def configure(self):
+        super(SpikesToRates, self).configure()
+        ray_parallel, __compute = configure_transformer_with_ray(self)
+        self.ray_parallel = ray_parallel
+        self.__compute = __compute
 
     @property
     def _t_start(self):
@@ -358,11 +369,10 @@ class SpikesToRates(LinearRate):
     def _t_stop(self):
         return (self.dt * self.input_time[-1] + self.time_shift) * self.ms
 
-    @abstractmethod
     def _compute_rates(self, spikes, *args, **kwargs):
-        """Abstract method for the computation of spike trains data transformation
+        """A method to be implemented for the computation of spike trains data transformation
            to instantaneous mean spiking rates."""
-        pass
+        raise NotImplementedError
 
     def _compute_sequentially(self, input_buffer, *args, **kwargs):
         output_buffer = []
@@ -373,12 +383,7 @@ class SpikesToRates(LinearRate):
         return output_buffer
 
     def _compute_ray(self, input_buffer):
-        object_refs = []
-        for proxy_buffer, scale_factor, translation_factor in \
-                zip(input_buffer, self._scale_factor, self._translation_factor):
-            # At this point we assume that input_buffer has shape (proxy,)
-            object_refs.append(self._ray_compute_rates.remote(proxy_buffer, scale_factor, translation_factor))
-        return list(ray.get(object_refs))
+        pass
 
     def _compute(self, input_buffer, *args, **kwargs):
         """Method for the computation on the input buffer spikes' trains' data
