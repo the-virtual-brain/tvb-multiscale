@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from copy import deepcopy
-from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
@@ -12,14 +12,12 @@ from tvb_multiscale.core.config import Config, CONFIGURED
 
 
 class Transformer(HasTraits):
-    __metaclass__ = ABCMeta
 
     """
-        Abstract Transformer base class comprising:
+        Base Transformer base class comprising:
             - an input buffer data,
             - an output buffer data,
-            - an abstract method for the computations applied 
-              upon the input buffer data for the output buffer data to result.
+            - a method for the computations applied upon the input buffer data for the output buffer data to result.
     """
 
     config = Attr(
@@ -74,27 +72,38 @@ class Transformer(HasTraits):
         default=0.0
     )
 
+    ray_parallel = Attr(label="ray_parallel",
+                        doc="""Boolean flag to use Ray parallelization if possible. Default is True.""",
+                        field_type=bool,
+                        required=True,
+                        default=True)
+
+    __compute = None
+
+    def __init__(self, **kwargs):
+        super(Transformer, self).__init__(**kwargs)
+        self.__compute = None
+
     def compute_time(self):
         self.output_time = np.copy(self.input_time) + np.round(self.time_shift / self.dt).astype("i")
 
-    @abstractmethod
     def _compute(self, input_buffer, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result.
+        """A method to be implemented for the computation on the input buffer data for the output buffer data to result.
            It returns the output of its computation"""
-        pass
+        raise NotImplementedError
 
     def compute(self, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result.
+        """A method to be implemented for the computation on the input buffer data for the output buffer data to result.
            It sets the output buffer property"""
         self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs))
 
-    def __call__(self, data=None, time=None):
+    def __call__(self, data=None, time=None, *args, **kwargs):
         if data is not None:
             self.input_buffer = data
         if time is not None:
             self.input_time = time
         self.compute_time()
-        self.compute()
+        self.compute(*args, **kwargs)
         return [self.output_time, self.output_buffer]
 
     def __getattribute__(self, attr):
@@ -208,11 +217,40 @@ class LinearPotential(Linear):
     pass
 
 
+def _assert_ray(transformer):
+    try:
+        import ray
+        return True
+    except Exception as e:
+        warnings.warn("Failed to import ray with error!: \n%s\n"
+                      "No parallelization for %s transformer will be used!" % (str(e), transformer))
+        return False
+
+
+def configure_transformer_with_ray(transformer):
+    transformer.__compute = transformer._compute_sequentially
+    if transformer.ray_parallel:
+        transformer.ray_parallel = _assert_ray(transformer.__class__.__name__)
+    if transformer.ray_parallel:
+        try:
+            assert hasattr(transformer, "_compute_ray") and callable(transformer._compute_ray)
+            transformer.__compute = transformer._compute_ray
+        except:
+            warnings.warn("Transformer %s has no _compute_ray method!" % transformer.__class__.__name__ +
+                          "\nParallelization with Ray is not possible!" +
+                          "\nSwitching to sequential computation!")
+            transformer.ray_parallel = False
+    return transformer.ray_parallel, transformer.__compute
+
+
+def ray_compute_spiketrains_non_implemented_error(classname, *args, **kwargs):
+    raise NonImplementedError("_ray_compute_sequentially not implemented for %s transformer!" % classname)
+
+
 class RatesToSpikes(LinearRate):
-    __metaclass__ = ABCMeta
 
     """
-        RatesToSpikes Transformer abstract base class
+        RatesToSpikes Transformer base class
     """
 
     output_buffer = Attr(
@@ -231,6 +269,31 @@ class RatesToSpikes(LinearRate):
         default=np.array([1]).astype('i')
     )
 
+    refractory_period = Float(label="Refractory period",
+                              doc="The time period after one spike no other spike is emitted. "
+                                  "pq.Quantity scalar with dimension time. Default: None.",
+                              required=False,
+                              default=None)
+
+    as_array = Attr(label="as_array",
+                    doc="""Boolean flag to return output spike trains as numpy arrays. Default is True.""",
+                    field_type=bool,
+                    required=False,
+                    default=True)
+
+    def __init__(self, **kwargs):
+        super(RatesToSpikes, self).__init__(**kwargs)
+        self._ray_compute_sequentially = \
+            lambda *args, **kwargs: ray_compute_spiketrains_non_implemented_error(self.__class__.__name__,
+                                                                                  *args, **kwargs)
+        self.__compute = None
+
+    def configure(self):
+        super(RatesToSpikes, self).configure()
+        ray_parallel, __compute = configure_transformer_with_ray(self)
+        self.ray_parallel = ray_parallel
+        self.__compute = __compute
+
     @property
     def _number_of_neurons(self):
         return self._assert_size("number_of_neurons")
@@ -243,31 +306,39 @@ class RatesToSpikes(LinearRate):
     def _t_stop(self):
         return (self.dt * self.input_time[-1] + self.time_shift) * self.ms
 
-    @abstractmethod
     def _compute_spiketrains(self, rates, proxy_count, *args, **kwargs):
-        """Abstract method for the computation of rates data transformation to spike trains."""
-        pass
+        """A method to be implemented for the computation of rates data transformation to spike trains."""
+        raise NotImplementedError
 
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer rates' data
-           for the output buffer data of spike trains to result."""
-        rates = self.scale_factor * input_buffer + self.translation_factor
+    def _compute_sequentially(self, rates, *args, **kwargs):
         output_buffer = []
         for iP, proxy_rate in enumerate(rates):
             output_buffer.append(self._compute_spiketrains(proxy_rate, iP, *args, **kwargs))
         return output_buffer
 
+    def _compute_ray(self, input_buffer):
+        pass
+
+    def _compute(self, input_buffer, *args, **kwargs):
+        """Method for the computation on the input buffer rates' data
+           for the output buffer data of spike trains to result."""
+        return self.__compute(self.scale_factor * input_buffer + self.translation_factor, *args, **kwargs)
+
     def compute(self, *args, **kwargs):
-        """Abstract method for the computation on the input buffer data for the output buffer data to result.
-           It sets the output buffer property"""
+        """Method for the computation on the input buffer data for the output buffer data to result.
+           It sets the output buffer property."""
         self.output_buffer = np.array(self._compute(self.input_buffer, *args, **kwargs), dtype=object)
+        return self.output_buffer
+
+
+def ray_compute_rates_non_implemented_error(classname, *args, **kwargs):
+    raise NonImplementedError("_ray_compute_rates not implemented for %s transformer!" % classname)
 
 
 class SpikesToRates(LinearRate):
-    __metaclass__ = ABCMeta
 
     """
-        RateToSpikes Transformer abstract base class
+        SpikesToRates Transformer base class
     """
 
     input_buffer = Attr(
@@ -278,6 +349,18 @@ class SpikesToRates(LinearRate):
         default=np.array(list()).astype("O")
     )
 
+    def __init__(self, **kwargs):
+        super(SpikesToRates, self).__init__(**kwargs)
+        self._ray_compute_rates = \
+            lambda *args, **kwargs: ray_compute_rates_non_implemented_error(self.__class__.__name__, *args, **kwargs)
+        self.__compute = None
+
+    def configure(self):
+        super(SpikesToRates, self).configure()
+        ray_parallel, __compute = configure_transformer_with_ray(self)
+        self.ray_parallel = ray_parallel
+        self.__compute = __compute
+
     @property
     def _t_start(self):
         return (self.dt * (self.input_time[0] - 1) + self.time_shift) * self.ms
@@ -286,18 +369,23 @@ class SpikesToRates(LinearRate):
     def _t_stop(self):
         return (self.dt * self.input_time[-1] + self.time_shift) * self.ms
 
-    @abstractmethod
     def _compute_rates(self, spikes, *args, **kwargs):
-        """Abstract method for the computation of spike trains data transformation
+        """A method to be implemented for the computation of spike trains data transformation
            to instantaneous mean spiking rates."""
-        pass
+        raise NotImplementedError
 
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer spikes' trains' data
-           for the output buffer data of instantaneous mean spiking rates to result."""
+    def _compute_sequentially(self, input_buffer, *args, **kwargs):
         output_buffer = []
         for proxy_buffer, scale_factor, translation_factor in \
                 zip(input_buffer, self._scale_factor, self._translation_factor):
             # At this point we assume that input_buffer has shape (proxy,)
             output_buffer.append(scale_factor * self._compute_rates(proxy_buffer, *args, **kwargs) + translation_factor)
         return output_buffer
+
+    def _compute_ray(self, input_buffer):
+        pass
+
+    def _compute(self, input_buffer, *args, **kwargs):
+        """Method for the computation on the input buffer spikes' trains' data
+           for the output buffer data of instantaneous mean spiking rates to result."""
+        return self.__compute(input_buffer, *args, **kwargs)

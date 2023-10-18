@@ -55,13 +55,13 @@ class ANNarchyOutputProxyModels(Enum):
     POTENTIAL_TOTAL = ANNarchyMonitorTotalSet
 
 
-class DefaultTVBtoANNarchyModels(Enum):
+class DefaultTVBtoANNarchyProxyModels(object):
     RATE = ANNarchyInputProxyModels.RATE.name
     SPIKES = ANNarchyInputProxyModels.SPIKES.name
     CURRENT =ANNarchyInputProxyModels.CURRENT.name
 
 
-class DefaultANNarchytoTVBModels(Enum):
+class DefaultANNarchytoTVBProxyModels(object):
     SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN.name
 
@@ -120,8 +120,8 @@ class ANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, SpikeNetInterfaceBuild
     _tvb_to_spikeNet_models = TVBtoANNarchyModels
     _spikeNet_to_tvb_models = ANNarchyToTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoANNarchyModels
-    _default_spikeNet_to_tvb_models = DefaultANNarchytoTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoANNarchyProxyModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultANNarchytoTVBProxyModels
 
     _input_proxy_models = ANNarchyInputProxyModels
     _output_proxy_models = ANNarchyOutputProxyModels
@@ -197,9 +197,6 @@ class TVBANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, TVBSpikeNetInterfac
 
     _tvb_to_spikeNet_models = TVBtoANNarchyModels
     _spikeNet_to_TVB_models = ANNarchyToTVBModels
-
-    _default_ANNarchy_to_tvb_models = DefaultANNarchytoTVBModels
-    _default_tvb_to_ANNarchy_models = DefaultTVBtoANNarchyModels
 
     _input_proxy_models = ANNarchyOutputProxyModels  # Input to SpikeNet is output of TVB
     _output_proxy_models = ANNarchyInputProxyModels  # Output of SpikeNet is input to TVB

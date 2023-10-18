@@ -15,7 +15,7 @@ from examples.tvb_netpyne.models.red_wong_wang import excio_inhi_example
 class TestDefault(TestSpikeNetModel):
 
     def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode,
+        default_example(model=self.tvb_to_spikeNet_model,
                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                         simulation_length=self.simulation_length, transient=self.transient,
@@ -37,7 +37,7 @@ class TestDefaultRATE(TestDefault):
 class TestWilsonCowan(TestSpikeNetModel):
 
     def run_fun(self):
-        wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
+        wilson_cowan_example(model=self.tvb_to_spikeNet_model,
                              spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                              simulation_length=self.simulation_length, transient=self.transient,
@@ -58,7 +58,7 @@ class TestWilsonCowanRATE(TestWilsonCowan):
 
 class TestRedWongWang(TestSpikeNetModel):
     def run_fun(self):
-        excio_inhi_example(model=self.tvb_to_spikeNet_mode,
+        excio_inhi_example(model=self.tvb_to_spikeNet_model,
                            spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                            exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                            simulation_length=self.simulation_length, transient=self.transient,
