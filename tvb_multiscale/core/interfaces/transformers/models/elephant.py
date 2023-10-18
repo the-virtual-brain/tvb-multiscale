@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod, ABC
 from enum import Enum
 
 import numpy as np
 
 from tvb.basic.neotraits._attr import Attr, Float, NArray
 
-from tvb_multiscale.core.interfaces.transformers.models.base import RatesToSpikes, SpikesToRates
+from tvb_multiscale.core.interfaces.transformers.models.base import RatesToSpikes, SpikesToRates, configure_transformer_with_ray
+
+
+try:
+    import ray
+except:
+    ray = None
 
 
 class ElephantFunctions(Enum):
@@ -30,11 +35,10 @@ def rate_analog_signal(rates, sampling_period, t_start, t_stop, rate_unit, analo
     return analog_signal_class(rates*rate_unit, sampling_period=sampling_period, t_start=t_start, t_stop=t_stop)
 
 
-class RatesToSpikesElephant(RatesToSpikes, ABC):
-    __metaclass__ = ABCMeta
+class RatesToSpikesElephant(RatesToSpikes):
 
     """
-        RatesToSpikesElephant Transformer abstract base class, using elephant software.
+        RatesToSpikesElephant Transformer base class, using elephant software.
     """
 
     from quantities import Quantity, ms, s, sec, second, Hz, MHz
@@ -97,6 +101,16 @@ def compute_for_n_spiketrains(rates, number_of_spiketrains, refractory_period,
     return spiketrains
 
 
+if ray is not None:
+
+    @ray.remote
+    def ray_compute_for_n_spiketrains(rates, number_of_spiketrains, refractory_period, sampling_period,
+                                      rate_unit, t_start, t_stop, as_array=True, analog_signal_class=None):
+        return compute_for_n_spiketrains(rates, number_of_spiketrains, refractory_period,
+                                         sampling_period, rate_unit, t_start, t_stop,
+                                         as_array=as_array, analog_signal_class=analog_signal_class)
+
+
 class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
     """
         RatesToSpikesElephantPoisson Transformer class,
@@ -109,43 +123,34 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         super(RatesToSpikesElephantPoisson, self).__init__(**kwargs)
         self._stationary_poisson_process = None
         self._non_stationary_poisson_process = None
-
-    def configure(self):
-        super(RatesToSpikesElephantPoisson, self).configure()
-        if self.ray_parallel:
-            import ray
-
-            def compute_spiketrains(rates, number_of_spiketrains):
-                return compute_for_n_spiketrains(rates, number_of_spiketrains, self.refractory_period,
-                                                 self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
-                                                 as_array=self.as_array, analog_signal_class=self._analog_signal_class)
-
-            self._ray_compute_sequentially = ray.remote(compute_spiketrains)
-
-    def _compute_for_n_spiketrains(self, rates, number_of_spiketrains):
-        return compute_for_n_spiketrains(rates, number_of_spiketrains, self.refractory_period,
-                                         self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
-                                         as_array=self.as_array, analog_signal_class=self._analog_signal_class,
-                                         stationary_poisson_process=self._stationary_poisson_process,
-                                         non_stationary_poisson_process=self._non_stationary_poisson_process)
+        self.__compute = None
 
     def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (Non)StationaryPoissonProcess functions."""
-        return self._compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count])
+        return compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count],
+                                         self.refractory_period, self.sampling_period,
+                                         self.rate_unit, self._t_start, self._t_stop,
+                                         as_array=self.as_array, analog_signal_class=self._analog_signal_class,
+                                         stationary_poisson_process=self._stationary_poisson_process,
+                                         non_stationary_poisson_process=self._non_stationary_poisson_process)
 
     def _compute_ray(self, rates):
         object_refs = []
         for iP, proxy_rate in enumerate(rates):
-            object_refs.append(self._ray_compute_spiketrains.remote(proxy_rate, self._number_of_neurons[proxy_count]))
+            object_refs.append(
+                ray_compute_for_n_spiketrains.remote(proxy_rate, self._number_of_neurons[iP],
+                                                     self.refractory_period, self.sampling_period,
+                                                     self.rate_unit, self._t_start, self._t_stop,
+                                                     as_array=self.as_array,
+                                                     analog_signal_class=self._analog_signal_class))
         return list(ray.get(object_refs))
 
 
 class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
-    __metaclass__ = ABCMeta
 
     """
-        RatesToSpikesElephantPoissonInteraction Transformer abstract class, 
+        RatesToSpikesElephantPoissonInteraction Transformer base class,
         using elephant functions NonStationaryPoissonProcess and StationaryPoissonProcess,
         depending on whether rate varies with time or not.
         This class can be used to produce interacting spike trains per proxy node.
@@ -176,13 +181,11 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
         correlation_factor[inds] = 1.0 / self._number_of_neurons[inds]
         self.correlation_factor = correlation_factor.copy()
 
-    @abstractmethod
     def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def _compute_interaction_spiketrains(self, shared_spiketrain, number_of_spiketrains, correlation_factor, *args):
-        pass
+        raise NotImplementedError
 
     def _compute_spiketrains(self, rates, proxy_count):
         """Method for the computation of rates data transformation to interacting spike trains,
@@ -195,14 +198,6 @@ class RatesToSpikesElephantPoissonInteraction(RatesToSpikesElephantPoisson):
             return shared_spiketrain * n_spiketrains
         else:
             return self._compute_interaction_spiketrains(shared_spiketrain, n_spiketrains, correlation_factor, rates)
-
-    def _compute_ray(self, rates):
-        object_refs = []
-        for iP, proxy_rate in enumerate(rates):
-            object_refs.append(self._ray_compute_spiketrains.remote(proxy_rate,
-                                                                    self._number_of_neurons[proxy_count],
-                                                                    self._correlation_factor[proxy_count]))
-        return list(ray.get(object_refs))
 
 
 def compute_shared_spiketrain_single_interaction(rates, number_of_spiketrains, correlation_factor,
@@ -243,6 +238,19 @@ def compute_for_n_spiketrains_single_interaction(rates, number_of_spiketrains, c
             stationary_poisson_process, non_stationary_poisson_process)
 
 
+if ray is not None:
+
+    @ray.remote
+    def ray_compute_for_n_spiketrains_single_interaction(rates, number_of_spiketrains, correlation_factor,
+                                                         refractory_period, sampling_period,
+                                                         rate_unit, t_start, t_stop,
+                                                         as_array=True, analog_signal_class=None):
+        return compute_for_n_spiketrains_single_interaction(
+            rates, number_of_spiketrains, correlation_factor,
+            refractory_period, sampling_period, rate_unit, t_start, t_stop,
+            as_array=as_array, analog_signal_class=analog_signal_class)
+
+
 class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonInteraction):
     """
         RatesToSpikesElephantPoissonSingleInteraction Transformer class,
@@ -257,18 +265,9 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
         We took it from https://github.com/multiscale-cosim/TVB-NEST-0
     """
 
-    def configure(self):
-        super(RatesToSpikesElephantPoissonSingleInteraction, self).configure()
-        if self.ray_parallel:
-            import ray
-
-            def compute_spiketrains(rates, number_of_spiketrains, correlation_factor):
-                return compute_for_n_spiketrains_interaction(
-                    rates, number_of_spiketrains, correlation_factor,
-                    self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
-                    as_array=self.as_array, analog_signal_class=self._analog_signal_class)
-
-            self._ray_compute_sequentially = ray.remote(compute_spiketrains)
+    def __init__(self, **kwargs):
+        super(RatesToSpikesElephantPoissonSingleInteraction, self).__init__(**kwargs)
+        self.__compute = None
 
     def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
         return compute_shared_spiketrain_single_interaction(
@@ -285,6 +284,16 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
             as_array=self.as_array, analog_signal_class=self._analog_signal_class,
             stationary_poisson_process=self._stationary_poisson_process,
             non_stationary_poisson_process=self._non_stationary_poisson_process)
+
+    def _compute_ray(self, rates):
+        object_refs = []
+        for iP, proxy_rate in enumerate(rates):
+            object_refs.append(ray_compute_for_n_spiketrains_single_interaction.remote(
+                                   proxy_rate, self._number_of_neurons[iP], self._correlation_factor[iP],
+                                   self.refractory_period, self.sampling_period,
+                                   self.rate_unit, self._t_start, self._t_stop,
+                                   as_array=self.as_array, analog_signal_class=self._analog_signal_class))
+        return list(ray.get(object_refs))
 
 
 def compute_shared_spiketrain_multiple_interaction(rates, number_of_spiketrains, correlation_factor,
@@ -319,6 +328,19 @@ def compute_for_n_spiketrains_multiple_interaction(rates, number_of_spiketrains,
         return compute_multiple_interaction_spiketrains(shared_spiketrain, number_of_spiketrains, correlation_factor)
 
 
+if ray is not None:
+
+    @ray.remote
+    def ray_compute_for_n_spiketrains_multiple_interaction(rates, number_of_spiketrains, correlation_factor,
+                                                           refractory_period, sampling_period,
+                                                           rate_unit, t_start, t_stop,
+                                                           as_array=True, analog_signal_class=None):
+        return compute_for_n_spiketrains_multiple_interaction(
+            rates, number_of_spiketrains, correlation_factor,
+            refractory_period, sampling_period, rate_unit, t_start, t_stop,
+            as_array=as_array, analog_signal_class=analog_signal_class)
+
+
 class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonInteraction):
     """
         RatesToSpikesElephantPoissonSingleInteraction Transformer class,
@@ -333,18 +355,9 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         We took it from https://github.com/multiscale-cosim/TVB-NEST
     """
 
-    def configure(self):
-        super(RatesToSpikesElephantPoissonMultipleInteraction, self).configure()
-        if self.ray_parallel:
-            import ray
-
-            def compute_spiketrains(rates, number_of_spiketrains, correlation_factor):
-                return compute_for_n_spiketrains_multiple_interaction(
-                    rates, number_of_spiketrains, correlation_factor,
-                    self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
-                    as_array=self.as_array, analog_signal_class=self._analog_signal_class)
-
-            self._ray_compute_sequentially = ray.remote(compute_spiketrains)
+    def __init__(self, **kwargs):
+        super(RatesToSpikesElephantPoissonMultipleInteraction, self).__init__(**kwargs)
+        self.__compute = None
 
     def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
         return compute_shared_spiketrain_multiple_interaction(
@@ -357,6 +370,16 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
     def _compute_interaction_spiketrains(self, shared_spiketrain, number_of_spiketrains, correlation_factor, *args):
         return compute_multiple_interaction_spiketrains(shared_spiketrain, number_of_spiketrains, correlation_factor)
 
+    def _compute_ray(self, rates):
+        object_refs = []
+        for iP, proxy_rate in enumerate(rates):
+            object_refs.append(ray_compute_for_n_spiketrains_multiple_interaction.remote(
+                                    proxy_rate, self._number_of_neurons[iP], self._correlation_factor[iP],
+                                    self.refractory_period, self.sampling_period,
+                                    self.rate_unit, self._t_start, self._t_stop,
+                                    as_array=self.as_array, analog_signal_class=self._analog_signal_class))
+        return list(ray.get(object_refs))
+
 
 def spiketrain(spikes, time_unit, t_start, t_stop, spike_train_class=None):
     if spike_train_class is None:
@@ -365,11 +388,10 @@ def spiketrain(spikes, time_unit, t_start, t_stop, spike_train_class=None):
     return spike_train_class(spikes.astype(np.float64) * time_unit, t_start=t_start, t_stop=t_stop)
 
 
-class SpikesToRatesElephant(SpikesToRates, ABC):
-    __metaclass__ = ABCMeta
+class SpikesToRatesElephant(SpikesToRates):
 
     """
-        RateToSpikes Transformer abstract base class using elephant software
+        RateToSpikes Transformer base class using elephant software
     """
 
     from quantities import Quantity, ms, s, sec, second, Hz, MHz
@@ -411,8 +433,22 @@ class SpikesToRatesElephant(SpikesToRates, ABC):
 
 def compute_rates_ElephantSpikesHistogram(spikes, bin_size, time_unit, t_start, t_stop, spike_train_class=None):
     return ElephantFunctions.TIME_HISTOGRAM([spiketrain(spikes, time_unit, t_start, t_stop,
-                                                           spike_train_class=spike_train_class)],
+                                                        spike_train_class=spike_train_class)],
                                             bin_size, output="counts")
+
+
+if ray is not None:
+
+    @ray.remote
+    def ray_compute_rates_ElephantSpikesHistogram(spikes, scale_factor, translation_factor,
+                                                  bin_size, time_unit, t_start, t_stop, spike_train_class=None):
+        """Method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+        return scale_factor \
+                * np.array(
+                    compute_rates_ElephantSpikesHistogram(
+                        spikes, bin_size, time_unit, t_start, t_stop, spike_train_class).flatten()) \
+                + translation_factor
 
 
 class ElephantSpikesHistogram(SpikesToRatesElephant):
@@ -422,22 +458,9 @@ class ElephantSpikesHistogram(SpikesToRatesElephant):
         The algorithm is based just on computing a time histogram of the spike trains.
     """
 
-    def configure(self):
-        super(ElephantSpikesHistogram, self).configure()
-        if self.ray_parallel:
-            import ray
-
-            def _compute_rates(spikes, scale_factor, translation_factor):
-                """Method for the computation of spike trains data transformation
-                   to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
-                return scale_factor \
-                        * np.array(
-                            compute_rates_ElephantSpikesHistogram(
-                                spikes, self.bin_size, self.time_unit, self._t_start, self._t_stop,
-                                spike_train_class=self._spike_train_class).flatten()) \
-                        + translation_factor
-
-            self._ray_compute_rates = ray.remote(_compute_rates)
+    def __init__(self, **kwargs):
+        super(ElephantSpikesHistogram, self).__init__(**kwargs)
+        self.__compute = None
 
     def _compute_rates(self, spikes):
         """Method for the computation of spike trains data transformation
@@ -447,12 +470,39 @@ class ElephantSpikesHistogram(SpikesToRatesElephant):
                                                       self.time_unit, self._t_start, self._t_stop,
                                                       spike_train_class=self._spike_train_class).flatten())
 
+    def _compute_ray(self, input_buffer):
+        object_refs = []
+        for proxy_buffer, scale_factor, translation_factor in \
+                zip(input_buffer, self._scale_factor, self._translation_factor):
+            # At this point we assume that input_buffer has shape (proxy,)
+            object_refs.append(ray_compute_rates_ElephantSpikesHistogram.remote(
+                                    proxy_buffer, scale_factor, translation_factor,
+                                    self.bin_size, self.time_unit, self._t_start, self._t_stop,
+                                    spike_train_class=self._spike_train_class))
+        return list(ray.get(object_refs))
+
 
 def compute_rates_ElephantSpikesHistogramRate(spikes, bin_size,
                                               rate_unit, time_unit, t_start, t_stop, spike_train_class=None):
     return (compute_rates_ElephantSpikesHistogram(spikes, bin_size, time_unit, t_start, t_stop,
                                                   spike_train_class=spike_train_class)
             / bin_size).rescale(rate_unit)
+
+
+if ray is not None:
+
+    @ray.remote
+    def ray_compute_rates_ElephantSpikesHistogramRate(spikes, scale_factor, translation_factor,
+                                                      bin_size, rate_unit, time_unit, t_start, t_stop,
+                                                      spike_train_class=None):
+        """Method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+        return scale_factor \
+               * np.array(
+                    compute_rates_ElephantSpikesHistogramRate(
+                        spikes, bin_size, rate_unit, time_unit, t_start, t_stop,
+                        spike_train_class=spike_train_class).flatten()) \
+                       + translation_factor
 
 
 class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
@@ -463,30 +513,28 @@ class ElephantSpikesHistogramRate(ElephantSpikesHistogram):
         and then dividing with the bin width.
     """
 
-    def configure(self):
-        super(ElephantSpikesHistogramRate, self).configure()
-        if self.ray_parallel:
-            import ray
-
-            def _compute_rates(spikes, scale_factor, translation_factor):
-                """Method for the computation of spike trains data transformation
-                   to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
-                return scale_factor \
-                        * np.array(
-                                compute_rates_ElephantSpikesHistogramRate(
-                                    spikes, self.bin_size, self.rate_unit, self.time_unit, self._t_start, self._t_stop,
-                                    spike_train_class=self._spike_train_class).flatten()) \
-                        + translation_factor
-
-            self._ray_compute_rates = ray.remote(_compute_rates)
+    def __init__(self, **kwargs):
+        super(ElephantSpikesHistogramRate, self).__init__(**kwargs)
+        self.__compute = None
 
     def _compute_rates(self, spikes):
         """Method for the computation of spike trains data transformation
            to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
         return np.array(
-            compute_rates_ElephantSpikesHistogramRate(spikes, self.bin_size, self.rate_unit,
-                                                      self.time_unit, self._t_start, self._t_stop,
+            compute_rates_ElephantSpikesHistogramRate(spikes, self.bin_size,
+                                                      self.rate_unit, self.time_unit, self._t_start, self._t_stop,
                                                       spike_train_class=self._spike_train_class).flatten())
+
+    def _compute_ray(self, input_buffer):
+        object_refs = []
+        for proxy_buffer, scale_factor, translation_factor in \
+                zip(input_buffer, self._scale_factor, self._translation_factor):
+            # At this point we assume that input_buffer has shape (proxy,)
+            object_refs.append(ray_compute_rates_ElephantSpikesHistogramRate.remote(
+                                    proxy_buffer, scale_factor, translation_factor,
+                                    self.bin_size, self.rate_unit, self.time_unit, self._t_start, self._t_stop,
+                                    spike_train_class=self._spike_train_class))
+        return list(ray.get(object_refs))
 
 
 def compute_ElephantSpikesRate(spikes,  kernel, bin_size,
@@ -500,6 +548,21 @@ def compute_ElephantSpikesRate(spikes,  kernel, bin_size,
         # If we have less than 3 spikes or kernel="auto", we revert to time_histogram computation
         return np.array((ElephantFunctions.TIME_HISTOGRAM([spikestrain], bin_size , output="counts"))
                         / bin_size).rescale(rate_unit)
+
+
+if ray is not None:
+
+    @ray.remote
+    def ray_compute_ElephantSpikesRate(spikes, scale_factor, translation_factor,
+                                       kernel, bin_size, rate_unit, time_unit, t_start, t_stop, spike_train_class=None):
+        """Method for the computation of spike trains data transformation
+           to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
+        return scale_factor \
+                * np.array(
+                    compute_ElephantSpikesRate(
+                        spikes, kernel, bin_size,  rate_unit, time_unit, t_start, t_stop,
+                        spike_train_class=spike_train_class).flatten()) \
+               + translation_factor
 
 
 class ElephantSpikesRate(ElephantSpikesHistogramRate):
@@ -525,6 +588,7 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
     def __init__(self, **kwargs):
         super(ElephantSpikesRate, self).__init__(**kwargs)
         self.kernel = None
+        self.__compute = None
 
     def configure(self):
         super(ElephantSpikesRate, self).configure()
@@ -533,20 +597,6 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
             self.kernel = self._default_kernel_class(self.dt * self.time_unit)
         assert self.kernel == "auto" or isinstance(self.kernel, self._kernel_class)
         self.output_type = "rate"
-        if self.ray_parallel:
-            import ray
-
-            def _compute_rates(spikes, scale_factor, translation_factor):
-                """Method for the computation of spike trains data transformation
-                   to instantaneous mean spiking rates, using elephant.statistics.time_histogram function."""
-                return scale_factor \
-                        * np.array(
-                            compute_ElephantSpikesRate(
-                                spikes, self.kernel, self.bin_size,  self.rate_unit,
-                                self.time_unit, self._t_start, self._t_stop,
-                                spike_train_class=self._spike_train_class).flatten()) \
-                       + translation_factor
-            self._ray_compute_rates = ray.remote(_compute_rates)
 
     def _compute_rates(self, spikes):
         """Method for the computation of spike trains data transformation
@@ -555,6 +605,18 @@ class ElephantSpikesRate(ElephantSpikesHistogramRate):
             compute_ElephantSpikesRate(spikes, self.kernel, self.bin_size, self.rate_unit,
                                        self.time_unit, self._t_start, self._t_stop,
                                        spike_train_class=self._spike_train_class).flatten())
+
+    def _compute_ray(self, input_buffer):
+        object_refs = []
+        for proxy_buffer, scale_factor, translation_factor in \
+                zip(input_buffer, self._scale_factor, self._translation_factor):
+            # At this point we assume that input_buffer has shape (proxy,)
+            object_refs.append(ray_compute_ElephantSpikesRate.remote(
+                                    proxy_buffer, scale_factor, translation_factor,
+                                    self.kernel, self.bin_size, self.rate_unit,
+                                    self.time_unit, self._t_start, self._t_stop,
+                                    spike_train_class=self._spike_train_class))
+        return list(ray.get(object_refs))
 
     def info(self, recursive=0):
         info = super(ElephantSpikesRate, self).info(recursive=recursive)
