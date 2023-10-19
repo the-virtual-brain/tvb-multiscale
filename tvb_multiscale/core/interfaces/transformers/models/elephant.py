@@ -65,6 +65,9 @@ class RatesToSpikesElephant(RatesToSpikes):
     def configure(self):
         super(RatesToSpikesElephant, self).configure()
         self.sampling_period = self.dt * self.time_unit
+        self._refractory_period = None
+        if self.refractory_period:
+            self._refractory_period = self.refractory_period * self.time_unit
 
     def _rates_analog_signal(self, rates):
         return rate_analog_signal(rates, self.sampling_period, self._t_start, self._t_stop, self.rate_unit,
@@ -129,7 +132,7 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         """Method for the computation of rates data transformation to independent spike trains,
            using elephant (Non)StationaryPoissonProcess functions."""
         return compute_for_n_spiketrains(rates, self._number_of_neurons[proxy_count],
-                                         self.refractory_period, self.sampling_period,
+                                         self._refractory_period, self.sampling_period,
                                          self.rate_unit, self._t_start, self._t_stop,
                                          as_array=self.as_array, analog_signal_class=self._analog_signal_class,
                                          stationary_poisson_process=self._stationary_poisson_process,
@@ -140,7 +143,7 @@ class RatesToSpikesElephantPoisson(RatesToSpikesElephant):
         for iP, proxy_rate in enumerate(rates):
             object_refs.append(
                 ray_compute_for_n_spiketrains.remote(proxy_rate, self._number_of_neurons[iP],
-                                                     self.refractory_period, self.sampling_period,
+                                                     self._refractory_period, self.sampling_period,
                                                      self.rate_unit, self._t_start, self._t_stop,
                                                      as_array=self.as_array,
                                                      analog_signal_class=self._analog_signal_class))
@@ -272,7 +275,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
     def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
         return compute_shared_spiketrain_single_interaction(
             rates, number_of_spiketrains, correlation_factor,
-            self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+            self._refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
             as_array=self.as_array, analog_signal_class=self._analog_signal_class,
             stationary_poisson_process=self._stationary_poisson_process,
             non_stationary_poisson_process=self._non_stationary_poisson_process)
@@ -280,7 +283,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
     def _compute_interaction_spiketrains(self, shared_spiketrain, number_of_spiketrains, correlation_factor, rates):
         return compute_single_interaction_spiketrains(
             rates, shared_spiketrain, number_of_spiketrains, correlation_factor,
-            self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+            self._refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
             as_array=self.as_array, analog_signal_class=self._analog_signal_class,
             stationary_poisson_process=self._stationary_poisson_process,
             non_stationary_poisson_process=self._non_stationary_poisson_process)
@@ -290,7 +293,7 @@ class RatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoisson
         for iP, proxy_rate in enumerate(rates):
             object_refs.append(ray_compute_for_n_spiketrains_single_interaction.remote(
                                    proxy_rate, self._number_of_neurons[iP], self._correlation_factor[iP],
-                                   self.refractory_period, self.sampling_period,
+                                   self._refractory_period, self.sampling_period,
                                    self.rate_unit, self._t_start, self._t_stop,
                                    as_array=self.as_array, analog_signal_class=self._analog_signal_class))
         return list(ray.get(object_refs))
@@ -362,7 +365,7 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
     def _compute_shared_spiketrain(self, rates, number_of_spiketrains, correlation_factor):
         return compute_shared_spiketrain_multiple_interaction(
             rates, number_of_spiketrains, correlation_factor,
-            self.refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
+            self._refractory_period, self.sampling_period, self.rate_unit, self._t_start, self._t_stop,
             as_array=self.as_array, analog_signal_class=self._analog_signal_class,
             stationary_poisson_process=self._stationary_poisson_process,
             non_stationary_poisson_process=self._non_stationary_poisson_process)
@@ -375,7 +378,7 @@ class RatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoiss
         for iP, proxy_rate in enumerate(rates):
             object_refs.append(ray_compute_for_n_spiketrains_multiple_interaction.remote(
                                     proxy_rate, self._number_of_neurons[iP], self._correlation_factor[iP],
-                                    self.refractory_period, self.sampling_period,
+                                    self._refractory_period, self.sampling_period,
                                     self.rate_unit, self._t_start, self._t_stop,
                                     as_array=self.as_array, analog_signal_class=self._analog_signal_class))
         return list(ray.get(object_refs))
