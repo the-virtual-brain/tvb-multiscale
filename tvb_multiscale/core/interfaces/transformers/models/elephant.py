@@ -27,7 +27,7 @@ class ElephantFunctions(Enum):
 
 
 def rate_analog_signal(rates, sampling_period, t_start, t_stop, rate_unit, analog_signal_class=None):
-    if analog_signal_class:
+    if analog_signal_class is None:
         from neo import AnalogSignal
         analog_signal_class = AnalogSignal
     if isinstance(rates, analog_signal_class):
