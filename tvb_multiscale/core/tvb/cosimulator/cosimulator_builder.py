@@ -238,7 +238,7 @@ class CoSimulatorBuilder(HasTraits):
         self.coupling = self.config.DEFAULT_TVB_COUPLING_MODEL()
         self.dt = 0.1
         self.noise_strength = np.array([self.config.DEFAULT_NSIG])
-        self.noise_seed = self.config.DEFAULT_NOISE_SEED
+        self.noise_seed = self.config.DEFAULT_TVB_NOISE_SEED
         self.integrator = CONFIGURED.DEFAULT_INTEGRATOR()
         self.monitor_period = 1.0
         self.monitors = (CONFIGURED.DEFAULT_MONITOR(period=self.monitor_period), )
