@@ -12,8 +12,8 @@ from sbi import analysis as analysis
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
-from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
-from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import run_workflow, load_connectome
+from rising_net.scripts.base import *
+from rising_net.scripts.tvb_script import run_workflow, load_connectome
 
 
 def build_priors(config):

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
-from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import neuron_types_to_region
-from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
+from rising_net.scripts.base import *
+from rising_net.scripts.nest_script import neuron_types_to_region
+from rising_net.scripts.tvb_script import *
 
 
 def print_available_interfaces():
@@ -270,7 +270,7 @@ def simulate_tvb_nest(simulator, nest_network, config):
 
 def run_tvb_nest_workflow(PSD_target=None, model_params={}, config=None, write_files=True, **config_args):
     tic = time.time()
-    from examples.tvb_nest.notebooks.cerebellum.scripts.nest_script import build_NEST_network, plot_nest_results_raster
+    from rising_net.scripts.nest_script import build_NEST_network, plot_nest_results_raster
 
     plot_flag = config_args.get('plot_flag', DEFAULT_ARGS.get('plot_flag'))
     config, plotter = assert_config(config, return_plotter=True, **config_args)

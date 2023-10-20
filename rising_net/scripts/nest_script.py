@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import h5py
-from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
-from examples.tvb_nest.notebooks.cerebellum.scripts.tvb_script import *
+from rising_net.scripts.base import *
+from rising_net.scripts.tvb_script import *
 
 
 ###### PARAMETERS SETTING ######################################################
