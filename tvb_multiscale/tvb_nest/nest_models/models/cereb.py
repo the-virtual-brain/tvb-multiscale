@@ -225,7 +225,7 @@ class CerebBuilder(NESTNetworkBuilder):
         if not os.path.isfile(self.path_to_network_source_file):
             package_folder = __file__.split("tvb_multiscale")[0]
             self.path_to_network_source_file = \
-                os.path.join(package_folder, "examples/data/cerebellum/300x_200z_DCN_IO.hdf5")
+                os.path.join(package_folder, "rising_net/data/300x_200z_DCN_IO.hdf5")
         # Common order of neurons' number per population:
         self.population_order = 1  # we want scale to define exactly the number of neurons of each population
         self.modules_to_install = ["cereb"]

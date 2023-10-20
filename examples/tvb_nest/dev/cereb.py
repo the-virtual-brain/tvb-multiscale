@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     import h5py
     work_path = os.getcwd()
-    data_path = os.path.join(work_path.split("tvb_nest")[0], "data", "cerebellum")
+    data_path = os.path.join(work_path.split("examples")[0], "rising_net", "data")
     tvb_conn_filepath = os.path.join(data_path, "Connectivity_res100_summ49regions_IOsplit.h5")
     f = h5py.File(tvb_conn_filepath)
     connectivity = Connectivity(weights=np.array(f["weights"][()]), tract_lengths=np.array(f["tract_lengths"][()]),

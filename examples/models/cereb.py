@@ -15,7 +15,7 @@ def cereb_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestrat
     import os
     import h5py
     work_path = os.getcwd()
-    data_path = os.path.join(work_path.split("tvb_nest")[0], "data", "cerebellum")
+    data_path = os.path.join(work_path.split("examples")[0], "rising_net", "data")
     WHOLE_BRAIN = False
     if WHOLE_BRAIN:
         BRAIN_CONN_FILE = "Connectivity_res100_596_regions.h5"
