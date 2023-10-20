@@ -110,6 +110,8 @@ def configure(**ARGS):
     # Integration
     config.DEFAULT_DT = 0.1
     config.DEFAULT_NSIG = 1e-4  # NOISE strength
+    config.DEFAULT_TVB_NOISE_SEED = 10
+    config.RANDOM_SEED_NEST = 10
     config.DEFAULT_STOCHASTIC_INTEGRATOR = EulerStochastic
     config.DEFAULT_INTEGRATOR = config.DEFAULT_STOCHASTIC_INTEGRATOR
 
