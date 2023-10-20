@@ -434,6 +434,7 @@ def build_simulator(connectivity, model, inds, maps, config, plotter=None):
     simulator.integrator.dt = config.DEFAULT_DT
     simulator.integrator.noise.nsig = np.array(
         [config.DEFAULT_NSIG] * (simulator.model.nvar - 1) + [0.0])  # No Noise for state variabla A for BOLD monitor
+    simulator.integrator.noise.noise_seed = config.DEFAULT_TVB_NOISE_SEED
 
     # Set initial conditions around baseline currents of each kind of population for a shorter transient:
     simulator.initial_conditions = np.zeros((1000, simulator.model.nvar, connectivity.number_of_regions, 1))
