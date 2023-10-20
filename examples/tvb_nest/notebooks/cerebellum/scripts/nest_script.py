@@ -208,6 +208,7 @@ def build_NEST_network(config=None):
 
     # Load NEST and use defaults to configure its kernel:
     nest = configure_nest_kernel(load_nest(config=config), config)
+    nest.rng_seed = config.NEST_MASTER_SEED
 
     if 'eglif_cond_alpha_multisyn' not in nest.Models():
         try:
