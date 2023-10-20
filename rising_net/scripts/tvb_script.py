@@ -4,8 +4,8 @@ import warnings
 from scipy.signal import welch
 from scipy.interpolate import interp1d
 
-from examples.tvb_nest.notebooks.cerebellum.scripts.base import *
-from examples.tvb_nest.notebooks.cerebellum.utils import get_regions_indices
+from rising_net.scripts.base import *
+from rising_net.utils import get_regions_indices
 from tvb_multiscale.core.utils.file_utils import dump_pickled_dict
 
 # Put the results in a Timeseries instance
@@ -841,7 +841,7 @@ def tvb_res_to_time_series(results, simulator, config=None, write_files=True):
 
 
 def plot_tvb(transient, inds, results, simulator=None, plotter=None, config=None, write_files=True):
-    from examples.tvb_nest.notebooks.cerebellum.utils import \
+    from rising_net.utils import \
         compute_plot_selected_spectra_coherence  # , compute_plot_ica
 
     if plotter is None:
