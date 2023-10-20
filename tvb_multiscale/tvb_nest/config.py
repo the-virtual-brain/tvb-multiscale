@@ -45,7 +45,7 @@ class Config(ConfigBase):
         self.MYMODULES_BLD_DIR = MYMODULES_BLD_DIR
         self.RECORDINGS_DIR = os.path.join(self.out.FOLDER_RES, "nest_recordings")
 
-        self.MASTER_SEED = 143202461  # Seems to be the default for NEST 3.5
+        self.NEST_MASTER_SEED = 143202461  # Seems to be the default for NEST 3.5
 
         # NEST properties:
         # M_ALL=0,  display all messages
@@ -93,7 +93,7 @@ class Config(ConfigBase):
     def DEFAULT_NEST_KERNEL_CONFIG(self):
         return {"data_path": self.RECORDINGS_DIR, "overwrite_files": True,
                 "local_num_threads": self.DEFAULT_LOCAL_NUM_THREADS,
-                'rng_seed': self.MASTER_SEED}
+                'rng_seed': self.NEST_MASTER_SEED}
 
     @property
     def DEFAULT_CONNECTION(self):
