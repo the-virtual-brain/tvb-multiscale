@@ -71,7 +71,7 @@ class App(HasTraits):
     def configure(self):
         assert isinstance(self.config, Config)
         try:
-            self.logger
+            assert isinstance(self.logger, Logger)
         except:
             self.logger = initialize_logger(__name__, config=self.config)
         super(App, self).configure()
