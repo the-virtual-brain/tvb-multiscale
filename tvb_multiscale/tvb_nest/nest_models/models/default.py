@@ -95,7 +95,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         # if high is None:
         #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
-        return tvb_delay(source_node, target_node, self.tvb_delays)
+        return np.maximum(self.default_min_delay, tvb_delay(source_node, target_node, self.tvb_delays))
 
     def set_nodes_connections(self):
         self.nodes_connections = [
