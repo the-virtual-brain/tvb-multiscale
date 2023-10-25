@@ -200,9 +200,6 @@ class FileCommunicator(HasTraits):
     __extension = ""
 
     def __init__(self, **kwargs):
-        self._basepath = ""
-        self._extension = ""
-        self.__extension = ""
         self.binary_tag = 0
         super(FileCommunicator, self).__init__(**kwargs)
 
