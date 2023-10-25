@@ -53,6 +53,7 @@ class SpikingNetworkBuilder(object):
     # User inputs:
     model = None
     tvb_serial_sim = None
+    global_coupling_scaling = None
     spiking_nodes_inds = []
     populations = []
     populations_connections = []
@@ -61,8 +62,8 @@ class SpikingNetworkBuilder(object):
     input_devices = []   # use these for possible external stimulation devices
 
     # Internal configurations and outputs:
-    monitor_period = 1.0
-    spiking_dt = default_tvb_dt / tvb_to_spiking_dt_ratio
+    monitor_period = None  # default: 1.0
+    spiking_dt = None  # default: default_tvb_dt / tvb_to_spiking_dt_ratio
     _spiking_nodes_labels = []
     _populations = []
     _populations_connections = []
@@ -84,7 +85,7 @@ class SpikingNetworkBuilder(object):
         self.spiking_nodes_inds = spiking_nodes_inds
         self.spiking_simulator = spiking_simulator
 
-        self.default_tvb_dt = 0.1
+        self.default_tvb_dt = self.config.DEFAULT_DT
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
         self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
@@ -93,6 +94,8 @@ class SpikingNetworkBuilder(object):
         self.default_populations_connection = dict()
         self.default_nodes_connection = dict()
         self.default_devices_connection = dict()
+
+        self.global_coupling_scaling = None
 
         self.population_order = 100
 
@@ -105,8 +108,8 @@ class SpikingNetworkBuilder(object):
         self.input_devices = list()  # use these for possible external stimulation devices
 
         # Internal configurations and outputs:
-        self.monitor_period = 1.0
-        self.spiking_dt = self.default_tvb_dt / self.tvb_to_spiking_dt_ratio
+        self.monitor_period = None
+        self.spiking_dt = None  # default: self.default_tvb_dt / self.tvb_to_spiking_dt_ratio
         self._spiking_nodes_labels = list()
         self._populations = list()
         self._populations_connections = list()
@@ -128,6 +131,11 @@ class SpikingNetworkBuilder(object):
         elif not isinstance(self.tvb_serial_sim, dict):
             self.tvb_serial_sim = serialize_tvb_cosimulator(self.tvb_serial_sim)
 
+    @property
+    def default_spiking_dt(self):
+        return int(np.round(self.tvb_dt / self.tvb_to_spiking_dt_ratio / self.default_min_spiking_dt)) \
+               * self.default_min_spiking_dt
+
     def configure(self):
         self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
         self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
@@ -135,17 +143,22 @@ class SpikingNetworkBuilder(object):
         self.default_min_delay = self.config.DEFAULT_SPIKING_MIN_DELAY
 
         self._assert_tvb_cosimulator()
+
+        if self.spiking_dt is None:
+            self.spiking_dt = self.default_spiking_dt
         self.update_spiking_dt()
         self.update_default_min_delay()
 
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
-        self.monitor_period = self.tvb_serial_sim["monitor.period"]
+        if self.monitor_period is None:
+            self.monitor_period = self.tvb_serial_sim["monitor.period", 1.0]
 
         self.spiking_nodes_inds = np.unique(self.spiking_nodes_inds)
 
         # NOTE!!! TAKE CARE OF DEFAULT simulator.coupling.a!
-        self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.a", np.array([1.0 / 256]))[0].item()
+        if self.global_coupling_scaling is None:
+            self.global_coupling_scaling = self.tvb_serial_sim.get("coupling.a", np.array([1.0 / 256]))[0].item()
 
         # Setting SpikingNetwork defaults from config
         # to be further specified in each Spiking simulator's specific builder class.
@@ -460,17 +473,23 @@ class SpikingNetworkBuilder(object):
         return self._assert_delay(delay)
 
     def update_spiking_dt(self):
-        # The TVB dt should be an integer multiple of the spiking simulator dt:
-        self.spiking_dt = int(np.round(self.tvb_dt / self.tvb_to_spiking_dt_ratio / self.default_min_spiking_dt)) \
-                          * self.default_min_spiking_dt
-        if self.config.MIN_SPIKING_DT != self.spiking_dt:
-            self.logger.warning("Updated SPIKING MODEL BUILDER spiking_dt from config.MIN_SPIKING_DT=%g to %g!"
-                                % (self.config.MIN_SPIKING_DT, self.spiking_dt))
+        # The TVB dt should be an even integer multiple of the spiking simulator dt:
+        spiking_dt = float(self.spiking_dt)
+        self.spiking_dt = np.maximum(np.round(self.spiking_dt / self.config.MIN_SPIKING_DT)
+                                     * self.config.MIN_SPIKING_DT,
+                                     self.config.MIN_SPIKING_DT)
+        ratio = np.maximum(2, np.round(self.tvb_dt / self.spiking_dt))
+        ratio += np.mod(ratio, 2)
+        self.spiking_dt = self.tvb_dt / ratio
+        if spiking_dt != self.spiking_dt:
+            self.logger.warning("Updated SPIKING MODEL BUILDER spiking_dt %g to %g!" % (spiking_dt, self.spiking_dt))
+        return self.spiking_dt
 
     def update_default_min_delay(self):
         # The Spiking Network min delay should be an integer multiple of the spiking simulator dt
-        self.default_min_delay = np.maximum(self.default_min_delay_ratio * self.spiking_dt,
-                                            int(np.round(self.min_delay/self.spiking_dt))*self.spiking_dt)
+        self.default_min_delay = int(np.round(np.maximum(self.default_min_delay,
+                                                         self.config.DEFAULT_SPIKING_MIN_DELAY) /
+                                              self.spiking_dt))*self.spiking_dt
         if self.config.DEFAULT_SPIKING_MIN_DELAY != self.default_min_delay:
             self.logger.warning("Updated SPIKING MODEL BUILDER default_min_delay "
                                 "from config.DEFAULT_SPIKING_MIN_DELAY=%g to %g!"
