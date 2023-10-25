@@ -28,8 +28,8 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.scale_ei = 1
         self.scale_ii = 1
 
-        self.w_pe = 1.0
-        self.w_pi = 1.0
+        self.w_pe = 10.0
+        self.w_pi = 2.5
         self.w_ep = 1.0
         self.w_ip = -1.0
         self.d_pe = self.within_node_delay()
@@ -87,7 +87,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
         return scale * w
 
     def within_node_delay(self):
-        return self.tvb_dt
+        return self.default_min_delay
 
     def receptor_E_fun(self):
         return 0
@@ -163,7 +163,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
         # if high is None:
         #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
-        return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
+        return np.maximum(self.default_min_delay, tvb_delay(source_node, target_node, self.tvb_delays))
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -237,12 +237,12 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.input_devices = [self.set_spike_stimulus()]
 
     def set_defaults(self, **kwargs):
-        self.w_ee = 10*np.abs(kwargs.get("w_pe",
-                                         self.tvb_serial_sim.get("model.a_1",
-                                                                 np.array([self.w_pe])))[0].item())
-        self.w_ei = 10*np.abs(kwargs.get("w_pi",
-                                         self.tvb_serial_sim.get("model.a_3",
-                                                                 np.array([self.w_pi])))[0].item())
+        self.w_pe = np.abs(kwargs.get("w_pe",
+                                      10*self.tvb_serial_sim.get("model.a_1",
+                                                                 np.array([1.0])))[0].item())
+        self.w_pi = np.abs(kwargs.get("w_pi",
+                                      10*self.tvb_serial_sim.get("model.a_3",
+                                                                 np.array([0.25])))[0].item())
         self.set_populations()
         self.set_populations_connections()
         self.set_nodes_connections()
