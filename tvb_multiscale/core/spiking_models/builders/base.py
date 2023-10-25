@@ -137,11 +137,6 @@ class SpikingNetworkBuilder(object):
                * self.default_min_spiking_dt
 
     def configure(self):
-        self.tvb_to_spiking_dt_ratio = self.config.TVB_TO_SPIKING_DT_RATIO
-        self.default_min_spiking_dt = self.config.MIN_SPIKING_DT
-        self.default_min_delay_ratio = self.config.MIN_DELAY_RATIO
-        self.default_min_delay = self.config.DEFAULT_SPIKING_MIN_DELAY
-
         self._assert_tvb_cosimulator()
 
         if self.spiking_dt is None:
@@ -152,7 +147,7 @@ class SpikingNetworkBuilder(object):
         # We assume that there at least the Raw monitor which is also used for communication to/from Spiking Simulator
         # If there is only the Raw monitor, then self.monitor_period = self.tvb_dt
         if self.monitor_period is None:
-            self.monitor_period = self.tvb_serial_sim["monitor.period", 1.0]
+            self.monitor_period = self.tvb_serial_sim.get("monitor.period", 1.0)
 
         self.spiking_nodes_inds = np.unique(self.spiking_nodes_inds)
 
