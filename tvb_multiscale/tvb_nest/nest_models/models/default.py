@@ -95,7 +95,7 @@ class DefaultExcIOBuilder(NESTNetworkBuilder):
         # if high is None:
         #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
-        return tvb_delay(source_node, target_node, self.tvb_delays)
+        return np.maximum(self.default_min_delay, tvb_delay(source_node, target_node, self.tvb_delays))
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -193,9 +193,6 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
         self.nodes_conns = {"receptor_type": self.receptor_by_source_region_fun}
 
-        self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
-                               "receptor_type": lambda target_node: target_node + 3}
-
     def _adjust_multisynapse_params(self, params, multi_params=["E_rev", "tau_syn"]):
         for p in multi_params:
             val = params[p].tolist()
@@ -208,6 +205,11 @@ class DefaultExcIOMultisynapseBuilder(DefaultExcIOBuilder):
 
     def receptor_by_source_region_fun(self, source_node, target_node):
         return receptor_by_source_region(source_node, target_node, start=3)
+
+    def set_defaults(self):
+        self.spike_stimulus = {"params": {"rate": 30000.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
+                               "receptor_type": lambda target_node: target_node + 3}
+        super(DefaultExcIOMultisynapseBuilder, self).set_defaults()
 
     def build(self, set_defaults=True):
         self.params = self._adjust_multisynapse_params(self.params)

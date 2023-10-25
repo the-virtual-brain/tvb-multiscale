@@ -70,6 +70,7 @@ class NetpyneApp(HasTraits):
         super(NetpyneApp, self).configure()
         self.spikeNet_builder.netpyne_synaptic_weight_scale = self.synaptic_weight_scale(is_coupling_mode_tvb=False)
         # TODO: check self.spikeNet_builder.netpyne_instance = self.spiking_cosimulator
+
     def clean_up(self):
         self.spiking_cosimulator.finalize()
 

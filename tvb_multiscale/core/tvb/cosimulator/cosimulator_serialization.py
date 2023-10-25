@@ -40,7 +40,7 @@ def serialize_tvb_cosimulator(cosimulator):
             continue
         d["connectivity.%s" % attr] = np.copy(getattr(cosimulator.connectivity, attr))
         
-    for attr in cosimulator.coupling._own_declarative_attrs:
+    for attr in type(cosimulator.coupling).declarative_attrs:
         d["coupling.%s" % attr] = np.copy(getattr(cosimulator.coupling, attr))
 
     return d
@@ -49,7 +49,7 @@ def serialize_tvb_cosimulator(cosimulator):
 def serial_tvb_simulator_to_connectivity(tvb_sim_dict):
     kwargs = {}
     excluded_attrs = ("undirected", "number_of_regions", "number_of_connections",
-                       "parent_connectivity", "saved_selection", "gid")
+                      "parent_connectivity", "saved_selection", "gid")
     for attr in Connectivity.declarative_attrs:
         if attr in excluded_attrs:
             continue

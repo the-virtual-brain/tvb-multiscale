@@ -72,18 +72,6 @@ class ANNarchyApp(HasTraits):
     def start(self):
         self.spiking_cosimulator = load_annarchy(self.config)
 
-    def configure(self, **kwargs):
-        self.annarchy_instance.clear()  # This will restart ANNarchy!
-        if self.spikeNet_builder is not None:
-            self.spikeNet_builder.update_spiking_dt()
-            self.spikeNet_builder.update_default_min_delay()
-            kwargs["dt"] = self.spikeNet_builder.spiking_dt
-        else:
-            kwargs["dt"] = kwargs.pop("seed", self.config.SPIKING_DT)
-        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-        self.annarchy_instance.setup(**kwargs)
-
     def configure_simulation(self):
         self.spiking_network.network_path = self.network_path
 
