@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, ABC
 from enum import Enum
 
 import numpy as np
@@ -60,56 +59,46 @@ class ThalamoCorticalWCInverseSigmoidal(HasTraits):
                                    np.minimum(self.Rmax, np.maximum(self.w * input_buffer, self.Rmin)) - 1) / self.beta
 
 
-class SpikesToRatesThalamoCorticalWCInverseSigmoidal(SpikesToRates, ThalamoCorticalWCInverseSigmoidal, ABC):
-    __metaclass__ = ABCMeta
-
-    def configure(self):
-        super().configure()
-        ThalamoCorticalWCInverseSigmoidal.configure(self)
-
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer spikes' trains' data
-           for the output buffer data of instantaneous mean spiking rates to result."""
-        return ThalamoCorticalWCInverseSigmoidal._compute(self, super()._compute(input_buffer, *args, **kwargs))
-
-
 class ElephantSpikesHistogramThalamoCorticalWCInverseSigmoidal(ElephantSpikesHistogram,
-                                                               SpikesToRatesThalamoCorticalWCInverseSigmoidal,
                                                                ThalamoCorticalWCInverseSigmoidal):
 
     def configure(self):
-        SpikesToRatesThalamoCorticalWCInverseSigmoidal.configure(self)
+        ElephantSpikesHistogram.configure(self)
+        ThalamoCorticalWCInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
-        return SpikesToRatesThalamoCorticalWCInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
+        return ThalamoCorticalWCInverseSigmoidal._compute(
+            self, ElephantSpikesHistogram._compute(self, input_buffer))
 
 
 class ElephantSpikesHistogramRateThalamoCorticalWCInverseSigmoidal(ElephantSpikesHistogramRate,
-                                                                   SpikesToRatesThalamoCorticalWCInverseSigmoidal,
                                                                    ThalamoCorticalWCInverseSigmoidal):
 
     def configure(self):
-        SpikesToRatesThalamoCorticalWCInverseSigmoidal.configure(self)
+        ElephantSpikesHistogramRate.configure(self)
+        ThalamoCorticalWCInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
-        return SpikesToRatesThalamoCorticalWCInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
+        return ThalamoCorticalWCInverseSigmoidal._compute(
+            self, ElephantSpikesHistogramRate._compute(self, input_buffer))
 
 
 class ElephantSpikesRateThalamoCorticalWCInverseSigmoidal(ElephantSpikesRate,
-                                                          SpikesToRatesThalamoCorticalWCInverseSigmoidal,
                                                           ThalamoCorticalWCInverseSigmoidal):
 
     def configure(self):
-        SpikesToRatesThalamoCorticalWCInverseSigmoidal.configure(self)
+        ElephantSpikesRate.configure(self)
+        ThalamoCorticalWCInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
-        return SpikesToRatesThalamoCorticalWCInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
+        return ThalamoCorticalWCInverseSigmoidal._compute(
+            self, ElephantSpikesRate._compute(self, input_buffer))
 
 
 class DefaultTVBtoSpikeNetTransformersThalamoCorticalWC(Enum):
