@@ -28,6 +28,25 @@ def rayfy_interfaces_class(interfaces_class):
 
         interfaces = List(of=RayClient)
 
+        def __call__(self, cosim_updates):
+            outputs = []
+            if cosim_updates is not None:
+                for ii, (interface, cosim_update) in enumerate(zip(self.interfaces, cosim_updates)):
+                    if cosim_update is not None and len(cosim_update) > 2:
+                        assert cosim_update[2] == ii
+                    outputs.append(interface(cosim_update))
+            return outputs
+
+        def rayget(self, ref_objs=[]):
+            n_refs = len(ref_objs)
+            if n_refs:
+                results = ray.get(ref_objs)
+            else:
+                return []
+            for ii, res in enumerate(results):
+                results[ii] = res[:2] + [ii]
+            return results
+
     RayInterfaces.__name__ = "Ray%s" % interfaces_class.__name__
 
     return RayInterfaces
