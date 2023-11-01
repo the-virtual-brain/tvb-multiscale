@@ -136,7 +136,7 @@ Author: Hans Ekkehard Plesser, based on aeif_cond_beta_multisynapse
 
 SeeAlso: iaf_cond_ww_deco
 */
-class iaf_cond_ww_deco : public Archiving_Node
+class iaf_cond_ww_deco : public ArchivingNode
 {
 
 public:
@@ -701,7 +701,7 @@ iaf_cond_ww_deco::get_status( DictionaryDatum& d ) const
 {
   P_.get( d );
   S_.get( d );
-  Archiving_Node::get_status( d );
+  ArchivingNode::get_status( d );
 
   ( *d )[ names::recordables ] = recordablesMap_.get_list();
 }
