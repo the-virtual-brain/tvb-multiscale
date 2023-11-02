@@ -215,12 +215,11 @@ class HasTraits(HasTraitsTVB):
         return super(HasTraits, self).__setattr__(attr, val)
 
     def __getstate__(self):
-        d = {}
-        cls = type(self)
-        for attr in list(cls.declarative_attrs):
-            d[attr] = getattr(self, d)
-        return d
-
-    def __setstate__(self, d):
-        for key, val in d.items():
-            setattr(self, key, val)
+        return self.__dict__
+    #
+    # def __reduce__(self):
+    #     return type(self), self.__getstate__()
+    #
+    # def __setstate__(self, d):
+    #     for key, val in d.items():
+    #         setattr(self, key, val)

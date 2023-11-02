@@ -4,12 +4,10 @@ from abc import ABCMeta, ABC
 
 from tvb_multiscale.core.interfaces.models.basal_ganglia_izhikevich import \
     BasalGangliaIzhikevichTVBSpikeNetInterfaceBuilder, \
-    BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder, BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder, \
     BasalGangliaIzhikevichSpikeNetInterfaceBuilder, BasalGangliaIzhikevichSpikeNetProxyNodesBuilder
 
-from tvb_multiscale.tvb_annarchy.interfaces.builders import ANNarchyProxyNodesBuilder, ANNarchyInterfaceBuilder, \
-    ANNarchyRemoteInterfaceBuilder, TVBANNarchyInterfaceBuilder, \
-    ANNarchyTransformerInterfaceBuilder, TVBtoANNarchyModels
+from tvb_multiscale.tvb_annarchy.interfaces.builders import \
+    ANNarchyProxyNodesBuilder, ANNarchyInterfaceBuilder, TVBANNarchyInterfaceBuilder, TVBtoANNarchyModels
 
 
 class BasalGangliaIzhikevichANNarchyProxyNodesBuilder(ANNarchyProxyNodesBuilder,
@@ -28,28 +26,6 @@ class BasalGangliaIzhikevichANNarchyInterfaceBuilder(BasalGangliaIzhikevichANNar
                                                      BasalGangliaIzhikevichSpikeNetInterfaceBuilder):
 
     pass
-
-
-class BasalGangliaIzhikevichANNarchyRemoteInterfaceBuilder(BasalGangliaIzhikevichANNarchyInterfaceBuilder,
-                                                           ANNarchyRemoteInterfaceBuilder,
-                                                           BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder):
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder.default_input_config(self)
-
-
-class BasalGangliaIzhikevichANNarchyTransformerInterfaceBuilder(
-    BasalGangliaIzhikevichANNarchyInterfaceBuilder, ANNarchyTransformerInterfaceBuilder,
-    BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder):
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder.default_input_config(self)
 
 
 class BasalGangliaIzhikevichTVBANNarchyInterfaceBuilder(

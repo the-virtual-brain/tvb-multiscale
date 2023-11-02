@@ -6,15 +6,8 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputTransformerInterface, SpikeNetInputTransformerInterface, \
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
-    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, \
-    SpikeNetOutputTransformerInterfaces, SpikeNetInputTransformerInterfaces, \
-    SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces, \
-    SpikeNetTransformerSenderInterfaces, SpikeNetReceiverTransformerInterfaces
-
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneInputDeviceSet, NetpyneOutputDeviceSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
@@ -66,22 +59,10 @@ class NetpyneOutputInterface(NetpyneInterface, SpikeNetOutputInterface):
         return self._get_proxy_gids(self.proxy.source)
 
 
-class NetpyneOutputTransformerInterface(NetpyneOutputInterface, SpikeNetOutputTransformerInterface):
-
-    """NetpyneOutputTransformerInterface"""
-
-    pass
-
 
 class NetpyneSenderInterface(NetpyneOutputInterface, SpikeNetSenderInterface):
 
     """NetpyneSenderInterface"""
-
-    pass
-
-
-class NetpyneTransformerSenderInterface(NetpyneOutputInterface, SpikeNetTransformerSenderInterface):
-    """NetpyneTransformerSenderInterface"""
 
     pass
 
@@ -101,25 +82,12 @@ class NetpyneInputInterface(NetpyneInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class NetpyneInputTransformerInterface(NetpyneInputInterface, SpikeNetInputTransformerInterface):
-
-    """NetpyneInputTransformerInterface"""
-
-    pass
-
-
 class NetpyneReceiverInterface(NetpyneInputInterface, SpikeNetReceiverInterface):
 
     """NetpyneReceiverInterface"""
 
     pass
 
-
-class NetpyneReceiverTransformerInterface(NetpyneInputInterface, SpikeNetReceiverTransformerInterface):
-
-    """NetpyneReceiverTransformerInterface"""
-
-    pass
 
 
 class TVBtoNetpyneInterface(NetpyneInputInterface, TVBtoSpikeNetInterface):
@@ -181,20 +149,6 @@ class NetpyneInputInterfaces(SpikeNetInputInterfaces, NetpyneInterfaces):
     interfaces = List(of=NetpyneInputInterface)
 
 
-class NetpyneOutputTransformerInterfaces(SpikeNetOutputTransformerInterfaces, NetpyneInterfaces):
-
-    """NetpyneOutputTransformerInterfaces holding a list of NetpyneOutputTransformerInterface instances"""
-
-    interfaces = List(of=NetpyneOutputTransformerInterface)
-
-
-class NetpyneInputTransformerInterfaces(SpikeNetInputTransformerInterfaces, NetpyneInterfaces):
-
-    """NetpyneInputTransformerInterfaces holding a list of NetpyneInputTransformerInterface instances"""
-
-    interfaces = List(of=NetpyneInputTransformerInterface)
-
-
 class NetpyneSenderInterfaces(SpikeNetSenderInterfaces, NetpyneInterfaces):
 
     """NetpyneSenderInterfaces holding a list of NetpyneSenderInterface instances"""
@@ -208,19 +162,6 @@ class NetpyneReceiverInterfaces(SpikeNetReceiverInterfaces, NetpyneInterfaces):
 
     interfaces = List(of=NetpyneReceiverInterface)
 
-
-class NetpyneTransformerSenderInterfaces(SpikeNetTransformerSenderInterfaces, NetpyneInterfaces):
-
-    """NetpyneTransformerSenderInterfaces holding a list of NetpyneTransformerSenderInterface instances"""
-
-    interfaces = List(of=NetpyneTransformerSenderInterface)
-
-
-class NetpyneReceiverTransformerInterfaces(SpikeNetReceiverTransformerInterfaces, NetpyneInterfaces):
-
-    """NetpyneReceiverTransformerInterfaces holding a list of NetpyneReceiverTransformerInterface instances"""
-
-    interfaces = List(of=NetpyneReceiverTransformerInterface)
 
 
 class TVBtoNetpyneInterfaces(TVBOutputInterfaces, NetpyneInputInterfaces):

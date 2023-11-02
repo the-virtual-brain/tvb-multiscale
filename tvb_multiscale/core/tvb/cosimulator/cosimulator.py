@@ -128,7 +128,6 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self.output_interfaces = None
         self.input_interfaces = None
         self.out_proxy_inds = numpy.asarray(list(), dtype=int)
-        self.min_idelay_sync_n_step_ratio = 1
         self.relative_output_interfaces_time_steps = 0
         self.PRINT_PROGRESSION_MESSAGE = True
         self.n_output_interfaces = 0
@@ -492,6 +491,32 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                     tl.append(t)
                     xl.append(x)
         return self.current_step - current_step
+
+    def run_cosimulation(self, ts, xs, wall_time_start,
+                         advance_simulation_for_delayed_monitors_output=True,
+                         *args, **kwds):
+
+        raise NotImplementedError
+
+    def run(self, *args, **kwds):
+        """Convenience method to call the CoSimulator with **kwds and collect output data."""
+        ts, xs = [], []
+        for _ in self.monitors:
+            ts.append([])
+            xs.append([])
+        wall_time_start = time.time()
+        self.simulation_length = kwds.pop("simulation_length", self.simulation_length)
+        asfdmo = kwds.pop("advance_simulation_for_delayed_monitors_output", True)
+        if self._cosimulation_flag:
+            self.run_cosimulation(ts, xs, wall_time_start,
+                                  advance_simulation_for_delayed_monitors_output=asfdmo,
+                                  *args, **kwds)
+        else:
+            self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
+        for i in range(len(ts)):
+            ts[i] = numpy.array(ts[i])
+            xs[i] = numpy.array(xs[i])
+        return list(zip(ts, xs))
 
     def _log_print_progress_message(self, simulated_steps, simulation_length):
         log_msg = "...%.3f%% completed in %g sec!" % \
