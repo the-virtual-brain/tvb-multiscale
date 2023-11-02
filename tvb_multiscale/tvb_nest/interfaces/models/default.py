@@ -7,8 +7,7 @@ from tvb_multiscale.core.interfaces.models.default import DefaultTVBSpikeNetInte
 
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.builders import NESTProxyNodesBuilder, NESTInterfaceBuilder, \
-    NESTRemoteInterfaceBuilder, TVBNESTInterfaceBuilder, \
-    NESTTransformerInterfaceBuilder
+    NESTRemoteInterfaceBuilder, TVBNESTInterfaceBuilder
 
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
