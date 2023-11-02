@@ -3,7 +3,6 @@
 from abc import ABCMeta, ABC
 
 from tvb_multiscale.core.interfaces.models.default import DefaultTVBSpikeNetInterfaceBuilder, \
-    DefaultSpikeNetRemoteInterfaceBuilder, DefaultSpikeNetTransformerInterfaceBuilder, \
     DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder
 
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
@@ -26,36 +25,6 @@ class DefaultNESTInterfaceBuilder(DefaultNESTProxyNodesBuilder, NESTInterfaceBui
         if spiking_network:
             self.spiking_network = spiking_network
         super().__init__(**kwargs)
-
-
-class DefaultNESTRemoteInterfaceBuilder(DefaultNESTInterfaceBuilder, NESTRemoteInterfaceBuilder,
-                                        DefaultSpikeNetRemoteInterfaceBuilder):
-
-    def __init__(self, spiking_network=None, **kwargs):
-        if spiking_network:
-            self.spiking_network = spiking_network
-        super().__init__(**kwargs)
-
-    def default_output_config(self):
-        DefaultSpikeNetRemoteInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        DefaultSpikeNetRemoteInterfaceBuilder.default_input_config(self)
-
-
-class DefaultNESTTransformerInterfaceBuilder(DefaultNESTInterfaceBuilder, NESTTransformerInterfaceBuilder,
-                                             DefaultSpikeNetTransformerInterfaceBuilder):
-
-    def __init__(self, spiking_network=None, **kwargs):
-        if spiking_network:
-            self.spiking_network = spiking_network
-        super().__init__(**kwargs)
-
-    def default_output_config(self):
-        DefaultSpikeNetTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        DefaultSpikeNetTransformerInterfaceBuilder.default_input_config(self)
 
 
 class DefaultTVBNESTInterfaceBuilder(DefaultNESTProxyNodesBuilder, TVBNESTInterfaceBuilder,
@@ -86,37 +55,6 @@ class DefaultMultisynapseNESTInterfaceBuilder(DefaultMultisynapseNESTProxyNodesB
         if spiking_network:
             self.spiking_network = spiking_network
         super().__init__(**kwargs)
-
-
-class DefaultMultisynapseNESTRemoteInterfaceBuilder(DefaultMultisynapseNESTInterfaceBuilder, NESTRemoteInterfaceBuilder,
-                                                    DefaultSpikeNetRemoteInterfaceBuilder):
-
-    def __init__(self, spiking_network=None, **kwargs):
-        if spiking_network:
-            self.spiking_network = spiking_network
-        super().__init__(**kwargs)
-
-    def default_output_config(self):
-        DefaultSpikeNetRemoteInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        DefaultSpikeNetRemoteInterfaceBuilder.default_input_config(self)
-
-
-class DefaultMultisynapseNESTTransformerInterfaceBuilder(DefaultMultisynapseNESTInterfaceBuilder,
-                                                         NESTTransformerInterfaceBuilder,
-                                                         DefaultSpikeNetTransformerInterfaceBuilder):
-
-    def __init__(self, spiking_network=None, **kwargs):
-        if spiking_network:
-            self.spiking_network = spiking_network
-        super().__init__(**kwargs)
-
-    def default_output_config(self):
-        DefaultSpikeNetTransformerInterfaceBuilder.default_output_config(self)
-
-    def default_input_config(self):
-        DefaultSpikeNetTransformerInterfaceBuilder.default_input_config(self)
 
 
 class DefaultMultisynapseTVBNESTInterfaceBuilder(DefaultMultisynapseNESTProxyNodesBuilder, TVBNESTInterfaceBuilder,
