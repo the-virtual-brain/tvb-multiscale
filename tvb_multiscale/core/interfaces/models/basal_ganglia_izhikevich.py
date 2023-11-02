@@ -9,11 +9,8 @@ from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.noise import Additive
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
-from tvb_multiscale.core.interfaces.models.default import DefaultTVBInterfaceBuilder, \
-    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
-    DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder, \
-    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
+from tvb_multiscale.core.interfaces.models.default import DefaultInterfaceBuilder, DefaultTVBInterfaceBuilder, \
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder
 from tvb_multiscale.core.interfaces.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 
 
