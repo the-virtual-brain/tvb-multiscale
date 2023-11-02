@@ -9,23 +9,15 @@ from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
-    SpikeNetTransformerInterfaceBuilder,  SpikeNetRemoteInterfaceBuilder, \
-    SpikeNetRemoteTransformerInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     ANNarchyOutputInterface, ANNarchyInputInterface, \
-    ANNarchyOutputTransformerInterface, ANNarchyInputTransformerInterface, \
     ANNarchySenderInterface, ANNarchyReceiverInterface, \
-    ANNarchyTransformerSenderInterface, ANNarchyReceiverTransformerInterface, \
-    TVBtoANNarchyInterface, ANNarchyToTVBInterface, \
-    ANNarchyOutputInterfaces, ANNarchyInputInterfaces, \
-    ANNarchyOutputTransformerInterfaces, ANNarchyInputTransformerInterfaces, \
-    ANNarchySenderInterfaces, ANNarchyReceiverInterfaces, \
-    ANNarchyTransformerSenderInterfaces, ANNarchyReceiverTransformerInterfaces, \
-    TVBtoANNarchyInterfaces, ANNarchyToTVBInterfaces
+    TVBtoANNarchyInterface, ANNarchyToTVBInterface
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeMonitorSet, ANNarchySpikeMonitorTotalSet, \
     ANNarchyMonitorSet, ANNarchyMonitorMeanSet, ANNarchyMonitorTotalSet, \
@@ -149,20 +141,6 @@ class ANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, SpikeNetInterfaceBuild
     )
 
 
-class ANNarchyTransformerInterfaceBuilder(ANNarchyInterfaceBuilder, SpikeNetTransformerInterfaceBuilder):
-
-    """ANNarchyTransformerInterfaceBuilder class"""
-
-    _output_interface_type = ANNarchyOutputTransformerInterface
-    _input_interface_type = ANNarchyInputTransformerInterface
-
-    _output_interfaces_type = ANNarchyOutputTransformerInterfaces
-    _input_interfaces_type = ANNarchyInputTransformerInterfaces
-
-    def configure(self):
-        SpikeNetTransformerInterfaceBuilder.configure(self)
-
-
 class ANNarchyRemoteInterfaceBuilder(ANNarchyInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
 
     """ANNarchyRemoteInterfaceBuilder class"""
@@ -175,20 +153,6 @@ class ANNarchyRemoteInterfaceBuilder(ANNarchyInterfaceBuilder, SpikeNetRemoteInt
 
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
-
-
-class ANNarchyRemoteTransformerInterfaceBuilder(ANNarchyInterfaceBuilder, SpikeNetRemoteTransformerInterfaceBuilder):
-
-    """ANNarchyRemoteTransformerInterfaceBuilder class"""
-
-    _output_interface_type = ANNarchyTransformerSenderInterface
-    _input_interface_type = ANNarchyReceiverTransformerInterface
-
-    _output_interfaces_type = ANNarchyTransformerSenderInterfaces
-    _input_interfaces_type = ANNarchyReceiverTransformerInterfaces
-
-    def configure(self):
-        SpikeNetRemoteTransformerInterfaceBuilder.configure(self)
 
 
 class TVBANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, TVBSpikeNetInterfaceBuilder):
