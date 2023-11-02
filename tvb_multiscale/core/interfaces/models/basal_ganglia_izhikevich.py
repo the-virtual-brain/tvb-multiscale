@@ -141,77 +141,6 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
                  "tau_s": self.tau_s, "tau_r": self.tau_r, "gamma": self.gamma}
 
 
-class BasalGangliaIzhikevichTVBRemoteInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                      DefaultTVBRemoteInterfaceBuilder):
-    pass
-
-
-class BasalGangliaIzhikevichTVBOutputTransformerInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                                 BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-                                                                 DefaultTVBOutputTransformerInterfaceBuilder):
-
-    @property
-    def J_N(self):
-        return self.tvb_model.J_N
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_output_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self,
-                                                                                             self.output_interfaces)
-
-
-class BasalGangliaIzhikevichTVBInputTransformerInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                                BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-                                                                DefaultTVBInputTransformerInterfaceBuilder):
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def tau_s(self):
-        return self.tvb_model.tau_s
-
-    @property
-    def gamma(self):
-        return self.tvb_model.gamma
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self,
-                                                                                             self.input_interfaces)
-
-
-class BasalGangliaIzhikevichTVBTransfomerInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                          BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-                                                          BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-                                                          DefaultTVBTransfomerInterfaceBuilder):
-
-    @property
-    def J_N(self):
-        return self.tvb_model.J_N
-
-    @property
-    def tau_s(self):
-        return self.tvb_model.tau_s
-
-    @property
-    def gamma(self):
-        return self.tvb_model.gamma
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_output_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self,
-                                                                                             self.output_interfaces)
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self,
-                                                                                             self.input_interfaces)
-
-
 class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
@@ -301,44 +230,6 @@ class BasalGangliaIzhikevichSpikeNetInterfaceBuilder(BasalGangliaIzhikevichSpike
             self._get_input_interfaces(ii)["populations"] = np.array(pop)
             self._get_input_interfaces(ii)["spiking_proxy_inds"] = np.array(spiking_proxy_inds)
         BasalGangliaIzhikevichSpikeNetProxyNodesBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
-
-
-class BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder(BasalGangliaIzhikevichSpikeNetInterfaceBuilder,
-                                                           DefaultSpikeNetRemoteInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-
-class BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder(BasalGangliaIzhikevichSpikeNetInterfaceBuilder,
-                                                                BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-                                                                BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-                                                                DefaultSpikeNetTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def J_N(self):
-        return self.tvb_simulator_serialized["model.J_N"]
-
-    @property
-    def tau_s(self):
-        return self.tvb_simulator_serialized["model.tau_s"]
-
-    @property
-    def gamma(self):
-        return self.tvb_simulator_serialized["model.gamma"]
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self)
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self)
 
 
 class BasalGangliaIzhikevichTVBSpikeNetInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,

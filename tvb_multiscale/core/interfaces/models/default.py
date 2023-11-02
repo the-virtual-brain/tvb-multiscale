@@ -140,6 +140,33 @@ class DefaultSpikeNetProxyNodesBuilder(SpikeNetProxyNodesBuilder, ABC):
                 interface["proxy_params"] = {"number_of_neurons": self.N_E}
 
 
+class DefaultSpikeNetInterfaceBuilder(SpikeNetInterfaceBuilder,
+                                      DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder, ABC):
+
+    model = Attr(
+        label="Model",
+        field_type=str,
+        doc="""Name of interface model (string).""",
+        required=True,
+        default=TVBtoSpikeNetModels.RATE.name,
+        choices=tuple(TVBtoSpikeNetModels.__members__)
+    )
+
+    def _get_input_interfaces(self, dim=0):
+        interface = DefaultInterfaceBuilder._get_input_interfaces(self, dim)
+        interface["model"] = interface.get("model", self.model)
+        return interface
+
+    def default_output_config(self):
+        self._get_output_interfaces(0)["populations"] = "E"
+        DefaultSpikeNetProxyNodesBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
+
+    def default_input_config(self):
+        assert self.model in (TVBtoSpikeNetModels.RATE.name, TVBtoSpikeNetModels.SPIKES.name)
+        self._get_input_interfaces(0)["populations"] = "E"
+        DefaultSpikeNetProxyNodesBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
+
+
 class DefaultTVBSpikeNetInterfaceBuilder(TVBSpikeNetInterfaceBuilder,
                                          DefaultTVBtoSpikeNetTransformerBuilder,
                                          DefaultSpikeNetToTVBTransformerBuilder,
