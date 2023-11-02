@@ -7,23 +7,15 @@ from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
-    SpikeNetTransformerInterfaceBuilder, SpikeNetRemoteInterfaceBuilder, \
-    SpikeNetRemoteTransformerInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     NetpyneOutputInterface, NetpyneInputInterface, \
-    NetpyneOutputTransformerInterface, NetpyneInputTransformerInterface, \
     NetpyneSenderInterface, NetpyneReceiverInterface, \
-    NetpyneTransformerSenderInterface, NetpyneReceiverTransformerInterface, \
-    TVBtoNetpyneInterface, NetpyneToTVBInterface, \
-    NetpyneOutputInterfaces, NetpyneInputInterfaces, \
-    NetpyneOutputTransformerInterfaces, NetpyneInputTransformerInterfaces, \
-    NetpyneSenderInterfaces, NetpyneReceiverInterfaces, \
-    NetpyneTransformerSenderInterfaces, NetpyneReceiverTransformerInterfaces, \
-    TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
+    TVBtoNetpyneInterface, NetpyneToTVBInterface
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
     NetpynePoissonGeneratorSet
@@ -139,19 +131,6 @@ class NetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, SpikeNetInterfaceBuilder
     def _get_tvb_delays(self):
         return np.maximum(self.spiking_dt,
                           SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
-
-
-class NetpyneTransformerInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetTransformerInterfaceBuilder):
-    """NetpyneTransformerInterfaceBuilder class"""
-
-    _output_interface_type = NetpyneOutputTransformerInterface
-    _input_interface_type = NetpyneInputTransformerInterface
-
-    _output_interfaces_type = NetpyneOutputTransformerInterfaces
-    _input_interfaces_type = NetpyneInputTransformerInterfaces
-
-    def configure(self):
-        SpikeNetTransformerInterfaceBuilder.configure(self)
         
         
 class NetpyneRemoteInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
@@ -166,20 +145,6 @@ class NetpyneRemoteInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteInter
     
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
-
-
-class NetpyneRemoteTransformerInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteTransformerInterfaceBuilder):
-
-    """NetpyneTransformerInterfaceBuilder class"""
-
-    _output_interface_type = NetpyneTransformerSenderInterface
-    _input_interface_type = NetpyneReceiverTransformerInterface
-
-    _output_interfaces_type = NetpyneTransformerSenderInterfaces
-    _input_interfaces_type = NetpyneReceiverTransformerInterfaces
-
-    def configure(self):
-        SpikeNetRemoteTransformerInterfaceBuilder.configure(self)
         
         
 class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceBuilder):
