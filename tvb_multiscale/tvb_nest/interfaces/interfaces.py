@@ -8,14 +8,7 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputTransformerInterface, SpikeNetInputTransformerInterface, \
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
-    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, \
-    SpikeNetOutputTransformerInterfaces, SpikeNetInputTransformerInterfaces, \
-    SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces, \
-    SpikeNetTransformerSenderInterfaces, SpikeNetReceiverTransformerInterfaces
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface
 
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.io import \
@@ -68,22 +61,9 @@ class NESTOutputInterface(NESTInterface, SpikeNetOutputInterface):
         return self._get_proxy_gids(self.proxy.source)
 
 
-class NESTOutputTransformerInterface(NESTOutputInterface, SpikeNetOutputTransformerInterface):
-
-    """NESTOutputTransformerInterface"""
-
-    pass
-
-
 class NESTSenderInterface(NESTOutputInterface, SpikeNetSenderInterface):
 
     """NESTSenderInterface"""
-
-    pass
-
-
-class NESTTransformerSenderInterface(NESTOutputInterface, SpikeNetTransformerSenderInterface):
-    """NESTTransformerSenderInterface"""
 
     pass
 
@@ -103,23 +83,9 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class NESTInputTransformerInterface(NESTInputInterface, SpikeNetInputTransformerInterface):
-
-    """NESTInputTransformerInterface"""
-
-    pass
-
-
 class NESTReceiverInterface(NESTInputInterface, SpikeNetReceiverInterface):
 
     """NESTReceiverInterface"""
-
-    pass
-
-
-class NESTReceiverTransformerInterface(NESTInputInterface, SpikeNetReceiverTransformerInterface):
-
-    """NESTReceiverTransformerInterface"""
 
     pass
 
@@ -182,20 +148,6 @@ class NESTInputInterfaces(SpikeNetInputInterfaces, NESTInterfaces):
     interfaces = List(of=NESTInputInterface)
 
 
-class NESTOutputTransformerInterfaces(SpikeNetOutputTransformerInterfaces, NESTInterfaces):
-
-    """NESTOutputTransformerInterfaces holding a list of NESTOutputTransformerInterface instances"""
-
-    interfaces = List(of=NESTOutputTransformerInterface)
-
-
-class NESTInputTransformerInterfaces(SpikeNetInputTransformerInterfaces, NESTInterfaces):
-
-    """NESTInputTransformerInterfaces holding a list of NESTInputTransformerInterface instances"""
-
-    interfaces = List(of=NESTInputTransformerInterface)
-
-
 class NESTSenderInterfaces(SpikeNetSenderInterfaces, NESTInterfaces):
 
     """NESTSenderInterfaces holding a list of NESTSenderInterface instances"""
@@ -208,20 +160,6 @@ class NESTReceiverInterfaces(SpikeNetReceiverInterfaces, NESTInterfaces):
     """NESTReceiverInterfaces holding a list of NESTReceiverInterface instances"""
 
     interfaces = List(of=NESTReceiverInterface)
-
-
-class NESTTransformerSenderInterfaces(SpikeNetTransformerSenderInterfaces, NESTInterfaces):
-
-    """NESTTransformerSenderInterfaces holding a list of NESTTransformerSenderInterface instances"""
-
-    interfaces = List(of=NESTTransformerSenderInterface)
-
-
-class NESTReceiverTransformerInterfaces(SpikeNetReceiverTransformerInterfaces, NESTInterfaces):
-
-    """NESTReceiverTransformerInterfaces holding a list of NESTReceiverTransformerInterface instances"""
-
-    interfaces = List(of=NESTReceiverTransformerInterface)
 
 
 class TVBtoNESTInterfaces(TVBOutputInterfaces, NESTInputInterfaces):
