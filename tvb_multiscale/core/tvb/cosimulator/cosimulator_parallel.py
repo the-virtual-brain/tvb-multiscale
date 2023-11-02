@@ -40,6 +40,7 @@ It inherits the Simulator class.
 import numpy
 
 from tvb.basic.neotraits.api import Int
+
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 

@@ -199,7 +199,8 @@ class SpikeNetParallelApp(SpikeNetApp):
                            (self.__class__.__name__, self.synchronization_time))
 
     def run_for_synchronization_time(self, cosim_updates, cosimulation=True):
-        if cosimulation: self.spiking_network.input_interfaces(cosim_updates)
+        if cosimulation:
+            self.spiking_network.input_interfaces(cosim_updates)
         self.spiking_network.Run(self.synchronization_time)
         if cosimulation:
             return self.spiking_network.output_interfaces()
