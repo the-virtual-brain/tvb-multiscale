@@ -15,7 +15,10 @@ from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_log
 from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     NetpyneOutputInterface, NetpyneInputInterface, \
     NetpyneSenderInterface, NetpyneReceiverInterface, \
-    TVBtoNetpyneInterface, NetpyneToTVBInterface
+    TVBtoNetpyneInterface, NetpyneToTVBInterface, \
+    NetpyneOutputInterfaces, NetpyneInputInterfaces, \
+    NetpyneSenderInterfaces, NetpyneReceiverInterfaces, \
+    TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
     NetpynePoissonGeneratorSet

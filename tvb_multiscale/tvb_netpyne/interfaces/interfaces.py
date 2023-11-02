@@ -6,9 +6,8 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetSenderInterface, SpikeNetReceiverInterface
-
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneInputDeviceSet, NetpyneOutputDeviceSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork

@@ -17,7 +17,10 @@ from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED, initialize_lo
 from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     ANNarchyOutputInterface, ANNarchyInputInterface, \
     ANNarchySenderInterface, ANNarchyReceiverInterface, \
-    TVBtoANNarchyInterface, ANNarchyToTVBInterface
+    TVBtoANNarchyInterface, ANNarchyToTVBInterface, \
+    ANNarchyOutputInterfaces, ANNarchyInputInterfaces, \
+    ANNarchySenderInterfaces, ANNarchyReceiverInterfaces, \
+    TVBtoANNarchyInterfaces, ANNarchyToTVBInterfaces
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeMonitorSet, ANNarchySpikeMonitorTotalSet, \
     ANNarchyMonitorSet, ANNarchyMonitorMeanSet, ANNarchyMonitorTotalSet, \

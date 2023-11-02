@@ -15,7 +15,8 @@ from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values, property_to_fun
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 
 class DefaultTVBtoSpikeNetProxyModels(object):

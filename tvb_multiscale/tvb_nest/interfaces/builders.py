@@ -19,7 +19,10 @@ from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTOutputInterface, NESTInputInterface, \
     NESTSenderInterface, NESTReceiverInterface, \
-    TVBtoNESTInterface, NESTtoTVBInterface
+    TVBtoNESTInterface, NESTtoTVBInterface, \
+    NESTOutputInterfaces, NESTInputInterfaces, \
+    NESTSenderInterfaces, NESTReceiverInterfaces, \
+    TVBtoNESTInterfaces, NESTtoTVBInterfaces
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTSpikeRecorderSet, NESTSpikeRecorderTotalSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \

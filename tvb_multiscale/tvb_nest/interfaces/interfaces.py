@@ -4,11 +4,11 @@ from abc import ABCMeta
 
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
-from tvb_multiscale.core.interfaces.tvb.interfaces import \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
-    SpikeNetToTVBModels
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels, \
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.io import \

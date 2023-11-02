@@ -16,13 +16,14 @@ from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetProxyModels, DefaultSpikeNetToTVBProxyModels
 from tvb_multiscale.core.interfaces.transformers.builders import \
     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
-from tvb_multiscale.core.interfaces.tvb.interfaces import \
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels, \
     TVBOutputInterface, TVBInputInterface, TVBOutputInterfaces, TVBInputInterfaces, \
     TVBSenderInterface, TVBReceiverInterface, TVBSenderInterfaces, TVBReceiverInterfaces, \
+    TVBTransformerOutputInterface, TVBInputTransformerInterface,\
+    TVBTransformerOutputInterfaces, TVBInputTransformerInterfaces, \
     TVBTransformerSenderInterface, TVBReceiverTransformerInterface,\
     TVBTransformerSenderInterfaces, TVBReceiverTransformerInterfaces, \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces, \
-    TVBtoSpikeNetModels, SpikeNetToTVBModels
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
@@ -452,7 +453,7 @@ class TVBTransformerInterfaceBuilder(TVBInterfaceBuilder,
         if self.dt == 0.0:
             # From TVBInterfaceBuilder to TransformerBuilder:
             self.dt = self.tvb_dt
-        TVBTransformerInterfaceBuilder.configure(self)
+        TVBInterfaceBuilder.configure(self)
         TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
         SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
 
