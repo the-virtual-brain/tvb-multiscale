@@ -62,16 +62,16 @@ class NESTNetwork(SpikingNetwork):
 
     def Run(self, time, **kwargs):
         if self.nest_instance is not None:
-            self.nest_instance.Run(time, **kwargs)
+            return self.nest_instance.Run(time, **kwargs)
 
     def Simulate(self, time, **kwargs):
         if self.nest_instance is not None:
             self.nest_instance.Prepare()
-            self.nest_instance.Run(time, **kwargs)
+            return self.nest_instance.Run(time, **kwargs)
 
     def Cleanup(self, **kwargs):
         if self.nest_instance is not None:
-            self.nest_instance.Cleanup(**kwargs)
+            return self.nest_instance.Cleanup(**kwargs)
 
     @property
     def min_delay(self):

@@ -63,7 +63,7 @@ def configure_TVBtoSpikeNet_transformer_interfaces(
         tvb_to_spikeNet_trans_interface_builder.dump_all_interfaces()
 
     if config.VERBOSITY:
-        # This is how the user defined TVB -> Spiking Network interface looks after configuration
+        # This is how the user defined ->Transformer-> coupling interface looks after configuration
         print("\noutput (->Transformer-> coupling) interfaces' configurations:\n")
         print(tvb_to_spikeNet_trans_interface_builder.output_interfaces)
 

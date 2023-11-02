@@ -168,25 +168,6 @@ class TVBTransformerOutputInterface(TVBOutputInterface, TransformerInterface):
         return TransformerInterface.__call__(self, TVBOutputInterface.__call__(self, data))
 
 
-class TVBSenderInterface(TVBOutputInterface, SenderInterface):
-
-    """TVBSenderInterface class to send data to a remote transformer or cosimulator.
-    """
-
-    def __call__(self, data):
-        return SenderInterface.send(self, TVBOutputInterface.__call__(self, data))
-
-
-class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterface):
-
-    """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
-       and, then, send them to a -potentially remote- cosimulator.
-    """
-
-    def __call__(self, data):
-        return TransformerSenderInterface.transform_and_send(self, TVBOutputInterface.__call__(self, data))
-
-
 class TVBInputTransformerInterface(TVBInputInterface, TransformerInterface):
 
     """TVBInputTransformerInterface class to get data for TVB from a remote transformer or cosimulator
@@ -197,6 +178,15 @@ class TVBInputTransformerInterface(TVBInputInterface, TransformerInterface):
         return TVBInputInterface.__call__(self, TransformerInterface.__call__(self, data))
 
 
+class TVBSenderInterface(TVBOutputInterface, SenderInterface):
+
+    """TVBSenderInterface class to send data to a remote transformer or cosimulator.
+    """
+
+    def __call__(self, data):
+        return SenderInterface.send(self, TVBOutputInterface.__call__(self, data))
+
+
 class TVBReceiverInterface(TVBInputInterface, ReceiverInterface):
 
     """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
@@ -204,6 +194,16 @@ class TVBReceiverInterface(TVBInputInterface, ReceiverInterface):
 
     def __call__(self):
         return TVBInputInterface.__call__(self, ReceiverInterface.receive(self))
+
+
+class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterface):
+
+    """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
+       and, then, send them to a -potentially remote- cosimulator.
+    """
+
+    def __call__(self, data):
+        return TransformerSenderInterface.transform_and_send(self, TVBOutputInterface.__call__(self, data))
 
 
 class TVBReceiverTransformerInterface(TVBInputInterface, ReceiverTransformerInterface):

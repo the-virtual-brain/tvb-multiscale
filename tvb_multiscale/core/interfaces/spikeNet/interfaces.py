@@ -11,8 +11,6 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import \
     BaseInterface, SenderInterface, ReceiverInterface, BaseInterfaces
-from tvb_multiscale.core.interfaces.transformers.interfaces import TransformerInterface, \
-    TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.io import SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
@@ -187,30 +185,6 @@ class SpikeNetInputInterface(SpikeNetInterface):
         return self.set_proxy_data(data)
 
 
-class SpikeNetOutputTransformerInterface(SpikeNetOutputInterface, TransformerInterface):
-
-    """SpikeNetOutputTransformerInterface class."""
-
-    def configure(self):
-        SpikeNetOutputInterface.configure(self)
-        TransformerInterface.configure(self)
-
-    def __call__(self):
-        return self.transform(self.get_proxy_data())
-
-
-class SpikeNetInputTransformerInterface(SpikeNetInputInterface, TransformerInterface):
-
-    """SpikeNetInputTransformerInterface class."""
-
-    def configure(self):
-        SpikeNetInputInterface.configure(self)
-        TransformerInterface.configure(self)
-
-    def __call__(self, data):
-        return self.set_proxy_data(self.transform(data))
-
-
 class SpikeNetSenderInterface(SpikeNetOutputInterface, SenderInterface):
 
     """SpikeNetSenderInterface class."""
@@ -233,30 +207,6 @@ class SpikeNetReceiverInterface(SpikeNetInputInterface, ReceiverInterface):
 
     def __call__(self):
         return self.set_proxy_data(self.receive())
-
-
-class SpikeNetTransformerSenderInterface(SpikeNetOutputInterface, TransformerSenderInterface):
-
-    """SpikeNetTransformerSenderInterface class."""
-
-    def configure(self):
-        SpikeNetOutputInterface.configure(self)
-        TransformerSenderInterface.configure(self)
-
-    def __call__(self):
-        return self.transform_and_send(self.get_proxy_data())
-
-
-class SpikeNetReceiverTransformerInterface(SpikeNetInputInterface, ReceiverTransformerInterface):
-
-    """SpikeNetReceiverTransformerInterface class."""
-
-    def configure(self):
-        SpikeNetInputInterface.configure(self)
-        ReceiverTransformerInterface.configure(self)
-
-    def __call__(self):
-        return self.set_proxy_data(self.receive_transform())
 
 
 class SpikeNetInterfaces(HasTraits):
@@ -329,25 +279,11 @@ class SpikeNetOutputInterfaces(BaseInterfaces, SpikeNetInterfaces):
         return outputs
 
 
-class SpikeNetOutputTransformerInterfaces(SpikeNetOutputInterfaces):
-
-    """SpikeNetOutputTransformerInterfaces"""
-
-    interfaces = List(of=SpikeNetOutputTransformerInterface)
-
-
 class SpikeNetSenderInterfaces(SpikeNetOutputInterfaces):
 
     """SpikeNetSenderInterfaces"""
 
     interfaces = List(of=SpikeNetSenderInterface)
-
-
-class SpikeNetTransformerSenderInterfaces(SpikeNetOutputInterfaces):
-
-    """SpikeNetTransformerSenderInterfaces"""
-
-    interfaces = List(of=SpikeNetTransformerSenderInterface)
 
 
 class SpikeNetReceiverInterfaces(BaseInterfaces, SpikeNetInterfaces):
@@ -361,13 +297,6 @@ class SpikeNetReceiverInterfaces(BaseInterfaces, SpikeNetInterfaces):
         for interface in self.interfaces:
             results.append(interface())
         return results
-
-
-class SpikeNetReceiverTransformerInterfaces(SpikeNetReceiverInterfaces):
-
-    """SpikeNetReceiverTransformerInterfaces"""
-
-    interfaces = List(of=SpikeNetReceiverTransformerInterface)
 
 
 class SpikeNetInputInterfaces(SpikeNetReceiverInterfaces):
@@ -385,10 +314,3 @@ class SpikeNetInputInterfaces(SpikeNetReceiverInterfaces):
                     input_data = input_data[:2]
                 results.append(interface(input_data))
         return results
-
-
-class SpikeNetInputTransformerInterfaces(SpikeNetInputInterfaces):
-
-    """SpikeNetInputTransformerInterfaces"""
-
-    interfaces = List(of=SpikeNetInputTransformerInterface)

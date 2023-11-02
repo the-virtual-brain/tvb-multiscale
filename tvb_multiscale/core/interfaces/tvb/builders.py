@@ -16,13 +16,14 @@ from tvb_multiscale.core.interfaces.spikeNet.builders import \
     SpikeNetProxyNodesBuilder, DefaultTVBtoSpikeNetProxyModels, DefaultSpikeNetToTVBProxyModels
 from tvb_multiscale.core.interfaces.transformers.builders import \
     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
-from tvb_multiscale.core.interfaces.tvb.interfaces import \
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels, \
     TVBOutputInterface, TVBInputInterface, TVBOutputInterfaces, TVBInputInterfaces, \
     TVBSenderInterface, TVBReceiverInterface, TVBSenderInterfaces, TVBReceiverInterfaces, \
+    TVBTransformerOutputInterface, TVBInputTransformerInterface,\
+    TVBTransformerOutputInterfaces, TVBInputTransformerInterfaces, \
     TVBTransformerSenderInterface, TVBReceiverTransformerInterface,\
     TVBTransformerSenderInterfaces, TVBReceiverTransformerInterfaces, \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces, \
-    TVBtoSpikeNetModels, SpikeNetToTVBModels
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBtoSpikeNetInterfaces, SpikeNetToTVBInterfaces
 from tvb_multiscale.core.tvb.cosimulator.cosimulator import CoSimulator
 
 
@@ -371,6 +372,92 @@ class TVBInterfaceBuilder(InterfaceBuilder):
         return info
 
 
+class TVBOutputTransformerInterfaceBuilder(TVBInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
+
+    """TVBOutputTransformerInterfaceBuilder class"""
+
+    input_label = Attr(field_type=str, default="TransToTVB", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TVBtransToSpikeNet", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
+
+    _output_interface_type = TVBTransformerOutputInterface
+    _input_interface_type = TVBInputInterface
+
+    _output_interfaces_type = TVBTransformerOutputInterfaces
+    _input_interfaces_type = TVBInputInterfaces
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        TVBInterfaceBuilder.configure(self)
+        self.configure_and_build_transformers(self, self.output_interfaces)
+
+
+class TVBInputTransformerInterfaceBuilder(TVBInterfaceBuilder, SpikeNetToTVBTransformerBuilder):
+
+    """TVBInputTransformerInterfaceBuilder class"""
+
+    input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TVBtoTrans", required=True, label="Output label",
+                        doc="""Output label of interface builder,
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
+
+    _output_interface_type = TVBOutputInterface
+    _input_interface_type = TVBInputTransformerInterface
+
+    _output_interfaces_type = TVBOutputInterfaces
+    _input_interfaces_type = TVBInputTransformerInterfaces
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        TVBInterfaceBuilder.configure(self)
+        self.configure_and_build_transformers(self, self.input_interfaces)
+
+
+class TVBTransformerInterfaceBuilder(TVBInterfaceBuilder,
+                                     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
+
+    """TVBTransformerInterfaceBuilder class"""
+
+    input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
+                       doc="""Input label of interface builder,
+                              to be used for files' names and Receiver class instance labels, 
+                              for the communication of data towards this CoSimulator""")
+
+    output_label = Attr(field_type=str, default="TVBtransToSpikeNet", required=True, label="Output label",
+                        doc="""Output label of interface builder, 
+                               to be used for files' names and Sender class instance labels, 
+                               for the communication of data starting from this CoSimulator""")
+
+    _output_interface_type = TVBTransformerOutputInterface
+    _input_interface_type = TVBInputTransformerInterface
+
+    _output_interfaces_type = TVBTransformerOutputInterfaces
+    _input_interfaces_type = TVBInputTransformerInterfaces
+
+    def configure(self):
+        if self.dt == 0.0:
+            # From TVBInterfaceBuilder to TransformerBuilder:
+            self.dt = self.tvb_dt
+        TVBInterfaceBuilder.configure(self)
+        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
+        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
+
+
 class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder, RemoteInterfaceBuilder):
 
     """TVBRemoteInterfaceBuilder class"""
@@ -414,9 +501,9 @@ class TVBRemoteInterfaceBuilder(TVBInterfaceBuilder, RemoteInterfaceBuilder):
         return interface
 
 
-class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
+class TVBOutputTransformerRemoteInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpikeNetTransformerBuilder):
 
-    """TVBOutputTransformerInterfaceBuilder class"""
+    """TVBOutputTransformerRemoteInterfaceBuilder class"""
 
     input_label = Attr(field_type=str, default="TransToTVB", required=True, label="Input label",
                        doc="""Input label of interface builder,
@@ -442,9 +529,9 @@ class TVBOutputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, TVBtoSpike
         self.configure_and_build_transformers(self, self.output_interfaces)
 
 
-class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToTVBTransformerBuilder):
+class TVBInputTransformerRemoteInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToTVBTransformerBuilder):
 
-    """TVBInputTransformerInterfaceBuilder class"""
+    """TVBInputTransformerRemoteInterfaceBuilder class"""
 
     input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
                        doc="""Input label of interface builder,
@@ -470,10 +557,10 @@ class TVBInputTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder, SpikeNetToT
         self.configure_and_build_transformers(self, self.input_interfaces)
 
 
-class TVBTransformerInterfaceBuilder(TVBRemoteInterfaceBuilder,
-                                     TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
+class TVBTransformerRemoteInterfaceBuilder(TVBRemoteInterfaceBuilder,
+                                           TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder):
 
-    """TVBTransformerInterfaceBuilder class"""
+    """TVBTransformerRemoteInterfaceBuilder class"""
 
     input_label = Attr(field_type=str, default="SpikeNetToTVBtrans", required=True, label="Input label",
                        doc="""Input label of interface builder,
