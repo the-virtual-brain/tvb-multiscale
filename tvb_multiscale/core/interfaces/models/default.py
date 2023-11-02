@@ -7,7 +7,8 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr, Int
 
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
-from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder, TVBInterfaceBuilder
+from tvb_multiscale.core.interfaces.tvb.builders import \
+    TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder, TVBRemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
 
@@ -85,6 +86,10 @@ class DefaultTVBInterfaceBuilder(TVBInterfaceBuilder, DefaultInterfaceBuilder):
     def default_input_config(self):
         assert self.model in (TVBtoSpikeNetModels.RATE.name, TVBtoSpikeNetModels.SPIKES.name)
         self._get_input_interfaces()["voi"] = "R"
+
+
+class DefaultTVBRemoteInterfaceBuilder(TVBRemoteInterfaceBuilder, DefaultTVBInterfaceBuilder):
+    pass
 
 
 class DefaultTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilder, ABC):
