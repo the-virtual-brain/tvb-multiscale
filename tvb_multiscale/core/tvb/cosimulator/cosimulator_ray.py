@@ -56,17 +56,17 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         default=2,
         required=True,
         doc="""min_idelay to synchronization_n_step ratio, 
-                       i.e., an integer value defining how many times smaller should the synchronization time be 
-                       compared to the minimum delay time in integration time steps.
-                       For the moment we limit it to 1 (synchronization_time = min_delay) 
-                       or 2 (synchronization_time = min_delay/2)""")
+               i.e., an integer value defining how many times smaller should the synchronization time be 
+               compared to the minimum delay time in integration time steps.
+               For the moment we limit it to 1 (synchronization_time = min_delay) 
+               or 2 (synchronization_time = min_delay/2)""")
 
-    run_serially = False
+    _run_serially = False
 
     def __init__(self, **kwargs):
-        self.run_serially = kwargs.pop("run_serially", False)
         super(CoSimulatorParallelRay, self).__init__(**kwargs)
         self.min_idelay_sync_n_step_ratio = 2
+        self._run_serially = False
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start,
                                      spiking_network,
@@ -88,20 +88,22 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         # with or without TVB coupling inputs of times [t, t + min_tvb_delay/2]
         # or TVB state inputs of times [t - min_tvb_delay, t - min_tvb_delay/2]
         input_trans_to_spikeNet_cosim_updates = None
-        if self.run_serially:
+        if self._run_serially:
             input_trans_to_spikeNet_cosim_updates = input_ref_trans_to_spikeNet_cosim_updates
         elif len(input_ref_trans_to_spikeNet_cosim_updates):
             input_trans_to_spikeNet_cosim_updates = \
                 tvb_to_spikeNet_trans_interfaces.rayget(input_ref_trans_to_spikeNet_cosim_updates)
         spiking_network.input_interfaces(input_trans_to_spikeNet_cosim_updates)
         spikeNet_run_ref = spiking_network.Run(self.synchronization_time)
+        if self._run_serially:
+            ray.get(spikeNet_run_ref)
 
         # NON-BLOCKING:
         # Transform spikeNet -> TVB updates of times [t - Tsync, t] = [t - min_tvb_delay/2, t]...
         if input_spikeNet_to_trans_cosim_updates is not None:
             # ...if any:
             ref_trans_to_tvb_cosim_updates = spikeNet_to_tvb_trans_interfaces(input_spikeNet_to_trans_cosim_updates)
-            if self.run_serially:
+            if self._run_serially:
                 ref_trans_to_tvb_cosim_updates = \
                     spikeNet_to_tvb_trans_interfaces.rayget(ref_trans_to_tvb_cosim_updates)
         else:
@@ -114,7 +116,7 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         if input_tvb_to_trans_cosim_updates is not None:
             # ...if any:
             ref_trans_to_spikeNet_cosim_updates = tvb_to_spikeNet_trans_interfaces(input_tvb_to_trans_cosim_updates)
-            if self.run_serially:
+            if self._run_serially:
                 ref_trans_to_spikeNet_cosim_updates = \
                     spikeNet_to_tvb_trans_interfaces.rayget(ref_trans_to_spikeNet_cosim_updates)
         else:
@@ -125,7 +127,7 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
         # with or without spikeNet update inputs of times [t - 2*Tsync, t - Tsync]
         # = [t - min_tvb_delay/, t - min_tvb_delay/2]
         input_trans_to_tvb_cosim_updates = None
-        if self.run_serially:
+        if self._run_serially:
             input_trans_to_tvb_cosim_updates = input_ref_trans_to_tvb_cosim_updates
         elif len(input_ref_trans_to_tvb_cosim_updates):
             input_trans_to_tvb_cosim_updates = \
@@ -134,7 +136,8 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
             ts, xs, wall_time_start, input_trans_to_tvb_cosim_updates, cosimulation=True)
 
         # BLOCK for spikeNet to finish running:
-        spiking_network.spiking_simulator_module.block_run
+        if not self._run_serially:
+            ray.get(spikeNet_run_ref)
         spikeNet_to_trans_cosim_updates = spiking_network.output_interfaces()
 
         # Now time has become t + Tsync!
@@ -146,7 +149,9 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                          spiking_network, tvb_to_spikeNet_trans_interfaces, spikeNet_to_tvb_trans_interfaces,
                          advance_simulation_for_delayed_monitors_output=True,
                          **kwds):
-        """Convenience method to run cosimulation for serial cosimulation."""
+        """Convenience method to run cosimulation for parallel Ray cosimulation."""
+
+        self._run_serially = kwds.pop("run_serially", False)
 
         # Get and store the configured values of simulator's time parameters:
         simulation_length = self.simulation_length
@@ -202,7 +207,7 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                 ref_trans_to_spikeNet_cosim_updates = tvb_to_spikeNet_trans_interfaces(tvb_to_trans_cosim_updates_past)
             # Cancel the time delay for the simulation to follow:
             self.relative_output_interfaces_time_steps = 0
-        if self.run_serially:
+        if self._run_serially:
             ref_trans_to_spikeNet_cosim_updates = \
                 tvb_to_spikeNet_trans_interfaces.rayget(ref_trans_to_spikeNet_cosim_updates)
 
@@ -226,6 +231,117 @@ class CoSimulatorParallelRay(CoSimulatorParallel):
                     spiking_network, tvb_to_spikeNet_trans_interfaces, spikeNet_to_tvb_trans_interfaces,
                     tvb_to_trans_cosim_updates, ref_trans_to_spikeNet_cosim_updates,
                     spikeNet_to_trans_cosim_updates, ref_trans_to_tvb_cosim_updates)[:4]
+            simulated_steps += self.n_tvb_steps_ran_since_last_synch
+            remaining_steps -= self.n_tvb_steps_ran_since_last_synch
+            self._log_print_progress_message(simulated_steps, simulation_length)
+
+        # Restore simulator time parameters:
+        self.simulation_length = simulated_steps * self.integrator.dt  # restore the actually implemented value
+        self.synchronization_n_step = int(synchronization_n_step)  # restore the configured value
+        self.synchronization_time = synchronization_time
+
+
+class CoSimulatorParallelSpikeNetRay(CoSimulatorParallel):
+
+    min_idelay_sync_n_step_ratio = Int(
+        label="min_idelay_synch_n_step_ratio",
+        choices=(1, ),
+        default=1,
+        required=True,
+        doc="""min_idelay to synchronization_n_step ratio, 
+               i.e., an integer value defining how many times smaller should the synchronization time be 
+               compared to the minimum delay time in integration time steps.
+               For the moment we limit it to 1 (synchronization_time = min_delay) 
+               or 2 (synchronization_time = min_delay/2)""")
+
+    _run_serially = False
+
+    def __init__(self, **kwargs):
+        super(CoSimulatorParallelSpikeNetRay, self).__init__(**kwargs)
+        self.min_idelay_sync_n_step_ratio = 1
+        self._run_serially = False
+
+    def run_for_synchronization_time(self, ts, xs, wall_time_start,
+                                     spiking_network,
+                                     input_TVBtrans_to_spikeNet_cosim_updates=None,
+                                     input_spikeNet_to_transTVB_cosim_updates=None):
+        """Function for cosimulating for one loop of synchronization time.
+           It could be the highest level possible ENTRYPOINT for a Ray parallel cosimulation.
+           The ENTRYPOINT here is just the cosimulation updates' data,
+           which are "thrown over the wall" for the necessary data exchanges.
+           Spiking network simulation works in parallel with TVB simulation and transformer's operations.
+        """
+        # NON-BLOCKING:
+        # spikeNet t -> t + Tsync
+        # Simulate spikeNet for times [t, t + Tsync] = [t, t + min_tvb_delay]
+        # with or without TVB coupling inputs of times [t, t + min_tvb_delay]
+        # or TVB state inputs of times [t - min_tvb_delay, t]
+        if input_TVBtrans_to_spikeNet_cosim_updates is not None:
+            spiking_network.input_interfaces(input_TVBtrans_to_spikeNet_cosim_updates)
+        spikeNet_run_ref = spiking_network.Run(self.synchronization_time)
+        if self._run_serially:
+            ray.get(spikeNet_run_ref)
+
+        # BLOCKING:
+        # 1. Transform spikeNet -> TVB updates of times [t - Tsync, t] = [t - min_tvb_delay, t], if any...
+        # 2. TVB t -> t + Tsync
+        #    Simulate TVB for times [t, t + Tsync] = [t, t + min_tvb_delay]
+        #    with or without spikeNet update inputs of times [t - Tsync, t] = [t - min_tvb_delay, t]
+        # 3. Transform TVB -> spikeNet couplings of times
+        #    [t + Tsync, t + 2*Tsync] = [t + min_tvb_delay, t + 2*min_tvb_delay]...
+        #    ...or TVB -> spikeNet state of times [t, t + Tsync]=[t, t + min_tvb_delay]
+        TVBtrans_to_spikeNet_cosim_updates = super(CoSimulatorParallelSpikeNetRay, self).run_for_synchronization_time(
+            ts, xs, wall_time_start, input_spikeNet_to_transTVB_cosim_updates, cosimulation=True)
+
+        # BLOCK for spikeNet to finish running:
+        if not self._run_serially:
+            ray.get(spikeNet_run_ref)
+        spikeNet_to_transTVB_cosim_updates = spiking_network.output_interfaces()
+
+        # Now time has become t + Tsync!
+        return TVBtrans_to_spikeNet_cosim_updates, spikeNet_to_transTVB_cosim_updates
+
+    def run_cosimulation(self, ts, xs, wall_time_start, spiking_network,
+                         advance_simulation_for_delayed_monitors_output=True, **kwds):
+
+        """Convenience method to run cosimulation for parallel Ray cosimulation."""
+
+        self._run_serially = kwds.pop("run_serially", False)
+
+        # Get and store the configured values of simulator's time parameters:
+        simulation_length = self.simulation_length
+        synchronization_time = self.synchronization_time
+        synchronization_n_step = int(self.synchronization_n_step)
+
+        # Advance the simulation time by the synchronization times,
+        if advance_simulation_for_delayed_monitors_output:
+            simulation_length += self.synchronization_n_step * self.integrator.dt
+
+        # Send TVB's initial condition to spikeNet via the TVB -> spikeNet transformer!:
+        # TVB initial condition cosimulation data towards spikeNet
+        # - of TVB coupling for [0, Tsync] if INTERFACE_COUPLING_MODE == "TVB"
+        # - of TVB state for [-Tsync, 0] if INTERFACE_COUPLING_MODE == "spikeNet"
+        TVBtrans_to_spikeNet_cosim_updates = self.send_cosim_coupling(True)
+        # spikeNet initial condition update towards TVB via the transformer:
+        spikeNet_to_transTVB_cosim_updates = None
+
+        # Prepare loop...
+        simulated_steps = 0
+        remaining_steps = int(np.round(simulation_length / self.integrator.dt))
+        if not self.n_tvb_steps_ran_since_last_synch:
+            self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
+        # ...and loop:
+        self._tic = time.time()
+        while remaining_steps > 0:
+            # Set the remaining steps as simulation time,
+            # if it is less than the original synchronization time:
+            self.synchronization_n_step = np.minimum(remaining_steps, synchronization_n_step)
+            time_to_simulate = self.integrator.dt * self.synchronization_n_step
+            self.synchronization_time = time_to_simulate
+            TVBtrans_to_spikeNet_cosim_updates, spikeNet_to_transTVB_cosim_updates = \
+                self.run_for_synchronization_time(
+                    ts, xs, wall_time_start, spiking_network,
+                    TVBtrans_to_spikeNet_cosim_updates, spikeNet_to_transTVB_cosim_updates)
             simulated_steps += self.n_tvb_steps_ran_since_last_synch
             remaining_steps -= self.n_tvb_steps_ran_since_last_synch
             self._log_print_progress_message(simulated_steps, simulation_length)
