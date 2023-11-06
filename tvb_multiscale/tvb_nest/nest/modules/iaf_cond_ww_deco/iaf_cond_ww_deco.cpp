@@ -532,7 +532,7 @@ iaf_cond_ww_deco::Buffers_::Buffers_( const Buffers_& b,
  * ---------------------------------------------------------------- */
 
 iaf_cond_ww_deco::iaf_cond_ww_deco()
-  : Archiving_Node()
+  : ArchivingNode()
   , P_()
   , S_( P_ )
   , B_( *this )
@@ -542,7 +542,7 @@ iaf_cond_ww_deco::iaf_cond_ww_deco()
 
 iaf_cond_ww_deco::iaf_cond_ww_deco(
   const iaf_cond_ww_deco& n )
-  : Archiving_Node( n )
+  : ArchivingNode( n )
   , P_( n.P_ )
   , S_( n.S_ )
   , B_( n.B_, *this )
@@ -587,7 +587,7 @@ iaf_cond_ww_deco::init_buffers_()
   B_.currents.clear(); // includes resize
   B_.spikesExc_ext.resize( P_.n_receptors() );
 
-  Archiving_Node::clear_history();
+  ArchivingNode::clear_history();
 
   B_.logger_.reset();
 
@@ -873,7 +873,7 @@ iaf_cond_ww_deco::set_status( const DictionaryDatum& d )
   // write them back to (P_, S_) before we are also sure that
   // the properties to be set in the parent class are internally
   // consistent.
-  Archiving_Node::set_status( d );
+  ArchivingNode::set_status( d );
 
   /*
    * Here is where we must update the recordablesMap_ if new receptors
