@@ -142,7 +142,7 @@ class iaf_cond_ww_deco : public ArchivingNode
 public:
   iaf_cond_ww_deco();
   iaf_cond_ww_deco( const iaf_cond_ww_deco& );
-  virtual ~iaf_cond_ww_deco();
+  ~iaf_cond_ww_deco() override;
 
   friend int iaf_cond_ww_deco_dynamics( double,
     const double*,
@@ -157,24 +157,24 @@ public:
   using Node::handle;
   using Node::handles_test_event;
 
-  port send_test_event( Node&, rport, synindex, bool );
+  size_t send_test_event( Node&, size_t, synindex, bool ) override;
 
   void handle( SpikeEvent& );
   void handle( CurrentEvent& );
   void handle( DataLoggingRequest& );
 
-  port handles_test_event( SpikeEvent&, rport );
-  port handles_test_event( CurrentEvent&, rport );
-  port handles_test_event( DataLoggingRequest&, rport );
+  size_t handles_test_event( SpikeEvent&, size_t ) override;
+  size_t handles_test_event( CurrentEvent&, size_t ) override;
+  size_t handles_test_event( DataLoggingRequest&, size_t ) override;
 
-  void get_status( DictionaryDatum& ) const;
-  void set_status( const DictionaryDatum& );
+  void get_status( DictionaryDatum& ) const override;
+  void set_status( const DictionaryDatum& ) override;
 
 private:
   void init_state_( const Node& proto );
-  void init_buffers_();
-  void calibrate();
-  void update( Time const&, const long, const long );
+  void init_buffers_() override;
+  void pre_run_hook() override;
+  void update( Time const&, const long, const long ) override;
 
   // The next three classes need to be friends to access the State_ class/member
   friend class DynamicRecordablesMap< iaf_cond_ww_deco >;
@@ -647,9 +647,9 @@ private:
 
 };
 
-inline port
+inline size_t
 iaf_cond_ww_deco::send_test_event( Node& target,
-  rport receptor_type,
+  size_t receptor_type,
   synindex,
   bool )
 {
@@ -659,13 +659,13 @@ iaf_cond_ww_deco::send_test_event( Node& target,
   return target.handles_test_event( e, receptor_type );
 }
 
-inline port
+inline size_t
 iaf_cond_ww_deco::handles_test_event( SpikeEvent&,
-  rport receptor_type )
+  size_t receptor_type )
 
 {
   if ( receptor_type < 0
-    || receptor_type > static_cast< port >(P_.n_receptors() ) )
+    || receptor_type > static_cast< size_t >(P_.n_receptors() ) )
   {
     throw IncompatibleReceptorType( receptor_type, get_name(), "SpikeEvent" );
   }
@@ -674,9 +674,9 @@ iaf_cond_ww_deco::handles_test_event( SpikeEvent&,
   return receptor_type;
 }
 
-inline port
+inline size_t
 iaf_cond_ww_deco::handles_test_event( CurrentEvent&,
-  rport receptor_type )
+  size_t receptor_type )
 {
   if ( receptor_type != 0 )
   {
@@ -685,9 +685,9 @@ iaf_cond_ww_deco::handles_test_event( CurrentEvent&,
   return 0;
 }
 
-inline port
+inline size_t
 iaf_cond_ww_deco::handles_test_event( DataLoggingRequest& dlr,
-  rport receptor_type )
+  size_t receptor_type )
 {
   if ( receptor_type != 0 )
   {
