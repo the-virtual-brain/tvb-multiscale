@@ -255,7 +255,7 @@ nest::izhikevich_hamker::Buffers_::Buffers_( const Buffers_&, izhikevich_hamker&
  * ---------------------------------------------------------------- */
 
 nest::izhikevich_hamker::izhikevich_hamker()
-  : Archiving_Node()
+  : ArchivingNode()
   , P_()
   , S_()
   , B_( *this )
@@ -264,7 +264,7 @@ nest::izhikevich_hamker::izhikevich_hamker()
 }
 
 nest::izhikevich_hamker::izhikevich_hamker( const izhikevich_hamker& n )
-  : Archiving_Node( n )
+  : ArchivingNode( n )
   , P_( n.P_ )
   , S_( n.S_ )
   , B_( n.B_, *this )
@@ -292,11 +292,11 @@ nest::izhikevich_hamker::init_buffers_()
   B_.spikes_inh_.clear();   // includes resize
   B_.currents_.clear(); // includes resize
   B_.logger_.reset();   // includes resize
-  Archiving_Node::clear_history();
+  ArchivingNode::clear_history();
 }
 
 void
-nest::izhikevich_hamker::calibrate()
+nest::izhikevich_hamker::pre_run_hook()
 {
   B_.logger_.init();
   V_.refractory_counts_ = Time( Time::ms( P_.t_ref_ ) ).get_steps();
@@ -310,7 +310,7 @@ nest::izhikevich_hamker::calibrate()
 void
 nest::izhikevich_hamker::update( Time const& origin, const long from, const long to )
 {
-  assert( to >= 0 && ( delay ) from < kernel().connection_manager.get_min_delay() );
+  assert( to >= 0 && from < kernel().connection_manager.get_min_delay() );
   assert( from < to );
 
   const double h = Time::get_resolution().get_ms();
