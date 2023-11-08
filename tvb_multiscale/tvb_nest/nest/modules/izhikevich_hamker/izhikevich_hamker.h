@@ -140,7 +140,7 @@ Author: Hanuschkin, Morrison, Kunkel and Perdikis, D., for the modification
 
 SeeAlso: izhikevich
 */
-class izhikevich_hamker : public Archiving_Node
+class izhikevich_hamker : public ArchivingNode
 {
 
 public:
@@ -159,11 +159,11 @@ public:
   void handle( SpikeEvent& );
   void handle( CurrentEvent& );
 
-  port handles_test_event( DataLoggingRequest&, rport );
-  port handles_test_event( SpikeEvent&, rport );
-  port handles_test_event( CurrentEvent&, rport );
+  size_t handles_test_event( DataLoggingRequest&, size_t );
+  size_t handles_test_event( SpikeEvent&, size_t );
+  size_t handles_test_event( CurrentEvent&, size_t );
 
-  port send_test_event( Node&, rport, synindex, bool );
+  size_t send_test_event( Node&, size_t, synindex, bool );
 
   void get_status( DictionaryDatum& ) const;
   void set_status( const DictionaryDatum& );
@@ -174,7 +174,7 @@ private:
 
   void init_state_( const Node& proto );
   void init_buffers_();
-  void calibrate();
+  void pre_run_hook() override;
 
   void update( Time const&, const long, const long );
 
@@ -183,7 +183,7 @@ private:
    * @note Start with 1 so we can forbid port 0 to avoid accidental
    *       creation of connections with no receptor type set.
    */
-  static const port MIN_SPIKE_RECEPTOR = 0;
+  static const size_t MIN_SPIKE_RECEPTOR = 0;
 
   /**
    * Spike receptors.
@@ -376,8 +376,8 @@ private:
   /** @} */
 };
 
-inline port
-izhikevich_hamker::send_test_event( Node& target, rport receptor_type, synindex, bool )
+inline size_t
+izhikevich_hamker::send_test_event( Node& target, size_t receptor_type, synindex, bool )
 {
   SpikeEvent e;
   e.set_sender( *this );
@@ -385,8 +385,8 @@ izhikevich_hamker::send_test_event( Node& target, rport receptor_type, synindex,
   return target.handles_test_event( e, receptor_type );
 }
 
-inline port
-izhikevich_hamker::handles_test_event( SpikeEvent&, rport receptor_type )
+inline size_t
+izhikevich_hamker::handles_test_event( SpikeEvent&, size_t receptor_type )
 {
   if ( receptor_type < MIN_SPIKE_RECEPTOR || receptor_type > SUP_SPIKE_RECEPTOR )
   {
@@ -395,8 +395,8 @@ izhikevich_hamker::handles_test_event( SpikeEvent&, rport receptor_type )
   return receptor_type - MIN_SPIKE_RECEPTOR;
 }
 
-inline port
-izhikevich_hamker::handles_test_event( CurrentEvent&, rport receptor_type )
+inline size_t
+izhikevich_hamker::handles_test_event( CurrentEvent&, size_t receptor_type )
 {
   if ( receptor_type != 0 )
   {
@@ -405,8 +405,8 @@ izhikevich_hamker::handles_test_event( CurrentEvent&, rport receptor_type )
   return 0;
 }
 
-inline port
-izhikevich_hamker::handles_test_event( DataLoggingRequest& dlr, rport receptor_type )
+inline size_t
+izhikevich_hamker::handles_test_event( DataLoggingRequest& dlr, size_t receptor_type )
 {
   if ( receptor_type != 0 )
   {
@@ -420,7 +420,7 @@ izhikevich_hamker::get_status( DictionaryDatum& d ) const
 {
   P_.get( d );
   S_.get( d, P_ );
-  Archiving_Node::get_status( d );
+  ArchivingNode::get_status( d );
   ( *d )[ names::recordables ] = recordablesMap_.get_list();
 
   /**
@@ -447,7 +447,7 @@ izhikevich_hamker::set_status( const DictionaryDatum& d )
   // write them back to (P_, S_) before we are also sure that
   // the properties to be set in the parent class are internally
   // consistent.
-  Archiving_Node::set_status( d );
+  ArchivingNode::set_status( d );
 
   // if we get here, temporaries contain consistent set of properties
   P_ = ptmp;
