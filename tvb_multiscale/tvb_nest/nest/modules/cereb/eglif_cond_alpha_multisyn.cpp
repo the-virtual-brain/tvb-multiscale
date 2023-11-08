@@ -112,7 +112,7 @@ eglif_cond_alpha_multisyn::eglif_cond_alpha_multisyn():ArchivingNode(), P_(), S_
 {
   const double __resolution = nest::Time::get_resolution().get_ms();  // do not remove, this is necessary for the resolution() function
 
-  calibrate();
+  pre_run_hook();
 
   // use a default "good enough" value for the absolute error. It can be adjusted via `node.set()`
   P_.__gsl_error_tol = 1e-3;
@@ -401,7 +401,7 @@ void eglif_cond_alpha_multisyn::calibrate_variables(bool exclude_timestep) {
   }
 }
 
-void eglif_cond_alpha_multisyn::calibrate() {
+void eglif_cond_alpha_multisyn::pre_run_hook() {
   B_.logger_.init();
 
   calibrate_variables();

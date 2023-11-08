@@ -212,7 +212,7 @@ public:
   /**
    * Destructor.
   **/
-  ~eglif_cond_alpha_multisyn();
+  ~eglif_cond_alpha_multisyn() override;
 
   // -------------------------------------------------------------------------
   //   Import sets of overloaded virtual functions.
@@ -226,7 +226,7 @@ public:
   /**
    * Used to validate that we can send nest::SpikeEvent to desired target:port.
   **/
-  nest::port send_test_event(nest::Node& target, nest::rport receptor_type, nest::synindex, bool);
+  size_t send_test_event(nest::Node& target, size_t receptor_type, nest::synindex, bool) override;
 
   // -------------------------------------------------------------------------
   //   Functions handling incoming events.
@@ -238,16 +238,16 @@ public:
   void handle(nest::SpikeEvent &);        //! accept spikes
   void handle(nest::CurrentEvent &);      //! accept input current
   void handle(nest::DataLoggingRequest &);//! allow recording with multimeter
-  nest::port handles_test_event(nest::SpikeEvent&, nest::port);
-  nest::port handles_test_event(nest::CurrentEvent&, nest::port);
-  nest::port handles_test_event(nest::DataLoggingRequest&, nest::port);
+  size_t handles_test_event(nest::SpikeEvent&, size_t) override;
+  size_t handles_test_event(nest::CurrentEvent&, size_t) override;
+  size_t handles_test_event(nest::DataLoggingRequest&, size_t) override;
 
   // -------------------------------------------------------------------------
   //   Functions for getting/setting parameters and state values.
   // -------------------------------------------------------------------------
 
-  void get_status(DictionaryDatum &) const;
-  void set_status(const DictionaryDatum &);
+  void get_status(DictionaryDatum &) const override;
+  void set_status(const DictionaryDatum &) override;
 
   // -------------------------------------------------------------------------
   //   Getters/setters for state block
@@ -888,17 +888,17 @@ private:
   /**
    * Reset internal buffers of neuron.
   **/
-  void init_buffers_();
+  void init_buffers_() override;
 
   /**
    * Initialize auxiliary quantities, leave parameters and state untouched.
   **/
-  void calibrate();
+  void pre_run_hook() override;
 
   /**
    * Take neuron through given time interval
   **/
-  void update(nest::Time const &, const long, const long);
+  void update(nest::Time const &, const long, const long) override;
 
   // The next two classes need to be friends to access the State_ class/member
   friend class nest::RecordablesMap<eglif_cond_alpha_multisyn>;
@@ -1202,7 +1202,7 @@ private:
 
 }; /* neuron eglif_cond_alpha_multisyn */
 
-inline nest::port eglif_cond_alpha_multisyn::send_test_event(nest::Node& target, nest::rport receptor_type, nest::synindex, bool)
+inline size_t eglif_cond_alpha_multisyn::send_test_event(nest::Node& target, size_t receptor_type, nest::synindex, bool)
 {
   // You should usually not change the code in this function.
   // It confirms that the target of connection @c c accepts @c nest::SpikeEvent on
@@ -1212,7 +1212,7 @@ inline nest::port eglif_cond_alpha_multisyn::send_test_event(nest::Node& target,
   return target.handles_test_event(e, receptor_type);
 }
 
-inline nest::port eglif_cond_alpha_multisyn::handles_test_event(nest::SpikeEvent&, nest::port receptor_type)
+inline size_t eglif_cond_alpha_multisyn::handles_test_event(nest::SpikeEvent&, size_t receptor_type)
 {
     assert( B_.spike_inputs_.size() == 4 );
 
@@ -1227,7 +1227,7 @@ inline nest::port eglif_cond_alpha_multisyn::handles_test_event(nest::SpikeEvent
     }
 }
 
-inline nest::port eglif_cond_alpha_multisyn::handles_test_event(nest::CurrentEvent&, nest::port receptor_type)
+inline size_t eglif_cond_alpha_multisyn::handles_test_event(nest::CurrentEvent&, size_t receptor_type)
 {
   // You should usually not change the code in this function.
   // It confirms to the connection management system that we are able
@@ -1240,7 +1240,7 @@ inline nest::port eglif_cond_alpha_multisyn::handles_test_event(nest::CurrentEve
   return 0;
 }
 
-inline nest::port eglif_cond_alpha_multisyn::handles_test_event(nest::DataLoggingRequest& dlr, nest::port receptor_type)
+inline size_t eglif_cond_alpha_multisyn::handles_test_event(nest::DataLoggingRequest& dlr, size_t receptor_type)
 {
   // You should usually not change the code in this function.
   // It confirms to the connection management system that we are able
