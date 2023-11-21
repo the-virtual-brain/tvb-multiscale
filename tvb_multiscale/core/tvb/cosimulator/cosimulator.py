@@ -274,7 +274,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     def _apply_exclusive_proxy_regions_connectivity(self):
         # Reconfigure the connectivity for regions modelled by the other cosimulator exclusively:
         if self.exclusive:
-            self.connectivity.weights[np.ix_(self.proxy_inds, self.proxy_inds)] = 0.0
+            self.connectivity.weights[numpy.ix_(self.proxy_inds, self.proxy_inds)] = 0.0
             self.connectivity.configure()
 
     def _assert_cosim_monitors_vois_period(self):
