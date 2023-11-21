@@ -5,7 +5,7 @@ from abc import ABCMeta, ABC, abstractmethod
 import numpy as np
 
 from tvb.basic.neotraits._attr import Int, Float, NArray
-from tvb.simulator.integrators import HeunStochastic
+from tvb.simulator.integrators import EulerDeterministic
 from tvb.simulator.noise import Additive
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
@@ -136,7 +136,7 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
             interface["transformer_model"] = ElephantSpikesRateRedWongWangExc
             interface["transformer_params"] = \
                 {"scale_factor": np.array([1.0]) / self.N_E / scale_neurons,
-                 "integrator": HeunStochastic(dt=self._dt, noise=Additive(nsig=self.nsig)),
+                 "integrator": EulerDeterministic(dt=self._dt),
                  "state": np.zeros((2, number_of_proxys)),
                  "tau_s": self.tau_s, "tau_r": self.tau_r, "gamma": self.gamma}
 
