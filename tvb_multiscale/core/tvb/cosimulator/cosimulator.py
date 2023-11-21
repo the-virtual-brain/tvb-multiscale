@@ -271,6 +271,12 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         self.proxy_inds = numpy.unique(proxy_inds).astype(numpy.int32)
         self.out_proxy_inds = numpy.unique(out_proxy_inds).astype(numpy.int32)
 
+    def _apply_exclusive_proxy_regions_connectivity(self):
+        # Reconfigure the connectivity for regions modelled by the other cosimulator exclusively:
+        if self.exclusive:
+            self.connectivity.weights[np.ix_(self.proxy_inds, self.proxy_inds)] = 0.0
+            self.connectivity.configure()
+
     def _assert_cosim_monitors_vois_period(self):
         """This method will assert that
             - the period of all CosimMonitor instances set is equal to the integrator's dt.
@@ -334,7 +340,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.output_interfaces.dt = self.integrator.dt
             self.n_output_interfaces = self.output_interfaces.number_of_interfaces
         self.n_input_interfaces = self.input_interfaces.number_of_interfaces if self.input_interfaces else 0
+        # Determine vois and proxy inds:
         self._preconfigure_interfaces_vois_proxy_inds()
+        # Make sure to remove connections among proxy inds if exclusive:
+        self._apply_exclusive_proxy_regions_connectivity()
+        # Now preconfigure synchronization_time with default values based on minimum TVB delay:
         self._preconfigure_synchronization_time()
         all_proxy_inds = self.all_proxy_inds
         if self.voi.shape[0] * all_proxy_inds.shape[0] != 0:
