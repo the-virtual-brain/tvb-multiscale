@@ -9,7 +9,7 @@ from tvb_multiscale.core.interfaces.models.red_wong_wang import \
     RedWongWangExcIOInhISpikeNetInterfaceBuilder, RedWongWangExcIOInhISpikeNetProxyNodesBuilder
 
 from tvb_multiscale.tvb_nest.interfaces.builders import \
-    NESTProxyNodesBuilder, NESTInterfaceBuilder, TVBNESTInterfaceBuilder
+    NESTProxyNodesBuilder, NESTInterfaceBuilder, TVBNESTInterfaceBuilder, TVBtoNESTModels
 
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import receptor_by_source_region
 
@@ -53,7 +53,10 @@ class RedWongWangExcIOInhINESTProxyNodesBuilder(NESTProxyNodesBuilder,
         super().__init__(**kwargs)
 
     def _default_receptor_type(self, source_node, target_node):
-        return receptor_by_source_region(source_node, target_node, start=1)
+        if self.model == TVBtoNESTModels.CURRENT.name:
+            return 0
+        else:
+            return receptor_by_source_region(source_node, target_node, start=1)
 
 
 class RedWongWangExcIOInhINESTInterfaceBuilder(RedWongWangExcIOInhINESTProxyNodesBuilder, NESTInterfaceBuilder,
