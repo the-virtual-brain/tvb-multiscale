@@ -329,9 +329,9 @@ models_to_test_NEST = [TestDefaultRATE,  # 0
                        TestDefaultSPIKES_TO_RATE,               # 10
                        TestDefaultSPIKES_TO_HIST,               # 11
 
-                       TestBasalGangliaIzhikevichRATE,
-                       TestBasalGangliaIzhikevichSPIKES,
-                       TestBasalGangliaIzhikevichCURRENT
+                       TestBasalGangliaIzhikevichRATE,          # 12
+                       TestBasalGangliaIzhikevichSPIKES,        # 13
+                       TestBasalGangliaIzhikevichCURRENT        # 14
                        #
                        # TestReducedWongWangExcIORATE,
                        #      TestReducedWongWangExcIOSPIKES,
