@@ -14,7 +14,7 @@ from examples.tvb_nest.example import default_example
 from examples.tvb_nest.models.wilson_cowan import wilson_cowan_example
 # from examples.tvb_nest.models.red_wong_wang import \
 #     red_wong_wang_excio_example, red_wong_wang_excio_inhi_example_2013, red_wong_wang_excio_inhi_example_2014
-# from examples.tvb_nest.models.basal_ganglia_izhiikevich import basal_ganglia_izhikevich_example
+from examples.tvb_nest.models.basal_ganglia_izhiikevich import basal_ganglia_izhikevich_example
 
 from tvb_multiscale.tests.core.test_models import test_models
 from tvb_multiscale.tests.core.test_spikeNet_models import TestSpikeNetModel
@@ -277,41 +277,39 @@ class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
 #         self.run()
 #
 #
-# class TestBasalGangliaIzhikevich(TestSpikeNetModel):
 
-#     spiking_proxy_inds = np.arange(10).tolist()
-#
-#     def run_fun(self):
-#         basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
-#                                          spiking_proxy_inds=self.spiking_proxy_inds,
-#                                          population_order=self.population_order,
-#                                          exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-#                                          simulation_length=self.simulation_length, transient=self.transient,
-#                                          plot_write=self.plot_write)
-#
-#
-# class TestBasalGangliaIzhikevichRATE(TestBasalGangliaIzhikevich):
-#
-#     # @pytest.mark.skip(reason="These tests are taking too much time")
-#     def test(self):
-#         self.tvb_to_spikeNet_mode = "RATE"
-#         self.run()
-#
-#
-# class TestBasalGangliaIzhikevichSPIKES(TestBasalGangliaIzhikevich):
-#
-#     # @pytest.mark.skip(reason="These tests are taking too much time")
-#     def test(self):
-#         self.tvb_to_spikeNet_mode = "SPIKES"
-#         self.run()
-#
-#
-# class TestBasalGangliaIzhikevichCURRENT(TestBasalGangliaIzhikevich):
-#
-#     # @pytest.mark.skip(reason="These tests are taking too much time")
-#     def test(self):
-#         self.tvb_to_spikeNet_mode = "CURRENT"
-#         self.run()
+class TestBasalGangliaIzhikevich(TestSpikeNetModel):
+
+    def run_fun(self):
+        basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
+                                         population_order=self.population_order,
+                                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+                                         simulation_length=self.simulation_length, transient=self.transient,
+                                         plot_write=self.plot_write)
+
+
+class TestBasalGangliaIzhikevichRATE(TestBasalGangliaIzhikevich):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "RATE"
+        self.run()
+
+
+class TestBasalGangliaIzhikevichSPIKES(TestBasalGangliaIzhikevich):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "SPIKES"
+        self.run()
+
+
+class TestBasalGangliaIzhikevichCURRENT(TestBasalGangliaIzhikevich):
+
+    # @pytest.mark.skip(reason="These tests are taking too much time")
+    def test(self):
+        self.tvb_to_spikeNet_mode = "CURRENT"
+        self.run()
 
 # TODO: Solve error with models 4 and 5!!!
 
@@ -329,7 +327,11 @@ models_to_test_NEST = [TestDefaultRATE,  # 0
                        TestDefaultSPIKES_SINGLE_INTERACTION,    # 8
                        TestDefaultSPIKES_MULTIPLE_INTERACTION,  # 9
                        TestDefaultSPIKES_TO_RATE,               # 10
-                       TestDefaultSPIKES_TO_HIST               # 11
+                       TestDefaultSPIKES_TO_HIST,               # 11
+
+                       TestBasalGangliaIzhikevichRATE,          # 12
+                       TestBasalGangliaIzhikevichSPIKES,        # 13
+                       TestBasalGangliaIzhikevichCURRENT        # 14
                        #
                        # TestReducedWongWangExcIORATE,
                        #      TestReducedWongWangExcIOSPIKES,
@@ -343,9 +345,6 @@ models_to_test_NEST = [TestDefaultRATE,  # 0
                        #     TestReducedWongWangExcIOInhI2014SPIKES,
                        #         TestReducedWongWangExcIOInhI2014CURRENT,
                        #
-                       #  TestBasalGangliaIzhikevichRATE,
-                       #     TestBasalGangliaIzhikevichSPIKES,
-                       #         TestBasalGangliaIzhikevichCURRENT
                        ]
 
 
