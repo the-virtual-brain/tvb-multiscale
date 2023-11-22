@@ -216,6 +216,4 @@ if __name__ == "__main__":
 
     if iM >= 0:
         print("\n\nTesting model %d" % iM)
-        test_models(iM=iM)
-    else:
-        test_models(iM=-1)
+    test_models(iM=iM)

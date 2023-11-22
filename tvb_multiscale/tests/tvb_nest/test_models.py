@@ -357,6 +357,4 @@ if __name__ == "__main__":
 
     if iM >= 0:
         print("\n\nTesting model %d" % iM)
-        test_models(models_to_test_NEST, iM=iM)
-    else:
-        test_models(models_to_test_NEST, iM=-1)
+    test_models(models_to_test_NEST, iM=iM)
