@@ -313,8 +313,6 @@ class RedWongWangExcIOInhISpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBui
     def default_tvb_to_spikeNet_config(self, interfaces):
         if self.model == TVBtoSpikeNetModels.SPIKES.name:
             proxy_params = {"number_of_neurons": self.N_E}
-        elif self.model == TVBtoSpikeNetModels.RATE.name:
-            proxy_params = {"number_of_neurons": 1}
         else:
             proxy_params = {}
         interfaces[0]["proxy_params"] = proxy_params

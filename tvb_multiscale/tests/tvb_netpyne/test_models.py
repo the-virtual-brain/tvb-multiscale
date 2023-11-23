@@ -86,9 +86,6 @@ if __name__ == "__main__":
     iM = -1
     if len(sys.argv) > 1:
         iM = int(sys.argv[1])
-
     if iM >= 0:
         print("\n\nTesting model %d" % iM)
-        test_models(models_to_test_netpyne, iM=iM)
-    else:
-        test_models(models_to_test_netpyne, iM=-1)
+    test_models(models_to_test_netpyne, iM=iM)

@@ -34,10 +34,14 @@ class Config(ConfigBase):
             warnings.warn("NEST_PYTHON_PREFIX nor set!\n%s" % str(e))
             self.PYTHON = ""
 
-        self.DATA_DIR = os.path.join(self._NEST_PATH, "share/nest")
-        self.SLI_PATH = os.path.join(self.DATA_DIR, "sli")
-        self.DOC_DIR = os.path.join(self._NEST_PATH, "share/doc/nest")
-        self.MODULE_PATH = os.path.join(self._NEST_PATH, "lib/nest")
+        self.NEST_BIN_PATH = os.path.join(self._NEST_PATH, "bin")
+        self.NEST_CONFIG_PATH = os.path.join(self.NEST_BIN_PATH, "nest-config")
+        self.NEST_INCLUDE_PATH = os.path.join(self._NEST_PATH, "include")
+        self.NEST_DATA_DIR = os.path.join(self._NEST_PATH, "share/nest")
+        self.NEST_SLI_PATH = os.path.join(self.NEST_DATA_DIR, "sli")
+        self.NEST_DOC_DIR = os.path.join(self._NEST_PATH, "share/doc/nest")
+        self.NEST_MODULE_PATH = os.path.join(self._NEST_PATH, "lib/nest")
+
         # WORKING DIRECTORY:
         self.TVB_NEST_DIR = TVB_NEST_DIR
         self.WORKING_DIR = WORKING_DIR
