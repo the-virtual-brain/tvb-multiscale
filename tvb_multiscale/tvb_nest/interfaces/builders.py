@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from logging import Logger
+import warnings
 from enum import Enum
 import pickle
 
@@ -10,17 +11,18 @@ from tvb.basic.neotraits.api import Attr
 from tvb_multiscale.core.interfaces.base.builders import RemoteInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
-    SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,  \
-    SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 from tvb_multiscale.tvb_nest.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTOutputInterface, NESTInputInterface, \
     NESTSenderInterface, NESTReceiverInterface, \
-    NESTTransformerSenderInterface, NESTReceiverTransformerInterface, \
-    TVBtoNESTInterface, NESTtoTVBInterface
+    TVBtoNESTInterface, NESTtoTVBInterface, \
+    NESTOutputInterfaces, NESTInputInterfaces, \
+    NESTSenderInterfaces, NESTReceiverInterfaces, \
+    TVBtoNESTInterfaces, NESTtoTVBInterfaces
 from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTSpikeRecorderSet, NESTSpikeRecorderTotalSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
@@ -50,13 +52,13 @@ class NESTOutputProxyModels(Enum):
     POTENTIAL_TOTAL = NESTVoltmeterTotalSet
 
 
-class DefaultTVBtoNESTModels(Enum):
+class DefaultTVBtoNESTModels(object):
     RATE = NESTInputProxyModels.RATE.name
     SPIKES = NESTInputProxyModels.SPIKES.name
     CURRENT = NESTInputProxyModels.CURRENT.name
 
 
-class DefaultNESTtoTVBModels(Enum):
+class DefaultNESTtoTVBModels(object):
     SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
 
@@ -68,7 +70,7 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
     spiking_network = Attr(label="NEST Network",
                            doc="""The instance of NESTNetwork class""",
                            field_type=NESTNetwork,
-                           required=False)
+                           required=True)
 
     @property
     def nest_network(self):
@@ -104,7 +106,22 @@ class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
 
     @property
     def _default_min_delay(self):
-        return self.nest_min_delay
+        return np.minimum(self.nest_min_delay, self.config.DEFAULT_SPIKING_MIN_DELAY)
+
+    def _bound_tvb_delays(self, delays):
+        if self.config.LOCK_MIN_DELAY:
+            min_delay = self._default_min_delay
+            delay_mode = "min_delay"
+        else:
+            min_delay = self.spiking_dt
+            delay_mode = "resolution"
+        if np.any(delays < min_delay):
+            warnings.warn("There are delays\n%s\n smaller than the NEST %s=%f!\n"
+                          "Mind that config.LOCK_MIN_DELAY = %r!\n"
+                          "Setting those delays equal to %s=%f!" %
+                          (str(delays), delay_mode, min_delay, self.config.LOCK_MIN_DELAY, delay_mode, min_delay))
+            delays[delays < min_delay] = min_delay
+        return np.maximum(min_delay, delays - min_delay).astype("float32")
 
 
 class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
@@ -114,14 +131,17 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
     _tvb_to_spikeNet_models = TVBtoNESTModels
     _spikeNet_to_tvb_models = NESTtoTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNESTModels
-    _default_spikeNet_to_tvb_models = DefaultNESTtoTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNESTModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNESTtoTVBModels
 
     _input_proxy_models = NESTInputProxyModels
     _output_proxy_models = NESTOutputProxyModels
 
     _output_interface_type = NESTOutputInterface
     _input_interface_type = NESTInputInterface
+
+    _output_interfaces_type = NESTOutputInterfaces
+    _input_interfaces_type = NESTInputInterfaces
 
     config = Attr(
         label="Configuration",
@@ -140,8 +160,7 @@ class NESTInterfaceBuilder(NESTProxyNodesBuilder, SpikeNetInterfaceBuilder):
     )
 
     def _get_tvb_delays(self):
-        return np.maximum(self.spiking_dt,
-                          SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
+        return self._bound_tvb_delays(SpikeNetInterfaceBuilder._get_tvb_delays(self))
 
 
 class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
@@ -150,6 +169,9 @@ class NESTRemoteInterfaceBuilder(NESTInterfaceBuilder, SpikeNetRemoteInterfaceBu
 
     _output_interface_type = NESTSenderInterface
     _input_interface_type = NESTReceiverInterface
+
+    _output_interfaces_type = NESTSenderInterfaces
+    _input_interfaces_type = NESTReceiverInterfaces
 
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
@@ -200,54 +222,13 @@ class NESTMPIInterfaceBuilder(NESTRemoteInterfaceBuilder):
             in_gids.append(interface.proxy_gids)
         with open(self._file_path(self.output_label) + "_gids.pkl", 'wb') as file:
             pickle.dump(out_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
-        # print(out_gids)
         with open(self._file_path(self.input_label) + "_gids.pkl", 'wb') as file:
             pickle.dump(in_gids, file, protocol=pickle.HIGHEST_PROTOCOL)
-        # print(in_gids)
 
     def build(self):
         output_interfaces, input_interfaces = super(NESTMPIInterfaceBuilder, self).build()
         self.write_proxies_gids()
         return output_interfaces, input_interfaces
-
-
-class NESTTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetTransformerInterfaceBuilder):
-
-    """NESTTransformerInterfaceBuilder class"""
-
-    _output_interface_type = NESTTransformerSenderInterface
-    _input_interface_type = NESTReceiverTransformerInterface
-
-    def configure(self):
-        SpikeNetTransformerInterfaceBuilder.configure(self)
-
-
-class NESTOutputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetOutputTransformerInterfaceBuilder):
-
-    """NESTOutputTransformerInterfaceBuilder class"""
-
-    _input_proxy_models = NESTInputProxyModels
-    _output_proxy_models = NESTOutputProxyModels
-
-    _output_interface_type = NESTTransformerSenderInterface
-    _input_interface_type = NESTReceiverInterface
-
-    def configure(self):
-        SpikeNetOutputTransformerInterfaceBuilder.configure(self)
-
-
-class NESTInputTransformerInterfaceBuilder(NESTInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder):
-
-    """NESTInputTransformerInterfaceBuilder class"""
-
-    _input_proxy_models = NESTInputProxyModels
-    _output_proxy_models = NESTOutputProxyModels
-
-    _output_interface_type = NESTSenderInterface
-    _input_interface_type = NESTReceiverTransformerInterface
-
-    def configure(self):
-        SpikeNetInputTransformerInterfaceBuilder.configure(self)
 
 
 class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder):
@@ -257,8 +238,8 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
     _tvb_to_spikeNet_models = TVBtoNESTModels
     _spikeNet_to_TVB_models = NESTtoTVBModels
 
-    _default_spikeNet_to_tvb_models = DefaultNESTtoTVBModels
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNESTModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNESTtoTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNESTModels
 
     _input_proxy_models = NESTOutputProxyModels  # Input to SpikeNet is output of TVB
     _output_proxy_models = NESTInputProxyModels  # Output of SpikeNet is input to TVB
@@ -266,11 +247,17 @@ class TVBNESTInterfaceBuilder(NESTProxyNodesBuilder, TVBSpikeNetInterfaceBuilder
     _output_interface_type = TVBtoNESTInterface
     _input_interface_type = NESTtoTVBInterface
 
+    _output_interfaces_type = TVBtoNESTInterfaces
+    _input_interfaces_type = NESTtoTVBInterfaces
+
     def configure(self):
         TVBSpikeNetInterfaceBuilder.configure(self)
 
     def _get_tvb_delays(self):
-        return (np.maximum(1,
-                           np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
-                                    - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
-                           ) * self.spiking_dt).astype("float32")
+        return self._bound_tvb_delays(
+            (np.maximum(1,
+                       np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
+                                - self.tvb_min_delay + self.spiking_dt)/self.spiking_dt).astype("i")
+                       ) * self.spiking_dt
+            ).astype("float32")
+                                     )

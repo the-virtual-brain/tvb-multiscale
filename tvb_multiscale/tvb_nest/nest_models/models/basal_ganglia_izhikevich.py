@@ -5,12 +5,13 @@ from copy import deepcopy
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
+from tvb_multiscale.tvb_nest.config import CONFIGURED
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 
 
 class TVBWeightFun(object):
-    tvb_weights = np.array([])
+    tvb_weights = np.array(list())
     global_coupling_scaling = 1.0
     sign = 1
 
@@ -28,12 +29,12 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     model = "izhikevich_hamker"
 
-    output_devices_record_to = "ascii"
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                            spiking_simulator, config, logger)
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                            config, logger)
+        self.model = "izhikevich_hamker"
 
         # Common order of neurons' number per population:
         self.population_order = 200
@@ -194,23 +195,23 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
             #  "params": {"rate": self.Estn_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineEstn": ["E"]},  # "Estn"
             #  "nodes": self.Estn_nodes_ids,  # None means apply to all
-            #  "weights": self.Estn_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Estn_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             # {"model": "poisson_generator",
             #  "params": {"rate": self.Igpe_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineIgpe": ["I"]},  # "Igpe"
             #  "nodes": self.Igpe_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpe_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Igpe_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             # {"model": "poisson_generator",
             #  "params": {"rate": self.Igpi_stim["rate"], "origin": 0.0, "start": 0.1},
             #  "connections": {"BaselineIgpi": ["I"]},  # "Igpi"
             #  "nodes": self.Igpi_nodes_ids,  # None means apply to all
-            #  "weights": self.Igpi_stim["weight"], "delays": 0.0, "receptor_type": 1},
+            #  "weights": self.Igpi_stim["weight"], "delays": self.default_min_delay, "receptor_type": 1},
             {"model": "dc_generator",
              "params": {"amplitude": -5.0,             # "frequency": 100.0, "phase": 0.0, "offset": 0.0,
                         "start": 35.0, "stop": 85.0},  # "stop": 100.0  "origin": 0.0,
              "connections": {"DBS_GPi": ["I"]},  # "Igpi"
              "nodes": self.Igpi_nodes_ids,  # None means apply to all
-             "weights": 1.0, "delays": self.spiking_dt}
+             "weights": 1.0, "delays": self.default_min_delay}
         ]  #
 
     def set_defaults(self):

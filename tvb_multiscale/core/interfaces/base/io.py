@@ -5,11 +5,11 @@ from enum import Enum
 
 import numpy as np
 
-from tvb.basic.neotraits.api import Attr
+from tvb.basic.neotraits.api import Attr, Int
 from tvb.contrib.scripts.utils.log_error_utils import warning
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 
@@ -185,7 +185,38 @@ class RemoteReceiver(Receiver):
     pass
 
 
-class WriterToFile(Sender):
+class FileCommunicator(HasTraits):
+    __metaclass__ = ABCMeta
+
+    binary_tag = Int(
+        label="binary_tag",
+        default=0,
+        required=True,
+        doc="""Binary tag to name files to reassure that they are not overwritten
+                   during the next synchronization instance, before being read by the current one.""")
+
+    _basepath = ""
+    _extension = ""
+    __extension = ""
+
+    def __init__(self, **kwargs):
+        self.binary_tag = 0
+        super(FileCommunicator, self).__init__(**kwargs)
+
+    def _configure(self, filepath):
+        super(FileCommunicator, self).configure()
+        self.__extension = "." + self._extension
+        self._basepath = filepath.split(self.__extension)[0]
+        return self._basepath + self.__extension
+
+    def _set_tag(self, filepath):
+        return filepath.split(self.__extension)[0] + "-%d" % self.binary_tag + self.__extension
+
+    def _inverse_tag(self):
+        self.binary_tag = 1 - self.binary_tag
+
+
+class WriterToFile(Sender, FileCommunicator):
     __metaclass__ = ABCMeta
 
     """
@@ -198,12 +229,20 @@ class WriterToFile(Sender):
     target = Attr(field_type=str, required=True,
                   label="Path to target file", doc="""Full path to file to write data to.""")
 
+    def __init__(self, **kwargs):
+        Sender.__init__(self, **kwargs)
+        FileCommunicator.__init__(self, **kwargs)
+
+    def configure(self):
+        super(WriterToFile, self).configure()
+        self.target = FileCommunicator._configure(self, self.target)
+
     @abstractmethod
     def send(self, data):
         pass
 
 
-class ReaderFromFile(Receiver):
+class ReaderFromFile(Receiver, FileCommunicator):
     __metaclass__ = ABCMeta
 
     """
@@ -216,8 +255,23 @@ class ReaderFromFile(Receiver):
     source = Attr(field_type=str, default="", required=True,
                   label="Path to source file", doc="""Full path to file to read data from.""")
 
-    def file_not_found_handling(self, err_msg):
-        warning("File not found at %s!\%s" % (self.source, str(err_msg)), logger=self.log)
+    binary_tag = Int(
+        label="binary_tag",
+        default=0,
+        required=True,
+        doc="""Binary tag to name files to reassure that they are not overwritten
+                   during the next synchronization instance, before being read by the current one.""")
+
+    def __init__(self, **kwargs):
+        Receiver.__init__(self, **kwargs)
+        FileCommunicator.__init__(self, **kwargs)
+
+    def configure(self):
+        super(ReaderFromFile, self).configure()
+        self.source = FileCommunicator._configure(self, self.source)
+
+    def file_not_found_handling(self, err_msg, filepath):
+        warning("File not found at %s!\%s" % (filepath, str(err_msg)), logger=self.log)
         return None  # [np.array([]).astype('i'), np.array([])]
 
     @abstractmethod
@@ -234,12 +288,12 @@ class NPZWriter(WriterToFile):
            - an abstract method to write data to the target.
     """
 
-    def configure(self):
-        super(NPZWriter, self).configure()
-        self.target = self.target.split('.npz')[0] + ".npz"
+    _extension = "npz"
 
     def send(self, data):
-        np.savez(self.target, time=data[0], values=data[1], allow_pickle=True)
+        np.savez(self._set_tag(self.target), time=data[0], values=data[1], allow_pickle=True)
+        self._inverse_tag()
+        return 1
 
 
 class NPZReader(ReaderFromFile):
@@ -251,18 +305,22 @@ class NPZReader(ReaderFromFile):
             - an abstract method to read data from the source.
     """
 
+    _extension = "npz"
+
     def configure(self):
         super(NPZReader, self).configure()
         self.source = self.source.split('.npz')[0] + ".npz"
 
     def receive(self):
         data = []
+        filepath = self._set_tag(self.source)
         try:
-            with np.load(self.source, allow_pickle=True) as datafile:
+            with np.load(filepath, allow_pickle=True) as datafile:
                 data.append(datafile["time"])
                 data.append(datafile["values"])
+            self._inverse_tag()
         except Exception as e:
-            return self.file_not_found_handling(e)
+            return self.file_not_found_handling(e, filepath)
         return data
 
 
@@ -275,8 +333,6 @@ class MPIWriter(RemoteSender):
            - a target attribute, i.e., MPI port to write data to,
            - a method to write data to the target.
     """
-
-    pass
 
     # from mpi4py import MPI
 
@@ -308,8 +364,6 @@ class MPIReader(RemoteReceiver):
             - a source attribute, i.e., the mpi port to read data from,
             - an abstract method to read data from the source.
     """
-
-    pass
 
     # from mpi4py import MPI
 

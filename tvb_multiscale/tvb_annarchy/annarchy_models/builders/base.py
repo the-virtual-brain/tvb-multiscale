@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
+
 from pandas import concat
 
+from tvb_multiscale.core.utils.data_structures_utils import safe_dict_copy
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
@@ -13,9 +16,6 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
-
-
-LOG = initialize_logger(__name__, config=CONFIGURED)
 
 
 class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
@@ -34,9 +34,16 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, spiking_simulator=None, config=None, logger=None):
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                     config, logger)
+    def __init__(self, tvb_simulator, spiking_nodes_inds,
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self._input_proxies = DeviceSets()
+        self.modules_to_install = list()
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                     spiking_simulator, self.config, logger)
+        self._models_import_path = self.config.MYMODELS_IMPORT_PATH
         self._spiking_brain = ANNarchyBrain()
 
     @property
@@ -49,21 +56,15 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
             self.spiking_simulator = load_annarchy(self.config, self.logger)
-            self.annarchy_instance.clear()  # This will restart ANNarchy!
-            self.update_spiking_dt()
-            self.update_default_min_delay()
-            kwargs["dt"] = self.spiking_dt
-            kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-            kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-            self.annarchy_instance.setup(**kwargs)
+        self.annarchy_instance.clear()  # This will restart ANNarchy!
+        kwargs["dt"] = self.spiking_dt
+        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
+        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
+        self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
-        self._configure_annarchy()
         super(ANNarchyNetworkBuilder, self).configure()
+        self._configure_annarchy()
 
     @property
     def min_delay(self):
@@ -72,7 +73,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         else:
             return self.config.MIN_SPIKING_DT
 
-    def set_synapse(self, syn_model, weights, delays, target, params={}):
+    def set_synapse(self, syn_model, weights, delays, target, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic target, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -86,7 +87,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             a dictionary of the whole synapse configuration
         """
         return {'synapse_model': syn_model, 'weights': weights,
-                'delays': delays, 'target': target, 'params': params}
+                'delays': delays, 'target': target, 'params': safe_dict_copy(params)}
 
     def _assert_model(self, model):
         return assert_model(model, self.annarchy_instance, self._models_import_path)
@@ -123,16 +124,18 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
                       including weight, delay and synaptic target ones
         """
         # Prepare the synaptic model:
+        syn_spec = safe_dict_copy(syn_spec)
         syn_spec["synapse_model"] = \
             self._assert_model(
                 syn_spec.pop("synapse_model",
                              syn_spec.pop("model",
                                           syn_spec.pop("synapse", None))))
         # Get connection arguments by copying conn_spec. Make sure to pop out the "method" entry:
-        this_syn_spec = syn_spec.copy()
+        this_syn_spec = safe_dict_copy(syn_spec)
+        this_conn_spec = safe_dict_copy(conn_spec)
         proj = connect_two_populations(pop_src, pop_trg, this_syn_spec.pop("weights"),
                                        this_syn_spec.pop("delays"), this_syn_spec.pop("target"),
-                                       syn_spec=this_syn_spec, conn_spec=conn_spec.copy(),
+                                       syn_spec=this_syn_spec, conn_spec=this_conn_spec,
                                        source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
                                        name="%s -> %s" % (pop_src.label, pop_trg.label),
                                        annarchy_instance=self.annarchy_instance)
@@ -160,10 +163,10 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         _devices = []
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
-            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
-                     "for nodes %s..." % (str(list(device["connections"].keys())),
-                                          str(list(device["connections"].values())),
-                                          device["model"], str(device["nodes"])))
+            self.logger.info("Generating and connecting %s -> %s device set of model %s\n"
+                             "for nodes %s..." % (str(list(device["connections"].keys())),
+                                                  str(list(device["connections"].values())),
+                                                  device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
         if len(_devices):
             return DeviceSets(concat(_devices), name="input_devices")

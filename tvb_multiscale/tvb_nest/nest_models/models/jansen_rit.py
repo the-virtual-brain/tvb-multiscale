@@ -4,17 +4,21 @@ from collections import OrderedDict
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_weight, tvb_delay
+from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
-from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
-    random_normal_weight, tvb_weight, random_normal_tvb_weight, \
-    random_uniform_delay, tvb_delay, random_uniform_tvb_delay
+# from tvb_multiscale.tvb_nest.nest_models.builders.nest_templates import \
+#     random_normal_weight, random_normal_tvb_weight, \
+#     random_uniform_delay, random_uniform_tvb_delay
+
+# TODO: Fix errors for random parameters with NEST 3.5!!!
 
 
 class JansenRitBuilder(NESTNetworkBuilder):
 
-    output_devices_record_to = "ascii"
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
         super(JansenRitBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
@@ -24,8 +28,8 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.scale_ei = 1
         self.scale_ii = 1
 
-        self.w_pe = 1.0
-        self.w_pi = 1.0
+        self.w_pe = 10.0
+        self.w_pi = 2.5
         self.w_ep = 1.0
         self.w_ip = -1.0
         self.d_pe = self.within_node_delay()
@@ -33,20 +37,20 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.d_ep = self.within_node_delay()
         self.d_ip = self.within_node_delay()
 
-        self.params_E = {}
-        self.params_EI = {}
-        self.params_II = {}
-        self.pop_conns_PE = {}
-        self.pop_conns_PI = {}
-        self.pop_conns_EP = {}
-        self.pop_conns_IP = {}
+        self.params_E = dict()
+        self.params_EI = dict()
+        self.params_II = dict()
+        self.pop_conns_PE = dict()
+        self.pop_conns_PI = dict()
+        self.pop_conns_EP = dict()
+        self.pop_conns_IP = dict()
 
-        self.nodes_conns = {}
+        self.nodes_conns = dict()
 
-        self.spike_recorder = {}
-        self.multimeter = {}
+        self.spike_recorder = dict()
+        self.multimeter = dict()
 
-        self.spike_stimulus = {}
+        self.spike_stimulus = dict()
 
     def _params_E(self, node_index):
         return self.params_E
@@ -83,7 +87,7 @@ class JansenRitBuilder(NESTNetworkBuilder):
         return scale * w
 
     def within_node_delay(self):
-        return self.tvb_dt
+        return self.default_min_delay
 
     def receptor_E_fun(self):
         return 0
@@ -155,11 +159,11 @@ class JansenRitBuilder(NESTNetworkBuilder):
 
     def tvb_delay_fun(self, source_node, target_node, low=None, high=None, sigma=0.1):
         # if low is None:
-        #     low = self.tvb_dt
+        #     low = self.default_min_delay
         # if high is None:
-        #     high = 2 * self.tvb_dt
+        #     high = np.maximum(self.tvb_dt, 2 * self.default_min_delay)
         # return random_uniform_tvb_delay(source_node, target_node, self.tvb_delays, low, high, sigma)
-        return np.maximum(self.tvb_dt, tvb_delay(source_node, target_node, self.tvb_delays))
+        return np.maximum(self.default_min_delay, tvb_delay(source_node, target_node, self.tvb_delays))
 
     def set_nodes_connections(self):
         self.nodes_connections = [
@@ -222,7 +226,9 @@ class JansenRitBuilder(NESTNetworkBuilder):
              "params": {"rate": 7500.0, "origin": 0.0, "start": self.spiking_dt},  # "stop": 100.0
              "connections": connections, "nodes": None,
              "weights": 1.0,  # self.weight_fun(1.0),
-             "delays": self.spiking_dt,  # random_uniform_delay(self.tvb_dt, self.tvb_dt, 2*self.tvb_dt, sigma=None),
+             "delays": self.default_min_delay,
+             # random_uniform_delay(self.default_min_delay,
+             #                      self.default_min_delay, 2*self.default_min_delay, sigma=None),
              "receptor_type": 0}
         device.update(self.spike_stimulus)
         return device
@@ -231,12 +237,12 @@ class JansenRitBuilder(NESTNetworkBuilder):
         self.input_devices = [self.set_spike_stimulus()]
 
     def set_defaults(self, **kwargs):
-        self.w_ee = 10*np.abs(kwargs.get("w_pe",
-                                         self.tvb_serial_sim.get("model.a_1",
-                                                                 np.array([self.w_pe])))[0].item())
-        self.w_ei = 10*np.abs(kwargs.get("w_pi",
-                                         self.tvb_serial_sim.get("model.a_3",
-                                                                 np.array([self.w_pi])))[0].item())
+        self.w_pe = np.abs(kwargs.get("w_pe",
+                                      10*self.tvb_serial_sim.get("model.a_1",
+                                                                 np.array([1.0])))[0].item())
+        self.w_pi = np.abs(kwargs.get("w_pi",
+                                      10*self.tvb_serial_sim.get("model.a_3",
+                                                                 np.array([0.25])))[0].item())
         self.set_populations()
         self.set_populations_connections()
         self.set_nodes_connections()

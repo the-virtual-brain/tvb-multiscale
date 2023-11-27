@@ -46,6 +46,9 @@ class ANNarchyDevice(HasTraits):
 
     def __init__(self, device=None, annarchy_instance=None, **kwargs):
         self.device = device
+        self._dt = None
+        self._number_of_connections = None
+        self._number_of_neurons = None
         self.label = str(kwargs.get("label", self.__class__.__name__))
         self.model = str(kwargs.get("model", self.__class__.__name__))
         self.brain_region = str(kwargs.get("brain_region", ""))

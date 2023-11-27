@@ -15,9 +15,9 @@ import shutil
 import setuptools
 
 
-VERSION = "2.0.3"
+VERSION = "2.1.0."
 
-INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "pyspike", "dill", "ANNarchy", "neuron", "netpyne"]
+INSTALL_REQUIREMENTS = ["pandas", "xarray", "elephant", "pyspike", "dill", "ANNarchy", "neuron", "netpyne", "ray"]
 
 setuptools.setup(name='tvb-multiscale',
                  version=VERSION,

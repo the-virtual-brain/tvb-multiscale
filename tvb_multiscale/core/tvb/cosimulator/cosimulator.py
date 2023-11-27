@@ -43,9 +43,12 @@ from decimal import Decimal
 
 import numpy
 
-from tvb.basic.neotraits.api import Attr, NArray
+from tvb.basic.neotraits.api import Attr, NArray, Int
 from tvb.simulator.models.base import Model
 from tvb.simulator.simulator import Simulator, math
+from tvb.simulator.monitors import TemporalAverage
+from tvb.simulator.integrators import HeunDeterministic
+from tvb.simulator.backend import ReferenceBackend
 
 from tvb.contrib.cosimulation.cosimulator import CoSimulator as CoSimulatorBase
 
@@ -87,10 +90,29 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                (i.e., translator level or another (co-)simulator to TVB.""")
 
     out_proxy_inds = NArray(
-        dtype=numpy.int,
+        dtype=int,
         label="Indices of TVB output proxy nodes",
-        default=numpy.asarray([], dtype=numpy.int),
+        default=numpy.asarray([], dtype=int),
         required=True)
+
+    min_idelay_sync_n_step_ratio = Int(
+        label="min_idelay_synch_n_step_ratio",
+        choices=(1, 2),
+        default=1,
+        required=True,
+        doc="""min_idelay to synchronization_n_step ratio, 
+               i.e., an integer value defining how many times smaller should the synchronization time be 
+               compared to the minimum delay time in integration time steps.
+               For the moment we limit it to 1 (synchronization_time = min_delay) 
+               or 2 (synchronization_time = min_delay/2)""")
+
+    relative_output_interfaces_time_steps = Int(
+        label="relative_output_interfaces_time_steps",
+        default=0,
+        required=True,
+        doc="""Relative time steps for cosimulation monitors to sample 
+               in the future (for coupling monitors) or in the past (for non-coupling monitors), 
+               for the output interfaces.""")
 
     PRINT_PROGRESSION_MESSAGE = True
 
@@ -98,6 +120,54 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     n_input_interfaces = 0
 
     _number_of_dt_decimals = None
+
+    def __init__(self, **kwargs):
+
+        # Attributes of TVB-multiscale CoSimulator:
+        # self.model = WilsonCowan()
+        self.output_interfaces = None
+        self.input_interfaces = None
+        self.out_proxy_inds = numpy.asarray(list(), dtype=int)
+        self.relative_output_interfaces_time_steps = 0
+        self.PRINT_PROGRESSION_MESSAGE = True
+        self.n_output_interfaces = 0
+        self.n_input_interfaces = 0
+        self._number_of_dt_decimals = None
+
+        # Attributes of tvb_contrib.cosimulation CoSimulator:
+        self.exclusive = False
+        self.voi = numpy.asarray(list(), dtype=numpy.int_)
+        self.proxy_inds = numpy.asarray(list(), dtype=numpy.int_)
+        self.cosim_monitors = list()
+        self.synchronization_time = 0.0
+        self.synchronization_n_step = 0
+        self.good_cosim_update_values_shape = (0, 0, 0, 0)
+        self.cosim_history = None  # type: CosimHistory
+        self._cosimulation_flag = False
+        self._compute_requirements = True
+        self.number_of_cosim_monitors = 0
+        self._cosim_monitors_noncoupling_indices = list()
+        self._cosim_monitors_coupling_indices = list()
+        self._existing_connections = list()
+        self._min_delay = 0.0
+        self._min_idelay = 1
+        self.relative_output_time_steps = 0
+
+        # # Attributes of tvb_library.tvb.simulator Simulator:
+        # # Required attributes cannot be set to None!
+        # # self.connectivity = None
+        # # self.coupling = None
+        # self.integrator = HeunDeterministic()
+        # self.monitors = (TemporalAverage(),)
+        # self.surface = None
+        # self.stimulus = None
+        # self.conduction_speed = 3.0
+        # self.initial_conditions = None
+        # self.simulation_length = 1000.0
+        # self.backend = ReferenceBackend()
+        # self.history = None  # type: SparseHistory
+
+        super(CoSimulator, self).__init__(**kwargs)
 
     @property
     def in_proxy_inds(self):
@@ -107,9 +177,24 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     def all_proxy_inds(self):
         return numpy.unique(self.proxy_inds.tolist() + self.out_proxy_inds.tolist())
 
+    def compute_default_synchronization_time_and_n_step(self):
+        default_synchronization_n_step = \
+                int(numpy.floor(self._min_idelay / self.min_idelay_sync_n_step_ratio))
+        default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
+                                                    decimals=self._number_of_dt_decimals)
+        return default_synchronization_time, default_synchronization_n_step
+
+    @property
+    def default_synchronization_time(self):
+        return self.compute_default_synchronization_time_and_n_step()[0]
+
+    @property
+    def default_synchronization_n_step(self):
+        return self.compute_default_synchronization_time_and_n_step()[1]
+
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
-           and certainly longer or equal to the integration time step.
+           longer or equal to the integration time step.
            Moreover, the synchronization time must be equal or shorter
            than the minimum delay of all existing connections.
            Existing connections are considered those with nonzero weights.
@@ -132,11 +217,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                              (self.synchronization_time, synchronization_time, self.integrator.dt))
         self.synchronization_time = synchronization_time
         # Check if the synchronization time is smaller than the minimum delay of the connectivity:
-        if self.synchronization_n_step > self._default_synchronization_n_step:
+        if self.synchronization_time > self._min_delay:
             raise ValueError('The synchronization time %g is longer than '
                              'the minimum delay time %g '
                              'of all existing connections (i.e., of nonzero weight)!'
-                             % (self.synchronization_time, self._default_synchronization_time))
+                             % (self.synchronization_time, self._min_delay))
         if self.n_output_interfaces:
             self.output_interfaces.synchronization_time = self.synchronization_time
             self.output_interfaces.synchronization_n_step = self.synchronization_n_step
@@ -148,23 +233,17 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         """This method will default synchronization time
            to be equal to the minimum delay time of connectivity,
            in case the user hasn't set it up until this point."""
-        existing_connections = self.connectivity.weights != 0
-        if numpy.any(existing_connections):
-            self._default_synchronization_n_step = self.connectivity.idelays[existing_connections].min()
-            self._default_synchronization_time = numpy.around(self._default_synchronization_n_step * self.integrator.dt,
-                                                              decimals=self._number_of_dt_decimals)
-        else:
-            self._default_synchronization_n_step = 1
-            self._default_synchronization_time = self.integrator.dt
+        self.compute_default_synchronization_time_and_n_step()
+        default_synchronization_time = self.default_synchronization_time
         if self.synchronization_time == 0.0:
-            self.synchronization_time = self._default_synchronization_time
+            self.synchronization_time = default_synchronization_time
         try:
             self._configure_synchronization_time()
         except Exception as e:
-            if self.synchronization_time > self._default_synchronization_time:
+            if self.synchronization_time > default_synchronization_time:
                 self.log.warning(e)
                 self.log.warning('Resetting it equal to minimum delay time!')
-                self.synchronization_time = self._default_synchronization_time
+                self.synchronization_time = default_synchronization_time
             else:
                 raise e
 
@@ -188,9 +267,15 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if self.n_input_interfaces:
                 voi += self.input_interfaces.voi_unique.tolist()
                 proxy_inds = self.input_interfaces.proxy_inds_unique.tolist()
-        self.voi = numpy.unique(voi).astype(numpy.int)
-        self.proxy_inds = numpy.unique(proxy_inds).astype(numpy.int)
-        self.out_proxy_inds = numpy.unique(out_proxy_inds).astype(numpy.int)
+        self.voi = numpy.unique(voi).astype(numpy.int32)
+        self.proxy_inds = numpy.unique(proxy_inds).astype(numpy.int32)
+        self.out_proxy_inds = numpy.unique(out_proxy_inds).astype(numpy.int32)
+
+    def _apply_exclusive_proxy_regions_connectivity(self):
+        # Reconfigure the connectivity for regions modelled by the other cosimulator exclusively:
+        if self.exclusive:
+            self.connectivity.weights[numpy.ix_(self.proxy_inds, self.proxy_inds)] = 0.0
+            self.connectivity.configure()
 
     def _assert_cosim_monitors_vois_period(self):
         """This method will assert that
@@ -247,6 +332,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
 
         """
         Simulator.configure(self, full_configure=full_configure)
+        self.compute_min_delay()
         self._number_of_dt_decimals = numpy.abs(Decimal('%g' % self.integrator.dt).as_tuple().exponent)
         self._compute_requirements = True
         self.n_tvb_steps_ran_since_last_synch = 0
@@ -254,7 +340,11 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             self.output_interfaces.dt = self.integrator.dt
             self.n_output_interfaces = self.output_interfaces.number_of_interfaces
         self.n_input_interfaces = self.input_interfaces.number_of_interfaces if self.input_interfaces else 0
+        # Determine vois and proxy inds:
         self._preconfigure_interfaces_vois_proxy_inds()
+        # Make sure to remove connections among proxy inds if exclusive:
+        self._apply_exclusive_proxy_regions_connectivity()
+        # Now preconfigure synchronization_time with default values based on minimum TVB delay:
         self._preconfigure_synchronization_time()
         all_proxy_inds = self.all_proxy_inds
         if self.voi.shape[0] * all_proxy_inds.shape[0] != 0:
@@ -276,37 +366,12 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             print(msg)
             self.current_step = 0
 
-    def _prepare_stimulus(self):
-        if self.simulation_length != self.synchronization_time:
-            simulation_length = float(self.simulation_length)
-            self.simulation_length = float(self.synchronization_time)
-            stimulus = super(CoSimulator, self)._prepare_stimulus()
-            self.simulation_length = simulation_length
-        else:
-            stimulus = super(CoSimulator, self)._prepare_stimulus()
-        return stimulus
-
-    def __call__(self, simulation_length=None, random_state=None, n_steps=None,
-                 cosim_updates=None, recompute_requirements=False):
-        """
-        Return an iterator which steps through simulation time, generating monitor outputs.
-
-        See the run method for a convenient way to collect all output in one call.
-
-        :param simulation_length: Length of the simulation to perform in ms.
-        :param random_state:  State of NumPy RNG to use for stochastic integration.
-        :param n_steps: Length of the simulation to perform in integration steps. Overrides simulation_length.
-        :param cosim_updates: data from the other co-simulator to update TVB state and history
-        :param recompute_requirements: check if the requirement of the simulation
-        :return: Iterator over monitor outputs.
-        """
-
-        self.calls += 1
+    def _prepare_cosimulation_call(self, simulation_length=None, n_steps=None, cosim_updates=None):
+        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
 
         if simulation_length is not None:
             self.simulation_length = float(simulation_length)
 
-        # Check if the cosimulation update inputs (if any) are correct and update cosimulation history:
         if self._cosimulation_flag:
             if n_steps is not None:
                 raise ValueError("n_steps is not used in cosimulation!")
@@ -340,6 +405,38 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                 if not numpy.issubdtype(type(n_steps), numpy.integer):
                     raise TypeError("Incorrect type for n_steps: %s, expected integer" % type(n_steps))
                 self.simulation_length = n_steps * self.integrator.dt
+        return n_steps
+
+    def _prepare_stimulus(self):
+        if self.simulation_length != self.synchronization_time:
+            simulation_length = float(self.simulation_length)
+            self.simulation_length = float(self.synchronization_time)
+            stimulus = super(CoSimulator, self)._prepare_stimulus()
+            self.simulation_length = simulation_length
+        else:
+            stimulus = super(CoSimulator, self)._prepare_stimulus()
+        return stimulus
+
+    def __call__(self, simulation_length=None, random_state=None, n_steps=None,
+                 cosim_updates=None, recompute_requirements=False, skip_prepare_cosim=False):
+        """
+        Return an iterator which steps through simulation time, generating monitor outputs.
+
+        See the run method for a convenient way to collect all output in one call.
+
+        :param simulation_length: Length of the simulation to perform in ms.
+        :param random_state:  State of NumPy RNG to use for stochastic integration.
+        :param n_steps: Length of the simulation to perform in integration steps. Overrides simulation_length.
+        :param cosim_updates: data from the other co-simulator to update TVB state and history
+        :param recompute_requirements: check if the requirement of the simulation
+        :params check_inputs: check if the cosimulation update inputs (if any) are correct and update cosimulation history
+        :return: Iterator over monitor outputs.
+        """
+
+        self.calls += 1
+
+        if not skip_prepare_cosim:
+            n_steps = self._prepare_cosimulation_call(simulation_length, n_steps, cosim_updates)
 
         # Initialization
         if self._compute_requirements or recompute_requirements:
@@ -390,7 +487,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             if self.output_interfaces.number_of_interfaces:
                 # Send the data to the other cosimulator
                 outputs = \
-                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch))
+                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch,
+                                                                          self.relative_output_interfaces_time_steps))
         return outputs
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True, **kwds):
@@ -402,39 +500,15 @@ class CoSimulator(CoSimulatorBase, HasTraits):
                     t, x = t_x
                     tl.append(t)
                     xl.append(x)
-        return self.send_cosim_coupling(cosimulation), self.current_step - current_step
+        return self.current_step - current_step
 
-    def _log_print_progress_message(self, simulated_steps, simulation_length):
-        log_msg = "...%.3f%% completed in %g sec!" % \
-                  ((100 * (simulated_steps * self.integrator.dt) / simulation_length), time.time() - self._tic)
-        self.log.info(log_msg)
-        if self.PRINT_PROGRESSION_MESSAGE:
-            print("\r" + log_msg, end="")
+    def run_cosimulation(self, ts, xs, wall_time_start,
+                         advance_simulation_for_delayed_monitors_output=True,
+                         *args, **kwds):
 
-    def run_cosimulation(self, ts, xs, wall_time_start, advance_simulation_for_delayed_monitors_output=True, **kwds):
-        simulation_length = self.simulation_length
-        synchronization_time = self.synchronization_time
-        if advance_simulation_for_delayed_monitors_output:
-            simulation_length += synchronization_time
-        synchronization_n_step = int(self.synchronization_n_step)  # store the configured value
-        if not self.n_tvb_steps_ran_since_last_synch:
-            self.n_tvb_steps_ran_since_last_synch = synchronization_n_step
-        simulated_steps = 0
-        remaining_steps = int(numpy.round(simulation_length / self.integrator.dt))
-        # Send TVB's initial condition to spikeNet!:
-        self.send_cosim_coupling(True)
-        self._tic = time.time()
-        while remaining_steps > 0:
-            self.synchronization_n_step = numpy.minimum(remaining_steps, synchronization_n_step)
-            self.n_tvb_steps_ran_since_last_synch = \
-                self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=True, **kwds)[1]
-            simulated_steps += self.n_tvb_steps_ran_since_last_synch
-            remaining_steps -= self.n_tvb_steps_ran_since_last_synch
-            self._log_print_progress_message(simulated_steps, simulation_length)
-        self.synchronization_n_step = int(synchronization_n_step)  # restore the configured value
-        self.simulation_length = simulation_length                 # restore the actually implemented value
+        raise NotImplementedError
 
-    def run(self, **kwds):
+    def run(self, *args, **kwds):
         """Convenience method to call the CoSimulator with **kwds and collect output data."""
         ts, xs = [], []
         for _ in self.monitors:
@@ -446,7 +520,7 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         if self._cosimulation_flag:
             self.run_cosimulation(ts, xs, wall_time_start,
                                   advance_simulation_for_delayed_monitors_output=asfdmo,
-                                  **kwds)
+                                  *args, **kwds)
         else:
             self.run_for_synchronization_time(ts, xs, wall_time_start, cosimulation=False, **kwds)
         for i in range(len(ts)):
@@ -454,6 +528,13 @@ class CoSimulator(CoSimulatorBase, HasTraits):
             xs[i] = numpy.array(xs[i])
         return list(zip(ts, xs))
 
+    def _log_print_progress_message(self, simulated_steps, simulation_length):
+        log_msg = "...%.3f%% completed in %g sec!" % \
+                  ((100 * (simulated_steps * self.integrator.dt) / simulation_length), time.time() - self._tic)
+        self.log.info(log_msg)
+        if self.PRINT_PROGRESSION_MESSAGE:
+            print("\r" + log_msg, end="")
+    
     def info(self, recursive=0):
         info = HasTraits.info(self, recursive=recursive)
         return info

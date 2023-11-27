@@ -9,13 +9,9 @@ from tvb.simulator.integrators import HeunStochastic
 from tvb.simulator.noise import Additive
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
-from tvb_multiscale.core.interfaces.models.default import DefaultTVBInterfaceBuilder, \
-    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
-    DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder, \
-    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetOutputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInputTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
+from tvb_multiscale.core.interfaces.models.default import DefaultInterfaceBuilder, DefaultTVBInterfaceBuilder, \
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder
+from tvb_multiscale.core.interfaces.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 
 
 class CerebTVBInterfaceBuilder(DefaultTVBInterfaceBuilder):
@@ -64,43 +60,6 @@ class CerebSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilder, ABC):
             interface["transformer_params"] = {"scale_factor": np.array([1.0]) / number_of_neurons}
 
 
-class CerebTVBRemoteInterfaceBuilder(CerebTVBInterfaceBuilder,
-                                                      DefaultTVBRemoteInterfaceBuilder):
-    pass
-
-
-class CerebTVBOutputTransformerInterfaceBuilder(CerebTVBInterfaceBuilder,
-                                                                 CerebTVBtoSpikeNetTransformerBuilder,
-                                                                 DefaultTVBOutputTransformerInterfaceBuilder):
-
-    def default_output_config(self):
-        CerebTVBInterfaceBuilder.default_output_config(self)
-        CerebTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.output_interfaces)
-
-
-class CerebTVBInputTransformerInterfaceBuilder(CerebTVBInterfaceBuilder,
-                                                                CerebSpikeNetToTVBTransformerBuilder,
-                                                                DefaultTVBInputTransformerInterfaceBuilder):
-
-    def default_input_config(self):
-        CerebTVBInterfaceBuilder.default_input_config(self)
-        CerebSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.input_interfaces)
-
-
-class CerebTVBTransfomerInterfaceBuilder(CerebTVBInterfaceBuilder,
-                                                          CerebTVBtoSpikeNetTransformerBuilder,
-                                                          CerebSpikeNetToTVBTransformerBuilder,
-                                                          DefaultTVBTransfomerInterfaceBuilder):
-
-    def default_output_config(self):
-        CerebTVBInterfaceBuilder.default_output_config(self)
-        CerebTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.output_interfaces)
-
-    def default_input_config(self):
-        CerebTVBInterfaceBuilder.default_input_config(self)
-        CerebSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.input_interfaces)
-
-
 class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
@@ -111,7 +70,7 @@ class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
                doc="""Number of cortical neurons projecting to inferior olivary neurons""")
 
     CC_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="CC_proxy_inds",
         doc="""Indices of Spiking Network Cerebellar Cortices proxy nodes""",
         required=True,
@@ -119,7 +78,7 @@ class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     )
 
     CN_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="CN_proxy_inds",
         doc="""Indices of Spiking Network Cerebellar Nuclei proxy nodes""",
         required=True,
@@ -127,7 +86,7 @@ class CerebSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     )
 
     IO_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="IO_proxy_inds",
         doc="""Indices of Spiking Network Inferior Olivary Cortices proxy nodes""",
         required=True,
@@ -173,50 +132,10 @@ class CerebSpikeNetInterfaceBuilder(CerebSpikeNetProxyNodesBuilder, DefaultSpike
         CerebSpikeNetProxyNodesBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
-class CerebSpikeNetRemoteInterfaceBuilder(CerebSpikeNetInterfaceBuilder,
-                                                           DefaultSpikeNetRemoteInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-
-class CerebSpikeNetOutputTransformerInterfaceBuilder(
-    CerebSpikeNetInterfaceBuilder, CerebSpikeNetToTVBTransformerBuilder,
-    DefaultSpikeNetOutputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        CerebSpikeNetInterfaceBuilder.default_output_config(self)
-        CerebSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class CerebSpikeNetInputTransformerInterfaceBuilder(
-    CerebSpikeNetInterfaceBuilder, CerebTVBtoSpikeNetTransformerBuilder,
-    DefaultSpikeNetInputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_input_config(self):
-        CerebSpikeNetInterfaceBuilder.default_input_config(self)
-        CerebTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
-
-
-class CerebSpikeNetTransformerInterfaceBuilder(CerebSpikeNetInterfaceBuilder,
-                                                                CerebSpikeNetToTVBTransformerBuilder,
-                                                                CerebTVBtoSpikeNetTransformerBuilder,
-                                                                DefaultSpikeNetTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        CerebSpikeNetInterfaceBuilder.default_input_config(self)
-        CerebSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-    def default_input_config(self):
-        CerebSpikeNetInterfaceBuilder.default_input_config(self)
-        CerebTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
-
-
 class CerebTVBSpikeNetInterfaceBuilder(CerebTVBInterfaceBuilder,
-                                                        CerebTVBtoSpikeNetTransformerBuilder,
-                                                        CerebSpikeNetToTVBTransformerBuilder,
-                                                        CerebSpikeNetProxyNodesBuilder,
+                                       CerebTVBtoSpikeNetTransformerBuilder,
+                                       CerebSpikeNetToTVBTransformerBuilder,
+                                       CerebSpikeNetProxyNodesBuilder,
                                                         DefaultTVBSpikeNetInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
 

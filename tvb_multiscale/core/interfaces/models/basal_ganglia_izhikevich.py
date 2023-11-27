@@ -5,17 +5,11 @@ from abc import ABCMeta, ABC, abstractmethod
 import numpy as np
 
 from tvb.basic.neotraits._attr import Int, Float, NArray
-from tvb.simulator.integrators import HeunStochastic
-from tvb.simulator.noise import Additive
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
-from tvb_multiscale.core.interfaces.models.default import DefaultTVBInterfaceBuilder, \
-    DefaultTVBSpikeNetInterfaceBuilder, DefaultTVBRemoteInterfaceBuilder, DefaultTVBTransfomerInterfaceBuilder, \
-    DefaultTVBOutputTransformerInterfaceBuilder, DefaultTVBInputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetRemoteInterfaceBuilder, \
-    DefaultSpikeNetTransformerInterfaceBuilder, DefaultSpikeNetOutputTransformerInterfaceBuilder, \
-    DefaultSpikeNetInputTransformerInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder, DefaultInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
+from tvb_multiscale.core.interfaces.models.default import DefaultInterfaceBuilder, DefaultTVBInterfaceBuilder, \
+    DefaultTVBSpikeNetInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, DefaultSpikeNetProxyNodesBuilder
+from tvb_multiscale.core.interfaces.transformers.models.red_wong_wang import ElephantSpikesRateRedWongWangExc
 
 
 class BasalGangliaIzhikevichTVBInterfaceBuilder(DefaultTVBInterfaceBuilder):
@@ -65,7 +59,7 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
         doc="""[ms]. Excitatory population  input rate decay time constant.""")
 
     GPe_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="GPe_proxy_inds",
         doc="""Indices of Spiking Network GPe proxy nodes""",
         required=True,
@@ -73,7 +67,7 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
     )
 
     GPi_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="GPi_proxy_inds",
         doc="""Indices of Spiking Network GPi proxy nodes""",
         required=True,
@@ -81,7 +75,7 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
     )
 
     STN_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="STN_proxy_inds",
         doc="""Indices of Spiking Network STN proxy nodes""",
         required=True,
@@ -89,7 +83,7 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
     )
 
     Thal_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Thal_proxy_inds",
         doc="""Indices of Spiking Network Thalamus proxy nodes""",
         required=True,
@@ -97,7 +91,7 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
     )
 
     Striatum_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Striatum_proxy_inds",
         doc="""Indices of Spiking Network Striatum proxy nodes""",
         required=True,
@@ -140,87 +134,15 @@ class BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuil
             interface["transformer_model"] = ElephantSpikesRateRedWongWangExc
             interface["transformer_params"] = \
                 {"scale_factor": np.array([1.0]) / self.N_E / scale_neurons,
-                 "integrator": HeunStochastic(dt=self._dt, noise=Additive(nsig=self.nsig)),
                  "state": np.zeros((2, number_of_proxys)),
                  "tau_s": self.tau_s, "tau_r": self.tau_r, "gamma": self.gamma}
-
-
-class BasalGangliaIzhikevichTVBRemoteInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                      DefaultTVBRemoteInterfaceBuilder):
-    pass
-
-
-class BasalGangliaIzhikevichTVBOutputTransformerInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                                 BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-                                                                 DefaultTVBOutputTransformerInterfaceBuilder):
-
-    @property
-    def J_N(self):
-        return self.tvb_model.J_N
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_output_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self,
-                                                                                             self.output_interfaces)
-
-
-class BasalGangliaIzhikevichTVBInputTransformerInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                                BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-                                                                DefaultTVBInputTransformerInterfaceBuilder):
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def tau_s(self):
-        return self.tvb_model.tau_s
-
-    @property
-    def gamma(self):
-        return self.tvb_model.gamma
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self,
-                                                                                             self.input_interfaces)
-
-
-class BasalGangliaIzhikevichTVBTransfomerInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,
-                                                          BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-                                                          BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-                                                          DefaultTVBTransfomerInterfaceBuilder):
-
-    @property
-    def J_N(self):
-        return self.tvb_model.J_N
-
-    @property
-    def tau_s(self):
-        return self.tvb_model.tau_s
-
-    @property
-    def gamma(self):
-        return self.tvb_model.gamma
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_output_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self,
-                                                                                             self.output_interfaces)
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichTVBInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self,
-                                                                                             self.input_interfaces)
 
 
 class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesBuilder, ABC):
     __metaclass__ = ABCMeta
 
     GPe_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="GPe_proxy_inds",
         doc="""Indices of Spiking Network GPe proxy nodes""",
         required=True,
@@ -228,7 +150,7 @@ class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesB
     )
 
     GPi_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="GPi_proxy_inds",
         doc="""Indices of Spiking Network GPi proxy nodes""",
         required=True,
@@ -236,7 +158,7 @@ class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesB
     )
 
     STN_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="STN_proxy_inds",
         doc="""Indices of Spiking Network STN proxy nodes""",
         required=True,
@@ -244,7 +166,7 @@ class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesB
     )
 
     Thal_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Thal_proxy_inds",
         doc="""Indices of Spiking Network Thalamus proxy nodes""",
         required=True,
@@ -252,7 +174,7 @@ class BasalGangliaIzhikevichSpikeNetProxyNodesBuilder(DefaultSpikeNetProxyNodesB
     )
 
     Striatum_proxy_inds = NArray(
-        dtype=np.int,
+        dtype=int,
         label="Striatum_proxy_inds",
         doc="""Indices of Spiking Network Striatum proxy nodes""",
         required=True,
@@ -305,82 +227,6 @@ class BasalGangliaIzhikevichSpikeNetInterfaceBuilder(BasalGangliaIzhikevichSpike
             self._get_input_interfaces(ii)["populations"] = np.array(pop)
             self._get_input_interfaces(ii)["spiking_proxy_inds"] = np.array(spiking_proxy_inds)
         BasalGangliaIzhikevichSpikeNetProxyNodesBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
-
-
-class BasalGangliaIzhikevichSpikeNetRemoteInterfaceBuilder(BasalGangliaIzhikevichSpikeNetInterfaceBuilder,
-                                                           DefaultSpikeNetRemoteInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-
-class BasalGangliaIzhikevichSpikeNetOutputTransformerInterfaceBuilder(
-    BasalGangliaIzhikevichSpikeNetInterfaceBuilder, BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-    DefaultSpikeNetOutputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def tau_s(self):
-        return self.tvb_simulator_serialized["model.tau_s"]
-
-    @property
-    def gamma(self):
-        return self.tvb_simulator_serialized["model.gamma"]
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self)
-
-
-class BasalGangliaIzhikevichSpikeNetInputTransformerInterfaceBuilder(
-    BasalGangliaIzhikevichSpikeNetInterfaceBuilder, BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-    DefaultSpikeNetInputTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def J_N(self):
-        return self.tvb_simulator_serialized["model.J_N"]
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self)
-
-
-class BasalGangliaIzhikevichSpikeNetTransformerInterfaceBuilder(BasalGangliaIzhikevichSpikeNetInterfaceBuilder,
-                                                                BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder,
-                                                                BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder,
-                                                                DefaultSpikeNetTransformerInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    @property
-    def _dt(self):
-        if self.dt <= 0.0:
-            self.dt = self.tvb_dt
-        return self.dt
-
-    @property
-    def J_N(self):
-        return self.tvb_simulator_serialized["model.J_N"]
-
-    @property
-    def tau_s(self):
-        return self.tvb_simulator_serialized["model.tau_s"]
-
-    @property
-    def gamma(self):
-        return self.tvb_simulator_serialized["model.gamma"]
-
-    def default_output_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self)
-
-    def default_input_config(self):
-        BasalGangliaIzhikevichSpikeNetInterfaceBuilder.default_input_config(self)
-        BasalGangliaIzhikevichTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self)
 
 
 class BasalGangliaIzhikevichTVBSpikeNetInterfaceBuilder(BasalGangliaIzhikevichTVBInterfaceBuilder,

@@ -9,12 +9,16 @@ from tvb.basic.profile import TvbProfile
 TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorSerialBuilder
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
 
 from examples.plot_write_results import plot_write_results
+
+
+PRINT_SUMMARY = True
 
 
 def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_tvb, config=None):
@@ -33,12 +37,12 @@ def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_t
 
 
 def main_example(orchestrator_app, tvb_sim_model, model_params={},
-                 spikeNet_model_builder=None, spiking_proxy_inds=[],
+                 spikeNet_model_builder=None, spiking_proxy_inds=[0, 1],
                  tvb_spikeNet_interface_builder=None,
                  tvb_to_spikeNet_interfaces=[], spikeNet_to_tvb_interfaces=[], exclusive_nodes=True,
                  connectivity=CONFIGURED.DEFAULT_CONNECTIVITY_ZIP, delays_flag=True,
-                 simulation_length=330.0, transient=10.0, initial_conditions=np.array([0.0]),
-                 config=None, plot_write=True, config_type=Config, logger_initializer=initialize_logger):
+                 simulation_length=1100.0, transient=None, initial_conditions=np.array([0.0]),
+                 config=None, plot_write=True, config_type=Config, logger_initializer=initialize_logger, **kwargs):
 
     if config is None:
         try:
@@ -52,14 +56,19 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
 
     logger = logger_initializer(__name__, config=config)
 
+    print("\n"+"-"*100 + "\nFind results in %s !" % config.out.FOLDER_RES + "\n" + "-"*100)
+
+    spiking_proxy_inds = getattr(config, "SPIKING_NODES_INDS", spiking_proxy_inds)
     spiking_proxy_inds = np.array(spiking_proxy_inds)
+    exclusive_nodes = getattr(config, "EXCLUSIVE_NODES", exclusive_nodes)
+    simulation_length = getattr(config, "SIMULATION_LENGTH", simulation_length)
+    config.SIMULATION_LENGTH = simulation_length  # needed for NetPyNE
+    if transient is None:
+        transient = getattr(config, "TRANSIENT", simulation_length/11)
 
     orchestrator = orchestrator_app(
         config=config,
         logger=logger,
-        exclusive_nodes=exclusive_nodes,
-        spiking_proxy_inds=spiking_proxy_inds,
-        simulation_length=simulation_length
     )
     orchestrator.start()
 
@@ -71,8 +80,10 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     tic = time.time()
 
     # -----------------------------------------a. Configure a TVB simulator builder ------------------------------------
+    orchestrator.tvb_app.cosimulator_builder = kwargs.pop("cosimulator_builder", CoSimulatorSerialBuilder())
     orchestrator.tvb_app.cosimulator_builder.model = tvb_sim_model
     orchestrator.tvb_app.cosimulator_builder.model_params = model_params
+    orchestrator.tvb_app.cosimulator_builder.simulation_length = simulation_length  # needed at this stage by NETPYNE!!!
     if not isinstance(connectivity, Connectivity):
         connectivity = Connectivity.from_file(connectivity)
     orchestrator.tvb_app.cosimulator_builder.connectivity = connectivity
@@ -82,9 +93,12 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
 
     # -----------------------------------------b. Set the spiking network model builder---------------------------
     orchestrator.spikeNet_app.spikeNet_builder = spikeNet_model_builder
+    orchestrator.spikeNet_app.spikeNet_builder.spiking_nodes_inds = spiking_proxy_inds
 
     # -----------------------------------------c. Configure the TVB-SpikeNet interface model ---------------------------
     orchestrator.tvb_app.interfaces_builder = tvb_spikeNet_interface_builder
+    orchestrator.tvb_app.interfaces_builder.proxy_inds = spiking_proxy_inds
+    orchestrator.tvb_app.interfaces_builder.exclusive_nodes = exclusive_nodes
     orchestrator.tvb_app.interfaces_builder.output_interfaces = tvb_to_spikeNet_interfaces
     orchestrator.tvb_app.interfaces_builder.input_interfaces = spikeNet_to_tvb_interfaces
 
@@ -98,15 +112,21 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
-    print(orchestrator.print_summary_info_details(recursive=2, connectivity=False))
-    print(orchestrator.spikeNet_app.spiking_network.print_summary_info_details(recursive=3, connectivity=False))
-    print(orchestrator.tvb_cosimulator.output_interfaces.print_summary_info_details(recursive=1, connectivity=False))
-    print(orchestrator.tvb_cosimulator.input_interfaces.print_summary_info_details(recursive=1, connectivity=False))
+    print_summary = PRINT_SUMMARY
+
+    # only applicable for NetPyNE parallel simulation with MPI: skip printing and plotting the results unless being on root MPI node:
+    if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
+        not orchestrator.spikeNet_app.spiking_cosimulator.isRootNode():
+        print_summary = False
+        plot_write = False
+
+    if print_summary:
+        print(orchestrator.print_summary_info_details(recursive=2, connectivity=False))
 
     # -------------------------------------4. Configure, Simulate and gather results------------------------------------
     print("\n\nSimulating...")
     tic = time.time()
-    orchestrator.simulate()
+    orchestrator.simulate(simulation_length)
     print("\nSimulated in %f secs!\n" % (time.time() - tic))
 
     simulator = orchestrator.tvb_cosimulator
@@ -117,17 +137,24 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
         print("\n\nPlotting and/or writing results to files...")
         tic = time.time()
         # try:
-        plot_write_results(results, simulator,
-                           orchestrator.spiking_network, orchestrator.spiking_proxy_inds,
-                           transient=transient, tvb_state_variable_type_label="State Variables",
-                           tvb_state_variables_labels=simulator.model.variables_of_interest,
-                           plot_per_neuron=True, plotter=plotter, config=config)
+        orchestrator.plot(spiking_nodes_ids=spiking_proxy_inds, transient=transient,
+                          # populations=["E", "I"], populations_sizes=[],
+                          tvb_state_variable_type_label="State Variable",
+                          tvb_state_variables_labels=simulator.model.variables_of_interest,
+                          plot_per_neuron=True, plotter=plotter)
+        # plot_write_results(results, simulator,
+        #                    orchestrator.spiking_network, spiking_proxy_inds,
+        #                    transient=transient, tvb_state_variable_type_label="State Variables",
+        #                    tvb_state_variables_labels=simulator.model.variables_of_interest,
+        #                    plot_per_neuron=True, plotter=plotter, config=config)
         # except Exception as e:
         #     print("Error in plotting or writing to files!:\n%s" % str(e))
         print("\nFinished in %f secs!\n" % (time.time() - tic))
 
     orchestrator.clean_up()
     orchestrator.stop()
+
+    del orchestrator
 
     return results, simulator
 
@@ -167,6 +194,12 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
+    if kwargs.get("tvb_to_spikeNet_transformer_model", None) is not None:
+        transformer_model = kwargs.pop("tvb_to_spikeNet_transformer_model")
+        setattr(tvb_spikeNet_model_builder._default_tvb_to_spikeNet_transformer_models, model, transformer_model)
+    if kwargs.get("spikeNet_to_tvb_transformer_model", None) is not None:
+        transformer_model = kwargs.pop("spikeNet_to_tvb_transformer_model")
+        tvb_spikeNet_model_builder._default_spikeNet_to_tvb_transformer_models.SPIKES = transformer_model
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
     tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order

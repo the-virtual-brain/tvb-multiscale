@@ -51,24 +51,27 @@ class NESTNetwork(SpikingNetwork):
 
     def __init__(self, nest_instance=None, **kwargs):
         self.nest_instance = nest_instance
+        self.config = kwargs.get("config", CONFIGURED)
+        kwargs["config"] = self.config
+        self.brain_regions = NESTBrain()
         super(NESTNetwork, self).__init__(**kwargs)
 
     @property
     def spiking_simulator_module(self):
         return self.nest_instance
 
-    def Run(self, time):
+    def Run(self, time, **kwargs):
         if self.nest_instance is not None:
-            self.nest_instance.Run(time)
+            return self.nest_instance.Run(time, **kwargs)
 
-    def Simulate(self, time):
+    def Simulate(self, time, **kwargs):
         if self.nest_instance is not None:
             self.nest_instance.Prepare()
-            self.nest_instance.Run(time)
+            return self.nest_instance.Run(time, **kwargs)
 
-    def Cleanup(self):
+    def Cleanup(self, **kwargs):
         if self.nest_instance is not None:
-            self.nest_instance.Cleanup()
+            return self.nest_instance.Cleanup(**kwargs)
 
     @property
     def min_delay(self):

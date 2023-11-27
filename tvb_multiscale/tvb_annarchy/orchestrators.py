@@ -1,43 +1,31 @@
 # -*- coding: utf-8 -*-
 
-import os
-from logging import Logger
+from tvb.basic.neotraits.api import Attr
 
-from tvb.basic.neotraits._attr import Attr
-
-from tvb_multiscale.core.orchestrators.spikeNet_app import SpikeNetSerialApp, SpikeNetParallelApp
+from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.orchestrators.spikeNet_app import \
+    SpikeNetSerialApp, SpikeNetParallelApp, SpikeNetRemoteParallelApp
 from tvb_multiscale.core.orchestrators.tvb_app import TVBSerialApp as TVBSerialAppBase
 from tvb_multiscale.core.orchestrators.serial_orchestrator import SerialOrchestrator
 
-from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
-from tvb_multiscale.tvb_annarchy.annarchy_models.models.default import DefaultExcIOBuilder
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import load_annarchy
-from tvb_multiscale.tvb_annarchy.interfaces.interfaces import ANNarchyOutputInterfaces, ANNarchyInputInterfaces
-from tvb_multiscale.tvb_annarchy.interfaces.builders import ANNarchyProxyNodesBuilder, TVBANNarchyInterfaceBuilder
-from tvb_multiscale.tvb_annarchy.interfaces.models.default import \
-    DefaultANNarchyRemoteInterfaceBuilder, DefaultTVBANNarchyInterfaceBuilder
+from tvb_multiscale.tvb_annarchy.interfaces.builders import \
+    ANNarchyInterfaceBuilder, ANNarchyRemoteInterfaceBuilder, TVBANNarchyInterfaceBuilder
 
 
-class ANNarchySerialApp(SpikeNetSerialApp):
+class ANNarchyApp(HasTraits):
 
-    """ANNarchySerialApp class"""
+    """ANNarchyApp class"""
 
     config = Attr(
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     network_path = Attr(
@@ -52,8 +40,7 @@ class ANNarchySerialApp(SpikeNetSerialApp):
         label="ANNarchy Network Builder",
         field_type=ANNarchyNetworkBuilder,
         doc="""Instance of ANNarchy Model Builder.""",
-        required=True,
-        default=DefaultExcIOBuilder()
+        required=False,
     )
 
     spiking_network = Attr(
@@ -62,6 +49,13 @@ class ANNarchySerialApp(SpikeNetSerialApp):
         doc="""Instance of ANNarchyNetwork class.""",
         required=False
     )
+
+    _spikeNet_builder_type = ANNarchyNetworkBuilder
+    _spikeNet_type = ANNarchyNetwork
+
+    def __init__(self, **kwargs):
+        self.network_path = ""
+        super(ANNarchyApp, self).__init__(**kwargs)
 
     @property
     def annarchy_instance(self):
@@ -78,29 +72,8 @@ class ANNarchySerialApp(SpikeNetSerialApp):
     def start(self):
         self.spiking_cosimulator = load_annarchy(self.config)
 
-    def configure(self, **kwargs):
-        super(ANNarchySerialApp, self).configure()
-        self.annarchy_instance.clear()  # This will restart ANNarchy!
-        self.spikeNet_builder.annarchy_instance = self.spiking_cosimulator
-        self.spikeNet_builder.update_spiking_dt()
-        self.spikeNet_builder.update_default_min_delay()
-        kwargs["dt"] = self.spikeNet_builder.spiking_dt
-        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-        self.annarchy_instance.setup(**kwargs)
-
     def configure_simulation(self):
         self.spiking_network.network_path = self.network_path
-        super(ANNarchySerialApp, self).configure_simulation()
-
-    def simulate(self, simulation_length=None):
-        if simulation_length is None:
-            simulation_length = self.simulation_length
-        self.spiking_network.Run(simulation_length)
-
-    def run(self, *args, **kwargs):
-        self.configure(**kwargs)
-        self.build()
 
     def clean_up(self):
         pass
@@ -108,45 +81,118 @@ class ANNarchySerialApp(SpikeNetSerialApp):
     def stop(self):
         pass
 
+    def _destroy(self):
+        self.network_path = ""
+
     def reset(self):
-        super(ANNarchySerialApp, self).reset()
         self.annarchy_instance.clear()
+        self._destroy()
 
 
-class ANNarchyParallelApp(ANNarchySerialApp, SpikeNetParallelApp):
+class ANNarchySerialApp(ANNarchyApp, SpikeNetSerialApp):
+
+    """ANNarchySerialApp class"""
+
+    def start(self):
+        SpikeNetSerialApp.start(self)
+        ANNarchyApp.start(self)
+
+    def configure(self):
+        SpikeNetSerialApp.configure(self)
+        ANNarchyApp.configure(self)
+
+    def configure_simulation(self):
+        SpikeNetSerialApp.configure_simulation(self)
+        ANNarchyApp.configure_simulation(self)
+
+    def reset(self):
+        ANNarchyApp.reset(self)
+        SpikeNetSerialApp.reset(self)
+
+    def clean_up(self):
+        ANNarchyApp.clean_up(self)
+        SpikeNetSerialApp.clean_up(self)
+
+
+class ANNarchyParallelApp(ANNarchyApp, SpikeNetParallelApp):
 
     """ANNarchyParallelApp class"""
 
     interfaces_builder = Attr(
         label="ANNarchy interfaces builder",
-        field_type=ANNarchyProxyNodesBuilder,
+        field_type=ANNarchyInterfaceBuilder,
         doc="""Instance of ANNarchy Network interfaces' builder class.""",
         required=False,
-        default=DefaultANNarchyRemoteInterfaceBuilder()
     )
 
-    output_interfaces = Attr(
-        label="ANNarchy Network output interfaces",
-        field_type=ANNarchyOutputInterfaces,
-        doc="""Instance of output ANNarchy Network interfaces.""",
-        required=False
-    )
+    _default_interface_builder_type = ANNarchyInterfaceBuilder
 
-    input_interfaces = Attr(
-        label="ANNarchy Network input interfaces",
-        field_type=ANNarchyInputInterfaces,
-        doc="""Instance of input ANNarchy Network interfaces.""",
-        required=False
-    )
+    def start(self):
+        SpikeNetParallelApp.start(self)
+        ANNarchyApp.start(self)
 
-    _default_interface_builder = ANNarchyProxyNodesBuilder
+    def configure(self):
+        SpikeNetParallelApp.configure(self)
+        ANNarchyApp.configure(self)
 
     def build(self):
         SpikeNetParallelApp.build(self)
 
+    def configure_simulation(self):
+        SpikeNetParallelApp.configure_simulation(self)
+        ANNarchyApp.configure_simulation(self)
+
     def reset(self):
-        ANNarchySerialApp.reset(self)
+        ANNarchyApp.reset(self)
         SpikeNetParallelApp.reset(self)
+
+    def clean_up(self):
+        ANNarchyApp.clean_up(self)
+        SpikeNetParallelApp.clean_up(self)
+
+
+class ANNarchyNRPApp(ANNarchyParallelApp):
+
+    """ANNarchyNRPApp class"""
+
+    pass
+
+
+class ANNarchyRemoteParallelApp(ANNarchyApp, SpikeNetRemoteParallelApp):
+
+    """ANNarchyRemoteParallelApp class"""
+
+    interfaces_builder = Attr(
+        label="ANNarchy interfaces builder",
+        field_type=ANNarchyRemoteInterfaceBuilder,
+        doc="""Instance of ANNarchy Network interfaces' builder class.""",
+        required=False,
+    )
+
+    _default_interface_builder_type = ANNarchyRemoteInterfaceBuilder
+
+    def start(self):
+        SpikeNetRemoteParallelApp.start(self)
+        ANNarchyApp.start(self)
+
+    def configure(self):
+        SpikeNetRemoteParallelApp.configure(self)
+        ANNarchyApp.configure(self)
+
+    def build(self):
+        SpikeNetRemoteParallelApp.build(self)
+
+    def configure_simulation(self):
+        SpikeNetRemoteParallelApp.configure_simulation(self)
+        ANNarchyApp.configure_simulation(self)
+
+    def reset(self):
+        ANNarchyApp.reset(self)
+        SpikeNetRemoteParallelApp.reset(self)
+
+    def clean_up(self):
+        ANNarchyApp.clean_up(self)
+        SpikeNetRemoteParallelApp.clean_up(self)
 
 
 class TVBSerialApp(TVBSerialAppBase):
@@ -157,24 +203,15 @@ class TVBSerialApp(TVBSerialAppBase):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     interfaces_builder = Attr(
         label="TVBANNarchyInterfaces builder",
         field_type=TVBANNarchyInterfaceBuilder,
         doc="""Instance of TVBANNarchyInterfaces' builder class.""",
-        required=True,
-        default=DefaultTVBANNarchyInterfaceBuilder()
+        required=False,
     )
 
     spiking_network = Attr(
@@ -184,7 +221,7 @@ class TVBSerialApp(TVBSerialAppBase):
         required=False
     )
 
-    _default_interface_builder = TVBANNarchyInterfaceBuilder
+    _default_interface_builder_type = TVBANNarchyInterfaceBuilder
 
 
 class TVBANNarchySerialOrchestrator(SerialOrchestrator):
@@ -193,23 +230,15 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
-    )
-
-    logger = Attr(
-        label="Logger",
-        field_type=Logger,
-        doc="""logging.Logger instance.""",
-        required=True,
-        default=initialize_logger(__name__, config=CONFIGURED)
     )
 
     tvb_app = Attr(
         label="TVBSerial app",
         field_type=TVBSerialApp,
         doc="""Application for running TVB serially.""",
-        required=True,
+        required=False,
         default=TVBSerialApp()
     )
 
@@ -221,6 +250,7 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         default=ANNarchySerialApp()
     )
 
-    def simulate(self):
-        self.configure_simulation()
-        self.tvb_app.simulate()
+    def __init__(self, **kwargs):
+        self.tvb_app = TVBSerialApp()
+        self. spikeNet_app = ANNarchySerialApp()
+        super(TVBANNarchySerialOrchestrator, self).__init__(**kwargs)

@@ -5,13 +5,10 @@ import os
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
-from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_annarchy.config import Config, CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyOutputSpikeDeviceDict, ANNarchyOutputContinuousTimeDeviceDict
-
-
-LOG = initialize_logger(__name__)
 
 
 class ANNarchyNetwork(SpikingNetwork):
@@ -24,7 +21,7 @@ class ANNarchyNetwork(SpikingNetwork):
         all of which are implemented as indexed mappings by inheriting from pandas.Series class.
         The class also includes methods to return measurements (mean, sum/total data, spikes, spikes rates etc)
         from output devices, as xarray.DataArrays.
-        e.g. ANnarchyPopulations can be indexed as:
+        e.g. ANNarchyPopulations can be indexed as:
         annarchy_network.brain_regions['rh-insula']['E'] for population "E" residing in region node "rh-insula",
         and similarly for an output device:
         annarchy_network.output_devices['Excitatory']['rh-insula'],
@@ -67,6 +64,12 @@ class ANNarchyNetwork(SpikingNetwork):
 
     def __init__(self, annarchy_instance=None, **kwargs):
         self.annarchy_instance = annarchy_instance
+        self._dt = None
+        self._network = None
+        self.network_path = ""
+        self.brain_regions = ANNarchyBrain()
+        self.config = kwargs.get("config", CONFIGURED)
+        kwargs["config"] = self.config
         super(ANNarchyNetwork, self).__init__(**kwargs)
 
     @property

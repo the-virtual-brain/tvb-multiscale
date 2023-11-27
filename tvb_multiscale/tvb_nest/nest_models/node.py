@@ -4,13 +4,15 @@ import uuid
 
 from nest import NodeCollection
 
-from tvb.basic.neotraits.api import Attr, Int
+from tvb.basic.neotraits.api import Int
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.neotraits import HasTraits
+from tvb_multiscale.core.neotraits import HasTraits, Attr
 from tvb_multiscale.core.spiking_models.node import SpikingNodeCollection
+
+from tvb_multiscale.tvb_nest.nest_models.server_client.node_collection import NodeCollection as RemoteNodeCollection
 
 
 LOG = initialize_logger(__name__)
@@ -23,7 +25,7 @@ class _NESTNodeCollection(HasTraits):
        residing at the same brain region.
     """
 
-    _nodes = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
+    _nodes = Attr(field_type=(NodeCollection, RemoteNodeCollection), default=NodeCollection(), required=False,
                   label="NEST NodeCollection ", doc="""NESTNodeCollection instance""")
 
     label = Attr(field_type=str, default="", required=True,
@@ -104,8 +106,7 @@ class _NESTNodeCollection(HasTraits):
     def _assert_nodes(self, nodes=None):
         if nodes is None:
             return self._nodes
-        """Method to assert that the node of the network is valid"""
-        if not isinstance(nodes, self.nest_instance.NodeCollection):
+        if not isinstance(nodes, (NodeCollection, RemoteNodeCollection)):
             if self._nodes:
                 try:
                     return self._nodes[nodes]

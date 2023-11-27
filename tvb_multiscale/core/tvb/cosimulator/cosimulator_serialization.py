@@ -19,8 +19,10 @@ def serialize_tvb_cosimulator(cosimulator):
          "model.cvar": np.copy(cosimulator.model.cvar),
          "monitor.period": float(cosimulator.monitors[0].period),
     }
+    d["min_delay"] = float(getattr(cosimulator, "_min_delay", d["integrator.dt"]))
+    d["min_idelay"] = int(getattr(cosimulator, "_min_idelay", 1))
     d["synchronization_time"] = float(getattr(cosimulator, "synchronization_time", d["integrator.dt"]))
-    d["synchronization_n_step"] = float(getattr(cosimulator, "synchronization_n_step", 1))
+    d["synchronization_n_step"] = int(getattr(cosimulator, "synchronization_n_step", 1))
     if hasattr(cosimulator.integrator, "noise"):
         d["integrator.noise.nsig"] = cosimulator.integrator.noise.nsig
 
@@ -31,14 +33,14 @@ def serialize_tvb_cosimulator(cosimulator):
             continue
         d["model.%s" % attr] = np.copy(getattr(cosimulator.model, attr))
 
-    excluded_attrs = ("undirected", "number_of_regions", "number_of_connections",
+    excluded_attrs = ("undirected", "number_of_regions", "number_of_connections", 
                        "parent_connectivity", "saved_selection", "gid")
     for attr in type(cosimulator.connectivity).declarative_attrs:
         if attr in excluded_attrs:
             continue
         d["connectivity.%s" % attr] = np.copy(getattr(cosimulator.connectivity, attr))
-
-    for attr in cosimulator.coupling._own_declarative_attrs:
+        
+    for attr in type(cosimulator.coupling).declarative_attrs:
         d["coupling.%s" % attr] = np.copy(getattr(cosimulator.coupling, attr))
 
     return d
@@ -47,7 +49,7 @@ def serialize_tvb_cosimulator(cosimulator):
 def serial_tvb_simulator_to_connectivity(tvb_sim_dict):
     kwargs = {}
     excluded_attrs = ("undirected", "number_of_regions", "number_of_connections",
-                       "parent_connectivity", "saved_selection", "gid")
+                      "parent_connectivity", "saved_selection", "gid")
     for attr in Connectivity.declarative_attrs:
         if attr in excluded_attrs:
             continue

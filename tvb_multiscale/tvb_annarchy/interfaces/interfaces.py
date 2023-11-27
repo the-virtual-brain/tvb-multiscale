@@ -6,13 +6,11 @@ from abc import ABCMeta
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 from tvb_multiscale.tvb_annarchy.interfaces.io import ANNarchyInputDeviceSet, ANNarchyOutputDeviceSet
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
@@ -69,16 +67,7 @@ class ANNarchySenderInterface(ANNarchyOutputInterface, SpikeNetSenderInterface):
 
     """ANNarchySenderInterface"""
 
-    def __call__(self):
-        return self.send(ANNarchyOutputInterface.get_proxy_data(self))
-
-
-class ANNarchyTransformerSenderInterface(ANNarchyOutputInterface, SpikeNetTransformerSenderInterface):
-    
-    """ANNarchyTransformerSenderInterface"""
-
-    def __call__(self):
-        return self.transform_send(ANNarchyOutputInterface.get_proxy_data(self))
+    pass
 
 
 class ANNarchyInputInterface(ANNarchyInterface, SpikeNetInputInterface):
@@ -103,13 +92,6 @@ class ANNarchyReceiverInterface(ANNarchyInputInterface, SpikeNetReceiverInterfac
     pass
 
 
-class ANNarchyReceiverTransformerInterface(ANNarchyInputInterface, SpikeNetReceiverTransformerInterface):
-
-    """ANNarchyReceiverTransformerInterface"""
-
-    pass
-
-
 class TVBtoANNarchyInterface(ANNarchyInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoANNarchyInterface class to get data from TVB, transform them,
@@ -125,8 +107,7 @@ class ANNarchyToTVBInterface(ANNarchyOutputInterface, SpikeNetToTVBInterface):
        and finally set them to TVB, all processes taking place in shared memory.
     """
 
-    def get_proxy_data(self):
-        return ANNarchyOutputInterface.get_proxy_data(self)
+    pass
 
 
 class ANNarchyInterfaces(HasTraits):
@@ -145,10 +126,7 @@ class ANNarchyInterfaces(HasTraits):
 
     @property
     def annarchy_network(self):
-        if len(self.interfaces):
-            return self.interfaces[0].spiking_network
-        else:
-            return None
+        return self.spiking_network
 
     @property
     def annarchy_instance(self):
@@ -158,29 +136,44 @@ class ANNarchyInterfaces(HasTraits):
             return None
 
 
-class ANNarchyOutputInterfaces(ANNarchyInterfaces, SpikeNetOutputRemoteInterfaces):
+class ANNarchyOutputInterfaces(SpikeNetOutputInterfaces, ANNarchyInterfaces):
 
-    """ANNarchyOutputInterfaces holding a list of ANNarchyOutputInterface instances"""
+    """ANNarchySenderInterfaces holding a list of ANNarchySenderInterface instances"""
 
-    pass
+    interfaces = List(of=ANNarchyOutputInterface)
 
 
-class ANNarchyInputInterfaces(ANNarchyInterfaces, SpikeNetInputRemoteInterfaces):
+class ANNarchyInputInterfaces(SpikeNetInputInterfaces, ANNarchyInterfaces):
 
     """ANNarchyInputInterfaces holding a list of ANNarchyInputInterface instances"""
 
-    pass
+    interfaces = List(of=ANNarchyInputInterface)
 
 
-class TVBtoANNarchyInterfaces(ANNarchyInputInterfaces, TVBOutputInterfaces):
+
+class ANNarchySenderInterfaces(SpikeNetSenderInterfaces, ANNarchyInterfaces):
+
+    """ANNarchySenderInterfaces holding a list of ANNarchySenderInterface instances"""
+
+    interfaces = List(of=ANNarchySenderInterface)
+
+
+class ANNarchyReceiverInterfaces(SpikeNetReceiverInterfaces, ANNarchyInterfaces):
+
+    """ANNarchyReceiverInterfaces holding a list of ANNarchyReceiverInterface instances"""
+
+    interfaces = List(of=ANNarchyReceiverInterface)
+
+
+class TVBtoANNarchyInterfaces(TVBOutputInterfaces, ANNarchyInputInterfaces):
 
     """TVBtoANNarchyInterfaces class holding a list of TVBtoANNarchyInterface instances"""
 
-    pass
+    interfaces = List(of=TVBtoANNarchyInterface)
 
 
-class ANNarchyToTVBInterfaces(ANNarchyOutputInterfaces, TVBInputInterfaces):
+class ANNarchyToTVBInterfaces(TVBReceiverInterfaces, ANNarchyOutputInterfaces):
 
     """ANNarchyToTVBInterfaces class holding a list of ANNarchyToTVBInterface instances"""
 
-    pass
+    interfaces = List(of=ANNarchyToTVBInterface)

@@ -532,7 +532,7 @@ iaf_cond_ww_deco::Buffers_::Buffers_( const Buffers_& b,
  * ---------------------------------------------------------------- */
 
 iaf_cond_ww_deco::iaf_cond_ww_deco()
-  : Archiving_Node()
+  : ArchivingNode()
   , P_()
   , S_( P_ )
   , B_( *this )
@@ -542,7 +542,7 @@ iaf_cond_ww_deco::iaf_cond_ww_deco()
 
 iaf_cond_ww_deco::iaf_cond_ww_deco(
   const iaf_cond_ww_deco& n )
-  : Archiving_Node( n )
+  : ArchivingNode( n )
   , P_( n.P_ )
   , S_( n.S_ )
   , B_( n.B_, *this )
@@ -587,7 +587,7 @@ iaf_cond_ww_deco::init_buffers_()
   B_.currents.clear(); // includes resize
   B_.spikesExc_ext.resize( P_.n_receptors() );
 
-  Archiving_Node::clear_history();
+  ArchivingNode::clear_history();
 
   B_.logger_.reset();
 
@@ -606,12 +606,12 @@ iaf_cond_ww_deco::init_buffers_()
       B_.c_, P_.gsl_error_tol, P_.gsl_error_tol, 0.0, 1.0 );
   }
 
-  // Stepping function and evolution function are allocated in calibrate()
+  // Stepping function and evolution function are allocated in pre_run_hook()
 
   B_.sys_.function = iaf_cond_ww_deco_dynamics;
   B_.sys_.jacobian = NULL;
   B_.sys_.params = reinterpret_cast< void* >( this );
-  // B_.sys_.dimension is assigned in calibrate()
+  // B_.sys_.dimension is assigned in pre_run_hook()
 
   B_.I_e = 0.0;
   B_.spikes_exc = 0.0;
@@ -621,7 +621,7 @@ iaf_cond_ww_deco::init_buffers_()
 }
 
 void
-iaf_cond_ww_deco::calibrate()
+iaf_cond_ww_deco::pre_run_hook()
 {
   // ensures initialization in case mm connected after Simulate
   B_.logger_.init();
@@ -691,7 +691,7 @@ iaf_cond_ww_deco::update( Time const& origin,
   const long to )
 {
   assert(
-    to >= 0 && ( delay ) from < kernel().connection_manager.get_min_delay() );
+    to >= 0 && from < kernel().connection_manager.get_min_delay() );
   assert( from < to );
   assert( State_::V_M == 0 );
 
@@ -873,7 +873,7 @@ iaf_cond_ww_deco::set_status( const DictionaryDatum& d )
   // write them back to (P_, S_) before we are also sure that
   // the properties to be set in the parent class are internally
   // consistent.
-  Archiving_Node::set_status( d );
+  ArchivingNode::set_status( d );
 
   /*
    * Here is where we must update the recordablesMap_ if new receptors

@@ -4,14 +4,11 @@ from abc import ABCMeta
 
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
-from tvb_multiscale.core.interfaces.tvb.interfaces import \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
-    SpikeNetToTVBModels
+from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels, \
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.interfaces.io import \
@@ -56,6 +53,10 @@ class NESTOutputInterface(NESTInterface, SpikeNetOutputInterface):
         return self.nest_instance.GetKernelStatus("biological_time")
 
     @property
+    def _time(self):
+        return self.nest_instance.GetKernelStatus("biological_time")
+
+    @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
 
@@ -64,15 +65,7 @@ class NESTSenderInterface(NESTOutputInterface, SpikeNetSenderInterface):
 
     """NESTSenderInterface"""
 
-    def __call__(self):
-        return self.send(NESTOutputInterface.get_proxy_data(self))
-
-
-class NESTTransformerSenderInterface(NESTOutputInterface, SpikeNetTransformerSenderInterface):
-    """NESTTransformerSenderInterface"""
-
-    def __call__(self):
-        return self.transform_send(NESTOutputInterface.get_proxy_data(self))
+    pass
 
 
 class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
@@ -91,13 +84,8 @@ class NESTInputInterface(NESTInterface, SpikeNetInputInterface):
 
 
 class NESTReceiverInterface(NESTInputInterface, SpikeNetReceiverInterface):
+
     """NESTReceiverInterface"""
-
-    pass
-
-
-class NESTReceiverTransformerInterface(NESTInputInterface, SpikeNetReceiverTransformerInterface):
-    """NESTReceiverTransformerInterface"""
 
     pass
 
@@ -116,9 +104,6 @@ class NESTtoTVBInterface(NESTOutputInterface, SpikeNetToTVBInterface):
     """NESTtoTVBInterface class to get data from NEST, transform them,
        and finally set them to TVB, all processes taking place in shared memmory.
     """
-
-    def get_proxy_data(self):
-        return NESTOutputInterface.get_proxy_data(self)
 
     pass
 
@@ -139,10 +124,7 @@ class NESTInterfaces(HasTraits):
 
     @property
     def nest_network(self):
-        if len(self.interfaces):
-            return self.interfaces[0].spiking_network
-        else:
-            return None
+        return self.spiking_network
 
     @property
     def nest_instance(self):
@@ -152,28 +134,42 @@ class NESTInterfaces(HasTraits):
             return None
 
 
-class NESTOutputInterfaces(SpikeNetOutputRemoteInterfaces, NESTInterfaces):
+class NESTOutputInterfaces(SpikeNetOutputInterfaces, NESTInterfaces):
 
-    """NESTOutputInterfaces holding a list of NESTOutputInterface instances"""
+    """NESTSenderInterfaces holding a list of NESTSenderInterface instances"""
 
-    pass
+    interfaces = List(of=NESTOutputInterface)
 
 
-class NESTInputInterfaces(SpikeNetInputRemoteInterfaces, NESTInterfaces):
+class NESTInputInterfaces(SpikeNetInputInterfaces, NESTInterfaces):
 
     """NESTInputInterfaces holding a list of NESTInputInterface instances"""
 
-    pass
+    interfaces = List(of=NESTInputInterface)
+
+
+class NESTSenderInterfaces(SpikeNetSenderInterfaces, NESTInterfaces):
+
+    """NESTSenderInterfaces holding a list of NESTSenderInterface instances"""
+
+    interfaces = List(of=NESTSenderInterface)
+
+
+class NESTReceiverInterfaces(SpikeNetReceiverInterfaces, NESTInterfaces):
+
+    """NESTReceiverInterfaces holding a list of NESTReceiverInterface instances"""
+
+    interfaces = List(of=NESTReceiverInterface)
 
 
 class TVBtoNESTInterfaces(TVBOutputInterfaces, NESTInputInterfaces):
 
     """TVBtoNESTInterfaces class holding a list of TVBtoNESTInterface instances"""
 
-    pass
+    interfaces = List(of=TVBtoNESTInterface)
 
 
-class NESTtoTVBInterfaces(TVBInputInterfaces, NESTOutputInterfaces):
+class NESTtoTVBInterfaces(TVBReceiverInterfaces, NESTOutputInterfaces):
     """NESTtoTVBInterfaces class holding a list of NESTtoTVBInterface instances"""
 
-    pass
+    interfaces = List(of=NESTtoTVBInterface)

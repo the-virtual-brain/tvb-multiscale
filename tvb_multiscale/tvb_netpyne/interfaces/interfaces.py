@@ -3,14 +3,11 @@ from abc import ABCMeta
 from tvb.basic.neotraits.api import HasTraits, Attr, List
 
 from tvb_multiscale.core.interfaces.tvb.interfaces import \
-    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBInputInterfaces, TVBtoSpikeNetModels, \
+    TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputRemoteInterfaces, SpikeNetInputRemoteInterfaces,\
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface
-
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneInputDeviceSet, NetpyneOutputDeviceSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
@@ -62,6 +59,14 @@ class NetpyneOutputInterface(NetpyneInterface, SpikeNetOutputInterface):
         return self._get_proxy_gids(self.proxy.source)
 
 
+
+class NetpyneSenderInterface(NetpyneOutputInterface, SpikeNetSenderInterface):
+
+    """NetpyneSenderInterface"""
+
+    pass
+
+
 class NetpyneInputInterface(NetpyneInterface, SpikeNetInputInterface):
 
     """NetpyneInputInterface base class for interfaces receiving data to NetPyNE."""
@@ -77,10 +82,18 @@ class NetpyneInputInterface(NetpyneInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
+class NetpyneReceiverInterface(NetpyneInputInterface, SpikeNetReceiverInterface):
+
+    """NetpyneReceiverInterface"""
+
+    pass
+
+
+
 class TVBtoNetpyneInterface(NetpyneInputInterface, TVBtoSpikeNetInterface):
 
     """TVBtoNetpyneInterface class to get data from TVB, transform them,
-       and finally set them to NetPyNE, all processes taking place in shared memmory.
+       and finally set them to NetPyNE, all processes taking place in shared memory.
     """
 
     pass
@@ -89,8 +102,76 @@ class TVBtoNetpyneInterface(NetpyneInputInterface, TVBtoSpikeNetInterface):
 class NetpyneToTVBInterface(NetpyneOutputInterface, SpikeNetToTVBInterface):
 
     """NetpyneToTVBInterface class to get data from NetPyNE, transform them,
-       and finally set them to TVB, all processes taking place in shared memmory.
+       and finally set them to TVB, all processes taking place in shared memory.
     """
 
-    def get_proxy_data(self):
-        return NetpyneOutputInterface.get_proxy_data(self)
+    pass
+
+
+class NetpyneInterfaces(HasTraits):
+
+    """NetpyneInterfaces class holding a list of NetpyneInterface instances"""
+
+    interfaces = List(of=NetpyneInterface)
+
+    @property
+    def proxy_gids(self):
+        # TODO: implement this one
+        raise NotImplementedError
+
+    @property
+    def number_of_proxy_gids(self):
+        return self.proxy_gids.shape[0]
+
+    @property
+    def netpyne_network(self):
+        return self.spiking_network
+
+    @property
+    def netpyne_instance(self):
+        if len(self.interfaces):
+            return self.interfaces[0].netpyne_instance
+        else:
+            return None
+        
+        
+class NetpyneOutputInterfaces(SpikeNetOutputInterfaces, NetpyneInterfaces):
+
+    """NetpyneSenderInterfaces holding a list of NetpyneSenderInterface instances"""
+
+    interfaces = List(of=NetpyneOutputInterface)
+
+
+class NetpyneInputInterfaces(SpikeNetInputInterfaces, NetpyneInterfaces):
+
+    """NetpyneInputInterfaces holding a list of NetpyneInputInterface instances"""
+
+    interfaces = List(of=NetpyneInputInterface)
+
+
+class NetpyneSenderInterfaces(SpikeNetSenderInterfaces, NetpyneInterfaces):
+
+    """NetpyneSenderInterfaces holding a list of NetpyneSenderInterface instances"""
+
+    interfaces = List(of=NetpyneSenderInterface)
+
+
+class NetpyneReceiverInterfaces(SpikeNetReceiverInterfaces, NetpyneInterfaces):
+
+    """NetpyneReceiverInterfaces holding a list of NetpyneReceiverInterface instances"""
+
+    interfaces = List(of=NetpyneReceiverInterface)
+
+
+
+class TVBtoNetpyneInterfaces(TVBOutputInterfaces, NetpyneInputInterfaces):
+
+    """TVBtoNetpyneInterfaces class holding a list of TVBtoNetpyneInterface instances"""
+
+    interfaces = List(of=TVBtoNetpyneInterface)
+
+
+class NetpyneToTVBInterfaces(TVBReceiverInterfaces, NetpyneOutputInterfaces):
+    """NetpyneToTVBInterfaces class holding a list of NetpynetoTVBInterface instances"""
+
+    interfaces = List(of=NetpyneToTVBInterface)

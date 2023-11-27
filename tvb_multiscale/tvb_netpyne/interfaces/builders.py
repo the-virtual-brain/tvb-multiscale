@@ -7,14 +7,18 @@ from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
-    SpikeNetRemoteInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     NetpyneOutputInterface, NetpyneInputInterface, \
-    TVBtoNetpyneInterface, NetpyneToTVBInterface
+    NetpyneSenderInterface, NetpyneReceiverInterface, \
+    TVBtoNetpyneInterface, NetpyneToTVBInterface, \
+    NetpyneOutputInterfaces, NetpyneInputInterfaces, \
+    NetpyneSenderInterfaces, NetpyneReceiverInterfaces, \
+    TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
     NetpynePoissonGeneratorSet
@@ -36,12 +40,12 @@ class NetpyneOutputProxyModels(Enum):
     SPIKES_MEAN = NetpyneSpikeRecorderTotalSet
 
 
-class DefaultTVBtoNetpyneModels(Enum):
+class DefaultTVBtoNetpyneProxyModels(object):
     RATE = NetpyneInputProxyModels.RATE.name
     SPIKES = None
 
 
-class DefaultNetpyneToTVBModels(Enum):
+class DefaultNetpyneToTVBProxyModels(object):
     SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
 
 
@@ -99,14 +103,17 @@ class NetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, SpikeNetInterfaceBuilder
     _tvb_to_spikeNet_models = TVBtoNetpyneModels
     _spikeNet_to_tvb_models = NetpyneToTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNetpyneModels
-    _default_spikeNet_to_tvb_models = DefaultNetpyneToTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNetpyneProxyModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNetpyneToTVBProxyModels
 
     _input_proxy_models = NetpyneInputProxyModels
     _output_proxy_models = NetpyneOutputProxyModels
 
     _output_interface_type = NetpyneOutputInterface
     _input_interface_type = NetpyneInputInterface
+
+    _output_interfaces_type = NetpyneOutputInterfaces
+    _input_interfaces_type = NetpyneInputInterfaces
 
     config = Attr(
         label="Configuration",
@@ -127,19 +134,22 @@ class NetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, SpikeNetInterfaceBuilder
     def _get_tvb_delays(self):
         return np.maximum(self.spiking_dt,
                           SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
-
-
+        
+        
 class NetpyneRemoteInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
 
     """NetpyneRemoteInterfaceBuilder class"""
 
-    # _output_interface_type = NESTSenderInterface
-    # _input_interface_type = NESTReceiverInterface
+    _output_interface_type = NetpyneSenderInterface
+    _input_interface_type = NetpyneReceiverInterface
 
+    _output_interfaces_type = NetpyneSenderInterfaces
+    _input_interfaces_type = NetpyneReceiverInterfaces
+    
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
-
-
+        
+        
 class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceBuilder):
 
     """TVBNetpyneInterfaceBuilder class"""
@@ -147,8 +157,8 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
     _tvb_to_spikeNet_models = TVBtoNetpyneModels
     _spikeNet_to_TVB_models = NetpyneToTVBModels
 
-    _default_spikeNet_to_tvb_models = DefaultNetpyneToTVBModels
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNetpyneModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNetpyneToTVBProxyModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNetpyneProxyModels
 
     _input_proxy_models = NetpyneOutputProxyModels  # Input to SpikeNet is output of TVB
     _output_proxy_models = NetpyneInputProxyModels  # Output of SpikeNet is input to TVB
@@ -156,14 +166,19 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
     _output_interface_type = TVBtoNetpyneInterface
     _input_interface_type = NetpyneToTVBInterface
 
+    _output_interfaces_type = TVBtoNetpyneInterfaces
+    _input_interfaces_type = NetpyneToTVBInterfaces
+
     def _get_tvb_delays(self):
         return (np.maximum(1,
                            np.rint((TVBSpikeNetInterfaceBuilder._get_tvb_delays(self)
-                                    - self.synchronization_time + self.spiking_dt)/self.spiking_dt).astype("i")
+                                    - self.tvb_min_delay + self.spiking_dt)/self.spiking_dt).astype("i")
                            ) * self.spiking_dt).astype("float32")
 
     def build(self):
-        # NetPyNE model is built in two steps. First need to create declarative-style specification for both spiking network itself and TVB-Netpyne proxy devides (interfaces):
+        # NetPyNE model is built in two steps.
+        # First need to create declarative-style specification for both spiking network itself
+        # and TVB-Netpyne proxy devides (interfaces):
         result = super(TVBNetpyneInterfaceBuilder, self).build()
         # once done, network can be instantiated based on the specification:
         self.netpyne_instance.createNetwork()

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from abc import abstractmethod
 import numpy as np
 
@@ -13,31 +15,32 @@ from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
 
-LOG = initialize_logger(__name__)
-
-
 class NetpyneNetworkBuilder(SpikingNetworkBuilder):
 
     config = CONFIGURED
     _spiking_simulator_name = "netpyne_instance"
-    modules_to_install = []
+    modules_to_install = list()
     _spiking_brain = NetpyneBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
         # Beware: this method can be called multiple times (first - when creating default object)
-        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                    config, logger)
+        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                    spiking_simulator, self.config, logger)
+
         self._spiking_brain = NetpyneBrain()
+        self.modules_to_install = list()
 
     @property
     def netpyne_instance(self):
         return self.spiking_simulator
 
     def configure(self, netParams, simConfig, autoCreateSpikingNodes=True):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
+        if self.netpyne_instance is None:
+            self.spiking_simulator = load_netpyne(self.config)
 
         if self.netpyne_instance is None:
             self.spiking_simulator = load_netpyne(self.config)
@@ -50,7 +53,7 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     def proxy_node_synaptic_model_funcs(self):
         pass
 
-    def set_synapse(self, syn_model, weight, delay, receptor_type, params={}):
+    def set_synapse(self, syn_model, weight, delay, receptor_type, params=dict()):
         """Method to set the synaptic model, the weight, the delay,
            the synaptic receptor type, and other possible synapse parameters
            to a synapse_params dictionary.
@@ -111,7 +114,9 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
             prob = 1.0
         else:
             prob = rule["prob"]
-        self.netpyne_instance.interconnectSpikingPopulations(src, trg, syn_spec["receptor_type"], syn_spec["weight"], syn_spec["delay"], prob)
+        self.netpyne_instance.interconnectSpikingPopulations(src, trg,
+                                                             syn_spec["receptor_type"], syn_spec["weight"],
+                                                             syn_spec["delay"], prob)
 
     def build_spiking_region_node(self, label="", input_node=None, *args, **kwargs):
         """This methods builds a NetpyneRegionNode instance,
@@ -139,4 +144,5 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     def build_spiking_network(self):
         """A method to build the final NetpyneNetwork class based on the already created constituents."""
         return NetpyneNetwork(self.netpyne_instance, brain_regions=self._spiking_brain,
-                              output_devices=self._output_devices, input_devices=self._input_devices, config=self.config)
+                              output_devices=self._output_devices, input_devices=self._input_devices,
+                              config=self.config)

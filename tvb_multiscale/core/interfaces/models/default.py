@@ -8,12 +8,8 @@ from tvb.basic.neotraits._attr import Attr, Int
 
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.builders import \
-    TVBRemoteInterfaceBuilder, TVBSpikeNetInterfaceBuilder, \
-    TVBTransfomerInterfaceBuilder, TVBOutputTransformerInterfaceBuilder, TVBInputTransformerInterfaceBuilder, \
-    TVBInterfaceBuilder
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder,  \
-    SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder, \
-    SpikeNetOutputTransformerInterfaceBuilder, SpikeNetInputTransformerInterfaceBuilder, SpikeNetInterfaceBuilder
+    TVBInterfaceBuilder, TVBSpikeNetInterfaceBuilder, TVBRemoteInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels
 
 
@@ -92,6 +88,10 @@ class DefaultTVBInterfaceBuilder(TVBInterfaceBuilder, DefaultInterfaceBuilder):
         self._get_input_interfaces()["voi"] = "R"
 
 
+class DefaultTVBRemoteInterfaceBuilder(TVBRemoteInterfaceBuilder, DefaultTVBInterfaceBuilder):
+    pass
+
+
 class DefaultTVBtoSpikeNetTransformerBuilder(DefaultInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
 
@@ -114,42 +114,6 @@ class DefaultSpikeNetToTVBTransformerBuilder(DefaultInterfaceBuilder, ABC):
     def default_spikeNet_to_tvb_config(self, interfaces):
         for interface in interfaces:
             interface["transformer_params"] = {"scale_factor": np.array([1.0]) / self.N_E}
-
-
-class DefaultTVBRemoteInterfaceBuilder(TVBRemoteInterfaceBuilder, DefaultTVBInterfaceBuilder):
-    pass
-
-
-class DefaultTVBOutputTransformerInterfaceBuilder(TVBOutputTransformerInterfaceBuilder,
-                                                  DefaultTVBtoSpikeNetTransformerBuilder,
-                                                  DefaultTVBInterfaceBuilder):
-
-    def default_output_config(self):
-        DefaultTVBInterfaceBuilder.default_output_config(self)
-        DefaultTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.output_interfaces)
-
-
-class DefaultTVBInputTransformerInterfaceBuilder(TVBInputTransformerInterfaceBuilder,
-                                                 DefaultSpikeNetToTVBTransformerBuilder,
-                                                 DefaultTVBInterfaceBuilder):
-
-    def default_input_config(self):
-        DefaultTVBInterfaceBuilder.default_input_config(self)
-        DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.input_interfaces)
-
-
-class DefaultTVBTransfomerInterfaceBuilder(TVBTransfomerInterfaceBuilder,
-                                           DefaultTVBtoSpikeNetTransformerBuilder,
-                                           DefaultSpikeNetToTVBTransformerBuilder,
-                                           DefaultTVBInterfaceBuilder):
-
-    def default_output_config(self):
-        DefaultTVBInterfaceBuilder.default_output_config(self)
-        DefaultTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.output_interfaces)
-
-    def default_input_config(self):
-        DefaultTVBInterfaceBuilder.default_input_config(self)
-        DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.input_interfaces)
 
 
 class DefaultSpikeNetProxyNodesBuilder(SpikeNetProxyNodesBuilder, ABC):
@@ -201,47 +165,6 @@ class DefaultSpikeNetInterfaceBuilder(SpikeNetInterfaceBuilder,
         assert self.model in (TVBtoSpikeNetModels.RATE.name, TVBtoSpikeNetModels.SPIKES.name)
         self._get_input_interfaces(0)["populations"] = "E"
         DefaultSpikeNetProxyNodesBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
-
-
-class DefaultSpikeNetRemoteInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, DefaultSpikeNetInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    pass
-
-
-class DefaultSpikeNetOutputTransformerInterfaceBuilder(SpikeNetOutputTransformerInterfaceBuilder,
-                                                       DefaultSpikeNetInterfaceBuilder,
-                                                       DefaultSpikeNetToTVBTransformerBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        DefaultSpikeNetInterfaceBuilder.default_input_config(self)
-        DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-
-class DefaultSpikeNetInputTransformerInterfaceBuilder(SpikeNetInputTransformerInterfaceBuilder,
-                                                      DefaultSpikeNetInterfaceBuilder,
-                                                      DefaultTVBtoSpikeNetTransformerBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_input_config(self):
-        DefaultSpikeNetInterfaceBuilder.default_input_config(self)
-        DefaultTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
-
-
-class DefaultSpikeNetTransformerInterfaceBuilder(SpikeNetTransformerInterfaceBuilder,
-                                                 DefaultSpikeNetToTVBTransformerBuilder,
-                                                 DefaultTVBtoSpikeNetTransformerBuilder,
-                                                 DefaultSpikeNetInterfaceBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    def default_output_config(self):
-        DefaultSpikeNetInterfaceBuilder.default_input_config(self)
-        DefaultSpikeNetToTVBTransformerBuilder.default_spikeNet_to_tvb_config(self, self.output_interfaces)
-
-    def default_input_config(self):
-        DefaultSpikeNetInterfaceBuilder.default_input_config(self)
-        DefaultTVBtoSpikeNetTransformerBuilder.default_tvb_to_spikeNet_config(self, self.input_interfaces)
 
 
 class DefaultTVBSpikeNetInterfaceBuilder(TVBSpikeNetInterfaceBuilder,

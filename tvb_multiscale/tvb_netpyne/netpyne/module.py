@@ -2,15 +2,19 @@ import numpy as np
 
 from netpyne import specs, sim
 from netpyne.sim import *
+from netpyne import __version__ as __netpyne_version__
 from copy import deepcopy
+
+from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath
 
 
 class NetpyneModule(object):
 
-    spikeGenerators = []
-    _readyToRun = False
-    
+    __netpyne_version__ = __netpyne_version__
+
     def __init__(self):
+        self._readyToRun = False
+        self.spikeGenerators = []
         self._autoCreatedPops = []
         self._spikeGeneratorPops = []
         self._spikeGeneratorsToRecord = []
@@ -24,21 +28,25 @@ class NetpyneModule(object):
         try:
             h.DynamicVecStim()
         except:
-            import sys, os
+            import sys, os, platform
             currDir = os.getcwd()
-
-            python_path = sys.executable.split("python")[0]
-            tvb_multiscale_path = os.path.abspath(__file__).split("tvb_multiscale")[0]
+            tvb_netpyne_path = get_tvb_netpyne_path_from_abs_filepath(os.path.abspath(__file__))
             # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
-            os.chdir(f'{tvb_multiscale_path}/tvb_multiscale/tvb_netpyne/netpyne/mod')
-            if not os.path.exists('x86_64'):
+            os.chdir(os.path.join(tvb_netpyne_path, "netpyne", "mod"))
+            if not os.path.exists(platform.machine()):
                 print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
-                os.system(f'{python_path}nrnivmodl .')
+                if os.system('which nrnivmodl') == 0:
+                    # mod compiler found
+                    os.system(f'nrnivmodl .')
+                else:
+                    # mod compiler not found, trying to infer..
+                    python_path = 'python'.join(sys.executable.split('python')[:-1]) # keep what's before the last occurance of "python"
+                    assert os.path.exists(python_path), 'Fatal: nrnivmodl not found, unable to compile required mod-files.'
+                    os.system(f'{python_path}nrnivmodl .')
             else:
                 print(f"NetPyNE will load mod-files from {os.getcwd()}.")
             import neuron
             neuron.load_mechanisms('.')
-
             os.chdir(currDir)
 
     def importModel(self, netParams, simConfig, dt, config):
@@ -72,13 +80,18 @@ class NetpyneModule(object):
 
     @property
     def minDelay(self):
-        return self.dt
+        return self.dt + 1e-9 # must be strictly greater than dt to be used with parallel context
 
     @property
     def time(self):
         return h.t
 
     def createNetwork(self):
+
+        # clean up any data that might remain from previous simulations
+        if hasattr(sim, 'net'):
+            sim.clearAll()
+
         sim.initialize(self.netParams, self.simConfig)
         self._netParams = None
         self._simConfig = None
@@ -88,6 +101,16 @@ class NetpyneModule(object):
         sim.net.connectCells()
         sim.net.addStims()
         sim.net.addRxD()
+
+        # cache some data
+        self.__popCellGids = {}
+        for popLabel in sim.net.pops:
+            gidsOnThisNode = sim.net.pops[popLabel].cellGids
+            firstCellGid = int(sim.pc.allreduce(gidsOnThisNode[0], 3)) # 3 means: find min value across all nodes
+            lastCellGid = int(sim.pc.allreduce(gidsOnThisNode[-1], 2)) # 2 means: find max value across all nodes
+
+            allGids = list(range(firstCellGid, lastCellGid+1))
+            self.__popCellGids[popLabel] = allGids
 
     def prepareSimulation(self, duration):
 
@@ -103,7 +126,7 @@ class NetpyneModule(object):
             rnd = np.random.RandomState(0)
             def includeFor(pop):
                 popSize = len(sim.net.pops[pop].cellGids)
-                chosen = (pop, rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
+                chosen = (pop, [0]) # rnd.choice(popSize, size=min(n, popSize), replace=False).tolist())
                 return chosen
             include = list(map(includeFor, self._autoCreatedPops))
             simConfig.analysis['plotTraces'] = {'include': include, 'saveFig': True}
@@ -130,7 +153,6 @@ class NetpyneModule(object):
             self.nextIntervalFuncCall = None
 
         self._readyToRun = True
-
 
     def connectStimuli(self, sourcePop, targetPop, weight, delay, receptorType, prob=None):
         # TODO: randomize weight and delay, if values do not already contain sting func
@@ -202,11 +224,18 @@ class NetpyneModule(object):
 
     def getSpikes(self, generatedBy=None, startingFrom=None):
 
-        if not 'spkid' in sim.simData:
+        if hasattr(sim, 'allSimData'):
+            # gathered from nodes
+            simData = sim.allSimData
+        else:
+            # applies in case of single-node simulation
+            simData = sim.simData
+
+        if not 'spkid' in simData:
             return [], []
 
-        spktimes = np.array(sim.simData['spkt'])
-        spkgids = np.array(sim.simData['spkid'])
+        spktimes = np.array(simData['spkt'])
+        spkgids = np.array(simData['spkid'])
 
         if startingFrom is not None:
             inds = np.nonzero(spktimes > startingFrom) # filtered by time # (self.time - timeWind)
@@ -222,7 +251,7 @@ class NetpyneModule(object):
         return spktimes, spkgids
 
     def getRecordedTime(self):
-        return np.array(sim.simData['t'])
+        return np.array(sim.allSimData['t'])
 
     def getTraces(self, key, neuronIds, timeSlice=slice(None)):
         time = self.getRecordedTime()[timeSlice]
@@ -234,7 +263,7 @@ class NetpyneModule(object):
         return data
 
     def cellGidsForPop(self, popLabel):
-        return sim.net.pops[popLabel].cellGids
+        return self.__popCellGids[popLabel]
 
     def neuronsConnectedWith(self, targetPop):
         gids = []
@@ -278,10 +307,19 @@ class NetpyneModule(object):
             device.spikesPerNeuron = {} # clear to prepare for next interval run
 
         intervalEnd = h.t + length
+
+        if sim.pc.nhost() > 1:
+            # broadcast spike times from 0 (root) to all nodes
+            allNeuronsSpikes = sim.pc.py_broadcast(allNeuronsSpikes, 0)
+
+            # keep only spikes of neurons from this host
+            allNeurons = [gid for gid in allNeurons if gid in sim.net.gid2lid]
+
         for gid in allNeurons:
             spikes = allNeuronsSpikes.get(gid, [])
+            lid = sim.net.gid2lid[gid]
             spikes = h.Vector(spikes)
-            sim.net.cells[gid].hPointp.play(spikes, intervalEnd)
+            sim.net.cells[lid].hPointp.play(spikes, intervalEnd)
 
     def finalize(self):
         if self.time < sim.cfg.duration:
@@ -291,3 +329,22 @@ class NetpyneModule(object):
         sim.run.postRun(stopTime)
         sim.gatherData()
         sim.analyze()
+
+    # parallel simulation
+
+    def isRootNode(self):
+        return sim.rank == 0
+
+    def gatherFromNodes(self, gatherSimData=True, additionalData=None):
+        if sim.nhosts == 1:
+            return additionalData
+
+        if gatherSimData:
+            sim.gatherData(gatherLFP=False, gatherDipole=False, gatherOnlySimData=True, includeSimDataEntries=['spkt', 'spkid'], analyze=False)
+
+        if additionalData:
+            dataVec = h.Vector(additionalData)
+            sim.pc.broadcast(dataVec, 0) # broadcast from node 0 which is root
+            additionalData = dataVec.to_python()
+
+        return additionalData

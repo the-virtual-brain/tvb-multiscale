@@ -40,7 +40,7 @@ class SpikesPlotter(BasePlotter):
             self.ylims = [self.min_n_neurons, self.max_n_neurons]
             # We want n_y_ticks points of n_y_ticks-1 equal steps:
             n_y_ticks = int(kwargs.get('n_y_ticks', 11))
-            neurons_step = np.int(np.ceil(np.maximum(1.0 * (self.max_n_neurons - self.min_n_neurons) /
+            neurons_step = int(np.ceil(np.maximum(1.0 * (self.max_n_neurons - self.min_n_neurons) /
                                                      (n_y_ticks - 1), 1.0)))
             if neurons_step == 1.0:  # This is the case of no or very few neurons...
                 n_y_ticks = 11

@@ -1,13 +1,21 @@
-from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
-from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
-from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_templates import random_normal_weight, random_normal_tvb_weight, random_uniform_tvb_delay
+# -*- coding: utf-8 -*-
+
 from collections import OrderedDict
 import numpy as np
+
+from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
+
+from tvb_multiscale.tvb_netpyne.config import CONFIGURED
+from tvb_multiscale.tvb_netpyne.netpyne_models.builders.base import NetpyneNetworkBuilder
+from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_templates import \
+    random_normal_weight, random_normal_tvb_weight, random_uniform_tvb_delay
 
 
 class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
         super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
                                                       spiking_simulator=spiking_simulator, config=config, logger=logger)
 
@@ -37,7 +45,7 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
         netParams.synMechParams[self.receptor_type_E] = {'mod': 'Exp2Syn', 'tau1': 0.8, 'tau2': 5.3, 'e': 0}  # NMDA
         netParams.synMechParams[self.receptor_type_I] = {'mod': 'Exp2Syn', 'tau1': 0.6, 'tau2': 8.5, 'e': -75}  # GABA
 
-        PYRcell = {'secs': {}}
+        PYRcell = {'secs': dict()}
         PYRcell['secs']['soma'] = {'geom': {}, 'mechs': {}}  # soma params dict
         PYRcell['secs']['soma']['geom'] = {'diam': 18.8, 'L': 18.8, 'Ra': 123.0}  # soma geometry
         PYRcell['secs']['soma']['mechs']['hh'] = {'gnabar': 0.12, 'gkbar': 0.036, 'gl': 0.003, 'el': -70}  # soma hh mechanism
@@ -92,7 +100,8 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
     def set_EE_populations_connections(self):
         connections = \
             {"source": "E", "target": "E",
-            #  "synapse_model": self.default_populations_connection["synapse_model"], # TODO: here and below, is this needed or `receptor_type` below is just enough?
+            #  "synapse_model": self.default_populations_connection["synapse_model"],
+             # TODO: here and below, is this needed or `receptor_type` below is just enough?
              "conn_spec": self.conn_spec_prob_low,
              "weight": self.weight_fun_ee,
              "delay": self.delay,
@@ -159,7 +168,8 @@ class DefaultExcIOInhIBuilder(NetpyneNetworkBuilder):
             self.nodes_connections.append({
                 "source": "E", "target": "I",
                 "conn_spec": self.conn_spec_prob_low,
-                # using lamda to scale connectivity weights (or alternatively, it can be used to downscale connection probability in 'conn_spec' above):
+                # using lamda to scale connectivity weights (or alternatively,
+                # it can be used to downscale connection probability in 'conn_spec' above):
                 "weight": lambda source_node, target_node: self.tvb_weight_fun(source_node, target_node, self.lamda),
                 "delay": self.tvb_delay_fun,
                 # Each region emits spikes in its own port:

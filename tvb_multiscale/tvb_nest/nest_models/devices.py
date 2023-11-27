@@ -30,8 +30,9 @@ class NESTDevice(_NESTNodeCollection):
 
     """NESTDevice class to wrap around a NEST output (recording) or input (stimulating) device"""
 
-    device = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
-                  label="NEST device ", doc="""Device NodeCollection instance""")
+
+    # device = Attr(field_type=NodeCollection, default=NodeCollection(), required=False,
+    #               label="NEST device ", doc="""Device NodeCollection instance""")
 
     def __init__(self, device=NodeCollection(), nest_instance=None, **kwargs):
         self.device = device
