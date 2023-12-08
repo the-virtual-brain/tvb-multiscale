@@ -265,11 +265,9 @@ class SpikeNetProxyNodesBuilder(HasTraits):
             label = str(interface["voi_labels"]) + label
         _interface["connections"] = {label: interface["populations"]}
         # Generate the devices => "proxy TVB nodes":
-        interface["proxy"] = \
-            interface["proxy"](
-                label=label, dt=self.dt,
-                target=self._build_and_connect_input_devices(_interface,
-                                                             devices=self.spiking_network.input_proxies)[-1])
+        ProxyClass = interface["proxy"]
+        devices = self._build_and_connect_input_devices(_interface, devices=self.spiking_network.input_proxies)
+        interface["proxy"] = ProxyClass(label=label, dt=self.dt, target=devices[-1])
         return interface
 
     def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface):

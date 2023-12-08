@@ -487,9 +487,10 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         if cosimulation and self.output_interfaces and self.n_tvb_steps_ran_since_last_synch > 0:
             if self.output_interfaces.number_of_interfaces:
                 # Send the data to the other cosimulator
-                outputs = \
-                    self.output_interfaces(self.loop_cosim_monitor_output(self.n_tvb_steps_ran_since_last_synch,
-                                                                          self.relative_output_interfaces_time_steps))
+                tvb_outputs = self.loop_cosim_monitor_output(
+                    self.n_tvb_steps_ran_since_last_synch,
+                    self.relative_output_interfaces_time_steps)
+                outputs = self.output_interfaces(tvb_outputs)
         return outputs
 
     def run_for_synchronization_time(self, ts, xs, wall_time_start, cosim_updates=None, cosimulation=True, **kwds):

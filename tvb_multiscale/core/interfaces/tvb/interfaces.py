@@ -418,9 +418,10 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         outputs = []
         for ii, interface in enumerate(self.interfaces):
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-            outputs.append(interface([self._compute_interface_times(interface, data),
-                           data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0],
-                           ii]))
+            times = self._compute_interface_times(interface, data)
+            values = data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]
+            output = interface([times, values, ii])
+            outputs.append(output)
         return outputs
 
     def info(self, recursive=0):
