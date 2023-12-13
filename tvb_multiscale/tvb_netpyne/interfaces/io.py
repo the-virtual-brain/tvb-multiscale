@@ -37,10 +37,6 @@ class NetpyneInputDeviceSet(SpikeNetInputDeviceSet):
     def send(self, data):
         pass
 
-    def transform_time(self, time):
-        return np.maximum(self.next_spiking_time_step,
-                          SpikeNetInputDeviceSet.transform_time(self, time) + self.spiking_dt)
-
 
 class NetpynePoissonGeneratorSet(NetpyneInputDeviceSet):
 
