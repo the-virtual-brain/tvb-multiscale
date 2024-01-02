@@ -2,12 +2,12 @@
 
 from copy import copy, deepcopy
 import numpy as np
-from xarray import DataArray
-
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
 
 from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter
 from tvb_multiscale.tvb_netpyne.netpyne.utils import generateSpikesForPopulation
+from xarray import DataArray
+from copy import copy, deepcopy
 
 
 class NetpyneDevice(HasTraits):
