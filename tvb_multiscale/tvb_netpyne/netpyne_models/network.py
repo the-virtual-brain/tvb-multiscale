@@ -6,7 +6,6 @@ from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
     NetpyneOutputSpikeDeviceDict, NetpyneOutputContinuousTimeDeviceDict
 
-
 class NetpyneNetwork(SpikingNetwork):
 
     """
