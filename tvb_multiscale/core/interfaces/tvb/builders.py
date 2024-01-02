@@ -638,15 +638,15 @@ class TVBSpikeNetInterfaceBuilder(TVBInterfaceBuilder, SpikeNetProxyNodesBuilder
             self._get_spiking_proxy_inds_for_output_interface(interface, self.exclusive_nodes))
 
     def _get_spikeNet_input_interface_arguments(self, interface, ii=0):
-        return self._build_tvb_to_spikeNet_interface_proxy_nodes(
-            self._get_spiking_proxy_inds_for_input_interface(
-                self._get_spikeNet_interface_arguments(interface, ii), self.exclusive_nodes))
+        interface = self._get_spikeNet_interface_arguments(interface, ii)
+        interface = self._get_spiking_proxy_inds_for_input_interface(interface, self.exclusive_nodes)
+        return self._build_tvb_to_spikeNet_interface_proxy_nodes(interface)
 
     # !!! Always go first through the TVB related interfaces, and then through the Spiking Network ones!!!!
     def _get_output_interface_arguments(self, interface, ii=0):
-        return self._get_spikeNet_input_interface_arguments(
-            TVBInterfaceBuilder._get_output_interface_arguments(self, interface, ii), ii)
+        interface = TVBInterfaceBuilder._get_output_interface_arguments(self, interface, ii)
+        return self._get_spikeNet_input_interface_arguments(interface, ii)
 
     def _get_input_interface_arguments(self, interface, ii=0):
-        return self._get_spikeNet_output_interface_arguments(
-            TVBInterfaceBuilder._get_input_interface_arguments(self, interface, ii), ii)
+        interface = TVBInterfaceBuilder._get_input_interface_arguments(self, interface, ii)
+        return self._get_spikeNet_output_interface_arguments(interface, ii)
