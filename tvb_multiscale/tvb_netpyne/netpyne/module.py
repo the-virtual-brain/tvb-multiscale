@@ -24,30 +24,37 @@ class NetpyneModule(object):
         self._compileOrLoadMod()
 
     def _compileOrLoadMod(self):
-        # Make sure that all required mod-files are compiled (is there a better way to check?)
+        # Make sure that all required mod-files are compiled
         try:
             h.DynamicVecStim()
         except:
             import sys, os, platform
-            currDir = os.getcwd()
             tvb_netpyne_path = get_tvb_netpyne_path_from_abs_filepath(os.path.abspath(__file__))
-            # before compiling, need to cd to where those specific mod files live, to avoid erasing any other dll's that might contain other previously compiled model
-            os.chdir(os.path.join(tvb_netpyne_path, "netpyne", "mod"))
-            if not os.path.exists(platform.machine()):
+
+            # requried models are compiled to separate dir to avoid potential conflicts with the user-defined models
+            tmp_dir = f'default_{platform.machine()}'
+
+            mod_path = os.path.join(tvb_netpyne_path, "netpyne", "mod")
+            if not os.path.exists(tmp_dir):
                 print("NetPyNE couldn't find necessary mod-files. Trying to compile..")
+
+                os.mkdir(tmp_dir)
+                origDir = os.getcwd()
+                os.chdir(tmp_dir)
+
                 if os.system('which nrnivmodl') == 0:
                     # mod compiler found
-                    os.system(f'nrnivmodl .')
+                    os.system(f'nrnivmodl {mod_path}')
                 else:
                     # mod compiler not found, trying to infer..
                     python_path = 'python'.join(sys.executable.split('python')[:-1]) # keep what's before the last occurance of "python"
                     assert os.path.exists(python_path), 'Fatal: nrnivmodl not found, unable to compile required mod-files.'
-                    os.system(f'{python_path}nrnivmodl .')
-            else:
-                print(f"NetPyNE will load mod-files from {os.getcwd()}.")
+                    os.system(f'{python_path}nrnivmodl {mod_path}')
+                os.chdir(origDir)
+
+            print(f"NetPyNE will load mod-files from {os.path.abspath(tmp_dir)}.")
             import neuron
-            neuron.load_mechanisms('.')
-            os.chdir(currDir)
+            neuron.load_mechanisms(tmp_dir)
 
     def importModel(self, netParams, simConfig, dt, config):
 
