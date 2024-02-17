@@ -21,30 +21,28 @@ from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 
+def find_root_dir():
+    script_path = os.path.abspath(__file__)
+    dir_path = os.path.split(script_path)[0] # drop file name
+    # We assume that the path contains 'tvb-multiscale*' directory at certain level.
+    # To find this dir, we traverse path components in reverse:
+    for dir in reversed(dir_path.split(os.sep)):
+        if dir.startswith('tvb-multiscale'): # found
+            break
+        else:
+            # drop last path component and keep on traversing
+            dir_path = os.path.split(dir_path)[0]
+            if dir_path == '/': # reached the root, dir not found
+                dir_path = None; break
 
-TVB_MULTISCALE_ROOT_DIR = os.path.abspath(__file__).split("tvb_multiscale/core")[0]
-WORKING_DIR = os.path.join(TVB_MULTISCALE_ROOT_DIR, "examples/outputs")
+    if dir_path is None:
+        # if didn't succeed to find it this way, try another assumption:
+        if script_path.find("tvb_multiscale/core") > 0:
+            dir_path = script_path.split("tvb_multiscale/core")[0]
 
-# DATA:
-TVB_DATA_PATH = os.path.join(TVB_MULTISCALE_ROOT_DIR, "examples/data/tvb_data")
-DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
-DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
-DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
-DEFAULT_CORT_REGION_MAPPING_TXT = "QL_20120814_RegionMapping.txt"
-DEFAULT_EEG_LOCATIONS_TXT = "QL_20120814_EEGLocations.txt"
-# Only for surface simulations for this subject:
-# DEFAULT_EEG_PROJECTION_MAT = "QL_20120814_ProjectionMatrix.mat"
-DEFAULT_EEG_PROJECTION_MAT = ""
-try:
-    DEFAULT_SUBJECT = {"connectivity": connectivity.Connectivity.from_file(DEFAULT_CONNECTIVITY_ZIP),
-                       "cortex": cortex.Cortex.from_file(os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                      DEFAULT_CORT_SURFACE_ZIP),
-                                                         region_mapping_file=os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                                          DEFAULT_CORT_REGION_MAPPING_TXT))
-                       }
-except:
-    DEFAULT_SUBJECT = None
+    return dir_path
 
+ROOT_PATH = find_root_dir()
 
 def _folder(base, separate_by_run=False, ftype=""):
     folder = os.path.join(base, ftype)
@@ -149,10 +147,30 @@ class Config(HasTraits):
 
         self.RAY_PARALLEL = False
 
-        self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
-        self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
-        self.TVB_DATA_PATH = TVB_DATA_PATH
-        self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
+        # DATA:
+        if ROOT_PATH is not None:
+            self.DATA_PATH = os.path.join(ROOT_PATH, 'examples/data')
+            self.TVB_DATA_PATH = os.path.join(self.DATA_PATH, 'tvb_data')
+            self.DEFAULT_SUBJECT_PATH = os.path.join(self.TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
+            self.DEFAULT_CONNECTIVITY_ZIP = os.path.join(self.DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
+
+            cort_surface = "QL_20120814_Surface_Cortex.zip"
+            cort_region_mapping = "QL_20120814_RegionMapping.txt"
+            region_mapping = os.path.join(self.DEFAULT_SUBJECT_PATH, cort_region_mapping)
+            try:
+                self.DEFAULT_SUBJECT = {
+                    "connectivity": connectivity.Connectivity.from_file(self.DEFAULT_CONNECTIVITY_ZIP),
+                    "cortex": cortex.Cortex.from_file(os.path.join(self.DEFAULT_SUBJECT_PATH, cort_surface),
+                                                                    region_mapping_file=region_mapping)}
+            except:
+                self.DEFAULT_SUBJECT = None
+        else:
+            # ptrint warning
+            self.DATA_PATH = None
+            self.TVB_DATA_PATH = None
+            self.DEFAULT_SUBJECT = None
+            self.DEFAULT_SUBJECT_PATH = None
+            self.DEFAULT_CONNECTIVITY_ZIP = None
 
         self.DEFAULT_DT = 0.1
         self.TVB_TO_SPIKING_DT_RATIO = 2
