@@ -31,8 +31,8 @@ def find_root_dir():
             break
         else:
             # drop last path component and keep on traversing
-            dir_path = os.path.split(dir_path)[0]
-            if dir_path == '/': # reached the root, dir not found
+            dir_path, tail = os.path.split(dir_path)
+            if tail == '': # reached the root, yet dir not found
                 dir_path = None; break
 
     if dir_path is None:
