@@ -37,8 +37,9 @@ def find_root_dir():
 
     if dir_path is None:
         # if didn't succeed to find it this way, try another assumption:
-        if script_path.find("tvb_multiscale/core") > 0:
-            dir_path = script_path.split("tvb_multiscale/core")[0]
+        tvb_multiscale_core = os.path.join("tvb_multiscale", "core")
+        if script_path.find(tvb_multiscale_core) > 0:
+            dir_path = script_path.split(tvb_multiscale_core)[0]
 
     return dir_path
 
