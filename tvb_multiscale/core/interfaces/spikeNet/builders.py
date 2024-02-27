@@ -211,13 +211,60 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         del interface['coupling_mode']
         return interface
 
-    def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
-        if self.is_tvb_coupling_interface(interface):
-            weight_fun = property_to_fun(interface.pop("weights", 1.0))
-            delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
-        else:
-            weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
-            delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
+    def _build_tvb_to_spikeNet_interface_proxy_nodes_TVB_coupling(self, interface):
+        weight_fun = property_to_fun(interface.pop("weights", 1.0))
+        delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
+        receptor_type_fun = property_to_fun(interface.pop("receptor_type", self._default_receptor_type))
+        syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
+        conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
+        # Default behavior for any combination of region nodes and populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_fun", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
+        # Defaults just follow TVB connectivity
+        shape = (len(interface["spiking_proxy_inds"]),)
+        weights = np.empty(shape).astype("O")
+        delays = np.empty(shape).astype("O")
+        receptor_type = np.empty(shape).astype("O")
+        syn_spec = np.tile([None], shape).astype("O")
+        conn_spec = np.tile([None], shape).astype("O")
+        neurons_inds = np.tile([None], shape).astype("O")
+        # Apply now possible functions per source and target region node:
+        for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
+            weights[i_node] = weight_fun(spiking_node, self.tvb_weights)
+            delays[i_node] = delay_fun(spiking_node, self.tvb_delays)
+            receptor_type[i_node] = receptor_type_fun(spiking_node)
+            syn_spec[i_node] = syn_spec_fun(spiking_node)
+            conn_spec[i_node] = conn_spec_fun(spiking_node)
+            if neurons_inds_fun is not None:
+                neurons_inds[i_node] = lambda neur_inds: neurons_inds_fun(spiking_node, neur_inds)
+        _interface = dict()
+        _interface["weights"] = weights
+        _interface["delays"] = delays
+        _interface["receptor_type"] = receptor_type
+        _interface["syn_spec"] = syn_spec
+        _interface["conn_spec"] = conn_spec
+        _interface["neurons_fun"] = neurons_inds
+        # Convert TVB node index to interface SpikeNet node index:
+        _interface["nodes"] = [np.where(self.proxy_inds == spiking_node)[0][0]
+                               for spiking_node in interface["spiking_proxy_inds"]]
+        _interface["model"] = interface["proxy"].model
+        _interface["params"] = interface.pop("proxy_params", {})
+        # TODO: Figure out if we ever going to need interfaces for multiple state variables!
+        label = "->%s" % str(interface["populations"])
+        if "voi_labels" in interface:
+            label = str(interface["voi_labels"]) + label
+        _interface["connections"] = {label: interface["populations"]}
+        # Generate the devices => "proxy TVB nodes":
+        ProxyClass = interface["proxy"]
+        devices = self._build_and_connect_input_devices(_interface, devices=self.spiking_network.input_proxies)
+        interface["proxy"] = ProxyClass(label=label, dt=self.dt, target=devices[-1])
+        return interface
+
+    def _build_tvb_to_spikeNet_interface_proxy_nodes_nonTVB_coupling(self, interface):
+        weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
+        delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
         receptor_type_fun = property_to_fun(interface.pop("receptor_type", self._default_receptor_type))
         syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
         conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
@@ -246,7 +293,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 syn_spec[i_src, i_trg] = syn_spec_fun(src_node, trg_node)
                 conn_spec[i_src, i_trg] = conn_spec_fun(src_node, trg_node)
                 if neurons_inds_fun is not None:
-                    neurons_inds[i_src, i_trg] = lambda neurons_inds: neurons_inds_fun(src_node, trg_node, neurons_inds)
+                    neurons_inds[i_src, i_trg] = lambda neur_inds: neurons_inds_fun(src_node, trg_node, neur_inds)
         _interface = dict()
         _interface["names"] = device_names
         _interface["weights"] = weights
@@ -270,6 +317,12 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         interface["proxy"] = ProxyClass(label=label, dt=self.dt, target=devices[-1])
         return interface
 
+    def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
+        if self.is_tvb_coupling_interface(interface):
+            return self._build_tvb_to_spikeNet_interface_proxy_nodes_TVB_coupling(interface)
+        else:
+            return self._build_tvb_to_spikeNet_interface_proxy_nodes_nonTVB_coupling(interface)
+
     def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface):
         delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
         # Default behavior for any region node and any combination of populations
@@ -283,7 +336,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
             delays[i_node] = delay_fun(spiking_node)
             if neurons_inds_fun is not None:
-                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
+                neurons_inds[i_node] = lambda neur_inds: neurons_inds_fun(spiking_node, neur_inds)
         _interface = dict()
         _interface["delays"] = delays
         _interface["neurons_fun"] = neurons_inds
