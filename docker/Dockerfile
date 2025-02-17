@@ -1,7 +1,7 @@
 #
 # TVB & NEST, ANNarchy and NetPyNE (NEURON) simulations environment
 #
-# Install Python 3.10, NEST, ANNarchy, NEURON, NetPyNE, Elephant, PySpike, ray, and then tvb-root.
+# Install Python 3.11, NEST, ANNarchy, NEURON, NetPyNE, Elephant, PySpike, ray, and then tvb-root.
 # Finally link tvb-multiscale from Github sources
 #
 
@@ -19,7 +19,7 @@ ENV LANG=C.UTF-8
 #However the following packages replace it:
 #  python2-dev python2 python-dev-is-python3
 RUN apt-get update; apt-get install -y automake libtool build-essential git vim octave \
-                       wget python3 libpython3.10 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
+                       wget python3 libpython3.11 libpython3-dev libncurses5-dev libreadline-dev libgsl0-dev cython3 \
                        python3-dev python3-numpy python3-scipy python3-matplotlib python3-pip python3-nose \
                        ipython3 python3-venv python3-virtualenv python3-pyqt5 python-dev-is-python3 libgsl-dev libncurses-dev \
                        python3-pkgconfig subversion cmake zip unzip make; \
@@ -64,18 +64,18 @@ RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$BASEENV/bin/python $PACKAGES/libneurosim/configure --prefix=$BASEENV; \
     make; make install; ls $BASEENV/lib $BASEENV/include;
-RUN ln -s /usr/lib/python3.10/config-x86_64-linux-gnu/libpython3.10.so $LOCALENV/lib/;
+RUN ln -s /usr/lib/python3.11/config-x86_64-linux-gnu/libpython3.11.so $LOCALENV/lib/;
 
-# Install NEST, latest stable version 3.5
-ARG NEST_VER=3.5
+# Install NEST, latest stable version 3.8
+ARG NEST_VER=3.8
 ARG NEST=nest-simulator
 ARG NEST_SRC=$PACKAGES/$NEST
 ARG NEST_INSTALL_DIR=$BUILD/nest
-ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
+ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.11/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
-# Install NEST 3.5:
-# https://github.com/nest/nest-simulator/commit/4e7a7559fd737a4d54a79d0006fc9ebec88ddefd
+# Install NEST 3.8:
+# https://github.com/nest/nest-simulator/commit/6dca9500e512da50fa730a7b62ce4b05c77e2bfd
 WORKDIR $PACKAGES
 # ARG LAST_SHA_NEST=LATEST
 RUN git clone https://github.com/nest/nest-simulator.git
@@ -85,7 +85,7 @@ RUN cd $NEST; \
           -Dwith-mpi=ON  \
           -Dwith-libneurosim=$LOCALENV \
           -DPYTHON_LIBRARY=/usr/lib \
-          -DPYTHON_INCLUDE_DIR=/usr/include/python3.10m \
+          -DPYTHON_INCLUDE_DIR=/usr/include/python3.11m \
           ${NEST_SRC}; \
     make; make install
 
