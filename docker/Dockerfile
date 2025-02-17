@@ -97,11 +97,7 @@ RUN cd nest-client; \
      $BASEENV/bin/python setup.py install --user;
 
 # Install nestml
-WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install setuptools; \
-    git clone https://github.com/nest/nestml.git; \
-    cd nestml; \
-    $BASEENV/bin/python setup.py install --user;
+RUN $BASEENV/bin/pip3 install --target d:$PACKAGES nestml
 
 # Other (large) packages added for scientific work:
 RUN $BASEENV/bin/pip3 install plotly
