@@ -6,8 +6,8 @@
 # Finally link tvb-multiscale from Github sources.
 #
 
-# Install NEST, latest stable version (December 2022)
-ARG NEST_VER=3.5
+# Install NEST, latest stable version (February 2025)
+ARG NEST_VER=3.8
 ARG NEST_DESKTOP_HOST=0.0.0.0
 ARG NEST_DESKTOP_PORT=8000
 ARG NEST_SERVER_HOST=0.0.0.0
@@ -158,7 +158,7 @@ WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=/opt/nest
 RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
-ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
+ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.11/site-packages
 ENV PYTHONPATH=$PYTHONPATH:$BASEENV:${NEST_PYTHON_PREFIX}
 ## Note that the following are automatically reset if NEST is imported
 ## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
@@ -182,7 +182,7 @@ ENV MUSIC_PATH=${MUSIC_ROOT_DIR}
 ENV LD_LIBRARY_PATH=${MUSIC_PATH}/lib:$LD_LIBRARY_PATH
 ENV PATH=${MUSIC_PATH}/bin:$PATH
 ENV CPATH=${MUSIC_PATH}/include:$CPATH
-ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.8/site-packages:$PYTHONPATH
+ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.11/site-packages:$PYTHONPATH
 ENV PATH=$PATH:/usr/local/bin
 
 # ----------------------------------------------------------------------------------------------------------------------
