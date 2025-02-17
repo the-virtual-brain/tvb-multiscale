@@ -45,7 +45,7 @@ RUN $BASEENV/bin/pip3 install --upgrade nose;
 WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $BASEENV/bin/python3 setup.py install --user;
+     $BASEENV/bin/python setup.py install --user;
 
 
 # Install TVB-multiscale specific packages
@@ -63,7 +63,7 @@ RUN $BASEENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
 RUN $BASEENV/bin/pip3 install cython==0.29.36 --user;
 RUN git clone https://github.com/ANNarchy/ANNarchy.git
 RUN cd ANNarchy; \
-    $BASEENV/bin/python3 setup.py install --user;
+    $BASEENV/bin/python setup.py install --user;
 # RUN $BASEENV/bin/pip3 install pyNN
 # Install Pyspike:
 RUN $BASEENV/bin/pip3 install pyspike --user
