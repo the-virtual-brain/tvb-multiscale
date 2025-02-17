@@ -94,7 +94,7 @@ RUN $BASEENV/bin/pip3 install flask_cors RestrictedPython;
 WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $BASEENV/bin/python3 setup.py install --user;
+     $BASEENV/bin/python setup.py install --user;
 
 # Install nestml
 WORKDIR $PACKAGES
@@ -129,7 +129,7 @@ RUN $BASEENV/bin/pip3 install ANNarchy;
 WORKDIR $PACKAGES
 RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
     cd PySpike; \
-    $BASEENV/bin/python3 setup.py build_ext install --user;
+    $BASEENV/bin/python setup.py build_ext install --user;
 # Install Elephant
 WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install elephant;
@@ -234,7 +234,7 @@ ENV NEST_SERVER_STDOUT=1
 #WORKDIR $PACKAGES
 #RUN mkdir tvb-multiscale
 #COPY ./tvb-multiscale/ tvb-multiscale/
-#RUN cd tvb-multiscale; $BASEENV/bin/python3 setup.py develop --no-deps
+#RUN cd tvb-multiscale; $BASEENV/bin/python setup.py develop --no-deps
 ENV MYMODULES_DIR=$PACKAGES/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$BUILD/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
