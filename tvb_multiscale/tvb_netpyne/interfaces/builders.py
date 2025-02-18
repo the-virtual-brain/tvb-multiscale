@@ -21,7 +21,7 @@ from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
-    NetpynePoissonGeneratorSet
+    NetpynePoissonGeneratorSet, NetpyneMultimeterSet, NetpyneMultimeterMeanSet, NetpyneMultimeterTotalSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
@@ -38,6 +38,12 @@ class NetpyneInputProxyModels(Enum):
 class NetpyneOutputProxyModels(Enum):
     SPIKES = NetpyneSpikeRecorderSet
     SPIKES_MEAN = NetpyneSpikeRecorderTotalSet
+    POTENTIAL = NetpyneMultimeterSet
+    POTENTIAL_MEAN = NetpyneMultimeterMeanSet
+    POTENTIAL_TOTAL = NetpyneMultimeterTotalSet
+    CONDUCTANCE = NetpyneMultimeterSet
+    CONDUCTANCE_MEAN = NetpyneMultimeterMeanSet
+    CONDUCTANCE_TOTAL = NetpyneMultimeterTotalSet
 
 
 class DefaultTVBtoNetpyneProxyModels(object):
@@ -47,6 +53,8 @@ class DefaultTVBtoNetpyneProxyModels(object):
 
 class DefaultNetpyneToTVBProxyModels(object):
     SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
+    POTENTIAL = NetpyneOutputProxyModels.POTENTIAL_MEAN.name
+    CONDUCTANCE = NetpyneOutputProxyModels.CONDUCTANCE_MEAN.name
 
 
 class NetpyneProxyNodesBuilder(SpikeNetProxyNodesBuilder):
