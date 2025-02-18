@@ -12,7 +12,7 @@ from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
 from tvb_multiscale.core.interfaces.transformers.models.base import \
-     LinearRate, LinearCurrent, LinearPotential
+     LinearRate, LinearCurrent, LinearConductance, LinearPotential
 from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -41,6 +41,7 @@ class SpikeNetToTVBTransformers(Enum):
     SPIKES_TO_HIST = ElephantSpikesHistogram
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
     POTENTIAL = LinearPotential
+    CONDUCTANCE = LinearConductance
 
 
 class DefaultTVBtoSpikeNetTransformers(object):
@@ -52,6 +53,7 @@ class DefaultTVBtoSpikeNetTransformers(object):
 class DefaultSpikeNetToTVBTransformers(object):
     SPIKES = SpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
     POTENTIAL = SpikeNetToTVBTransformers.POTENTIAL.name
+    CONDUCTANCE = SpikeNetToTVBTransformers.CONDUCTANCE.name
 
 
 class TransformerBuilder(HasTraits):
