@@ -48,6 +48,9 @@ class ANNarchyOutputProxyModels(Enum):
     POTENTIAL = ANNarchyMonitorSet
     POTENTIAL_MEAN = ANNarchyMonitorMeanSet
     POTENTIAL_TOTAL = ANNarchyMonitorTotalSet
+    CONDUCTANCE = ANNarchyMonitorSet
+    CONDUCTANCE_MEAN = ANNarchyMonitorMeanSet
+    CONDUCTANCE_TOTAL = ANNarchyMonitorTotalSet
 
 
 class DefaultTVBtoANNarchyProxyModels(object):
@@ -59,6 +62,7 @@ class DefaultTVBtoANNarchyProxyModels(object):
 class DefaultANNarchytoTVBProxyModels(object):
     SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN.name
+    CONDUCTANCE = ANNarchyOutputProxyModels.CONDUCTANCE_MEAN.name
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
