@@ -27,7 +27,8 @@ from tvb_multiscale.tvb_nest.interfaces.io import \
     NESTSpikeRecorderSet, NESTSpikeRecorderTotalSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
     NESTParrotSpikeGeneratorSet, NESTParrotInhomogeneousPoissonGeneratorSet, \
-    NESTVoltmeterSet, NESTVoltmeterMeanSet, NESTVoltmeterTotalSet
+    NESTVoltmeterSet, NESTVoltmeterMeanSet, NESTVoltmeterTotalSet, \
+    NESTMultimeterSet, NESTMultimeterMeanSet, NESTMultimeterTotalSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
@@ -50,6 +51,9 @@ class NESTOutputProxyModels(Enum):
     POTENTIAL = NESTVoltmeterSet
     POTENTIAL_MEAN = NESTVoltmeterMeanSet
     POTENTIAL_TOTAL = NESTVoltmeterTotalSet
+    CONDUCTANCE = NESTMultimeterSet
+    CONDUCTANCE_MEAN = NESTMultimeterMeanSet
+    CONDUCTANCE_TOTAL = NESTMultimeterTotalSet
 
 
 class DefaultTVBtoNESTModels(object):
@@ -61,6 +65,7 @@ class DefaultTVBtoNESTModels(object):
 class DefaultNESTtoTVBModels(object):
     SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
+    CONDUCTANCE = NESTOutputProxyModels.CONDUCTANCE_MEAN.name
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
