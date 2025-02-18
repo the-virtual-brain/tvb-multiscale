@@ -158,26 +158,21 @@ RUN cd tvb-multiscale; \
     $BASEENV/bin/python setup.py develop --no-deps --user;
 
 # Install Jupyter notebook specific packages
-# TODO: Resolve the need for notebook version 6.4.12
-RUN $BASEENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions --user;
-RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
-RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
-# Due to this:
-# https://github.com/microsoft/azuredatastudio/issues/24436
-# we need to downgrade traitlets:
-RUN $BASEENV/bin/pip3 install traitlets==5.9.0
+RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl --user;  # jupyter_contrib_nbextensions
+#RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
+#RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
 
-# TODO: UNDO THIS!
-# Downgrade matplotlib as a temporary fix for error:
-#File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
-#     23 import matplotlib.collections as mcoll
-#     24 import matplotlib.colors as mcolors
-#---> 25 import matplotlib.docstring as docstring
-#     26 import matplotlib.scale as mscale
-#     27 import matplotlib.transforms as mtransforms
-#
-#ModuleNotFoundError: No module named 'matplotlib.docstring'
-RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
+## TODO: UNDO THIS!
+## Downgrade matplotlib as a temporary fix for error:
+##File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
+##     23 import matplotlib.collections as mcoll
+##     24 import matplotlib.colors as mcolors
+##---> 25 import matplotlib.docstring as docstring
+##     26 import matplotlib.scale as mscale
+##     27 import matplotlib.transforms as mtransforms
+##
+##ModuleNotFoundError: No module named 'matplotlib.docstring'
+#RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $PACKAGES
