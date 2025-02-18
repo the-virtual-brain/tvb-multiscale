@@ -148,7 +148,10 @@ class TVBInputInterface(TVBInterface):
         if data is None:
             return None
         # Assume a single mode, and reshape from (proxy, (voi,) time) to TVB (time, voi, proxy)
-        if data[1].ndim < 3:
+        if data[1].size == 0:
+            # If no data are returned:
+            return None
+        elif data[1].ndim < 3:
             # if there was no voi dimension
             data[1] = data[1].T
             data[1] = data[1][:, None, :]
