@@ -512,7 +512,7 @@ class ANNarchyOutputDevice(ANNarchyDevice):
         """Method to get the indices of the devices' Monitors from list of all Monitors of the ANNarchy network."""
         monitors_inds = []
         for monitor in self.monitors.keys():
-            monitors_inds.append(self.annarchy_instance.Global._network[0]["monitors"].index(monitor))
+            monitors_inds.append(self.annarchy_instance.Global.monitors().index(monitor))
         return monitors_inds
 
     @property
@@ -658,7 +658,7 @@ class ANNarchyOutputDevice(ANNarchyDevice):
         return self._record_from
 
     def _get_senders(self, population, neurons_ranks, str_flag=False):
-        population_ind = self.annarchy_instance.Global._network[0]["populations"].index(population)
+        population_ind = self.annarchy_instance.Global.populations().index(population)
         if str_flag:
             senders = ["%d_%d" % (population_ind, neuron_rank) for neuron_rank in ensure_list(neurons_ranks)]
         else:
@@ -913,7 +913,7 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                 spike_times, spike_ranks = monitor.raster_plot(spike)
                 if spike_times.size:
                     events["times"] += spike_times.tolist()
-                    population_ind = self.annarchy_instance.Global._network[0]["populations"].index(population)
+                    population_ind = self.annarchy_instance.Global.populations().index(population)
                     spike_senders = list(zip([population_ind] * spike_times.size, spike_ranks))
                     events["senders"] += spike_senders
         events['times'] = np.array(events['times'])
