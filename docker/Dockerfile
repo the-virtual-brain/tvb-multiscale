@@ -131,33 +131,23 @@ WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install elephant;
 
 # Clone and install tvb-root
-## TODO: Use Pypi for tvb-framework!!!
-## First install tvb-framework from Pypi:
-#RUN $BASEENV/bin/pip3 install tvb-framework
-## Then, overwrite the tvb-library installation, and add the rest of the necessary tvb packages:
-# For the moment though, let's try to install some dependencies of tvb-framework:
-RUN $BASEENV/bin/pip3 install alembic;
-RUN $BASEENV/bin/pip3 install bctpy;
-RUN $BASEENV/bin/pip3 install cherrypy;
-RUN $BASEENV/bin/pip3 install flask;
-RUN $BASEENV/bin/pip3 install flask-restx;
-RUN $BASEENV/bin/pip3 install formencode;
-RUN $BASEENV/bin/pip3 install gevent;
-RUN $BASEENV/bin/pip3 install python-keycloak;
-RUN $BASEENV/bin/pip3 install google.auth;
-RUN $BASEENV/bin/pip3 install oauthlib;
-RUN $BASEENV/bin/pip3 install requests-oauthlib;
 WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
     cd tvb_framework; \
-    $BASEENV/bin/python setup.py develop --user; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    cd ../tvb_storage; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
     cd ../tvb_library; \
-    $BASEENV/bin/python setup.py develop --user; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
     cd ../tvb_contrib; \
-    $BASEENV/bin/python setup.py develop --user;
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    cd ../tvb_bin; \
+    $BASEENV/bin/pip3 install -e . --user; \
+    cd ../tvb_build; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user;
 
 # Clone and install tvb-multiscale
 WORKDIR $PACKAGES
