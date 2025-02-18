@@ -10,7 +10,7 @@ from tvb_multiscale.core.interfaces.spikeNet.io import \
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
     NetpyneInputDevice, NetpynePoissonGenerator, \
-    NetpyneOutputDevice, NetpyneSpikeRecorder
+    NetpyneOutputDevice, NetpyneSpikeRecorder, NetpyneMultimeter
 
 
 class NetpyneInputDeviceSet(SpikeNetInputDeviceSet):
@@ -42,9 +42,9 @@ class NetpynePoissonGeneratorSet(NetpyneInputDeviceSet):
 
     """
         NetpynePoissonGeneratorSet class to set data directly to a DeviceSet
-        of NESTInhomogeneousPoissonGenerator instances in memory
+        of NetpyneInhomogeneousPoissonGenerator instances in memory
         It comprises of:
-            - a target attribute, i.e., a DeviceSet, of NESTInhomogeneousPoissonGenerator instances to send data to,
+            - a target attribute, i.e., a DeviceSet, of NetpyneInhomogeneousPoissonGenerator instances to send data to,
             - a method to set data to the target.
     """
 
@@ -70,7 +70,7 @@ class NetpyneOutputDeviceSet(SpikeNetOutputDeviceSet):
             - an abstract method to get data from the source.
     """
 
-    model = "nest_output_device"
+    model = "Netpyne_output_device"
 
     _spikeNet_output_device_type = NetpyneOutputDevice
 
@@ -103,3 +103,42 @@ class NetpyneSpikeRecorderTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, NetpyneO
     model = "spike_recorder"
 
     _spikeNet_output_device_type = NetpyneSpikeRecorder
+    
+    
+class NetpyneMultimeterSet(SpikeNetMultimeterDeviceSet, NetpyneOutputDeviceSet):
+
+    """
+        NetpyneMultimeterSet class to read events' data (times, senders and variable values)
+        from a DeviceSet of NetpyneMultimeter instances in memory.
+        It comprises of:
+            - a source attribute, i.e., the DeviceSet of NetpyneMultimeter instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
+    """
+
+    model = "multimeter"
+
+    _spikeNet_output_device_type = NetpyneMultimeter
+
+
+class NetpyneMultimeterMeanSet(SpikeNetMultimeterMeanDeviceSet, NetpyneOutputDeviceSet):
+    """
+            NetpyneMultimeterMeanSet class to read population mean events' data (times and variable values)
+            from a DeviceSet of NetpyneMultimeter instances in memory.
+            It comprises of:
+                - a source attribute, i.e., the DeviceSet of NetpyneMultimeter instances to get (i.e., copy) data from,
+                - an abstract method to get data from the source.
+        """
+
+    _spikeNet_output_device_type = NetpyneMultimeter
+
+
+class NetpyneMultimeterTotalSet(SpikeNetMultimeterTotalDeviceSet, NetpyneOutputDeviceSet):
+    """
+            NetpyneMultimeterTotalSet class to read population total (summed across neurons) events' data
+            (times and variable values) from a DeviceSet of NetpyneMultimeter instances in memory.
+            It comprises of:
+                - a source attribute, i.e., the DeviceSet of NetpyneMultimeter instances to get (i.e., copy) data from,
+                - an abstract method to get data from the source.
+        """
+
+    _spikeNet_output_device_type = NetpyneMultimeter
