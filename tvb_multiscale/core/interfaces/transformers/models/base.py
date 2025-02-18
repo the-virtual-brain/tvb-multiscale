@@ -251,7 +251,7 @@ def configure_transformer_with_ray(transformer):
 
 
 def ray_compute_spiketrains_non_implemented_error(classname, *args, **kwargs):
-    raise NonImplementedError("_ray_compute_sequentially not implemented for %s transformer!" % classname)
+    raise NotImplementedError("_ray_compute_sequentially not implemented for %s transformer!" % classname)
 
 
 class RatesToSpikes(LinearRate):
@@ -339,7 +339,7 @@ class RatesToSpikes(LinearRate):
 
 
 def ray_compute_rates_non_implemented_error(classname, *args, **kwargs):
-    raise NonImplementedError("_ray_compute_rates not implemented for %s transformer!" % classname)
+    raise NotImplementedError("_ray_compute_rates not implemented for %s transformer!" % classname)
 
 
 class SpikesToRates(LinearRate):
