@@ -28,6 +28,7 @@ class DefaultTVBtoSpikeNetProxyModels(object):
 class DefaultSpikeNetToTVBProxyModels(object):
     SPIKES = "SPIKES_MEAN"
     POTENTIAL = "POTENTIAL_MEAN"
+    CONDUCTANCE = "CONDUCTANCE_MEAN"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
