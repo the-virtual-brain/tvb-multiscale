@@ -235,7 +235,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
             weights[i_node] = weight_fun(spiking_node, self.tvb_weights)
             delays[i_node] = delay_fun(spiking_node, self.tvb_delays)
-            receptor_type[i_node] = receptor_type_fun(spiking_node)
+            # We need to set None for the source node index of the self._default_receptor_type method:
+            receptor_type[i_node] = receptor_type_fun(None, spiking_node)
             syn_spec[i_node] = syn_spec_fun(spiking_node)
             conn_spec[i_node] = conn_spec_fun(spiking_node)
             if neurons_inds_fun is not None:
