@@ -15,31 +15,32 @@ from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
 
-LOG = initialize_logger(__name__)
-
-
 class NetpyneNetworkBuilder(SpikingNetworkBuilder):
 
     config = CONFIGURED
     _spiking_simulator_name = "netpyne_instance"
-    modules_to_install = []
+    modules_to_install = list()
     _spiking_brain = NetpyneBrain()
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None, config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
         # Beware: this method can be called multiple times (first - when creating default object)
-        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                    config, logger)
+        super(NetpyneNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                    spiking_simulator, self.config, logger)
+
         self._spiking_brain = NetpyneBrain()
+        self.modules_to_install = list()
 
     @property
     def netpyne_instance(self):
         return self.spiking_simulator
 
     def configure(self, netParams, simConfig, autoCreateSpikingNodes=True):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
+        if self.netpyne_instance is None:
+            self.spiking_simulator = load_netpyne(self.config)
 
         if self.netpyne_instance is None:
             self.spiking_simulator = load_netpyne(self.config)

@@ -2,10 +2,10 @@
 
 from enum import Enum
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+from tvb_multiscale.core.interfaces.transformers.models.base import \
     Elementary, Linear, LinearRate, LinearCurrent, LinearPotential
-from tvb_multiscale.core.interfaces.base.transformers.models.integration import IntegrationTransformers
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.integration import IntegrationTransformers
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantRatesToSpikesTransformers, ElephantSpikesToRatesTransformers
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 

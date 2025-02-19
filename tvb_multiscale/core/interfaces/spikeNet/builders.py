@@ -14,29 +14,21 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, S
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values, property_to_fun
 from tvb_multiscale.core.interfaces.base.builders import InterfaceBuilder, RemoteInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.models.models import Transformers
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
-    TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputTransformerInterface, SpikeNetInputTransformerInterface, \
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
-    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, \
-    SpikeNetOutputTransformerInterfaces, SpikeNetInputTransformerInterfaces, \
-    SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces, \
-    SpikeNetTransformerSenderInterfaces, SpikeNetReceiverTransformerInterfaces
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 
-class DefaultTVBtoSpikeNetModels(Enum):
+class DefaultTVBtoSpikeNetProxyModels(object):
     RATE = "RATE"
     SPIKES = "SPIKES"
     CURRENT = "CURRENT"
 
 
-class DefaultSpikeNetToTVBModels(Enum):
+class DefaultSpikeNetToTVBProxyModels(object):
     SPIKES = "SPIKES_MEAN"
     POTENTIAL = "POTENTIAL_MEAN"
+    CONDUCTANCE = "CONDUCTANCE_MEAN"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
@@ -157,7 +149,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 else:
                     model = model.upper()
                 assert model in list(interface_models.__members__)  # Enum names (strings)
-                model = getattr(default_proxy_models, model).value  # a string name of a proxy type
+                model = getattr(default_proxy_models, model)  # a string name of a proxy type
             if isinstance(model, string_types):
                 # string input -> return type
                 model = model.upper()
@@ -220,13 +212,61 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         del interface['coupling_mode']
         return interface
 
-    def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
-        if self.is_tvb_coupling_interface(interface):
-            weight_fun = property_to_fun(interface.pop("weights", 1.0))
-            delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
-        else:
-            weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
-            delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
+    def _build_tvb_to_spikeNet_interface_proxy_nodes_TVB_coupling(self, interface):
+        weight_fun = property_to_fun(interface.pop("weights", 1.0))
+        delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
+        receptor_type_fun = property_to_fun(interface.pop("receptor_type", self._default_receptor_type))
+        syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
+        conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
+        # Default behavior for any combination of region nodes and populations
+        # is to target all of their neurons:
+        neurons_inds_fun = interface.pop("neurons_fun", None)
+        if neurons_inds_fun is not None:
+            neurons_inds_fun = property_to_fun(neurons_inds_fun)
+        # Defaults just follow TVB connectivity
+        shape = (len(interface["spiking_proxy_inds"]),)
+        weights = np.empty(shape).astype("O")
+        delays = np.empty(shape).astype("O")
+        receptor_type = np.empty(shape).astype("O")
+        syn_spec = np.tile([None], shape).astype("O")
+        conn_spec = np.tile([None], shape).astype("O")
+        neurons_inds = np.tile([None], shape).astype("O")
+        # Apply now possible functions per source and target region node:
+        for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
+            weights[i_node] = weight_fun(spiking_node, self.tvb_weights)
+            delays[i_node] = delay_fun(spiking_node, self.tvb_delays)
+            # We need to set None for the source node index of the self._default_receptor_type method:
+            receptor_type[i_node] = receptor_type_fun(None, spiking_node)
+            syn_spec[i_node] = syn_spec_fun(spiking_node)
+            conn_spec[i_node] = conn_spec_fun(spiking_node)
+            if neurons_inds_fun is not None:
+                neurons_inds[i_node] = lambda neur_inds: neurons_inds_fun(spiking_node, neur_inds)
+        _interface = dict()
+        _interface["weights"] = weights
+        _interface["delays"] = delays
+        _interface["receptor_type"] = receptor_type
+        _interface["syn_spec"] = syn_spec
+        _interface["conn_spec"] = conn_spec
+        _interface["neurons_fun"] = neurons_inds
+        # Convert TVB node index to interface SpikeNet node index:
+        _interface["nodes"] = [np.where(self.proxy_inds == spiking_node)[0][0]
+                               for spiking_node in interface["spiking_proxy_inds"]]
+        _interface["model"] = interface["proxy"].model
+        _interface["params"] = interface.pop("proxy_params", {})
+        # TODO: Figure out if we ever going to need interfaces for multiple state variables!
+        label = "->%s" % str(interface["populations"])
+        if "voi_labels" in interface:
+            label = str(interface["voi_labels"]) + label
+        _interface["connections"] = {label: interface["populations"]}
+        # Generate the devices => "proxy TVB nodes":
+        ProxyClass = interface["proxy"]
+        devices = self._build_and_connect_input_devices(_interface, devices=self.spiking_network.input_proxies)
+        interface["proxy"] = ProxyClass(label=label, dt=self.dt, target=devices[-1])
+        return interface
+
+    def _build_tvb_to_spikeNet_interface_proxy_nodes_nonTVB_coupling(self, interface):
+        weight_fun = property_to_fun(interface.pop("weights", self._default_tvb_weight_fun))
+        delay_fun = property_to_fun(interface.pop("delays", self._default_tvb_delay_fun))
         receptor_type_fun = property_to_fun(interface.pop("receptor_type", self._default_receptor_type))
         syn_spec_fun = property_to_fun(interface.pop("syn_spec", None))
         conn_spec_fun = property_to_fun(interface.pop("conn_spec", None))
@@ -255,7 +295,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 syn_spec[i_src, i_trg] = syn_spec_fun(src_node, trg_node)
                 conn_spec[i_src, i_trg] = conn_spec_fun(src_node, trg_node)
                 if neurons_inds_fun is not None:
-                    neurons_inds[i_src, i_trg] = lambda neurons_inds: neurons_inds_fun(src_node, trg_node, neurons_inds)
+                    neurons_inds[i_src, i_trg] = lambda neur_inds: neurons_inds_fun(src_node, trg_node, neur_inds)
         _interface = dict()
         _interface["names"] = device_names
         _interface["weights"] = weights
@@ -274,12 +314,16 @@ class SpikeNetProxyNodesBuilder(HasTraits):
             label = str(interface["voi_labels"]) + label
         _interface["connections"] = {label: interface["populations"]}
         # Generate the devices => "proxy TVB nodes":
-        interface["proxy"] = \
-            interface["proxy"](
-                label=label, dt=self.dt,
-                target=self._build_and_connect_input_devices(_interface,
-                                                             devices=self.spiking_network.input_proxies)[-1])
+        ProxyClass = interface["proxy"]
+        devices = self._build_and_connect_input_devices(_interface, devices=self.spiking_network.input_proxies)
+        interface["proxy"] = ProxyClass(label=label, dt=self.dt, target=devices[-1])
         return interface
+
+    def _build_tvb_to_spikeNet_interface_proxy_nodes(self, interface):
+        if self.is_tvb_coupling_interface(interface):
+            return self._build_tvb_to_spikeNet_interface_proxy_nodes_TVB_coupling(interface)
+        else:
+            return self._build_tvb_to_spikeNet_interface_proxy_nodes_nonTVB_coupling(interface)
 
     def _build_spikeNet_to_tvb_interface_proxy_nodes(self, interface):
         delay_fun = property_to_fun(interface.pop("delays", self._default_min_delay))
@@ -294,7 +338,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
             delays[i_node] = delay_fun(spiking_node)
             if neurons_inds_fun is not None:
-                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
+                neurons_inds[i_node] = lambda neur_inds: neurons_inds_fun(spiking_node, neur_inds)
         _interface = dict()
         _interface["delays"] = delays
         _interface["neurons_fun"] = neurons_inds
@@ -325,8 +369,8 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
     _tvb_to_spikeNet_models = TVBtoSpikeNetModels
     _spikeNet_to_TVB_models = SpikeNetToTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoSpikeNetModels
-    _default_spikeNet_to_tvb_models = DefaultSpikeNetToTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoSpikeNetProxyModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultSpikeNetToTVBProxyModels
 
     _input_proxy_models = None
     _output_proxy_models = None
@@ -448,9 +492,9 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         InterfaceBuilder.configure(self)
         SpikeNetProxyNodesBuilder.configure(self)
         self._configure_proxy_models(self.input_interfaces, self._tvb_to_spikeNet_models,
-                                     self._default_tvb_to_spikeNet_models, self._input_proxy_models)
+                                     self._default_tvb_to_spikeNet_proxy_models, self._input_proxy_models)
         self._configure_proxy_models(self.output_interfaces, self._spikeNet_to_tvb_models,
-                                     self._default_spikeNet_to_tvb_models, self._output_proxy_models)
+                                     self._default_spikeNet_to_tvb_proxy_models, self._output_proxy_models)
         if len(self.output_interfaces):
             assert np.all([label in self.region_labels for label in self.out_proxy_labels])
         if len(self.input_interfaces):
@@ -511,36 +555,6 @@ class SpikeNetInterfaceBuilder(InterfaceBuilder, SpikeNetProxyNodesBuilder, ABC)
         return info
 
 
-class SpikeNetTransformerInterfaceBuilder(SpikeNetInterfaceBuilder,
-                                          TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    """SpikeNetTransformerInterfaceBuilder abstract base class"""
-
-    _output_interface_type = SpikeNetOutputTransformerInterface
-    _input_interface_type = SpikeNetInputTransformerInterface
-
-    _output_interfaces_type = SpikeNetOutputTransformerInterfaces
-    _input_interfaces_type = SpikeNetInputTransformerInterfaces
-
-    _transformer_types = Transformers
-
-    input_label = Attr(field_type=str, default="TVBToSpikeNetTrans", required=True, label="Input label",
-                       doc="""Input label of interface builder,
-                                      to be used for files' names and Receiver class instance labels, 
-                                      for the communication of data towards this CoSimulator""")
-
-    output_label = Attr(field_type=str, default="SpikeNetTransToTVB", required=True, label="Output label",
-                        doc="""Output label of interface builder,
-                                       to be used for files' names and Sender class instance labels, 
-                                       for the communication of data starting from this CoSimulator""")
-
-    def configure(self):
-        super(SpikeNetTransformerInterfaceBuilder, self).configure()
-        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
-        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)
-
-
 class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, RemoteInterfaceBuilder, ABC):
     __metaclass__ = ABCMeta
 
@@ -578,33 +592,3 @@ class SpikeNetRemoteInterfaceBuilder(SpikeNetInterfaceBuilder, RemoteInterfaceBu
         return RemoteInterfaceBuilder._get_input_interface_arguments(self,
                                                         SpikeNetInterfaceBuilder._get_input_interface_arguments(
                                                                          self, interface, ii), ii)
-
-
-class SpikeNetRemoteTransformerInterfaceBuilder(SpikeNetRemoteInterfaceBuilder, SpikeNetTransformerInterfaceBuilder,
-                                                TVBtoSpikeNetTransformerBuilder, SpikeNetToTVBTransformerBuilder, ABC):
-    __metaclass__ = ABCMeta
-
-    """SpikeNetTransformerInterfaceBuilder abstract base class"""
-
-    _output_interface_type = SpikeNetTransformerSenderInterface
-    _input_interface_type = SpikeNetReceiverTransformerInterface
-
-    _output_interfaces_type = SpikeNetTransformerSenderInterfaces
-    _input_interfaces_type = SpikeNetReceiverTransformerInterfaces
-
-    _transformer_types = Transformers
-
-    input_label = Attr(field_type=str, default="TVBToSpikeNetTrans", required=True, label="Input label",
-                       doc="""Input label of interface builder,
-                                      to be used for files' names and Receiver class instance labels, 
-                                      for the communication of data towards this CoSimulator""")
-
-    output_label = Attr(field_type=str, default="SpikeNetTransToTVB", required=True, label="Output label",
-                        doc="""Output label of interface builder,
-                                       to be used for files' names and Sender class instance labels, 
-                                       for the communication of data starting from this CoSimulator""")
-
-    def configure(self):
-        super(SpikeNetRemoteTransformerInterfaceBuilder, self).configure()
-        TVBtoSpikeNetTransformerBuilder.configure_and_build_transformers(self, self.input_interfaces)
-        SpikeNetToTVBTransformerBuilder.configure_and_build_transformers(self, self.output_interfaces)

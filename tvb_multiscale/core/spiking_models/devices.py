@@ -38,7 +38,7 @@ class Device(SpikingNodeCollection):
 
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
                         doc="""Label of the brain region the Device resides or connects to""")
-    
+
     _number_of_connections = None
     _number_of_neurons = None
 
@@ -47,6 +47,8 @@ class Device(SpikingNodeCollection):
     _receptor_attr = ""
 
     def __init__(self, device=None, **kwargs):
+        self._number_of_connections = None
+        self._number_of_neurons = None
         self.device = device    # a device object, depending on its simulator implementation
         SpikingNodeCollection.__init__(self, device, **kwargs)
 
@@ -944,9 +946,9 @@ class DeviceSet(SpikingNodesSet):
     model = Attr(field_type=str, default="", required=True,
                  label="DeviceSet's model", doc="""Label of DeviceSet's devices' model""")
 
-    _number_of_connections = []
+    _number_of_connections = list()
 
-    _number_of_neurons = []
+    _number_of_neurons = list()
 
     _collection_name = "Device"
 
@@ -956,6 +958,8 @@ class DeviceSet(SpikingNodesSet):
         if np.any([not isinstance(device, Device) for device in self]):
             raise ValueError("Input device_set is not a Series of Device objects!:\n%s" %
                              str(device_set))
+        self._number_of_connections = list()
+        self._number_of_neurons = list()
         self.update_model()
         LOG.info("%s of model %s for %s created!" % (self.__class__, self.model, self.name))
 

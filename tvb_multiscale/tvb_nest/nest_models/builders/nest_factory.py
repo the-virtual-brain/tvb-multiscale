@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import subprocess
 
 import numpy as np
 
@@ -52,72 +53,71 @@ def configure_nest_kernel(nest_instance, config=CONFIGURED):
     return nest_instance
 
     
-def compile_modules(modules, recompile=False, config=CONFIGURED, logger=LOG):
+def compile_modules(modules, nestml_flag=False, config=CONFIGURED, logger=LOG):
     """Function to compile NEST modules.
        Arguments:
         modules: a sequence (list, tuple) of NEST modules' names (strings).
-        recompile: (bool) flag to recompile a module that is already compiled. Default = False.
+        nestml_flag: (bool) flag to compile NESTML files using . Default = False.
         config: configuration class instance. Default: imported default CONFIGURED object.
         logger: logger object. Default: local LOG object.
     """
     # ...unless we need to first compile it:
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
-    # TODO: find out these locations for the newest versions of NESTML and NEST!!!
-    # lib_path = os.path.join(config._NEST_PATH, "lib", "nest")
-    # include_path = os.path.join(config._NEST_PATH, "include")
     for module in ensure_list(modules):
+        module_path = os.path.join(config.MYMODULES_DIR, module)
         modulemodule = module + "module"
         module_bld_dir = os.path.join(config.MYMODULES_BLD_DIR, module)
-        # solib_file = os.path.join(module_bld_dir, modulemodule + ".so")
-        # dylib_file = os.path.join(module_bld_dir, "lib" + modulemodule + ".dylib")
-        # include_file = os.path.join(module_bld_dir, modulemodule + ".h")
-        # installed_solib_file = os.path.join(lib_path, os.path.basename(solib_file))
-        # installed_dylib_file = os.path.join(lib_path, os.path.basename(dylib_file))
-        # module_include_path = os.path.join(include_path, modulemodule)
-        # installed_h_file = os.path.join(module_include_path, modulemodule + ".h")
-        # if self.NEST_PATH and \
-        #     (not os.path.isfile(solib_file)
-        #         or not os.path.isfile(dylib_file)
-        #             or not os.path.isfile(include_file)) \
-        #                 or recompile:
-        #     # If any of the .so, .dylib or .h files don't exist,
-        #     # or if the user requires recompilation,
-        #     # proceed with recompilation:
-        if os.path.exists(module_bld_dir):
-            # Delete any pre-compiled built files:
-            shutil.rmtree(module_bld_dir)
-        # Create a  module build directory and copy there the source files:
-        source_path = os.path.join(config.MYMODULES_DIR, module)
-        logger.info("Copying module sources from %s\ninto %s..." % (source_path, module_bld_dir))
-        shutil.copytree(source_path, module_bld_dir)
-        # Now compile:
-        logger.info("Compiling %s..." % module)
-        logger.info("in build directory %s..." % module_bld_dir)
-        success_message = "DONE compiling and installing %s!" % module
         try:
-            from pynestml.frontend.pynestml_frontend import generate_nest_target
-            generate_nest_target(module_bld_dir, config._NEST_PATH)
+            if nestml_flag:
+                # TODO: This part needs to be tested!
+                from pynestml.frontend.pynestml_frontend import generate_nest_target
+                generate_nest_target(module_path, config._NEST_PATH)
+            else:
+                # Now compile:
+                logger.info("Compiling %s..." % module)
+                logger.info("in build directory %s..." % module_bld_dir)
+                success_message = "DONE compiling and installing %s!" % module
+                if os.path.exists(module_bld_dir):
+                    # Rename any pre-compiled built files:
+                    logger.info("Renamed existing build folder to %s_old..." % module_bld_dir)
+                    old_module_bld_dir = module_bld_dir + "_old"
+                    if os.path.exists(old_module_bld_dir):
+                        shutil.rmtree(old_module_bld_dir)
+                    shutil.move(module_bld_dir, old_module_bld_dir)
+                # Create a  module build directory and copy there the source files:
+                logger.info("Copying module sources from %s\ninto %s..." % (module_path, module_bld_dir))
+                shutil.copytree(module_path, module_bld_dir)
+                cwd = os.getcwd()
+                os.chdir(module_bld_dir)
+                logger.info("Changed to build directory %s..." % os.getcwd())
+                # This is our shell command, executed by Popen.
+                p = subprocess.Popen("cmake -Dwith-nest=%s; make; make install" % config.NEST_CONFIG_PATH,
+                                     stdout=subprocess.PIPE, shell=True)
+                out, err = p.communicate()
+                if out:
+                    logger.info(out.decode())
+                if err:
+                    logger.error(err.decode())
+                os.chdir(cwd)
+                logger.info("Changed back to directory %s..." % os.getcwd())
         except Exception as e:
+            logger.info("Changed back to directory %s..." % os.getcwd())
             raise e
         logger.info("Compiling finished without errors...")
-        # else:
-            # logger.info("Installing precompiled module %s..." % module)
-            # success_message = "DONE installing precompiled module %s!" % module
-            # # Just copy the .h, .so, and .dylib files to the appropriate NEST build paths:
-            # shutil.copyfile(solib_file, installed_solib_file)
-            # shutil.copyfile(solib_file, installed_dylib_file)
-            # safe_makedirs(include_path)
-            # shutil.copyfile(os.path.join(module_bld_dir, modulemodule + ".h"), installed_h_file)
-        # installed_files = {}
-        # for file in [installed_solib_file, installed_dylib_file, installed_h_file]:
-        #     installed_files[file] = os.path.isfile(file)
-        # if all(installed_files.values()):
-        logger.info(success_message)
-        # else:
-        #     logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
-        #                 "\n Installed files (not) found (True (False) respectively)!:\n%s"
-        #                 % (module, str(installed_files)))
+        installed_files = {}
+        for file in [os.path.join(config.NEST_INCLUDE_PATH, modulemodule, modulemodule + ".h"),
+                     os.path.join(config.NEST_SLI_PATH, modulemodule + "-init.sli"),
+                     os.path.join(config.NEST_MODULE_PATH, modulemodule + ".so"),
+                     os.path.join(config.NEST_MODULE_PATH, "lib" + modulemodule + ".so")]:
+            installed_files[file] = os.path.isfile(file)
+        if all(installed_files.values()):
+            logger.info(success_message)
+            logger.info("Installed files found!:\n%s" % str(installed_files))
+        else:
+            logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
+                        "\n Installed files (not) found (True (False) respectively)!:\n%s"
+                        % (module, str(installed_files)))
 
 
 def get_populations_neurons(population, inds_fun=None):

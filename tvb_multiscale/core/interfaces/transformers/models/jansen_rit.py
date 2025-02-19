@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, ABC
 from enum import Enum
 
 import numpy as np
@@ -8,10 +7,10 @@ import numpy as np
 from tvb.basic.neotraits.api import HasTraits
 from tvb.basic.neotraits._attr import Int, NArray, Range
 
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
-    LinearRate, RatesToSpikes, SpikesToRates, LinearPotential
-from tvb_multiscale.core.interfaces.base.transformers.models.integration import LinearIntegration
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.base import \
+    LinearRate, RatesToSpikes, SpikesToRates, LinearPotential, LinearConductance
+from tvb_multiscale.core.interfaces.transformers.models.integration import LinearIntegration
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonSingleInteraction, \
     RatesToSpikesElephantPoissonMultipleInteraction, \
     ElephantSpikesHistogram, ElephantSpikesHistogramRate, ElephantSpikesRate
@@ -69,59 +68,50 @@ class JansenRitSigmoidalLinearRate(LinearRate, JansenRitSigmoidal):
 
     def _compute(self, input_buffer):
         """Method that just scales and translates the input buffer data to compute the output buffer data."""
-        return LinearRate._compute(self, JansenRitSigmoidal._compute(self, input_buffer))
-
-
-class JansenRitSigmoidalRatesToSpikes(RatesToSpikes, JansenRitSigmoidal, ABC):
-    __metaclass__ = ABCMeta
-
-    def configure(self):
-        super().configure()
-        JansenRitSigmoidal.configure(self)
-
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer rates' data
-           for the output buffer data of spike trains to result."""
-        return super()._compute(JansenRitSigmoidal._compute(self, input_buffer))
+        return LinearRate._compute(self,
+                                   JansenRitSigmoidal._compute(self, input_buffer))
 
 
 class JansenRitSigmoidalRatesToSpikesElephantPoisson(RatesToSpikesElephantPoisson,
-                                                     JansenRitSigmoidalRatesToSpikes,
                                                      JansenRitSigmoidal):
 
     def configure(self):
-        JansenRitSigmoidalRatesToSpikes.configure(self)
+        RatesToSpikesElephantPoisson.configure(self)
+        JansenRitSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        return JansenRitSigmoidalRatesToSpikes._compute(self, input_buffer, *args, **kwargs)
+        return RatesToSpikesElephantPoisson._compute(self,
+                                                     JansenRitSigmoidal._compute(self, input_buffer))
 
 
 class JansenRitSigmoidalRatesToSpikesElephantPoissonSingleInteraction(RatesToSpikesElephantPoissonSingleInteraction,
-                                                                      JansenRitSigmoidalRatesToSpikes,
                                                                       JansenRitSigmoidal):
 
     def configure(self):
-        JansenRitSigmoidalRatesToSpikes.configure(self)
+        RatesToSpikesElephantPoissonSingleInteraction.configure(self)
+        JansenRitSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        return JansenRitSigmoidalRatesToSpikes._compute(self, input_buffer, *args, **kwargs)
+        return RatesToSpikesElephantPoissonSingleInteraction._compute(self,
+                                                                      JansenRitSigmoidal._compute(self, input_buffer))
 
 
 class JansenRitSigmoidalRatesToSpikesElephantPoissonMultipleInteraction(RatesToSpikesElephantPoissonMultipleInteraction,
-                                                                        JansenRitSigmoidalRatesToSpikes,
                                                                         JansenRitSigmoidal):
 
     def configure(self):
-        JansenRitSigmoidalRatesToSpikes.configure(self)
+        RatesToSpikesElephantPoissonMultipleInteraction.configure(self)
+        JansenRitSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer rates' data
            for the output buffer data of spike trains to result."""
-        return JansenRitSigmoidalRatesToSpikes._compute(self, input_buffer, *args, **kwargs)
+        return RatesToSpikesElephantPoissonMultipleInteraction._compute(self,
+                                                                        JansenRitSigmoidal._compute(self, input_buffer))
 
 
 class JansenRitInverseSigmoidal(HasTraits):
@@ -155,112 +145,95 @@ class JansenRitInverseSigmoidal(HasTraits):
                                                          self.Rmax) - 1)/self.r
 
 
-class SpikesToRatesJansenRitInverseSigmoidal(SpikesToRates, JansenRitInverseSigmoidal, ABC):
-    __metaclass__ = ABCMeta
+class ElephantSpikesHistogramJansenRitInverseSigmoidal(ElephantSpikesHistogram,  JansenRitInverseSigmoidal):
 
     def configure(self):
-        super().configure()
+        SpikesToRatesJansenRitInverseSigmoidal.configure(self)
         JansenRitInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
+    def _compute(self, input_buffer):
         """Method for the computation on the input buffer spikes' trains' data
            for the output buffer data of instantaneous mean spiking rates to result."""
-        return JansenRitInverseSigmoidal._compute(self, super()._compute(input_buffer, *args, **kwargs))
+        return JansenRitInverseSigmoidal._compute(self,
+                                                  ElephantSpikesHistogram._compute(self, input_buffer))
 
 
-class ElephantSpikesHistogramJansenRitInverseSigmoidal(ElephantSpikesHistogram,
-                                                       SpikesToRatesJansenRitInverseSigmoidal,
-                                                       JansenRitInverseSigmoidal):
-
-    def configure(self):
-        SpikesToRatesJansenRitInverseSigmoidal.configure(self)
-
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer spikes' trains' data
-           for the output buffer data of instantaneous mean spiking rates to result."""
-        return SpikesToRatesJansenRitInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
-
-
-class ElephantSpikesHistogramRateJansenRitInverseSigmoidal(ElephantSpikesHistogramRate,
-                                                           SpikesToRatesJansenRitInverseSigmoidal,
-                                                           JansenRitInverseSigmoidal):
+class ElephantSpikesHistogramRateJansenRitInverseSigmoidal(ElephantSpikesHistogramRate, JansenRitInverseSigmoidal):
 
     def configure(self):
-        SpikesToRatesJansenRitInverseSigmoidal.configure(self)
-
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer spikes' trains' data
-           for the output buffer data of instantaneous mean spiking rates to result."""
-        return SpikesToRatesJansenRitInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
-
-
-class ElephantSpikesRateJansenRitInverseSigmoidal(ElephantSpikesRate,
-                                                  SpikesToRatesJansenRitInverseSigmoidal,
-                                                  JansenRitInverseSigmoidal):
-
-    def configure(self):
-        SpikesToRatesJansenRitInverseSigmoidal.configure(self)
-
-    def _compute(self, input_buffer, *args, **kwargs):
-        """Method for the computation on the input buffer spikes' trains' data
-           for the output buffer data of instantaneous mean spiking rates to result."""
-        return SpikesToRatesJansenRitInverseSigmoidal._compute(self, input_buffer, *args, **kwargs)
-
-
-class ElephantSpikesJansenSigmoidalRitLinearIntegration(
-    SpikesToRates, JansenRitInverseSigmoidal, LinearIntegration, ABC):
-    __metaclass__ = ABCMeta
-
-    def configure(self):
-        super().configure()
+        ElephantSpikesHistogramRate.configure(self)
         JansenRitInverseSigmoidal.configure(self)
-        LinearIntegration.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
-        return LinearIntegration._compute(self,
-                                          JansenRitInverseSigmoidal._compute(self,
-                                                                             super()._compute(input_buffer)),
-                                          *args, **kwargs)
+    def _compute(self, input_buffer):
+        """Method for the computation on the input buffer spikes' trains' data
+           for the output buffer data of instantaneous mean spiking rates to result."""
+        return JansenRitInverseSigmoidal._compute(self,
+                                                  ElephantSpikesHistogramRate._compute(self, input_buffer))
+
+
+class ElephantSpikesRateJansenRitInverseSigmoidal(ElephantSpikesRate, JansenRitInverseSigmoidal):
+
+    def configure(self):
+        ElephantSpikesRate.configure(self)
+        JansenRitInverseSigmoidal.configure(self)
+
+    def _compute(self, input_buffer):
+        """Method for the computation on the input buffer spikes' trains' data
+           for the output buffer data of instantaneous mean spiking rates to result."""
+        return JansenRitInverseSigmoidal._compute(self,
+                                                  ElephantSpikesRate._compute(self, input_buffer))
 
 
 class ElephantSpikesHistogramJansenRitInverseSigmoidalLinearIntegration(
-    ElephantSpikesHistogram, ElephantSpikesJansenSigmoidalRitLinearIntegration):
+    ElephantSpikesHistogram, LinearIntegration, JansenRitInverseSigmoidal):
 
     def configure(self):
-        ElephantSpikesJansenSigmoidalRitLinearIntegration.configure(self)
+        ElephantSpikesHistogram.configure(self)
+        LinearIntegration.configure(self)
+        JansenRitInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
-        return ElephantSpikesJansenSigmoidalRitLinearIntegration._compute(self, input_buffer, *args, **kwargs)
+    def _compute(self, input_buffer):
+        return LinearIntegration._compute(
+            self, JansenRitInverseSigmoidal._compute(self,
+                                                     ElephantSpikesHistogram._compute(self, input_buffer)))
 
 
 class ElephantSpikesHistogramRateJansenRitInverseSigmoidalLinearIntegration(
-    ElephantSpikesHistogramRate, ElephantSpikesJansenSigmoidalRitLinearIntegration):
+    ElephantSpikesHistogramRate, LinearIntegration, JansenRitInverseSigmoidal):
 
     def configure(self):
-        ElephantSpikesJansenSigmoidalRitLinearIntegration.configure(self)
+        ElephantSpikesHistogramRate.configure(self)
+        LinearIntegration.configure(self)
+        JansenRitInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
-        return ElephantSpikesJansenSigmoidalRitLinearIntegration._compute(self, input_buffer, *args, **kwargs)
+    def _compute(self, input_buffer):
+        return LinearIntegration._compute(
+            self, JansenRitInverseSigmoidal._compute(self,
+                                                     ElephantSpikesHistogramRate._compute(self, input_buffer)))
 
 
 class ElephantSpikesRateJansenRitInverseSigmoidalLinearIntegration(
-    ElephantSpikesRate, ElephantSpikesJansenSigmoidalRitLinearIntegration):
+    ElephantSpikesRate, LinearIntegration, JansenRitInverseSigmoidal):
 
     def configure(self):
-        ElephantSpikesJansenSigmoidalRitLinearIntegration.configure(self)
+        ElephantSpikesRate.configure(self)
+        LinearIntegration.configure(self)
+        JansenRitInverseSigmoidal.configure(self)
 
-    def _compute(self, input_buffer, *args, **kwargs):
-        return ElephantSpikesJansenSigmoidalRitLinearIntegration._compute(self, input_buffer, *args, **kwargs)
+    def _compute(self, input_buffer):
+        return LinearIntegration._compute(
+            self, JansenRitInverseSigmoidal._compute(self,
+                                                     ElephantSpikesRate._compute(self, input_buffer)))
 
 
-class DefaultTVBtoSpikeNetTransformersJansenRitCoupling(Enum):
+class DefaultTVBtoSpikeNetTransformersJansenRitCoupling(object):
     RATE = JansenRitSigmoidalLinearRate
     SPIKES = JansenRitSigmoidalRatesToSpikesElephantPoisson
     SPIKES_SINGLE_INTERACTION = JansenRitSigmoidalRatesToSpikesElephantPoissonSingleInteraction
     SPIKES_MULTIPLE_INTERACTION = JansenRitSigmoidalRatesToSpikesElephantPoissonMultipleInteraction
 
 
-class DefaultSpikeNetToTVBTransformersJansenRitInverseSigmoidal(Enum):
+class DefaultSpikeNetToTVBTransformersJansenRitInverseSigmoidal(object):
     SPIKES = ElephantSpikesHistogramRateJansenRitInverseSigmoidal
     SPIKES_TO_RATE = ElephantSpikesRateJansenRitInverseSigmoidal
     SPIKES_TO_HIST = ElephantSpikesHistogramJansenRitInverseSigmoidal
@@ -270,3 +243,4 @@ class DefaultSpikeNetToTVBTransformersJansenRitInverseSigmoidal(Enum):
     SPIKES_TO_HIST_LINEAR_INTEGRATION = ElephantSpikesHistogramJansenRitInverseSigmoidalLinearIntegration
     SPIKES_TO_HIST_RATE_LINEAR_INTEGRATION = ElephantSpikesHistogramRateJansenRitInverseSigmoidalLinearIntegration
     POTENTIAL = LinearPotential
+    CONDUCTANCE = LinearConductance

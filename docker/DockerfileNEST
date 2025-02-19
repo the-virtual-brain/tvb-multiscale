@@ -6,8 +6,8 @@
 # Finally link tvb-multiscale from Github sources.
 #
 
-# Install NEST, latest stable version (December 2022)
-ARG NEST_VER=3.5
+# Install NEST, latest stable version (February 2025)
+ARG NEST_VER=3.8
 ARG NEST_DESKTOP_HOST=0.0.0.0
 ARG NEST_DESKTOP_PORT=8000
 ARG NEST_SERVER_HOST=0.0.0.0
@@ -45,7 +45,7 @@ RUN $BASEENV/bin/pip3 install --upgrade nose;
 WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $BASEENV/bin/python3 setup.py install --user;
+     $BASEENV/bin/python setup.py install --user;
 
 
 # Install TVB-multiscale specific packages
@@ -63,7 +63,7 @@ RUN $BASEENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
 RUN $BASEENV/bin/pip3 install cython==0.29.36 --user;
 RUN git clone https://github.com/ANNarchy/ANNarchy.git
 RUN cd ANNarchy; \
-    $BASEENV/bin/python3 setup.py install --user;
+    $BASEENV/bin/python setup.py install --user;
 # RUN $BASEENV/bin/pip3 install pyNN
 # Install Pyspike:
 RUN $BASEENV/bin/pip3 install pyspike --user
@@ -79,34 +79,33 @@ RUN $BASEENV/bin/pip3 install plotly
 RUN $BASEENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $BASEENV/bin/pip3 install --ignore-installed entrypoints;
 
+# Install some additional packages for TVB:
+# For tvb-library:
+RUN $BASEENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryptography pyaescrypt kubernetes;
+# RUN $BASEENV/bin/pip3 install syncrypto
+# for tvb-framework:
+RUN $BASEENV/bin/pip3 install alembic bctpy cherrypy flask-restx formencode gevent nibabel;
+RUN $BASEENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson;
+RUN $BASEENV/bin/pip3 install tvb-data tvb-gdist;
+
 # Clone and install tvb-root
-## TODO: Use Pypi for tvb-framework!!!
-## First install tvb-framework from Pypi:
-#RUN $BASEENV/bin/pip3 install tvb-framework
-## Then, overwrite the tvb-library installation, and add the rest of the necessary tvb packages:
-# For the moment though, let's try to install some dependencies of tvb-framework:
-RUN $BASEENV/bin/pip3 install alembic;
-RUN $BASEENV/bin/pip3 install bctpy;
-RUN $BASEENV/bin/pip3 install cherrypy;
-RUN $BASEENV/bin/pip3 install flask;
-RUN $BASEENV/bin/pip3 install flask-restx;
-RUN $BASEENV/bin/pip3 install formencode;
-RUN $BASEENV/bin/pip3 install gevent;
-RUN $BASEENV/bin/pip3 install python-keycloak;
-RUN $BASEENV/bin/pip3 install google.auth;
-RUN $BASEENV/bin/pip3 install oauthlib;
-RUN $BASEENV/bin/pip3 install requests-oauthlib;
 WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
 ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
     cd tvb_framework; \
-    $BASEENV/bin/python setup.py develop --user; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    cd ../tvb_storage; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
     cd ../tvb_library; \
-    $BASEENV/bin/python setup.py develop --user; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
     cd ../tvb_contrib; \
-    $BASEENV/bin/python setup.py develop --user;
+    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    cd ../tvb_bin; \
+    $BASEENV/bin/pip3 install -e . --user; \
+    cd ../tvb_build; \
+    $BASEENV/bin/pip3 install -e . --no-deps --user;
 
 # Clone and install tvb-multiscale
 WORKDIR $PACKAGES
@@ -119,27 +118,10 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl jupyter_contrib_nbextensions;
-RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
-RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
-# Due to this:
-# https://github.com/microsoft/azuredatastudio/issues/24436
-# we need to downgrade traitlets:
-RUN $BASEENV/bin/pip3 install traitlets==5.9.0
+RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl; # jupyter_contrib_nbextensions
+#RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
+#RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
 
-# TODO: UNDO THIS!
-# Downgrade matplotlib as a temporary fix for error:
-#File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
-#     23 import matplotlib.collections as mcoll
-#     24 import matplotlib.colors as mcolors
-#---> 25 import matplotlib.docstring as docstring
-#     26 import matplotlib.scale as mscale
-#     27 import matplotlib.transforms as mtransforms
-#
-#ModuleNotFoundError: No module named 'matplotlib.docstring'
-RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
-
-# Checkout specific branch of tvb-multiscale
 # WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
     git checkout ebrains; \
@@ -158,7 +140,7 @@ WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=/opt/nest
 RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
-ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
+ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.11/site-packages
 ENV PYTHONPATH=$PYTHONPATH:$BASEENV:${NEST_PYTHON_PREFIX}
 ## Note that the following are automatically reset if NEST is imported
 ## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
@@ -182,7 +164,7 @@ ENV MUSIC_PATH=${MUSIC_ROOT_DIR}
 ENV LD_LIBRARY_PATH=${MUSIC_PATH}/lib:$LD_LIBRARY_PATH
 ENV PATH=${MUSIC_PATH}/bin:$PATH
 ENV CPATH=${MUSIC_PATH}/include:$CPATH
-ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.8/site-packages:$PYTHONPATH
+ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.11/site-packages:$PYTHONPATH
 ENV PATH=$PATH:/usr/local/bin
 
 # ----------------------------------------------------------------------------------------------------------------------

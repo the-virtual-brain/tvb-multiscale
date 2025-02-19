@@ -7,9 +7,9 @@ import numpy as np
 from tvb.basic.neotraits._attr import Attr, Float, NArray
 
 from tvb_multiscale.core.config import CONFIGURED
-from tvb_multiscale.core.interfaces.base.transformers.models.base import \
+from tvb_multiscale.core.interfaces.transformers.models.base import \
     Transformer, LinearRate, LinearCurrent, LinearPotential, SpikesToRates
-from tvb_multiscale.core.interfaces.base.transformers.models.elephant import \
+from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesHistogram, ElephantSpikesRate, ElephantSpikesHistogramRate
 
 
@@ -43,6 +43,13 @@ class Integration(Transformer):
                 integration step size and noise specification for stochastic
                 methods. It is used to compute the time courses of the model state
                 variables.""")
+
+    def __init__(self, **kwargs):
+        from tvb.simulator.integrators import Integrator, IntegratorStochastic
+        self.config = kwargs.get("config", CONFIGURED)
+        self.dt = self.config.DEFAULT_DT
+        self.integrator = self.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self.dt)
+        super(Integration, self).__init__(**kwargs)
 
     @property
     def _state(self):

@@ -11,11 +11,11 @@ from tvb.contrib.scripts.utils.data_structures_utils import extract_integer_inte
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.interfaces.base.interfaces import BaseInterface, SenderInterface, ReceiverInterface, \
     BaseInterfaces
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
+from tvb_multiscale.core.interfaces.transformers.interfaces import TransformerInterface, TransformerInterfaces, \
     TransformerSenderInterface, ReceiverTransformerInterface
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetInputInterface, SpikeNetOutputInterface, SpikeNetOutputInterfaces, SpikeNetInputInterfaces
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
 
 
 class TVBInterface(BaseInterface):
@@ -36,7 +36,7 @@ class TVBInterface(BaseInterface):
         doc="""Indices of model's variables of interest (VOI)""",
         required=True)
 
-    voi_loc = np.array([])
+    voi_loc = np.array(list())
 
     voi_labels = NArray(
         dtype='U128',
@@ -133,7 +133,7 @@ class TVBInputInterface(TVBInterface):
 
     """TVBInputInterface base class for interfaces receiving data for TVB from a transformer or cosimulator"""
 
-    proxy_inds_loc = np.array([])
+    proxy_inds_loc = np.array(list())
 
     @property
     def label(self):
@@ -148,7 +148,10 @@ class TVBInputInterface(TVBInterface):
         if data is None:
             return None
         # Assume a single mode, and reshape from (proxy, (voi,) time) to TVB (time, voi, proxy)
-        if data[1].ndim < 3:
+        if data[1].size == 0:
+            # If no data are returned:
+            return None
+        elif data[1].ndim < 3:
             # if there was no voi dimension
             data[1] = data[1].T
             data[1] = data[1][:, None, :]
@@ -168,25 +171,6 @@ class TVBTransformerOutputInterface(TVBOutputInterface, TransformerInterface):
         return TransformerInterface.__call__(self, TVBOutputInterface.__call__(self, data))
 
 
-class TVBSenderInterface(TVBOutputInterface, SenderInterface):
-
-    """TVBSenderInterface class to send data to a remote transformer or cosimulator.
-    """
-
-    def __call__(self, data):
-        return SenderInterface.send(self, TVBOutputInterface.__call__(self, data))
-
-
-class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterface):
-
-    """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
-       and, then, send them to a -potentially remote- cosimulator.
-    """
-
-    def __call__(self, data):
-        return TransformerSenderInterface.transform_and_send(self, TVBOutputInterface.__call__(self, data))
-
-
 class TVBInputTransformerInterface(TVBInputInterface, TransformerInterface):
 
     """TVBInputTransformerInterface class to get data for TVB from a remote transformer or cosimulator
@@ -197,6 +181,15 @@ class TVBInputTransformerInterface(TVBInputInterface, TransformerInterface):
         return TVBInputInterface.__call__(self, TransformerInterface.__call__(self, data))
 
 
+class TVBSenderInterface(TVBOutputInterface, SenderInterface):
+
+    """TVBSenderInterface class to send data to a remote transformer or cosimulator.
+    """
+
+    def __call__(self, data):
+        return SenderInterface.send(self, TVBOutputInterface.__call__(self, data))
+
+
 class TVBReceiverInterface(TVBInputInterface, ReceiverInterface):
 
     """TVBReceiverInterface class to receive data for TVB from a remote transformer or cosimulator.
@@ -204,6 +197,16 @@ class TVBReceiverInterface(TVBInputInterface, ReceiverInterface):
 
     def __call__(self):
         return TVBInputInterface.__call__(self, ReceiverInterface.receive(self))
+
+
+class TVBTransformerSenderInterface(TVBOutputInterface, TransformerSenderInterface):
+
+    """TVBTransformerSenderInterface class to get data from TVB, transform them locally,
+       and, then, send them to a -potentially remote- cosimulator.
+    """
+
+    def __call__(self, data):
+        return TransformerSenderInterface.transform_and_send(self, TVBOutputInterface.__call__(self, data))
 
 
 class TVBReceiverTransformerInterface(TVBInputInterface, ReceiverTransformerInterface):
@@ -418,9 +421,10 @@ class TVBOutputInterfaces(BaseInterfaces, TVBInterfaces):
         outputs = []
         for ii, interface in enumerate(self.interfaces):
             #                 data values !!! assuming only 1 mode!!! -> shape (times, vois, proxys):
-            outputs.append(interface([self._compute_interface_times(interface, data),
-                           data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0],
-                           ii]))
+            times = self._compute_interface_times(interface, data)
+            values = data[interface.monitor_ind][1][:, interface.voi_loc][:, :, interface.proxy_inds, 0]
+            output = interface([times, values, ii])
+            outputs.append(output)
         return outputs
 
     def info(self, recursive=0):

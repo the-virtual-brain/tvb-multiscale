@@ -24,7 +24,7 @@ class ANNarchyApp(HasTraits):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -53,6 +53,10 @@ class ANNarchyApp(HasTraits):
     _spikeNet_builder_type = ANNarchyNetworkBuilder
     _spikeNet_type = ANNarchyNetwork
 
+    def __init__(self, **kwargs):
+        self.network_path = ""
+        super(ANNarchyApp, self).__init__(**kwargs)
+
     @property
     def annarchy_instance(self):
         return self.spiking_cosimulator
@@ -68,18 +72,6 @@ class ANNarchyApp(HasTraits):
     def start(self):
         self.spiking_cosimulator = load_annarchy(self.config)
 
-    def configure(self, **kwargs):
-        self.annarchy_instance.clear()  # This will restart ANNarchy!
-        if self.spikeNet_builder is not None:
-            self.spikeNet_builder.update_spiking_dt()
-            self.spikeNet_builder.update_default_min_delay()
-            kwargs["dt"] = self.spikeNet_builder.spiking_dt
-        else:
-            kwargs["dt"] = kwargs.pop("seed", self.config.SPIKING_DT)
-        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-        self.annarchy_instance.setup(**kwargs)
-
     def configure_simulation(self):
         self.spiking_network.network_path = self.network_path
 
@@ -89,8 +81,12 @@ class ANNarchyApp(HasTraits):
     def stop(self):
         pass
 
+    def _destroy(self):
+        self.network_path = ""
+
     def reset(self):
         self.annarchy_instance.clear()
+        self._destroy()
 
 
 class ANNarchySerialApp(ANNarchyApp, SpikeNetSerialApp):
@@ -207,7 +203,7 @@ class TVBSerialApp(TVBSerialAppBase):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -234,7 +230,7 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         label="Configuration",
         field_type=Config,
         doc="""Configuration class instance.""",
-        required=True,
+        required=False,
         default=CONFIGURED
     )
 
@@ -242,7 +238,7 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         label="TVBSerial app",
         field_type=TVBSerialApp,
         doc="""Application for running TVB serially.""",
-        required=True,
+        required=False,
         default=TVBSerialApp()
     )
 
@@ -253,3 +249,8 @@ class TVBANNarchySerialOrchestrator(SerialOrchestrator):
         required=False,
         default=ANNarchySerialApp()
     )
+
+    def __init__(self, **kwargs):
+        self.tvb_app = TVBSerialApp()
+        self. spikeNet_app = ANNarchySerialApp()
+        super(TVBANNarchySerialOrchestrator, self).__init__(**kwargs)

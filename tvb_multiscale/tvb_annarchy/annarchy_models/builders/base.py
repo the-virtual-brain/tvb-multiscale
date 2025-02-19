@@ -18,9 +18,6 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory impor
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
 
 
-LOG = initialize_logger(__name__, config=CONFIGURED)
-
-
 class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
 
     """This is the base class of a ANNarchyNetworkBuilder,
@@ -37,9 +34,16 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, spiking_simulator=None, config=None, logger=None):
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                     config, logger)
+    def __init__(self, tvb_simulator, spiking_nodes_inds,
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self._input_proxies = DeviceSets()
+        self.modules_to_install = list()
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                     spiking_simulator, self.config, logger)
+        self._models_import_path = self.config.MYMODELS_IMPORT_PATH
         self._spiking_brain = ANNarchyBrain()
 
     @property
@@ -52,21 +56,15 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     def _configure_annarchy(self, **kwargs):
         if self.annarchy_instance is None:
             self.spiking_simulator = load_annarchy(self.config, self.logger)
-            self.annarchy_instance.clear()  # This will restart ANNarchy!
-            self.update_spiking_dt()
-            self.update_default_min_delay()
-            kwargs["dt"] = self.spiking_dt
-            kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-            kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-            self.annarchy_instance.setup(**kwargs)
+        self.annarchy_instance.clear()  # This will restart ANNarchy!
+        kwargs["dt"] = self.spiking_dt
+        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
+        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
+        self.annarchy_instance.setup(**kwargs)
 
     def configure(self, **kwargs):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
-        self._configure_annarchy()
         super(ANNarchyNetworkBuilder, self).configure()
+        self._configure_annarchy()
 
     @property
     def min_delay(self):
@@ -165,10 +163,10 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         _devices = []
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
-            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
-                     "for nodes %s..." % (str(list(device["connections"].keys())),
-                                          str(list(device["connections"].values())),
-                                          device["model"], str(device["nodes"])))
+            self.logger.info("Generating and connecting %s -> %s device set of model %s\n"
+                             "for nodes %s..." % (str(list(device["connections"].keys())),
+                                                  str(list(device["connections"].values())),
+                                                  device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
         if len(_devices):
             return DeviceSets(concat(_devices), name="input_devices")

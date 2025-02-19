@@ -21,30 +21,29 @@ from tvb.contrib.scripts.utils.file_utils import safe_makedirs
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.log_utils import initialize_logger as initialize_logger_base
 
+def find_root_dir():
+    script_path = os.path.abspath(__file__)
+    dir_path = os.path.split(script_path)[0] # drop file name
+    # We assume that the path contains 'tvb-multiscale*' directory at certain level.
+    # To find this dir, we traverse path components in reverse:
+    for dir in reversed(dir_path.split(os.sep)):
+        if dir.startswith('tvb-multiscale'): # found
+            break
+        else:
+            # drop last path component and keep on traversing
+            dir_path, tail = os.path.split(dir_path)
+            if tail == '': # reached the root, yet dir not found
+                dir_path = None; break
 
-TVB_MULTISCALE_ROOT_DIR = os.path.abspath(__file__).split("tvb_multiscale/core")[0]
-WORKING_DIR = os.path.join(TVB_MULTISCALE_ROOT_DIR, "examples/outputs")
+    if dir_path is None:
+        # if didn't succeed to find it this way, try another assumption:
+        tvb_multiscale_core = os.path.join("tvb_multiscale", "core")
+        if script_path.find(tvb_multiscale_core) > 0:
+            dir_path = script_path.split(tvb_multiscale_core)[0]
 
-# DATA:
-TVB_DATA_PATH = os.path.join(TVB_MULTISCALE_ROOT_DIR, "examples/data/tvb_data")
-DEFAULT_SUBJECT_PATH = os.path.join(TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
-DEFAULT_CONNECTIVITY_ZIP = os.path.join(DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
-DEFAULT_CORT_SURFACE_ZIP = "QL_20120814_Surface_Cortex.zip"
-DEFAULT_CORT_REGION_MAPPING_TXT = "QL_20120814_RegionMapping.txt"
-DEFAULT_EEG_LOCATIONS_TXT = "QL_20120814_EEGLocations.txt"
-# Only for surface simulations for this subject:
-# DEFAULT_EEG_PROJECTION_MAT = "QL_20120814_ProjectionMatrix.mat"
-DEFAULT_EEG_PROJECTION_MAT = ""
-try:
-    DEFAULT_SUBJECT = {"connectivity": connectivity.Connectivity.from_file(DEFAULT_CONNECTIVITY_ZIP),
-                       "cortex": cortex.Cortex.from_file(os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                      DEFAULT_CORT_SURFACE_ZIP),
-                                                         region_mapping_file=os.path.join(DEFAULT_SUBJECT_PATH,
-                                                                                          DEFAULT_CORT_REGION_MAPPING_TXT))
-                       }
-except:
-    DEFAULT_SUBJECT = None
+    return dir_path
 
+ROOT_PATH = find_root_dir()
 
 def _folder(base, separate_by_run=False, ftype=""):
     folder = os.path.join(base, ftype)
@@ -55,10 +54,6 @@ def _folder(base, separate_by_run=False, ftype=""):
 
 class OutputConfig(HasTraits):
 
-    title = "OutputConfig"
-
-    subfolder = None
-
     def __init__(self, out_base=None, separate_by_run=False, initialize_logger=True):
         """
         :param work_folder: Base folder where logs/figures/results should be kept
@@ -67,6 +62,8 @@ class OutputConfig(HasTraits):
         super(OutputConfig, self).__init__()
         self._out_base = out_base or os.path.join(os.getcwd(), "outputs")
         self._separate_by_run = separate_by_run
+        self.title = "OutputConfig"
+
         if initialize_logger:
             initialize_logger_base("logs", self.FOLDER_LOGS)
 
@@ -101,18 +98,20 @@ class OutputConfig(HasTraits):
 
 class CalculusConfig(HasTraits):
 
-    title = "CalculusConfig"
+    def __init__(self):
+        super(CalculusConfig, self).__init__()
+        self.title = "CalculusConfig"
 
-    # Normalization configuration
-    WEIGHTS_NORM_PERCENT = 99
+        # Normalization configuration
+        self.WEIGHTS_NORM_PERCENT = 99
 
-    # If True a plot will be generated to choose the number of eigenvalues to keep
-    INTERACTIVE_ELBOW_POINT = False
+        # If True a plot will be generated to choose the number of eigenvalues to keep
+        self.INTERACTIVE_ELBOW_POINT = False
 
-    MIN_SINGLE_VALUE = numpy.finfo("single").min
-    MAX_SINGLE_VALUE = numpy.finfo("single").max
-    MAX_INT_VALUE = numpy.iinfo(numpy.int64).max
-    MIN_INT_VALUE = numpy.iinfo(numpy.int64).max
+        self.MIN_SINGLE_VALUE = numpy.finfo("single").min
+        self.MAX_SINGLE_VALUE = numpy.finfo("single").max
+        self.MAX_INT_VALUE = numpy.iinfo(numpy.int64).max
+        self.MIN_INT_VALUE = numpy.iinfo(numpy.int64).max
 
     def info(self, recursive=0):
         info = super(CalculusConfig, self).info(recursive=recursive)
@@ -124,6 +123,11 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 
     title = "FiguresConfig"
 
+    def __init__(self, out_base=None, separate_by_run=False, **kwargs):
+        FiguresConfigTVB.__init__(self, out_base=out_base, separate_by_run=separate_by_run)
+        HasTraits.__init__(self, **kwargs)
+        self.title = "FiguresConfig"
+
     def info(self, recursive=0):
         info = super(FiguresConfig, self).info(recursive=recursive)
         info.update(self._info_dict('FiguresConfig as dict', self.__dict__))
@@ -131,36 +135,60 @@ class FiguresConfig(FiguresConfigTVB, HasTraits):
 
 
 class Config(HasTraits):
-    calcul = CalculusConfig()
-
-    VERBOSITY = 1
-
-    DEFAULT_DT = 0.1
-    TVB_TO_SPIKING_DT_RATIO = 2
-    MIN_SPIKING_DT = 0.001
-    MIN_DELAY_RATIO = 1
-    DEFAULT_SPIKING_MIN_DELAY = 1.0
-
-    DEFAULT_TVB_MODEL = WilsonCowan
-    DEFAULT_TVB_COUPLING_MODEL = Linear
-    DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
-    DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
-    DEFAULT_INTEGRATOR = DEFAULT_STOCHASTIC_INTEGRATOR
-    DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
-    DEFAULT_NOISE = Additive
-    DEFAULT_NSIG = 1e-3
-    DEFAULT_MONITOR = Raw
 
     def __init__(self, output_base=None, separate_by_run=False, initialize_logger=True, verbosity=1):
         super(Config, self).__init__()
-        self.VERBOSITY = verbosity
+
         self.BASEPATH = output_base
+        self.VERBOSITY = verbosity
+
         self.out = OutputConfig(output_base, separate_by_run, initialize_logger)
         self.figures = FiguresConfig(output_base, separate_by_run)
-        self.DEFAULT_SUBJECT = DEFAULT_SUBJECT
-        self.DEFAULT_SUBJECT_PATH = DEFAULT_SUBJECT_PATH
-        self.TVB_DATA_PATH = TVB_DATA_PATH
-        self.DEFAULT_CONNECTIVITY_ZIP = DEFAULT_CONNECTIVITY_ZIP
+        self.calcul = CalculusConfig()
+
+        self.RAY_PARALLEL = False
+
+        # DATA:
+        if ROOT_PATH is not None:
+            self.DATA_PATH = os.path.join(ROOT_PATH, 'examples/data')
+            self.TVB_DATA_PATH = os.path.join(self.DATA_PATH, 'tvb_data')
+            self.DEFAULT_SUBJECT_PATH = os.path.join(self.TVB_DATA_PATH, "berlinSubjects", "QL_20120814")
+            self.DEFAULT_CONNECTIVITY_ZIP = os.path.join(self.DEFAULT_SUBJECT_PATH, "QL_20120814_Connectivity.zip")
+
+            cort_surface = "QL_20120814_Surface_Cortex.zip"
+            cort_region_mapping = "QL_20120814_RegionMapping.txt"
+            region_mapping = os.path.join(self.DEFAULT_SUBJECT_PATH, cort_region_mapping)
+            try:
+                self.DEFAULT_SUBJECT = {
+                    "connectivity": connectivity.Connectivity.from_file(self.DEFAULT_CONNECTIVITY_ZIP),
+                    "cortex": cortex.Cortex.from_file(os.path.join(self.DEFAULT_SUBJECT_PATH, cort_surface),
+                                                                    region_mapping_file=region_mapping)}
+            except:
+                self.DEFAULT_SUBJECT = None
+        else:
+            # ptrint warning
+            self.DATA_PATH = None
+            self.TVB_DATA_PATH = None
+            self.DEFAULT_SUBJECT = None
+            self.DEFAULT_SUBJECT_PATH = None
+            self.DEFAULT_CONNECTIVITY_ZIP = None
+
+        self.DEFAULT_DT = 0.1
+        self.TVB_TO_SPIKING_DT_RATIO = 2
+        self.MIN_SPIKING_DT = 0.001
+        self.MIN_DELAY_RATIO = 1
+        self.DEFAULT_SPIKING_MIN_DELAY = 1.0
+
+        self.DEFAULT_TVB_MODEL = WilsonCowan
+        self.DEFAULT_TVB_COUPLING_MODEL = Linear
+        self.DEFAULT_DETERMINISTIC_INTEGRATOR = HeunDeterministic
+        self.DEFAULT_STOCHASTIC_INTEGRATOR = HeunStochastic
+        self.DEFAULT_INTEGRATOR = self.DEFAULT_STOCHASTIC_INTEGRATOR
+        self.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL = EulerDeterministic
+        self.DEFAULT_NOISE = Additive
+        self.DEFAULT_NSIG = 1e-3
+        self.DEFAULT_TVB_NOISE_SEED = 42
+        self.DEFAULT_MONITOR = Raw
 
     @property
     def output_base(self):

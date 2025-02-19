@@ -18,6 +18,9 @@ from tvb.datatypes.connectivity import Connectivity
 from examples.plot_write_results import plot_write_results
 
 
+PRINT_SUMMARY = True
+
+
 def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_tvb, config=None):
     if config is None:
         if tvb_to_spikeNet_mode is not None:
@@ -109,7 +112,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
-    print_summary = True
+    print_summary = PRINT_SUMMARY
 
     # only applicable for NetPyNE parallel simulation with MPI: skip printing and plotting the results unless being on root MPI node:
     if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
@@ -151,6 +154,8 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.clean_up()
     orchestrator.stop()
 
+    del orchestrator
+
     return results, simulator
 
 
@@ -189,6 +194,12 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
+    if kwargs.get("tvb_to_spikeNet_transformer_model", None) is not None:
+        transformer_model = kwargs.pop("tvb_to_spikeNet_transformer_model")
+        setattr(tvb_spikeNet_model_builder._default_tvb_to_spikeNet_transformer_models, model, transformer_model)
+    if kwargs.get("spikeNet_to_tvb_transformer_model", None) is not None:
+        transformer_model = kwargs.pop("spikeNet_to_tvb_transformer_model")
+        tvb_spikeNet_model_builder._default_spikeNet_to_tvb_transformer_models.SPIKES = transformer_model
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
     tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order

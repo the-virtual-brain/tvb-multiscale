@@ -15,7 +15,7 @@ from examples.tvb_netpyne.example import default_example
 class TestDefault(TestSpikeNetModel):
 
     def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode,
+        default_example(model=self.tvb_to_spikeNet_model,
                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                         simulation_length=self.simulation_length, transient=self.transient,
