@@ -118,7 +118,7 @@ RUN cd tvb-multiscale; \
 
 # Install Jupyter notebook specific packages
 WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install jupyterlab notebook==6.4.12 ipympl; # jupyter_contrib_nbextensions
+RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl; # jupyter_contrib_nbextensions
 #RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
 #RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
 
