@@ -145,7 +145,7 @@ def create_population(model, annarchy_instance, size=1, params=dict(), import_pa
 
 
 def get_population_ind(annarchy_population, annarchy_instance):
-    return annarchy_instance.Global._network[0]["populations"].index(annarchy_population)
+    return annarchy_instance.Global.populations().index(annarchy_population)
 
 
 def get_populations_neurons(population, inds_fun=None):
