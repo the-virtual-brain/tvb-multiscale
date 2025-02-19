@@ -131,8 +131,13 @@ WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install elephant;
 
 # Install some additional packages for TVB:
+# For tvb-library:
 RUN $BASEENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryptography pyaescrypt kubernetes;
 # RUN $BASEENV/bin/pip3 install syncrypto
+# for tvb-framework:
+RUN $BASEENV/bin/pip3 install alembic bctpy cherrypy flask-restx formencode gevent nibabel;
+RUN $BASEENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson;
+RUN $BASEENV/bin/pip3 install tvb-data tvb-gdist;
 
 # Clone and install tvb-root
 WORKDIR $PACKAGES
