@@ -651,4 +651,5 @@ class TVBtoSpikeNetModels(Enum):
 
 class SpikeNetToTVBModels(Enum):
     SPIKES = 0
-    VOLTAGE = 1
+    POTENTIAL = 1
+    CONDUCTANCE = 2
