@@ -171,7 +171,7 @@ class ANNarchyMonitorSet(SpikeNetMultimeterDeviceSet, ANNarchyOutputDeviceSet):
             - an abstract method to get data from the source.
     """
 
-    model = "monitor"
+    model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
 
@@ -185,7 +185,7 @@ class ANNarchyMonitorMeanSet(SpikeNetMultimeterMeanDeviceSet, ANNarchyOutputDevi
                 - an abstract method to get data from the source.
         """
 
-    model = "monitor"
+    model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
 
@@ -199,7 +199,7 @@ class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDe
                 - an abstract method to get data from the source.
         """
 
-    model = "monitor"
+    model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
 
