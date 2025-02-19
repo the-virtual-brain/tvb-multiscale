@@ -3,7 +3,7 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
-from xarray import DataArray, combine_by_coords
+from xarray import DataArray, combine_by_coords, combine_nested
 import numpy as np
 
 
@@ -726,7 +726,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         period = self.period
         current_step = self.annarchy_instance.get_current_step()
         for var, var_times in times.items():
-            this_steps = [var_times["start"][1], var_times["stop"][-1]]
+            this_steps = [var_times["start"][-1], var_times["stop"][-1]]
             if this_steps[0] == this_steps[1]:
                 this_steps[1] = current_step
             if len(times_lims):
@@ -766,7 +766,7 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                          "Neuron": self._get_senders(population, population.ranks, True)},
                                  name=self.label)
                 if data.size > 0:
-                    data = combine_by_coords([data, m_data], fill_value=np.nan)
+                    data = combine_nested([data, m_data], concat_dim=["Neuron"], fill_value=np.nan)
                 else:
                     data = m_data.copy()
         if self.store_data:
