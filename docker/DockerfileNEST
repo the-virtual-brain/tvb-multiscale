@@ -79,6 +79,10 @@ RUN $BASEENV/bin/pip3 install plotly
 RUN $BASEENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
     $BASEENV/bin/pip3 install --ignore-installed entrypoints;
 
+# Install some additional packages for TVB:
+RUN $BASEENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryptography pyaescrypt kubernetes;
+# RUN $BASEENV/bin/pip3 install syncrypto
+
 # Clone and install tvb-root
 WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;

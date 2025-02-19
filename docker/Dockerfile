@@ -130,6 +130,10 @@ RUN git clone --depth 1 https://github.com/mariomulansky/PySpike.git; \
 WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install elephant;
 
+# Install some additional packages for TVB:
+RUN $BASEENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryptography pyaescrypt kubernetes;
+# RUN $BASEENV/bin/pip3 install syncrypto
+
 # Clone and install tvb-root
 WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-root.git;
@@ -162,17 +166,8 @@ RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl --user;  # jupyter_cont
 #RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
 #RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
 
-## TODO: UNDO THIS!
-## Downgrade matplotlib as a temporary fix for error:
-##File /usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:25
-##     23 import matplotlib.collections as mcoll
-##     24 import matplotlib.colors as mcolors
-##---> 25 import matplotlib.docstring as docstring
-##     26 import matplotlib.scale as mscale
-##     27 import matplotlib.transforms as mtransforms
-##
-##ModuleNotFoundError: No module named 'matplotlib.docstring'
-#RUN $BASEENV/bin/pip3 install matplotlib==3.5.3  # The version required by tvb-framework
+# TODO: Find how to solve the mpl_toolkits warning problem:
+# RUN $BASEENV/bin/pip3 install --upgrade matplotlib
 
 # Checkout specific branch of tvb-multiscale
 WORKDIR $PACKAGES
