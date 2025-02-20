@@ -371,6 +371,9 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         for res_name, result in results.items():
             homogeneous = False
             # ...if it is not empty and if it consists of xarray.DataArray instances...
+            if isinstance(result, string_types):
+                # This is the case of res_name = "data_name"
+                continue
             if len(result) and isinstance(result.iloc[0], DataArray):
                 # these are the desired dimensions for a homogeneous result:
                 transpose_dims = \
