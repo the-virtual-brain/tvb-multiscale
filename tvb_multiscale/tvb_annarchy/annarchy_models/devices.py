@@ -3,7 +3,7 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
-from xarray import DataArray, combine_by_coords, combine_nested
+from xarray import DataArray, combine_by_coords, concat
 import numpy as np
 
 
@@ -726,7 +726,11 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
         period = self.period
         current_step = self.annarchy_instance.get_current_step()
         for var, var_times in times.items():
-            this_steps = [var_times["start"][-1], var_times["stop"][-1]]
+            if var_times["stop"][0] is None and len(var_times["start"]) > 1:
+                start_id = 1
+            else:
+                start_id = 0
+            this_steps = [var_times["start"][start_id], var_times["stop"][-1]]
             if this_steps[0] == this_steps[1]:
                 this_steps[1] = current_step
             if len(times_lims):
@@ -751,8 +755,10 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
 
     def _record(self):
         """Method to get data from ANNarchy.Monitor instances,
-           and merge and store them to the _data buffer of xarray.DataArray type."""
-        data = DataArray(np.empty((0, 0, 0)), dims=["Time", "Variable", "Neuron"], name=self.label)
+           and merge and store them to the _data buffer of xarray.DataArray type.
+           Note that since every call get() to an ANNarchy.Monitor erases all data recorded,
+           this method records only new data since the last time it was called!"""
+        data = DataArray(np.empty((0, 0, 0)), dims=["Time", "Variable", "Neuron"])
         for monitor, population in self.monitors.items():
             m_data = monitor.get()
             variables = list(m_data.keys())
@@ -763,10 +769,9 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                                  dims=["Time", "Variable", "Neuron"],
                                  coords={"Time": self._compute_times(monitor.times(), m_data.shape[0]),
                                          "Variable": variables,
-                                         "Neuron": self._get_senders(population, population.ranks, True)},
-                                 name=self.label)
+                                         "Neuron": self._get_senders(population, population.ranks, True)})
                 if data.size > 0:
-                    data = combine_nested([data, m_data], concat_dim=["Neuron"], fill_value=np.nan)
+                    data = concat([data, m_data], dim="Neuron", fill_value=np.nan)
                 else:
                     data = m_data.copy()
         if self.store_data:
@@ -774,37 +779,34 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
                 self._data = combine_by_coords([self._data, data], fill_value=np.nan)
             else:
                 self._data = data.copy()
+            self._output_events_index = self._data.shape[0]
+        data.name = self.label  # combine_by_coords can only combine unnamed DataArrays
         return data
 
-    def _get_data(self, data=None, variables=None, events_inds=None, name=None,
-                  dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+    def _get_data(self, data=None, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
+                  flatten_neurons_inds=True, events_inds=None):
         if data is None:
-            data = self._data
-        if events_inds is None:
-            _data = data
-        else:
-            _data = data[events_inds]
+            data = DataArray(self._data)
+        if events_inds is not None:
+            data = data[events_inds]
         if variables:
-            _data = _data.loc[:, variables]
-
-        if np.any(_data.dims != dims_names):
-            _data = _data.rename(dict(zip(_data.dims, dims_names)))
+            data = data.loc[:, variables]
+        if np.any([dims1 != dims2 for dims1, dims2 in zip(data.dims, dims_names)]):
+            data = data.swap_dims(dict(zip(data.dims, dims_names)))
         if flatten_neurons_inds:
-            _data = flatten_neurons_inds_in_DataArray(_data, _data.dims[2])
-        else:
-            _data = DataArray(_data)
+            data = flatten_neurons_inds_in_DataArray(data, data.dims[2])
         if name:
-            _data.name = name
-        self._output_events_index = self._data.shape[0]
-        return _data
+            data.name = name
+        else:
+            data.name = self.label  # combine_by_coords can only combine unnamed DataArrays
+        return data
 
     def get_new_data(self, variables=None, name=None,
                      dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
-        return self._get_data(self._record(), variables, slice(self._output_events_index, None),
-                              name, dims_names, flatten_neurons_inds)
+        return self._get_data(self._record(), variables, name, dims_names, flatten_neurons_inds)
 
-    def get_data(self, variables=None, events_inds=None,
-                 name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True):
+    def get_data(self, variables=None, name=None, dims_names=["Time", "Variable", "Neuron"],
+                 flatten_neurons_inds=True, new=False):
         """This method returns time series' data recorded by the multimeter.
            Arguments:
             variables: a sequence of variables' names (strings) to be selected.
@@ -815,8 +817,10 @@ class ANNarchyMonitor(ANNarchyOutputDevice, Multimeter):
            Returns:
             a xarray DataArray with the output data
         """
+        if new or self.store_data is False:
+            return self._get_data(self._record(), variables, name, dims_names, flatten_neurons_inds)
         self._record()
-        return self._get_data(None, variables, events_inds, name, dims_names, flatten_neurons_inds)
+        return self._get_data(None, variables, name, dims_names, flatten_neurons_inds)
 
     def _get_events(self, data):
         variables = data.coords["Variable"].values
