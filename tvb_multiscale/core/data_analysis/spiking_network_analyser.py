@@ -224,7 +224,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 # ...loop for every result...
                 for res_type, res in pop_results.items():
                     # ...and if it is a pandas.Series of xarray.DataArray instances...
-                    if isinstance(res[0], DataArray):
+                    if isinstance(res.iloc[0], DataArray):
                         # ...concatenate them:
                         pop_results[res_type] = \
                             concatenate_heterogeneous_DataArrays(res, "Region",
