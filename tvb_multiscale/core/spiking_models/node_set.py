@@ -74,10 +74,13 @@ class SpikingNodesSet(pd.Series, HasTraits):
            If the argument is an integer index or a string label index,
            the corresponding SpikingNodeCollection is returned.
         """
-        pops = pd.Series.__getitem__(self, items)
-        if isinstance(items, string_types) or is_integer(items):
-            return pops
-        return self.__class__(nodes=pops, label=self.label)
+        if is_integer(items):
+            return self.iloc[items]
+        else:
+            pops = pd.Series.__getitem__(self, items)
+            if isinstance(items, string_types):
+                return pops
+            return self.__class__(nodes=pops, label=self.label)
 
     @property
     def label(self):
