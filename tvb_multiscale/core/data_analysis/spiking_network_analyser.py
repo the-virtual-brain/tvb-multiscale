@@ -371,14 +371,14 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         for res_name, result in results.items():
             homogeneous = False
             # ...if it is not empty and if it consists of xarray.DataArray instances...
-            if len(result) and isinstance(result[0], DataArray):
+            if len(result) and isinstance(result.iloc[0], DataArray):
                 # these are the desired dimensions for a homogeneous result:
                 transpose_dims = \
-                    get_ordered_dimensions(list(result[0].dims) + ["Population"], dims_order)
+                    get_ordered_dimensions(list(result.iloc[0].dims) + ["Population"], dims_order)
                 # ...if the output type for time series data is TVB TimeSeries instances...
                 if self.time_series_output_type.upper() == "TVB" \
-                        and result[0].ndim <= 3 \
-                            and "Time" in result[0].dims:
+                        and result.iloc[0].ndim <= 3 \
+                            and "Time" in result.iloc[0].dims:
                     # ...put them in a TVB TimeSeries instance...:
                     results[res_name] = \
                         self.convert_to_TVB_TimeSeries(result, concat_dim_name="Population",
