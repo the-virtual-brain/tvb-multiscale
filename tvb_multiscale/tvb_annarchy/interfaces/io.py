@@ -130,6 +130,15 @@ class ANNarchyOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     _spikeNet_output_device_type = ANNarchyOutputDevice
 
+    def correct_times(self, data):
+        if len(data[0]):
+            # If there is a time vector, i.e., this is a continuous time Monitor...
+            if np.any(data[0] > 0.0):
+                # ...and if this is not the time zero,
+                # ...increase time by one time step:
+                data[0] += self.dt
+        return data
+
 
 class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDeviceSet):
 
@@ -175,6 +184,10 @@ class ANNarchyMonitorSet(SpikeNetMultimeterDeviceSet, ANNarchyOutputDeviceSet):
 
     _spikeNet_output_device_type = ANNarchyMonitor
 
+    @property
+    def data(self):
+        return self.correct_times(super(ANNarchyMonitorSet, self).data)
+
 
 class ANNarchyMonitorMeanSet(SpikeNetMultimeterMeanDeviceSet, ANNarchyOutputDeviceSet):
     """
@@ -189,6 +202,10 @@ class ANNarchyMonitorMeanSet(SpikeNetMultimeterMeanDeviceSet, ANNarchyOutputDevi
 
     _spikeNet_output_device_type = ANNarchyMonitor
 
+    @property
+    def data(self):
+        return self.correct_times(super(ANNarchyMonitorMeanSet, self).data)
+
 
 class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDeviceSet):
     """
@@ -202,6 +219,10 @@ class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDe
     model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
+
+    @property
+    def data(self):
+        return self.correct_times(super(ANNarchyMonitorTotalSet, self).data)
 
 
 class ANNarchyOutputDeviceGetters(Enum):
