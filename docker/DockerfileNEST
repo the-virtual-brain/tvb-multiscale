@@ -52,19 +52,15 @@ RUN cd nest-client; \
 
 # WORKDIR $PACKAGES
 
-# Install NEURON, NetPyNE and ANNarchy (and optionally pyNN)
+# Install TVB-multiscale specific packages
+WORKDIR $PACKAGES
 # Install NEURON and NetPyNE
 RUN $BASEENV/bin/pip3 install neuron
 RUN $BASEENV/bin/pip3 install netpyne
 # Install ANNarchy
-# TODO: Find out why pip install doesn't work!
-# RUN $BASEENV/bin/pip3 install ANNarchy
-RUN $BASEENV/bin/pip3 install pyqtgraph pandoc tensorboardX;
-RUN $BASEENV/bin/pip3 install cython==0.29.36 --user;
-RUN git clone https://github.com/ANNarchy/ANNarchy.git
-RUN cd ANNarchy; \
-    $BASEENV/bin/python setup.py install --user;
-# RUN $BASEENV/bin/pip3 install pyNN
+RUN $BASEENV/bin/pip3 install ANNarchy;
+# Install pyNN
+# RUN pip install pyNN
 # Install Pyspike:
 RUN $BASEENV/bin/pip3 install pyspike --user
 
@@ -135,13 +131,13 @@ RUN cd tvb-multiscale; \
 
 ## TODO: Solve problems with ray in this Docker image!
 ## Install ray:
-#RUN $BASEENV/bin/pip3 install -U "ray"
+RUN $BASEENV/bin/pip3 install -U "ray"
 
 WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=/opt/nest
 RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
-ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.11/site-packages
+ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
 ENV PYTHONPATH=$PYTHONPATH:$BASEENV:${NEST_PYTHON_PREFIX}
 ## Note that the following are automatically reset if NEST is imported
 ## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
