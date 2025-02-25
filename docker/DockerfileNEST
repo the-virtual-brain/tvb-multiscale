@@ -45,7 +45,7 @@ RUN $BASEENV/bin/pip3 install --upgrade nose;
 WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $BASEENV/bin/python setup.py install --user;
+     $BASEENV/bin/python3 setup.py install --user;
 
 
 # Install TVB-multiscale specific packages
@@ -109,7 +109,7 @@ RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
-    $BASEENV/bin/python setup.py develop --no-deps --user;
+    $BASEENV/bin/python3 setup.py develop --no-deps --user;
 
 
 # Install Jupyter notebook specific packages
@@ -202,19 +202,19 @@ ENV SLI_PATH $BASEENV
 RUN echo ". $BASEENV/bin/activate" >> .profile
 
 # For running examples
-#CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/docker/installation_test.py
-# CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
-# CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/examples/tvb_nest/example.py
+#CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/docker/installation_test.py
+# CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
+# CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/examples/tvb_nest/example.py
 
 # Test NEST installation
 # RUN cd $NEST; make installcheck
-# CMD $BASEENV/bin/python /home/docker/packages/tvb-multiscale/docker/module_build_test.py
+# CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 
 # pynestml installation test:
 # CMD cd /home/docker/packages/nestml; $BASEENV/bin/pytest setup.py test
 
 # pyNN-NEST installation test:
-# CMD $BASEENV/bin/python -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
+# CMD $BASEENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 #For running tests
 #CMD $BASEENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
