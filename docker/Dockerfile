@@ -55,6 +55,7 @@ RUN $BASEENV/bin/pip3 install --upgrade pip; \
     $BASEENV/bin/pip3 install --upgrade nose ipython numpy scipy matplotlib; \
     $BASEENV/bin/pip3 install parameters quantities neo "django<1.9" django-tagging future hgapi gitpython sumatra nixio numba gunicorn;
 
+# TODO: Find out if this is needed and whether the path to libpython3.10.so is correct irrespective of architecture:
 # Install from sources libneurosim (NEST boost dependency)
 WORKDIR $PACKAGES
 RUN git clone --depth 1 https://github.com/INCF/libneurosim.git; \
@@ -89,6 +90,9 @@ RUN cd $NEST; \
           ${NEST_SRC}; \
     make; make install
 
+# Install nestml
+RUN $BASEENV/bin/pip3 install --target d:$PACKAGES nestml
+
 # Install NESTServerClient
 RUN $BASEENV/bin/pip3 install flask_cors RestrictedPython;
 WORKDIR $PACKAGES
@@ -96,20 +100,11 @@ RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
      $BASEENV/bin/python3 setup.py install --user;
 
-# Install nestml
-RUN $BASEENV/bin/pip3 install --target d:$PACKAGES nestml
-
 # Other (large) packages added for scientific work:
 RUN $BASEENV/bin/pip3 install plotly
 #RUN $BASEENV/bin/pip3 install torch
 #RUN $BASEENV/bin/pip3 install sbi
 # RUN $BASEENV/bin/pip3 install sbibm
-
-# Install TVB specific packages
-WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install pandas xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
-    $BASEENV/bin/pip3 install --ignore-installed entrypoints; \
-    $BASEENV/bin/pip3 install werkzeug;
 
 # Install TVB-multiscale specific packages
 WORKDIR $PACKAGES
@@ -125,6 +120,12 @@ RUN $BASEENV/bin/pip3 install pyspike --user;
 # Install Elephant
 WORKDIR $PACKAGES
 RUN $BASEENV/bin/pip3 install elephant;
+
+# Install TVB specific packages
+WORKDIR $PACKAGES
+RUN $BASEENV/bin/pip3 install pandas xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
+    $BASEENV/bin/pip3 install --ignore-installed entrypoints; \
+    $BASEENV/bin/pip3 install werkzeug;
 
 # Install some additional packages for TVB:
 # For tvb-library:
@@ -163,12 +164,6 @@ RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     $BASEENV/bin/python3 setup.py develop --no-deps --user;
 
-# Install Jupyter notebook specific packages
-RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl --user;
-
-# TODO: Find how to solve the mpl_toolkits warning problem:
-# RUN $BASEENV/bin/pip3 install --upgrade matplotlib
-
 # Checkout specific branch of tvb-multiscale
 WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
@@ -184,6 +179,12 @@ WORKDIR $PACKAGES
 
 # Install ray:
 RUN $BASEENV/bin/pip3 install -U "ray"
+
+# Install Jupyter notebook specific packages
+RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl --user;
+
+# TODO: Find how to solve the mpl_toolkits warning problem:
+# RUN $BASEENV/bin/pip3 install --upgrade matplotlib
 
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=${NEST_INSTALL_DIR}
