@@ -65,7 +65,10 @@ RUN mkdir libneurosim; \
     cd libneurosim; \
     PYTHON=$BASEENV/bin/python3 $PACKAGES/libneurosim/configure --prefix=$BASEENV; \
     make; make install; ls $BASEENV/lib $BASEENV/include;
-RUN ln -s /usr/lib/python3.10/config-x86_64-linux-gnu/libpython3.10.so $LOCALENV/lib/;
+RUN export LIBPYTHONPATH=$($BASEENV/bin/python3 -c "import glob; print(glob.glob('/usr/lib/python3.10/config*/libpython3.10.so')[0])"); \
+    echo LIBPYTHONPATH=$LIBPYTHONPATH; \
+    ln -s $LIBPYTHONPATH $LOCALENV/lib/; \
+    ls  $LOCALENV/lib;
 
 # Install NEST, latest stable version 3.5
 ARG NEST_VER=3.5
