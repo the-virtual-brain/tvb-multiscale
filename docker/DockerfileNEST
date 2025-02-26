@@ -115,10 +115,6 @@ RUN cd tvb-multiscale; \
     git checkout dev; \
     $BASEENV/bin/python3 setup.py develop --no-deps --user;
 
-# Install Jupyter notebook specific packages
-WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl;
-
 # Checkout specific branch of tvb-multiscale
 # WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
@@ -133,6 +129,10 @@ RUN cd tvb-multiscale; \
 ## TODO: Solve problems with ray in this Docker image!
 ## Install ray:
 RUN $BASEENV/bin/pip3 install -U "ray"
+
+# Install Jupyter notebook specific packages
+WORKDIR $PACKAGES
+RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl;
 
 WORKDIR $HOME
 # Activate the right python env.
