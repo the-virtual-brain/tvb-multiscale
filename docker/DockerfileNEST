@@ -7,7 +7,7 @@
 #
 
 # Install NEST
-ARG NEST_VER=3.5
+ARG NEST_VER=3.8
 ARG NEST_DESKTOP_HOST=0.0.0.0
 ARG NEST_DESKTOP_PORT=8000
 ARG NEST_SERVER_HOST=0.0.0.0
@@ -19,7 +19,7 @@ FROM docker-registry.ebrains.eu/nest/nest-simulator:$NEST_VER
 
 MAINTAINER lia.domide@codemart.ro
 
-RUN apt-get update; apt-get install -y git nodejs;  apt-get clean;
+RUN apt-get update; apt-get install -y nodejs;  apt-get clean;
 
 ENV BASEENV=/usr
 RUN ln -s /opt/bin/nest-server $BASEENV/nest-server
