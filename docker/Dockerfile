@@ -246,16 +246,16 @@ WORKDIR /home/docker/
 # CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/docker/module_build_test.py
 
 # pynestml installation test:
-# CMD cd /home/docker/packages/nestml; $LOCALENV/bin/pytest setup.py test
+# CMD cd /home/docker/packages/nestml; $BASEENV/bin/pytest setup.py test
 
 # pyNN-NEST installation test:
-# CMD $LOCALENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
+# CMD $BASEENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 # For running tests
-# CMD $LOCALENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
+# CMD $BASEENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
 
 # For running tests with coverage
-# CMD $LOCALENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
+# CMD $BASEENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 # Run jupyter lab
 # CMD $LOCALENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
