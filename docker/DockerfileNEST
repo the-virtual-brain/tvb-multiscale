@@ -31,7 +31,7 @@ ARG HOME=/home/docker
 RUN mkdir $HOME/build; mkdir $HOME/packages
 ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
-ENV LOCALENV=$HOME/local
+ENV LOCALENV=/usr/local
 ENV DOTLOCALENV=$HOME/.local
 ENV PYTHONPATH=$PYTHONPATH:$BASEENV:$LOCALENV:$DOTLOCALENV
 ENV PATH="${BASEENV}/bin":"${LOCALENV}/bin":"${DOTLOCALENV}/bin":${PATH};
@@ -125,7 +125,7 @@ RUN cd tvb-multiscale; \
 # Compile tvb-netpyne .mod files
 WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
-    $LOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
+    $DOTLOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
 ## TODO: Solve problems with ray in this Docker image!
 ## Install ray:
@@ -188,11 +188,11 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #    done
 # ----------------------------------------------------------------------------------------------------------------------
 
-## Final configurations
-## tvb42
+# Final configurations
+# tvb42
 RUN $LOCALENV/bin/jupyter-notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>$HOME/.jupyter/jupyter_notebook_config.py; \
-    echo "c.MultiKernelManager.default_kernel_name='neurosci'">>$HOME/.jupyter/jupyter_notebook_config.py
+    echo "c.MultiKernelManager.default_kernel_name='neurosci'">>$HOME/.jupyter/jupyter_notebook_config.py;
 
 WORKDIR $HOME
 
@@ -220,10 +220,10 @@ WORKDIR $HOME
 #For running tests with coverage
 #CMD $BASEENV/bin/pytest --cov=nest_tests_coverage $PACKAGES/tvb-multiscale/tests
 
+# CMD /bin/bash
+
 # Run jupyter lab
-# CMD $LOCLENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
+# CMD $LOCALENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
 
 # Run jupyter notebooks
-CMD $LOCLENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
-
-# CMD /bin/bash
+CMD $LOCALENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
