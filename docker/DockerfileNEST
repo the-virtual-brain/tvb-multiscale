@@ -223,6 +223,6 @@ WORKDIR $HOME
 # CMD $LOCLENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
 
 # Run jupyter notebooks
-# CMD $LOCLENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $LOCLENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
-CMD /bin/bash
+# CMD /bin/bash
