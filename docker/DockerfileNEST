@@ -32,8 +32,9 @@ RUN mkdir $HOME/build; mkdir $HOME/packages
 ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
 ENV LOCALENV=$HOME/local
-ENV PYTHONPATH=$PYTHONPATH:$BASEENV:$LOCALENV
-ENV PATH="${BASEENV}/bin":"${LOCALENV}/bin":${PATH};
+ENV DOTLOCALENV=$HOME/.local
+ENV PYTHONPATH=$PYTHONPATH:$BASEENV:$LOCALENV:$DOTLOCALENV
+ENV PATH="${BASEENV}/bin":"${LOCALENV}/bin":"${DOTLOCALENV}/bin":${PATH};
 
 # TODO: Find out if these are really needed:
 RUN $BASEENV/bin/pip3 install --upgrade pip;
