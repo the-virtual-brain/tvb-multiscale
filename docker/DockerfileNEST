@@ -19,7 +19,7 @@ FROM docker-registry.ebrains.eu/nest/nest-simulator:$NEST_VER
 
 MAINTAINER lia.domide@codemart.ro
 
-RUN apt-get update; apt-get install -y nodejs;  apt-get clean;
+RUN apt-get update; apt-get install -y git nodejs;  apt-get clean;
 
 ENV BASEENV=/usr
 RUN ln -s /opt/bin/nest-server $BASEENV/nest-server
