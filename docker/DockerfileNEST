@@ -6,8 +6,8 @@
 # Finally link tvb-multiscale from Github sources.
 #
 
-# Install NEST, latest stable version (February 2025)
-ARG NEST_VER=3.8
+# Install NEST
+ARG NEST_VER=3.5
 ARG NEST_DESKTOP_HOST=0.0.0.0
 ARG NEST_DESKTOP_PORT=8000
 ARG NEST_SERVER_HOST=0.0.0.0
@@ -19,10 +19,10 @@ FROM docker-registry.ebrains.eu/nest/nest-simulator:$NEST_VER
 
 MAINTAINER lia.domide@codemart.ro
 
-# ENV DEBIAN_FRONTEND noninteractive
-ENV LANG=C.UTF-8
+RUN apt-get update; apt-get install -y nodejs;  apt-get clean;
 
-RUN apt-get update; apt-get install -y python3-venv python3-virtualenv git;
+ENV BASEENV=/usr
+RUN ln -s /opt/bin/nest-server $BASEENV/nest-server
 
 # Create user different than root
 RUN useradd -ms /bin/bash docker
@@ -31,13 +31,11 @@ ARG HOME=/home/docker
 RUN mkdir $HOME/build; mkdir $HOME/packages
 ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
-ENV BASEENV=/usr
-ENV LOCALENV=$HOME/.local
+ENV LOCALENV=$HOME/local
 ENV PYTHONPATH=$PYTHONPATH:$BASEENV:$LOCALENV
 ENV PATH="${BASEENV}/bin":"${LOCALENV}/bin":${PATH};
 
-# Create a dedicated Python env for working in it
-ENV VENV=$HOME/env/neurosci
+# TODO: Find out if these are really needed:
 RUN $BASEENV/bin/pip3 install --upgrade pip;
 RUN $BASEENV/bin/pip3 install --upgrade nose;
 
@@ -57,10 +55,12 @@ RUN $BASEENV/bin/pip3 install ANNarchy;
 # Install pyNN
 # RUN pip install pyNN
 # Install Pyspike:
-RUN $BASEENV/bin/pip3 install pyspike --user
+RUN $BASEENV/bin/pip3 install pyspike --user;
+# Install Elephant:
+RUN $BASEENV/bin/pip3 install quantities neo elephant;
 
 ## Other (large) packages added for scientific work:
-RUN $BASEENV/bin/pip3 install plotly
+RUN $BASEENV/bin/pip3 install plotly;
 # RUN $BASEENV/bin/pip3 install torch
 # RUN $BASEENV/bin/pip3 install sbi
 # RUN $BASEENV/bin/pip3 install sbibm
@@ -77,7 +77,15 @@ RUN $BASEENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr c
 # for tvb-framework:
 RUN $BASEENV/bin/pip3 install alembic bctpy cherrypy flask-restx formencode gevent nibabel;
 RUN $BASEENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson;
-RUN $BASEENV/bin/pip3 install tvb-data tvb-gdist;
+RUN $BASEENV/bin/pip3 install tvb-data;  #  tvb-gdist;
+
+# TODO: Deal with this new error...:
+#ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions,
+# please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
+#    unknown package:
+#        Expected sha256 afe042757b8f93af31e3c27eda3d2f8d9c1aeaf37c496ad3a381ca9717489d8b
+#             Got        51a80d575c1efc82071f5dadc6afa90ada0db8791f7835e3c4d32d4e8c41a9de
+
 
 # Clone and install tvb-root
 WORKDIR $PACKAGES
@@ -104,14 +112,12 @@ RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
+    git checkout dev; \
     $BASEENV/bin/python3 setup.py develop --no-deps --user;
-
 
 # Install Jupyter notebook specific packages
 WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl; # jupyter_contrib_nbextensions
-#RUN $LOCALENV/bin/jupyter-contrib nbextension install --user;
-#RUN $LOCALENV/bin/jupyter-nbextension enable --py widgetsnbextension;  # --sys-prefix
+RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl;
 
 # Checkout specific branch of tvb-multiscale
 # WORKDIR $PACKAGES
@@ -181,43 +187,42 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 #    done
 # ----------------------------------------------------------------------------------------------------------------------
 
-# Final configurations
-# tvb42
+## Final configurations
+## tvb42
 RUN $LOCALENV/bin/jupyter-notebook --generate-config; \
-    echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py; \
-    echo "c.MultiKernelManager.default_kernel_name='neurosci'">>/home/docker/.jupyter/jupyter_notebook_config.py
+    echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>$HOME/.jupyter/jupyter_notebook_config.py; \
+    echo "c.MultiKernelManager.default_kernel_name='neurosci'">>$HOME/.jupyter/jupyter_notebook_config.py
 
-RUN ln -s /opt/bin/nest-server $LOCALENV/nest-server
+WORKDIR $HOME
 
-WORKDIR /home/docker/
-
-# Activate the right python env
-ENV PYTHONPATH $BASEENV
-ENV SLI_PATH $BASEENV
-RUN echo ". $BASEENV/bin/activate" >> .profile
+# TODO: Find out if this is correct and/or necessary!
+# ENV SLI_PATH $BASEENV
 
 # For running examples
-#CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/docker/installation_test.py
-# CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
-# CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/examples/tvb_nest/example.py
+# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/docker/installation_test.py
+# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
+# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/examples/tvb_nest/example.py
 
 # Test NEST installation
 # RUN cd $NEST; make installcheck
-# CMD $BASEENV/bin/python3 /home/docker/packages/tvb-multiscale/docker/module_build_test.py
+# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/docker/module_build_test.py
 
 # pynestml installation test:
-# CMD cd /home/docker/packages/nestml; $BASEENV/bin/pytest setup.py test
+# CMD cd $PACKAGES/nestml; $BASEENV/bin/pytest setup.py test
 
 # pyNN-NEST installation test:
 # CMD $BASEENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 #For running tests
-#CMD $BASEENV/bin/pytest /home/docker/packages/tvb-multiscale/tests
+#CMD $BASEENV/bin/pytest $PACKAGES/tvb-multiscale/tests
 
 #For running tests with coverage
-#CMD $BASEENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
+#CMD $BASEENV/bin/pytest --cov=nest_tests_coverage $PACKAGES/tvb-multiscale/tests
 
 #Run jupyter notebooks
-CMD $LOCALENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
+# CMD $LOCLENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
-# CMD /bin/bash
+#Run jupyter lab
+# CMD $LOCLENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
+
+CMD /bin/bash
