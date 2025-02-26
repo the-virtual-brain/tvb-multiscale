@@ -213,16 +213,16 @@ WORKDIR $HOME
 # pyNN-NEST installation test:
 # CMD $BASEENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
-#For running tests
-#CMD $BASEENV/bin/pytest $PACKAGES/tvb-multiscale/tests
+# For running tests
+# CMD $BASEENV/bin/pytest $PACKAGES/tvb-multiscale/tests
 
 #For running tests with coverage
 #CMD $BASEENV/bin/pytest --cov=nest_tests_coverage $PACKAGES/tvb-multiscale/tests
 
-#Run jupyter notebooks
-# CMD $LOCLENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
-
-#Run jupyter lab
+# Run jupyter lab
 # CMD $LOCLENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
+
+# Run jupyter notebooks
+# CMD $LOCLENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
 CMD /bin/bash
