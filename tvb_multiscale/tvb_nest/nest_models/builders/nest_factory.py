@@ -293,8 +293,8 @@ def create_device(device_model, params=dict(), config=CONFIGURED, nest_instance=
             if isinstance(record_parrot, dict):
                 record_parrot = safe_deepcopy(record_parrot)
                 rec_params.update(record_parrot)
-            nest_device._record = nest_instance.Create("spike_recorder", params=rec_params)
-            nest_instance.Connect(nest_device._nodes, nest_device._record)
+            nest_device.self_recorder = nest_instance.Create("spike_recorder", params=rec_params)
+            nest_instance.Connect(nest_device._nodes, nest_device.self_recorder)
     else:
         if input_device:
             nest_device = devices_dict[device_model](nest_device_node_collection, nest_instance, label=label)
