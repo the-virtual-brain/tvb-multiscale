@@ -316,7 +316,7 @@ def create_input_device(annarchy_device, import_path, params=dict(), config=CONF
             record = safe_deepcopy(record)
             rec_params = list(record.values())[0]
             record = list(record.keys())[0]
-        annarchy_device._record = \
+        annarchy_device.self_recorder = \
             annarchy_device.annarchy_instance.Monitor(annarchy_device._nodes, record, **rec_params)
     return annarchy_device
 
