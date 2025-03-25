@@ -57,13 +57,14 @@ def compile_modules(modules, nestml_flag=False, config=CONFIGURED, logger=LOG):
     """Function to compile NEST modules.
        Arguments:
         modules: a sequence (list, tuple) of NEST modules' names (strings).
-        nestml_flag: (bool) flag to compile NESTML files using . Default = False.
+        nestml_flag: (bool) flag to compile NESTML files. Default = False.
         config: configuration class instance. Default: imported default CONFIGURED object.
         logger: logger object. Default: local LOG object.
     """
     # ...unless we need to first compile it:
     logger.info("Preparing MYMODULES_BLD_DIR: %s" % config.MYMODULES_BLD_DIR)
     safe_makedirs(config.MYMODULES_BLD_DIR)
+    cwd = os.getcwd()
     for module in ensure_list(modules):
         module_path = os.path.join(config.MYMODULES_DIR, module)
         modulemodule = module + "module"
@@ -88,7 +89,6 @@ def compile_modules(modules, nestml_flag=False, config=CONFIGURED, logger=LOG):
                 # Create a  module build directory and copy there the source files:
                 logger.info("Copying module sources from %s\ninto %s..." % (module_path, module_bld_dir))
                 shutil.copytree(module_path, module_bld_dir)
-                cwd = os.getcwd()
                 os.chdir(module_bld_dir)
                 logger.info("Changed to build directory %s..." % os.getcwd())
                 # This is our shell command, executed by Popen.
@@ -99,17 +99,18 @@ def compile_modules(modules, nestml_flag=False, config=CONFIGURED, logger=LOG):
                     logger.info(out.decode())
                 if err:
                     logger.error(err.decode())
+        except Exception as e:
+            if os.getcwd() != cwd:
                 os.chdir(cwd)
                 logger.info("Changed back to directory %s..." % os.getcwd())
-        except Exception as e:
             logger.info("Changed back to directory %s..." % os.getcwd())
             raise e
         logger.info("Compiling finished without errors...")
         installed_files = {}
-        for file in [os.path.join(config.NEST_INCLUDE_PATH, modulemodule, modulemodule + ".h"),
-                     os.path.join(config.NEST_SLI_PATH, modulemodule + "-init.sli"),
-                     os.path.join(config.NEST_MODULE_PATH, modulemodule + ".so"),
-                     os.path.join(config.NEST_MODULE_PATH, "lib" + modulemodule + ".so")]:
+        for file in [
+                     # os.path.join(config.NEST_INCLUDE_PATH, "nest",  modulemodule + ".h"),
+                     #W os.path.join(config.NEST_SLI_PATH, modulemodule + "-init.sli"),
+                     os.path.join(config.NEST_MODULE_PATH, modulemodule + ".so")]:
             installed_files[file] = os.path.isfile(file)
         if all(installed_files.values()):
             logger.info(success_message)
@@ -118,6 +119,9 @@ def compile_modules(modules, nestml_flag=False, config=CONFIGURED, logger=LOG):
             logger.warn("Something seems to have gone wrong with compiling and/or installing %s!"
                         "\n Installed files (not) found (True (False) respectively)!:\n%s"
                         % (module, str(installed_files)))
+    if os.getcwd() != cwd:
+        os.chdir(cwd)
+        logger.info("Changed back to directory %s..." % os.getcwd())
 
 
 def get_populations_neurons(population, inds_fun=None):
