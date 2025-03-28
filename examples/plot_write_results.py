@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 import os
+import time
 
 import numpy as np
 
@@ -29,11 +31,22 @@ from tvb.simulator.plot.base_plotter import pyplot
 from tvb.contrib.scripts.datatypes.time_series import TimeSeriesRegion
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as TimeSeriesXarray
 
+
 try:
     import pyspike
     PYSPIKE = True
+    warnings.warn("PySpike not found! Trying to install it!")
+    try:
+        import subprocess
+        p = subprocess.Popen("pip3 install pyspike", stdout=subprocess.PIPE, shell=True)
+        print(p.communicate())
+        time.sleep(1.0)
+        import pyspike
+    except:
+        warnings.warn("Failed to install pyspike!")
 except:
     PYSPIKE = False
+
 
 MAX_VARS_IN_COLS = 3
 MAX_REGIONS_IN_ROWS = 10
