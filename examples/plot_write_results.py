@@ -35,17 +35,18 @@ from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeriesRegion as
 try:
     import pyspike
     PYSPIKE = True
-    warnings.warn("PySpike not found! Trying to install it!")
+except Exception as e:
+    warnings.warn("Failed to import pyspike with error!:\n%s\nTrying to install it!" % str(e))
     try:
         import subprocess
         p = subprocess.Popen("pip3 install pyspike", stdout=subprocess.PIPE, shell=True)
         print(p.communicate())
         time.sleep(1.0)
         import pyspike
-    except:
-        warnings.warn("Failed to install pyspike!")
-except:
-    PYSPIKE = False
+        PYSPIKE = True
+    except Exception as e:
+        warnings.warn("Failed to install pyspike with error!:\n%s" % str(e))
+        PYSPIKE = False
 
 
 MAX_VARS_IN_COLS = 3
