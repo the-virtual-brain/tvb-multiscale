@@ -76,7 +76,7 @@ class Transformer(HasTraits):
                         doc="""Boolean flag to use Ray parallelization if possible. Default is True.""",
                         field_type=bool,
                         required=True,
-                        default=True)
+                        default=CONFIGURED.RAY_PARALLEL)
 
     __compute = None
 
