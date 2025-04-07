@@ -6,7 +6,8 @@ import numpy as np
 
 from tvb.basic.neotraits._attr import Attr, Float, NArray
 
-from tvb_multiscale.core.interfaces.transformers.models.base import RatesToSpikes, SpikesToRates, configure_transformer_with_ray
+from tvb_multiscale.core.interfaces.transformers.models.base import \
+    RatesToSpikes, SpikesToRates, configure_transformer_with_ray
 
 
 try:
