@@ -228,8 +228,10 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
     def _events(self, onlyNew):
         """Method to convert and place continuous time data measured from Monitors, to an events dictionary."""
         result = {}
-        if onlyNew:
-            timeSlice = slice(self._output_events_index, None)
+        if onlyNew: # n last steps only
+            timeSlice = slice(self._output_events_index, self._output_events_index + self.netpyne_instance.synchronization_n_step)
+            # TODO: this would be more elegant, but results in assertion error in CoSimulator._prepare_cosimulation_call, need to fix:
+            # timeSlice = slice(-self.netpyne_instance.synchronization_n_step, None)
         else:
             timeSlice = slice(None)
 
@@ -243,8 +245,8 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
         result['times'] = time.repeat(self.number_of_neurons)
         result['senders'] = np.tile(self.neurons, len(time))
 
-        if not onlyNew:
-            self._output_events_index = len(time)
+        if onlyNew:
+            self._output_events_index += len(time)
 
         return result
 
@@ -265,14 +267,19 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
 
         time = self.netpyne_instance.getRecordedTime()
 
-        # shape (vars, neurs, time)
-        data = np.zeros((len(variables), len(self.neurons), len(time)))
+        if len(time) <= 1: # sim has not yet started
+            data = None
+        else:
+            events = self._events(onlyNew=new)
+            # shape (vars, neurs, time)
+            time = np.unique(events["times"])
+            data = np.zeros((len(variables), len(self.neurons), len(time)))
 
-        for varInd, var in enumerate(variables):
-            data[varInd] = self.netpyne_instance.getTraces(var, self.neurons)
+            for varInd, var in enumerate(variables):
+                data[varInd] = events[var].reshape(len(self.neurons), -1)
 
-        # reshape to (time, vars, neurs)
-        data = data.transpose(2, 0, 1)
+            # reshape to (time, vars, neurs)
+            data = data.transpose(2, 0, 1)
 
         m_data = DataArray(
             data,

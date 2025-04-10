@@ -47,7 +47,7 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
 
         super(NetpyneNetworkBuilder, self).configure()
         self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
-        self.netpyne_instance.importModel(netParams, simConfig, self.spiking_dt, self.config)
+        self.netpyne_instance.importModel(netParams, simConfig, self.spiking_dt, self.tvb_dt, self.config)
 
     @abstractmethod
     def proxy_node_synaptic_model_funcs(self):
