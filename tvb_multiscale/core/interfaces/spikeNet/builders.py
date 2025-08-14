@@ -338,7 +338,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
             delays[i_node] = delay_fun(spiking_node)
             if neurons_inds_fun is not None:
-                neurons_inds[i_node] = lambda neur_inds: neurons_inds_fun(spiking_node, neur_inds)
+                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
         _interface = dict()
         _interface["delays"] = delays
         _interface["neurons_fun"] = neurons_inds
