@@ -21,8 +21,12 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
 
 class DefaultTVBtoSpikeNetProxyModels(object):
     RATE = "RATE"
+    RATE_TO_SPIKES = "RATE_TO_SPIKES"
+    RATE_TO_CORRELATED_SPIKES = "RATE_TO_CORRELATED_SPIKES"
     SPIKES = "SPIKES"
+    PARROT_SPIKES = "PARROT_SPIKES"
     CURRENT = "CURRENT"
+    CURRENT_TO_SPIKES = "CURRENT_TO_SPIKES"
 
 
 class DefaultSpikeNetToTVBProxyModels(object):

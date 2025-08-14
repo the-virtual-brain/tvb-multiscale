@@ -32,7 +32,12 @@ NetpyneToTVBModels = SpikeNetToTVBModels
 
 class NetpyneInputProxyModels(Enum):
     RATE = NetpynePoissonGeneratorSet
+    RATE_TO_SPIKES = None
+    RATE_TO_CORRELATED_SPIKES = None
     SPIKES = None
+    PARROT_SPIKES = None
+    CURRENT = None
+    CURRENT_TO_SPIKES = None
 
 
 class NetpyneOutputProxyModels(Enum):
@@ -48,7 +53,12 @@ class NetpyneOutputProxyModels(Enum):
 
 class DefaultTVBtoNetpyneProxyModels(object):
     RATE = NetpyneInputProxyModels.RATE.name
+    RATE_TO_SPIKES = None
+    RATE_TO_CORRELATED_SPIKES = None
     SPIKES = None
+    PARROT_SPIKES = None
+    CURRENT = None
+    CURRENT_TO_SPIKES = None
 
 
 class DefaultNetpyneToTVBProxyModels(object):

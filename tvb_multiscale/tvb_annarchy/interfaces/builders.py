@@ -39,7 +39,9 @@ class ANNarchyInputProxyModels(Enum):
     RATE_TO_SPIKES = ANNarchyTimedPoissonPopulationSet
     RATE_TO_CORRELATED_SPIKES = ANNarchyHomogeneousCorrelatedSpikeTrainsSet
     SPIKES = ANNarchySpikeSourceArraySet
+    PARROT_SPIKES = None
     CURRENT = ANNarchyTimedArraySet
+    CURRENT_TO_SPIKES = None
 
 
 class ANNarchyOutputProxyModels(Enum):
@@ -55,8 +57,12 @@ class ANNarchyOutputProxyModels(Enum):
 
 class DefaultTVBtoANNarchyProxyModels(object):
     RATE = ANNarchyInputProxyModels.RATE.name
+    RATE_TO_SPIKES = ANNarchyInputProxyModels.RATE_TO_SPIKES.name
+    RATE_TO_CORRELATED_SPIKES = ANNarchyInputProxyModels.RATE_TO_CORRELATED_SPIKES.name
     SPIKES = ANNarchyInputProxyModels.SPIKES.name
-    CURRENT =ANNarchyInputProxyModels.CURRENT.name
+    PARROT_SPIKES = None
+    CURRENT = ANNarchyInputProxyModels.CURRENT.name
+    CURRENT_TO_SPIKES = None
 
 
 class DefaultANNarchytoTVBProxyModels(object):

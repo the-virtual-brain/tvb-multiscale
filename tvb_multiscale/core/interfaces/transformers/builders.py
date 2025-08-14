@@ -33,6 +33,7 @@ class TVBtoSpikeNetTransformers(Enum):
     SPIKES_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
     SPIKES_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
     CURRENT = LinearCurrent
+    CURRENT_TO_SPIKES = LinearCurrent
 
 
 class SpikeNetToTVBTransformers(Enum):
@@ -48,6 +49,7 @@ class DefaultTVBtoSpikeNetTransformers(object):
     RATE = TVBtoSpikeNetTransformers.RATE.name
     SPIKES = TVBtoSpikeNetTransformers.SPIKES.name
     CURRENT = TVBtoSpikeNetTransformers.CURRENT.name
+    CURRENT_TO_SPIKES = TVBtoSpikeNetTransformers.CURRENT.name
 
 
 class DefaultSpikeNetToTVBTransformers(object):
