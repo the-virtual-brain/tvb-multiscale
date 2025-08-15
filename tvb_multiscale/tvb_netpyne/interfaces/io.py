@@ -9,8 +9,10 @@ from tvb_multiscale.core.interfaces.spikeNet.io import \
     SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
-    NetpyneInputDevice, NetpynePoissonGenerator, \
+    NetpyneInputDevice, NetpynePoissonGenerator, NetpyneParameterInput, \
     NetpyneOutputDevice, NetpyneSpikeRecorder, NetpyneMultimeter
+
+from tvb.basic.neotraits.api import List
 
 
 class NetpyneInputDeviceSet(SpikeNetInputDeviceSet):
@@ -57,6 +59,45 @@ class NetpynePoissonGeneratorSet(NetpyneInputDeviceSet):
         nodesNumber = data[1].shape[0]
         self.target.Set({"rate_times": [self.transform_time(data[0]).tolist()] * nodesNumber,
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
+
+
+class NetpyneParameterInputSet(NetpyneInputDeviceSet):
+
+    """
+        NetpyneParameterInputSet class to set data directly to a DeviceSet
+        of NetpyneParameterInput instances in memory
+        It comprises of:
+            - a target attribute, i.e., a DeviceSet of NetpyneParameterInput instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "parameter_input"
+
+    _spikeNet_input_device_type = NetpyneParameterInput
+
+    parameters = List(required=True,
+                      of=str,
+                      default=list(),
+                      label="Parameters to receive time resolved input.",
+                      doc="""List of parameters' names (of type str) to receive time resolved input.""")
+
+    def configure(self):
+        super(NetpyneParameterInputSet, self).configure()
+        self.n_parameters = len(self.parameters)
+        assert self.n_parameters > 0
+
+    def send(self, data):
+        # Assuming data is of shape (proxy, time, parameters)
+        nodesNumber = data[1].shape[0]
+        if data[1].ndim == 2:
+            data[1] = data[1][:, :, np.newaxis]  # make sure that data is 3D
+        assert data[1].shape[2] == self.n_parameters
+        values_dict = dict()
+        # Set times, although in principle this should be optional:
+        values_dict["times"] = [self.transform_time(data[0]).tolist()] * nodesNumber
+        for iP, param in enumerate(self.parameters):
+            values_dict[param] = data[1][:, :, iP].tolist()
+        self.target.Set(values_dict)
 
 
 class NetpyneOutputDeviceSet(SpikeNetOutputDeviceSet):
