@@ -16,6 +16,8 @@ class NetpyneDevice(HasTraits):
         self.netpyne_instance = netpyne_instance
         HasTraits.__init__(self)
         self.params = kwargs.get('params')
+        for pname, pval in params.items():
+            setattr(self, pname, pval)
 
     @property
     def spiking_simulator_module(self):
@@ -150,7 +152,31 @@ class NetpynePoissonGenerator(NetpyneInputDevice):
             self.spikesPerNeuron[gid].extend(spikes)
 
 
-NetpyneSpikeInputDeviceDict = {"poisson_generator": NetpynePoissonGenerator}
+class NetpyneParameterInput(NetpyneInputDevice):
+
+    def __init__(self, population, netpyne_instance, *args, **kwargs):
+        # In this case, the "device" is actually a neuronal population
+        # The model can be any model of neurons.
+        kwargs["model"] = kwargs.pop("model", "netpyne_population")
+        super(NetpyneParameterInput, self).__init__(population, netpyne_instance, *args, **kwargs)
+
+    @property
+    def neurons(self):
+        """Method to get the indices of all the neurons of the population."""
+        return self.own_neurons
+
+    def _Set(self, values_dict, nodes=None):
+        # The values_dict should have the following keys:
+        # Necessary: Names of parameters to modify, i.e., g_ampa, g_gaba
+        # Optionally: times
+
+        # Code to set the correct parameters with vectors of values, one value per NetPyNE dt,
+        # i.e., this will require knowledge of the (exact!) ratio of TVB and NetPyNE dt!
+        raise NotImplemented
+
+
+NetpyneSpikeInputDeviceDict = {"poisson_generator": NetpynePoissonGenerator,
+                               "parameter_input": NetpyneParameterInput}
 
 
 NetpyneInputDeviceDict = {}
