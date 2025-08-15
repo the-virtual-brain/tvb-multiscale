@@ -21,7 +21,8 @@ from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
     NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
-    NetpynePoissonGeneratorSet, NetpyneMultimeterSet, NetpyneMultimeterMeanSet, NetpyneMultimeterTotalSet
+    NetpynePoissonGeneratorSet, NetpyneParameterInputSet, \
+    NetpyneMultimeterSet, NetpyneMultimeterMeanSet, NetpyneMultimeterTotalSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
@@ -37,7 +38,7 @@ class NetpyneInputProxyModels(Enum):
     SPIKES = None
     PARROT_SPIKES = None
     CURRENT = None
-    CURRENT_TO_SPIKES = None
+    CURRENT_TO_SPIKES = NetpyneParameterInputSet
 
 
 class NetpyneOutputProxyModels(Enum):
@@ -58,7 +59,7 @@ class DefaultTVBtoNetpyneProxyModels(object):
     SPIKES = None
     PARROT_SPIKES = None
     CURRENT = None
-    CURRENT_TO_SPIKES = None
+    CURRENT_TO_SPIKES = NetpyneInputProxyModels.CURRENT_TO_SPIKES.name
 
 
 class DefaultNetpyneToTVBProxyModels(object):
