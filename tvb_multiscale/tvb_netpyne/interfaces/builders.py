@@ -47,9 +47,9 @@ class NetpyneOutputProxyModels(Enum):
     POTENTIAL = NetpyneMultimeterSet
     POTENTIAL_MEAN = NetpyneMultimeterMeanSet
     POTENTIAL_TOTAL = NetpyneMultimeterTotalSet
-    CONDUCTANCE = NetpyneMultimeterSet
-    CONDUCTANCE_MEAN = NetpyneMultimeterMeanSet
-    CONDUCTANCE_TOTAL = NetpyneMultimeterTotalSet
+    CURRENT = NetpyneMultimeterSet
+    CURRENT_MEAN = NetpyneMultimeterMeanSet
+    CURRENT_TOTAL = NetpyneMultimeterTotalSet
 
 
 class DefaultTVBtoNetpyneProxyModels(object):
@@ -65,7 +65,7 @@ class DefaultTVBtoNetpyneProxyModels(object):
 class DefaultNetpyneToTVBProxyModels(object):
     SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = NetpyneOutputProxyModels.POTENTIAL_MEAN.name
-    CONDUCTANCE = NetpyneOutputProxyModels.CONDUCTANCE_MEAN.name
+    CURRENT = NetpyneOutputProxyModels.CURRENT_MEAN.name
 
 
 class NetpyneProxyNodesBuilder(SpikeNetProxyNodesBuilder):

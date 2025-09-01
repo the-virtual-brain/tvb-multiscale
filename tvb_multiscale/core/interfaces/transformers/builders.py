@@ -11,8 +11,7 @@ from tvb.basic.neotraits._attr import Attr, Float
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
-from tvb_multiscale.core.interfaces.transformers.models.base import \
-     LinearRate, LinearCurrent, LinearConductance, LinearPotential
+from tvb_multiscale.core.interfaces.transformers.models.base import LinearRate, LinearCurrent, LinearPotential
 from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -42,20 +41,19 @@ class SpikeNetToTVBTransformers(Enum):
     SPIKES_TO_HIST = ElephantSpikesHistogram
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
     POTENTIAL = LinearPotential
-    CONDUCTANCE = LinearConductance
+    CURRENT = LinearCurrent
 
 
-class DefaultTVBtoSpikeNetTransformers(object):
-    RATE = TVBtoSpikeNetTransformers.RATE.name
-    SPIKES = TVBtoSpikeNetTransformers.SPIKES.name
-    CURRENT = TVBtoSpikeNetTransformers.CURRENT.name
-    CURRENT_TO_SPIKES = TVBtoSpikeNetTransformers.CURRENT.name
+class DefaultTVBtoSpikeNetTransformers(Enum):
+    RATE = TVBtoSpikeNetTransformers.RATE
+    SPIKES = TVBtoSpikeNetTransformers.SPIKES
+    CURRENT = TVBtoSpikeNetTransformers.CURRENT
 
 
-class DefaultSpikeNetToTVBTransformers(object):
-    SPIKES = SpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
-    POTENTIAL = SpikeNetToTVBTransformers.POTENTIAL.name
-    CONDUCTANCE = SpikeNetToTVBTransformers.CONDUCTANCE.name
+class DefaultSpikeNetToTVBTransformers(Enum):
+    SPIKES = SpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE
+    POTENTIAL = SpikeNetToTVBTransformers.POTENTIAL
+    CURRENT = SpikeNetToTVBTransformers.CURRENT
 
 
 class TransformerBuilder(HasTraits):
@@ -100,26 +98,29 @@ class TransformerBuilder(HasTraits):
         # Return a model or an Enum
         model = interface.get("transformer", interface.pop("transformer_model", None))
         if model is None:
+            # If there was no input for a transformer model, get the interface model as a string:
             model = interface.get("model", None)
             if model is None:
                 model = list(interface_models)[0].name  # a string at this point
             else:
                 model = model.upper()
-            assert model in list(interface_models.__members__)  # Enum names (strings)
-            model = getattr(default_transformer_models, model)  # string name of transformer type
-        if isinstance(model, Enum):
-            # Enum input:
-            assert model in transformer_models
-        elif isinstance(model, string_types):
+            assert model in list(interface_models.__members__)        # Enum names (strings)
+            # Get the corresponding Enum:
+            model = getattr(default_transformer_models, model).value  # Enum
+        if isinstance(model, string_types):
+            # If the  transformer model is a string, get the corresponding Enum.
             # String input:
             model = model.upper()
             model = getattr(transformer_models, model)  # Get an Enum
-        else:
+        elif isinstance(model, Enum):
+            # Enum input:
+            assert model in transformer_models
+        else: # In this case we already have a model type or instance:
             transformer_models_tuple = tuple(get_enum_values(transformer_models))
             if inspect.isclass(model):
                 # assert it is a Transformer type...
                 assert issubclass(model, transformer_models_tuple)
-            else: # ...or instance
+            else:  # ...or instance
                 assert isinstance(model, transformer_models_tuple)
         interface["transformer"] = model
 

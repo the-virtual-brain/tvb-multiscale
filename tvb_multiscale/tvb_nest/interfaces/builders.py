@@ -53,9 +53,9 @@ class NESTOutputProxyModels(Enum):
     POTENTIAL = NESTVoltmeterSet
     POTENTIAL_MEAN = NESTVoltmeterMeanSet
     POTENTIAL_TOTAL = NESTVoltmeterTotalSet
-    CONDUCTANCE = NESTMultimeterSet
-    CONDUCTANCE_MEAN = NESTMultimeterMeanSet
-    CONDUCTANCE_TOTAL = NESTMultimeterTotalSet
+    CURRENT = NESTMultimeterSet
+    CURRENT_MEAN = NESTMultimeterMeanSet
+    CURRENT_TOTAL = NESTMultimeterTotalSet
 
 
 class DefaultTVBtoNESTModels(object):
@@ -71,7 +71,7 @@ class DefaultTVBtoNESTModels(object):
 class DefaultNESTtoTVBModels(object):
     SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
     POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
-    CONDUCTANCE = NESTOutputProxyModels.CONDUCTANCE_MEAN.name
+    CURRENT = NESTOutputProxyModels.CURRENT_MEAN.name
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):
