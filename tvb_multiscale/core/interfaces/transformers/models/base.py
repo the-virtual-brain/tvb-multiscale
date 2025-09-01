@@ -210,13 +210,6 @@ class LinearCurrent(Linear):
     pass
 
 
-class LinearConductance(Linear):
-    """LinearConductance class that just scales and translates mean field conductances
-       including any necessary unit conversions and conversions from mean field to total quantities."""
-
-    pass
-
-
 class LinearPotential(Linear):
     """LinearPotential class that just scales and translates mean field membrane potentials
        including any necessary unit conversions and conversions from mean field to total quantities."""
