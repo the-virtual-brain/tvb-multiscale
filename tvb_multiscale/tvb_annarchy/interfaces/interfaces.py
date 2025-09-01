@@ -16,12 +16,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.io import ANNarchyInputDeviceSet, AN
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 
 
-# TVBtoANNarchyModels = TVBtoSpikeNetModels
-class TVBtoANNarchyModels(Enum):
-    RATE = 0
-    SPIKES = 1
-
-
+TVBtoANNarchyModels = TVBtoSpikeNetModels
 ANNarchytoTVBModels = SpikeNetToTVBModels
 
 
