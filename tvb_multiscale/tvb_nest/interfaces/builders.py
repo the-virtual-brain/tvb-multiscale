@@ -58,20 +58,20 @@ class NESTOutputProxyModels(Enum):
     CURRENT_TOTAL = NESTMultimeterTotalSet
 
 
-class DefaultTVBtoNESTModels(object):
-    RATE = NESTInputProxyModels.RATE.name
-    RATE_TO_SPIKES = NESTInputProxyModels.RATE_TO_SPIKES.name
+class DefaultTVBtoNESTModels(Enum):
+    RATE = NESTInputProxyModels.RATE
+    RATE_TO_SPIKES = NESTInputProxyModels.RATE_TO_SPIKES
     RATE_TO_CORRELATED_SPIKES = None
-    SPIKES = NESTInputProxyModels.SPIKES.name
-    PARROT_SPIKES = NESTInputProxyModels.PARROT_SPIKES.name
-    CURRENT = NESTInputProxyModels.CURRENT.name
+    SPIKES = NESTInputProxyModels.SPIKES
+    PARROT_SPIKES = NESTInputProxyModels.PARROT_SPIKES
+    CURRENT = NESTInputProxyModels.CURRENT
     CURRENT_TO_SPIKES = None
 
 
-class DefaultNESTtoTVBModels(object):
-    SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
-    POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
-    CURRENT = NESTOutputProxyModels.CURRENT_MEAN.name
+class DefaultNESTtoTVBModels(Enum):
+    SPIKES = NESTOutputProxyModels.SPIKES_MEAN
+    POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN
+    CURRENT = NESTOutputProxyModels.CURRENT_MEAN
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):

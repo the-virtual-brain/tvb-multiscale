@@ -19,20 +19,20 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 
-class DefaultTVBtoSpikeNetProxyModels(object):
-    RATE = "RATE"
-    RATE_TO_SPIKES = "RATE_TO_SPIKES"
-    RATE_TO_CORRELATED_SPIKES = "RATE_TO_CORRELATED_SPIKES"
-    SPIKES = "SPIKES"
-    PARROT_SPIKES = "PARROT_SPIKES"
-    CURRENT = "CURRENT"
-    CURRENT_TO_SPIKES = "CURRENT_TO_SPIKES"
+class DefaultTVBtoSpikeNetProxyModels(Enum):
+    RATE = 0
+    RATE_TO_SPIKES = 1
+    RATE_TO_CORRELATED_SPIKES = 2
+    SPIKES = 3
+    PARROT_SPIKES = 4
+    CURRENT = 5
+    CURRENT_TO_SPIKES = 6
 
 
-class DefaultSpikeNetToTVBProxyModels(object):
-    SPIKES = "SPIKES_MEAN"
-    POTENTIAL = "POTENTIAL_MEAN"
-    CURRENT = "CURRENT_MEAN"
+class DefaultSpikeNetToTVBProxyModels(Enum):
+    SPIKES = 1
+    POTENTIAL = 2
+    CURRENT = 3
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
@@ -147,13 +147,15 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for interface in interfaces:
             model = interface.get("proxy", interface.pop("proxy_model", None))
             if model is None:
+                # If there was no input for a proxy model, get the interface model as a string:
                 model = interface.get("model", None)
                 if model is None:
                     model = list(interface_models)[0].name  # a string at this point
                 else:
                     model = model.upper()
                 assert model in list(interface_models.__members__)  # Enum names (strings)
-                model = getattr(default_proxy_models, model)  # a string name of a proxy type
+                # Get the corresponding Enum:
+                model = getattr(default_proxy_models, model).value  # Enum
             if isinstance(model, string_types):
                 # string input -> return type
                 model = model.upper()

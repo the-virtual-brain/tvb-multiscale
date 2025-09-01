@@ -52,20 +52,20 @@ class NetpyneOutputProxyModels(Enum):
     CURRENT_TOTAL = NetpyneMultimeterTotalSet
 
 
-class DefaultTVBtoNetpyneProxyModels(object):
-    RATE = NetpyneInputProxyModels.RATE.name
+class DefaultTVBtoNetpyneProxyModels(Enum):
+    RATE = NetpyneInputProxyModels.RATE
     RATE_TO_SPIKES = None
     RATE_TO_CORRELATED_SPIKES = None
     SPIKES = None
     PARROT_SPIKES = None
     CURRENT = None
-    CURRENT_TO_SPIKES = NetpyneInputProxyModels.CURRENT_TO_SPIKES.name
+    CURRENT_TO_SPIKES = NetpyneInputProxyModels.CURRENT_TO_SPIKES
 
 
-class DefaultNetpyneToTVBProxyModels(object):
-    SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
-    POTENTIAL = NetpyneOutputProxyModels.POTENTIAL_MEAN.name
-    CURRENT = NetpyneOutputProxyModels.CURRENT_MEAN.name
+class DefaultNetpyneToTVBProxyModels(Enum):
+    SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN
+    POTENTIAL = NetpyneOutputProxyModels.POTENTIAL_MEAN
+    CURRENT = NetpyneOutputProxyModels.CURRENT_MEAN
 
 
 class NetpyneProxyNodesBuilder(SpikeNetProxyNodesBuilder):

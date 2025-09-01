@@ -55,20 +55,20 @@ class ANNarchyOutputProxyModels(Enum):
     CURRENT_TOTAL = ANNarchyMonitorTotalSet
 
 
-class DefaultTVBtoANNarchyProxyModels(object):
-    RATE = ANNarchyInputProxyModels.RATE.name
-    RATE_TO_SPIKES = ANNarchyInputProxyModels.RATE_TO_SPIKES.name
-    RATE_TO_CORRELATED_SPIKES = ANNarchyInputProxyModels.RATE_TO_CORRELATED_SPIKES.name
-    SPIKES = ANNarchyInputProxyModels.SPIKES.name
+class DefaultTVBtoANNarchyProxyModels(Enum):
+    RATE = ANNarchyInputProxyModels.RATE
+    RATE_TO_SPIKES = ANNarchyInputProxyModels.RATE_TO_SPIKES
+    RATE_TO_CORRELATED_SPIKES = ANNarchyInputProxyModels.RATE_TO_CORRELATED_SPIKES
+    SPIKES = ANNarchyInputProxyModels.SPIKES
     PARROT_SPIKES = None
-    CURRENT = ANNarchyInputProxyModels.CURRENT.name
+    CURRENT = ANNarchyInputProxyModels.CURRENT
     CURRENT_TO_SPIKES = None
 
 
-class DefaultANNarchytoTVBProxyModels(object):
-    SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
-    POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN.name
-    CURRENT = ANNarchyOutputProxyModels.CURRENT_MEAN.name
+class DefaultANNarchytoTVBProxyModels(Enum):
+    SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN
+    POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN
+    CURRENT = ANNarchyOutputProxyModels.CURRENT_MEAN
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
