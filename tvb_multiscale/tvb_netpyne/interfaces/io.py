@@ -5,7 +5,7 @@ import numpy as np
 
 from tvb_multiscale.core.interfaces.spikeNet.io import \
     SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
-    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetSpikeEventRecorderDeviceSet, SpikeNetSpikeRecorderDeviceSet, \
     SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
@@ -116,10 +116,10 @@ class NetpyneOutputDeviceSet(SpikeNetOutputDeviceSet):
     _spikeNet_output_device_type = NetpyneOutputDevice
 
 
-class NetpyneSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NetpyneOutputDeviceSet):
+class NetpyneSpikeEventRecorderSet(SpikeNetSpikeEventRecorderDeviceSet, NetpyneOutputDeviceSet):
 
     """
-        NetpyneSpikeRecorderSet class to read events' data (spike times and senders)
+        NetpyneSpikeEventRecorderSet class to read events' data (spike times and senders)
         from a DeviceSet of NetpyneSpikeRecorder instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of NetpyneSpikeRecorder instances to get (i.e., copy) data from,
@@ -131,10 +131,10 @@ class NetpyneSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NetpyneOutputDevic
     _spikeNet_output_device_type = NetpyneSpikeRecorder
 
 
-class NetpyneSpikeRecorderTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, NetpyneOutputDeviceSet):
+class NetpyneSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NetpyneOutputDeviceSet):
 
     """
-        NetpyneSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        NetpyneSpikeEventRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
         from a DeviceSet of NetpyneSpikeRecorder instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of NetpyneSpikeRecorder instances to get (i.e., copy) data from,
@@ -183,3 +183,21 @@ class NetpyneMultimeterTotalSet(SpikeNetMultimeterTotalDeviceSet, NetpyneOutputD
         """
 
     _spikeNet_output_device_type = NetpyneMultimeter
+
+
+class NetpyneOutputDeviceGetters(Enum):
+    SPIKE_RECORDER = NetpyneSpikeRecorderSet
+    SPIKE_EVENT_RECORDER = NetpyneSpikeEventRecorderSet
+    MULTIMETER = NetpyneMultimeterSet
+    MULTIMETER_MEAN = NetpyneMultimeterMeanSet
+    MULTIMETER_TOTAL = NetpyneMultimeterTotalSet
+
+
+class NetpyneInputDeviceSetters(Enum):
+    POISSON_GENERATOR = NetpynePoissonGeneratorSet
+    PARAMETER_INPUT_SET = NetpyneParameterInputSet
+
+
+NetpyneSenders = NetpyneOutputDeviceGetters
+NetpyneReceivers = NetpyneInputDeviceSetters
+NetpyneCommunicators = combine_enums("NetpyneCommunicators", NetpyneSenders, NetpyneReceivers)

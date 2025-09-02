@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb_multiscale.core.interfaces.spikeNet.io import \
     SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
-    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetSpikeEventRecorderDeviceSet, SpikeNetSpikeRecorderDeviceSet, \
     SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
@@ -140,10 +140,10 @@ class ANNarchyOutputDeviceSet(SpikeNetOutputDeviceSet):
         return data
 
 
-class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDeviceSet):
+class ANNarchySpikeEventMonitorSet(SpikeNetSpikeEventRecorderDeviceSet, ANNarchyOutputDeviceSet):
 
     """
-        ANNarchySpikeMonitorSet class to read events' data (spike times and senders)
+        ANNarchySpikeEventMonitorSet class to read events' data (spike times and senders)
         from a DeviceSet of ANNarchySpikeMonitor instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of ANNarchySpikeMonitor instances to get (i.e., copy) data from,
@@ -155,10 +155,10 @@ class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDevi
     _spikeNet_output_device_type = ANNarchySpikeMonitor
 
 
-class ANNarchySpikeMonitorTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, ANNarchyOutputDeviceSet):
+class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDeviceSet):
 
     """
-        ANNarchySpikeMonitorTotalSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        ANNarchySpikeMonitorSet class to read events' data with no reference to spike senders (i.e., only spike times)
         from a DeviceSet of ANNarchySpikeMonitor instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of ANNarchySpikeMonitor instances to get (i.e., copy) data from,
@@ -227,7 +227,7 @@ class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDe
 
 class ANNarchyOutputDeviceGetters(Enum):
     SPIKE_MONITOR = ANNarchySpikeMonitorSet
-    SPIKE_MONITOR_TOTAL = ANNarchySpikeMonitorTotalSet
+    SPIKE_EVENT_MONITOR = ANNarchySpikeEventMonitorSet
     MONITOR = ANNarchyMonitorSet
     MONITOR_MEAN = ANNarchyMonitorMeanSet
     MONITOR_TOTAL = ANNarchyMonitorTotalSet

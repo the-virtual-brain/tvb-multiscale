@@ -8,7 +8,7 @@ from tvb.basic.neotraits.api import HasTraits
 from tvb.basic.neotraits._attr import Int, NArray, Range
 
 from tvb_multiscale.core.interfaces.transformers.models.base import \
-    LinearRate, RatesToSpikes, SpikesToRates, LinearPotential, LinearConductance
+    LinearRate, RatesToSpikes, SpikesToRates, LinearPotential
 from tvb_multiscale.core.interfaces.transformers.models.integration import LinearIntegration
 from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonSingleInteraction, \
@@ -243,4 +243,3 @@ class DefaultSpikeNetToTVBTransformersJansenRitInverseSigmoidal(object):
     SPIKES_TO_HIST_LINEAR_INTEGRATION = ElephantSpikesHistogramJansenRitInverseSigmoidalLinearIntegration
     SPIKES_TO_HIST_RATE_LINEAR_INTEGRATION = ElephantSpikesHistogramRateJansenRitInverseSigmoidalLinearIntegration
     POTENTIAL = LinearPotential
-    CONDUCTANCE = LinearConductance

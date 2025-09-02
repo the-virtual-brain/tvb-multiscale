@@ -20,7 +20,7 @@ from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     NetpyneSenderInterfaces, NetpyneReceiverInterfaces, \
     TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
-    NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
+    NetpyneSpikeEventRecorderSet, NetpyneSpikeRecorderSet, \
     NetpynePoissonGeneratorSet, NetpyneParameterInputSet, \
     NetpyneMultimeterSet, NetpyneMultimeterMeanSet, NetpyneMultimeterTotalSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
@@ -43,7 +43,7 @@ class NetpyneInputProxyModels(Enum):
 
 class NetpyneOutputProxyModels(Enum):
     SPIKES = NetpyneSpikeRecorderSet
-    SPIKES_MEAN = NetpyneSpikeRecorderTotalSet
+    SPIKE_EVENTS = NetpyneSpikeEventsRecorderSet
     POTENTIAL = NetpyneMultimeterSet
     POTENTIAL_MEAN = NetpyneMultimeterMeanSet
     POTENTIAL_TOTAL = NetpyneMultimeterTotalSet
@@ -63,7 +63,7 @@ class DefaultTVBtoNetpyneProxyModels(Enum):
 
 
 class DefaultNetpyneToTVBProxyModels(Enum):
-    SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN
+    SPIKES = NetpyneOutputProxyModels.SPIKES
     POTENTIAL = NetpyneOutputProxyModels.POTENTIAL_MEAN
     CURRENT = NetpyneOutputProxyModels.CURRENT_MEAN
 

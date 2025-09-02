@@ -22,7 +22,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     ANNarchySenderInterfaces, ANNarchyReceiverInterfaces, \
     TVBtoANNarchyInterfaces, ANNarchyToTVBInterfaces
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
-    ANNarchySpikeMonitorSet, ANNarchySpikeMonitorTotalSet, \
+    ANNarchySpikeEventMonitorSet, ANNarchySpikeMonitorSet, \
     ANNarchyMonitorSet, ANNarchyMonitorMeanSet, ANNarchyMonitorTotalSet, \
     ANNarchyTimedPoissonPopulationSet, ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet, \
     ANNarchyHomogeneousCorrelatedSpikeTrainsSet
@@ -46,7 +46,7 @@ class ANNarchyInputProxyModels(Enum):
 
 class ANNarchyOutputProxyModels(Enum):
     SPIKES = ANNarchySpikeMonitorSet
-    SPIKES_MEAN = ANNarchySpikeMonitorTotalSet
+    SPIKE_EVENTS = ANNarchySpikeEventMonitorSet
     POTENTIAL = ANNarchyMonitorSet
     POTENTIAL_MEAN = ANNarchyMonitorMeanSet
     POTENTIAL_TOTAL = ANNarchyMonitorTotalSet
@@ -66,7 +66,7 @@ class DefaultTVBtoANNarchyProxyModels(Enum):
 
 
 class DefaultANNarchytoTVBProxyModels(Enum):
-    SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN
+    SPIKES = ANNarchyOutputProxyModels.SPIKES
     POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN
     CURRENT = ANNarchyOutputProxyModels.CURRENT_MEAN
 
