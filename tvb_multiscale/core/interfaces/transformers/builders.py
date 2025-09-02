@@ -102,8 +102,10 @@ class TransformerBuilder(HasTraits):
             model = interface.get("model", None)
             if model is None:
                 model = list(interface_models)[0].name  # a string at this point
+            elif isinstance(model, Enum):
+                model = model.value    # a string at this point
             else:
-                model = model.upper()
+                model = model.upper()  # already a string
             assert model in list(interface_models.__members__)        # Enum names (strings)
             # Get the corresponding Enum:
             model = getattr(default_transformer_models, model).value  # Enum

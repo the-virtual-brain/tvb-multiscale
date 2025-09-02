@@ -644,12 +644,12 @@ class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
 
 
 class TVBtoSpikeNetModels(Enum):
-    RATE = 0
-    SPIKES = 1
-    CURRENT = 2
+    RATE = "RATE"
+    SPIKES = "SPIKES"
+    CURRENT = "CURRENT"
 
 
 class SpikeNetToTVBModels(Enum):
-    SPIKES = 0
-    POTENTIAL = 1
-    CURRENT = 2
+    SPIKES = "SPIKES"
+    POTENTIAL = "POTENTIAL"
+    CURRENT = "CURRENT"

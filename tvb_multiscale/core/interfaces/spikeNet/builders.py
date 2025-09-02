@@ -20,19 +20,19 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
 
 
 class DefaultTVBtoSpikeNetProxyModels(Enum):
-    RATE = 0
-    RATE_TO_SPIKES = 1
-    RATE_TO_CORRELATED_SPIKES = 2
-    SPIKES = 3
-    PARROT_SPIKES = 4
-    CURRENT = 5
-    CURRENT_TO_SPIKES = 6
+    RATE = "RATE"
+    RATE_TO_SPIKES = "RATE_TO_SPIKES"
+    RATE_TO_CORRELATED_SPIKES = "RATE_TO_CORRELATED_SPIKES"
+    SPIKES = "SPIKES"
+    PARROT_SPIKES = "PARROT_SPIKES"
+    CURRENT = "CURRENT"
+    CURRENT_TO_SPIKES = "CURRENT_TO_SPIKES"
 
 
 class DefaultSpikeNetToTVBProxyModels(Enum):
-    SPIKES = 1
-    POTENTIAL = 2
-    CURRENT = 3
+    SPIKES = "SPIKES"
+    POTENTIAL = "POTENTIAL"
+    CURRENT = "CURRENT"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
@@ -151,8 +151,10 @@ class SpikeNetProxyNodesBuilder(HasTraits):
                 model = interface.get("model", None)
                 if model is None:
                     model = list(interface_models)[0].name  # a string at this point
+                elif isinstance(model, Enum):
+                    model = model.value  # a string at this point
                 else:
-                    model = model.upper()
+                    model = model.upper()  # already a string
                 assert model in list(interface_models.__members__)  # Enum names (strings)
                 # Get the corresponding Enum:
                 model = getattr(default_proxy_models, model).value  # Enum
