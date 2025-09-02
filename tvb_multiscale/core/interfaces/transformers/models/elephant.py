@@ -398,7 +398,7 @@ class SpikesToRatesElephant(SpikesToRates):
         RateToSpikes Transformer base class using elephant software
     """
 
-    from quantities import Quantity, ms, s, sec, second, Hz, MHz
+    from quantities import Quantity, ms, s, sec, second, Hz, kHz, MHz
     from neo import SpikeTrain
 
     _spike_train_class = SpikeTrain
@@ -417,7 +417,7 @@ class SpikesToRatesElephant(SpikesToRates):
                      field_type=Quantity,
                      required=True,
                      default=Hz,
-                     choices=(Hz, MHz))
+                     choices=(Hz, kHz, MHz))
 
     def configure(self):
         super(SpikesToRatesElephant, self).configure()
