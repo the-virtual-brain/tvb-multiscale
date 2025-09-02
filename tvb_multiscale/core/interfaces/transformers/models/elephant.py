@@ -429,13 +429,13 @@ class SpikesToRatesElephant(SpikesToRates):
 
     @property
     def _t_start(self):
-        return (self.dt * (self.input_time[0] - 1) + self.time_shift +
-                self._t_shift - np.finfo(np.float32).resolution) * self.ms
+        return (self.dt * (self.input_time[0] - 1) + self.time_shift
+                - self._t_shift - np.finfo(np.float32).resolution) * self.ms
 
     @property
     def _t_stop(self):
-        return (self.dt * self.input_time[-1] + self.time_shift +
-                self._t_shift + np.finfo(np.float32).resolution) * self.ms
+        return (self.dt * self.input_time[-1] + self.time_shift
+                + self._t_shift + np.finfo(np.float32).resolution) * self.ms
 
     def spiketrain(self, spikes):
         return spiketrain(spikes, self.time_unit, self._t_start, self._t_stop, self._spike_train_class)
