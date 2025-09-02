@@ -942,7 +942,7 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
                 self._output_events_counter = len(events['times'])
         return events
 
-    def get_new_events(self):
+    def get_new_events(self, variables=None, **kwargs):
         return self._record()
 
     @property
@@ -1034,7 +1034,7 @@ class ANNarchySpikeMultimeter(ANNarchyMonitor, ANNarchySpikeMonitor, SpikeMultim
         self._record()
         return self._get_events(ANNarchyMonitor.get_data())
 
-    def get_new_events(self):
+    def get_new_events(self, **kwargs):
         return self._get_events(ANNarchyMonitor.get_new_data())
 
     @property
