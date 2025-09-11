@@ -24,8 +24,9 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
     ANNarchySpikeEventMonitorSet, ANNarchySpikeMonitorSet, \
     ANNarchyMonitorSet, ANNarchyMonitorMeanSet, ANNarchyMonitorTotalSet, \
-    ANNarchyTimedPoissonPopulationSet, ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet, \
-    ANNarchyHomogeneousCorrelatedSpikeTrainsSet
+    ANNarchyTimedArraySet, ANNarchyTimedArrayToSpikesSet, \
+    ANNarchyTimedPoissonPopulationSet, ANNarchyHomogeneousCorrelatedSpikeTrainsSet, \
+    ANNarchySpikeSourceArraySet
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
@@ -41,7 +42,7 @@ class ANNarchyInputProxyModels(Enum):
     SPIKES = ANNarchySpikeSourceArraySet
     PARROT_SPIKES = None
     CURRENT = ANNarchyTimedArraySet
-    CURRENT_TO_SPIKES = None
+    CURRENT_TO_SPIKES = ANNarchyTimedArrayToSpikesSet
 
 
 class ANNarchyOutputProxyModels(Enum):
@@ -62,7 +63,7 @@ class DefaultTVBtoANNarchyProxyModels(Enum):
     SPIKES = ANNarchyInputProxyModels.SPIKES
     PARROT_SPIKES = None
     CURRENT = ANNarchyInputProxyModels.CURRENT
-    CURRENT_TO_SPIKES = None
+    CURRENT_TO_SPIKES = ANNarchyInputProxyModels.CURRENT_TO_SPIKES
 
 
 class DefaultANNarchytoTVBProxyModels(Enum):
