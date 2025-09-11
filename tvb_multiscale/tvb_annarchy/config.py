@@ -52,8 +52,9 @@ class Config(ConfigBase):
                                                        "schedule": [0.0], "period": -1.0,
                                                        "refractory": None},
                                                   "TimedArray": {"rates": np.array([[0.0]]),
-                                                                 "schedule": [0.0], "period": -1.0,
-                                                                 "proxy": True, "proxy_target": "exc"},
+                                                                 "schedule": [0.0], "period": -1.0},
+                                                  "TimedArrayToSpikes": {"rates": np.array([[0.0]]),
+                                                                         "schedule": [0.0], "period": -1.0},
                                                   "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
                                                                              "schedule": [0.0], "period": -1.0},
                                                  }
