@@ -13,8 +13,9 @@ from tvb.contrib.scripts.utils.file_utils import safe_makedirs, delete_folder_sa
 from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
+from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
-    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyContinuousInputDevice
+    ANNarchyInputDeviceDict, ANNarchyOutputDeviceDict, ANNarchyInputDevice, ANNarchyTimedArrayToSpikes
 
 
 LOG = initialize_logger(__name__)
@@ -137,7 +138,7 @@ def create_population(model, annarchy_instance, size=1, params=dict(), import_pa
                 target = None
             population = annarchy_instance.PoissonPopulation(geometry, rates=rates, target=target, **params)
     else:
-        population = annarchy_instance.Population(geometry=params.pop("geometry", size), neuron=model)
+        population = annarchy_instance.Population(params.pop("geometry", size), neuron=model)
         # Parametrize the population:
         if len(params):
             population = set_model_parameters(population, **params)
@@ -223,10 +224,7 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
     annarchy_instance = source_pop.annarchy_instance
     # Create the projection first
     source_neurons = get_populations_neurons(source_pop, source_view_fun)
-    if isinstance(source_pop, ANNarchyContinuousInputDevice) and getattr(source_pop, "proxy", False):
-        target_neurons = get_proxy_target_pop(target_pop, source_pop, target_view_fun, import_path, **kwargs)
-    else:
-        target_neurons = get_populations_neurons(target_pop, target_view_fun)
+    target_neurons = get_populations_neurons(target_pop, target_view_fun)
     if isinstance(syn_spec, dict):
         syn_spec = safe_deepcopy(syn_spec)
         synapse = syn_spec.pop("synapse_model", syn_spec.pop("model", syn_spec.pop("synapse", None)))
@@ -286,11 +284,13 @@ def params_dict_to_parameters_string(params):
     return parameters
 
 
-def create_input_device(annarchy_device, import_path, params=dict(), config=CONFIGURED):
+def create_input_device(annarchy_device, annarchy_instance, params=dict(), import_path="", config=CONFIGURED):
     """This functions populates an ANNarchyInputDevice instance with its device ANNarchy Population instance.
        Arguments:
         annarchy_device: a ANNarchyInputDevice instance
+        annarchy_instance: Instance of ANNarchy module
         params: a dictionary of devices' parameters. Default = {}
+        import_path: the path to be possibly searched to import a model. Default = ""
         config: configuration class instance. Default: imported default CONFIGURED object.
        Returns:
         annarchy_device: the same ANNarchyInputDevice instance populated
@@ -306,18 +306,46 @@ def create_input_device(annarchy_device, import_path, params=dict(), config=CONF
     if number_of_neurons is not None:
         params["geometry"] = number_of_neurons
     record = params.pop("record", None)
+    proxy_params = params.pop("proxy_params", dict())
+    geometry = params.get("geometry", 1)
     annarchy_device._nodes = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
-                                               params=params, import_path=import_path, config=config)
+                                               size=geometry, params=params, import_path=import_path, config=config)
     annarchy_device.device = annarchy_device._nodes
     annarchy_device._nodes.name = annarchy_device.label
-    if record is not None:
-        rec_params = dict()
+    if isinstance(record, dict):
+        record = safe_deepcopy(record)
+        record_from = record.pop("from")
+        annarchy_device.record = \
+            annarchy_device.annarchy_instance.Monitor(annarchy_device._nodes, record_from, **record)
+    if isinstance(annarchy_device, ANNarchyTimedArrayToSpikes):
+        annarchy_device.proxy_params = proxy_params
+        annarchy_device.proxy_target = annarchy_device.proxy_params.pop("target",
+                                                                        annarchy_device.proxy_target)
+        record = annarchy_device.proxy_params.pop("record", None)
+        proxy = params.pop("proxy", None)
+        if proxy is None:
+            proxy = create_population(annarchy_device.proxy_params.pop("model"),
+                                      annarchy_instance, size=geometry,
+                                      params=annarchy_device.proxy_params,
+                                      import_path=annarchy_device.proxy_params.pop("import_path", ""),
+                                      config=config)
+        annarchy_device.proxy = ANNarchyPopulation(proxy, annarchy_instance,
+                                                   model=proxy.neuron_type.name,
+                                                   label=annarchy_device.label,
+                                                   brain_region=annarchy_device.brain_region)
+        annarchy_device.model = "TimedArrayTo%s" % annarchy_device.proxy.model
+        proj = annarchy_instance.CurrentInjection(
+                    annarchy_device.device, annarchy_device.proxy._nodes, annarchy_device.proxy_target)
+        proj.connect_current()
+        # Add this projection to the source device's and target population's inventories:
+        annarchy_device.projections_pre.append(proj)
+        annarchy_device.proxy.projections_post.append(proj)
         if isinstance(record, dict):
             record = safe_deepcopy(record)
-            rec_params = list(record.values())[0]
-            record = list(record.keys())[0]
-        annarchy_device.self_recorder = \
-            annarchy_device.annarchy_instance.Monitor(annarchy_device._nodes, record, **rec_params)
+            record_from = record.pop("from")
+            annarchy_device.proxy.record = \
+                annarchy_device.annarchy_instance.Monitor(annarchy_device.proxy._nodes, record_from, **record)
+
     return annarchy_device
 
 
@@ -342,19 +370,18 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     # Figure out if this is an input or an output device:
     label = kwargs.pop("label", "")
     # Get the default parameters for this device...
-    if device_model in ANNarchyInputDeviceDict.keys():
+    if device_model in ANNarchyInputDeviceDict:
         devices_dict = safe_deepcopy(ANNarchyInputDeviceDict)
         default_params = config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF.get(device_model, dict()).copy()
         if len(label):
             default_params["name"] = label
-    elif device_model in ANNarchyOutputDeviceDict.keys():
+    elif device_model in ANNarchyOutputDeviceDict:
         devices_dict = safe_deepcopy(ANNarchyOutputDeviceDict)
-        default_params = config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, {}).copy()
+        default_params = config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF.get(device_model, dict()).copy()
     else:
         raise_value_error("%s is neither one of the available input devices: %s\n "
                           "nor of the output ones: %s!" %
-                          (device_model, str(config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF),
-                           str(config.ANNARCHY_OUTPUT_DEVICES_PARAMS_DEF)))
+                          (device_model, str(ANNarchyInputDeviceDict), str(ANNarchyOutputDeviceDict)))
     # ...and update them with any user provided parameters
     if isinstance(params, dict) and len(params) > 0:
         default_params.update(params)
@@ -362,14 +389,11 @@ def create_device(device_model, params=None, config=CONFIGURED, annarchy_instanc
     # Create the ANNarchy Device class:
     annarchy_device = devices_dict[device_model](None, annarchy_instance=annarchy_instance, label=label)
     if isinstance(annarchy_device, ANNarchyInputDevice):
-        if isinstance(annarchy_device, ANNarchyContinuousInputDevice):
-            annarchy_device.proxy = default_params.pop("proxy", annarchy_device.proxy)
-            annarchy_device.proxy_type = default_params.pop("proxy_type", annarchy_device.proxy_type)
-            annarchy_device.proxy_target = default_params.pop("proxy_target", annarchy_device.proxy_target)
         # If it is an input device, populate it:
-        annarchy_device = create_input_device(annarchy_device,
-                                              kwargs.get("import_path", config.MYMODELS_IMPORT_PATH),
-                                              safe_deepcopy(default_params), config)
+        annarchy_device = create_input_device(annarchy_device, annarchy_instance,
+                                              safe_deepcopy(default_params),
+                                              kwargs.pop("import_path", config.MYMODELS_IMPORT_PATH),
+                                              config)
     annarchy_device.params = safe_deepcopy(default_params)
     if return_annarchy:
         return annarchy_device, annarchy_instance
@@ -406,10 +430,18 @@ def connect_input_device(annarchy_device, population, neurons_inds_fun=None,
         synapse = None
     if synapse is not None:
         syn_spec["synapse"] = assert_model(synapse, annarchy_device.annarchy_instance, import_path)
-    proj = connect_two_populations(annarchy_device, population,
-                                   weight, delay, receptor_type, syn_spec, connection_args,
-                                   source_view_fun=None, target_view_fun=neurons_inds_fun,
-                                   import_path=import_path, **kwargs)
+    if isinstance(annarchy_device, ANNarchyTimedArrayToSpikes):
+        proj = connect_two_populations(annarchy_device.proxy, population,
+                                       weight, delay, receptor_type, syn_spec, connection_args,
+                                       source_view_fun=None, target_view_fun=neurons_inds_fun,
+                                       import_path=import_path, **kwargs)
+        # Add this projection to the source device's proxy's inventory:
+        annarchy_device.proxy.projections_pre.append(proj)
+    else:
+        proj = connect_two_populations(annarchy_device, population,
+                                       weight, delay, receptor_type, syn_spec, connection_args,
+                                       source_view_fun=None, target_view_fun=neurons_inds_fun,
+                                       import_path=import_path, **kwargs)
     # Add this projection to the source device's and target population's inventories:
     annarchy_device.projections_pre.append(proj)
     population.projections_post.append(proj)
