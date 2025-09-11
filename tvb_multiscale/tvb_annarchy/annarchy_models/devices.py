@@ -15,7 +15,7 @@ from tvb.contrib.scripts.utils.data_structures_utils import \
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter, SpikeMultimeter
 from tvb_multiscale.core.utils.data_structures_utils import flatten_neurons_inds_in_DataArray
-from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation
+from tvb_multiscale.tvb_annarchy.annarchy_models.population import _ANNarchyPopulation, ANNarchyPopulation
 
 
 # These classes wrap around ANNarchy commands.
@@ -120,7 +120,9 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
                   label="Specific ANNarchy.Population",
                   doc="""Instance of specific ANNarchyInputDevice's ANNarchy.Population""")
 
-    params = {}
+    params = Attr(field_type=dict, default=lambda: OrderedDict(), required=False,
+                  label="Device's  parameters",
+                  doc="""A dictionary of the ANNarchyInputDevice parameters""")
 
     def __init__(self, device=None, annarchy_instance=None, **kwargs):
         self.params = kwargs.get("params", {})
@@ -213,7 +215,7 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
 
     @property
     def number_of_neurons(self):
-        return InputDevice.number_of_neurons.fget(self)
+        return InputDevice.number_of_neurons.get(self)
 
     @property
     def number_of_connected_neurons(self):
@@ -319,20 +321,7 @@ class ANNarchyContinuousInputDevice(ANNarchyInputDevice):
         acting as an input (stimulating) device, by generating and sending
         a set of continuous quantities interpreted as a current or rate values."""
 
-    from ANNarchy import TimedArray
-    from tvb_multiscale.tvb_annarchy.annarchy.input_devices import CurrentProxy
-
-    proxy = Attr(field_type=bool, label="proxy", default=True, required=True,
-                 doc="""Flag to store data after reading from ANNarchy monitor.""")
-
-    proxy_type = CurrentProxy
-
-    proxy_target = Attr(field_type=str, label="proxy target", default="exc", required=True,
-                        doc="""Proxy target label (string).""")
-
-    def __init__(self, device=TimedArray(np.array([[]])), annarchy_instance=None, **kwargs):
-        kwargs["model"] = kwargs.get("model", "TimedArray")
-        ANNarchyInputDevice.__init__(self, device, annarchy_instance, **kwargs)
+    pass
 
 
 class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
@@ -346,6 +335,29 @@ class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
     def __init__(self, device=TimedArray(np.array([[]])), annarchy_instance=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "TimedArray")
         ANNarchyContinuousInputDevice.__init__(self, device, annarchy_instance, **kwargs)
+
+    def _propagate_rates(self, rates, geometry):
+        if not isinstance(geometry, tuple):
+            geometry = (geometry,)
+        while rates.ndim < len(geometry) + 1:
+            rates = np.expand_dims(rates, -1)
+        if np.any(rates.shape[1:] != geometry):
+            rates = rates * np.ones((1,)+geometry)
+        return rates
+
+    def Set(self, values_dict, **kwargs):
+        if "rates" in values_dict:
+            # rates do not propagate automatically to the geometry of the population
+            # so, we have to do it explicitly:
+            rates = np.array(values_dict.pop("rates"))
+            geometry = values_dict.pop("geometry", self.geometry)
+            rates = self._propagate_rates(rates, geometry)  # values_dict["rates"]
+            schedule = values_dict.pop("schedule", self._nodes.schedule)
+            period = values_dict.pop("period", self._nodes.period)
+            self._nodes.update(rates, schedule, period)
+        else:
+            ANNarchyContinuousInputDevice.Set(self, values_dict)
+
 
 
 class ANNarchyCurrentInjector(ANNarchyContinuousInputDevice):
@@ -390,6 +402,93 @@ class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
         ANNarchyCurrentInjector.__init__(self, device, annarchy_instance, **kwargs)
 
 
+class ANNarchyTimedArrayToSpikes(ANNarchyTimedArray):
+
+    """ANNarchyTimedArrayToSpikes class to wrap around the combination
+       of an ANNarchy.TimedArray with a spiking population,
+       acting together as an input (stimulating) device, by generating and sending
+       spikes following the instantaneous rate of TimedArray but with the equations of the spiking neuron."""
+
+    from ANNarchy import TimedArray
+
+    proxy = Attr(field_type=ANNarchyPopulation, default=None, required=False,
+                 label="Spiking proxy ANNarchyPopulation",
+                 doc="""Instance of specific spiking ANNarchyPopulation.""")
+
+    proxy_params = Attr(field_type=dict, default=lambda: OrderedDict(), required=False,
+                        label="Device's  proxy parameters",
+                         doc="""A dictionary of the ANNarchyTimedArrayToSpikes spiking proxy's parameters""")
+
+    proxy_target = Attr(field_type=str, default="exc", required=True,
+                        label="Proxy target synapse",
+                        doc="""The name of the spiking proxy's target synapse.""")
+
+    def __init__(self, device=TimedArray(np.array([[]])), annarchy_instance=None, **kwargs):
+        proxy = kwargs.pop("proxy", None)
+        if isinstance(proxy, ANNarchyPopulation):
+            self.proxy = proxy
+            kwargs["model"] = kwargs.get("model", "TimedArrayTo%s" % self.proxy.model)
+        self.proxy_params = kwargs.pop("proxy_params", OrderedDict())
+        ANNarchyTimedArray.__init__(self, device, annarchy_instance, **kwargs)
+
+    @property
+    def number_of_neurons(self):
+        return _ANNarchyPopulation.number_of_nodes.get(self.proxy)
+
+    @property
+    def number_of_connected_neurons(self):
+        return InputDevice.number_of_neurons.get(self.proxy)
+
+    def _GetConnections(self, **kwargs):
+        """Method to get attributes of the connections from the device
+           Return:
+            Projections' objects
+        """
+        connections = _ANNarchyPopulation._GetConnections(self.proxy, source_or_target="source")
+        return connections
+
+    def _SetToConnections(self, values_dict, connections=None):
+        """Method to set attributes of the connections from the device.
+           Arguments:
+             values_dict: dictionary of attributes names' and values.
+             connections: a Projection object or a collection (list, tuple, array) thereof.
+                          Default = None, corresponding to all connections of the device.
+        """
+        if connections is None:
+            connections = _ANNarchyPopulation._GetConnections(self.proxy, neurons=None, source_or_target="source")
+        _ANNarchyPopulation._SetToConnections(self.proxy, values_dict, connections)
+
+    def _GetFromConnections(self, attrs=None, connections=None):
+        """Method to get attributes of the connections from the device
+           Arguments:
+            attrs: collection (list, tuple, array) of the attributes to be included in the output.
+            connections: Projection' object or collection (list, tuple, array) thereof.
+                         If connections is a list of Projections,
+                         we assume that all Projections have the same attributes.
+                         Default = None, corresponding to all connections of the device.
+            Returns:
+             Dictionary of lists (for the possible different Projection objects) of arrays of connections' attributes.
+        """
+        if connections is None:
+            connections = _ANNarchyPopulation._GetConnections(self.proxy, neurons=None, source_or_target="source")
+        return _ANNarchyPopulation._GetFromConnections(self.proxy, attrs, connections)
+
+    def info(self, recursive=0):
+        device_info = InputDevice.info(self, recursive=recursive)
+        proxy_info = _ANNarchyPopulation.info(self.proxy, recursive=recursive)
+        for key, val in proxy_info.items():
+            device_info["proxy_%s" % key] = val
+        return device_info
+
+    def info_details(self, recursive=0, connectivity=False, **kwargs):
+        device_info = InputDevice.info_details(self, recursive=recursive)
+        proxy_info = _ANNarchyPopulation.info_details(self.proxy, recursive=recursive,
+                                                      connectivity=connectivity, source_or_target="source")
+        for key, val in proxy_info.items():
+            device_info["proxy_%s" % key] = val
+        return device_info
+
+
 class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
 
     """ANNarchyTimedPoissonPopulation class to wrap around a rate ANNarchy.TimedPoissonPopulation,
@@ -410,7 +509,8 @@ ANNarchyTimedSpikeInputDeviceDict = \
 
 ANNarchySpikeInputDeviceDict = {"PoissonPopulation": ANNarchyPoissonPopulation,
                                 "HomogeneousCorrelatedSpikeTrains": ANNarchyHomogeneousCorrelatedSpikeTrains,
-                                "SpikeSourceArray": ANNarchySpikeSourceArray}
+                                "SpikeSourceArray": ANNarchySpikeSourceArray,
+                                "TimedArrayToSpikes": ANNarchyTimedArrayToSpikes}
 ANNarchySpikeInputDeviceDict.update(ANNarchyTimedSpikeInputDeviceDict)
 
 
@@ -462,7 +562,9 @@ class ANNarchyOutputDevice(ANNarchyDevice):
 
     annarchy_instance = None
 
-    params = {}
+    params = Attr(field_type=dict, default=lambda: OrderedDict(), required=False,
+                  label="Device's  parameters",
+                  doc="""A dictionary of the ANNarchyOutputDevice parameters""")
 
     _weight_attr = "w"
     _delay_attr = "delay"
