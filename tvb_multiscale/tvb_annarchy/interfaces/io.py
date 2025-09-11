@@ -12,7 +12,8 @@ from tvb_multiscale.core.interfaces.spikeNet.io import \
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDevice, ANNarchySpikeSourceArray, \
-ANNarchyTimedArray, ANNarchyTimedPoissonPopulation, ANNarchyHomogeneousCorrelatedSpikeTrains, \
+    ANNarchyTimedArray, ANNarchyTimedArrayToSpikes, \
+    ANNarchyTimedPoissonPopulation, ANNarchyHomogeneousCorrelatedSpikeTrains, \
     ANNarchyOutputDevice, ANNarchyMonitor, ANNarchySpikeMonitor
 
 
@@ -59,6 +60,21 @@ class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
         rates = np.maximum([0.0], data[1])
         schedule = np.repeat(self.transform_time(data[0])[np.newaxis], rates.shape[0], axis=0)
         self.target.Set({"schedule": schedule, "rates": rates})
+
+
+class ANNarchyTimedArrayToSpikesSet(ANNarchyTimedArraySet):
+
+    """
+        ANNarchyTimedArrayToSpikesSet class to set data directly
+        to a DeviceSet of ANNarchyTimedArray instances in memory, which connects to a spiking population.
+        It comprises of:
+            - a target attribute, i.e., the DeviceSet of ANNarchyTimedArrayToSpikes instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "TimedArrayToSpikes"
+
+    _spikeNet_input_device_type = ANNarchyTimedArrayToSpikes
 
 
 class ANNarchyTimedPoissonPopulationSet(ANNarchyTimedArraySet):
@@ -236,7 +252,8 @@ class ANNarchyOutputDeviceGetters(Enum):
 class ANNarchyInputDeviceSetters(Enum):
     TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedPoissonPopulationSet
     SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
-    # TIMED_ARRAY = ANNarchyTimedArraySet
+    TIMED_ARRAY = ANNarchyTimedArraySet
+    TIMED_ARRAY_TO_SPIKES = ANNarchyTimedArrayToSpikesSet
 
 
 ANNarchySenders = ANNarchyOutputDeviceGetters
