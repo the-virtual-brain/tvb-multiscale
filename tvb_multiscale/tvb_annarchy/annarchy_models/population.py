@@ -92,6 +92,10 @@ class _ANNarchyPopulation(HasTraits):
         else:
             return ""
 
+    @property
+    def geometry(self):
+        return self._nodes.geometry
+
     def _get_population_ind(self):
         from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
         return get_population_ind(self._nodes, self.annarchy_instance)
