@@ -163,41 +163,41 @@ def get_populations_neurons(population, inds_fun=None):
     return inds_fun(population._nodes)
 
 
-def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import_path="", **kwargs):
-    annarchy_instance = input_device.annarchy_instance
-    population_to_connect_to = kwargs.get("proxy", None)  # in case proxy is provided already
-    proxy_devices = kwargs.get("input_proxies", DeviceSets())
-    if population_to_connect_to is None:
-        # Check if proxy has been already created for this ANNArchyNetwork:
-        proxy_label = "%s_proxy" % target_pop.label
-        reg_label = target_pop.brain_region
-        if proxy_label in proxy_devices.keys():
-            if reg_label in proxy_devices[proxy_label]:
-                population_to_connect_to = proxy_devices[proxy_label][reg_label]
-        else:
-            from tvb_multiscale.core.spiking_models.devices import DeviceSet
-            proxy_devices[proxy_label] = DeviceSet(label=proxy_label, model=input_device.proxy_type)
-    if population_to_connect_to is None:
-        # Create the population and add it to this ANNArchyNetwork:
-        population_to_connect_to = create_population(input_device.proxy_type, annarchy_instance,
-                                                     size=target_pop.number_of_neurons,
-                                                     params=kwargs.get("proxy_params", {}),
-                                                     import_path=import_path)
-        proxy_devices[proxy_label][reg_label] = population_to_connect_to
-        # Connect the input proxy to the target population:
-        if neurons_inds_fun is None:
-            target_neurons = target_pop._nodes
-        else:
-            target_neurons = neurons_inds_fun(target_pop._nodes)
-        proj = annarchy_instance.CurrentInjection(pre=population_to_connect_to,
-                                                  post=target_neurons,
-                                                  target=input_device.proxy_target)
-        proj.connect_current()
-    kwargs["input_proxies"] = proxy_devices
-    if neurons_inds_fun is None:
-        return population_to_connect_to
-    else:
-        return neurons_inds_fun(population_to_connect_to)
+# def get_proxy_target_pop(target_pop, input_device, neurons_inds_fun=None, import_path="", **kwargs):
+#     annarchy_instance = input_device.annarchy_instance
+#     population_to_connect_to = kwargs.get("proxy", None)  # in case proxy is provided already
+#     proxy_devices = kwargs.get("input_proxies", DeviceSets())
+#     if population_to_connect_to is None:
+#         # Check if proxy has been already created for this ANNArchyNetwork:
+#         proxy_label = "%s_proxy" % target_pop.label
+#         reg_label = target_pop.brain_region
+#         if proxy_label in proxy_devices.keys():
+#             if reg_label in proxy_devices[proxy_label]:
+#                 population_to_connect_to = proxy_devices[proxy_label][reg_label]
+#         else:
+#             from tvb_multiscale.core.spiking_models.devices import DeviceSet
+#             proxy_devices[proxy_label] = DeviceSet(label=proxy_label, model=input_device.proxy_type)
+#     if population_to_connect_to is None:
+#         # Create the population and add it to this ANNArchyNetwork:
+#         population_to_connect_to = create_population(input_device.proxy_type, annarchy_instance,
+#                                                      size=target_pop.number_of_neurons,
+#                                                      params=kwargs.get("proxy_params", {}),
+#                                                      import_path=import_path)
+#         proxy_devices[proxy_label][reg_label] = population_to_connect_to
+#         # Connect the input proxy to the target population:
+#         if neurons_inds_fun is None:
+#             target_neurons = target_pop._nodes
+#         else:
+#             target_neurons = neurons_inds_fun(target_pop._nodes)
+#         proj = annarchy_instance.CurrentInjection(pre=population_to_connect_to,
+#                                                   post=target_neurons,
+#                                                   target=input_device.proxy_target)
+#         proj.connect_current()
+#     kwargs["input_proxies"] = proxy_devices
+#     if neurons_inds_fun is None:
+#         return population_to_connect_to
+#     else:
+#         return neurons_inds_fun(population_to_connect_to)
 
 
 def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, target="exc", syn_spec={}, conn_spec={},
@@ -306,6 +306,7 @@ def create_input_device(annarchy_device, annarchy_instance, params=dict(), impor
     if number_of_neurons is not None:
         params["geometry"] = number_of_neurons
     record = params.pop("record", None)
+    proxy = params.pop("proxy", None)
     proxy_params = params.pop("proxy_params", dict())
     geometry = params.get("geometry", 1)
     annarchy_device._nodes = create_population(annarchy_device.model, annarchy_device.annarchy_instance,
@@ -318,21 +319,37 @@ def create_input_device(annarchy_device, annarchy_instance, params=dict(), impor
         annarchy_device.record = \
             annarchy_device.annarchy_instance.Monitor(annarchy_device._nodes, record_from, **record)
     if isinstance(annarchy_device, ANNarchyTimedArrayToSpikes):
-        annarchy_device.proxy_params = proxy_params
+        annarchy_device.proxy_params = dict(safe_deepcopy(proxy_params))
         annarchy_device.proxy_target = annarchy_device.proxy_params.pop("target",
                                                                         annarchy_device.proxy_target)
         record = annarchy_device.proxy_params.pop("record", None)
-        proxy = params.pop("proxy", None)
         if proxy is None:
-            proxy = create_population(annarchy_device.proxy_params.pop("model"),
-                                      annarchy_instance, size=geometry,
-                                      params=annarchy_device.proxy_params,
-                                      import_path=annarchy_device.proxy_params.pop("import_path", ""),
-                                      config=config)
-        annarchy_device.proxy = ANNarchyPopulation(proxy, annarchy_instance,
-                                                   model=proxy.neuron_type.name,
-                                                   label=annarchy_device.label,
-                                                   brain_region=annarchy_device.brain_region)
+            proxy_fun = proxy_params.pop("proxy_fun", None)
+            if proxy_fun is not None:
+                if len(annarchy_device.brain_region):
+                    label = "%s-%s" % (annarchy_device.label, annarchy_device.brain_region)
+                else:
+                    label = str(annarchy_device.label)
+                proxy, populations, projections, monitors = proxy_fun(label, annarchy_instance, **proxy_params)
+                annarchy_device.proxy_populations = populations
+                annarchy_device.proxy_projections = projections
+                annarchy_device.proxy_monitors = monitors
+            else:
+                proxy = create_population(annarchy_device.proxy_params.pop("model"),
+                                          annarchy_instance, size=geometry,
+                                          params=annarchy_device.proxy_params,
+                                          import_path=annarchy_device.proxy_params.pop("import_path", ""),
+                                          config=config)
+        else:
+            annarchy_device.proxy_populations = proxy_params.pop("proxy_populations", dict())
+            annarchy_device.proxy_projections = proxy_params.pop("proxy_projections", dict())
+            annarchy_device.proxy_monitors = proxy_params.pop("proxy_monitors", dict())
+        if not isinstance(proxy, ANNarchyPopulation):
+            proxy = ANNarchyPopulation(proxy, annarchy_instance,
+                                       model=proxy.neuron_type.name,
+                                       label=annarchy_device.label,
+                                       brain_region=annarchy_device.brain_region)
+        annarchy_device.proxy = proxy
         annarchy_device.model = "TimedArrayTo%s" % annarchy_device.proxy.model
         proj = annarchy_instance.CurrentInjection(
                     annarchy_device.device, annarchy_device.proxy._nodes, annarchy_device.proxy_target)
@@ -345,7 +362,6 @@ def create_input_device(annarchy_device, annarchy_instance, params=dict(), impor
             record_from = record.pop("from")
             annarchy_device.proxy.record = \
                 annarchy_device.annarchy_instance.Monitor(annarchy_device.proxy._nodes, record_from, **record)
-
     return annarchy_device
 
 
