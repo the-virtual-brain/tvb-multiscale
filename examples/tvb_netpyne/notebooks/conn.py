@@ -63,6 +63,7 @@ def lorentzian(x0, delta, N, deterministic=True):
 
     return l
 
+
 def test_lorentz():
     import matplotlib.pyplot as plt
     delta = 0.02
