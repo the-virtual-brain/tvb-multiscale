@@ -1080,6 +1080,35 @@ class ANNarchySpikeMonitor(ANNarchyOutputDevice, SpikeRecorder):
     def number_of_new_events(self):
         return self._number_of_new_events()
 
+    def events_to_ANNarchy_spikes(self, events=None):
+        if events is None:
+            events = dict(self._data)
+        senders_ids = [sender[1] for sender in events["senders"]]
+        senders = np.unique(senders_ids).tolist()
+        times = np.empty((len(senders), 0)).astype("O").tolist()
+        spikes = dict(zip(senders, times))
+        for sender, time in zip(senders_ids, events["times"]):
+            spikes[sender].append(int(time/self.dt))
+        return spikes
+
+    def _remove_transient_from_ANNarchy_spikes(self, spikes, transient):
+        n_transient = int(transient/self.dt)
+        if n_transient > 0:
+            for nI in spikes:
+                spikes[nI] = (np.array(spikes[nI])[np.array(spikes[nI]) > transient]).tolist()
+        return spikes
+
+    def compute_isi(self, spikes=None, events=None, transient=0):
+        if spikes is None:
+            spikes = self.events_to_ANNarchy_spikes(events)
+        spikes = self._remove_transient_from_ANNarchy_spikes(spikes, transient)
+        # Assuming a single monitor. TODO for the case of multiple monitors:
+        return list(self.monitors.keys())[0].inter_spike_interval(spikes)
+
+    @property
+    def isi(self):
+        return self.compute_isi()
+
     def reset(self):
         self._record()
         self._data = OrderedDict()
