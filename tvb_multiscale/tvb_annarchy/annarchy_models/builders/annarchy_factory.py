@@ -236,6 +236,8 @@ def connect_two_populations(source_pop, target_pop, weights=1.0, delays=0.0, tar
     if isinstance(synapse, string_types):
         # If this is a SpecificProjection, create it directly:
         proj = getattr(annarchy_instance, synapse)(source_neurons, target_neurons, target=target, name=name, **syn_spec)
+    elif synapse is annarchy_instance.CurrentInjection:
+        proj = synapse(source_neurons, target_neurons, target=target, name=name, **syn_spec)
     else:
         # Otherwise, create it via the Projection creator:
         proj = set_model_parameters(annarchy_instance.Projection(source_neurons, target_neurons,
