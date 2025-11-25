@@ -49,11 +49,9 @@ RUN mkdir $HOME/packages
 RUN mkdir $HOME/build
 ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
-RUN mkdir $HOME/.local
-ENV LOCALENV=$HOME/.local
 ENV VENV=$HOME/venv
-ENV PYTHONPATH=$PYTHONPATH:$VENV:$LOCALENV
-ENV PATH="${VENV}/bin":"${LOCALENV}/bin":${PATH};
+ENV PYTHONPATH=$PYTHONPATH:$VENV:
+ENV PATH="${VENV}/bin":${PATH};
 
 # Basic python dependencies:
 RUN python3.12 -m venv $VENV && python3.12 -m venv --system-site-packages $VENV;
@@ -248,7 +246,7 @@ RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
 
 # Final configurations
 # tvb42
-RUN $LOCALENV/bin/jupyter-notebook --generate-config; \
+RUN $VENV/bin/jupyter-notebook --generate-config; \
     echo "c.NotebookApp.password='sha1:12bff019c253:9daecd92c2e9bdb10b3b8a06767a74a0fe078d7c'">>/home/docker/.jupyter/jupyter_notebook_config.py
 
 WORKDIR /home/docker/
@@ -275,9 +273,9 @@ WORKDIR /home/docker/
 # CMD $VENV/bin/pytest --cov=nest_tests_coverage /home/docker/packages/tvb-multiscale/tests
 
 # Run jupyter lab
-# CMD $LOCALENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
+# CMD $VENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
 
 #Run jupyter notebooks
-CMD $LOCALENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 
 # CMD /bin/bash
