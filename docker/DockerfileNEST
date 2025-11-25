@@ -7,7 +7,7 @@
 #
 
 # Install NEST
-ARG NEST_VER=3.8
+ARG NEST_VER=3.9
 ARG NEST_DESKTOP_HOST=0.0.0.0
 ARG NEST_DESKTOP_PORT=8000
 ARG NEST_SERVER_HOST=0.0.0.0
@@ -21,9 +21,6 @@ MAINTAINER lia.domide@codemart.ro
 
 RUN apt-get update; apt-get install -y nodejs;  apt-get clean;
 
-ENV BASEENV=/usr
-RUN ln -s /opt/bin/nest-server $BASEENV/nest-server
-
 # Create user different than root
 RUN useradd -ms /bin/bash docker
 USER docker
@@ -31,54 +28,60 @@ ARG HOME=/home/docker
 RUN mkdir $HOME/build; mkdir $HOME/packages
 ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
-ENV LOCALENV=/usr/local
+RUN mkdir $HOME/.local
+ENV LOCALENV=$HOME/.local
+ENV VENV=$HOME/venv
 ENV DOTLOCALENV=$HOME/.local
-ENV PYTHONPATH=$PYTHONPATH:$BASEENV:$LOCALENV:$DOTLOCALENV
-ENV PATH="${BASEENV}/bin":"${LOCALENV}/bin":"${DOTLOCALENV}/bin":${PATH};
+ENV PYTHONPATH=$PYTHONPATH:$VENV:$LOCALENV:$DOTLOCALENV
+ENV PATH="${VENV}/bin":"${LOCALENV}/bin":"${DOTLOCALENV}/bin":${PATH};
+
+RUN ln -s /opt/bin/nest-server $VENV/nest-server
 
 # TODO: Find out if these are really needed:
-RUN $BASEENV/bin/pip3 install --upgrade pip;
-RUN $BASEENV/bin/pip3 install --upgrade nose;
+RUN $VENV/bin/pip3 install --upgrade pip;
+RUN $VENV/bin/pip3 install --upgrade nose;
 
 # Install NESTServerClient
 WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
 RUN cd nest-client; \
-     $BASEENV/bin/python3 setup.py install --user;
 
 # Install TVB-multiscale specific packages
 WORKDIR $PACKAGES
 # Install NEURON and NetPyNE
-RUN $BASEENV/bin/pip3 install neuron
-RUN $BASEENV/bin/pip3 install netpyne
+RUN $VENV/bin/pip3 install neuron
+RUN $VENV/bin/pip3 install netpyne
 # Install ANNarchy
-RUN $BASEENV/bin/pip3 install ANNarchy;
+RUN $VENV/bin/pip3 install ANNarchy==5.0.0rc10;
 # Install pyNN
 # RUN pip install pyNN
 # Install Pyspike:
-RUN $BASEENV/bin/pip3 install pyspike --user;
+# Only via github:
+# https://github.com/mariomulansky/PySpike/issues/82#issuecomment-2838013901
+RUN $VENV/bin/pip3 install git+https://github.com/mariomulansky/PySpike.git;
 # Install Elephant:
-RUN $BASEENV/bin/pip3 install quantities neo elephant;
+RUN $VENV/bin/pip3 install quantities neo elephant;
 
 ## Other (large) packages added for scientific work:
-RUN $BASEENV/bin/pip3 install plotly;
-# RUN $BASEENV/bin/pip3 install torch
-# RUN $BASEENV/bin/pip3 install sbi
-# RUN $BASEENV/bin/pip3 install sbibm
+RUN $VENV/bin/pip3 install plotly;
+# RUN $VENV/bin/pip3 install torch
+# RUN $VENV/bin/pip3 install sbi
+# RUN $VENV/bin/pip3 install sbibm
 
 # Install TVB specific packages
-# WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
-    $BASEENV/bin/pip3 install --ignore-installed entrypoints;
+WORKDIR $PACKAGES
+RUN $VENV/bin/pip3 install pandas xarray pytest pytest-cov pytest-benchmark scikit-learn sqlalchemy numba dill; \
+    $VENV/bin/pip3 install --ignore-installed entrypoints; \
+    $VENV/bin/pip3 install werkzeug;
 
 # Install some additional packages for TVB:
 # For tvb-library:
-RUN $BASEENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryptography pyaescrypt kubernetes;
-# RUN $BASEENV/bin/pip3 install syncrypto
+RUN $VENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryptography pyaescrypt kubernetes;
+# RUN $VENV/bin/pip3 install syncrypto
 # for tvb-framework:
-RUN $BASEENV/bin/pip3 install alembic bctpy cherrypy flask-restx formencode gevent nibabel;
-RUN $BASEENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson;
-RUN $BASEENV/bin/pip3 install tvb-data;  #  tvb-gdist;
+RUN $VENV/bin/pip3 install alembic bctpy cherrypy flask-restx formencode gevent nibabel;
+RUN $VENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson;
+RUN $VENV/bin/pip3 install tvb-data;  #  tvb-gdist;
 
 # TODO: Deal with this new error...:
 #ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions,
@@ -95,17 +98,17 @@ ARG LAST_SHA_TVB=LATEST
 RUN cd tvb-root; \
     git pull --allow-unrelated-histories; \
     cd tvb_framework; \
-    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    $VENV/bin/pip3 install -e . --no-deps; \
     cd ../tvb_storage; \
-    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    $VENV/bin/pip3 install -e . --no-deps; \
     cd ../tvb_library; \
-    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    $VENV/bin/pip3 install -e . --no-deps; \
     cd ../tvb_contrib; \
-    $BASEENV/bin/pip3 install -e . --no-deps --user; \
+    $VENV/bin/pip3 install -e . --no-deps; \
     cd ../tvb_bin; \
-    $BASEENV/bin/pip3 install -e . --user; \
+    $VENV/bin/pip3 install -e .; \
     cd ../tvb_build; \
-    $BASEENV/bin/pip3 install -e . --no-deps --user;
+    $VENV/bin/pip3 install -e . --no-deps;
 
 # Clone and install tvb-multiscale
 WORKDIR $PACKAGES
@@ -114,7 +117,7 @@ ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     git checkout dev; \
-    $BASEENV/bin/python3 setup.py develop --no-deps --user;
+    $VENV/bin/python3 setup.py develop --no-deps;
 
 # Checkout specific branch of tvb-multiscale
 # WORKDIR $PACKAGES
@@ -125,22 +128,22 @@ RUN cd tvb-multiscale; \
 # Compile tvb-netpyne .mod files
 WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
-    $DOTLOCALENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
+    $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
 
 ## TODO: Solve problems with ray in this Docker image!
 ## Install ray:
-RUN $BASEENV/bin/pip3 install -U "ray"
+RUN $VENV/bin/pip3 install -U "ray"
 
 # Install Jupyter notebook specific packages
 WORKDIR $PACKAGES
-RUN $BASEENV/bin/pip3 install jupyterlab notebook ipympl;
+RUN $VENV/bin/pip3 install jupyterlab notebook ipympl;
 
 WORKDIR $HOME
 # Activate the right python env.
 ENV NEST_INSTALL_DIR=/opt/nest
 RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
 ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
-ENV PYTHONPATH=$PYTHONPATH:$BASEENV:${NEST_PYTHON_PREFIX}
+ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_PYTHON_PREFIX}
 ## Note that the following are automatically reset if NEST is imported
 ## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
 ENV NEST_DATA_DIR=${NEST_INSTALL_DIR}/share/nest
@@ -173,7 +176,7 @@ ENV PATH=$PATH:/usr/local/bin
 #WORKDIR $PACKAGES
 #RUN mkdir tvb-multiscale
 #COPY ./tvb-multiscale/ tvb-multiscale/
-#RUN cd tvb-multiscale; $BASEENV/bin/python setup.py develop --no-deps
+#RUN cd tvb-multiscale; $VENV/bin/python setup.py develop --no-deps
 ENV MYMODULES_DIR=$PACKAGES/tvb-multiscale/tvb_multiscale/tvb_nest/nest/modules
 ENV MYMODULES_BLD_DIR=$BUILD/nest_modules_builds
 RUN cp -r ${MYMODULES_DIR} ${MYMODULES_BLD_DIR}
@@ -197,28 +200,28 @@ RUN $LOCALENV/bin/jupyter-notebook --generate-config; \
 WORKDIR $HOME
 
 # TODO: Find out if this is correct and/or necessary!
-# ENV SLI_PATH $BASEENV
+# ENV SLI_PATH $VENV
 
 # For running examples
-# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/docker/installation_test.py
-# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
-# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/examples/tvb_nest/example.py
+# CMD $VENV/bin/python3 $PACKAGES/tvb-multiscale/docker/installation_test.py
+# CMD $VENV/bin/python3 $PACKAGES/tvb-multiscale/examples/tvb_nest/basal_ganglia_izhikevich.py.py
+# CMD $VENV/bin/python3 $PACKAGES/tvb-multiscale/examples/tvb_nest/example.py
 
 # Test NEST installation
 # RUN cd $NEST; make installcheck
-# CMD $BASEENV/bin/python3 $PACKAGES/tvb-multiscale/docker/module_build_test.py
+# CMD $VENV/bin/python3 $PACKAGES/tvb-multiscale/docker/module_build_test.py
 
 # pynestml installation test:
-# CMD cd $PACKAGES/nestml; $BASEENV/bin/pytest setup.py test
+# CMD cd $PACKAGES/nestml; $VENV/bin/pytest setup.py test
 
 # pyNN-NEST installation test:
-# CMD $BASEENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
+# CMD $VENV/bin/python3 -c "import pyNN.nest as sim; sim.setup(); sim.end(); print(sim)";
 
 # For running tests
-# CMD $BASEENV/bin/pytest $PACKAGES/tvb-multiscale/tests
+# CMD $VENV/bin/pytest $PACKAGES/tvb-multiscale/tests
 
 #For running tests with coverage
-#CMD $BASEENV/bin/pytest --cov=nest_tests_coverage $PACKAGES/tvb-multiscale/tests
+#CMD $VENV/bin/pytest --cov=nest_tests_coverage $PACKAGES/tvb-multiscale/tests
 
 # CMD /bin/bash
 
