@@ -43,7 +43,7 @@ class NetpyneInputProxyModels(Enum):
 
 class NetpyneOutputProxyModels(Enum):
     SPIKES = NetpyneSpikeRecorderSet
-    SPIKE_EVENTS = NetpyneSpikeEventsRecorderSet
+    SPIKE_EVENTS = NetpyneSpikeEventRecorderSet
     POTENTIAL = NetpyneMultimeterSet
     POTENTIAL_MEAN = NetpyneMultimeterMeanSet
     POTENTIAL_TOTAL = NetpyneMultimeterTotalSet

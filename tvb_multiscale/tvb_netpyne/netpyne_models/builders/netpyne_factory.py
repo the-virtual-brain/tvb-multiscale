@@ -57,6 +57,7 @@ def create_device(device_model, params=dict(), config=CONFIGURED, netpyne_instan
 
     # TODO: netpyne doesn't have suitable entity for this case, but at some point we might want to create some wrapper
     netpyne_device = None
+    numberOfNeurons = params.pop("number_of_neurons", 1)
     DeviceClass = devices_dict[device_model] # e.g. NetpynePoissonGenerator or NetpyneSpikeRecorder 
     device = DeviceClass(netpyne_device, netpyne_instance=netpyne_instance, label=label, params=safe_deepcopy(params))
 
@@ -65,8 +66,6 @@ def create_device(device_model, params=dict(), config=CONFIGURED, netpyne_instan
     device.label = label
 
     if isInputDevice:
-
-        numberOfNeurons = params["number_of_neurons"]
         recordSpikes = params.get("record_generated_spikes", False)
         lamda = params.get("lamda", None)
         if lamda is not None:

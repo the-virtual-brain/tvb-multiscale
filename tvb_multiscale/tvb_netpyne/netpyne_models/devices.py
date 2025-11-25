@@ -16,7 +16,7 @@ class NetpyneDevice(HasTraits):
         self.netpyne_instance = netpyne_instance
         HasTraits.__init__(self)
         self.params = kwargs.get('params')
-        for pname, pval in params.items():
+        for pname, pval in self.params.items():
             setattr(self, pname, pval)
 
     @property
