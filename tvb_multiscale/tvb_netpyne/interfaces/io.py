@@ -75,8 +75,7 @@ class NetpyneParameterInputSet(NetpyneInputDeviceSet):
 
     _spikeNet_input_device_type = NetpyneParameterInput
 
-    parameters = List(required=True,
-                      of=str,
+    parameters = List(of=str,
                       default=list(),
                       label="Parameters to receive time resolved input.",
                       doc="""List of parameters' names (of type str) to receive time resolved input.""")
