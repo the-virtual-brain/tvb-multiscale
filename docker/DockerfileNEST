@@ -19,6 +19,49 @@ FROM docker-registry.ebrains.eu/nest/nest-simulator:$NEST_VER
 
 MAINTAINER lia.domide@codemart.ro
 
+USER root
+
+RUN mkdir /opt/nest
+RUN chmod -R a+rX /opt
+RUN chmod -R a+rX /root/.env
+
+RUN ln -s /root/.env/lib/nest /opt/nest/lib
+RUN ln -s /root/.env/share/nest /opt/nest/share
+RUN ln -s /root/.env/bin /opt/nest/bin
+RUN ln -s /root/.env/lib/python3.12 /opt/nest/lib/python3.12
+
+RUN ln -s /root/.cache/music.install /opt/music-install
+
+# Activate the right python env.
+ENV NEST_INSTALL_DIR=/opt/nest
+RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
+ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.12/site-packages
+ENV PYTHONPATH=$PYTHONPATH:${NEST_PYTHON_PREFIX}
+## Note that the following are automatically reset if NEST is imported
+## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
+ENV NEST_DATA_DIR=${NEST_INSTALL_DIR}/share/nest
+ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
+ENV NEST_MODULE_PATH=${NEST_MODULE_PATH}
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
+ENV NEST_DOC_DIR=${NEST_INSTALL_DIR}/share/doc/nest
+
+ENV NEST_DESKTOP_HOST=${NEST_DESKTOP_HOST:-0.0.0.0}
+ENV NEST_DESKTOP_PORT=${NEST_DESKTOP_PORT:-8000}
+ENV NEST_SERVER_HOST=${NEST_SERVER_HOST:-0.0.0.0}
+ENV NEST_SERVER_MODULES=${NEST_SERVER_MODULES:-nest,numpy}
+ENV NEST_SERVER_PORT=${NEST_SERVER_PORT:-52425}
+ENV NEST_SERVER_RESTRICTION_OFF=${NEST_SERVER_RESTRICTION_OFF:-1}
+ENV NEST_SERVER_STDOUT=${NEST_SERVER_STDOUT:-1}
+
+ENV MUSIC_ROOT_DIR=/opt/music-install
+ENV MUSIC_ROOT=${MUSIC_ROOT_DIR}
+ENV MUSIC_PATH=${MUSIC_ROOT_DIR}
+ENV LD_LIBRARY_PATH=${MUSIC_PATH}/lib:$LD_LIBRARY_PATH
+ENV PATH=${MUSIC_PATH}/bin:$PATH
+ENV CPATH=${MUSIC_PATH}/include:$CPATH
+ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.12/site-packages:$PYTHONPATH
+ENV PATH=$PATH:/usr/local/bin
+
 RUN apt-get update; apt-get install -y nodejs;  apt-get clean;
 
 # Create user different than root
@@ -30,19 +73,20 @@ ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
 ENV VENV=$HOME/venv
 ENV DOTLOCALENV=$HOME/.local
+
+RUN python3.12 -m venv $VENV && python3.12 -m venv --system-site-packages $VENV;
+
 ENV PYTHONPATH=$PYTHONPATH:$VENV:$DOTLOCALENV
-ENV PATH="${VENV}/bin":"${DOTLOCALENV}/bin":${PATH};
-
-RUN ln -s /opt/bin/nest-server $VENV/nest-server
-
-# TODO: Find out if these are really needed:
-RUN $VENV/bin/pip3 install --upgrade pip;
-RUN $VENV/bin/pip3 install --upgrade nose;
+ENV PATH="${VENV}/bin":"${DOTLOCALENV}/bin":${PATH}
 
 # Install NESTServerClient
 WORKDIR $PACKAGES
 RUN git clone https://github.com/nest/nest-client.git
-RUN cd nest-client; \
+RUN ln -s $PACKAGES/nest-client/nest-client.py $VENV/nest-client.py
+
+# TODO: Find out if these are really needed:
+RUN $VENV/bin/pip3 install --upgrade pip;
+RUN $VENV/bin/pip3 install --upgrade nose;
 
 # Install TVB-multiscale specific packages
 WORKDIR $PACKAGES
@@ -78,16 +122,8 @@ RUN $VENV/bin/pip3 install deprecated autopep8 mako>=1.1.4 networkx numexpr cryp
 # RUN $VENV/bin/pip3 install syncrypto
 # for tvb-framework:
 RUN $VENV/bin/pip3 install alembic bctpy cherrypy flask-restx formencode gevent nibabel;
-RUN $VENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson;
+RUN $VENV/bin/pip3 install python-keycloak requests-toolbelt>=0.10 siibra simplejson docutils;
 RUN $VENV/bin/pip3 install tvb-data;  #  tvb-gdist;
-
-# TODO: Deal with this new error...:
-#ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions,
-# please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
-#    unknown package:
-#        Expected sha256 afe042757b8f93af31e3c27eda3d2f8d9c1aeaf37c496ad3a381ca9717489d8b
-#             Got        51a80d575c1efc82071f5dadc6afa90ada0db8791f7835e3c4d32d4e8c41a9de
-
 
 # Clone and install tvb-root
 WORKDIR $PACKAGES
@@ -137,35 +173,6 @@ WORKDIR $PACKAGES
 RUN $VENV/bin/pip3 install jupyterlab notebook ipympl;
 
 WORKDIR $HOME
-# Activate the right python env.
-ENV NEST_INSTALL_DIR=/opt/nest
-RUN . ${NEST_INSTALL_DIR}/bin/nest_vars.sh
-ENV NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.10/site-packages
-ENV PYTHONPATH=$PYTHONPATH:$VENV:${NEST_PYTHON_PREFIX}
-## Note that the following are automatically reset if NEST is imported
-## via a call to  tvb_nest.simulator_nest.nest_factory.load_nest()
-ENV NEST_DATA_DIR=${NEST_INSTALL_DIR}/share/nest
-ENV SLI_PATH=${NEST_INSTALL_DIR}/share/nest/sli
-ENV NEST_MODULE_PATH=${NEST_MODULE_PATH}
-ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NEST_MODULE_PATH}
-ENV NEST_DOC_DIR=${NEST_INSTALL_DIR}/share/doc/nest
-
-ENV NEST_DESKTOP_HOST=${NEST_DESKTOP_HOST:-0.0.0.0}
-ENV NEST_DESKTOP_PORT=${NEST_DESKTOP_PORT:-8000}
-ENV NEST_SERVER_HOST=${NEST_SERVER_HOST:-0.0.0.0}
-ENV NEST_SERVER_MODULES=${NEST_SERVER_MODULES:-nest,numpy}
-ENV NEST_SERVER_PORT=${NEST_SERVER_PORT:-52425}
-ENV NEST_SERVER_RESTRICTION_OFF=${NEST_SERVER_RESTRICTION_OFF:-1}
-ENV NEST_SERVER_STDOUT=${NEST_SERVER_STDOUT:-1}
-
-ENV MUSIC_ROOT_DIR=/opt/music-install
-ENV MUSIC_ROOT=${MUSIC_ROOT_DIR}
-ENV MUSIC_PATH=${MUSIC_ROOT_DIR}
-ENV LD_LIBRARY_PATH=${MUSIC_PATH}/lib:$LD_LIBRARY_PATH
-ENV PATH=${MUSIC_PATH}/bin:$PATH
-ENV CPATH=${MUSIC_PATH}/include:$CPATH
-ENV PYTHONPATH=${MUSIC_PATH}/lib/python3.11/site-packages:$PYTHONPATH
-ENV PATH=$PATH:/usr/local/bin
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Run the following lines in case you want to install your own NEST module with NEST builders
