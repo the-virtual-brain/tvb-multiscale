@@ -1,7 +1,6 @@
 
 #
 # TVB-multiscale (NEST, NETPYNE (NEURON), ANNarchy) simulations environment
-#
 # Install NEST from Docker registry, then the rest of tvb-multiscale dependencies.
 # Finally link tvb-multiscale from Github sources.
 #
@@ -240,10 +239,5 @@ WORKDIR $HOME
 # Run jupyter lab
 # CMD $VENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
 
-# Run jupyter notebooks
-CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
 # Run jupyter lab
-# CMD $VENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
-
-# Run jupyter notebooks
-CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyterlab --ip 0.0.0.0 --no-browser --allow-root
