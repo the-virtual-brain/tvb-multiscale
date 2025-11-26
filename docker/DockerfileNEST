@@ -177,7 +177,7 @@ RUN $VENV/bin/pip3 install -U "ray"
 
 # Install Jupyter notebook specific packages
 WORKDIR $PACKAGES
-RUN $VENV/bin/pip3 install jupyterlab notebook ipympl;
+RUN $VENV/bin/pip3 install --force-reinstall jupyterlab notebook ipympl;
 
 WORKDIR $HOME
 
@@ -240,4 +240,4 @@ WORKDIR $HOME
 # CMD $VENV/bin/jupyter-lab --ip 0.0.0.0 --no-browser --allow-root
 
 # Run jupyter lab
-CMD $VENV/bin/jupyterlab --ip 0.0.0.0 --no-browser --allow-root
+CMD $VENV/bin/jupyter-notebook --ip 0.0.0.0 --no-browser --allow-root
