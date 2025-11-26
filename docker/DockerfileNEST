@@ -65,7 +65,7 @@ ENV NEST_SERVER_STDOUT=${NEST_SERVER_STDOUT:-1}
 #ENV CPATH=${MUSIC_PATH}/include:$CPATH
 #ENV PYTHONPATH=$PYTHONPATH:${MUSIC_PATH}/lib/python3.12/site-packages
 
-ENV PATH=$PATH:/usr/local/bin
+ENV PATH=$PATH:$NEST_INSTALL_DIR/bin:/usr/local/bin
 
 #RUN sh /usr/local/bin/entrypoint.sh;
 
