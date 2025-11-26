@@ -1,0 +1,8 @@
+dynvecstim.cpp: /home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod/dynvecstim.mod $(NOCMODL)
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "dynvecstim.mod"  -o "/home/docker/packages/tvb-multiscale/docs/notebooks/default_aarch64/aarch64" )
+
+./dynvecstim.o: dynvecstim.cpp
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) /home/docker/packages/tvb-multiscale/docs/notebooks/default_aarch64/aarch64/$<\\n"
+	$(CXXCOMPILE) -I"/home/docker/packages/tvb-multiscale/tvb_multiscale/tvb_netpyne/netpyne/mod" $(INCLUDES) -fPIC -c "/home/docker/packages/tvb-multiscale/docs/notebooks/default_aarch64/aarch64/$<" -o $@
+
