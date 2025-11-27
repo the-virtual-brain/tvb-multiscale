@@ -131,13 +131,15 @@ RUN $VENV/bin/pip3 install netpyne
 RUN $VENV/bin/pip3 install ANNarchy==5.0.0rc10;
 # Install pyNN
 # RUN pip install pyNN
-# Install Pyspike:
-# Only via github:
-# https://github.com/mariomulansky/PySpike/issues/82#issuecomment-2838013901
-RUN $VENV/bin/pip3 install git+https://github.com/mariomulansky/PySpike.git;
 # Install Elephant
 WORKDIR $PACKAGES
 RUN $VENV/bin/pip3 install elephant;
+# Install Pyspike:
+# Only via github:
+# https://github.com/mariomulansky/PySpike/issues/82#issuecomment-2838013901
+WORKDIR $PACKAGES
+RUN git clone https://github.com/mariomulansky/PySpike.git;
+RUN cd Pyspike; $VENV/bin/pythonn setup.py build_ext --inplace;
 
 # Install TVB specific packages
 WORKDIR $PACKAGES
