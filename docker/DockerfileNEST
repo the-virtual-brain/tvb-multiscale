@@ -83,7 +83,7 @@ ENV DOTLOCALENV=$HOME/.local
 
 RUN python3.12 -m venv $VENV && python3.12 -m venv --system-site-packages $VENV;
 
-ENV PYTHONPATH=$VENV:$DOTLOCALENV:$PYTHONPATH
+ENV =$VENV:$DOTLOCALENV:$PYTHONPATH
 ENV PATH="${VENV}/bin":"${DOTLOCALENV}/bin":${PATH}
 
 # Install NESTServerClient
@@ -112,6 +112,8 @@ RUN $VENV/bin/pip3 install quantities neo elephant;
 WORKDIR $PACKAGES
 RUN git clone https://github.com/mariomulansky/PySpike.git;
 RUN cd PySpike; $VENV/bin/python setup.py build_ext --inplace;
+ENV PYTHONPATH=$PYTHONPATH:$PACKAGES/PySpike
+
 
 ## Other (large) packages added for scientific work:
 RUN $VENV/bin/pip3 install plotly;

@@ -50,7 +50,7 @@ RUN mkdir $HOME/build
 ENV PACKAGES=$HOME/packages
 ENV BUILD=$HOME/build
 ENV VENV=$HOME/venv
-ENV PYTHONPATH=$PYTHONPATH:$VENV:
+ENV PYTHONPATH=$PYTHONPATH:$VENV
 ENV PATH="${VENV}/bin":${PATH};
 
 # Basic python dependencies:
@@ -140,6 +140,7 @@ RUN $VENV/bin/pip3 install elephant;
 WORKDIR $PACKAGES
 RUN git clone https://github.com/mariomulansky/PySpike.git;
 RUN cd PySpike; $VENV/bin/python setup.py build_ext --inplace;
+ENV PYTHONPATH=$PYTHONPATH:$PACKAGES/PySpike
 
 # Install TVB specific packages
 WORKDIR $PACKAGES
