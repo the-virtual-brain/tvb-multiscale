@@ -502,7 +502,7 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
 
     def _prepare_cosim_update(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
-        cosim_updates[:] = np.NAN
+        cosim_updates[:] = np.nan
         all_time_steps = []
         return cosim_updates, all_time_steps
 
