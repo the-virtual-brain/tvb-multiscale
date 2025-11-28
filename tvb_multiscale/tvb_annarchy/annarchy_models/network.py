@@ -64,8 +64,6 @@ class ANNarchyNetwork(SpikingNetwork):
     def __init__(self, annarchy_network=None, **kwargs):
         if isinstance(annarchy_network, ANNarchy.Network):
             self.annarchy_network = annarchy_network
-        self._dt = None
-        self.annarchy_network = None
         self.network_path = ""
         self.brain_regions = ANNarchyBrain()
         self.config = kwargs.get("config", CONFIGURED)
@@ -115,5 +113,5 @@ class ANNarchyNetwork(SpikingNetwork):
 
     def info(self, recursive=0):
         info = super(ANNarchyNetwork, self).info(recursive=recursive)
-        info["ANNarchy_Network"] = self.network
+        info["ANNarchy_Network"] = self.annarchy_network
         return info

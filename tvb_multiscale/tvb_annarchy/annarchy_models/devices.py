@@ -60,6 +60,9 @@ class ANNarchyDevice(HasTraits):
     def spiking_simulator_module(self):
         return ANNarchy
 
+    def _assert_spiking_simulator(self):
+        return ANNarchy
+    
     @abstractmethod
     def _assert_annarchy_network(self):
         pass
@@ -124,7 +127,7 @@ class ANNarchyInputDevice(_ANNarchyPopulation, ANNarchyDevice, InputDevice):
 
     """ANNarchyInputDevice class to wrap around an ANNarchy.Population, acting as an input (stimulating) device"""
 
-    _nodes = Attr(field_type=Annarchy.core.Population.Population, default=None, required=False,
+    _nodes = Attr(field_type=ANNarchy.core.Population.Population, default=None, required=False,
                   label="Specific ANNarchy.Population",
                   doc="""Instance of specific ANNarchyInputDevice's ANNarchy.Population""")
 
@@ -305,10 +308,10 @@ class ANNarchyHomogeneousCorrelatedSpikeTrains(ANNarchyInputDevice):
        acting as an input (stimulating) device,
        by generating and sending correlated Poisson spikes to target neurons."""
 
-    _nodes = Attr(field_type=ANNarchy.inputs.HomogeneousCorrelatedSpikeTrainss,
+    _nodes = Attr(field_type=ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains,
                   label="ANNarchy HomogeneousCorrelatedSpikeTrains", required=False,
                   doc="""Instance of 
-                         ANNarchy.inputs.HomogeneousCorrelatedSpikeTrainss""")
+                         ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains""")
 
     def __init__(self, device=None, annarchy_network=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "HomogeneousCorrelatedSpikeTrains")
@@ -367,7 +370,7 @@ class ANNarchyCurrentInjector(ANNarchyContinuousInputDevice):
        acting as an input (stimulating) device,
        by generating and sending a continuous quantity interpreted as a current (or potentially rate)."""
 
-    _nodes = Attr(field_type=tvb_multiscale.tvb_annarchy.annarchy.input_devices.CurrentInjector,
+    _nodes = Attr(field_type=ANNarchy.core.Population.Population,
                   label="TVB-ANNarchy CurrentInjector", required=False,
                   doc="""Instance of tvb_multiscale.tvb_annarchy.annarchy.input_devices.CurrentInjector""")
 
@@ -382,7 +385,7 @@ class ANNarchyDCCurrentInjector(ANNarchyCurrentInjector):
        acting as an input (stimulating) device,
        by generating and sending a constant continuous quantity interpreted as a DC current (or potentially rate)."""
 
-    _nodes = Attr(field_type=tvb_multiscale.tvb_annarchy.annarchy.input_devices.DCCurrentInjector,
+    _nodes = Attr(field_type=ANNarchy.core.Population.Population,
                   label="TVB-ANNarchy DCCurrentInjector", required=False,
                   doc="""Instance of tvb_multiscale.tvb_annarchy.annarchy.input_devices.DCCurrentInjector""")
 
@@ -397,7 +400,7 @@ class ANNarchyACCurrentInjector(ANNarchyCurrentInjector):
        acting as an input (stimulating) device, by generating and sending
        a sinusoidaly varying continuous quantity interpreted as a AC current (or potentially rate)."""
 
-    _nodes = Attr(field_type=tvb_multiscale.tvb_annarchy.annarchy.input_devices.ACCurrentInjector,
+    _nodes = Attr(field_type=ANNarchy.core.Population.Population,
                   label="TVB-ANNarchy ACCurrentInjector", required=False,
                   doc="""Instance of tvb_multiscale.tvb_annarchy.annarchy.input_devices.ACCurrentInjector""")
 
@@ -496,7 +499,7 @@ class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
     """ANNarchyTimedPoissonPopulation class to wrap around a rate ANNarchy TimedPoissonPopulation,
        in order to act as an input (stimulating) device."""
 
-    _nodes = Attr(field_type=ANNarchy.inputs.TimedPoissonPopulatio.TimedPoissonPopulation,
+    _nodes = Attr(field_type=ANNarchy.inputs.TimedPoissonPopulation,
                   label="ANNarchy TimedPoissonPopulation", required=False,
                   doc="""Instance of ANNarchy.inputs.TimedPoissonPopulatio.TimedPoissonPopulation""")
 

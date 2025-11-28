@@ -62,9 +62,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         self.spiking_simulator = load_annarchy(self.logger)
         self.annarchy_instance.clear()  # This will restart ANNarchy!
         kwargs["dt"] = self.spiking_dt
-        kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
+        seed = kwargs.pop("seed", self.config.ANNARCHY_SEED)
         kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-        self.annarchy_network = self.annarchy_instance.Network()
+        self.annarchy_network = self.annarchy_instance.Network(seed=seed)
         self.annarchy_network.config(**kwargs)
 
     def configure(self, **kwargs):
@@ -187,7 +187,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         """
         return build_and_connect_devices(devices, create_device, connect_device,
                                          self._spiking_brain, self.config,
-                                         import_path=self._models_import_path)
+                                         import_path=self._models_import_path, annarchy_network=self.annarchy_network)
 
     def build_spiking_network(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""

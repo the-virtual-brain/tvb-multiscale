@@ -25,26 +25,26 @@ class _ANNarchyPopulation(HasTraits):
     annarchy_network = Attr(field_type=ANNarchy.Network, required=False,
                             label="ANNarchy.Network", doc="""Instance of ANNarchy.Network""")
 
-    _nodes = Attr(field_type=Population, default=None, required=False,
-                  label="ANNarchy.core.Population",
-                  doc="""Instance of ANNarchy.core.Population""")
+    _nodes = Attr(field_type=ANNarchy.core.Population.Population, default=None, required=False,
+                  label="ANNarchy Population",
+                  doc="""Instance of ANNarchy.core.Population.Population""")
 
     label = Attr(field_type=str, default="", required=True,
-                 label="Population label", doc="""Label of ANNarchy.core.Population""")
+                 label="Population label", doc="""Label of ANNarchy Population""")
 
     model = Attr(field_type=str, default="", required=True, label="Population model",
-                 doc="""Label of neuronal model of ANNarchy.core.Population's neurons""")
+                 doc="""Label of neuronal model of ANNarchy Population's neurons""")
 
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
-                        doc="""Label of the brain region the ANNarchy.core.Population resides""")
+                        doc="""Label of the brain region the ANNarchy Population resides""")
 
     projections_pre = []
     # List(of=Projection, default=(), label="Outgoing projections",
-    #                        doc="""A list of population's outgoing ANNarchy.Projection instances""")
+    #                        doc="""A list of population's outgoing ANNarchy.core.Projection.Projection instances""")
 
     projections_post = []
     # List(of=Projection, default=(), label="Incoming projections",
-    #                         doc="""A list of population's incoming ANNarchy.Projection instances""")
+    #                         doc="""A list of population's incoming ANNarchy.core.Projection.Projection instances""")
 
     _source_conns_attr = "pre"
     _target_conns_attr = "post"
@@ -75,12 +75,15 @@ class _ANNarchyPopulation(HasTraits):
     def spiking_simulator_module(self):
         return ANNarchy
 
+    def _assert_spiking_simulator(self):
+        return ANNarchy
+
     def _assert_annarchy_network(self):
         assert isinstance(self.annarchy_network, ANNarchy.Network)
 
     @property
     def annarchy_model(self):
-        if isinstance(self._nodes, ANNarchy.core.Population):
+        if isinstance(self._nodes, ANNarchy.core.Population.Population):
             return str(self._nodes.neuron_type.name)
         else:
             return str(self.__class__.__name__)
@@ -91,7 +94,7 @@ class _ANNarchyPopulation(HasTraits):
 
     @property
     def population_ind(self):
-        if isinstance(self._nodes, ANNarchy.core.Population):
+        if isinstance(self._nodes, ANNarchy.core.Population.Population):
             return self._nodes.id
 
     @property
@@ -123,7 +126,7 @@ class _ANNarchyPopulation(HasTraits):
         if nodes is None:
             nodes = self._nodes
         else:
-            if isinstance(nodes, ANNarchy.core.Population):
+            if isinstance(nodes, ANNarchy.core.Population.Population):
                 # Assert that we refer to this object's Population
                 assert self._nodes == nodes
             elif isinstance(nodes, ANNarchy.core.Population.PopulationView):

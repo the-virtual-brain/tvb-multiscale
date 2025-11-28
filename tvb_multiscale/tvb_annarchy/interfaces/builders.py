@@ -97,7 +97,8 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
     def _build_and_connect_devices(self, interface, **kwargs):
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
-                                         self.config, input_proxies=self.spiking_network.input_proxies, **kwargs)
+                                         self.config, annarchy_network=self.annarchy_network.annarchy_network,
+                                         input_proxies=self.spiking_network.input_proxies, **kwargs)
 
     def _build_and_connect_input_devices(self, interface, **kwargs):
         return self._build_and_connect_devices(interface, **kwargs)
@@ -184,6 +185,9 @@ class TVBANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, TVBSpikeNetInterfac
         TVBSpikeNetInterfaceBuilder.configure(self)
 
     def _get_tvb_delays(self):
-        return np.maximum(self.spiking_dt,
+        spiking_dt = self.spiking_dt
+        if spiking_dt is None:
+            spiking_dt = 0.0
+        return np.maximum(spiking_dt,
                           TVBSpikeNetInterfaceBuilder._get_tvb_delays(self) -
                           self.synchronization_time + self.tvb_dt)

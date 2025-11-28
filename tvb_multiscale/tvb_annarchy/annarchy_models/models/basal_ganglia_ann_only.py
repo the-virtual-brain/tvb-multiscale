@@ -201,36 +201,36 @@ projSTN_GPi_Right = net.connect(popSTN_Right_E, popGPi_Right_I, 'ampa', name="E 
 
 # Output devices / monitors
 # Excitatory spikes
-mSTN_Left_spike = net.Monitor(popSTN_Left_E, ["spike"])
-mSTN_Right_spike = net.Monitor(popSTN_Right_E, ["spike"])
-mThal_Left_spike = net.Monitor(popThal_Left_E, ["spike"])
-mThal_Right_spike = net.Monitor(popThal_Right_E, ["spike"])
+mSTN_Left_spike = net.monitor(popSTN_Left_E, ["spike"])
+mSTN_Right_spike = net.monitor(popSTN_Right_E, ["spike"])
+mThal_Left_spike = net.monitor(popThal_Left_E, ["spike"])
+mThal_Right_spike = net.monitor(popThal_Right_E, ["spike"])
 
 # Inhibitory spikes
-mGPe_Left_spike = net.Monitor(popGPe_Left_I, ["spike"])
-mGPe_Right_spike = net.Monitor(popGPe_Right_I, ["spike"])
-mGPi_Left_spike = net.Monitor(popGPi_Left_I, ["spike"])
-mGPi_Right_spike = net.Monitor(popGPi_Right_I, ["spike"])
-mStr_Left_I1_spike = net.Monitor(popStr_Left_I1, ["spike"])
-mStr_Right_I1_spike = net.Monitor(popStr_Right_I1, ["spike"])
-mStr_Left_I2_spike = net.Monitor(popStr_Left_I2, ["spike"])
-mStr_Right_I2_spike = net.Monitor(popStr_Right_I2, ["spike"])
+mGPe_Left_spike = net.monitor(popGPe_Left_I, ["spike"])
+mGPe_Right_spike = net.monitor(popGPe_Right_I, ["spike"])
+mGPi_Left_spike = net.monitor(popGPi_Left_I, ["spike"])
+mGPi_Right_spike = net.monitor(popGPi_Right_I, ["spike"])
+mStr_Left_I1_spike = net.monitor(popStr_Left_I1, ["spike"])
+mStr_Right_I1_spike = net.monitor(popStr_Right_I1, ["spike"])
+mStr_Left_I2_spike = net.monitor(popStr_Left_I2, ["spike"])
+mStr_Right_I2_spike = net.monitor(popStr_Right_I2, ["spike"])
 
 # Other variables, excitatory populations
-mSTN_Left = net.Monitor(popSTN_Left_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mSTN_Right = net.Monitor(popSTN_Right_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mThal_Left = net.Monitor(popThal_Left_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mThal_Right = net.Monitor(popThal_Right_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mSTN_Left = net.monitor(popSTN_Left_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mSTN_Right = net.monitor(popSTN_Right_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mThal_Left = net.monitor(popThal_Left_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mThal_Right = net.monitor(popThal_Right_E, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
 
 # Other variables, inhibitory populations
-mGPe_Left = net.Monitor(popGPe_Left_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mGPe_Right = net.Monitor(popGPe_Right_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mGPi_Left = net.Monitor(popGPi_Left_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mGPi_Right = net.Monitor(popGPi_Right_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mStr_Left_I1 = net.Monitor(popStr_Left_I1, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mStr_Right_I1 = net.Monitor(popStr_Right_I1, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mStr_Left_I2 = net.Monitor(popStr_Left_I2, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
-mStr_Right_I2 = net.Monitor(popStr_Right_I2, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mGPe_Left = net.monitor(popGPe_Left_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mGPe_Right = net.monitor(popGPe_Right_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mGPi_Left = net.monitor(popGPi_Left_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mGPi_Right = net.monitor(popGPi_Right_I, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mStr_Left_I1 = net.monitor(popStr_Left_I1, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mStr_Right_I1 = net.monitor(popStr_Right_I1, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mStr_Left_I2 = net.monitor(popStr_Left_I2, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
+mStr_Right_I2 = net.monitor(popStr_Right_I2, ["v", "u", "syn", "g_ampa", "g_gaba"], period=1.0)
 
 # Inputs
 

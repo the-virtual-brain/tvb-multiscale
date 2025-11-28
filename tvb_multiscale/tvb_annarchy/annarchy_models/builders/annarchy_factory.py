@@ -128,9 +128,10 @@ def create_population(model, annarchy_network, size=1, params=dict(), import_pat
                 target = params.pop("target", "exc")
             else:
                 target = None
-            population = annarchy_network.create(PoissonPopulation(geometry, rates=rates, target=target, **params))
+            population = annarchy_network.create(
+                ANNarchy.PoissonPopulation(geometry, rates=rates, target=target, **params))
     else:
-        population = annarchy_network.create(Population(params.pop("geometry", size), neuron=model))
+        population = annarchy_network.create(params.pop("geometry", size), neuron=model)
         # Parametrize the population:
         if len(params):
             population = set_model_parameters(population, **params)
@@ -271,7 +272,7 @@ def create_input_device(annarchy_device, annarchy_network, params=dict(), import
         record = safe_deepcopy(record)
         record_from = record.pop("from")
         annarchy_device.record = \
-            annarchy_device.annarchy_network.Monitor(annarchy_device._nodes, record_from, **record)
+            annarchy_device.annarchy_network.monitor(annarchy_device._nodes, record_from, **record)
     if isinstance(annarchy_device, ANNarchyTimedArrayToSpikes):
         annarchy_device.proxy_params = dict(safe_deepcopy(proxy_params))
         annarchy_device.proxy_target = annarchy_device.proxy_params.pop("target",
@@ -316,22 +317,24 @@ def create_input_device(annarchy_device, annarchy_network, params=dict(), import
             record = safe_deepcopy(record)
             record_from = record.pop("from")
             annarchy_device.proxy.record = \
-                annarchy_device.annarchy_network.Monitor(annarchy_device.proxy._nodes, record_from, **record)
+                annarchy_device.annarchy_network.monitor(annarchy_device.proxy._nodes, record_from, **record)
     return annarchy_device
 
 
-def create_device(device_model, annarchy_network, params=None, config=CONFIGURED, **kwargs):
+def create_device(device_model, params=None, config=CONFIGURED, annarchy_network=None, **kwargs):
     """function to create an ANNarchyInputDevice or ANNarchyOutputDevice.
        The device will be only created for ANNarchyOutputDevice and also populated for ANNarchyInputDevice.
        Arguments:
         device_model: name (string) of the device model
-        annarchy_network = An ANNarchy Network instance
         params: dictionary of parameters of device and/or its synapse. Default = None
         config: configuration class instance. Default: imported default CONFIGURED object.
+        annarchy_network: An ANNarchy Network instance
          - **kwargs
        Returns:
         the ANNarchyDevice class, and optionally, the ANNarchy instance if it is loaded here.
     """
+    if not isinstance(annarchy_network, ANNarchy.Network):
+        raise ValueError("ANNarchy.Network argument is not provided!")
     # Figure out if this is an input or an output device:
     label = kwargs.pop("label", "")
     # Get the default parameters for this device...
@@ -421,7 +424,7 @@ def connect_output_device(annarchy_device, population, neurons_inds_fun=None):
     neurons = get_populations_neurons(population, neurons_inds_fun)
     params = safe_deepcopy(annarchy_device.params)
     # Create a connection by adding an ANNarchy Monitor targeting the specific neurons of this population:
-    monitor = annarchy_device.annarchy_network.Monitor(neurons, **params)
+    monitor = annarchy_device.annarchy_network.monitor(neurons, **params)
     monitor.name = "%s_%d" % (annarchy_device.label, len(annarchy_device.monitors) + 1)
     annarchy_device.monitors[monitor] = neurons
     annarchy_device.device = annarchy_device.monitors
