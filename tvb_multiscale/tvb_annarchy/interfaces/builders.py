@@ -87,22 +87,17 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.spiking_network
 
     @property
-    def annarchy_instance(self):
-        return self.spiking_network.annarchy_instance
-
-    @property
     def spikeNet_min_delay(self):
-        return self.annarchy_instance.dt()
+        return self.spiking_network.annarchy_network.dt
 
     @property
     def annarchy_min_delay(self):
-        return self.annarchy_instance.dt()
+        return self.spikeNet_min_delay
 
     def _build_and_connect_devices(self, interface, **kwargs):
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
-                                         self.config, annarchy_instance=self.annarchy_instance,
-                                         input_proxies=self.spiking_network.input_proxies, **kwargs)
+                                         self.config, input_proxies=self.spiking_network.input_proxies, **kwargs)
 
     def _build_and_connect_input_devices(self, interface, **kwargs):
         return self._build_and_connect_devices(interface, **kwargs)

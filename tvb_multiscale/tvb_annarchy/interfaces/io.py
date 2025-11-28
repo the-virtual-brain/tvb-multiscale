@@ -31,7 +31,7 @@ class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
 
     @property
     def spiking_time(self):
-        return self.target[0].annarchy_instance.get_time()
+        return self.target[0].time
 
     @property
     def spiking_dt(self):

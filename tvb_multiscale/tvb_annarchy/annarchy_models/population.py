@@ -4,6 +4,8 @@ from collections import OrderedDict
 
 import numpy as np
 
+import ANNarchy
+
 from tvb.basic.neotraits.api import Attr, Int, List
 
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list, is_integer, extract_integer_intervals
@@ -15,29 +17,26 @@ from tvb_multiscale.core.spiking_models.population import SpikingPopulation
 class _ANNarchyPopulation(HasTraits):
 
     """ANNarchyPopulation class
-       Wraps around an ANNarchy.Population class and
+       Wraps around an ANNarchy.core.Population class and
        represents a population of neurons of the same neural model,
        residing at the same brain region.
     """
 
-    from ANNarchy import Population, PoissonPopulation, Projection
+    annarchy_network = Attr(field_type=ANNarchy.Network, required=False,
+                            label="ANNarchy.Network", doc="""Instance of ANNarchy.Network""")
 
-    annarchy_instance = None
-
-    _nodes = Attr(field_type=Population, default=PoissonPopulation(geometry=0, rates=0.0), required=False,
-                  label="ANNarchy.Population", doc="""Instance of ANNarchy.Population""")
+    _nodes = Attr(field_type=Population, default=None, required=False,
+                  label="ANNarchy.core.Population",
+                  doc="""Instance of ANNarchy.core.Population""")
 
     label = Attr(field_type=str, default="", required=True,
-                 label="Population label", doc="""Label of ANNarchy.Population""")
+                 label="Population label", doc="""Label of ANNarchy.core.Population""")
 
     model = Attr(field_type=str, default="", required=True, label="Population model",
-                 doc="""Label of neuronal model of ANNarchy.Population's neurons""")
+                 doc="""Label of neuronal model of ANNarchy.core.Population's neurons""")
 
     brain_region = Attr(field_type=str, default="", required=True, label="Brain region",
-                        doc="""Label of the brain region the ANNarchy.Population resides""")
-
-    _population_ind = Int(field_type=int, default=-1, required=True, label="Population indice",
-                          doc="""The indice of the population in the ANNarchy network""")
+                        doc="""Label of the brain region the ANNarchy.core.Population resides""")
 
     projections_pre = []
     # List(of=Projection, default=(), label="Outgoing projections",
@@ -54,8 +53,9 @@ class _ANNarchyPopulation(HasTraits):
     _receptor_attr = "target"
     _default_connection_attrs = [_weight_attr, _delay_attr, _receptor_attr]
 
-    def __init__(self, nodes=PoissonPopulation(geometry=0, rates=0.0), annarchy_instance=None, **kwargs):
-        self.annarchy_instance = annarchy_instance
+    def __init__(self, nodes=None, annarchy_network=None, **kwargs):
+        if isinstance(annarchy_network, ANNarchy.Network):
+            self.annarchy_network = annarchy_network
         self._nodes = nodes
         label = kwargs.get("label", "")
         if self._nodes is not None:
@@ -63,49 +63,36 @@ class _ANNarchyPopulation(HasTraits):
                 self._nodes.name = label
             else:
                 label = self._nodes.name
-            if annarchy_instance is not None:
-                self._population_ind = self._get_population_ind()
         self.label = label
-        self.model = str(kwargs.get("model", self.__class__.__name__))
-        self.brain_region = str(kwargs.get("brain_region", ""))
         kwargs["label"] = label
+        self.model = str(kwargs.get("model", self.annarchy_model))
+        self.brain_region = str(kwargs.get("brain_region", ""))
         self.projections_pre = []
         self.projections_post = []
         HasTraits.__init__(self)
 
     @property
     def spiking_simulator_module(self):
-        return self.annarchy_instance
+        return ANNarchy
 
-    def _assert_spiking_simulator(self):
-        if self.annarchy_instance is None:
-            raise ValueError("No ANNarchy instance associated to this %s of model %s with label %s!" %
-                             (self.__class__.__name__, self.model, self.label))
-
-    def _assert_annarchy(self):
-        return self._assert_spiking_simulator()
+    def _assert_annarchy_network(self):
+        assert isinstance(self.annarchy_network, ANNarchy.Network)
 
     @property
     def annarchy_model(self):
-        if self._nodes:
+        if isinstance(self._nodes, ANNarchy.core.Population):
             return str(self._nodes.neuron_type.name)
         else:
-            return ""
+            return str(self.__class__.__name__)
 
     @property
     def geometry(self):
         return self._nodes.geometry
 
-    def _get_population_ind(self):
-        from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import get_population_ind
-        return get_population_ind(self._nodes, self.annarchy_instance)
-
     @property
     def population_ind(self):
-        self._assert_annarchy()
-        if self._population_ind is None:
-            self._population_ind = self._get_population_ind()
-        return self._population_ind
+        if isinstance(self._nodes, ANNarchy.core.Population):
+            return self._nodes.id
 
     @property
     def gids(self):
@@ -125,20 +112,21 @@ class _ANNarchyPopulation(HasTraits):
 
     def _assert_nodes(self, nodes=None):
         """Method to assert an input set of neurons either as:
-            - the present instance of ANNarchy.Population class
-            - a ANNarchy.PopulationView instance of the present instance of ANNarchy.Population class
-            - a collection (tuple, list, numpy.ndarray) of global indices (i.e., tuples of (population_inds, neuron_ind),
-              of the present instance of ANNarchy.Population class, or of local indices thereof,
-            Default input = None, which corresponds to the present instance of ANNarchy.Population class.
+            - the present instance of ANNarchy.core.Population class
+            - a ANNarchy.core.PopulationView.PopulationView instance
+              of the present instance of ANNarchy.core.Population class
+            - a collection (tuple, list, numpy.ndarray)
+              of global indices (i.e., tuples of (population_inds, neuron_ind),
+              of the present instance of ANNarchy.core.Population class, or of local indices thereof,
+            Default input=None, which corresponds to the present instance of ANNarchy.core.Population class.
         """
         if nodes is None:
             nodes = self._nodes
         else:
-            self._assert_annarchy()
-            if isinstance(nodes, self.annarchy_instance.Population):
+            if isinstance(nodes, ANNarchy.core.Population):
                 # Assert that we refer to this object's Population
                 assert self._nodes == nodes
-            elif isinstance(nodes, self.annarchy_instance.PopulationView):
+            elif isinstance(nodes, ANNarchy.core.Population.PopulationView):
                 # Assert that we refer to a view of this object's Population
                 assert self._nodes == nodes.population
             else:
@@ -155,8 +143,8 @@ class _ANNarchyPopulation(HasTraits):
                             local_inds.append(node)
                         else:
                             raise ValueError(
-                                "neurons %s\nis neither an instance of ANNarchy.Population, "
-                                "nor of  ANNarchy.PopulationView,\n"
+                                "neurons %s\nis neither an instance of ANNarchy.core.Population.Population, "
+                                "nor of  ANNarchy.core.PopulationView.PopulationView,\n"
                                 "nor is it a collection (tuple, list, or numpy.ndarray) "
                                 "of global (tuple of (population_inds, neuron_ind) or local indices of neurons!")
                         # Return a Population View:
@@ -167,10 +155,11 @@ class _ANNarchyPopulation(HasTraits):
         """Method to set attributes of the SpikingPopulation's neurons.
         Arguments:
             values_dict: dictionary of attributes names' and values.
-            neurons: instance of a ANNarchy.Population or ANNarchy.PopulationView class,
+            neurons: instance of a ANNarchy.core.Population.Population
+                     or ANNarchy.core.Population.PopulationView class,
                      or a collection (tuple, list, numpy.ndarray) of global indices
                      (i.e., tuples of (population_inds, neuron_ind),
-                     of the present instance of ANNarchy.Population class, or of local indices thereof,
+                     of the present instance of ANNarchy.core.Population.Population class, or of local indices thereof,
         """
         self._assert_nodes(neurons).set(values_dict)
 
@@ -179,10 +168,11 @@ class _ANNarchyPopulation(HasTraits):
            Arguments:
             attrs: collection (list, tuple, array) of the attributes to be included in the output.
                    Default = None, corresponding to all attributes
-            neurons: instance of a ANNarchy.Population or ANNarchy.PopulationView class,
+            neurons: instance of a ANNarchy.core.Population.Population
+                     or ANNarchy.core.PopulationView.PopulationView class,
                      or a collection (tuple, list, numpy.ndarray) of global indices
                      (i.e., tuples of (population_inds, neuron_ind),
-                     of the present instance of ANNarchy.Population class, or of local indices thereof,
+                     of the present instance of ANNarchy.core.Population.Population class, or of local indices thereof,
            Returns:
             Dictionary of numpy.arrays of neurons' attributes.
         """
@@ -210,7 +200,8 @@ class _ANNarchyPopulation(HasTraits):
         """Get the projections of this populations.
            Arguments:
             pre_or_post: "pre" or "post" to choose the corresponding connections
-            neurons: an ANNarchy.Population or ANNarchy.PopulationView to filter the connections returned
+            neurons: an ANNarchy.core.Population.Population
+                    or ANNarchy.core.PopulationView.PopulationView to filter the connections returned
            Return:
             a list of ANNarchy.Projection instances
         """
@@ -226,7 +217,8 @@ class _ANNarchyPopulation(HasTraits):
     def _GetConnections(self, neurons=None, source_or_target=None):
         """Method to get all the connections from/to a SpikingPopulation neuron.
         Arguments:
-            neurons: ANNarchy.Population or ANNarchy.PopulationView or sequence (tuple, list, array) of neurons
+            neurons: ANNarchy.core.Population.Population
+                     or ANNarchy.core.PopulationView.PopulationView or sequence (tuple, list, array) of neurons
                      the connections of which should be included in the output.
             source_or_target: Direction of connections relative to the populations' neurons
                               "source", "target" or None (Default; corresponds to both source and target)
@@ -324,15 +316,13 @@ class _ANNarchyPopulation(HasTraits):
 class ANNarchyPopulation(_ANNarchyPopulation, SpikingPopulation):
 
     """ANNarchyPopulation class
-       Wraps around an ANNarchy.Population class and
+       Wraps around an ANNarchy.core.Population.Population class and
        represents a population of neurons of the same neural model,
        residing at the same brain region.
     """
 
-    from ANNarchy import PoissonPopulation
-
-    def __init__(self, nodes=PoissonPopulation(geometry=0, rates=0.0), annarchy_instance=None, **kwargs):
-        _ANNarchyPopulation.__init__(self, nodes, annarchy_instance, **kwargs)
+    def __init__(self, nodes=None, annarchy_network=None, **kwargs):
+        _ANNarchyPopulation.__init__(self, nodes, annarchy_network, **kwargs)
         SpikingPopulation.__init__(self, nodes, **kwargs)
 
     def info(self, recursive=0):
