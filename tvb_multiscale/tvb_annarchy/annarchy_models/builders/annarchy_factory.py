@@ -121,7 +121,8 @@ def create_population(model, annarchy_network, size=1, params=dict(), import_pat
                               config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["corr"])
             tau = params.pop("tau",
                              config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["tau"])
-            population = annarchy_network.create(HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params))
+            population = annarchy_network.create(
+                ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params))
         else:
             rates = params.pop("rates", None)
             if rates is None:
