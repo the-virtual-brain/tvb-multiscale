@@ -157,16 +157,16 @@ def run_test(test_model_class, success={}):
     test_model = test_model_class()
     print("******************************************************")
     print("******************************************************")
-    try:
-        tic = time()
-        test_model.test()
-        print("\nSuccess in %g sec!" % (time() - tic))
-        success[test_model_class.__name__] = True
-    except Exception as e:
-        # raise e
-        success[test_model_class.__name__] = str(e)
-        print("\nError in %g sec!" % (time() - tic))
-        warnings.warn(e)
+    # try:
+    tic = time()
+    test_model.test()
+    print("\nSuccess in %g sec!" % (time() - tic))
+    success[test_model_class.__name__] = True
+    # except Exception as e:
+    #     # raise e
+    #     success[test_model_class.__name__] = str(e)
+    #     print("\nError in %g sec!" % (time() - tic))
+    #     warnings.warn(e)
     print("******************************************************\n")
     del test_model
     gc.collect()
