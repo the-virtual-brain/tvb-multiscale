@@ -121,6 +121,25 @@ def create_population(model, annarchy_network, size=1, params=dict(), import_pat
                               config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["corr"])
             tau = params.pop("tau",
                              config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["tau"])
+            # TODO: Check this temporary hack out
+            #  until HomogeneousCorrelatedSpikeTrains allows modification of inputs' length
+            n_step = params.pop("n_step", None)
+            if n_step is not None:
+                def _assert_length(x, N):
+                    x = ensure_list(x)
+                    if len(x) != N:
+                        if len(x) == 1:
+                            x *= N
+                        else:
+                            raise ValueError("x is neither of length 1 nor of length %d as required!" % N)
+                    return x
+                rates = _assert_length(rates, n_step)
+                corr =_assert_length(corr, n_step)
+                schedule = params.pop("schedule", None)
+                if schedule is not None and len(schedule) < n_step:
+                    params["schedule"] = _assert_length(schedule, n_step)
+                else:
+                    params["schedule"] = np.arange(n_step)
             population = annarchy_network.create(
                 ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params))
         else:
