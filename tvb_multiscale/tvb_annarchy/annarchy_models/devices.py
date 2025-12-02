@@ -584,6 +584,8 @@ class ANNarchyOutputDevice(ANNarchyDevice):
 
     _period = None
 
+    _number_of_connected_neurons = None
+
     def __init__(self, device=OrderedDict(), annarchy_network=None, **kwargs):
         if isinstance(device, dict):
             monitors = OrderedDict(device)
@@ -742,6 +744,34 @@ class ANNarchyOutputDevice(ANNarchyDevice):
             if pop not in populations:
                 populations.append(pop)
         return populations
+
+    def compute_number_of_connected_neurons(self):
+        number_of_neurons = 0
+        for pop in self.populations:
+            number_of_neurons += pop.size
+        self._number_of_connected_neurons = number_of_neurons
+        return self._number_of_connected_neurons
+
+    @property
+    def number_of_connected_neurons(self):
+        if self._number_of_connected_neurons is None or self._number_of_connected_neurons == 0:
+            self._number_of_connected_neurons = self.compute_number_of_connected_neurons()
+        return self._number_of_connected_neurons
+
+    @property
+    def number_of_neurons(self):
+        return self.number_of_connected_neurons
+
+    @property
+    def neurons(self):
+        return self.get_neurons()
+
+    def get_neurons(self):
+        neurons = []
+        for pop in self.populations:
+            inds = pop.ranks
+            neurons += list(zip([pop.id] * len(inds), inds))
+        return np.array(neurons)
 
     @property
     def record_from(self):
