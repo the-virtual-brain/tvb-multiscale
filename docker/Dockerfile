@@ -191,11 +191,6 @@ RUN cd tvb-multiscale; \
     git checkout dev; \
     git pull --allow-unrelated-histories;
 
-# Compile tvb-netpyne .mod files
-WORKDIR $PACKAGES
-RUN cd tvb-multiscale; \
-    $VENV/bin/nrnivmodl tvb_multiscale/tvb_netpyne/netpyne/mod;
-
 WORKDIR $PACKAGES
 
 # Install ray:
