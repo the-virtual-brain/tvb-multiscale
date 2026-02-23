@@ -128,7 +128,7 @@ WORKDIR $PACKAGES
 RUN $VENV/bin/pip3 install neuron
 RUN $VENV/bin/pip3 install netpyne
 # Install ANNarchy
-RUN $VENV/bin/pip3 install ANNarchy==5.0.0rc10;
+RUN $VENV/bin/pip3 install ANNarchy;  # ==5.0.0rc10
 # Install pyNN
 # RUN pip install pyNN
 # Install Elephant
