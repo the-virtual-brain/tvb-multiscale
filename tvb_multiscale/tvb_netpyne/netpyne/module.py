@@ -5,8 +5,7 @@ from netpyne.sim import *
 from netpyne import __version__ as __netpyne_version__
 from copy import deepcopy
 
-from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath
-
+from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath, locate_neuron_mod_compiler
 
 class NetpyneModule(object):
 
@@ -21,9 +20,24 @@ class NetpyneModule(object):
         self._tracesToRecord = {}
         self._popsToRecordTraces = []
 
-        self._compileOrLoadMod()
+        self._ensureDefaultModFiles()
 
-    def _compileOrLoadMod(self):
+    def ensureCustomModFiles(self, mod_dir):
+        import os, platform
+
+        origDir = os.getcwd()
+        os.chdir(mod_dir)
+
+        if not os.path.exists(platform.machine()):
+            mod_compiler = locate_neuron_mod_compiler()
+            os.system(f'{mod_compiler} .')
+
+        import neuron
+        neuron.load_mechanisms('.')
+
+        os.chdir(origDir)
+
+    def _ensureDefaultModFiles(self):
         # Make sure that all required mod-files are compiled
         try:
             h.DynamicVecStim()
@@ -42,14 +56,9 @@ class NetpyneModule(object):
                 origDir = os.getcwd()
                 os.chdir(tmp_dir)
 
-                if os.system('which nrnivmodl') == 0:
-                    # mod compiler found
-                    os.system(f'nrnivmodl {mod_path}')
-                else:
-                    # mod compiler not found, trying to infer..
-                    python_path = 'python'.join(sys.executable.split('python')[:-1]) # keep what's before the last occurance of "python"
-                    assert os.path.exists(python_path), 'Fatal: nrnivmodl not found, unable to compile required mod-files.'
-                    os.system(f'{python_path}nrnivmodl {mod_path}')
+                mod_compiler = locate_neuron_mod_compiler()
+                os.system(f'{mod_compiler} {mod_path}')
+
                 os.chdir(origDir)
 
             print(f"NetPyNE will load mod-files from {os.path.abspath(tmp_dir)}.")
