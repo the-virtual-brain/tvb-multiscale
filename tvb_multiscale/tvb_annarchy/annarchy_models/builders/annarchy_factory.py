@@ -152,7 +152,15 @@ def create_population(model, annarchy_network, size=1, params=dict(), import_pat
                                   "of length %d!" % (n_step, str(schedule), n_schedule))
                 n_step = n_schedule
                 schedule_shape = (n_step,)
-            rates = repeat_to_shape_robust(rates, schedule_shape + geometry_shape) # target shape
+            if model == ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains:
+                rates = ensure_list(rates.flatten())
+                if len(rates) == 1:
+                    rates = rates[0]
+                elif rates.size != n_step:
+                    raise ValueError("The length of user argument rates (%d) is "
+                                     "neither 1 nor equal to the length of schedule (%d)" % (len(rates), n_step))
+            else:
+                rates = repeat_to_shape_robust(rates, schedule_shape + geometry_shape) # target shape
             if model == ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains:
                 params["corr"] = params.get("corr", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["corr"])
                 params["tau"] = params.get("tau", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["tau"])
