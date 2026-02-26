@@ -3,6 +3,7 @@
 import os
 import importlib
 from six import string_types
+import warnings
 
 import numpy as np
 
@@ -12,7 +13,8 @@ from tvb.contrib.scripts.utils.log_error_utils import raise_value_error, warning
 from tvb.contrib.scripts.utils.data_structures_utils import ensure_list
 from tvb.contrib.scripts.utils.file_utils import safe_makedirs, delete_folder_safely
 
-from tvb_multiscale.core.utils.data_structures_utils import safe_deepcopy
+from tvb_multiscale.core.utils.data_structures_utils import \
+    safe_deepcopy, repeat_nested_lists_to_size, repeat_to_shape_robust
 from tvb_multiscale.core.spiking_models.devices import DeviceSets
 from tvb_multiscale.tvb_annarchy.config import CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_annarchy.annarchy_models.population import ANNarchyPopulation
@@ -91,77 +93,70 @@ def create_population(model, annarchy_network, size=1, params=dict(), import_pat
     params = safe_deepcopy(params)
     model = assert_model(model, import_path)
     if isinstance(model, string_types):
+        model_name = model
         model = getattr(ANNarchy, model)
-
+    else:
+        try:
+            # For neurons:
+            model_name = model.name
+        except:
+            # For input populations:
+            model_name = model.__name__
     # If model is a SpecificPopulation, create it directly:
     if model in [ANNarchy.inputs.SpikeSourceArray,
+                 ANNarchy.PoissonPopulation,
                  ANNarchy.inputs.TimedArray,
-                 ANNarchy.inputs.TimedPoissonPopulation]:
-        geometry = params.pop("geometry", 1)  # remove geometry argument for SpikeSourceArray and TimedArray
+                 ANNarchy.inputs.TimedPoissonPopulation,
+                 ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains]:
+        geometry = params.pop("geometry", None)  # remove geometry argument for SpikeSourceArray and TimedArray
         if model == ANNarchy.inputs.SpikeSourceArray:
-            val = \
-                params.pop("spike_times", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["SpikeSourceArray"]["spike_times"])
-            if len(val) == 1:
-                val *= geometry
-            population = annarchy_network.create(model(val, **params))
-        else:
-            val = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["TimedArray"]["rates"])
-            if model == ANNarchy.inputs.TimedArray:
-                if val.shape[1] == 1:
-                    val = np.repeat(val, geometry, axis=1)
-                population = annarchy_network.create( model(val, **params))
-            else:  # TimedPoissonPopulation
-                population = annarchy_network.create(model(geometry, val, **params))
-    elif model in [ANNarchy.inputs.PoissonPopulation, ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains]:
-        geometry = params.pop("geometry", size)
-        if model == ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains:
-            rates = params.pop("rates",
-                               config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["rates"])
-            corr = params.pop("corr",
-                              config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["corr"])
-            tau = params.pop("tau",
-                             config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF["HomogeneousCorrelatedSpikeTrains"]["tau"])
-            # TODO: Check this temporary hack out
-            #  until HomogeneousCorrelatedSpikeTrains allows modification of inputs' length
-            n_step = params.pop("n_step", None)
-            if n_step is not None:
-                rates = ensure_list(rates)
-                n_rates = len(rates)
-                if n_rates < n_step:
-                    if n_rates == 1:
-                        rates *= n_step
-                    else:
-                        raise ValueError("rates = %s is neither of length 1 nor of length n_step=%ed!"
-                                         % (str(rates), n_step))
-                corr = ensure_list(corr)
-                n_corr = len(corr)
-                if n_corr < n_step:
-                    if n_corr == 1:
-                        corr = corr[0]
-                    else:
-                        raise ValueError("corr = %s is neither of length 1 nor of length n_step=%ed!"
-                                         % (str(corr), n_step))
-                schedule = params.pop("schedule", None)
-                if schedule is not None:
-                    schedule = ensure_list(schedule)
-                    n_schedule = len(schedule)
-                    if n_schedule < n_step:
-                        if n_schedule == 1:
-                            schedule = np.arange(n_step)
-                        else:
-                            raise ValueError("schedule = %s is neither of length 1 nor of length n_step=%ed!"
-                                             % (str(schedule), n_step))
-                params["schedule"] = schedule
-            population = annarchy_network.create(
-                ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains(geometry, rates, corr, tau, **params))
-        else:
+            rates = params.pop("spike_times",
+                             config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["spike_times"])
+            if geometry is not None:
+                rates = repeat_nested_lists_to_size(rates, np.prod(geometry))
+            population = annarchy_network.create(model(rates, **params))
+        elif model == ANNarchy.PoissonPopulation:
             rates = params.pop("rates", None)
             if rates is None:
+                rates = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["rates"])
                 target = params.pop("target", "exc")
             else:
                 target = None
+            if geometry is None:
+                geometry = 1
             population = annarchy_network.create(
                 ANNarchy.PoissonPopulation(geometry, rates=rates, target=target, **params))
+        else:
+            schedule = params.pop("schedule", None)
+            n_step = params.pop("n_step", None)
+            rates = params.pop("rates", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["rates"])
+            if rates.ndim < 1:
+                rates = np.atleast_1d(rates)
+            elif rates.ndim < 2:
+                rates = rates[:, np.newaxis]
+            if geometry is None:
+                geometry_shape = rates.shape[1:]
+                geometry = geometry_shape
+            else:
+                geometry_shape = tuple(ensure_list(geometry))
+            if schedule is None:
+                if n_step is None:
+                    n_step = rates.shape[0]
+                schedule_shape = (n_step,)
+                schedule = np.arange(n_step).tolist()
+            else:
+                schedule = ensure_list(schedule)
+                n_schedule = len(schedule)
+                if n_step is not None and n_step != n_schedule:
+                    warnings.warn("User argument n_step = %d is overwritten by user argument schedule = %s, "
+                                  "of length %d!" % (n_step, str(schedule), n_schedule))
+                n_step = n_schedule
+                schedule_shape = (n_step,)
+            rates = repeat_to_shape_robust(rates, schedule_shape + geometry_shape) # target shape
+            if model == ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains:
+                params["corr"] = params.get("corr", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["corr"])
+                params["tau"] = params.get("tau", config.ANNARCHY_INPUT_DEVICES_PARAMS_DEF[model_name]["tau"])
+            population = annarchy_network.create(model(rates=rates, geometry=geometry, schedule=schedule, **params))
     else:
         population = annarchy_network.create(params.pop("geometry", size), neuron=model)
         # Parametrize the population:
