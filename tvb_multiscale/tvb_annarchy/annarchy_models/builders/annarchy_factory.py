@@ -147,15 +147,22 @@ def create_population(model, annarchy_network, size=1, params=dict(), import_pat
             else:
                 schedule = ensure_list(schedule)
                 n_schedule = len(schedule)
-                if n_step is not None and n_step != n_schedule:
-                    warnings.warn("User argument n_step = %d is overwritten by user argument schedule = %s, "
-                                  "of length %d!" % (n_step, str(schedule), n_schedule))
-                n_step = n_schedule
+                if n_step is not None:
+                    if n_step > 1 and n_schedule == 1:
+                        warnings.warn("User argument n_step = %d is used to overwrite user argument schedule = %s, "
+                                      "of length %d!" % (n_step, str(schedule), n_schedule))
+                        n_schedule = n_step
+                        schedule = np.arange(n_step).tolist()
+                    elif n_step != n_schedule:
+                        raise ValueError("The length of user argument schedule (%d) is "
+                                         "neither 1 nor equal to user argument n_step (%d)" % (n_schedule, n_step))
+                else:
+                    n_step = n_schedule
                 schedule_shape = (n_step,)
             if model == ANNarchy.inputs.HomogeneousCorrelatedSpikeTrains:
                 rates = ensure_list(rates.flatten())
                 if len(rates) == 1:
-                    rates = rates[0]
+                    rates *= n_step
                 elif rates.size != n_step:
                     raise ValueError("The length of user argument rates (%d) is "
                                      "neither 1 nor equal to the length of schedule (%d)" % (len(rates), n_step))
