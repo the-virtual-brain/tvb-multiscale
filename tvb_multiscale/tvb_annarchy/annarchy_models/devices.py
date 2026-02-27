@@ -341,7 +341,7 @@ class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
         kwargs["model"] = kwargs.get("model", "TimedArray")
         ANNarchyContinuousInputDevice.__init__(self, device, annarchy_network, **kwargs)
 
-    def _propagate_rates(self, rates, geometry):
+    def _broadcast_rates(self, rates, geometry):
         if not isinstance(geometry, tuple):
             geometry = (geometry,)
         while rates.ndim < len(geometry) + 1:
@@ -350,16 +350,22 @@ class ANNarchyTimedArray(ANNarchyContinuousInputDevice):
             rates = rates * np.ones((1,)+geometry)
         return rates
 
+    def _update(self, rates, schedule, period, reset):
+        self._nodes.rates = rates
+        self._nodes.schedule = schedule
+        self._nodes.period = period
+
     def Set(self, values_dict, **kwargs):
         if "rates" in values_dict:
-            # rates do not propagate automatically to the geometry of the population
+            # rates do not broadcast automatically to the geometry of the population
             # so, we have to do it explicitly:
             rates = np.array(values_dict.pop("rates"))
             geometry = values_dict.pop("geometry", self.geometry)
-            rates = self._propagate_rates(rates, geometry)  # values_dict["rates"]
+            rates = self._broadcast_rates(rates, geometry)  # values_dict["rates"]
             schedule = values_dict.pop("schedule", self._nodes.schedule)
             period = values_dict.pop("period", self._nodes.period)
-            self._nodes.update(rates, schedule, period)
+            reset = values_dict.pop("reset", False)
+            self._update(rates, schedule, period, reset)
         else:
             ANNarchyContinuousInputDevice.Set(self, values_dict)
 
@@ -506,6 +512,9 @@ class ANNarchyTimedPoissonPopulation(ANNarchyInputDevice):
     def __init__(self, device=None, annarchy_network=None, **kwargs):
         kwargs["model"] = kwargs.get("model", "TimedPoissonPopulation")
         ANNarchyInputDevice.__init__(self, device, annarchy_network, **kwargs)
+
+    def _update(self, rates, schedule, period, reset):
+        self._nodes.update(rates, schedule=schedule, period=period, reset=reset)
 
 
 ANNarchyInputDeviceDict = {}
