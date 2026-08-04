@@ -8,12 +8,12 @@ from pandas import Series
 from xarray import DataArray
 
 from tvb_multiscale.core.data_analysis.spiking_network_analyser_base import \
-    SpikingNetworkAnalyserBase, _get_safely_list_item
+    SpikingNetworkAnalyserBase, _get_safely_list_item, sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 from tvb_multiscale.core.utils.data_structures_utils import \
     cross_dimensions_and_coordinates_MultiIndex, get_ordered_dimensions
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, concatenate_heterogeneous_DataArrays
+    ensure_list #, concatenate_heterogeneous_DataArrays
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries, TimeSeriesRegion
 
 

@@ -5,10 +5,11 @@ import numpy as np
 from pandas import Series
 
 from tvb.basic.neotraits.api import Attr, Float, List
-from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
+# from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
 
 from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 from tvb_multiscale.core.spiking_models.devices import DeviceSet, InputDevice, OutputDevice, Multimeter
+from tvb_multiscale.core.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
 
 
 class SpikeNetInputDeviceSet(SetToMemory):

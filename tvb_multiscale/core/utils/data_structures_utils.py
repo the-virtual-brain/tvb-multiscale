@@ -303,6 +303,41 @@ def sort_events_by_x_and_y(events, x="senders", y="times",
     return sorted_events
 
 
+# TODO: Revert to tvb_contrib's version once the pull request is accepted:
+def concatenate_heterogeneous_DataArrays(data, concat_dim_name,
+                                         data_keys=None, name=None, fill_value=np.nan, transpose_dims=None):
+    from pandas import Series
+    from xarray import concat
+    from pandas import Index
+
+    if isinstance(data, (dict, Series)):
+        if data_keys is None:
+            data_keys = ensure_list(data.keys())
+        if isinstance(data, dict):  # dict
+            data = ensure_list(data.values())
+        else:  # pd.Series
+            if name is None:
+                name = data.name
+            data = ensure_list(data.values)
+    # Idiomatic xarray approach: build a dict of new coords and use assign_coords
+    cleaned_data = []
+    for da in data:
+        updated_coords = {}
+        for c_name, coord in da.coords.items():
+            if "string" in str(coord.dtype).lower():
+                updated_coords[c_name] = coord.values.astype(object)
+        # assign_coords returns a new DataArray, leaving the original untouched
+        if updated_coords:
+            da = da.assign_coords(updated_coords)
+
+        cleaned_data.append(da)
+    # Pass the newly mapped list of DataArrays to concat
+    data = concat(cleaned_data, Index(data_keys, name=concat_dim_name), fill_value=fill_value, join='outer')
+    data.name = name
+    if transpose_dims:
+        data = data.transpose(*transpose_dims)
+    return data
+
 
 def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
     from pandas import MultiIndex
