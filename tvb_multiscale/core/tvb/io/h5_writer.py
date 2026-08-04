@@ -122,7 +122,7 @@ class H5Writer(Base):
                 try:
                     location.create_dataset(key, data=value)
                 except:
-                    location.create_dataset(key, data=numpy.str(value))
+                    location.create_dataset(key, data=str(value))
             except Exception as e:
                 self.logger.warning("Failed to write to %s dataset %s %s:\n%s !\nThe error was:\n%s" %
                                     (str(location), value.__class__, key, str(value), str(e)))

@@ -39,7 +39,7 @@ class TestDefault(TestSpikeNetModel):
     multisynapse = False
 
     def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_mode,
+        default_example(model=self.tvb_to_spikeNet_model,
                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                         simulation_length=self.simulation_length, transient=self.transient,
@@ -70,7 +70,7 @@ class TestWilsonCowan(TestSpikeNetModel):
     multisynapse = False
 
     def run_fun(self):
-        wilson_cowan_example(model=self.tvb_to_spikeNet_mode,
+        wilson_cowan_example(model=self.tvb_to_spikeNet_model,
                              spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
                              simulation_length=self.simulation_length, transient=self.transient,
@@ -148,9 +148,9 @@ models_to_test_ANNarchy = [TestDefaultRATE,                            # 0
 if __name__ == "__main__":
     import sys
 
+    iM = -1
     if len(sys.argv) > 1:
         iM = int(sys.argv[1])
+    if iM >= 0:
         print("\n\nTesting model %d" % iM)
-        test_models(models_to_test_ANNarchy, iM=iM)
-    else:
-        test_models(models_to_test_ANNarchy, iM=-1)
+    test_models(models_to_test_ANNarchy, iM=iM)

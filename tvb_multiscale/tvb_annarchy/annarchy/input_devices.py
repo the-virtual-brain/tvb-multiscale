@@ -34,11 +34,3 @@ parameters="""
     offset = 0.0
 """
 )
-
-
-CurrentProxy = Neuron(
-name="CurrentProxy",
-equations="""
-    r = sum(exc)
-"""
-)

@@ -9,25 +9,14 @@ from tvb_multiscale.core.interfaces.tvb.interfaces import \
     TVBtoSpikeNetInterface, SpikeNetToTVBInterface, TVBOutputInterfaces, TVBReceiverInterfaces, TVBtoSpikeNetModels, \
     SpikeNetToTVBModels
 from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
-    SpikeNetOutputInterface, SpikeNetInputInterface, \
-    SpikeNetOutputTransformerInterface, SpikeNetInputTransformerInterface, \
-    SpikeNetSenderInterface, SpikeNetReceiverInterface, \
-    SpikeNetTransformerSenderInterface, SpikeNetReceiverTransformerInterface, \
-    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, \
-    SpikeNetOutputTransformerInterfaces, SpikeNetInputTransformerInterfaces, \
-    SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces, \
-    SpikeNetTransformerSenderInterfaces, SpikeNetReceiverTransformerInterfaces
+    SpikeNetOutputInterface, SpikeNetInputInterface, SpikeNetSenderInterface, SpikeNetReceiverInterface, \
+    SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 from tvb_multiscale.tvb_annarchy.interfaces.io import ANNarchyInputDeviceSet, ANNarchyOutputDeviceSet
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 
 
-# TVBtoANNarchyModels = TVBtoSpikeNetModels
-class TVBtoANNarchyModels(Enum):
-    RATE = 0
-    SPIKES = 1
-
-
+TVBtoANNarchyModels = TVBtoSpikeNetModels
 ANNarchytoTVBModels = SpikeNetToTVBModels
 
 
@@ -45,10 +34,6 @@ class ANNarchyInterface(HasTraits):
     def annarchy_network(self):
         return self.spiking_network
 
-    @property
-    def annarchy_instance(self):
-        return self.spiking_network.annarchy_instance
-
 
 class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
 
@@ -62,30 +47,16 @@ class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
 
     @property
     def _time(self):
-        return self.annarchy_instance.get_time()
+        return self.annarchy_network.annarchy_network.time
 
     @property
     def proxy_gids(self):
         return self._get_proxy_gids(self.proxy.source)
 
 
-class ANNarchyOutputTransformerInterface(ANNarchyOutputInterface, SpikeNetOutputTransformerInterface):
-
-    """ANNarchyOutputTransformerInterface"""
-
-    pass
-
-
 class ANNarchySenderInterface(ANNarchyOutputInterface, SpikeNetSenderInterface):
 
     """ANNarchySenderInterface"""
-
-    pass
-
-
-class ANNarchyTransformerSenderInterface(ANNarchyOutputInterface, SpikeNetTransformerSenderInterface):
-    
-    """ANNarchyTransformerSenderInterface"""
 
     pass
 
@@ -105,23 +76,9 @@ class ANNarchyInputInterface(ANNarchyInterface, SpikeNetInputInterface):
         return self._get_proxy_gids(self.proxy.target)
 
 
-class ANNarchyInputTransformerInterface(ANNarchyInputInterface, SpikeNetInputTransformerInterface):
-
-    """ANNarchyInputTransformerInterface"""
-
-    pass
-
-
 class ANNarchyReceiverInterface(ANNarchyInputInterface, SpikeNetReceiverInterface):
 
     """ANNarchyReceiverInterface"""
-
-    pass
-
-
-class ANNarchyReceiverTransformerInterface(ANNarchyInputInterface, SpikeNetReceiverTransformerInterface):
-
-    """ANNarchyReceiverTransformerInterface"""
 
     pass
 
@@ -162,13 +119,6 @@ class ANNarchyInterfaces(HasTraits):
     def annarchy_network(self):
         return self.spiking_network
 
-    @property
-    def annarchy_instance(self):
-        if len(self.interfaces):
-            return self.interfaces[0].annarchy_instance
-        else:
-            return None
-
 
 class ANNarchyOutputInterfaces(SpikeNetOutputInterfaces, ANNarchyInterfaces):
 
@@ -184,19 +134,6 @@ class ANNarchyInputInterfaces(SpikeNetInputInterfaces, ANNarchyInterfaces):
     interfaces = List(of=ANNarchyInputInterface)
 
 
-class ANNarchyOutputTransformerInterfaces(SpikeNetOutputTransformerInterfaces, ANNarchyInterfaces):
-
-    """ANNarchyOutputTransformerInterfaces holding a list of ANNarchyOutputTransformerInterface instances"""
-
-    interfaces = List(of=ANNarchyOutputTransformerInterface)
-
-
-class ANNarchyInputTransformerInterfaces(SpikeNetInputTransformerInterfaces, ANNarchyInterfaces):
-
-    """ANNarchyInputTransformerInterfaces holding a list of ANNarchyInputTransformerInterface instances"""
-
-    interfaces = List(of=ANNarchyInputTransformerInterface)
-
 
 class ANNarchySenderInterfaces(SpikeNetSenderInterfaces, ANNarchyInterfaces):
 
@@ -210,20 +147,6 @@ class ANNarchyReceiverInterfaces(SpikeNetReceiverInterfaces, ANNarchyInterfaces)
     """ANNarchyReceiverInterfaces holding a list of ANNarchyReceiverInterface instances"""
 
     interfaces = List(of=ANNarchyReceiverInterface)
-
-
-class ANNarchyTransformerSenderInterfaces(SpikeNetTransformerSenderInterfaces, ANNarchyInterfaces):
-
-    """ANNarchyTransformerSenderInterfaces holding a list of ANNarchyTransformerSenderInterface instances"""
-
-    interfaces = List(of=ANNarchyTransformerSenderInterface)
-
-
-class ANNarchyReceiverTransformerInterfaces(SpikeNetReceiverTransformerInterfaces, ANNarchyInterfaces):
-
-    """ANNarchyReceiverTransformerInterfaces holding a list of ANNarchyReceiverTransformerInterface instances"""
-
-    interfaces = List(of=ANNarchyReceiverTransformerInterface)
 
 
 class TVBtoANNarchyInterfaces(TVBOutputInterfaces, ANNarchyInputInterfaces):

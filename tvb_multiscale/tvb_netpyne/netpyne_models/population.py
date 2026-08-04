@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+
 from tvb_multiscale.core.spiking_models.population import SpikingPopulation
+
 
 class NetpynePopulation(SpikingPopulation):
 
     netpyne_instance = None
 
     def __init__(self, nodes, netpyne_instance, label, global_label, brain_region, **kwargs):
+
         self.netpyne_instance = netpyne_instance
 
         if global_label is None:

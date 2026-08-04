@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from tvb_multiscale.tvb_nest.config import CONFIGURED
 from tvb_multiscale.tvb_nest.nest_models.models.default_exc_io_inh_i import \
     DefaultExcIOInhIBuilder, DefaultExcIOInhIMultisynapseBuilder
 
@@ -13,9 +14,15 @@ class WilsonCowanBuilder(DefaultExcIOInhIBuilder):
     w_ie = -10.0
     w_ii = -1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
         super(WilsonCowanBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator, config, logger)
+
+        self.w_ee = 10.0
+        self.w_ei = 6.0
+        self.w_ie = -10.0
+        self.w_ii = -1.0
 
     def set_defaults(self, **kwargs):
         self.w_ee = np.abs(kwargs.get("w_ee", self.tvb_serial_sim.get("model.c_ee", np.array([self.w_ee])))[0].item())
@@ -34,10 +41,17 @@ class WilsonCowanMultisynapseBuilder(DefaultExcIOInhIMultisynapseBuilder):
     w_ie = 10.0
     w_ii = 1.0
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
-        super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                             config, logger)
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
+        super(WilsonCowanMultisynapseBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                             spiking_simulator, config, logger)
+
+        self.model = "aeif_cond_alpha_multisynapse"
+        self.w_ee = 10.0
+        self.w_ei = 6.0
+        self.w_ie = 10.0
+        self.w_ii = 1.0
 
     def set_defaults(self, **kwargs):
         self.w_ee = np.abs(kwargs.get("w_ee", self.tvb_serial_sim.get("model.c_ee", np.array([self.w_ee])))[0].item())

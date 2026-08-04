@@ -11,11 +11,12 @@ from tvb.basic.neotraits.api import Attr, Float
 from tvb.datatypes import connectivity
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, concatenate_heterogeneous_DataArrays, sort_events_by_x_and_y
+    ensure_list # , sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.utils.data_structures_utils import get_caller_fun_name
+from tvb_multiscale.core.utils.data_structures_utils import \
+    get_caller_fun_name, sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 
 
 LOG = initialize_logger(__name__)
@@ -455,11 +456,14 @@ class SpikingNetworkAnalyserBase(HasTraits):
              - an array of instantaneous rate time series
         """
         result = np.zeros(time.shape)
-        for spike_time in np.unique(spikes_times):
-            if spike_time >= t_start and spike_time <= t_stop:
-                result[int(np.floor((spike_time - time[0]) / self.period))] += \
-                    np.sum(spikes_times == spike_time) / self.period
-        return result
+        # Filter spikes within time bounds
+        valid_spikes = spikes_times[(spikes_times >= t_start) & (spikes_times <= t_stop)]
+        if len(valid_spikes) == 0:
+            return result
+        # Construct bin edges matching time steps
+        bin_edges = np.append(time, time[-1] + self.period)
+        counts, _ = np.histogram(valid_spikes, bins=bin_edges)
+        return counts / self.period
 
     def compute_spikes_rates_by_neuron(self, spikes, number_of_neurons=1, rate_method=None, **kwargs):
         """A method to compute any type of spiking rate, but separately for each neuron.

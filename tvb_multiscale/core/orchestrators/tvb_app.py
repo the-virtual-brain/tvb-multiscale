@@ -57,6 +57,13 @@ class TVBApp(CoSimulatorApp):
     _cosimulator_builder_type = CoSimulatorBuilder
     _default_interface_builder_type = TVBInterfaceBuilder
 
+    def __init__(self, **kwargs):
+        self._results = None
+        self.cosimulator = None
+        self.cosimulator_builder = None
+        self.cosimulator_builder_function = None
+        super(TVBApp, self).__init__(**kwargs)
+
     def start(self):
         super(TVBApp, self).start()
         self._logprint("Setting TVB LIBRARY_PROFILE...")
@@ -219,9 +226,13 @@ class TVBApp(CoSimulatorApp):
                                       tvb_state_variables_labels=tvb_state_variables_labels,
                                       plotter=plotter, writer=writer, config=self.config, **kwargs)
 
-    def reset(self):
-        super(TVBApp, self).reset()
+    def _destroy(self):
+        del self._results
+        self._results = None
         self.cosimulator = None
+        self.cosimulator_builder = None
+        self.cosimulator_builder_function = None
+        super(TVBApp, self)._destroy()
 
 
 class TVBSerialApp(TVBApp):
@@ -259,6 +270,10 @@ class TVBSerialApp(TVBApp):
     _cosimulator_builder_type = CoSimulatorSerialBuilder
     _default_interface_builder_type = TVBSpikeNetInterfaceBuilder
 
+    def __init__(self, **kwargs):
+        self.spiking_network = None
+        super(TVBSerialApp, self).__init__(**kwargs)
+
     def configure_interfaces_builder(self):
         self._interfaces_builder.spiking_network = self.spiking_network
         super(TVBSerialApp, self).configure_interfaces_builder()
@@ -266,6 +281,10 @@ class TVBSerialApp(TVBApp):
     def reset(self):
         super(TVBSerialApp, self).reset()
         self.spiking_network = None
+
+    def _destroy(self):
+        self.spiking_network = None
+        super(TVBSerialApp, self)._destroy()
 
 
 class TVBParallelApp(TVBApp):
@@ -301,6 +320,13 @@ class TVBParallelApp(TVBApp):
     _ts = None
     _xs = None
     tvb_init_cosim_coupling = None
+
+    def __init__(self, **kwargs):
+        self._wall_time_start = None
+        self._ts = None
+        self._xs = None
+        self.tvb_init_cosim_coupling = None
+        super(TVBParallelApp, self).__init__(**kwargs)
 
     def get_tvb_init_cosim_coupling(self, relative_output_interfaces_time_steps=None):
         if relative_output_interfaces_time_steps is not None:
@@ -352,6 +378,13 @@ class TVBParallelApp(TVBApp):
                                          # populations=["E", "I"], populations_sizes=[],
                                          tvb_state_variable_type_label, tvb_state_variables_labels,
                                          plotter, writer, **kwargs)
+
+    def _destroy(self):
+        self._ts = None
+        self._xs = None
+        self._wall_time_start = None
+        self.tvb_init_cosim_coupling = None
+        super(TVBParallelApp, self)._destroy()
 
     def reset(self):
         super(TVBParallelApp, self).reset()

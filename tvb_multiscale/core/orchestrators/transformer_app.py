@@ -3,11 +3,11 @@
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.orchestrators.base import NonTVBApp
-from tvb_multiscale.core.interfaces.base.transformers.builders import \
+from tvb_multiscale.core.interfaces.transformers.builders import \
     TransformerInterfaceBuilder, RemoteTransformerInterfaceBuilder, \
     TVBtoSpikeNetTransformerInterfaceBuilder, SpikeNetToTVBTransformerInterfaceBuilder, \
     TVBtoSpikeNetRemoteTransformerInterfaceBuilder, SpikeNetToTVBRemoteTransformerInterfaceBuilder
-from tvb_multiscale.core.interfaces.base.transformers.interfaces import \
+from tvb_multiscale.core.interfaces.transformers.interfaces import \
     TVBtoSpikeNetTransformerInterfaces, SpikeNetToTVBTransformerInterfaces, \
     TVBtoSpikeNetRemoteTransformerInterfaces, SpikeNetToTVBRemoteTransformerInterfaces
 
@@ -39,6 +39,11 @@ class TransformerApp(NonTVBApp):
 
     _default_interface_builder_type = TransformerInterfaceBuilder
 
+    def __init__(self, **kwargs):
+        self.tvb_to_spikeNet_interfaces = None
+        self. spikeNet_to_tvb_interfaces = None
+        super(TransformerApp, self).__init__(**kwargs)
+
     def build_interfaces(self):
         if not self._interfaces_built:
             super(TransformerApp, self).build_interfaces()
@@ -56,6 +61,11 @@ class TransformerApp(NonTVBApp):
     def run_for_synchronization_time(self, tvb_to_spikeNet_cosim_updates, spikeNet_to_tvb_cosim_updates):
         return self.tvb_to_spikeNet_interfaces(tvb_to_spikeNet_cosim_updates), \
                self.spikeNet_to_tvb_interfaces(spikeNet_to_tvb_cosim_updates)
+
+    def _destroy(self):
+        self.tvb_to_spikeNet_interfaces = None
+        self.spikeNet_to_tvb_interfaces = None
+        super(TransformerApp, self)._destroy()
 
 
 class TVBtoSpikeNetTransformerApp(NonTVBApp):

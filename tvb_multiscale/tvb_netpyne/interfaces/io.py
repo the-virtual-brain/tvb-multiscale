@@ -5,12 +5,14 @@ import numpy as np
 
 from tvb_multiscale.core.interfaces.spikeNet.io import \
     SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
-    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetSpikeEventRecorderDeviceSet, SpikeNetSpikeRecorderDeviceSet, \
     SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
-    NetpyneInputDevice, NetpynePoissonGenerator, \
-    NetpyneOutputDevice, NetpyneSpikeRecorder
+    NetpyneInputDevice, NetpynePoissonGenerator, NetpyneParameterInput, \
+    NetpyneOutputDevice, NetpyneSpikeRecorder, NetpyneMultimeter
+
+from tvb.basic.neotraits.api import List
 
 
 class NetpyneInputDeviceSet(SpikeNetInputDeviceSet):
@@ -37,18 +39,14 @@ class NetpyneInputDeviceSet(SpikeNetInputDeviceSet):
     def send(self, data):
         pass
 
-    def transform_time(self, time):
-        return np.maximum(self.next_spiking_time_step,
-                          SpikeNetInputDeviceSet.transform_time(self, time) + self.spiking_dt)
-
 
 class NetpynePoissonGeneratorSet(NetpyneInputDeviceSet):
 
     """
         NetpynePoissonGeneratorSet class to set data directly to a DeviceSet
-        of NESTInhomogeneousPoissonGenerator instances in memory
+        of NetpyneInhomogeneousPoissonGenerator instances in memory
         It comprises of:
-            - a target attribute, i.e., a DeviceSet, of NESTInhomogeneousPoissonGenerator instances to send data to,
+            - a target attribute, i.e., a DeviceSet, of NetpyneInhomogeneousPoissonGenerator instances to send data to,
             - a method to set data to the target.
     """
 
@@ -63,6 +61,44 @@ class NetpynePoissonGeneratorSet(NetpyneInputDeviceSet):
                          "rate_values": np.maximum([0.0], data[1]).tolist()})
 
 
+class NetpyneParameterInputSet(NetpyneInputDeviceSet):
+
+    """
+        NetpyneParameterInputSet class to set data directly to a DeviceSet
+        of NetpyneParameterInput instances in memory
+        It comprises of:
+            - a target attribute, i.e., a DeviceSet of NetpyneParameterInput instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "parameter_input"
+
+    _spikeNet_input_device_type = NetpyneParameterInput
+
+    parameters = List(of=str,
+                      default=list(),
+                      label="Parameters to receive time resolved input.",
+                      doc="""List of parameters' names (of type str) to receive time resolved input.""")
+
+    def configure(self):
+        super(NetpyneParameterInputSet, self).configure()
+        self.n_parameters = len(self.parameters)
+        assert self.n_parameters > 0
+
+    def send(self, data):
+        # Assuming data is of shape (proxy, time, parameters)
+        nodesNumber = data[1].shape[0]
+        if data[1].ndim == 2:
+            data[1] = data[1][:, :, np.newaxis]  # make sure that data is 3D
+        assert data[1].shape[2] == self.n_parameters
+        values_dict = dict()
+        # Set times, although in principle this should be optional:
+        values_dict["times"] = [self.transform_time(data[0]).tolist()] * nodesNumber
+        for iP, param in enumerate(self.parameters):
+            values_dict[param] = data[1][:, :, iP].tolist()
+        self.target.Set(values_dict)
+
+
 class NetpyneOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     """
@@ -74,15 +110,30 @@ class NetpyneOutputDeviceSet(SpikeNetOutputDeviceSet):
             - an abstract method to get data from the source.
     """
 
-    model = "nest_output_device"
+    model = "Netpyne_output_device"
 
     _spikeNet_output_device_type = NetpyneOutputDevice
+
+
+class NetpyneSpikeEventRecorderSet(SpikeNetSpikeEventRecorderDeviceSet, NetpyneOutputDeviceSet):
+
+    """
+        NetpyneSpikeEventRecorderSet class to read events' data (spike times and senders)
+        from a DeviceSet of NetpyneSpikeRecorder instances in memory.
+        It comprises of:
+            - a source attribute, i.e., the DeviceSet of NetpyneSpikeRecorder instances to get (i.e., copy) data from,
+            - an abstract method to get data from the source.
+    """
+
+    model = "spike_recorder"
+
+    _spikeNet_output_device_type = NetpyneSpikeRecorder
 
 
 class NetpyneSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NetpyneOutputDeviceSet):
 
     """
-        NetpyneSpikeRecorderSet class to read events' data (spike times and senders)
+        NetpyneSpikeEventRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
         from a DeviceSet of NetpyneSpikeRecorder instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of NetpyneSpikeRecorder instances to get (i.e., copy) data from,
@@ -92,18 +143,60 @@ class NetpyneSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NetpyneOutputDevic
     model = "spike_recorder"
 
     _spikeNet_output_device_type = NetpyneSpikeRecorder
-
-
-class NetpyneSpikeRecorderTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, NetpyneOutputDeviceSet):
+    
+    
+class NetpyneMultimeterSet(SpikeNetMultimeterDeviceSet, NetpyneOutputDeviceSet):
 
     """
-        NetpyneSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
-        from a DeviceSet of NetpyneSpikeRecorder instances in memory.
+        NetpyneMultimeterSet class to read events' data (times, senders and variable values)
+        from a DeviceSet of NetpyneMultimeter instances in memory.
         It comprises of:
-            - a source attribute, i.e., the DeviceSet of NetpyneSpikeRecorder instances to get (i.e., copy) data from,
+            - a source attribute, i.e., the DeviceSet of NetpyneMultimeter instances to get (i.e., copy) data from,
             - an abstract method to get data from the source.
     """
 
-    model = "spike_recorder"
+    model = "multimeter"
 
-    _spikeNet_output_device_type = NetpyneSpikeRecorder
+    _spikeNet_output_device_type = NetpyneMultimeter
+
+
+class NetpyneMultimeterMeanSet(SpikeNetMultimeterMeanDeviceSet, NetpyneOutputDeviceSet):
+    """
+            NetpyneMultimeterMeanSet class to read population mean events' data (times and variable values)
+            from a DeviceSet of NetpyneMultimeter instances in memory.
+            It comprises of:
+                - a source attribute, i.e., the DeviceSet of NetpyneMultimeter instances to get (i.e., copy) data from,
+                - an abstract method to get data from the source.
+        """
+
+    _spikeNet_output_device_type = NetpyneMultimeter
+
+
+class NetpyneMultimeterTotalSet(SpikeNetMultimeterTotalDeviceSet, NetpyneOutputDeviceSet):
+    """
+            NetpyneMultimeterTotalSet class to read population total (summed across neurons) events' data
+            (times and variable values) from a DeviceSet of NetpyneMultimeter instances in memory.
+            It comprises of:
+                - a source attribute, i.e., the DeviceSet of NetpyneMultimeter instances to get (i.e., copy) data from,
+                - an abstract method to get data from the source.
+        """
+
+    _spikeNet_output_device_type = NetpyneMultimeter
+
+
+class NetpyneOutputDeviceGetters(Enum):
+    SPIKE_RECORDER = NetpyneSpikeRecorderSet
+    SPIKE_EVENT_RECORDER = NetpyneSpikeEventRecorderSet
+    MULTIMETER = NetpyneMultimeterSet
+    MULTIMETER_MEAN = NetpyneMultimeterMeanSet
+    MULTIMETER_TOTAL = NetpyneMultimeterTotalSet
+
+
+class NetpyneInputDeviceSetters(Enum):
+    POISSON_GENERATOR = NetpynePoissonGeneratorSet
+    PARAMETER_INPUT_SET = NetpyneParameterInputSet
+
+
+NetpyneSenders = NetpyneOutputDeviceGetters
+NetpyneReceivers = NetpyneInputDeviceSetters
+NetpyneCommunicators = combine_enums("NetpyneCommunicators", NetpyneSenders, NetpyneReceivers)

@@ -1,9 +1,14 @@
+# -*- coding: utf-8 -*-
+
+from copy import copy, deepcopy
 import numpy as np
-from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter
 from tvb.basic.neotraits.api import HasTraits, Attr, Int, List
+
+from tvb_multiscale.core.spiking_models.devices import InputDevice, SpikeRecorder, Multimeter
 from tvb_multiscale.tvb_netpyne.netpyne.utils import generateSpikesForPopulation
 from xarray import DataArray
 from copy import copy, deepcopy
+
 
 class NetpyneDevice(HasTraits):
 
@@ -11,6 +16,8 @@ class NetpyneDevice(HasTraits):
         self.netpyne_instance = netpyne_instance
         HasTraits.__init__(self)
         self.params = kwargs.get('params')
+        for pname, pval in self.params.items():
+            setattr(self, pname, pval)
 
     @property
     def spiking_simulator_module(self):
@@ -95,12 +102,13 @@ class NetpyneDevice(HasTraits):
         """Method to get the indices of all the neurons the device is connected to/from."""
         return self.neurons
 
+
 class NetpyneInputDevice(NetpyneDevice, InputDevice):
 
     """NetpyneInputDevice class to wrap around a NetPyNE input (stimulating) device"""
 
     def __init__(self, device, netpyne_instance, *args, **kwargs):
-        kwargs["model"] = kwargs.pop("model", "netpyne_input_device") #TODO: wrong model
+        kwargs["model"] = kwargs.pop("model", "netpyne_input_device")  # TODO: wrong model
         NetpyneDevice.__init__(self, device, netpyne_instance, *args, **kwargs)
         super(NetpyneInputDevice, self).__init__(device, netpyne_instance, *args, **kwargs)
 
@@ -120,6 +128,7 @@ class NetpyneInputDevice(NetpyneDevice, InputDevice):
         if self._own_neurons is None:
             self._own_neurons = self.netpyne_instance.cellGidsForPop(self.label)
         return self._own_neurons
+
 
 class NetpynePoissonGenerator(NetpyneInputDevice):
 
@@ -142,10 +151,37 @@ class NetpynePoissonGenerator(NetpyneInputDevice):
                 self.spikesPerNeuron[gid] = []
             self.spikesPerNeuron[gid].extend(spikes)
 
-NetpyneSpikeInputDeviceDict = {"poisson_generator": NetpynePoissonGenerator}
+
+class NetpyneParameterInput(NetpyneInputDevice):
+
+    def __init__(self, population, netpyne_instance, *args, **kwargs):
+        # In this case, the "device" is actually a neuronal population
+        # The model can be any model of neurons.
+        kwargs["model"] = kwargs.pop("model", "netpyne_population")
+        super(NetpyneParameterInput, self).__init__(population, netpyne_instance, *args, **kwargs)
+
+    @property
+    def neurons(self):
+        """Method to get the indices of all the neurons of the population."""
+        return self.own_neurons
+
+    def _Set(self, values_dict, nodes=None):
+        # The values_dict should have the following keys:
+        # Necessary: Names of parameters to modify, i.e., g_ampa, g_gaba
+        # Optionally: times
+
+        # Code to set the correct parameters with vectors of values, one value per NetPyNE dt,
+        # i.e., this will require knowledge of the (exact!) ratio of TVB and NetPyNE dt!
+        raise NotImplemented
+
+
+NetpyneSpikeInputDeviceDict = {"poisson_generator": NetpynePoissonGenerator,
+                               "parameter_input": NetpyneParameterInput}
+
 
 NetpyneInputDeviceDict = {}
 NetpyneInputDeviceDict.update(NetpyneSpikeInputDeviceDict)
+
 
 # Output devices
 
@@ -158,6 +194,7 @@ class NetpyneOutputDevice(NetpyneDevice):
     def neurons(self):
         """Method to get the indices of all the neurons the device is connected from."""
         return self.netpyne_instance.cellGidsForPop(self.population_label)
+
 
 class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
 
@@ -179,7 +216,6 @@ class NetpyneSpikeRecorder(NetpyneOutputDevice, SpikeRecorder):
 
     def reset(self):
         pass
-
 
     def get_new_events(self, variables=None, **filter_kwargs):
         spktimes, spkgids = self.netpyne_instance.getSpikes(generatedBy=self.neurons, startingFrom=self.latestRecordTime)
@@ -218,8 +254,10 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
     def _events(self, onlyNew):
         """Method to convert and place continuous time data measured from Monitors, to an events dictionary."""
         result = {}
-        if onlyNew:
-            timeSlice = slice(self._output_events_index, None)
+        if onlyNew: # n last steps only
+            timeSlice = slice(self._output_events_index, self._output_events_index + self.netpyne_instance.synchronization_n_step)
+            # TODO: this would be more elegant, but results in assertion error in CoSimulator._prepare_cosimulation_call, need to fix:
+            # timeSlice = slice(-self.netpyne_instance.synchronization_n_step, None)
         else:
             timeSlice = slice(None)
 
@@ -233,11 +271,10 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
         result['times'] = time.repeat(self.number_of_neurons)
         result['senders'] = np.tile(self.neurons, len(time))
 
-        if not onlyNew:
-            self._output_events_index = len(time)
+        if onlyNew:
+            self._output_events_index += len(time)
 
         return result
-
 
     def get_data(self, variables=None, events_inds=None,
                  name=None, dims_names=["Time", "Variable", "Neuron"], flatten_neurons_inds=True, new=False):
@@ -256,14 +293,19 @@ class NetpyneMultimeter(NetpyneOutputDevice, Multimeter):
 
         time = self.netpyne_instance.getRecordedTime()
 
-        # shape (vars, neurs, time)
-        data = np.zeros((len(variables), len(self.neurons), len(time)))
+        if len(time) <= 1: # sim has not yet started
+            data = None
+        else:
+            events = self._events(onlyNew=new)
+            # shape (vars, neurs, time)
+            time = np.unique(events["times"])
+            data = np.zeros((len(variables), len(self.neurons), len(time)))
 
-        for varInd, var in enumerate(variables):
-            data[varInd] = self.netpyne_instance.getTraces(var, self.neurons)
+            for varInd, var in enumerate(variables):
+                data[varInd] = events[var].reshape(len(self.neurons), -1)
 
-        # reshape to (time, vars, neurs)
-        data = data.transpose(2, 0, 1)
+            # reshape to (time, vars, neurs)
+            data = data.transpose(2, 0, 1)
 
         m_data = DataArray(
             data,

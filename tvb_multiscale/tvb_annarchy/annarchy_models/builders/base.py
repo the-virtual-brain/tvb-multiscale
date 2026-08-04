@@ -4,6 +4,8 @@ from copy import deepcopy
 
 from pandas import concat
 
+import ANNarchy
+
 from tvb_multiscale.core.utils.data_structures_utils import safe_dict_copy
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 from tvb_multiscale.core.spiking_models.builders.base import SpikingNetworkBuilder
@@ -16,9 +18,6 @@ from tvb_multiscale.tvb_annarchy.annarchy_models.brain import ANNarchyBrain
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import \
     load_annarchy, assert_model, create_population, connect_two_populations, create_device, connect_device
-
-
-LOG = initialize_logger(__name__, config=CONFIGURED)
 
 
 class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
@@ -37,41 +36,45 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
     _input_proxies = DeviceSets()
     # input_proxies['Inhibitory']['rh-insula']
 
-    def __init__(self, tvb_simulator, spiking_nodes_inds, spiking_simulator=None, config=None, logger=None):
-        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                     config, logger)
+    def __init__(self, tvb_simulator, spiking_nodes_inds,
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        self._input_proxies = DeviceSets()
+        self.modules_to_install = list()
+        self.config = config
+        if self.config is None:
+            self.config = CONFIGURED
+        super(ANNarchyNetworkBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                     spiking_simulator, self.config, logger)
+        self._models_import_path = self.config.MYMODELS_IMPORT_PATH
         self._spiking_brain = ANNarchyBrain()
 
     @property
     def annarchy_instance(self):
         return self.spiking_simulator
 
+    def _assert_annarchy_network(self):
+        assert isinstance(self.annarchy_network, ANNarchy.Network)
+
     def __str__(self):
         return super(ANNarchyNetworkBuilder, self).__str__() + "\nannarchy simulator: %s" % str(self.annarchy_instance)
 
     def _configure_annarchy(self, **kwargs):
-        if self.annarchy_instance is None:
-            self.spiking_simulator = load_annarchy(self.config, self.logger)
-            self.annarchy_instance.clear()  # This will restart ANNarchy!
-            self.update_spiking_dt()
-            self.update_default_min_delay()
-            kwargs["dt"] = self.spiking_dt
-            kwargs["seed"] = kwargs.pop("seed", self.config.ANNARCHY_SEED)
-            kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
-            self.annarchy_instance.setup(**kwargs)
+        self.spiking_simulator = load_annarchy(self.logger)
+        self.annarchy_instance.clear()  # This will restart ANNarchy!
+        kwargs["dt"] = self.spiking_dt
+        seed = kwargs.pop("seed", self.config.ANNARCHY_SEED)
+        kwargs["verbose"] = kwargs.pop("verbose", self.config.VERBOSE)
+        self.annarchy_network = self.annarchy_instance.Network(seed=seed)
+        self.annarchy_network.config(**kwargs)
 
     def configure(self, **kwargs):
-        if self.config is None:
-            self.config = CONFIGURED
-        if self.logger is None:
-            self.logger = initialize_logger(__name__, config=self.config)
-        self._configure_annarchy()
         super(ANNarchyNetworkBuilder, self).configure()
+        self._configure_annarchy()
 
     @property
     def min_delay(self):
-        if self.annarchy_instance:
-            return self.annarchy_instance.dt()
+        if isinstance(self.annarchy_network, ANNarchy.Network):
+            return self.annarchy_network.dt
         else:
             return self.config.MIN_SPIKING_DT
 
@@ -92,7 +95,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
                 'delays': delays, 'target': target, 'params': safe_dict_copy(params)}
 
     def _assert_model(self, model):
-        return assert_model(model, self.annarchy_instance, self._models_import_path)
+        return assert_model(model, self._models_import_path)
 
     def build_spiking_population(self, label, model, brain_region, size, params):
         """This methods builds an  ANNarchyPopulation instance,
@@ -108,9 +111,9 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
             a ANNarchyPopulation class instance
         """
         params["name"] = label
-        annarchy_population = create_population(model, self.annarchy_instance, size=size, params=params,
+        annarchy_population = create_population(model, self.annarchy_network, size=size, params=params,
                                                 import_path=self._models_import_path, config=self.config)
-        return ANNarchyPopulation(annarchy_population, self.annarchy_instance,
+        return ANNarchyPopulation(annarchy_population, self.annarchy_network,
                                   label=label, model=annarchy_population.neuron_type.name, brain_region=brain_region)
 
     def connect_two_populations(self, pop_src, src_inds_fun, pop_trg, trg_inds_fun, conn_spec, syn_spec):
@@ -139,8 +142,7 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
                                        this_syn_spec.pop("delays"), this_syn_spec.pop("target"),
                                        syn_spec=this_syn_spec, conn_spec=this_conn_spec,
                                        source_view_fun=src_inds_fun, target_view_fun=trg_inds_fun,
-                                       name="%s -> %s" % (pop_src.label, pop_trg.label),
-                                       annarchy_instance=self.annarchy_instance)
+                                       name="%s -> %s" % (pop_src.label, pop_trg.label))
         # Add this projection to the source and target population inventories:
         pop_src.projections_pre.append(proj)
         pop_trg.projections_post.append(proj)
@@ -165,10 +167,10 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
         _devices = []
         for device in self._input_devices:
             device["input_proxies"] = self._input_proxies
-            LOG.info("Generating and connecting %s -> %s device set of model %s\n"
-                     "for nodes %s..." % (str(list(device["connections"].keys())),
-                                          str(list(device["connections"].values())),
-                                          device["model"], str(device["nodes"])))
+            self.logger.info("Generating and connecting %s -> %s device set of model %s\n"
+                             "for nodes %s..." % (str(list(device["connections"].keys())),
+                                                  str(list(device["connections"].values())),
+                                                  device["model"], str(device["nodes"])))
             _devices.append(self.build_and_connect_devices(device))
         if len(_devices):
             return DeviceSets(concat(_devices), name="input_devices")
@@ -184,11 +186,11 @@ class ANNarchyNetworkBuilder(SpikingNetworkBuilder):
            and tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory.
         """
         return build_and_connect_devices(devices, create_device, connect_device,
-                                         self._spiking_brain, self.config, annarchy_instance=self.annarchy_instance,
-                                         import_path=self._models_import_path)
+                                         self._spiking_brain, self.config,
+                                         import_path=self._models_import_path, annarchy_network=self.annarchy_network)
 
     def build_spiking_network(self):
         """A method to build the final ANNarchyNetwork class based on the already created constituents."""
-        return ANNarchyNetwork(annarchy_instance=self.annarchy_instance, brain_regions=self._spiking_brain,
+        return ANNarchyNetwork(annarchy_network=self.annarchy_network, brain_regions=self._spiking_brain,
                                output_devices=self._output_devices, input_devices=self._input_devices,
                                input_proxies=self._input_proxies, config=self.config)

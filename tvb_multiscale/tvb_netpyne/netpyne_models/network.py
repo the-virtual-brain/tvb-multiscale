@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
 
 from tvb_multiscale.tvb_netpyne.config import CONFIGURED, initialize_logger
-from tvb_multiscale.tvb_netpyne.netpyne_models.devices import NetpyneOutputSpikeDeviceDict, NetpyneOutputContinuousTimeDeviceDict
+from tvb_multiscale.tvb_netpyne.netpyne_models.devices import \
+    NetpyneOutputSpikeDeviceDict, NetpyneOutputContinuousTimeDeviceDict
 
 class NetpyneNetwork(SpikingNetwork):
 
@@ -28,6 +31,8 @@ class NetpyneNetwork(SpikingNetwork):
 
     def __init__(self, netpyne_instance, **kwargs):
         self.netpyne_instance = netpyne_instance
+        self.config = kwargs.get("config", CONFIGURED)
+        kwargs["config"] = self.config
         super(NetpyneNetwork, self).__init__(**kwargs)
 
     @property
@@ -44,8 +49,8 @@ class NetpyneNetwork(SpikingNetwork):
 
     def configure(self, *args, **kwargs):
         super(NetpyneNetwork, self).configure(args, kwargs)
-        simulationDuration = self.tvb_cosimulator.simulation_length
-        self.netpyne_instance.prepareSimulation(simulationDuration)
+        self.netpyne_instance.prepareSimulation(self.tvb_cosimulator.simulation_length,
+                                                self.tvb_cosimulator.synchronization_n_step)
 
     def Run(self, simulation_length, *args, **kwargs):
         """Method to simulate the NetPyNE network for a specific simulation_length (in ms).
