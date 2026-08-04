@@ -265,6 +265,45 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
     return output_events
 
 
+# TODO: Revert to tvb_contrib's version once the pull request is accepted:
+def sort_events_by_x_and_y(events, x="senders", y="times",
+                           filter_x=None, filter_y=None, exclude_x=[], exclude_y=[], hashfun=str):
+    xs = np.array(flatten_list(events[x]))
+    if filter_x is None:
+        xlabels = np.unique(xs, axis=0).tolist()
+    else:
+        xlabels = np.unique(flatten_list(filter_x), axis=0).tolist()
+    for xlbl in exclude_x:
+        try:
+            xlabels.remove(xlbl)
+        except:
+            pass
+    ys = flatten_list(events[y])
+    if filter_y is not None:
+        ys = [yy for yy in ys if yy in flatten_list(filter_y)]
+    for yy in exclude_y:
+        try:
+            ys.remove(yy)
+        except:
+            pass
+    ys = np.array(ys)
+    keys = []
+    for xlbl in xlabels:
+        if not isinstance(xlbl, Hashable):
+            keys.append(hashfun(xlbl))
+        else:
+            keys.append(xlbl)
+    if len(ys):
+        sorted_events = OrderedDict()
+        for key, xlbl in zip(keys, xlabels):
+            # NEW (Compatible with NumPy 1.x and 2.0+)
+            sorted_events[key] = np.sort(ys[(xs == xlbl).all(axis=-1)])
+    else:
+        sorted_events = OrderedDict(zip(keys, [np.array([])] * len(keys)))
+    return sorted_events
+
+
+
 def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
     from pandas import MultiIndex
     stacked_dims = "-".join(dims)
