@@ -34,7 +34,7 @@ class Config(ConfigBase):
         self.DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
 
         # Delays should be at least equal to ANNarchy time resolution
-        self.DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
+        self.DEFAULT_SYNAPSE = "Synapse"
 
         self.DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
         self.DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
