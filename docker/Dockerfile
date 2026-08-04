@@ -183,15 +183,8 @@ WORKDIR $PACKAGES
 RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/tvb-multiscale.git;
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
-    git checkout dev; \
     git pull origin --allow-unrelated-histories; \
     $VENV/bin/python3 setup.py develop --no-deps;
-
-# Checkout specific branch of tvb-multiscale
-WORKDIR $PACKAGES
-RUN cd tvb-multiscale; \
-    git checkout dev; \
-    git pull --allow-unrelated-histories;
 
 WORKDIR $PACKAGES
 
