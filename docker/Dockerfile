@@ -55,7 +55,7 @@ ENV PATH="${VENV}/bin":${PATH};
 
 # Basic python dependencies:
 RUN python3.12 -m venv $VENV && python3.12 -m venv --system-site-packages $VENV;
-RUN $VENV/bin/pip3 install --upgrade pip wheel; \
+RUN $VENV/bin/pip3 install --upgrade pip wheel "packaging>=24.2"; \
     $VENV/bin/pip3 install --no-cache-dir Cython numpy boost setuptools gsl meson-python ninja; \
     $VENV/bin/pip3 install -v --no-cache-dir --no-build-isolation --force-reinstall --check-build-dependencies --no-binary pygsl pygsl; \
     $VENV/bin/pip3 install --upgrade nose ipython  scipy matplotlib; \
@@ -139,7 +139,9 @@ RUN $VENV/bin/pip3 install elephant;
 # https://github.com/mariomulansky/PySpike/issues/82#issuecomment-2838013901
 WORKDIR $PACKAGES
 RUN git clone https://github.com/mariomulansky/PySpike.git;
-RUN cd PySpike; $VENV/bin/python setup.py build_ext --inplace;
+RUN cd PySpike && \
+    mv pyproject.toml pyproject.toml.bak && \
+    $VENV/bin/python setup.py build_ext --inplace
 ENV PYTHONPATH=$PYTHONPATH:$PACKAGES/PySpike
 
 # Install TVB specific packages
