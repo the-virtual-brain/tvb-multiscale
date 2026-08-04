@@ -164,12 +164,6 @@ RUN cd tvb-multiscale; \
     git checkout dev; \
     $VENV/bin/python3 setup.py develop --no-deps;
 
-# Checkout specific branch of tvb-multiscale
-# WORKDIR $PACKAGES
-RUN cd tvb-multiscale; \
-    git checkout dev; \
-    git pull --allow-unrelated-histories;
-
 # Compile tvb-netpyne .mod files
 WORKDIR $PACKAGES
 RUN cd tvb-multiscale; \
