@@ -185,7 +185,7 @@ ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
     $VENV/bin/python3 setup.py develop --no-deps; \
-    git checkout 2.2.0;
+    git checkout v2.2.0;
 
 WORKDIR $PACKAGES
 
