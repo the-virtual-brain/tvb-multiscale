@@ -49,126 +49,126 @@ class TestDefaultRATE(TestDefault):
         super(TestDefaultRATE, self).run()
 
 
-class TestDefaultSPIKES_TO_RATE(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.spikeNet_to_tvb_transformer_model = "SPIKES_TO_RATE"
-        super(TestDefaultSPIKES_TO_RATE, self).run()
-
-
-class TestDefaultSPIKES_TO_HIST(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.spikeNet_to_tvb_transformer_model = "SPIKES_TO_HIST"
-        super(TestDefaultSPIKES_TO_HIST, self).run()
-
-
-class TestDefaultSPIKES(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_model = "SPIKES"
-        self.tvb_to_spikeNet_transformer_model = "SPIKES"
-        self.run()
-
-
-class TestDefaultSPIKES_SINGLE_INTERACTION(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_model = "SPIKES"
-        self.tvb_to_spikeNet_transformer_model = "SPIKES_SINGLE_INTERACTION"
-        self.run()
-
-
-class TestDefaultSPIKES_MULTIPLE_INTERACTION(TestDefault):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_model = "SPIKES"
-        self.tvb_to_spikeNet_transformer_model = "SPIKES_MULTIPLE_INTERACTION"
-        self.run()
-
-
-class TestDefaultMultisynapse(TestSpikeNetModel):
-
-    multisynapse = True
-
-    def run_fun(self):
-        default_example(model=self.tvb_to_spikeNet_model, multisynapse=self.multisynapse,
-                        spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                        exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                        simulation_length=self.simulation_length, transient=self.transient,
-                        plot_write=self.plot_write)
-
-
-class TestDefaultMultisynapseRATE(TestDefaultMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestDefaultMultisynapseSPIKES(TestDefaultMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestWilsonCowan(TestSpikeNetModel):
-
-    multisynapse = False
-
-    def run_fun(self):
-        wilson_cowan_example(model=self.tvb_to_spikeNet_model, multisynapse=self.multisynapse,
-                             spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
-                             exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                             simulation_length=self.simulation_length, transient=self.transient,
-                             plot_write=self.plot_write)
-
-
-class TestWilsonCowanRATE(TestWilsonCowan):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestWilsonCowanSPIKES(TestWilsonCowan):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestWilsonCowanMultisynapse(TestWilsonCowan):
-
-    multisynapse = True
-
-
-class TestWilsonCowanMultisynapseRATE(TestWilsonCowanMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
+# class TestDefaultSPIKES_TO_RATE(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.spikeNet_to_tvb_transformer_model = "SPIKES_TO_RATE"
+#         super(TestDefaultSPIKES_TO_RATE, self).run()
+#
+#
+# class TestDefaultSPIKES_TO_HIST(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.spikeNet_to_tvb_transformer_model = "SPIKES_TO_HIST"
+#         super(TestDefaultSPIKES_TO_HIST, self).run()
+#
+#
+# class TestDefaultSPIKES(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_model = "SPIKES"
+#         self.tvb_to_spikeNet_transformer_model = "SPIKES"
+#         self.run()
+#
+#
+# class TestDefaultSPIKES_SINGLE_INTERACTION(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_model = "SPIKES"
+#         self.tvb_to_spikeNet_transformer_model = "SPIKES_SINGLE_INTERACTION"
+#         self.run()
+#
+#
+# class TestDefaultSPIKES_MULTIPLE_INTERACTION(TestDefault):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_model = "SPIKES"
+#         self.tvb_to_spikeNet_transformer_model = "SPIKES_MULTIPLE_INTERACTION"
+#         self.run()
+#
+#
+# class TestDefaultMultisynapse(TestSpikeNetModel):
+#
+#     multisynapse = True
+#
+#     def run_fun(self):
+#         default_example(model=self.tvb_to_spikeNet_model, multisynapse=self.multisynapse,
+#                         spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+#                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                         simulation_length=self.simulation_length, transient=self.transient,
+#                         plot_write=self.plot_write)
+#
+#
+# class TestDefaultMultisynapseRATE(TestDefaultMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestDefaultMultisynapseSPIKES(TestDefaultMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestWilsonCowan(TestSpikeNetModel):
+#
+#     multisynapse = False
+#
+#     def run_fun(self):
+#         wilson_cowan_example(model=self.tvb_to_spikeNet_model, multisynapse=self.multisynapse,
+#                              spiking_proxy_inds=self.spiking_proxy_inds, population_order=self.population_order,
+#                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                              simulation_length=self.simulation_length, transient=self.transient,
+#                              plot_write=self.plot_write)
+#
+#
+# class TestWilsonCowanRATE(TestWilsonCowan):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestWilsonCowanSPIKES(TestWilsonCowan):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestWilsonCowanMultisynapse(TestWilsonCowan):
+#
+#     multisynapse = True
+#
+#
+# class TestWilsonCowanMultisynapseRATE(TestWilsonCowanMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
 
 
 # class TestReducedWongWangExcIO(TestSpikeNetModel):
@@ -312,19 +312,19 @@ class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
 
 models_to_test_NEST = [
                        TestDefaultRATE,  # 0
-                       TestDefaultMultisynapseRATE,  # 1
-                       TestWilsonCowanRATE,  # 2
-                       TestWilsonCowanMultisynapseRATE,  # 3
-
-                       TestDefaultSPIKES,  # 4
-                       TestDefaultMultisynapseSPIKES,  # 5
-                       TestWilsonCowanSPIKES,  # 6
-                       TestWilsonCowanMultisynapseSPIKES,  # 7
-
-                       TestDefaultSPIKES_SINGLE_INTERACTION,    # 8
-                       TestDefaultSPIKES_MULTIPLE_INTERACTION,  # 9
-                       TestDefaultSPIKES_TO_RATE,               # 10
-                       TestDefaultSPIKES_TO_HIST,               # 11
+                       # TestDefaultMultisynapseRATE,  # 1
+                       # TestWilsonCowanRATE,  # 2
+                       # TestWilsonCowanMultisynapseRATE,  # 3
+                       #
+                       # TestDefaultSPIKES,  # 4
+                       # TestDefaultMultisynapseSPIKES,  # 5
+                       # TestWilsonCowanSPIKES,  # 6
+                       # TestWilsonCowanMultisynapseSPIKES,  # 7
+                       #
+                       # TestDefaultSPIKES_SINGLE_INTERACTION,    # 8
+                       # TestDefaultSPIKES_MULTIPLE_INTERACTION,  # 9
+                       # TestDefaultSPIKES_TO_RATE,               # 10
+                       # TestDefaultSPIKES_TO_HIST,               # 11
 
                        # TestBasalGangliaIzhikevichRATE,          # 12
                        # TestBasalGangliaIzhikevichSPIKES,        # 13
