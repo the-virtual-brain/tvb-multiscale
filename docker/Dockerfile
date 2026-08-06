@@ -184,8 +184,7 @@ RUN git clone --depth 1 --no-single-branch https://github.com/the-virtual-brain/
 ARG LAST_SHA_MULTISCALE=LATEST
 RUN cd tvb-multiscale; \
     git pull origin --allow-unrelated-histories; \
-    $VENV/bin/python3 setup.py develop --no-deps; \
-    git checkout dev;
+    $VENV/bin/python3 setup.py develop --no-deps;
 
 WORKDIR $PACKAGES
 
