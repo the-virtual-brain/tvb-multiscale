@@ -18,7 +18,8 @@ from tvb.basic.neotraits.api import HasTraits
 
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, flatten_list, is_integer, extract_integer_intervals
+    ensure_list, flatten_list, is_integer, extract_integer_intervals, \
+    sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 
 
 def is_iterable(obj):
@@ -263,80 +264,6 @@ def filter_events(events, variables=None, times=None, exclude_times=[]):
         for var in ensure_list(variables):
             output_events[var] = np.array([])
     return output_events
-
-
-# TODO: Revert to tvb_contrib's version once the pull request is accepted:
-def sort_events_by_x_and_y(events, x="senders", y="times",
-                           filter_x=None, filter_y=None, exclude_x=[], exclude_y=[], hashfun=str):
-    xs = np.array(flatten_list(events[x]))
-    if filter_x is None:
-        xlabels = np.unique(xs, axis=0).tolist()
-    else:
-        xlabels = np.unique(flatten_list(filter_x), axis=0).tolist()
-    for xlbl in exclude_x:
-        try:
-            xlabels.remove(xlbl)
-        except:
-            pass
-    ys = flatten_list(events[y])
-    if filter_y is not None:
-        ys = [yy for yy in ys if yy in flatten_list(filter_y)]
-    for yy in exclude_y:
-        try:
-            ys.remove(yy)
-        except:
-            pass
-    ys = np.array(ys)
-    keys = []
-    for xlbl in xlabels:
-        if not isinstance(xlbl, Hashable):
-            keys.append(hashfun(xlbl))
-        else:
-            keys.append(xlbl)
-    if len(ys):
-        sorted_events = OrderedDict()
-        for key, xlbl in zip(keys, xlabels):
-            # NEW (Compatible with NumPy 1.x and 2.0+)
-            sorted_events[key] = np.sort(ys[(xs == xlbl).all(axis=-1)])
-    else:
-        sorted_events = OrderedDict(zip(keys, [np.array([])] * len(keys)))
-    return sorted_events
-
-
-# TODO: Revert to tvb_contrib's version once the pull request is accepted:
-def concatenate_heterogeneous_DataArrays(data, concat_dim_name,
-                                         data_keys=None, name=None, fill_value=np.nan, transpose_dims=None):
-    from pandas import Series
-    from xarray import concat
-    from pandas import Index
-
-    if isinstance(data, (dict, Series)):
-        if data_keys is None:
-            data_keys = ensure_list(data.keys())
-        if isinstance(data, dict):  # dict
-            data = ensure_list(data.values())
-        else:  # pd.Series
-            if name is None:
-                name = data.name
-            data = ensure_list(data.values)
-    # Idiomatic xarray approach: build a dict of new coords and use assign_coords
-    cleaned_data = []
-    for da in data:
-        updated_coords = {}
-        for c_name, coord in da.coords.items():
-            if "string" in str(coord.dtype).lower():
-                updated_coords[c_name] = coord.values.astype(object)
-        # assign_coords returns a new DataArray, leaving the original untouched
-        if updated_coords:
-            da = da.assign_coords(updated_coords)
-
-        cleaned_data.append(da)
-    # Pass the newly mapped list of DataArrays to concat
-    data = concat(cleaned_data, Index(data_keys, name=concat_dim_name), fill_value=fill_value, join='outer')
-    data.name = name
-    if transpose_dims:
-        data = data.transpose(*transpose_dims)
-    return data
 
 
 def cross_dimensions_and_coordinates_MultiIndex(dims, pop_labels, all_regions_lbls):
