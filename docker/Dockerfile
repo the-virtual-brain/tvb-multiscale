@@ -84,7 +84,7 @@ ARG NEST_INSTALL_DIR=$BUILD/nest
 ARG NEST_PYTHON_PREFIX=${NEST_INSTALL_DIR}/lib/python3.12/site-packages
 ARG NEST_MODULE_PATH=${NEST_INSTALL_DIR}/lib/nest
 
-# Install NEST 3.9:
+# Install NEST:
 # https://github.com/nest/nest-simulator/commit/a32cd8728fbb100cc1ce2bc7955196b2bd15403c
 WORKDIR $PACKAGES
 # ARG LAST_SHA_NEST=LATEST
