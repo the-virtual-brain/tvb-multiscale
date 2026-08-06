@@ -77,7 +77,7 @@ RUN export LIBPYTHONPATH=$($VENV/bin/python3 -c "import glob; print(glob.glob('/
     ls  $VENV/lib;
 
 # Install NEST, latest stable version 3.9
-ARG NEST_VER=3.9
+ARG NEST_VER=3.10
 ARG NEST=nest-simulator
 ARG NEST_SRC=$PACKAGES/$NEST
 ARG NEST_INSTALL_DIR=$BUILD/nest
