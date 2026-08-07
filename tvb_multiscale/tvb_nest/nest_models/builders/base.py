@@ -76,7 +76,7 @@ class NESTNetworkBuilder(SpikingNetworkBuilder):
         except:
             self.logger.info("FAILED! We need to first compile it!")
             # ...unless we need to first compile it:
-            compile_modules(module_name, recompile=False, config=self.config)
+            compile_modules(module_name, config=self.config)
             # and now install it...
             self.logger.info("Installing now module %s..." % module)
             self.nest_instance.Install(module)

@@ -38,16 +38,19 @@ class NetpyneNetworkBuilder(SpikingNetworkBuilder):
     def netpyne_instance(self):
         return self.spiking_simulator
 
-    def configure(self, netParams, simConfig, autoCreateSpikingNodes=True):
+    def configure(self, netParams, simConfig, autoCreateSpikingNodes=True, mod_dir=None):
         if self.netpyne_instance is None:
             self.spiking_simulator = load_netpyne(self.config)
 
         if self.netpyne_instance is None:
             self.spiking_simulator = load_netpyne(self.config)
+
+        if mod_dir:
+            self.spiking_simulator.ensureCustomModFiles(mod_dir)
 
         super(NetpyneNetworkBuilder, self).configure()
         self.netpyne_instance.autoCreateSpikingNodes = autoCreateSpikingNodes
-        self.netpyne_instance.importModel(netParams, simConfig, self.spiking_dt, self.config)
+        self.netpyne_instance.importModel(netParams, simConfig, self.spiking_dt, self.tvb_dt, self.config)
 
     @abstractmethod
     def proxy_node_synaptic_model_funcs(self):

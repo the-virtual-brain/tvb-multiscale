@@ -70,7 +70,7 @@ class ANNarchyApp(HasTraits):
         return self.spikeNet_builder
 
     def start(self):
-        self.spiking_cosimulator = load_annarchy(self.config)
+        self.spiking_cosimulator = load_annarchy()
 
     def configure_simulation(self):
         self.spiking_network.network_path = self.network_path

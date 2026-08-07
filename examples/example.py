@@ -11,6 +11,7 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorSerialBuilder
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
+from tvb_multiscale.core.interfaces.transformers.builders import TVBtoSpikeNetTransformers, SpikeNetToTVBTransformers
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
@@ -195,11 +196,19 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
     if kwargs.get("tvb_to_spikeNet_transformer_model", None) is not None:
-        transformer_model = kwargs.pop("tvb_to_spikeNet_transformer_model")
-        setattr(tvb_spikeNet_model_builder._default_tvb_to_spikeNet_transformer_models, model, transformer_model)
+        if isinstance(kwargs["tvb_to_spikeNet_transformer_model"], str):
+            # Convert string to Enum
+            kwargs["tvb_to_spikeNet_transformer_model"] = \
+                getattr(TVBtoSpikeNetTransformers, kwargs["tvb_to_spikeNet_transformer_model"])
+        # Assumes Enum:
+        tvb_spikeNet_model_builder.tvb_to_spikeNet_transformer_model = kwargs["tvb_to_spikeNet_transformer_model"]
     if kwargs.get("spikeNet_to_tvb_transformer_model", None) is not None:
-        transformer_model = kwargs.pop("spikeNet_to_tvb_transformer_model")
-        tvb_spikeNet_model_builder._default_spikeNet_to_tvb_transformer_models.SPIKES = transformer_model
+        if isinstance(kwargs["spikeNet_to_tvb_transformer_model"], str):
+            # Convert string to Enum
+            kwargs["spikeNet_to_tvb_transformer_model"] = \
+                getattr(SpikeNetToTVBTransformers, kwargs["spikeNet_to_tvb_transformer_model"])
+        # Assumes Enum:
+        tvb_spikeNet_model_builder.spikeNet_to_tvb_transformer_model = kwargs["spikeNet_to_tvb_transformer_model"]
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
     tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order

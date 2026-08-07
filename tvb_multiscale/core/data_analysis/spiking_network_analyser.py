@@ -8,12 +8,12 @@ from pandas import Series
 from xarray import DataArray
 
 from tvb_multiscale.core.data_analysis.spiking_network_analyser_base import \
-    SpikingNetworkAnalyserBase, _get_safely_list_item
+    SpikingNetworkAnalyserBase, _get_safely_list_item, sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 from tvb_multiscale.core.utils.data_structures_utils import \
     cross_dimensions_and_coordinates_MultiIndex, get_ordered_dimensions
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, concatenate_heterogeneous_DataArrays
+    ensure_list #, concatenate_heterogeneous_DataArrays
 from tvb.contrib.scripts.datatypes.time_series_xarray import TimeSeries, TimeSeriesRegion
 
 
@@ -224,7 +224,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
                 # ...loop for every result...
                 for res_type, res in pop_results.items():
                     # ...and if it is a pandas.Series of xarray.DataArray instances...
-                    if isinstance(res[0], DataArray):
+                    if isinstance(res.iloc[0], DataArray):
                         # ...concatenate them:
                         pop_results[res_type] = \
                             concatenate_heterogeneous_DataArrays(res, "Region",
@@ -371,14 +371,17 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
         for res_name, result in results.items():
             homogeneous = False
             # ...if it is not empty and if it consists of xarray.DataArray instances...
-            if len(result) and isinstance(result[0], DataArray):
+            if isinstance(result, string_types):
+                # This is the case of res_name = "data_name"
+                continue
+            if len(result) and isinstance(result.iloc[0], DataArray):
                 # these are the desired dimensions for a homogeneous result:
                 transpose_dims = \
-                    get_ordered_dimensions(list(result[0].dims) + ["Population"], dims_order)
+                    get_ordered_dimensions(list(result.iloc[0].dims) + ["Population"], dims_order)
                 # ...if the output type for time series data is TVB TimeSeries instances...
                 if self.time_series_output_type.upper() == "TVB" \
-                        and result[0].ndim <= 3 \
-                            and "Time" in result[0].dims:
+                        and result.iloc[0].ndim <= 3 \
+                            and "Time" in result.iloc[0].dims:
                     # ...put them in a TVB TimeSeries instance...:
                     results[res_name] = \
                         self.convert_to_TVB_TimeSeries(result, concat_dim_name="Population",

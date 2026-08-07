@@ -49,8 +49,8 @@ class NetpyneNetwork(SpikingNetwork):
 
     def configure(self, *args, **kwargs):
         super(NetpyneNetwork, self).configure(args, kwargs)
-        simulationDuration = self.tvb_cosimulator.simulation_length
-        self.netpyne_instance.prepareSimulation(simulationDuration)
+        self.netpyne_instance.prepareSimulation(self.tvb_cosimulator.simulation_length,
+                                                self.tvb_cosimulator.synchronization_n_step)
 
     def Run(self, simulation_length, *args, **kwargs):
         """Method to simulate the NetPyNE network for a specific simulation_length (in ms).

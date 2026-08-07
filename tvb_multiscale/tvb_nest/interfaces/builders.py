@@ -24,10 +24,11 @@ from tvb_multiscale.tvb_nest.interfaces.interfaces import \
     NESTSenderInterfaces, NESTReceiverInterfaces, \
     TVBtoNESTInterfaces, NESTtoTVBInterfaces
 from tvb_multiscale.tvb_nest.interfaces.io import \
-    NESTSpikeRecorderSet, NESTSpikeRecorderTotalSet, \
+    NESTSpikeEventRecorderSet, NESTSpikeRecorderSet, \
     NESTSpikeGeneratorSet, NESTInhomogeneousPoissonGeneratorSet, NESTStepCurrentGeneratorSet, \
     NESTParrotSpikeGeneratorSet, NESTParrotInhomogeneousPoissonGeneratorSet, \
-    NESTVoltmeterSet, NESTVoltmeterMeanSet, NESTVoltmeterTotalSet
+    NESTVoltmeterSet, NESTVoltmeterMeanSet, NESTVoltmeterTotalSet, \
+    NESTMultimeterSet, NESTMultimeterMeanSet, NESTMultimeterTotalSet
 from tvb_multiscale.tvb_nest.nest_models.network import NESTNetwork
 from tvb_multiscale.tvb_nest.nest_models.builders.nest_factory import create_device, connect_device
 
@@ -39,28 +40,38 @@ NESTtoTVBModels = SpikeNetToTVBModels
 class NESTInputProxyModels(Enum):
     RATE = NESTInhomogeneousPoissonGeneratorSet
     RATE_TO_SPIKES = NESTParrotInhomogeneousPoissonGeneratorSet
+    RATE_TO_CORRELATED_SPIKES = None
     SPIKES = NESTSpikeGeneratorSet
     PARROT_SPIKES = NESTParrotSpikeGeneratorSet
     CURRENT = NESTStepCurrentGeneratorSet
+    CURRENT_TO_SPIKES = None
 
 
 class NESTOutputProxyModels(Enum):
     SPIKES = NESTSpikeRecorderSet
-    SPIKES_MEAN = NESTSpikeRecorderTotalSet
+    SPIKE_EVENTS = NESTSpikeEventRecorderSet
     POTENTIAL = NESTVoltmeterSet
     POTENTIAL_MEAN = NESTVoltmeterMeanSet
     POTENTIAL_TOTAL = NESTVoltmeterTotalSet
+    CURRENT = NESTMultimeterSet
+    CURRENT_MEAN = NESTMultimeterMeanSet
+    CURRENT_TOTAL = NESTMultimeterTotalSet
 
 
-class DefaultTVBtoNESTModels(object):
-    RATE = NESTInputProxyModels.RATE.name
-    SPIKES = NESTInputProxyModels.SPIKES.name
-    CURRENT = NESTInputProxyModels.CURRENT.name
+class DefaultTVBtoNESTModels(Enum):
+    RATE = NESTInputProxyModels.RATE
+    RATE_TO_SPIKES = NESTInputProxyModels.RATE_TO_SPIKES
+    RATE_TO_CORRELATED_SPIKES = None
+    SPIKES = NESTInputProxyModels.SPIKES
+    PARROT_SPIKES = NESTInputProxyModels.PARROT_SPIKES
+    CURRENT = NESTInputProxyModels.CURRENT
+    CURRENT_TO_SPIKES = None
 
 
-class DefaultNESTtoTVBModels(object):
-    SPIKES = NESTOutputProxyModels.SPIKES_MEAN.name
-    POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN.name
+class DefaultNESTtoTVBModels(Enum):
+    SPIKES = NESTOutputProxyModels.SPIKES
+    POTENTIAL = NESTOutputProxyModels.POTENTIAL_MEAN
+    CURRENT = NESTOutputProxyModels.CURRENT_MEAN
 
 
 class NESTProxyNodesBuilder(SpikeNetProxyNodesBuilder):

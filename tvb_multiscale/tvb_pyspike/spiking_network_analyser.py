@@ -5,10 +5,10 @@ from pandas import Series
 from xarray import DataArray
 
 from tvb_multiscale.core.config import initialize_logger
-from tvb_multiscale.core.data_analysis.spiking_network_analyser_base import SpikingNetworkAnalyserBase
+from tvb_multiscale.core.data_analysis.spiking_network_analyser_base import \
+    SpikingNetworkAnalyserBase, sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 
 from tvb.basic.neotraits.api import Attr
-from tvb.contrib.scripts.utils.data_structures_utils import sort_events_by_x_and_y
 
 
 LOG = initialize_logger(__name__)

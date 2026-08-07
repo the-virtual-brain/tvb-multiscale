@@ -34,7 +34,7 @@ class Config(ConfigBase):
         self.DEFAULT_SPIKING_MODEL = "IF_cond_alpha"
 
         # Delays should be at least equal to ANNarchy time resolution
-        self.DEFAULT_SYNAPSE = "DefaultSpikingSynapse"
+        self.DEFAULT_SYNAPSE = "Synapse"
 
         self.DEFAULT_TVB_TO_ANNARCHY_INTERFACE = "PoissonPopulation"
         self.DEFAULT_ANNARCHY_TO_TVB_INTERFACE = "spike_monitor"
@@ -48,12 +48,13 @@ class Config(ConfigBase):
                                                   "PoissonPopulation": {"rates": 0.0},
                                                   "Poisson_neuron": {"rates": 0.0},
                                                   "HomogeneousCorrelatedSpikeTrains":
-                                                      {"rates": [0.001], "corr": 0.0, "tau": 1.0,
+                                                      {"rates": np.array([[0.001]]), "corr": 0.0, "tau": 1.0,
                                                        "schedule": [0.0], "period": -1.0,
                                                        "refractory": None},
                                                   "TimedArray": {"rates": np.array([[0.0]]),
-                                                                 "schedule": [0.0], "period": -1.0,
-                                                                 "proxy": True, "proxy_target": "exc"},
+                                                                 "schedule": [0.0], "period": -1.0},
+                                                  "TimedArrayToSpikes": {"rates": np.array([[0.0]]),
+                                                                         "schedule": [0.0], "period": -1.0},
                                                   "TimedPoissonPopulation": {"rates": np.array([[0.0]]),
                                                                              "schedule": [0.0], "period": -1.0},
                                                  }
@@ -64,7 +65,8 @@ class Config(ConfigBase):
                 "weight": 1.0, "delay": self.DEFAULT_SPIKING_MIN_DELAY, 'receptor_type': "exc",
                 "source_inds": None, "target_inds": None,
                 "syn_spec": {"synapse_model": self.DEFAULT_SYNAPSE, "params": {}},
-                "conn_spec": {"rule": "all_to_all"}}  # , "allow_self_connections": True, force_multiple_weights: False??
+                "conn_spec": {"rule": "all_to_all"}}
+        # , "allow_self_connections": True, force_multiple_weights: False??
 
 
 CONFIGURED = Config(initialize_logger=False)

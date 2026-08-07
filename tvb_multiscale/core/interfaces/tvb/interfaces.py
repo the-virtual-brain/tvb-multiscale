@@ -148,7 +148,10 @@ class TVBInputInterface(TVBInterface):
         if data is None:
             return None
         # Assume a single mode, and reshape from (proxy, (voi,) time) to TVB (time, voi, proxy)
-        if data[1].ndim < 3:
+        if data[1].size == 0:
+            # If no data are returned:
+            return None
+        elif data[1].ndim < 3:
             # if there was no voi dimension
             data[1] = data[1].T
             data[1] = data[1][:, None, :]
@@ -499,7 +502,7 @@ class TVBInputInterfaces(BaseInterfaces, TVBInterfaces):
 
     def _prepare_cosim_update(self, good_cosim_update_values_shape):
         cosim_updates = np.empty(good_cosim_update_values_shape).astype(float)
-        cosim_updates[:] = np.NAN
+        cosim_updates[:] = np.nan
         all_time_steps = []
         return cosim_updates, all_time_steps
 
@@ -641,11 +644,12 @@ class SpikeNetToTVBTransformerInterfaces(TransformerInterfaces):
 
 
 class TVBtoSpikeNetModels(Enum):
-    RATE = 0
-    SPIKES = 1
-    CURRENT = 2
+    RATE = "RATE"
+    SPIKES = "SPIKES"
+    CURRENT = "CURRENT"
 
 
 class SpikeNetToTVBModels(Enum):
-    SPIKES = 0
-    VOLTAGE = 1
+    SPIKES = "SPIKES"
+    POTENTIAL = "POTENTIAL"
+    CURRENT = "CURRENT"

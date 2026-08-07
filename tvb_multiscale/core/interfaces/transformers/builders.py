@@ -11,8 +11,7 @@ from tvb.basic.neotraits._attr import Attr, Float
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.neotraits import HasTraits
 from tvb_multiscale.core.utils.data_structures_utils import get_enum_values
-from tvb_multiscale.core.interfaces.transformers.models.base import \
-     LinearRate, LinearCurrent, LinearPotential
+from tvb_multiscale.core.interfaces.transformers.models.base import LinearRate, LinearCurrent, LinearPotential
 from tvb_multiscale.core.interfaces.transformers.models.elephant import \
     ElephantSpikesRate, ElephantSpikesHistogramRate, ElephantSpikesHistogram,  \
     RatesToSpikesElephantPoisson, RatesToSpikesElephantPoissonMultipleInteraction, \
@@ -33,6 +32,7 @@ class TVBtoSpikeNetTransformers(Enum):
     SPIKES_SINGLE_INTERACTION = RatesToSpikesElephantPoissonSingleInteraction
     SPIKES_MULTIPLE_INTERACTION = RatesToSpikesElephantPoissonMultipleInteraction
     CURRENT = LinearCurrent
+    CURRENT_TO_SPIKES = LinearCurrent
 
 
 class SpikeNetToTVBTransformers(Enum):
@@ -41,17 +41,19 @@ class SpikeNetToTVBTransformers(Enum):
     SPIKES_TO_HIST = ElephantSpikesHistogram
     SPIKES_TO_HIST_RATE = ElephantSpikesHistogramRate
     POTENTIAL = LinearPotential
+    CURRENT = LinearCurrent
 
 
-class DefaultTVBtoSpikeNetTransformers(object):
-    RATE = TVBtoSpikeNetTransformers.RATE.name
-    SPIKES = TVBtoSpikeNetTransformers.SPIKES.name
-    CURRENT = TVBtoSpikeNetTransformers.CURRENT.name
+class DefaultTVBtoSpikeNetTransformers(Enum):
+    RATE = TVBtoSpikeNetTransformers.RATE
+    SPIKES = TVBtoSpikeNetTransformers.SPIKES
+    CURRENT = TVBtoSpikeNetTransformers.CURRENT
 
 
-class DefaultSpikeNetToTVBTransformers(object):
-    SPIKES = SpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE.name
-    POTENTIAL = SpikeNetToTVBTransformers.POTENTIAL.name
+class DefaultSpikeNetToTVBTransformers(Enum):
+    SPIKES = SpikeNetToTVBTransformers.SPIKES_TO_HIST_RATE
+    POTENTIAL = SpikeNetToTVBTransformers.POTENTIAL
+    CURRENT = SpikeNetToTVBTransformers.CURRENT
 
 
 class TransformerBuilder(HasTraits):
@@ -92,30 +94,34 @@ class TransformerBuilder(HasTraits):
         if "ray_parallel" not in kwargs:
             self.ray_parallel = self.config.RAY_PARALLEL
 
-    def _configure_transformer_model(self, interface, interface_models, default_transformer_models, transformer_models):
+    def _configure_transformer_model(self, interface, transformer_model,
+                                     interface_models, default_transformer_models, transformer_models):
         # Return a model or an Enum
-        model = interface.get("transformer", interface.pop("transformer_model", None))
+        model = interface.get("transformer", interface.pop("transformer_model", transformer_model))
         if model is None:
+            # If there was no input for a transformer model, get the interface model as a string:
             model = interface.get("model", None)
             if model is None:
                 model = list(interface_models)[0].name  # a string at this point
             else:
-                model = model.upper()
-            assert model in list(interface_models.__members__)  # Enum names (strings)
-            model = getattr(default_transformer_models, model)  # string name of transformer type
-        if isinstance(model, Enum):
-            # Enum input:
-            assert model in transformer_models
-        elif isinstance(model, string_types):
+                model = model.upper()  # already a string
+            assert model in list(interface_models.__members__)        # Enum names (strings)
+            # Get the corresponding Enum:
+            model = getattr(default_transformer_models, model).value  # Enum
+        if isinstance(model, string_types):
+            # If the  transformer model is a string, get the corresponding Enum.
             # String input:
             model = model.upper()
             model = getattr(transformer_models, model)  # Get an Enum
-        else:
+        elif isinstance(model, Enum):
+            # Enum input:
+            assert model in transformer_models
+        else: # In this case we already have a model type or instance:
             transformer_models_tuple = tuple(get_enum_values(transformer_models))
             if inspect.isclass(model):
                 # assert it is a Transformer type...
                 assert issubclass(model, transformer_models_tuple)
-            else: # ...or instance
+            else:  # ...or instance
                 assert isinstance(model, transformer_models_tuple)
         interface["transformer"] = model
 
@@ -140,9 +146,17 @@ class TVBtoSpikeNetTransformerBuilder(TransformerBuilder):
     _default_tvb_to_spikeNet_transformer_models = DefaultTVBtoSpikeNetTransformers
     _tvb_to_spikeNet_transformer_models = TVBtoSpikeNetTransformers
 
+    tvb_to_spikeNet_transformer_model = Attr(
+        label="TVB to SpikeNet Transformer model",
+        field_type=Enum,
+        doc="""Enum of default TVB to SpikeNet transformer model.""",
+        required=False
+    )
+
     def configure_and_build_transformers(self, interfaces):
         for interface in interfaces:
-            self._configure_transformer_model(interface, self._tvb_to_spikeNet_models,
+            self._configure_transformer_model(interface, self.tvb_to_spikeNet_transformer_model,
+                                              self._tvb_to_spikeNet_models,
                                               self._default_tvb_to_spikeNet_transformer_models,
                                               self._tvb_to_spikeNet_transformer_models)
             params = dict(interface.pop("transformer_params", {}))
@@ -187,9 +201,17 @@ class SpikeNetToTVBTransformerBuilder(TransformerBuilder):
     _default_spikeNet_to_tvb_transformer_models = DefaultSpikeNetToTVBTransformers
     _spikeNet_to_tvb_transformer_models = SpikeNetToTVBTransformers
 
+    spikeNet_to_tvb_transformer_model = Attr(
+        label="SpikeNet to TVB Transformer model",
+        field_type=Enum,
+        doc="""Enum of default SpikeNet to TVB transformer model.""",
+        required=False
+    )
+
     def configure_and_build_transformers(self, interfaces):
         for interface in interfaces:
-            self._configure_transformer_model(interface, self._spikeNet_to_tvb_models,
+            self._configure_transformer_model(interface, self.spikeNet_to_tvb_transformer_model,
+                                              self._spikeNet_to_tvb_models,
                                               self._default_spikeNet_to_tvb_transformer_models,
                                               self._spikeNet_to_tvb_transformer_models)
             params = dict(interface.pop("transformer_params", {}))

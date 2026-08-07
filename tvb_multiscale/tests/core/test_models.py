@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import os
 import shutil
 import gc
@@ -166,7 +167,8 @@ def run_test(test_model_class, success={}):
         # raise e
         success[test_model_class.__name__] = str(e)
         print("\nError in %g sec!" % (time() - tic))
-        warnings.warn(e)
+        warnings.warn(str(e), stacklevel=2)
+        print(f"WARNING: {e}", file=sys.stderr, flush=True)
     print("******************************************************\n")
     del test_model
     gc.collect()
@@ -189,7 +191,7 @@ def loop_all(models_to_test=[]):
         else:
             warnings.warn("\n%s ERROR!:\n%s" % (model, result))
     if not np.all([result is True for result in list(success.values())]):
-        raise Exception("%s\nmodels' tests failed!" % str(os.getcwd()))
+        raise Exception("%s\nmodels' tests failed!:\n%s" % (str(os.getcwd()), str(success)))
     print("******************************************************\n")
 
 
