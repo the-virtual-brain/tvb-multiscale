@@ -178,6 +178,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
         return numpy.unique(self.proxy_inds.tolist() + self.out_proxy_inds.tolist())
 
     def compute_default_synchronization_time_and_n_step(self):
+        if self._number_of_dt_decimals is None:
+            self._configure_number_of_dt_decimals()
         default_synchronization_n_step = \
                 int(numpy.floor(self._min_idelay / self.min_idelay_sync_n_step_ratio))
         default_synchronization_time = numpy.around(default_synchronization_n_step * self.integrator.dt,
@@ -192,6 +194,9 @@ class CoSimulator(CoSimulatorBase, HasTraits):
     def default_synchronization_n_step(self):
         return self.compute_default_synchronization_time_and_n_step()[1]
 
+    def _configure_number_of_dt_decimals(self):
+        self._number_of_dt_decimals = numpy.abs(Decimal('%g' % self.integrator.dt).as_tuple().exponent)
+
     def _configure_synchronization_time(self):
         """This method will set the synchronization time and number of steps,
            longer or equal to the integration time step.
@@ -199,6 +204,8 @@ class CoSimulator(CoSimulatorBase, HasTraits):
            than the minimum delay of all existing connections.
            Existing connections are considered those with nonzero weights.
         """
+        if self._number_of_dt_decimals is None:
+            self._configure_number_of_dt_decimals()
         # The synchronization time should be at least equal to integrator.dt:
         self.synchronization_time = numpy.around(numpy.maximum(self.synchronization_time, self.integrator.dt),
                                                  decimals=self._number_of_dt_decimals)

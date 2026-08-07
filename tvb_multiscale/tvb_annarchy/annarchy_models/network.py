@@ -2,6 +2,8 @@
 
 import os
 
+import ANNarchy
+
 from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.spiking_models.network import SpikingNetwork
@@ -29,6 +31,9 @@ class ANNarchyNetwork(SpikingNetwork):
         residing in region node "rh-insula".
     """
 
+    annarchy_network = Attr(field_type=ANNarchy.Network, required=False,
+                            label="ANNarchy.Network", doc="""Instance of ANNarchy.Network""")
+
     config = Attr(
         label="Configuration",
         field_type=Config,
@@ -53,19 +58,12 @@ class ANNarchyNetwork(SpikingNetwork):
         default=""
     )
 
-    annarchy_instance = None
-
-    _network = None
-
-    _dt = None
-
     _OutputSpikeDeviceDict = ANNarchyOutputSpikeDeviceDict
     _OutputContinuousTimeDeviceDict = ANNarchyOutputContinuousTimeDeviceDict
 
-    def __init__(self, annarchy_instance=None, **kwargs):
-        self.annarchy_instance = annarchy_instance
-        self._dt = None
-        self._network = None
+    def __init__(self, annarchy_network=None, **kwargs):
+        if isinstance(annarchy_network, ANNarchy.Network):
+            self.annarchy_network = annarchy_network
         self.network_path = ""
         self.brain_regions = ANNarchyBrain()
         self.config = kwargs.get("config", CONFIGURED)
@@ -74,20 +72,13 @@ class ANNarchyNetwork(SpikingNetwork):
 
     @property
     def spiking_simulator_module(self):
-        return self.annarchy_instance
-
-    @property
-    def network(self):
-        if self._network is None:
-            if self.annarchy_instance is not None:
-                self._network = self.annarchy_instance.Network(everything=True)
-        return self._network
+        return ANNarchy
 
     @property
     def dt(self):
-        if self._dt is None:
-            self._dt = self.annarchy_instance.Global.dt()
-        return self._dt
+        if isinstance(self.annarchy_network, ANNarchy.Network):
+            return self.annarchy_network.dt
+        return None
 
     @property
     def min_delay(self):
@@ -101,7 +92,7 @@ class ANNarchyNetwork(SpikingNetwork):
             if directory.find(cwd) > -1:
                 self.network_path = os.path.join(directory.split(cwd)[-1][1:].split("res")[0],
                                                  self.__class__.__name__)
-        self.annarchy_instance.compile(directory=self.network_path, *args, **kwargs)
+        self.annarchy_network.compile(directory=self.network_path, *args, **kwargs)
 
     def configure(self, *args, **kwargs):
         super(ANNarchyNetwork, self).configure()
@@ -109,18 +100,18 @@ class ANNarchyNetwork(SpikingNetwork):
 
     def Run(self, simulation_length=None, **kwargs):
         """Method to simulate the ANNarchy network for a specific simulation_length (in ms).
-           It will run annarchy_instance.simulate(simulation_length, *args, **kwargs)
+           It will run annarchy_network.simulate(simulation_length, *args, **kwargs)
         """
         if simulation_length is None:
             simulation_length = self.dt
         measure_time = kwargs.pop("measure_time", False)
         for dev_name, out_dev_set in self.output_devices.items():
             out_dev_set.do_for_all("resume")
-        self.annarchy_instance.simulate(simulation_length, measure_time=measure_time, **kwargs)
+        self.annarchy_network.simulate(simulation_length, measure_time=measure_time, **kwargs)
         for dev_name, out_dev_set in self.output_devices.items():
             out_dev_set.do_for_all("pause")
 
     def info(self, recursive=0):
         info = super(ANNarchyNetwork, self).info(recursive=recursive)
-        info["ANNarchy_Network"] = self.network
+        info["ANNarchy_Network"] = self.annarchy_network
         return info

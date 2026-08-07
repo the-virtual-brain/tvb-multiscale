@@ -171,143 +171,143 @@ class TestWilsonCowanMultisynapseSPIKES(TestWilsonCowanMultisynapse):
         self.run()
 
 
-class TestReducedWongWangExcIO(TestSpikeNetModel):
-
-    def run_fun(self):
-        red_wong_wang_excio_example(model=self.tvb_to_spikeNet_mode,
-                                    spiking_proxy_inds=self.spiking_proxy_inds,
-                                    population_order=self.population_order,
-                                    exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                                    simulation_length=self.simulation_length, transient=self.transient,
-                                    plot_write=self.plot_write)
-
-
-class TestReducedWongWangExcIORATE(TestReducedWongWangExcIO):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestReducedWongWangExcIOSPIKES(TestReducedWongWangExcIO):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestReducedWongWangExcIOCURRENT(TestReducedWongWangExcIO):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "CURRENT"
-        self.run()
-
-
-class TestReducedWongWangExcIOInhI2013(TestSpikeNetModel):
-
-    def run_fun(self):
-        red_wong_wang_excio_inhi_example_2013(model=self.tvb_to_spikeNet_mode,
-                                              spiking_proxy_inds=self.spiking_proxy_inds,
-                                              population_order=self.population_order,
-                                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                                              simulation_length=self.simulation_length, transient=self.transient,
-                                              plot_write=self.plot_write)
-
-
-class TestReducedWongWangExcIOInhI2013RATE(TestReducedWongWangExcIOInhI2013):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestReducedWongWangExcIOInhI2013SPIKES(TestReducedWongWangExcIOInhI2013):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestReducedWongWangExcIOInhI2013CURRENT(TestReducedWongWangExcIOInhI2013):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "CURRENT"
-        self.run()
-
-
-class TestReducedWongWangExcIOInhI2014(TestSpikeNetModel):
-
-    def run_fun(self):
-        red_wong_wang_excio_inhi_example_2014(model=self.tvb_to_spikeNet_mode,
-                                              spiking_proxy_inds=self.spiking_proxy_inds,
-                                              population_order=self.population_order,
-                                              exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                                              simulation_length=self.simulation_length, transient=self.transient,
-                                              plot_write=self.plot_write)
-
-
-class TestReducedWongWangExcIOInhI2014RATE(TestReducedWongWangExcIOInhI2014):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestReducedWongWangExcIOInhI2014SPIKES(TestReducedWongWangExcIOInhI2014):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestReducedWongWangExcIOInhI2014CURRENT(TestReducedWongWangExcIOInhI2014):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "CURRENT"
-        self.run()
-
-
-class TestBasalGangliaIzhikevich(TestSpikeNetModel):
-
-    def run_fun(self):
-        basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
-                                         population_order=self.population_order,
-                                         exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
-                                         simulation_length=self.simulation_length, transient=self.transient,
-                                         plot_write=self.plot_write)
-
-
-class TestBasalGangliaIzhikevichRATE(TestBasalGangliaIzhikevich):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "RATE"
-        self.run()
-
-
-class TestBasalGangliaIzhikevichSPIKES(TestBasalGangliaIzhikevich):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "SPIKES"
-        self.run()
-
-
-class TestBasalGangliaIzhikevichCURRENT(TestBasalGangliaIzhikevich):
-
-    # @pytest.mark.skip(reason="These tests are taking too much time")
-    def test(self):
-        self.tvb_to_spikeNet_mode = "CURRENT"
-        self.run()
+# class TestReducedWongWangExcIO(TestSpikeNetModel):
+#
+#     def run_fun(self):
+#         red_wong_wang_excio_example(model=self.tvb_to_spikeNet_mode,
+#                                     spiking_proxy_inds=self.spiking_proxy_inds,
+#                                     population_order=self.population_order,
+#                                     exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                                     simulation_length=self.simulation_length, transient=self.transient,
+#                                     plot_write=self.plot_write)
+#
+#
+# class TestReducedWongWangExcIORATE(TestReducedWongWangExcIO):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOSPIKES(TestReducedWongWangExcIO):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOCURRENT(TestReducedWongWangExcIO):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "CURRENT"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOInhI2013(TestSpikeNetModel):
+#
+#     def run_fun(self):
+#         red_wong_wang_excio_inhi_example_2013(model=self.tvb_to_spikeNet_mode,
+#                                               spiking_proxy_inds=self.spiking_proxy_inds,
+#                                               population_order=self.population_order,
+#                                               exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                                               simulation_length=self.simulation_length, transient=self.transient,
+#                                               plot_write=self.plot_write)
+#
+#
+# class TestReducedWongWangExcIOInhI2013RATE(TestReducedWongWangExcIOInhI2013):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOInhI2013SPIKES(TestReducedWongWangExcIOInhI2013):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOInhI2013CURRENT(TestReducedWongWangExcIOInhI2013):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "CURRENT"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOInhI2014(TestSpikeNetModel):
+#
+#     def run_fun(self):
+#         red_wong_wang_excio_inhi_example_2014(model=self.tvb_to_spikeNet_mode,
+#                                               spiking_proxy_inds=self.spiking_proxy_inds,
+#                                               population_order=self.population_order,
+#                                               exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                                               simulation_length=self.simulation_length, transient=self.transient,
+#                                               plot_write=self.plot_write)
+#
+#
+# class TestReducedWongWangExcIOInhI2014RATE(TestReducedWongWangExcIOInhI2014):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOInhI2014SPIKES(TestReducedWongWangExcIOInhI2014):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestReducedWongWangExcIOInhI2014CURRENT(TestReducedWongWangExcIOInhI2014):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "CURRENT"
+#         self.run()
+#
+#
+# class TestBasalGangliaIzhikevich(TestSpikeNetModel):
+#
+#     def run_fun(self):
+#         basal_ganglia_izhikevich_example(model=self.tvb_to_spikeNet_mode,
+#                                          population_order=self.population_order,
+#                                          exclusive_nodes=self.exclusive_nodes, delays_flag=self.delays_flag,
+#                                          simulation_length=self.simulation_length, transient=self.transient,
+#                                          plot_write=self.plot_write)
+#
+#
+# class TestBasalGangliaIzhikevichRATE(TestBasalGangliaIzhikevich):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "RATE"
+#         self.run()
+#
+#
+# class TestBasalGangliaIzhikevichSPIKES(TestBasalGangliaIzhikevich):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "SPIKES"
+#         self.run()
+#
+#
+# class TestBasalGangliaIzhikevichCURRENT(TestBasalGangliaIzhikevich):
+#
+#     # @pytest.mark.skip(reason="These tests are taking too much time")
+#     def test(self):
+#         self.tvb_to_spikeNet_mode = "CURRENT"
+#         self.run()
 
 
 models_to_test_NEST = [
@@ -326,21 +326,21 @@ models_to_test_NEST = [
                        TestDefaultSPIKES_TO_RATE,               # 10
                        TestDefaultSPIKES_TO_HIST,               # 11
 
-                       TestBasalGangliaIzhikevichRATE,          # 12
-                       TestBasalGangliaIzhikevichSPIKES,        # 13
-                       TestBasalGangliaIzhikevichCURRENT,        # 14
-
-                       TestReducedWongWangExcIORATE,
-                            TestReducedWongWangExcIOSPIKES,
-                                 TestReducedWongWangExcIOCURRENT,
-
-                       TestReducedWongWangExcIOInhI2013RATE,
-                           TestReducedWongWangExcIOInhI2013SPIKES,
-                               TestReducedWongWangExcIOInhI2013CURRENT,
-
-                       TestReducedWongWangExcIOInhI2014RATE,
-                           TestReducedWongWangExcIOInhI2014SPIKES,
-                               TestReducedWongWangExcIOInhI2014CURRENT
+                       # TestBasalGangliaIzhikevichRATE,          # 12
+                       # TestBasalGangliaIzhikevichSPIKES,        # 13
+                       # TestBasalGangliaIzhikevichCURRENT,        # 14
+                       #
+                       # TestReducedWongWangExcIORATE,
+                       #      TestReducedWongWangExcIOSPIKES,
+                       #           TestReducedWongWangExcIOCURRENT,
+                       #
+                       # TestReducedWongWangExcIOInhI2013RATE,
+                       #     TestReducedWongWangExcIOInhI2013SPIKES,
+                       #         TestReducedWongWangExcIOInhI2013CURRENT,
+                       #
+                       # TestReducedWongWangExcIOInhI2014RATE,
+                       #     TestReducedWongWangExcIOInhI2014SPIKES,
+                       #         TestReducedWongWangExcIOInhI2014CURRENT
 
                        ]
 

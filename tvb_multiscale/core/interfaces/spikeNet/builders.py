@@ -19,15 +19,20 @@ from tvb_multiscale.core.interfaces.spikeNet.interfaces import \
     SpikeNetOutputInterfaces, SpikeNetInputInterfaces, SpikeNetSenderInterfaces, SpikeNetReceiverInterfaces
 
 
-class DefaultTVBtoSpikeNetProxyModels(object):
+class DefaultTVBtoSpikeNetProxyModels(Enum):
     RATE = "RATE"
+    RATE_TO_SPIKES = "RATE_TO_SPIKES"
+    RATE_TO_CORRELATED_SPIKES = "RATE_TO_CORRELATED_SPIKES"
     SPIKES = "SPIKES"
+    PARROT_SPIKES = "PARROT_SPIKES"
     CURRENT = "CURRENT"
+    CURRENT_TO_SPIKES = "CURRENT_TO_SPIKES"
 
 
-class DefaultSpikeNetToTVBProxyModels(object):
-    SPIKES = "SPIKES_MEAN"
-    POTENTIAL = "POTENTIAL_MEAN"
+class DefaultSpikeNetToTVBProxyModels(Enum):
+    SPIKES = "SPIKES"
+    POTENTIAL = "POTENTIAL"
+    CURRENT = "CURRENT"
 
 
 class SpikeNetProxyNodesBuilder(HasTraits):
@@ -142,13 +147,15 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for interface in interfaces:
             model = interface.get("proxy", interface.pop("proxy_model", None))
             if model is None:
+                # If there was no input for a proxy model, get the interface model as a string:
                 model = interface.get("model", None)
                 if model is None:
                     model = list(interface_models)[0].name  # a string at this point
                 else:
-                    model = model.upper()
+                    model = model.upper()  # already a string
                 assert model in list(interface_models.__members__)  # Enum names (strings)
-                model = getattr(default_proxy_models, model)  # a string name of a proxy type
+                # Get the corresponding Enum:
+                model = getattr(default_proxy_models, model).value  # Enum
             if isinstance(model, string_types):
                 # string input -> return type
                 model = model.upper()
@@ -234,7 +241,8 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
             weights[i_node] = weight_fun(spiking_node, self.tvb_weights)
             delays[i_node] = delay_fun(spiking_node, self.tvb_delays)
-            receptor_type[i_node] = receptor_type_fun(spiking_node)
+            # We need to set None for the source node index of the self._default_receptor_type method:
+            receptor_type[i_node] = receptor_type_fun(None, spiking_node)
             syn_spec[i_node] = syn_spec_fun(spiking_node)
             conn_spec[i_node] = conn_spec_fun(spiking_node)
             if neurons_inds_fun is not None:
@@ -336,7 +344,7 @@ class SpikeNetProxyNodesBuilder(HasTraits):
         for i_node, spiking_node in enumerate(interface["spiking_proxy_inds"]):
             delays[i_node] = delay_fun(spiking_node)
             if neurons_inds_fun is not None:
-                neurons_inds[i_node] = lambda neur_inds: neurons_inds_fun(spiking_node, neur_inds)
+                neurons_inds[i_node] = lambda neurons_inds: neurons_inds_fun(spiking_node, neurons_inds)
         _interface = dict()
         _interface["delays"] = delays
         _interface["neurons_fun"] = neurons_inds

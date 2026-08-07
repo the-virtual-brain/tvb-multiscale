@@ -5,8 +5,7 @@ from netpyne.sim import *
 from netpyne import __version__ as __netpyne_version__
 from copy import deepcopy
 
-from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath
-
+from tvb_multiscale.core.utils.file_utils import get_tvb_netpyne_path_from_abs_filepath, locate_neuron_mod_compiler
 
 class NetpyneModule(object):
 
@@ -21,9 +20,24 @@ class NetpyneModule(object):
         self._tracesToRecord = {}
         self._popsToRecordTraces = []
 
-        self._compileOrLoadMod()
+        self._ensureDefaultModFiles()
 
-    def _compileOrLoadMod(self):
+    def ensureCustomModFiles(self, mod_dir):
+        import os, platform
+
+        origDir = os.getcwd()
+        os.chdir(mod_dir)
+
+        if not os.path.exists(platform.machine()):
+            mod_compiler = locate_neuron_mod_compiler()
+            os.system(f'{mod_compiler} .')
+
+        import neuron
+        neuron.load_mechanisms('.')
+
+        os.chdir(origDir)
+
+    def _ensureDefaultModFiles(self):
         # Make sure that all required mod-files are compiled
         try:
             h.DynamicVecStim()
@@ -42,22 +56,18 @@ class NetpyneModule(object):
                 origDir = os.getcwd()
                 os.chdir(tmp_dir)
 
-                if os.system('which nrnivmodl') == 0:
-                    # mod compiler found
-                    os.system(f'nrnivmodl {mod_path}')
-                else:
-                    # mod compiler not found, trying to infer..
-                    python_path = 'python'.join(sys.executable.split('python')[:-1]) # keep what's before the last occurance of "python"
-                    assert os.path.exists(python_path), 'Fatal: nrnivmodl not found, unable to compile required mod-files.'
-                    os.system(f'{python_path}nrnivmodl {mod_path}')
+                mod_compiler = locate_neuron_mod_compiler()
+                os.system(f'{mod_compiler} {mod_path}')
+
                 os.chdir(origDir)
 
             print(f"NetPyNE will load mod-files from {os.path.abspath(tmp_dir)}.")
             import neuron
             neuron.load_mechanisms(tmp_dir)
 
-    def importModel(self, netParams, simConfig, dt, config):
+    def importModel(self, netParams, simConfig, dt, tvb_dt, config):
 
+        self._tvb_dt = tvb_dt
         simConfig.dt = dt
 
         simConfig.simLabel = 'spiking'
@@ -119,7 +129,7 @@ class NetpyneModule(object):
             allGids = list(range(firstCellGid, lastCellGid+1))
             self.__popCellGids[popLabel] = allGids
 
-    def prepareSimulation(self, duration):
+    def prepareSimulation(self, duration, synchronization_n_step):
 
         simConfig = self.simConfig
         simConfig.duration = duration
@@ -145,6 +155,10 @@ class NetpyneModule(object):
             simConfig.recordCellsSpikes = record
         # .. and from plotting
         simConfig.analysis['plotRaster'] = {'saveFig': True, 'include': record, 'popRates': 'minimal'}
+
+        if len(self._tracesToRecord): # if recording for NetPyNE->TVB interface(s)
+            simConfig.recordStep = self._tvb_dt
+            self.synchronization_n_step = synchronization_n_step
 
         sim.setSimCfg(simConfig)
         sim.setupRecording()
@@ -214,7 +228,9 @@ class NetpyneModule(object):
         if record:
             self._spikeGeneratorsToRecord.append(label)
 
-    def recordTracesFromPop(self, traces, pop):
+    def recordTracesFromPop(self, traces: dict, pop: str):
+        assert isinstance(traces, dict), "traces must be a dictionary with variable names (arbitrary) as keys, and netpyne's 'recordTraces' params as values, e.g. {'g_ampa': {'sec':'soma','pointp':'izhi','var':'gampa'}}"
+
         if pop not in self._popsToRecordTraces:
             self._popsToRecordTraces.append(pop)
 
@@ -258,15 +274,30 @@ class NetpyneModule(object):
         return spktimes, spkgids
 
     def getRecordedTime(self):
-        return np.array(sim.allSimData['t'])
+        if not hasattr(sim, 'allSimData'):
+            # sim has not yet completed, return empty array. This is not necessary an issue.
+            simData = sim.simData
+        else:
+            simData = sim.allSimData
+        return np.array(simData['t']) + self.simConfig.recordStep
 
     def getTraces(self, key, neuronIds, timeSlice=slice(None)):
         time = self.getRecordedTime()[timeSlice]
-        tracesPerNeuron = sim.allSimData.get(key)
-        data = np.zeros((len(neuronIds), len(time)))
+        
+        if not hasattr(sim, 'allSimData'):
+            simData = sim.simData
+        else:
+            simData = sim.allSimData
+
+        tracesPerNeuron = simData.get(key)
+        data = np.full((len(neuronIds), len(time)), np.nan)
+
         for neurInd, neurId in enumerate(neuronIds):
-            trace = tracesPerNeuron[f'cell_{neurId}']
-            data[neurInd] = trace[timeSlice]
+            trace = tracesPerNeuron.get(f'cell_{neurId}').to_python()
+            if trace is not None:
+                data[neurInd] = trace[timeSlice]
+            else:
+                print(f"No trace found for neuron {neurId}. Potentially a bug with pointp recording use netpyne version > 1.0.7")
         return data
 
     def cellGidsForPop(self, popLabel):

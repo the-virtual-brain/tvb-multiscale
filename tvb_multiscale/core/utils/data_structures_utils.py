@@ -18,7 +18,8 @@ from tvb.basic.neotraits.api import HasTraits
 
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    ensure_list, flatten_list, is_integer, extract_integer_intervals
+    ensure_list, flatten_list, is_integer, extract_integer_intervals, \
+    sort_events_by_x_and_y, concatenate_heterogeneous_DataArrays
 
 
 def is_iterable(obj):
@@ -53,6 +54,153 @@ def flatten_neurons_inds_in_DataArray(data_array, neurons_dim_label="Neuron"):
     neuron_labels = np.arange(data_array.shape[dim_id])
     data_array.coords[neurons_dim_label] = neuron_labels
     return data_array
+
+
+def repeat_nested_lists_to_size(data, size):
+    """
+    Conditionally expands input data to a list of lists of a target size.
+
+    Logic:
+    1. If input is a flat list, it is wrapped and repeated 'size' times.
+    2. If input is a single-item list of lists, that item is repeated 'size' times.
+    3. If input is already a list of lists of length > 1:
+        - If len(data) == size, it is returned as is (or throws error per your rule).
+        - If len(data) != size, it raises a ValueError.
+
+    Args:
+        data (list): Source data (list or list of lists).
+        size (int): The target length for the outer list.
+
+    Returns:
+        list[list]: A nested list where len(result) == size.
+
+    Raises:
+        ValueError: If the input is already a multi-row list of lists
+                    that does not match 'size'.
+    """
+    # Check if the input is a list of lists
+    is_nested = all(isinstance(i, list) for i in data) if data else False
+    current_len = len(data)
+
+    # CASE 1: The input is already a list of lists
+    if is_nested:
+        if current_len == 1:
+            # Single inner list: repeat it to reach 'size'
+            return [list(data[0]) for _ in range(size)]
+
+        elif current_len > 1:
+            # Already expanded: Throw error as requested
+            if current_len == size:
+                raise ValueError(f"Input is already a list of lists of size {size}.")
+            else:
+                raise ValueError(f"Input size {current_len} does not match target {size}.")
+
+    # CASE 2: The input is a flat list (real numbers)
+    # We wrap it and repeat it to reach 'size'
+    return [list(data) for _ in range(size)]
+
+# # --- Test Scenarios ---
+#
+# # 1. Flat list -> Repeats to size
+# print(f"Flat: {repeat_nested_lists_to_size([1.1, 2.2], 3)}")
+# # Output: [[1.1, 2.2], [1.1, 2.2], [1.1, 2.2]]
+#
+# # 2. Single nested list -> Repeats to size
+# print(f"Single Nested: {repeat_nested_lists_to_size([[5.5, 6.6]], 2)}")
+# # Output: [[5.5, 6.6], [5.5, 6.6]]
+#
+# # 3. Already correct size -> Throws Error
+# try:
+#     repeat_nested_lists_to_size([[1, 2], [3, 4]], 2)
+# except ValueError as e:
+#     print(f"Error (Correct Size): {e}")
+#
+# # 4. Incorrect multi-row size -> Throws Error
+# try:
+#     repeat_nested_lists_to_size([[1, 2], [3, 4]], 5)
+# except ValueError as e:
+#     print(f"Error (Wrong Size): {e}")
+
+
+def repeat_to_shape_robust(arr, target_shape):
+    """
+    Enforces a specific total shape, allowing broadcasting only if the
+    input's first dimension is 1. Otherwise, dimensions must match.
+    """
+    if not isinstance(target_shape, tuple):
+        raise TypeError(f"target_shape must be a tuple, got {type(target_shape)}")
+
+    arr = np.asanyarray(arr)
+    if arr.size == 0:
+        raise ValueError("Input array 'arr' cannot be empty.")
+
+    # 1. Standardize to at least 2D (N, 1)
+    if arr.ndim == 1:
+        arr = arr[:, np.newaxis]
+    elif arr.ndim < 1:
+        arr = arr.reshape(1, 1)
+
+    curr_dim0 = arr.shape[0]
+    target_dim0 = target_shape[0]
+
+    # 2. Strict First Dimension Enforcement
+    if curr_dim0 != target_dim0 and curr_dim0 != 1:
+        raise ValueError(
+            f"Incompatible first dimension: input has {curr_dim0}, "
+            f"but target requires {target_dim0}."
+        )
+
+    # 3. Extract the 1D "spine" from the first column
+    # This ensures we have exactly 'curr_dim0' elements.
+    spine = arr[:, 0]
+
+    # 4. Reshape spine to (curr_dim0, 1, 1, ...)
+    # The number of trailing 1s matches the length of the target trailing dims.
+    spine_shape = (curr_dim0,) + (1,) * (len(target_shape) - 1)
+    base_view = spine.reshape(spine_shape)
+
+    # 5. Broadcast to the full target shape
+    return np.broadcast_to(base_view, target_shape)
+#
+# def run_tests():
+#     # TEST 1: 1D Input matching target first dimension
+#     # Input: (30,) -> Target: (30, 2, 2)
+#     # Result: (30, 2, 2)
+#     d1 = np.arange(30)
+#     res1 = repeat_to_shape_robust(d1, (30, 2, 2))
+#     print(f"Test 1 (Match): Input {d1.shape} -> Output {res1.shape}")
+#
+#     # TEST 2: 1D Input broadcasting to a larger first dimension
+#     # Input: (1,) -> Target: (10, 3)
+#     # Result: (10, 3)
+#     d2 = np.array([99])
+#     res2 = repeat_to_shape_robust(d2, (10, 3))
+#     print(f"Test 2 (Broadcast 1 to N): Input {d2.shape} -> Output {res2.shape}")
+#
+#     # TEST 3: Multi-D input matching target
+#     # Input: (5, 100) -> Target: (5, 2, 2, 2)
+#     # Result: (5, 2, 2, 2)
+#     d3 = np.zeros((5, 100))
+#     res3 = repeat_to_shape_robust(d3, (5, 2, 2, 2))
+#     print(f"Test 3 (Multi-D Match): Input {d3.shape} -> Output {res3.shape}")
+#
+#     # TEST 4: Error - First dimension mismatch (non-1)
+#     # Input: (2,) -> Target: (5, 1)
+#     # Result: ValueError
+#     try:
+#         print("Test 4 (Mismatch): ", end="")
+#         repeat_to_shape_robust([1, 2], (5, 1))
+#     except ValueError as e:
+#         print(f"Caught expected error: {e}")
+#
+#     # TEST 5: Error - Target shape is not a tuple
+#     try:
+#         print("Test 5 (Type Check): ", end="")
+#         repeat_to_shape_robust([1], 5)
+#     except TypeError as e:
+#         print(f"Caught expected error: {e}")
+#
+# run_tests()
 
 
 def filter_events(events, variables=None, times=None, exclude_times=[]):

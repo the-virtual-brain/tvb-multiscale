@@ -76,7 +76,7 @@ class Transformer(HasTraits):
                         doc="""Boolean flag to use Ray parallelization if possible. Default is True.""",
                         field_type=bool,
                         required=True,
-                        default=True)
+                        default=CONFIGURED.RAY_PARALLEL)
 
     __compute = None
 
@@ -198,21 +198,21 @@ class Linear(Transformer):
 class LinearRate(Linear):
 
     """LinearRate class that just scales and translates mean field rates,
-       including any unit conversions and conversions from mean field to total rates"""
+       including any unit conversions and conversions from mean field to total rates."""
 
     pass
 
 
 class LinearCurrent(Linear):
     """LinearCurrent class that just scales and translates mean field currents,
-       including any unit conversions and conversions from mean field to total rates"""
+       including any necessary unit conversions and conversions from mean field to total quantities."""
 
     pass
 
 
 class LinearPotential(Linear):
     """LinearPotential class that just scales and translates mean field membrane potentials
-       including any unit conversions and conversions from mean field to total rates"""
+       including any necessary unit conversions and conversions from mean field to total quantities."""
 
     pass
 
@@ -244,7 +244,7 @@ def configure_transformer_with_ray(transformer):
 
 
 def ray_compute_spiketrains_non_implemented_error(classname, *args, **kwargs):
-    raise NonImplementedError("_ray_compute_sequentially not implemented for %s transformer!" % classname)
+    raise NotImplementedError("_ray_compute_sequentially not implemented for %s transformer!" % classname)
 
 
 class RatesToSpikes(LinearRate):
@@ -332,7 +332,7 @@ class RatesToSpikes(LinearRate):
 
 
 def ray_compute_rates_non_implemented_error(classname, *args, **kwargs):
-    raise NonImplementedError("_ray_compute_rates not implemented for %s transformer!" % classname)
+    raise NotImplementedError("_ray_compute_rates not implemented for %s transformer!" % classname)
 
 
 class SpikesToRates(LinearRate):

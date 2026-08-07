@@ -70,14 +70,44 @@ class SpikingNodesSet(pd.Series, HasTraits):
         return pd.Series.__len__(self)
 
     def __getitem__(self, items):
-        """If the argument is a sequence, a new SpikingNodesSet instance is returned.
-           If the argument is an integer index or a string label index,
-           the corresponding SpikingNodeCollection is returned.
         """
-        pops = pd.Series.__getitem__(self, items)
-        if isinstance(items, string_types) or is_integer(items):
-            return pops
-        return self.__class__(nodes=pops, label=self.label)
+        Revised SpikingNodesSet indexing:
+        - If items is integer: index by position (iloc).
+        - If items is string: index by label (loc).
+        - If items is a sequence: resolve mixed positions/labels and return a new instance.
+        """
+        # 1. Single Integer: Use positional lookup
+        if is_integer(items):
+            return self.iloc[items]
+
+        # 2. Single String: Use label-based lookup
+        if isinstance(items, string_types):
+            return self.loc[items]
+
+        # 3. Sequences (list, tuple, ndarray, etc.)
+        # We manually resolve the list so Pandas doesn't have to guess
+        if isinstance(items, (list, tuple, np.ndarray, pd.Index, pd.Series)):
+            resolved_labels = []
+            for item in items:
+                if is_integer(item):
+                    # Map the position (e.g. 0) to the actual Index label (e.g. 'Node_A')
+                    resolved_labels.append(self.index[item])
+                else:
+                    # Assume it is already a label (string)
+                    resolved_labels.append(item)
+
+            # Use .loc with the resolved label list to get the subset
+            pops = self.loc[resolved_labels]
+            return self.__class__(nodes=pops, label=self.label)
+
+        # 4. Fallback for slices (e.g., obj[0:5])
+        pops = super().__getitem__(items)
+
+        # Ensure sliced results remain SpikingNodesSet instances
+        if isinstance(pops, pd.Series):
+            return self.__class__(nodes=pops, label=self.label)
+
+        return pops
 
     @property
     def label(self):

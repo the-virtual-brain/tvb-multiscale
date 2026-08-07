@@ -16,12 +16,7 @@ from tvb_multiscale.tvb_annarchy.interfaces.io import ANNarchyInputDeviceSet, AN
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 
 
-# TVBtoANNarchyModels = TVBtoSpikeNetModels
-class TVBtoANNarchyModels(Enum):
-    RATE = 0
-    SPIKES = 1
-
-
+TVBtoANNarchyModels = TVBtoSpikeNetModels
 ANNarchytoTVBModels = SpikeNetToTVBModels
 
 
@@ -39,10 +34,6 @@ class ANNarchyInterface(HasTraits):
     def annarchy_network(self):
         return self.spiking_network
 
-    @property
-    def annarchy_instance(self):
-        return self.spiking_network.annarchy_instance
-
 
 class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
 
@@ -56,7 +47,7 @@ class ANNarchyOutputInterface(ANNarchyInterface, SpikeNetOutputInterface):
 
     @property
     def _time(self):
-        return self.annarchy_instance.get_time()
+        return self.annarchy_network.annarchy_network.time
 
     @property
     def proxy_gids(self):
@@ -127,13 +118,6 @@ class ANNarchyInterfaces(HasTraits):
     @property
     def annarchy_network(self):
         return self.spiking_network
-
-    @property
-    def annarchy_instance(self):
-        if len(self.interfaces):
-            return self.interfaces[0].annarchy_instance
-        else:
-            return None
 
 
 class ANNarchyOutputInterfaces(SpikeNetOutputInterfaces, ANNarchyInterfaces):

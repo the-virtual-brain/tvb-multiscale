@@ -22,10 +22,11 @@ from tvb_multiscale.tvb_annarchy.interfaces.interfaces import \
     ANNarchySenderInterfaces, ANNarchyReceiverInterfaces, \
     TVBtoANNarchyInterfaces, ANNarchyToTVBInterfaces
 from tvb_multiscale.tvb_annarchy.interfaces.io import \
-    ANNarchySpikeMonitorSet, ANNarchySpikeMonitorTotalSet, \
+    ANNarchySpikeEventMonitorSet, ANNarchySpikeMonitorSet, \
     ANNarchyMonitorSet, ANNarchyMonitorMeanSet, ANNarchyMonitorTotalSet, \
-    ANNarchyTimedPoissonPopulationSet, ANNarchySpikeSourceArraySet, ANNarchyTimedArraySet, \
-    ANNarchyHomogeneousCorrelatedSpikeTrainsSet
+    ANNarchyTimedArraySet, ANNarchyTimedArrayToSpikesSet, \
+    ANNarchyTimedPoissonPopulationSet, ANNarchyHomogeneousCorrelatedSpikeTrainsSet, \
+    ANNarchySpikeSourceArraySet
 from tvb_multiscale.tvb_annarchy.annarchy_models.network import ANNarchyNetwork
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.annarchy_factory import create_device, connect_device
 
@@ -39,26 +40,36 @@ class ANNarchyInputProxyModels(Enum):
     RATE_TO_SPIKES = ANNarchyTimedPoissonPopulationSet
     RATE_TO_CORRELATED_SPIKES = ANNarchyHomogeneousCorrelatedSpikeTrainsSet
     SPIKES = ANNarchySpikeSourceArraySet
+    PARROT_SPIKES = None
     CURRENT = ANNarchyTimedArraySet
+    CURRENT_TO_SPIKES = ANNarchyTimedArrayToSpikesSet
 
 
 class ANNarchyOutputProxyModels(Enum):
     SPIKES = ANNarchySpikeMonitorSet
-    SPIKES_MEAN = ANNarchySpikeMonitorTotalSet
+    SPIKE_EVENTS = ANNarchySpikeEventMonitorSet
     POTENTIAL = ANNarchyMonitorSet
     POTENTIAL_MEAN = ANNarchyMonitorMeanSet
     POTENTIAL_TOTAL = ANNarchyMonitorTotalSet
+    CURRENT = ANNarchyMonitorSet
+    CURRENT_MEAN = ANNarchyMonitorMeanSet
+    CURRENT_TOTAL = ANNarchyMonitorTotalSet
 
 
-class DefaultTVBtoANNarchyProxyModels(object):
-    RATE = ANNarchyInputProxyModels.RATE.name
-    SPIKES = ANNarchyInputProxyModels.SPIKES.name
-    CURRENT =ANNarchyInputProxyModels.CURRENT.name
+class DefaultTVBtoANNarchyProxyModels(Enum):
+    RATE = ANNarchyInputProxyModels.RATE
+    RATE_TO_SPIKES = ANNarchyInputProxyModels.RATE_TO_SPIKES
+    RATE_TO_CORRELATED_SPIKES = ANNarchyInputProxyModels.RATE_TO_CORRELATED_SPIKES
+    SPIKES = ANNarchyInputProxyModels.SPIKES
+    PARROT_SPIKES = None
+    CURRENT = ANNarchyInputProxyModels.CURRENT
+    CURRENT_TO_SPIKES = ANNarchyInputProxyModels.CURRENT_TO_SPIKES
 
 
-class DefaultANNarchytoTVBProxyModels(object):
-    SPIKES = ANNarchyOutputProxyModels.SPIKES_MEAN.name
-    POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN.name
+class DefaultANNarchytoTVBProxyModels(Enum):
+    SPIKES = ANNarchyOutputProxyModels.SPIKES
+    POTENTIAL = ANNarchyOutputProxyModels.POTENTIAL_MEAN
+    CURRENT = ANNarchyOutputProxyModels.CURRENT_MEAN
 
 
 class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
@@ -76,21 +87,17 @@ class ANNarchyProxyNodesBuilder(SpikeNetProxyNodesBuilder):
         return self.spiking_network
 
     @property
-    def annarchy_instance(self):
-        return self.spiking_network.annarchy_instance
-
-    @property
     def spikeNet_min_delay(self):
-        return self.annarchy_instance.dt()
+        return self.spiking_network.annarchy_network.dt
 
     @property
     def annarchy_min_delay(self):
-        return self.annarchy_instance.dt()
+        return self.spikeNet_min_delay
 
     def _build_and_connect_devices(self, interface, **kwargs):
         return build_and_connect_devices(interface, create_device, connect_device,
                                          self.spiking_network.brain_regions,
-                                         self.config, annarchy_instance=self.annarchy_instance,
+                                         self.config, annarchy_network=self.annarchy_network.annarchy_network,
                                          input_proxies=self.spiking_network.input_proxies, **kwargs)
 
     def _build_and_connect_input_devices(self, interface, **kwargs):
@@ -178,6 +185,9 @@ class TVBANNarchyInterfaceBuilder(ANNarchyProxyNodesBuilder, TVBSpikeNetInterfac
         TVBSpikeNetInterfaceBuilder.configure(self)
 
     def _get_tvb_delays(self):
-        return np.maximum(self.spiking_dt,
+        spiking_dt = self.spiking_dt
+        if spiking_dt is None:
+            spiking_dt = 0.0
+        return np.maximum(spiking_dt,
                           TVBSpikeNetInterfaceBuilder._get_tvb_delays(self) -
                           self.synchronization_time + self.tvb_dt)

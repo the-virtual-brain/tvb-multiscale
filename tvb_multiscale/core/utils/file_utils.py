@@ -166,3 +166,16 @@ def get_tvb_annarchy_path_from_abs_filepath(filepath):
 def get_tvb_netpyne_path_from_abs_filepath(filepath):
     package = os.path.join("tvb_multiscale/tvb_netpyne")
     return get_package_path_from_abs_filepath(filepath, package)
+
+def locate_neuron_mod_compiler():
+    if os.system('which nrnivmodl') == 0:
+        # mod compiler found
+        return 'nrnivmodl'
+    else:
+        # mod compiler not found, trying to infer..
+        python_path = 'python'.join(sys.executable.split('python')[:-1]) # keep what's before the last occurance of "python"
+        if not os.path.exists(python_path):
+            print('Fatal: nrnivmodl not found, unable to compile required mod-files.')
+            return None
+
+        return f'{python_path}nrnivmodl'

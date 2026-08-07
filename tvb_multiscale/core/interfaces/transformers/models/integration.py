@@ -193,6 +193,7 @@ class ElephantSpikesHistogramLinearIntegration(ElephantSpikesHistogram, SpikesTo
 
     def configure(self):
         SpikesToRateLinearIntegration.configure(self)
+        ElephantSpikesHistogram.configure(self)
 
     def _compute(self, input_buffer, *args, **kwargs):
         return SpikesToRateLinearIntegration._compute(self, input_buffer, *args, **kwargs)
@@ -206,6 +207,7 @@ class ElephantSpikesHistogramRateLinearIntegration(ElephantSpikesHistogramRate, 
 
     def configure(self):
         SpikesToRateLinearIntegration.configure(self)
+        ElephantSpikesHistogramRate.configure(self)
 
     def _compute(self, input_buffer, *args, **kwargs):
         return SpikesToRateLinearIntegration._compute(self, input_buffer, *args, **kwargs)
@@ -219,6 +221,7 @@ class ElephantSpikesRateLinearIntegration(ElephantSpikesRate, SpikesToRateLinear
 
     def configure(self):
         SpikesToRateLinearIntegration.configure(self)
+        ElephantSpikesRate.configure(self)
 
     def _compute(self, input_buffer, *args, **kwargs):
         return SpikesToRateLinearIntegration._compute(self, input_buffer, *args, **kwargs)
