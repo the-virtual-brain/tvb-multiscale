@@ -5,10 +5,11 @@ import numpy as np
 from pandas import Series
 
 from tvb.basic.neotraits.api import Attr, Float, List
-from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
+# from tvb.contrib.scripts.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
 
 from tvb_multiscale.core.interfaces.base.io import SetToMemory, GetFromMemory
 from tvb_multiscale.core.spiking_models.devices import DeviceSet, InputDevice, OutputDevice, Multimeter
+from tvb_multiscale.core.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
 
 
 class SpikeNetInputDeviceSet(SetToMemory):
@@ -114,7 +115,7 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
         data = list()
         # We need to get only the newly recorded events since last time:
         for i_node, node in enumerate(self.source.devices()):
-            data.append(dict)
+            data.append(dict())
             for var, val in self.source[node].get_new_events(self.variables).items():
                 data[i_node][var] = val
         return [list(), data]
@@ -123,10 +124,10 @@ class SpikeNetOutputDeviceSet(GetFromMemory):
         return self.data
 
 
-class SpikeNetSpikeRecorderDeviceSet(SpikeNetOutputDeviceSet):
+class SpikeNetSpikeEventRecorderDeviceSet(SpikeNetOutputDeviceSet):
 
     """
-        SpikeNetSpikeRecorderDeviceSet class to read spike events' data
+        SpikeNetSpikeEventRecorderDeviceSet class to read spike events' data
         (times, senders) from a Spike Recording DeviceSet in memory.
         It comprises of:
             - a source attribute, i.e., the Spike Recording DeviceSet instance to get (i.e., copy) data from,
@@ -135,21 +136,11 @@ class SpikeNetSpikeRecorderDeviceSet(SpikeNetOutputDeviceSet):
 
     model = "spike_recorder"
 
-    @property
-    def data(self):
-        data = list()
-        # We need to get only the newly recorded events since last time:
-        for i_node, node in enumerate(self.source.devices()):
-            data.append(dict())
-            for var, val in self.source[node].get_new_events(self.variables).items():
-                data[i_node][var] = val
-        return [list(), data]
 
-
-class SpikeNetSpikeRecorderTotalDeviceSet(SpikeNetSpikeRecorderDeviceSet):
+class SpikeNetSpikeRecorderDeviceSet(SpikeNetSpikeEventRecorderDeviceSet):
 
     """
-        SpikeNetSpikeRecorderTotalDeviceSet class to read mean population spike events' data
+        SpikeNetSpikeRecorderDeviceSet class to read mean population spike events' data
         (times, ) from a Spike Recording DeviceSet in memory.
         It comprises of:
             - a source attribute, i.e., the Spike Recording DeviceSet instance to get (i.e., copy) data from,
@@ -258,8 +249,8 @@ class SpikeNetSenders(Enum):
 
 class SpikeNetReceivers(Enum):
     SPIKE_NET_EVENTS_FROM_OUTPUT_DEVICE = SpikeNetOutputDeviceSet
-    SPIKE_NET_EVENTS_FROM_SPIKE_RECORDER_DEVICE = SpikeNetSpikeRecorderDeviceSet
-    SPIKE_NET_TOTAL_EVENTS_FROM_SPIKE_RECORDER_DEVICE = SpikeNetSpikeRecorderTotalDeviceSet
+    SPIKE_NET_EVENTS_FROM_SPIKE_RECORDER_DEVICE = SpikeNetSpikeEventRecorderDeviceSet
+    SPIKE_NET_TOTAL_EVENTS_FROM_SPIKE_RECORDER_DEVICE = SpikeNetSpikeRecorderDeviceSet
     SPIKE_NET_EVENTS_FROM_MULTIMETER_DEVICE = SpikeNetMultimeterDeviceSet
     SPIKE_NET_MEAN_EVENTS_FROM_MULTIMETER_DEVICE = SpikeNetMultimeterMeanDeviceSet
     SPIKE_NET_TOTAL_EVENTS_FROM_MULTIMETER_DEVICE = SpikeNetMultimeterTotalDeviceSet

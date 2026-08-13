@@ -14,6 +14,8 @@ def wilson_cowan_example(**kwargs):
     if kwargs.pop("multisynapse", True):
         nest_model_builder = WilsonCowanMultisynapseBuilder()
         tvb_nest_model_builder = WilsonCowanMultisynapseTVBNESTInterfaceBuilder()
+        tvb_nest_model_builder.default_coupling_mode = "spikeNet"
+        kwargs["multisynapse"] = True
     else:
         nest_model_builder = WilsonCowanBuilder()
         tvb_nest_model_builder = WilsonCowanTVBNESTInterfaceBuilder()

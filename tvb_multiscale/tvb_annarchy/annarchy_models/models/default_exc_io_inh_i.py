@@ -5,17 +5,19 @@ from collections import OrderedDict
 
 import numpy as np
 
-from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
-
 from tvb_multiscale.core.spiking_models.builders.templates import scale_tvb_weight, tvb_delay
+
+from tvb_multiscale.tvb_annarchy.config import CONFIGURED
+from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
 
 
 class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
-        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                      config, logger)
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
+        super(DefaultExcIOInhIBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                      spiking_simulator, config, logger)
 
         # Common order of neurons' number per population:
         self.population_order = 100
@@ -36,20 +38,20 @@ class DefaultExcIOInhIBuilder(ANNarchyNetworkBuilder):
         self.params_E = {"v_rest": -70.0, "v_reset": -60.0, "v_thresh": -55.0, "e_rev_E": 0.0, "e_rev_I": -85.0,
                           "cm": 0.25,  # nF
                           "tau_refrac": 2.0, "tau_syn_E": 0.2, "tau_syn_I": 2.0, "tau_m": 16.6667}
-        self.params_E = {}
+        self.params_E = dict()
         self.params_I = self.params_E.copy()
 
-        self.pop_conns_EE = {}
-        self.pop_conns_EI = {}
-        self.pop_conns_IE = {}
-        self.pop_conns_II = {}
+        self.pop_conns_EE = dict()
+        self.pop_conns_EI = dict()
+        self.pop_conns_IE = dict()
+        self.pop_conns_II = dict()
 
-        self.nodes_conns = {}
+        self.nodes_conns = dict()
 
-        self.spike_monitor = {}
-        self.monitor = {}
+        self.spike_monitor = dict()
+        self.monitor = dict()
 
-        self.spike_stimulus = {}
+        self.spike_stimulus = dict()
 
     def set_E_population(self):
         pop = {"label": "E", "model": self.default_population["model"],

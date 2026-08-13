@@ -11,11 +11,15 @@ TvbProfile.set_profile(TvbProfile.LIBRARY_PROFILE)
 from tvb_multiscale.core.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.core.tvb.cosimulator.cosimulator_builder import CoSimulatorSerialBuilder
 from tvb_multiscale.core.tvb.cosimulator.models.linear import Linear
+from tvb_multiscale.core.interfaces.transformers.builders import TVBtoSpikeNetTransformers, SpikeNetToTVBTransformers
 from tvb_multiscale.core.plot.plotter import Plotter
 
 from tvb.datatypes.connectivity import Connectivity
 
 from examples.plot_write_results import plot_write_results
+
+
+PRINT_SUMMARY = True
 
 
 def results_path_fun(spikeNet_model_builder, tvb_to_spikeNet_mode, spikeNet_to_tvb, config=None):
@@ -109,7 +113,7 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.build()
     print("\nBuilt in %f secs!\n" % (time.time() - tic))
 
-    print_summary = True
+    print_summary = PRINT_SUMMARY
 
     # only applicable for NetPyNE parallel simulation with MPI: skip printing and plotting the results unless being on root MPI node:
     if hasattr(orchestrator.spikeNet_app.spiking_cosimulator, 'isRootNode') and \
@@ -151,6 +155,8 @@ def main_example(orchestrator_app, tvb_sim_model, model_params={},
     orchestrator.clean_up()
     orchestrator.stop()
 
+    del orchestrator
+
     return results, simulator
 
 
@@ -189,6 +195,20 @@ def default_example(spikeNet_model_builder, tvb_spikeNet_model_builder, orchestr
 
     model = kwargs.pop("model", "RATE").upper()
     tvb_spikeNet_model_builder.model = model
+    if kwargs.get("tvb_to_spikeNet_transformer_model", None) is not None:
+        if isinstance(kwargs["tvb_to_spikeNet_transformer_model"], str):
+            # Convert string to Enum
+            kwargs["tvb_to_spikeNet_transformer_model"] = \
+                getattr(TVBtoSpikeNetTransformers, kwargs["tvb_to_spikeNet_transformer_model"])
+        # Assumes Enum:
+        tvb_spikeNet_model_builder.tvb_to_spikeNet_transformer_model = kwargs["tvb_to_spikeNet_transformer_model"]
+    if kwargs.get("spikeNet_to_tvb_transformer_model", None) is not None:
+        if isinstance(kwargs["spikeNet_to_tvb_transformer_model"], str):
+            # Convert string to Enum
+            kwargs["spikeNet_to_tvb_transformer_model"] = \
+                getattr(SpikeNetToTVBTransformers, kwargs["spikeNet_to_tvb_transformer_model"])
+        # Assumes Enum:
+        tvb_spikeNet_model_builder.spikeNet_to_tvb_transformer_model = kwargs["spikeNet_to_tvb_transformer_model"]
     tvb_to_spikeNet_interfaces = []
     spikeNet_to_tvb_interfaces = []
     tvb_spikeNet_model_builder.N_E = spikeNet_model_builder.population_order

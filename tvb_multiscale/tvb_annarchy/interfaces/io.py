@@ -7,12 +7,13 @@ import numpy as np
 
 from tvb_multiscale.core.interfaces.spikeNet.io import \
     SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
-    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetSpikeEventRecorderDeviceSet, SpikeNetSpikeRecorderDeviceSet, \
     SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_annarchy.annarchy_models.devices import \
     ANNarchyInputDevice, ANNarchySpikeSourceArray, \
-ANNarchyTimedArray, ANNarchyTimedPoissonPopulation, ANNarchyHomogeneousCorrelatedSpikeTrains, \
+    ANNarchyTimedArray, ANNarchyTimedArrayToSpikes, \
+    ANNarchyTimedPoissonPopulation, ANNarchyHomogeneousCorrelatedSpikeTrains, \
     ANNarchyOutputDevice, ANNarchyMonitor, ANNarchySpikeMonitor
 
 
@@ -30,7 +31,7 @@ class ANNarchyInputDeviceSet(SpikeNetInputDeviceSet):
 
     @property
     def spiking_time(self):
-        return self.target[0].annarchy_instance.get_time()
+        return self.target[0].time
 
     @property
     def spiking_dt(self):
@@ -59,6 +60,21 @@ class ANNarchyTimedArraySet(ANNarchyInputDeviceSet):
         rates = np.maximum([0.0], data[1])
         schedule = np.repeat(self.transform_time(data[0])[np.newaxis], rates.shape[0], axis=0)
         self.target.Set({"schedule": schedule, "rates": rates})
+
+
+class ANNarchyTimedArrayToSpikesSet(ANNarchyTimedArraySet):
+
+    """
+        ANNarchyTimedArrayToSpikesSet class to set data directly
+        to a DeviceSet of ANNarchyTimedArray instances in memory, which connects to a spiking population.
+        It comprises of:
+            - a target attribute, i.e., the DeviceSet of ANNarchyTimedArrayToSpikes instances to send data to,
+            - a method to set data to the target.
+    """
+
+    model = "TimedArrayToSpikes"
+
+    _spikeNet_input_device_type = ANNarchyTimedArrayToSpikes
 
 
 class ANNarchyTimedPoissonPopulationSet(ANNarchyTimedArraySet):
@@ -130,11 +146,20 @@ class ANNarchyOutputDeviceSet(SpikeNetOutputDeviceSet):
 
     _spikeNet_output_device_type = ANNarchyOutputDevice
 
+    def correct_times(self, data):
+        if len(data[0]):
+            # If there is a time vector, i.e., this is a continuous time Monitor...
+            if np.any(data[0] > 0.0):
+                # ...and if this is not the time zero,
+                # ...increase time by one time step:
+                data[0] += self.dt
+        return data
 
-class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDeviceSet):
+
+class ANNarchySpikeEventMonitorSet(SpikeNetSpikeEventRecorderDeviceSet, ANNarchyOutputDeviceSet):
 
     """
-        ANNarchySpikeMonitorSet class to read events' data (spike times and senders)
+        ANNarchySpikeEventMonitorSet class to read events' data (spike times and senders)
         from a DeviceSet of ANNarchySpikeMonitor instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of ANNarchySpikeMonitor instances to get (i.e., copy) data from,
@@ -146,10 +171,10 @@ class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDevi
     _spikeNet_output_device_type = ANNarchySpikeMonitor
 
 
-class ANNarchySpikeMonitorTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, ANNarchyOutputDeviceSet):
+class ANNarchySpikeMonitorSet(SpikeNetSpikeRecorderDeviceSet, ANNarchyOutputDeviceSet):
 
     """
-        ANNarchySpikeMonitorTotalSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        ANNarchySpikeMonitorSet class to read events' data with no reference to spike senders (i.e., only spike times)
         from a DeviceSet of ANNarchySpikeMonitor instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of ANNarchySpikeMonitor instances to get (i.e., copy) data from,
@@ -171,9 +196,13 @@ class ANNarchyMonitorSet(SpikeNetMultimeterDeviceSet, ANNarchyOutputDeviceSet):
             - an abstract method to get data from the source.
     """
 
-    model = "monitor"
+    model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
+
+    @property
+    def data(self):
+        return self.correct_times(super(ANNarchyMonitorSet, self).data)
 
 
 class ANNarchyMonitorMeanSet(SpikeNetMultimeterMeanDeviceSet, ANNarchyOutputDeviceSet):
@@ -185,9 +214,13 @@ class ANNarchyMonitorMeanSet(SpikeNetMultimeterMeanDeviceSet, ANNarchyOutputDevi
                 - an abstract method to get data from the source.
         """
 
-    model = "monitor"
+    model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
+
+    @property
+    def data(self):
+        return self.correct_times(super(ANNarchyMonitorMeanSet, self).data)
 
 
 class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDeviceSet):
@@ -199,14 +232,18 @@ class ANNarchyMonitorTotalSet(SpikeNetMultimeterTotalDeviceSet, ANNarchyOutputDe
                 - an abstract method to get data from the source.
         """
 
-    model = "monitor"
+    model = "Monitor"
 
     _spikeNet_output_device_type = ANNarchyMonitor
+
+    @property
+    def data(self):
+        return self.correct_times(super(ANNarchyMonitorTotalSet, self).data)
 
 
 class ANNarchyOutputDeviceGetters(Enum):
     SPIKE_MONITOR = ANNarchySpikeMonitorSet
-    SPIKE_MONITOR_TOTAL = ANNarchySpikeMonitorTotalSet
+    SPIKE_EVENT_MONITOR = ANNarchySpikeEventMonitorSet
     MONITOR = ANNarchyMonitorSet
     MONITOR_MEAN = ANNarchyMonitorMeanSet
     MONITOR_TOTAL = ANNarchyMonitorTotalSet
@@ -215,7 +252,8 @@ class ANNarchyOutputDeviceGetters(Enum):
 class ANNarchyInputDeviceSetters(Enum):
     TIMED_ARRAY_POISSON_POPULATION = ANNarchyTimedPoissonPopulationSet
     SPIKE_SOURCE_ARRAY = ANNarchySpikeSourceArraySet
-    # TIMED_ARRAY = ANNarchyTimedArraySet
+    TIMED_ARRAY = ANNarchyTimedArraySet
+    TIMED_ARRAY_TO_SPIKES = ANNarchyTimedArrayToSpikesSet
 
 
 ANNarchySenders = ANNarchyOutputDeviceGetters

@@ -54,9 +54,8 @@ def configure_spikeNet_interfaces(spike_interface_builder_class,
              # --------------- Arguments that can default if not given by the user:------------------------------
              # Set the enum entry or the corresponding label name for the "proxy_model",
              # or import and set the appropriate spikeNet proxy device class directly
-             # options "SPIKES" (i.e., spikes per neuron), "SPIKES_MEAN", "SPIKES_TOTAL"
              # (the last two are identical for the moment returning all populations spikes together)
-             'proxy_model': "SPIKES_MEAN"
+             'proxy_model': "SPIKES"
              }
         )
 

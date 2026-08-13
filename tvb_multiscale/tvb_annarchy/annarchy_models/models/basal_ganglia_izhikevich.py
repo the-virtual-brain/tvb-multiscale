@@ -5,13 +5,16 @@ from copy import deepcopy
 
 import numpy as np
 
+from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
+
+from tvb_multiscale.tvb_annarchy.config import CONFIGURED
 from tvb_multiscale.tvb_annarchy.annarchy.models import Izhikevich_Hamker
 from tvb_multiscale.tvb_annarchy.annarchy_models.builders.base import ANNarchyNetworkBuilder
-from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
 
 
 class TVBWeightFun(object):
-    tvb_weights = np.array([])
+
+    tvb_weights = np.array(list())
     global_coupling_scaling = 1.0
 
     def __init__(self, tvb_weights, global_coupling_scaling=1.0):
@@ -25,8 +28,9 @@ class TVBWeightFun(object):
 
 class BasalGangliaIzhikevichBuilder(ANNarchyNetworkBuilder):
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+
         super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
                                                             spiking_simulator, config, logger)
         self.default_population["model"] = Izhikevich_Hamker

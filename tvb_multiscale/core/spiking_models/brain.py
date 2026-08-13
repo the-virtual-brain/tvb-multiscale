@@ -7,9 +7,10 @@ from pandas import Series
 
 from tvb_multiscale.core.config import initialize_logger
 from tvb_multiscale.core.spiking_models.node_set import SpikingNodesSet
+from tvb_multiscale.core.utils.data_structures_utils import concatenate_heterogeneous_DataArrays
 
 from tvb.contrib.scripts.utils.data_structures_utils import \
-    series_loop_generator, is_integer, concatenate_heterogeneous_DataArrays
+    series_loop_generator, is_integer # , concatenate_heterogeneous_DataArrays
 
 
 LOG = initialize_logger(__name__)

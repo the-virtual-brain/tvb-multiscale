@@ -7,7 +7,7 @@ import numpy as np
 
 from tvb_multiscale.core.interfaces.spikeNet.io import \
     SpikeNetInputDeviceSet, SpikeNetOutputDeviceSet, \
-    SpikeNetSpikeRecorderDeviceSet, SpikeNetSpikeRecorderTotalDeviceSet, \
+    SpikeNetSpikeEventRecorderDeviceSet, SpikeNetSpikeRecorderDeviceSet, \
     SpikeNetMultimeterDeviceSet, SpikeNetMultimeterMeanDeviceSet, SpikeNetMultimeterTotalDeviceSet
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 from tvb_multiscale.tvb_nest.nest_models.devices import \
@@ -158,10 +158,10 @@ class NESTOutputDeviceSet(SpikeNetOutputDeviceSet):
     _spikeNet_output_device_type = NESTOutputDevice
 
 
-class NESTSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NESTOutputDeviceSet):
+class NESTSpikeEventRecorderSet(SpikeNetSpikeEventRecorderDeviceSet, NESTOutputDeviceSet):
 
     """
-        NESTSpikeRecorderSet class to read events' data (spike times and senders)
+        NESTSpikeEventRecorderSet class to read events' data (spike times and senders)
         from a DeviceSet of NESTSpikeRecorder instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of NESTSpikeRecorder instances to get (i.e., copy) data from,
@@ -173,10 +173,10 @@ class NESTSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NESTOutputDeviceSet):
     _spikeNet_output_device_type = NESTSpikeRecorder
 
 
-class NESTSpikeRecorderTotalSet(SpikeNetSpikeRecorderTotalDeviceSet, NESTOutputDeviceSet):
+class NESTSpikeRecorderSet(SpikeNetSpikeRecorderDeviceSet, NESTOutputDeviceSet):
 
     """
-        NESTSpikeRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
+        NESTSpikeEventRecorderSet class to read events' data with no reference to spike senders (i.e., only spike times)
         from a DeviceSet of NESTSpikeRecorder instances in memory.
         It comprises of:
             - a source attribute, i.e., the DeviceSet of NESTSpikeRecorder instances to get (i.e., copy) data from,
@@ -274,7 +274,7 @@ class NESTVoltmeterTotalSet(NESTMultimeterTotalSet):
 
 class NESTOutputDeviceGetters(Enum):
     SPIKE_RECORDER = NESTSpikeRecorderSet
-    SPIKE_RECORDER_TOTAL = NESTSpikeRecorderTotalSet
+    SPIKE_EVENT_RECORDER = NESTSpikeEventRecorderSet
     MULTIMETER = NESTMultimeterSet
     MULTIMETER_MEAN = NESTMultimeterMeanSet
     MULTIMETER_TOTAL = NESTMultimeterTotalSet

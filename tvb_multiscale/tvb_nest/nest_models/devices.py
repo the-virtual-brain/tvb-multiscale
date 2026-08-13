@@ -368,7 +368,7 @@ class NESTParrotInputDevice(NESTInputDevice, NESTParrotPopulation):
 
     @property
     def number_of_neurons(self):
-        return NESTInputDevice.number_of_neurons.fget(self)
+        return NESTInputDevice.number_of_neurons.get(self)
 
     @property
     def number_of_connected_neurons(self):

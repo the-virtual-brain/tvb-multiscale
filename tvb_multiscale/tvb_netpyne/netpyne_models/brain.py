@@ -1,6 +1,10 @@
+# -*- coding: utf-8 -*-
+
 from tvb_multiscale.core.spiking_models.brain import SpikingBrain
 
+
 # TODO: why is this ever needed?
+
 class NetpyneBrain(SpikingBrain):
 
     """"NetpyneBrain is an indexed mapping (based on inheriting from pandas.Series class)

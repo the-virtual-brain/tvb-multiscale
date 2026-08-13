@@ -5,12 +5,13 @@ from copy import deepcopy
 
 import numpy as np
 
-from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 from tvb_multiscale.core.spiking_models.builders.templates import tvb_delay, scale_tvb_weight
+from tvb_multiscale.tvb_nest.config import CONFIGURED
+from tvb_multiscale.tvb_nest.nest_models.builders.base import NESTNetworkBuilder
 
 
 class TVBWeightFun(object):
-    tvb_weights = np.array([])
+    tvb_weights = np.array(list())
     global_coupling_scaling = 1.0
     sign = 1
 
@@ -28,12 +29,12 @@ class BasalGangliaIzhikevichBuilder(NESTNetworkBuilder):
 
     model = "izhikevich_hamker"
 
-    output_devices_record_to = "ascii"
+    def __init__(self, tvb_simulator=dict(), spiking_nodes_inds=list(),
+                 spiking_simulator=None, config=CONFIGURED, logger=None):
+        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds,
+                                                            spiking_simulator, config, logger)
 
-    def __init__(self, tvb_simulator={}, spiking_nodes_inds=[], spiking_simulator=None,
-                 config=None, logger=None):
-        super(BasalGangliaIzhikevichBuilder, self).__init__(tvb_simulator, spiking_nodes_inds, spiking_simulator,
-                                                            config, logger)
+        self.model = "izhikevich_hamker"
 
         # Common order of neurons' number per population:
         self.population_order = 200

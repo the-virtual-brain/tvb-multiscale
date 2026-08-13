@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from types import FunctionType, MethodType
+from types import FunctionType
 
 import ray
 

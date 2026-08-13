@@ -34,13 +34,13 @@ NET_RECEIVE (w) {
 			net_event(t) : emit spike
 		}
 		inferNextEvent()
+
 		if (index > 0) {
-			if (etime > t) {
-				net_send(etime - t, 1) : schedule next spike
-			} else {
-				printf("WARNING in DynamicVecStim. Spike at %f skipped. Make sure it doesn't go before previous interval ends.\n", etime)
-				net_send(0, 2)
+			if (etime < t) {
+				: this may happen if the first spike in this interval is earlier than dt. Need to do this correction:
+				etime = t
 			}
+			net_send(etime - t, 1) : schedule next spike
 			
 		} else {
 			: no more spikes. wait for inetrval end to be able to initialize next interval

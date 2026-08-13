@@ -2,7 +2,6 @@
 
 
 from tvb_multiscale.tvb_nest.nest_models.models.cereb import CerebBuilder
-from tvb_multiscale.tvb_nest.nest_models.models.cereb_no_tvb_nest_builders import CerebBuilder as CerebNoNESTBuilder
 from tvb_multiscale.tvb_nest.interfaces.models.cereb import CerebTVBNESTInterfaceBuilder
 
 from examples.tvb_nest.example import main_example

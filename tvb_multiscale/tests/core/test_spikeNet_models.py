@@ -16,18 +16,19 @@ from tvb.contrib.scripts.utils.file_utils import delete_folder_safely
 
 
 class TestSpikeNetModel(TestModel):
+
     spiking_proxy_inds = [0, 1]
     tvb_spikeNet_model_builder = None
     spikeNet_model_builder = None
     population_order = 10
-    tvb_to_spikeNet_mode = "rate"
+    tvb_to_spikeNet_model = "RATE"
     spikeNet_to_tvb = True
     exclusive_nodes = True
     delays_flag = True
 
     @property
     def results_path(self):
-        return results_path_fun(self.spikeNet_model_builder, self.tvb_to_spikeNet_mode, self.spikeNet_to_tvb)
+        return results_path_fun(self.spikeNet_model_builder, self.tvb_to_spikeNet_model, self.spikeNet_to_tvb)
 
     def run_fun(self):
         pass

@@ -69,7 +69,7 @@ def red_wong_wang_excio_example(spikeNet_model_builder, tvb_spikeNet_model_build
     #     [{"voi": ("S", "R"), "populations": "E",
     #       "transformer": spikeNet_to_tvb_transformer,
     #       "transformer_params": {"scale_factor": np.array([1.0]) / tvb_spikeNet_model_builder.N_E,
-    #                              "integrator": spikeNet_model_builder.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self._dt),
+    #                              "integrator": spikeNet_model_builder.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=tvb_spikeNet_model_builder.tvb_dt),
     #                              "state": np.zeros((2, len(spiking_proxy_inds))),
     #                              "tau_s": model_params.get("tau_s",
     #                                                        np.array([100.0, ])),
@@ -190,7 +190,7 @@ def red_wong_wang_excio_inhi_example(spikeNet_model_builder, tvb_spikeNet_model_
     #         "transformer": transformer,
     #         "transformer_params":
     #             {"scale_factor": scale,
-    #              "integrator": spikeNet_model_builder.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self._dt),
+    #              "integrator": spikeNet_model_builder.config.DEFAULT_TRANSFORMER_INTEGRATOR_MODEL(dt=self.dt),
     #              "state": np.zeros((2, len(spiking_proxy_inds))),
     #              "tau_s": tau_s, "tau_r": tau_r, "gamma": gamma}
     #     })

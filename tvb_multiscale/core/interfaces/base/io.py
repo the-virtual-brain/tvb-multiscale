@@ -9,7 +9,7 @@ from tvb.basic.neotraits.api import Attr, Int
 from tvb.contrib.scripts.utils.log_error_utils import warning
 
 from tvb_multiscale.core.neotraits import HasTraits
-from tvb_multiscale.core.interfaces.base.transformers.models.base import Transformer
+from tvb_multiscale.core.interfaces.transformers.models.base import Transformer
 from tvb_multiscale.core.utils.data_structures_utils import combine_enums
 
 
@@ -199,6 +199,10 @@ class FileCommunicator(HasTraits):
     _extension = ""
     __extension = ""
 
+    def __init__(self, **kwargs):
+        self.binary_tag = 0
+        super(FileCommunicator, self).__init__(**kwargs)
+
     def _configure(self, filepath):
         super(FileCommunicator, self).configure()
         self.__extension = "." + self._extension
@@ -224,6 +228,10 @@ class WriterToFile(Sender, FileCommunicator):
 
     target = Attr(field_type=str, required=True,
                   label="Path to target file", doc="""Full path to file to write data to.""")
+
+    def __init__(self, **kwargs):
+        Sender.__init__(self, **kwargs)
+        FileCommunicator.__init__(self, **kwargs)
 
     def configure(self):
         super(WriterToFile, self).configure()
@@ -253,6 +261,10 @@ class ReaderFromFile(Receiver, FileCommunicator):
         required=True,
         doc="""Binary tag to name files to reassure that they are not overwritten
                    during the next synchronization instance, before being read by the current one.""")
+
+    def __init__(self, **kwargs):
+        Receiver.__init__(self, **kwargs)
+        FileCommunicator.__init__(self, **kwargs)
 
     def configure(self):
         super(ReaderFromFile, self).configure()
@@ -322,8 +334,6 @@ class MPIWriter(RemoteSender):
            - a method to write data to the target.
     """
 
-    pass
-
     # from mpi4py import MPI
 
     target = Attr(field_type=str, required=True, label="Path to target file",
@@ -354,8 +364,6 @@ class MPIReader(RemoteReceiver):
             - a source attribute, i.e., the mpi port to read data from,
             - an abstract method to read data from the source.
     """
-
-    pass
 
     # from mpi4py import MPI
 

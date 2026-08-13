@@ -7,26 +7,22 @@ from tvb.basic.neotraits.api import Attr
 
 from tvb_multiscale.core.interfaces.tvb.builders import TVBSpikeNetInterfaceBuilder
 from tvb_multiscale.core.interfaces.tvb.interfaces import TVBtoSpikeNetModels, SpikeNetToTVBModels
-from tvb_multiscale.core.interfaces.spikeNet.builders import SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, \
-    SpikeNetTransformerInterfaceBuilder, SpikeNetRemoteInterfaceBuilder, \
-    SpikeNetRemoteTransformerInterfaceBuilder
+from tvb_multiscale.core.interfaces.spikeNet.builders import \
+    SpikeNetProxyNodesBuilder, SpikeNetInterfaceBuilder, SpikeNetRemoteInterfaceBuilder
 from tvb_multiscale.core.spiking_models.builders.factory import build_and_connect_devices
 
 from tvb_multiscale.tvb_netpyne.config import Config, CONFIGURED, initialize_logger
 from tvb_multiscale.tvb_netpyne.interfaces.interfaces import \
     NetpyneOutputInterface, NetpyneInputInterface, \
-    NetpyneOutputTransformerInterface, NetpyneInputTransformerInterface, \
     NetpyneSenderInterface, NetpyneReceiverInterface, \
-    NetpyneTransformerSenderInterface, NetpyneReceiverTransformerInterface, \
     TVBtoNetpyneInterface, NetpyneToTVBInterface, \
     NetpyneOutputInterfaces, NetpyneInputInterfaces, \
-    NetpyneOutputTransformerInterfaces, NetpyneInputTransformerInterfaces, \
     NetpyneSenderInterfaces, NetpyneReceiverInterfaces, \
-    NetpyneTransformerSenderInterfaces, NetpyneReceiverTransformerInterfaces, \
     TVBtoNetpyneInterfaces, NetpyneToTVBInterfaces
 from tvb_multiscale.tvb_netpyne.interfaces.io import \
-    NetpyneSpikeRecorderSet, NetpyneSpikeRecorderTotalSet, \
-    NetpynePoissonGeneratorSet
+    NetpyneSpikeEventRecorderSet, NetpyneSpikeRecorderSet, \
+    NetpynePoissonGeneratorSet, NetpyneParameterInputSet, \
+    NetpyneMultimeterSet, NetpyneMultimeterMeanSet, NetpyneMultimeterTotalSet
 from tvb_multiscale.tvb_netpyne.netpyne_models.network import NetpyneNetwork
 from tvb_multiscale.tvb_netpyne.netpyne_models.builders.netpyne_factory import create_device, connect_device
 
@@ -37,21 +33,39 @@ NetpyneToTVBModels = SpikeNetToTVBModels
 
 class NetpyneInputProxyModels(Enum):
     RATE = NetpynePoissonGeneratorSet
+    RATE_TO_SPIKES = None
+    RATE_TO_CORRELATED_SPIKES = None
     SPIKES = None
+    PARROT_SPIKES = None
+    CURRENT = None
+    CURRENT_TO_SPIKES = NetpyneParameterInputSet
 
 
 class NetpyneOutputProxyModels(Enum):
     SPIKES = NetpyneSpikeRecorderSet
-    SPIKES_MEAN = NetpyneSpikeRecorderTotalSet
+    SPIKE_EVENTS = NetpyneSpikeEventRecorderSet
+    POTENTIAL = NetpyneMultimeterSet
+    POTENTIAL_MEAN = NetpyneMultimeterMeanSet
+    POTENTIAL_TOTAL = NetpyneMultimeterTotalSet
+    CURRENT = NetpyneMultimeterSet
+    CURRENT_MEAN = NetpyneMultimeterMeanSet
+    CURRENT_TOTAL = NetpyneMultimeterTotalSet
 
 
-class DefaultTVBtoNetpyneModels(Enum):
-    RATE = NetpyneInputProxyModels.RATE.name
+class DefaultTVBtoNetpyneProxyModels(Enum):
+    RATE = NetpyneInputProxyModels.RATE
+    RATE_TO_SPIKES = None
+    RATE_TO_CORRELATED_SPIKES = None
     SPIKES = None
+    PARROT_SPIKES = None
+    CURRENT = None
+    CURRENT_TO_SPIKES = NetpyneInputProxyModels.CURRENT_TO_SPIKES
 
 
-class DefaultNetpyneToTVBModels(Enum):
-    SPIKES = NetpyneOutputProxyModels.SPIKES_MEAN.name
+class DefaultNetpyneToTVBProxyModels(Enum):
+    SPIKES = NetpyneOutputProxyModels.SPIKES
+    POTENTIAL = NetpyneOutputProxyModels.POTENTIAL_MEAN
+    CURRENT = NetpyneOutputProxyModels.CURRENT_MEAN
 
 
 class NetpyneProxyNodesBuilder(SpikeNetProxyNodesBuilder):
@@ -108,8 +122,8 @@ class NetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, SpikeNetInterfaceBuilder
     _tvb_to_spikeNet_models = TVBtoNetpyneModels
     _spikeNet_to_tvb_models = NetpyneToTVBModels
 
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNetpyneModels
-    _default_spikeNet_to_tvb_models = DefaultNetpyneToTVBModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNetpyneProxyModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNetpyneToTVBProxyModels
 
     _input_proxy_models = NetpyneInputProxyModels
     _output_proxy_models = NetpyneOutputProxyModels
@@ -139,19 +153,6 @@ class NetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, SpikeNetInterfaceBuilder
     def _get_tvb_delays(self):
         return np.maximum(self.spiking_dt,
                           SpikeNetInterfaceBuilder._get_tvb_delays(self) - self.spiking_dt).astype("float32")
-
-
-class NetpyneTransformerInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetTransformerInterfaceBuilder):
-    """NetpyneTransformerInterfaceBuilder class"""
-
-    _output_interface_type = NetpyneOutputTransformerInterface
-    _input_interface_type = NetpyneInputTransformerInterface
-
-    _output_interfaces_type = NetpyneOutputTransformerInterfaces
-    _input_interfaces_type = NetpyneInputTransformerInterfaces
-
-    def configure(self):
-        SpikeNetTransformerInterfaceBuilder.configure(self)
         
         
 class NetpyneRemoteInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteInterfaceBuilder):
@@ -166,20 +167,6 @@ class NetpyneRemoteInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteInter
     
     def configure(self):
         SpikeNetRemoteInterfaceBuilder.configure(self)
-
-
-class NetpyneRemoteTransformerInterfaceBuilder(NetpyneInterfaceBuilder, SpikeNetRemoteTransformerInterfaceBuilder):
-
-    """NetpyneTransformerInterfaceBuilder class"""
-
-    _output_interface_type = NetpyneTransformerSenderInterface
-    _input_interface_type = NetpyneReceiverTransformerInterface
-
-    _output_interfaces_type = NetpyneTransformerSenderInterfaces
-    _input_interfaces_type = NetpyneReceiverTransformerInterfaces
-
-    def configure(self):
-        SpikeNetRemoteTransformerInterfaceBuilder.configure(self)
         
         
 class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceBuilder):
@@ -189,8 +176,8 @@ class TVBNetpyneInterfaceBuilder(NetpyneProxyNodesBuilder, TVBSpikeNetInterfaceB
     _tvb_to_spikeNet_models = TVBtoNetpyneModels
     _spikeNet_to_TVB_models = NetpyneToTVBModels
 
-    _default_spikeNet_to_tvb_models = DefaultNetpyneToTVBModels
-    _default_tvb_to_spikeNet_models = DefaultTVBtoNetpyneModels
+    _default_spikeNet_to_tvb_proxy_models = DefaultNetpyneToTVBProxyModels
+    _default_tvb_to_spikeNet_proxy_models = DefaultTVBtoNetpyneProxyModels
 
     _input_proxy_models = NetpyneOutputProxyModels  # Input to SpikeNet is output of TVB
     _output_proxy_models = NetpyneInputProxyModels  # Output of SpikeNet is input to TVB

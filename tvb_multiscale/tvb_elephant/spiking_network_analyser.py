@@ -105,7 +105,7 @@ class SpikingNetworkAnalyser(SpikingNetworkAnalyserBase):
             num_bins = None
         elif num_bins is None:
             binsize = self.period * ms
-        return BinnedSpikeTrain(spikes_trains, binsize=binsize, num_bins=num_bins, t_start=t_start, t_stop=t_stop)
+        return BinnedSpikeTrain(spikes_trains, bin_size=binsize, t_start=t_start, t_stop=t_stop)
 
     @property
     def binned_spikes_trains_name(self):
